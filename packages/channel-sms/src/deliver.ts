@@ -5,7 +5,7 @@
  * a `sending` row, which `reconcile` turns into `unknown` and nothing ever
  * resends. Texting a stranger twice is worse than missing one.
  *
- * A sent sequence step is listed in `stepped`: the sender hands it to the spine,
+ * A sent sequence step is listed in `stepped`: the sender hands it to the executor,
  * whose wire waits `afterDays` and queues the next (follow.ts). After the last,
  * the contact is `finished`. The live gate: with a real
  * provider nothing leaves unless `live` is set (the registered campaign is
@@ -91,7 +91,7 @@ export interface TickStats {
   remainingToday: number;
   /** Numbers in the pool that are active (not paused or retired). 0 = the loop sleeps long. */
   activeNumbers: number;
-  /** Sequence steps sent this tick, each leaving its cadence node on the spine. */
+  /** Sequence steps sent this tick, each leaving its cadence node on the executor. */
   stepped: Array<{ contactId: number; sequence: string; step: number }>;
   /** The soonest text still queued for later (ISO), or null: the loop sleeps until then. */
   nextDue: string | null;
@@ -173,7 +173,7 @@ async function refusedRun(db: Queryable, contact: SmsContact, detail: string) {
     .where(and(eq(speedRuns.smsContactId, contact.id), eq(speedRuns.firstTouch, "queued")));
 }
 
-/** A sequence step went: list it for the spine, and finish the contact after the last. */
+/** A sequence step went: list it for the executor, and finish the contact after the last. */
 async function stepped(
   db: Queryable,
   msg: SmsMessage,

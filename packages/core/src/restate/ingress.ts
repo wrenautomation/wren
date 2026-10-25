@@ -1,5 +1,5 @@
 /**
- * A one-way call through Restate's ingress, for code already inside a `ctx.run` (a spine step),
+ * A one-way call through Restate's ingress, for code already inside a `ctx.run` (an executor step),
  * where a journaled send would break replay. The idempotency key makes a retried run send once.
  */
 export interface Ingress {

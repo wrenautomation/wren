@@ -3,7 +3,7 @@
  * the builder. He says what should happen; Claude draws a draft the canvas opens on. Nothing
  * runs until Publish.
  */
-import type { MadeWorkflow } from "@wren/core/spine";
+import type { MadeWorkflow } from "@wren/core/executor";
 import {
   Button,
   FormKept,

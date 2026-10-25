@@ -8,7 +8,7 @@
  * (give up, its caller is told) or drops (handled elsewhere) them.
  *
  * What is not a letter: a handler's terminal error goes back to whoever called it, and a
- * spine step's error waits on its event (`failedRuns`, Replay). Both already have an owner.
+ * executor step's error waits on its event (`failedRuns`, Replay). Both already have an owner.
  */
 import type * as restate from "@restatedev/restate-sdk";
 import type { Db } from "@wren/db";

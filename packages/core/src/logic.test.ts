@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { EVENT_KINDS } from "./components.js";
+import type { ExecutorEvent, StepAt } from "./executor.js";
 import {
   aboutOf,
   bucketOf,
@@ -23,7 +24,6 @@ import {
   untilsFreedBy,
   untilText,
 } from "./logic.js";
-import type { SpineEvent, StepAt } from "./spine.js";
 import { TOUCH_DIRECTIONS, TOUCH_KINDS, TOUCH_PLATFORMS } from "./touches-schema.js";
 
 const at = (node: string, w: Record<string, string | number>): StepAt => ({
@@ -32,7 +32,7 @@ const at = (node: string, w: Record<string, string | number>): StepAt => ({
   node,
   with: w,
 });
-const ev = (subject: string, data: Record<string, unknown> = {}): SpineEvent => ({
+const ev = (subject: string, data: Record<string, unknown> = {}): ExecutorEvent => ({
   subject,
   kind: "lead",
   data,

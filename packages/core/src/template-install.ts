@@ -21,6 +21,7 @@ import {
   type LoopKey,
 } from "./components.js";
 import { ensureDoors } from "./doors.js";
+import { clocksOf, makeHook } from "./executor.js";
 import { accountsLacking, blockOf, has, installCheck, withConnected } from "./installs.js";
 import { PortalRefusal } from "./portal.js";
 import {
@@ -35,7 +36,6 @@ import {
 } from "./schema.js";
 import { factsHeld, factsLacking, type Setup, setupOf } from "./setup.js";
 import { pausedParts, pausedText } from "./setup-alerts.js";
-import { clocksOf, makeHook } from "./spine.js";
 import { covers, type DefaultFile, installDefaults, loadDefaults } from "./template-defaults.js";
 import { nameLabel } from "./template-labels.js";
 import { refText } from "./templates.js";
@@ -746,7 +746,7 @@ export function loopsOf(
 }
 
 /**
- * A person's yes: the draft goes live (checked as the spine runs it), the door opens, and the
+ * A person's yes: the draft goes live (checked as the executor runs it), the door opens, and the
  * loops of its parts on the client come back to start. The caller checks who may.
  */
 export async function approveInstall(

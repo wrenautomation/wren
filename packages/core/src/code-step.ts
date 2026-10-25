@@ -4,8 +4,8 @@
  * fetch, timers, require or files. Server only: the web reads `logic.ts`, never this.
  */
 import { newQuickJSWASMModuleFromVariant, type QuickJSWASMModule } from "quickjs-emscripten-core";
+import type { ExecutorEvent, Step } from "./executor.js";
 import { CODE_MOST } from "./logic.js";
-import type { SpineEvent, Step } from "./spine.js";
 
 const RESULT_MOST = 64_000;
 const RUN_MS = 1_000;
@@ -23,7 +23,7 @@ const quickjs = () => {
 type CodeResult = { data: Record<string, unknown> } | { data: null };
 
 /** Run `code` on `e`. Throws with the code's own error line when it throws, loops or overflows. */
-export async function runCode(code: string, e: SpineEvent, now: Date): Promise<CodeResult> {
+export async function runCode(code: string, e: ExecutorEvent, now: Date): Promise<CodeResult> {
   if (code.length > CODE_MOST) throw new Error(`code over ${CODE_MOST} characters`);
   const runtime = (await quickjs()).newRuntime();
   runtime.setMemoryLimit(MEMORY);
@@ -58,13 +58,13 @@ export async function runCode(code: string, e: SpineEvent, now: Date): Promise<C
   }
 }
 
-/** The Code node's step, by its node id, for the spine and dry tests. */
+/** The Code node's step, by its node id, for the executor and dry tests. */
 export const CODE_STEPS: Record<string, Step> = {
   "logic.code": (_port, e, at) => codeStep(String(at.with.code ?? ""), e),
 };
 
 /** The Code node's step: fields merged into `data` and out by `out`, else `skip` unchanged. */
-export async function codeStep(code: string, e: SpineEvent, now = new Date()) {
+export async function codeStep(code: string, e: ExecutorEvent, now = new Date()) {
   const r = await runCode(code, e, now);
   return r.data
     ? [{ port: "out", event: { ...e, data: { ...e.data, ...r.data } } }]

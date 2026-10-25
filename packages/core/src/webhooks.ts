@@ -12,6 +12,7 @@ import { and, desc, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { listMembers, normalEmail } from "./clients/index.js";
 import { openToken, sealToken } from "./doors.js";
+import type { Step } from "./executor.js";
 import { PortalRefusal } from "./portal.js";
 import { serviceHandler } from "./restate/form.js";
 import {
@@ -21,7 +22,6 @@ import {
   webhookDeliveries,
   webhookSubscriptions,
 } from "./schema.js";
-import type { Step } from "./spine.js";
 import {
   answerKept,
   bodyOf,
@@ -691,7 +691,7 @@ function turnedOffMail(off: TurnedOff, portal: string): { subject: string; text:
 
 export const WEBHOOKS = { name: "Webhooks" } as const;
 
-/** An event the spine heard that a client's URL may want. */
+/** An event the executor heard that a client's URL may want. */
 export interface Published {
   client: string | null;
   event: WebhookEvent;
@@ -841,7 +841,7 @@ export async function testSubscription(
 // ---- The Send webhook node ----
 
 /**
- * `logic.webhook` on the spine: the event's request, posted past the guard. 2xx leaves by
+ * `logic.webhook` on the executor: the event's request, posted past the guard. 2xx leaves by
  * `answered`, any other 4xx by `refused`, each with `data.webhook`. No answer or a 5xx throws, so
  * the step's tries, the failed row and the workflow's auto-retry apply.
  */

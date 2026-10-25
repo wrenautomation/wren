@@ -123,7 +123,7 @@ CREATE VIEW public.agency_facts AS
 -- Name: VIEW agency_facts; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON VIEW public.agency_facts IS 'agency_facts is the sanctioned targeting read surface for the agencies niche (D33 design b, D35). One row per company whose effective raw carries any agency.* fact key; facts are read from the newest FACT-BEARING sighting, else the create-time raw -- non-fact sightings never shadow facts. Numeric floors are parsed once here (first number of a range); never re-derive them from raw ad hoc. Spine columns (company_id, source_key, domain, name, country, employees, last_seen_at, segment) match firm_facts for cross-niche UNIONs; segment is marketing or build, whichever bucket holds the larger share of the listed services (a9c4e17d5b62), NULL on a tie or when no service classifies. Templates read it as company.segment; compose --where company.segment=... picks the arm.';
+COMMENT ON VIEW public.agency_facts IS 'agency_facts is the sanctioned targeting read surface for the agencies niche (D33 design b, D35). One row per company whose effective raw carries any agency.* fact key; facts are read from the newest FACT-BEARING sighting, else the create-time raw -- non-fact sightings never shadow facts. Numeric floors are parsed once here (first number of a range); never re-derive them from raw ad hoc. Executor columns (company_id, source_key, domain, name, country, employees, last_seen_at, segment) match firm_facts for cross-niche UNIONs; segment is marketing or build, whichever bucket holds the larger share of the listed services (a9c4e17d5b62), NULL on a tie or when no service classifies. Templates read it as company.segment; compose --where company.segment=... picks the arm.';
 
 
 --

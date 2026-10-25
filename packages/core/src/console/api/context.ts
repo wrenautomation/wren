@@ -11,6 +11,7 @@ import { automationRecord } from "../../automations.js";
 import { type Client, changeRecord, clientUrl, teamRecord } from "../../clients/index.js";
 import type { Component } from "../../components.js";
 import { withCustomFields } from "../../custom-fields.js";
+import { editsOf, madeWorkflows, savedWorkflows, workflowHistory } from "../../executor.js";
 import { experimentRecord } from "../../experiment-store.js";
 import { type EdgePush, flagRecord } from "../../flag-store.js";
 import { withConnected } from "../../installs.js";
@@ -31,7 +32,6 @@ import type { RecordType } from "../../records.js";
 import { serveRecords } from "../../records-serve.js";
 import { factsHeld, type Setup } from "../../setup.js";
 import { pausedParts } from "../../setup-alerts.js";
-import { editsOf, madeWorkflows, savedWorkflows, workflowHistory } from "../../spine.js";
 import { surveyRecord } from "../../survey-store.js";
 import { installsOf, readPlan, templatesNow } from "../../template-install.js";
 import { flowsWith, isMade, madeBase, type Workflow } from "../../workflows.js";
@@ -220,7 +220,7 @@ export function consoleContext({
           snippetRecord(await snippetTags(main).catch(() => []))
         : null;
     const mine = tagged ? allowed.map((t) => (t.id === SNIPPET ? tagged : t)) : allowed;
-    // The client's own wiring, as the spine runs it: only one catalog item draws a workflow.
+    // The client's own wiring, as the executor runs it: only one catalog item draws a workflow.
     const one = (req as { record?: unknown; id?: unknown }).record === COMPONENT && "id" in req;
     const saved = one ? await savedWorkflows(main, client?.id ?? null) : {};
     const { flows, broken } = flowsWith(workflows, editsOf(saved), components);

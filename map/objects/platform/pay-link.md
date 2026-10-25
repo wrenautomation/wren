@@ -17,7 +17,7 @@ Links live in main with a `client` column, so To approve and the webhook read on
 
 ## Shape
 
-- `pay_links`: `client`, `contact`, `email`, `name`, `channel` sms|email, `description`, `amount_cents`, `quantity`, `currency`, `status` waiting|sending|sent|processing|unpaid|paid|refunded|declined|failed, `why`, `stripe_link`, `url`, `message`, `paid_cents`, `paid_at`, `session`, `intent`, `refunded_cents`, `refunded_at`, `dispute` open|won|lost, `dispute_at`, `checked_at`, `told` (changes the spine heard), `live`, `created_*`, `approved_*`. Migration `0259_pay_money` adds the money columns.
+- `pay_links`: `client`, `contact`, `email`, `name`, `channel` sms|email, `description`, `amount_cents`, `quantity`, `currency`, `status` waiting|sending|sent|processing|unpaid|paid|refunded|declined|failed, `why`, `stripe_link`, `url`, `message`, `paid_cents`, `paid_at`, `session`, `intent`, `refunded_cents`, `refunded_at`, `dispute` open|won|lost, `dispute_at`, `checked_at`, `told` (changes the executor heard), `live`, `created_*`, `approved_*`. Migration `0259_pay_money` adds the money columns.
 - `pay_accounts`: per client, the webhook endpoint id, the signing secret's key-store name (never the secret), `how` api|pasted, `live`, `note` (what reconcile found wrong with the endpoint's events that it couldn't fix; shown in the Stripe panel, cleared by a new key or secret or once the endpoint hears everything; migration `0261_pay_webhook_note`).
 - `pay_events`: one row per Stripe event id, trimmed (ids, amount, status, email), `result` paid|processing|unpaid|refunded|disputed|stale|unknown|ignored|drift. Reconcile's own rows have `recon:<link>:…` ids. An `unknown` refund or dispute is applied once its checkout names the PaymentIntent (`applyEvent`, `packages/payments/src/store.ts:334`).
 - `sms_contacts.paid_cents`, `paid_at`; `sms_messages.kind` `pay` (in `ANSWER_KINDS`, `packages/channel-sms/src/schema.ts:127`: held for the asked window, 20:00 cutoff). Migration `0183_payments`.
@@ -35,7 +35,7 @@ Citations: `packages/payments/src/schema.ts:39`, `packages/payments/src/schema.t
 - **owns:** `pay_links`, `pay_accounts`, `pay_events`
 - **owned-by:** `@wren/payments`
 - **writes:** [[leads/profile]] in the client's workspace: one `profile_events` line per link once sent, rewritten when paid or refunded (`notePayLink`, `packages/payments/src/service.ts`). The old `sms_contacts.paid_at` timeline stand-in is gone; [[documents/document]] deposits read the link's status (paid, clearing, refunded; a failed bank payment gets a new link)
-- **joins:** [[clients/client]] by `client`; [[sms/sms-contact]] by `contact`; [[sms/sms-message]] (the `pay` text via `SmsDesk.reply`); [[platform/vendors]] (`stripe`, own key); [[platform/spine]] (`trigger.payment`)
+- **joins:** [[clients/client]] by `client`; [[sms/sms-contact]] by `contact`; [[sms/sms-message]] (the `pay` text via `SmsDesk.reply`); [[platform/vendors]] (`stripe`, own key); [[platform/executor]] (`trigger.payment`)
 - **looks-like-but-is-not:** [[books/vendor]] bills (Wren's own spend)
 
 ## If you change this

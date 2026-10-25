@@ -10,7 +10,7 @@ packages/content/src/social/records.ts
 packages/core/src/logic.ts
 packages/core/src/schema.ts
 packages/core/src/segments.ts
-packages/core/src/spine.ts
+packages/core/src/executor.ts
 packages/delivery/src/watch.ts
 packages/outreach/src/reach-posts.ts
 packages/studio/remotion/index.tsx

@@ -164,7 +164,7 @@ export interface SendDueOptions {
   reconcileFirst?: boolean;
   /** A client's database: main's suppressions gate too, and its stops land there. */
   shared?: SharedSuppressions | null;
-  /** Told each step that went out, reconciled ones included: the tick's touches for the spine. */
+  /** Told each step that went out, reconciled ones included: the tick's touches for the executor. */
   onSent?: (enrollmentId: number, step: number) => void;
 }
 

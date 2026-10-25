@@ -52,7 +52,7 @@ const ADDED = {
     "documents.html_key",
     "documents.tel_hrefs",
     "companies.linkedin_url",
-    // 2026-10-05: email on the spine, follow-ups held for their touch.
+    // 2026-10-05: email on the executor, follow-ups held for their touch.
     "messages.held",
     "messages.released_at",
     // 2026-10-06 db design: enrollments and leads point at their lead, candidate and person.

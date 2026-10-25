@@ -5,9 +5,9 @@
  * by the client's rules and what shows lands in Marketing → Inbox. Headers and the preview only.
  */
 import type * as restate from "@restatedev/restate-sdk";
+import { executorEmit } from "@wren/core/executor";
 import type { Mailbox } from "@wren/core/mailbox";
 import { makeLoopObject, type PassOutcome, runPass } from "@wren/core/restate";
-import { spineEmit } from "@wren/core/spine";
 import type { Db } from "@wren/db";
 import { readMail } from "./read.js";
 import { mailEvent } from "./triage.js";
@@ -62,7 +62,12 @@ export function makeMailReader(deps: MailReaderDeps) {
       retryMs: MAIL_READER_EVERY_MS,
     })) as PassOutcome<ClientReadStats>;
     for (const [client, kept] of Object.entries(outcome.stats?.kept ?? {}))
-      spineEmit(ctx, { client, workflow: MAIL_FLOW, from: MAIL_FROM, events: kept.map(mailEvent) });
+      executorEmit(ctx, {
+        client,
+        workflow: MAIL_FLOW,
+        from: MAIL_FROM,
+        events: kept.map(mailEvent),
+      });
     return outcome;
   });
 }

@@ -474,7 +474,7 @@ const shapeDraftRecord = (): RecordType =>
 
 // --- journeys --------------------------------------------------------------------------------
 
-/** A journey's arrivals and its drop, oldest first: what the spine saw. */
+/** A journey's arrivals and its drop, oldest first: what the executor saw. */
 export async function trailOf(db: Queryable, id: string) {
   const rows = await db
     .select({

@@ -7,22 +7,22 @@
  * - `Payments/stripe`: Stripe's webhook as the portal Worker passes it (the raw body and
  *   `Stripe-Signature`), checked with the client's own signing secret, kept once by its event id
  *   and applied in any order (`./states.ts`). Then the thread's paid mark is worked out again
- *   and the spine hears each change (paid, refunded, failed) once ever.
+ *   and the executor hears each change (paid, refunded, failed) once ever.
  *
  * Durable at each step: a link's id is made before its insert, Stripe's writes carry
  * idempotency keys, a dropped connection or Stripe's 5xx is retried (never marked failed), and
- * a crash after the event is kept still marks the thread and tells the spine on the retry.
+ * a crash after the event is kept still marks the thread and tells the executor on the retry.
  * The client's key and signing secret are read inside one journaled step each and never
  * returned from it, so neither lands in Restate's journal.
  */
 import * as restate from "@restatedev/restate-sdk";
 import type { SmsDeskService } from "@wren/channel-sms/restate";
 import { type Client, findClient, sendsOn } from "@wren/core/clients";
+import type { Fired, FireTriggers } from "@wren/core/executor";
 import type { KeyStore } from "@wren/core/keys";
 import { noteClientPayLink } from "@wren/core/profiles-backfill";
 import { setUp } from "@wren/core/refusal";
 import { serviceHandler } from "@wren/core/restate";
-import type { Fired, FireTriggers } from "@wren/core/spine";
 import { vendorModes } from "@wren/core/vendor-schema";
 import type { Db } from "@wren/db";
 import { and, eq } from "drizzle-orm";
@@ -60,7 +60,7 @@ export interface PaymentsDeps {
   portal: string;
   /** Mail under a sender's name; null: no pay email here. */
   mailer: ((from: string) => SendMail) | null;
-  /** The spine's ear for a link's changes; unset where no Spine runs. */
+  /** The executor's ear for a link's changes; unset where no Executor runs. */
   fire?: FireTriggers;
   /** Stripe's API base: tests point it at stripe-mock or nothing real. */
   stripeBase?: string;
@@ -176,7 +176,7 @@ export function payEmail(business: string, l: PayLink, url: string) {
 }
 
 /**
- * A link's change as the spine hears it: about the payer's email and their thread. Paid keeps
+ * A link's change as the executor hears it: about the payer's email and their thread. Paid keeps
  * its old subject; a refund or a failure is its own, so a flow that took the payment hears it.
  */
 export function paymentFired(l: PayLink, change: PayChange = "paid"): Fired {
@@ -235,7 +235,7 @@ async function notePayLink(
 
 /**
  * One webhook, checked and applied: the plain function the service journals, and tests call.
- * `link` is the link it was about, for `settleLink` and the spine, even on a duplicate.
+ * `link` is the link it was about, for `settleLink` and the executor, even on a duplicate.
  */
 export async function takeWebhook(
   d: Pick<PaymentsDeps, "main" | "open" | "keys">,
@@ -277,7 +277,7 @@ export async function settleLink(d: Pick<PaymentsDeps, "main" | "open">, id: str
   await notePayLink(d, id);
 }
 
-/** The spine hears each change of the link once ever: claimed under a journaled token. */
+/** The executor hears each change of the link once ever: claimed under a journaled token. */
 export async function tellChanges(ctx: restate.Context, d: PaymentsDeps, id: string) {
   if (!d.fire) return [];
   const token = ctx.rand.uuidv4();

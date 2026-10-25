@@ -43,7 +43,7 @@ const GROUPS: { kinds: AutomationKind[]; label: string; about: string }[] = [
   {
     kinds: ["made", "workflow"],
     label: "Workflows",
-    about: "Run on the spine, one person or item at a time.",
+    about: "Run on the executor, one person or item at a time.",
   },
   {
     kinds: ["keyword"],

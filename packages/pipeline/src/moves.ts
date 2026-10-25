@@ -1,5 +1,5 @@
 /**
- * Manual and agent moves (designs/2026-10-19-business-map.md). Each builds the spine event the
+ * Manual and agent moves (designs/2026-10-19-business-map.md). Each builds the executor event the
  * `Journeys` service sends at `in.<node>` of a shape workflow: the workflow's own `journey.move`
  * step then writes the row. No second write path. The cause is `manual`; the operator rides in
  * `cause.ref`, because a walk's own `by` is the Restate invocation id.
@@ -9,9 +9,9 @@
  */
 import { randomUUID } from "node:crypto";
 import { clientMembers, operators } from "@wren/core/clients";
+import type { ExecutorEvent } from "@wren/core/executor";
 import { UUID } from "@wren/core/ids";
 import { events } from "@wren/core/schema";
-import type { SpineEvent } from "@wren/core/spine";
 import { atomic, type Queryable } from "@wren/db";
 import { and, asc, eq, sql } from "drizzle-orm";
 import { entryNodes, liveSources, sourceEdge } from "./entry.js";
@@ -22,11 +22,11 @@ import { liveTerms, newestShape, Refused } from "./store.js";
 import { runOf } from "./stored.js";
 import { parseShapeFlow, shapeFlowId } from "./workflow.js";
 
-/** What `Spine/emit` takes, less the workspace. */
+/** What `Executor/emit` takes, less the workspace. */
 export interface Emit {
   workflow: string;
   from: string;
-  events: SpineEvent[];
+  events: ExecutorEvent[];
 }
 
 const manual = (by: string, now: Date) => ({
@@ -204,7 +204,7 @@ export async function moveEmit(
 }
 
 /**
- * Give a journey to a team member, or to nobody (`to` null). The owner is not part of the spine:
+ * Give a journey to a team member, or to nobody (`to` null). The owner is not part of the executor:
  * a plain update of the column, never a move. `main` holds the team: Wren's operators, and for a
  * client's workspace its members too. A closed journey takes an owner as well (the record keeps
  * who worked it). Refused: no such journey, or an address that is nobody on the team here.
@@ -251,7 +251,7 @@ export interface Rebuilt {
 }
 
 /**
- * Recompute a journey row from its spine events (subject `journey:<id>`): its version, node and
+ * Recompute a journey row from its executor events (subject `journey:<id>`): its version, node and
  * trail from the arrivals (a version carry counts, and its trail seeds), dropped from a drop or a
  * loop out, done from a node with no way on. What events cannot tell (person, entry, opened time, owner)
  * stays. Refused with no events.

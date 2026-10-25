@@ -2,12 +2,12 @@
  * Client flags (designs/2026-10-07-health.md, "Flags"): one list of risks and opportunities.
  * A source's pass hands over everything it finds; what it no longer finds clears itself. People
  * take, assign, address and clear them. Alerts go as one urgent message on the next pass and one
- * digest a day; the spine hears each raise and clear from an outbox on the row.
+ * digest a day; the executor hears each raise and clear from an outbox on the row.
  */
 
 import { clients } from "@wren/core/clients";
+import type { Fired } from "@wren/core/executor";
 import type { Notifier } from "@wren/core/notify";
-import type { Fired } from "@wren/core/spine";
 import type { Db, Queryable } from "@wren/db";
 import { and, asc, eq, inArray, isNotNull, isNull, or, sql } from "drizzle-orm";
 import {
@@ -104,7 +104,7 @@ export async function syncFlags(
 
 // --- failed workflow runs ------------------------------------------------------------
 
-/** One workflow's failed runs, as `failedRuns` (`@wren/core/spine`) reads them. */
+/** One workflow's failed runs, as `failedRuns` (`@wren/core/executor`) reads them. */
 export interface FailedRun {
   workflow: string;
   runs: number;
@@ -338,7 +338,7 @@ export async function tellFlags(
   return told;
 }
 
-// --- the spine's outbox ---------------------------------------------------------------
+// --- the executor's outbox ---------------------------------------------------------------
 
 /** What `trigger.flag` hears for one change to a flag. */
 function flagFired(f: ClientFlag, change: "raised" | "cleared"): Fired {
@@ -364,7 +364,7 @@ function flagFired(f: ClientFlag, change: "raised" | "cleared"): Fired {
 }
 
 /**
- * Every raise and clear the spine hasn't heard, marked heard now: the watch sends them once its
+ * Every raise and clear the executor hasn't heard, marked heard now: the watch sends them once its
  * pass is journaled. A crash between the two drops them, accepted in the design.
  */
 export async function flagsToFire(db: Db, now: Date): Promise<Fired[]> {

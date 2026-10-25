@@ -2,7 +2,7 @@
  * ClientCalendar through Restate, on synthetic clients with a fake Google and a mail collector:
  * a booking lands in the client's own database on its own account; with its sends off nothing
  * goes out (no guest on the event, no mail, Google told to mail no one); with them on the booker
- * gets the invite and the client-signed mail; manage links stay with their client; the spine
+ * gets the invite and the client-signed mail; manage links stay with their client; the executor
  * hears each change under the client; the client's Calendar app reads and marks its own calls.
  */
 import * as restate from "@restatedev/restate-sdk";
@@ -10,7 +10,7 @@ import * as clients from "@restatedev/restate-sdk-clients";
 import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
 import { ingressOf } from "@wren/config";
 import { addClient, addMember, updateClient } from "@wren/core/clients";
-import { SPINE, type SpineService } from "@wren/core/spine";
+import { EXECUTOR, type ExecutorService } from "@wren/core/executor";
 import { startTestRestate } from "@wren/core/testing";
 import { cachedDb, clientAdminUrl, clientDatabaseUrl, type Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
@@ -50,9 +50,9 @@ let env: RestateTestEnvironment;
 let acme: Db;
 const open = (c: { database: string }) => cachedDb(clientDatabaseUrl(pg.url, c.database));
 
-/** The spine, as the calendar tells it: emits and fires, kept. */
-const spine = restate.service({
-  name: "Spine",
+/** The executor, as the calendar tells it: emits and fires, kept. */
+const executor = restate.service({
+  name: "Executor",
   handlers: {
     emit: async (_: restate.Context, body: Record<string, unknown>) => {
       told.push({ kind: "emit", body });
@@ -101,11 +101,11 @@ beforeAll(async () => {
       sent.push({ ...m, from });
     },
     fire: (ctx, req) => {
-      ctx.serviceSendClient<SpineService>(SPINE).fire(req);
+      ctx.serviceSendClient<ExecutorService>(EXECUTOR).fire(req);
     },
   };
   env = await startTestRestate({
-    services: [makeClientCalendar(deps), makeCalendarConsole({ wren, clients: deps }), spine],
+    services: [makeClientCalendar(deps), makeCalendarConsole({ wren, clients: deps }), executor],
     alwaysReplay: true,
   });
 }, 180_000);
@@ -187,7 +187,7 @@ describe("ClientCalendar", () => {
     expect(event?.description).toContain("Ana Example <ana@firm.example>");
     expect(host.log).toEqual([expect.stringMatching(/^create \w+$/)]);
     expect(sent).toEqual([]);
-    // The spine heard it as the client's: into `close`, and the Booking triggers.
+    // The executor heard it as the client's: into `close`, and the Booking triggers.
     await waitFor(() => told.length >= 1);
     expect(told.find((t) => t.kind === "fire")?.body).toMatchObject({
       client: "acme",

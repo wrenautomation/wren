@@ -293,7 +293,7 @@ export function registerPipeline(
     );
   journeys
     .command("rebuild <journey>")
-    .description("Recompute the journey row from its spine events")
+    .description("Recompute the journey row from its executor events")
     .action((journey: string) =>
       plain(async () => {
         const { api, client } = worker(writes);

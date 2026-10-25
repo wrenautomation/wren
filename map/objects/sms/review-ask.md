@@ -30,7 +30,7 @@ Citations: `packages/channel-sms/src/schema.ts:624`, `packages/channel-sms/src/r
 ## Connected to
 
 - **owned-by:** the `reviews` part (`packages/channel-sms/src/components.ts`), a Shop template; needs fact `google_business.place_id` (setup `setup.google_business`, `setups.ts:171`; done for you, `findPlace` (`setups.ts:143`) reads the Place ID off Google Maps through autobrowse `web GET /place` on the desk and makes it the account's ref)
-- **joins:** [[sms/sms-message]] (ask and reminder texts), email suppressions (`/stop`), [[email/call-booking]] (outcomes), [[platform/phone-worker]] (`/r/`), [[platform/spine]]
+- **joins:** [[sms/sms-message]] (ask and reminder texts), email suppressions (`/stop`), [[email/call-booking]] (outcomes), [[platform/phone-worker]] (`/r/`), [[platform/executor]]
 - **looks-like-but-is-not:** reviews gained (not counted: Google Business Profile API in development)
 
 ## If you change this
@@ -42,7 +42,7 @@ Citations: `packages/channel-sms/src/schema.ts:624`, `packages/channel-sms/src/r
 
 | Surface | Role |
 |---|---|
-| `Spine/emit` and the door → `reviews.ask` | writes |
+| `Executor/emit` and the door → `reviews.ask` | writes |
 | phone Worker `/r/<client>/<token>[/feedback\|/stop]` → `Reviews` | counts clicks, keeps feedback, stops email |
 | portal Texts > Reviews, Ask for a review (`SmsConsole.askReview`) | reads, writes |
 

@@ -1,7 +1,7 @@
 /**
  * Client health on a fixed clock (designs/2026-10-07-health.md): the four parts from delivery's
  * own rows, weights that add to 100, the override beside the model, health's flags, a person's
- * flags, one urgent message and one digest a day by owner, and the spine's outbox. Synthetic only.
+ * flags, one urgent message and one digest a day by owner, and the executor's outbox. Synthetic only.
  */
 import { addMember, clients } from "@wren/core/clients";
 import type { Notifier } from "@wren/core/notify";
@@ -284,7 +284,7 @@ describe("flags", () => {
     expect(told).toEqual([]);
   });
 
-  it("hands each raise and clear to the spine once", async () => {
+  it("hands each raise and clear to the executor once", async () => {
     const first = await flagsToFire(pg.db, NOW);
     expect(first.every((f) => f.client === null && f.event.kind === "client")).toBe(true);
     expect(

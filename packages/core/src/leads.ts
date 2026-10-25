@@ -140,7 +140,7 @@ export async function linkPeople(
   return rows.length;
 }
 
-/** A thread's channel as `lead_channels` says it, by the word a spine subject uses. */
+/** A thread's channel as `lead_channels` says it, by the word an executor subject uses. */
 const THREAD_CHANNEL: Readonly<Record<string, LeadChannel>> = {
   email: "email",
   sms: "text",
@@ -204,14 +204,14 @@ export interface Thread {
 export type Who = Lead | Thread;
 const isThread = (w: Who): w is Thread => "channel" in w;
 
-/** The thread a spine subject names (`lead:sms:42`, `reply:email:7`), or null. */
+/** The thread an executor subject names (`lead:sms:42`, `reply:email:7`), or null. */
 export function threadOf(subject: string): Thread | null {
   const m = /^(?:lead|reply):(email|sms|reach):(\d{1,9})$/.exec(subject);
   return m ? { channel: THREAD_CHANNEL[m[1] as string] as LeadChannel, id: Number(m[2]) } : null;
 }
 
 /**
- * Who a spine event is about: its own facts, else its thread's row (`lead:sms:42`), else the
+ * Who an executor event is about: its own facts, else its thread's row (`lead:sms:42`), else the
  * thread alone when that row names neither person nor firm. Null when it names no thread.
  */
 export async function leadOfEvent(

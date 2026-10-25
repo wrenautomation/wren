@@ -5,7 +5,7 @@ import { cadenceId } from "@wren/core/workflows";
 import { z } from "zod";
 import { REMINDERS, remindersSettingsSchema, TEXTS, textsSettingsSchema } from "./clients.js";
 
-/** One step of a text follow-up on the spine (follow.ts). */
+/** One step of a text follow-up on the executor (follow.ts). */
 export const TOUCH = "sms.touch";
 /** Speed to lead's texts (speed.ts): the first, then the follow-up's. */
 export const SPEED = "speed-to-lead";
@@ -265,7 +265,7 @@ export const SMS_COMPONENTS = [
       { id: "replied", label: "answered", kind: "reply" },
     ],
     hypothesis: {
-      from: "Wren's text sequences, moved onto the spine 2026-10-05",
+      from: "Wren's text sequences, moved onto the executor 2026-10-05",
       guesses: [
         {
           is: "change",

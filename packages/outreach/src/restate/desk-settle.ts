@@ -4,8 +4,8 @@
  */
 import type * as restate from "@restatedev/restate-sdk";
 import { byOf } from "@wren/core/ask";
+import { executorEmit } from "@wren/core/executor";
 import { serviceHandler } from "@wren/core/restate";
-import { spineEmit } from "@wren/core/spine";
 import { cadenceId } from "@wren/core/workflows";
 import { z } from "zod";
 import { reachLead } from "../follow.js";
@@ -107,7 +107,7 @@ export function settleHandlers(desk: DeskContext) {
           );
           // A DM's sequence step leaves its node, as the sender's would.
           for (const s of stats.stepped)
-            spineEmit(ctx, {
+            executorEmit(ctx, {
               client: null,
               workflow: cadenceId(s.sequence),
               from: `s${s.step}.sent`,

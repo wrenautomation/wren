@@ -1,6 +1,6 @@
 /**
  * Connectors (designs/2026-10-09-connectors.md): sign-ins in flight, connected apps, and what each
- * already told the spine. Main only: the hourly sync reads across clients. Tokens never sit here:
+ * already told the executor. Main only: the hourly sync reads across clients. Tokens never sit here:
  * a link names its key in the key store.
  */
 import { oneOf } from "@wren/db/columns";
@@ -72,7 +72,7 @@ export const connectorLinks = pgTable(
     cursor: jsonb("cursor").$type<LinkCursor>().default({}).notNull(),
     /** People read in, all time. */
     people: integer("people").default(0).notNull(),
-    /** Events told to the spine, all time. */
+    /** Events told to the executor, all time. */
     fired: integer("fired").default(0).notNull(),
     syncedAt: timestamp("synced_at", { withTimezone: true }),
     connectedAt: timestamp("connected_at", { withTimezone: true }).defaultNow().notNull(),
@@ -87,7 +87,7 @@ export const connectorLinks = pgTable(
 );
 export type ConnectorLink = typeof connectorLinks.$inferSelect;
 
-/** What a link already told the spine, once each: `invoice:12`, `job:9`. */
+/** What a link already told the executor, once each: `invoice:12`, `job:9`. */
 export const connectorFired = pgTable(
   "connector_fired",
   {

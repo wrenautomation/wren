@@ -1,6 +1,6 @@
 /**
  * One execution on its workflow's canvas: which cards it reached, how each went, and the in and
- * out data of each step. The spine keeps a step's node as a dotted path from the top workflow,
+ * out data of each step. The executor keeps a step's node as a dotted path from the top workflow,
  * so a step inside a stacked card lights that card. Pure, so it's tested without a browser.
  */
 import { isUntil, UNTIL_WORDS } from "@wren/core/logic";

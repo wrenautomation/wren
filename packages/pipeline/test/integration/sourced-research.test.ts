@@ -4,9 +4,9 @@
  * with the lists these tests make. Synthetic data only.
  */
 import { randomUUID } from "node:crypto";
+import { type Fired, hearersOf, pgExecutorStore, type Walk, walk } from "@wren/core/executor";
 import { resolveProfile } from "@wren/core/profiles";
 import { companies, imports, people } from "@wren/core/schema";
-import { type Fired, hearersOf, pgSpineStore, type Walk, walk } from "@wren/core/spine";
 import type { Workflow } from "@wren/core/workflows";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { eq } from "drizzle-orm";
@@ -155,7 +155,7 @@ function rig(researcher?: Researcher) {
     flows: new Map(),
     parts: new Map(),
     steps: journeySteps({ db: () => pg.db, ...(researcher ? { researcher } : {}) }),
-    store: pgSpineStore(pg.db),
+    store: pgExecutorStore(pg.db),
     client: null,
     by: "test",
     run: (_name, fn) => fn(),

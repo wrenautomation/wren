@@ -1,7 +1,7 @@
 /**
  * The touch feed (designs/2026-10-18-journeys.md, "Causes"): `recordTouch` has many writers
- * outside Restate, so the spine hears a touch from this tail loop, not from them. `TouchFeed/all`
- * reads each workspace's `touches` past its cursor every minute and tells the spine once per new
+ * outside Restate, so the executor hears a touch from this tail loop, not from them. `TouchFeed/all`
+ * reads each workspace's `touches` past its cursor every minute and tells the executor once per new
  * touch (`trigger.touch`, subject `touch:<id>`, event kind `person`). A missed tick is caught up
  * by the next. The cursors live in loop state. A workspace's first pass starts at its newest
  * touch: history is never told. Only rows older than `SETTLE_MS` are read, so a slow writer's
@@ -10,8 +10,8 @@
 import type * as restate from "@restatedev/restate-sdk";
 import type { Db, Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
+import { executorFire, type Fired } from "./executor.js";
 import { makeLoopObject, runPass } from "./restate/loop.js";
-import { type Fired, spineFire } from "./spine.js";
 
 /** The most touches told per workspace in one pass; the rest go on the next. */
 const TOUCH_BATCH = 200;
@@ -80,7 +80,7 @@ export async function touchPass(
   return { ids, next: nextCursor(cursor, ids, 0) };
 }
 
-/** The spine's fire for one touch: the facts it is heard by and the event it enters with. */
+/** The executor's fire for one touch: the facts it is heard by and the event it enters with. */
 export function touchFired(client: string | null, t: TouchRow): Fired {
   const data: Record<string, unknown> = {
     touch: t.id,
@@ -166,7 +166,7 @@ interface TouchFeedStats {
   errors: string[];
 }
 
-/** `TouchFeed/all`: every minute, each workspace's new touches told to the spine. */
+/** `TouchFeed/all`: every minute, each workspace's new touches told to the executor. */
 export function makeTouchFeed(d: TouchFeedDeps) {
   return makeLoopObject(TOUCH_FEED, async (ctx: restate.ObjectContext) => {
     const now = new Date(await ctx.date.now());
@@ -218,7 +218,7 @@ export function makeTouchFeed(d: TouchFeedDeps) {
           out.push(touchFired(b.client, t));
       return out;
     });
-    for (const f of fires) spineFire(ctx, f);
+    for (const f of fires) executorFire(ctx, f);
     ctx.set(CURSORS, outcome.stats.cursors);
     return outcome;
   });

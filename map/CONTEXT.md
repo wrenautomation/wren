@@ -35,9 +35,10 @@ Verified against commit `83459e9` on 2026-09-28. The repo is a TypeScript monore
 | post | a published content draft; LinkedIn's `/rest/posts`; `wren books post` (make the journal match the bills). |
 | document | `documents` (a company's web page, `packages/research/src/schema.ts:31`) vs `books.documents` (a vendor email or PDF, `packages/books/src/schema.ts:99`). |
 | account | `books.accounts` (the chart, `packages/books/src/schema.ts:34`); `clients.accounts` (a client's ids, jsonb, `packages/core/src/clients/schema.ts:26`); autobrowse accounts (logins, not in this repo). |
-| line | `books.lines` (one side of a journal entry) vs `books.bill_lines` (a bill's printed items). |
+| line | `books.lines` (one side of a journal entry) vs `books.bill_lines` (a bill's printed items); a metro map line (`lines` in a metro body, [[platform/shape]]). |
 | sites | autobrowse's Restate service, not in this repo. Every platform and Meta call goes through it (`packages/core/src/content/restate.ts:21`). Reddit does not. |
 | worker | `apps/worker` (Node/Lambda Restate endpoint); `apps/phone` (Cloudflare Worker, SMS inbox + webhooks); `deploy/pixel` (Cloudflare Worker, open pixel). |
+| executor | the layer that runs each workflow move: events, retries, timed waits; Restate `Executor` and `ExecutorClock`, views `executor_events` and `executions`. Called "spine" until 2026-10-25; dated designs keep the old word. The metro map lowers to the NFA graph, and the executor runs it. |
 | signals | [[research/signal]]: dated findings from the collectors (`packages/research/src/signals/`); the lander's Signals: visitor events, funnel and replay (designs/2026-10-06-signals.md); `crm run`'s `signals` stage: CRM firms hiring (`packages/reactivation/src/signals.ts`). |
 | change | `changes` (one record edit with before and after, [[platform/edits]]) vs `audit_changes` and the `console.change` record (trigger audit of every row, [[platform/audit-log]]). |
 | box | autobrowse's EC2 machine, woken by `packages/core/src/content/box.ts`. |

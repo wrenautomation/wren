@@ -2,11 +2,11 @@
  * `SocialWatch/wren` (designs/2026-10-06-social-inbox.md): every 30 minutes, 07:00-23:00 on the
  * fleet's clock, reads comments on our posts of the last 14 days, activity since the newest kept
  * row, and the follower count once a day, through the `Content` service. New comments go on the
- * spine (`reach.comments`) like reach's; one ping per pass that kept something. It reads only:
+ * executor (`reach.comments`) like reach's; one ping per pass that kept something. It reads only:
  * every answer waits on William's click.
  *
  * `SocialWatch/<client>/social`: the same for a client, on its own logins (`Content` with
- * `client`, reads through its vendor gate) into its own database; its comments go on the spine
+ * `client`, reads through its vendor gate) into its own database; its comments go on the executor
  * with its id. No ping: its Inbox is its own.
  *
  * Each Wren pass also renews autobrowse's tab watchers on our logins (`watched`): a rise in a
@@ -40,6 +40,7 @@ import {
   type SiteClient,
 } from "@wren/core/content";
 import { DESK, MANY_POSTS } from "@wren/core/content/restate";
+import { executorEmit } from "@wren/core/executor";
 import { Broadcast, type Notifier } from "@wren/core/notify";
 import {
   clientOfKey,
@@ -54,7 +55,6 @@ import {
   unitLimits,
   within,
 } from "@wren/core/restate";
-import { spineEmit } from "@wren/core/spine";
 import { wallClock } from "@wren/core/time";
 import type { Db } from "@wren/db";
 import {
@@ -526,7 +526,7 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
       kept.slice(reviewsBefore).map((k) => k.id),
     );
     if (kept.length)
-      spineEmit(ctx, {
+      executorEmit(ctx, {
         client,
         workflow: COMMENTS_FLOW,
         from: COMMENTS_FROM,
@@ -696,7 +696,7 @@ export function makeSocialDesk(deps: { db: Db; zone: string }) {
       ),
       /**
        * Refresh on a comment on our own post: its post's comments read now and kept, as the
-       * watch's pass keeps them (a keyword's DM, the spine), on the same Content read.
+       * watch's pass keeps them (a keyword's DM, the executor), on the same Content read.
        */
       readPost: serviceHandler(
         { input: ONE_COMMENT },
@@ -717,7 +717,7 @@ export function makeSocialDesk(deps: { db: Db; zone: string }) {
               null,
               kept.map((k) => k.id),
             );
-            spineEmit(ctx, {
+            executorEmit(ctx, {
               client: null,
               workflow: COMMENTS_FLOW,
               from: COMMENTS_FROM,

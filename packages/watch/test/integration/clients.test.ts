@@ -3,8 +3,9 @@
  * mailboxes read into its own `watch.mail` as the `mail` reader, then triaged along its `mail`
  * workflow by its own rules and name. One client's dead mailbox stops no other. Fakes only.
  */
+
+import { pgExecutorStore, type Walk, walk } from "@wren/core/executor";
 import type { Mailbox, MailMeta } from "@wren/core/mailbox";
-import { pgSpineStore, type Walk, walk } from "@wren/core/spine";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
 import { sql } from "drizzle-orm";
@@ -87,7 +88,7 @@ describe("the client's mail workflow", () => {
         modelFor: async () => llm,
       })),
     },
-    store: pgSpineStore(pg.db),
+    store: pgExecutorStore(pg.db),
     client: "acme",
     by: "inv-mail",
     run: (_name, fn) => fn(),

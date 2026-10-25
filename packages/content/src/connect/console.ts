@@ -8,6 +8,7 @@ import * as restate from "@restatedev/restate-sdk";
 import { WREN } from "@wren/core/access";
 import type { Platform, SiteClient } from "@wren/core/content";
 import type { SitesHost } from "@wren/core/content/restate";
+import { executorEmit } from "@wren/core/executor";
 import { noRawKeys } from "@wren/core/key-refs";
 import {
   answer,
@@ -22,7 +23,6 @@ import {
 } from "@wren/core/portal";
 import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { accountsOf, checkNow, type Setup, type SetupEmit, startSetup } from "@wren/core/setup";
-import { spineEmit } from "@wren/core/spine";
 import type { Db } from "@wren/db";
 import { z } from "zod";
 import type { SocialAccessApi } from "./access.js";
@@ -223,7 +223,7 @@ export function makeSocialAccess(deps: SocialConsoleDeps) {
     ) =>
     async (ctx: restate.Context, req: R) => {
       const out = await answer(() => ctx.run(name, () => answer(() => fn(req))));
-      for (const e of out.emits) spineEmit(ctx, e);
+      for (const e of out.emits) executorEmit(ctx, e);
       const { emits: _, ...rest } = out;
       return { ok: true, ...rest };
     };
@@ -318,7 +318,7 @@ export function makeSocialCallback(deps: SocialConsoleDeps) {
             }
             return { ok: r.ok, said: r.said, emits };
           });
-          for (const e of out.emits) spineEmit(ctx, e);
+          for (const e of out.emits) executorEmit(ctx, e);
           return { ok: out.ok, said: out.said };
         },
       ),

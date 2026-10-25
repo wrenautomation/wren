@@ -1,7 +1,7 @@
 /**
  * A drawn workflow as the graph kit's nodes and wires, with its live numbers: each node's count
  * over the last 30 days and today, each wire's count and its rate from what came into the node it
- * leaves. A wire without a count of its own counts its arrivals on the spine. A workflow card
+ * leaves. A wire without a count of its own counts its arrivals on the executor. A workflow card
  * with no count of its own shows its inside's first number, and the furthest one with any. Real events become dots
  * on their wires. Pure, so it's tested without a browser.
  */
@@ -25,7 +25,7 @@ export interface Count {
   today: number;
 }
 
-/** Arrivals at one port on the spine: `spine_events` rows. */
+/** Arrivals at one port on the executor: `executor_events` rows. */
 export interface PortRef {
   workflow: string;
   node: string;
@@ -43,7 +43,7 @@ export const boxOf = (end: string) => {
   return head === "in" || head === "out" ? end : head;
 };
 
-/** Where a wire lands, as the spine records arrivals there. */
+/** Where a wire lands, as the executor records arrivals there. */
 export const landing = (workflow: string, to: string): PortRef => {
   const at = to.indexOf(".");
   return { workflow, node: to.slice(0, at), port: to.slice(at + 1) };
@@ -340,7 +340,7 @@ export function funnelOf(w: Drawn, counts: ReadonlyMap<string, Count>): BarsRow[
   });
 }
 
-/** One spine row, as the console's list gives it. */
+/** One executor row, as the console's list gives it. */
 export interface EventRow {
   id: string;
   workflow: string;

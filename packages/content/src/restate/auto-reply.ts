@@ -6,10 +6,10 @@
  */
 import * as restate from "@restatedev/restate-sdk";
 import { findClient } from "@wren/core/clients";
+import type { Fired, FireTriggers } from "@wren/core/executor";
 import type { KeyStore } from "@wren/core/keys";
 import { meteredModel } from "@wren/core/metered";
 import { clientKey, errorText } from "@wren/core/restate";
-import type { Fired, FireTriggers } from "@wren/core/spine";
 import { gate } from "@wren/core/vendors";
 import type { Db } from "@wren/db";
 import { type LlmClient, llmForKey } from "@wren/llm";
@@ -50,7 +50,7 @@ const WREN = "wren";
 const keyOf = (a: Arrived) =>
   a.client ? clientKey(a.client, `${a.channel}:${a.id}`) : `${WREN}/${a.channel}:${a.id}`;
 
-/** Tell AutoReply about a reply the spine heard; anything else passes by. Send-only. */
+/** Tell AutoReply about a reply the executor heard; anything else passes by. Send-only. */
 export const autoReplyFire: FireTriggers = (ctx, req: Fired) => {
   if (req.facts.trigger !== "trigger.reply") return;
   const d = req.event.data;
@@ -86,7 +86,7 @@ export function makeAutoReply(deps: AutoReplyDeps) {
     handlers: {
       /** Someone wrote in: by the channel's mode, a draft waits in To approve, or nothing. */
       arrived: restate.handlers.object.exclusive(
-        // Only the spine's fire sends it.
+        // Only the executor's fire sends it.
         { ingressPrivate: true },
         async (
           ctx: restate.ObjectContext,

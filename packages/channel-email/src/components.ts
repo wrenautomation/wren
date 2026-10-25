@@ -19,7 +19,7 @@ export const INBOX_HEALTH = "email.inbox_health";
 /** A client's Postmaster pull is `PostmasterScheduler/<client>/daily`. */
 const CLIENT_POSTMASTER_UNIT = "daily";
 
-/** One email step of a follow-up cadence on the spine (follow.ts). */
+/** One email step of a follow-up cadence on the executor (follow.ts). */
 export const EMAIL_TOUCH = "email.touch";
 
 /**
@@ -132,7 +132,7 @@ export const EMAIL_COMPONENTS = [
       { id: "replied", label: "answered", kind: "reply" },
     ],
     hypothesis: {
-      from: "Wren's email sequences, moved onto the spine 2026-10-05",
+      from: "Wren's email sequences, moved onto the executor 2026-10-05",
       guesses: [
         {
           is: "change",

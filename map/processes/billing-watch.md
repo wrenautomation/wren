@@ -25,7 +25,7 @@ Polling, not Wise's `balances#credit` webhook: the read-only token gets 403 crea
 3. `wiseReader.credits` (`billing/wise.ts:76`): GET balances, then each balance's statement (COMPACT). GET only.
 4. `takeCredits` (`billing/credits.ts:88`): each new credit decided by `matchCredit` (`billing/match.ts:69`) in its own serializable transaction. Matched: `received_cents` up, paid on the credit's day through `markInvoice` once covered (which runs the setup gate, `startIfReady`). The rest are `review` with the likely invoice, or `ignored` (our own moves).
 5. Notices: "Paid by transfer" and "Payments to look at" to the main notifier. Waiting ones show in To approve.
-6. Spine (J4): `claimInvoiceChanges` (`billing/tell.ts`) claims each new invoice change (invoiced, paid, refunded, late) once in `invoices.told`; the watch fires `trigger.payment` for each ([[clients/invoice]]).
+6. Executor (J4): `claimInvoiceChanges` (`billing/tell.ts`) claims each new invoice change (invoiced, paid, refunded, late) once in `invoices.told`; the watch fires `trigger.payment` for each ([[clients/invoice]]).
 
 ## Surfaces
 

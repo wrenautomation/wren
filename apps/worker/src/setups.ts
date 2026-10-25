@@ -1,7 +1,7 @@
 /**
  * Every setup (designs/2026-10-07-setup-and-vendors.md): core's Google and Meta, the phone's,
  * email's, Stripe's for pay links, client mail access (designs/2026-10-07-mail-access.md), client
- * social accounts (designs/2026-10-07-client-social.md). Each walks the spine as a `kind: "setup"` workflow.
+ * social accounts (designs/2026-10-07-client-social.md). Each walks the executor as a `kind: "setup"` workflow.
  */
 import { EMAIL_SETUPS } from "@wren/channel-email";
 import { MAIL_SETUPS } from "@wren/channel-email/access/setups";

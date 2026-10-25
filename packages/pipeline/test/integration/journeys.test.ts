@@ -1,23 +1,23 @@
 /**
- * Journeys on the spine, on a real Postgres (designs/2026-10-19-business-map.md): the shape
+ * Journeys on the executor, on a real Postgres (designs/2026-10-19-business-map.md): the shape
  * workflows walk with the real store and the real steps, no Restate. One shape per database, so
  * the tests run in order and each new version builds on the one before. Synthetic data only.
  */
 import { randomUUID } from "node:crypto";
+import {
+  type ExecutorEvent,
+  type Fired,
+  heardAs,
+  hearersOf,
+  pgExecutorStore,
+  type Walk,
+  walk,
+} from "@wren/core/executor";
 import { resolveProfile, setTraits } from "@wren/core/profiles";
 import { profileEvents } from "@wren/core/profiles-schema";
 import { events } from "@wren/core/schema";
 import { type Rule, recomputeLive, saveSegment, segmentMembers } from "@wren/core/segments";
 import { segmentsPass } from "@wren/core/segments-pass";
-import {
-  type Fired,
-  heardAs,
-  hearersOf,
-  pgSpineStore,
-  type SpineEvent,
-  type Walk,
-  walk,
-} from "@wren/core/spine";
 import type { Workflow } from "@wren/core/workflows";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { and, asc, eq, like, sql } from "drizzle-orm";
@@ -99,7 +99,7 @@ function rig() {
     flows: new Map(),
     parts: new Map(),
     steps: journeySteps({ db: () => pg.db }),
-    store: pgSpineStore(pg.db),
+    store: pgExecutorStore(pg.db),
     client: null,
     by: "test",
     run: (_name, fn) => fn(),
@@ -113,14 +113,14 @@ function rig() {
 /** The workspace's shape workflows. */
 const flowsOf = () => shapeWorkflowsOf(pg.db, "wren");
 
-/** What `Spine/fire` does: walk the event from every trigger node that hears the facts. */
+/** What `Executor/fire` does: walk the event from every trigger node that hears the facts. */
 async function hear(
   r: ReturnType<typeof rig>,
   flows: Workflow[],
   facts: Fired["facts"],
-  event: SpineEvent,
+  event: ExecutorEvent,
 ) {
-  // Each call to the spine is its own invocation: a claim by another owner is refused.
+  // Each call to the executor is its own invocation: a claim by another owner is refused.
   const w: Walk = { ...r.w, by: randomUUID(), flows: new Map(flows.map((f) => [f.id, f])) };
   const tallies = [];
   for (const h of hearersOf(flows, facts))
@@ -128,27 +128,27 @@ async function hear(
   return tallies;
 }
 
-/** Walk an event that starts at a workflow input (`Spine/emit`). */
+/** Walk an event that starts at a workflow input (`Executor/emit`). */
 async function emit(
   r: ReturnType<typeof rig>,
   flows: Workflow[],
-  e: { workflow: string; from: string; events: SpineEvent[] },
+  e: { workflow: string; from: string; events: ExecutorEvent[] },
 ) {
   const w: Walk = { ...r.w, by: randomUUID(), flows: new Map(flows.map((f) => [f.id, f])) };
   return walk(w, e.workflow, e.from, e.events);
 }
 
-const reply = (n: number, email: string): SpineEvent => ({
+const reply = (n: number, email: string): ExecutorEvent => ({
   subject: `reply:email:${n}`,
   kind: "reply",
   data: { email, channel: "email" },
 });
-const booking = (n: number, email: string): SpineEvent => ({
+const booking = (n: number, email: string): ExecutorEvent => ({
   subject: `call:${n}`,
   kind: "call",
   data: { email, name: "Ada" },
 });
-const signed = (n: number, email: string): SpineEvent => ({
+const signed = (n: number, email: string): ExecutorEvent => ({
   subject: `doc:${n}`,
   kind: "document",
   data: { email, change: "signed" },
@@ -239,7 +239,7 @@ describe("a journey through the shape", () => {
 
     // The Executions list titles the journey by person and node (migration 0306).
     const [row] = await pg.db.execute<{ title: string; person: string }>(
-      sql`select title, person from spine_executions where subject = ${`journey:${j?.id}`} and workflow = 'shape.v1'`,
+      sql`select title, person from executions where subject = ${`journey:${j?.id}`} and workflow = 'shape.v1'`,
     );
     expect(row).toEqual({ title: "Ada: signed", person: "Ada" });
 
@@ -293,7 +293,7 @@ describe("a journey through the shape", () => {
     const first = await journeyOf(profile);
     const told = r.fired.length;
 
-    // The same cause: the spine refuses the arrival.
+    // The same cause: the executor refuses the arrival.
     const again = await hear(r, flows, REPLY, reply(2, "bo@example.test"));
     expect(again[0]).toMatchObject({ arrived: 0, seen: 1 });
     // Another cause for the node it is at: the guard holds it still.
@@ -557,7 +557,7 @@ describe("a new version", () => {
 });
 
 describe("a drop", () => {
-  it("closes the journey, tells the spine at the dropped node, and fires a dropped change", async () => {
+  it("closes the journey, tells the executor at the dropped node, and fires a dropped change", async () => {
     const profile = await person("ivy@example.test");
     const r = rig();
     const flows = await flowsOf();

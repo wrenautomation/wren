@@ -14,7 +14,7 @@ import { type Channels, makeContent } from "@wren/core/content/restate";
 import { pgKeyStore, throwawayRing } from "@wren/core/keys";
 import type { Viewer } from "@wren/core/portal";
 import type { PassOutcome } from "@wren/core/restate";
-import { spineRecorder, startTestRestate } from "@wren/core/testing";
+import { executorRecorder, startTestRestate } from "@wren/core/testing";
 import { cachedDb, clientDatabaseUrl, type Db } from "@wren/db";
 import { seedObjects, startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { comments } from "@wren/outreach";
@@ -86,7 +86,7 @@ const fetch = async (url: string, init?: RequestInit): Promise<Response> => {
 let pg: TestPostgres;
 let env: RestateTestEnvironment;
 let omicron: Db;
-const spine = spineRecorder();
+const executor = executorRecorder();
 const open = (id: string) => cachedDb(clientDatabaseUrl(pg.url, `wren_client_${id}`));
 const apps = async () => ({
   linkedin_pages: { id: "lp-app", secret: "lp-secret" },
@@ -116,7 +116,7 @@ beforeAll(async () => {
   api = access();
   env = await startTestRestate({
     services: [
-      spine.service,
+      executor.service,
       makeContent(() => ({}), {
         channels: async (_ctx, client): Promise<Channels> => {
           const c = await clientContent(pg.db, client, "content.social");

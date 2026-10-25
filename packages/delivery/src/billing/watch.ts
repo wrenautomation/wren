@@ -6,9 +6,9 @@
  * write subscriptions, and ours is read only: so it polls.
  */
 import type * as restate from "@restatedev/restate-sdk";
+import type { FireTriggers } from "@wren/core/executor";
 import type { Notifier } from "@wren/core/notify";
 import { makeLoopObject, runPass } from "@wren/core/restate";
-import type { FireTriggers } from "@wren/core/spine";
 import { wallClock } from "@wren/core/time";
 import type { Db } from "@wren/db";
 import { amount } from "../contract.js";
@@ -45,7 +45,7 @@ interface BillingDeps {
   zone: string;
   /** Who's told of a payment in, and of one that waits. */
   notifier?: Notifier;
-  /** Tells the spine each invoice change once (`trigger.payment`); unset = none told. */
+  /** Tells the executor each invoice change once (`trigger.payment`); unset = none told. */
   fire?: FireTriggers;
 }
 

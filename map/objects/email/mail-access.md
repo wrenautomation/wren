@@ -48,7 +48,7 @@ Citations: `packages/channel-email/src/access/schema.ts:37`, `:71`, `:111`; `pac
 |---|---|
 | Account → Mail (client owners and admins; Wren's team for any client) | reads, writes (add, connect, consent link, check) |
 | `/oauth/mail/google`, `/oauth/mail/microsoft` (portal Worker) | writes (lands a grant) |
-| SetupWatch and the spine's `setup.step` | checks facts |
+| SetupWatch and the executor's `setup.step` | checks facts |
 | `MailReader/all`, every 15 min | reads tokens, marks broken |
 
 ## See

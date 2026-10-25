@@ -8,7 +8,7 @@
  * A lead who already booked isn't called: the step leaves `booked`, which ends the run.
  */
 import { type Bookings, type SpeedCall, type SpeedRun, speedRuns } from "@wren/channel-sms";
-import type { Step } from "@wren/core/spine";
+import type { Step } from "@wren/core/executor";
 import type { Db } from "@wren/db";
 import { and, eq, isNull } from "drizzle-orm";
 import type { AgentSettings } from "./agent.js";
@@ -95,7 +95,7 @@ export async function callNow(d: CallNowDeps, id: number, now: Date): Promise<Ca
   }
 }
 
-/** `voice.call_now` on the spine: the lead's run is on the event (`run`, from the first text). */
+/** `voice.call_now` on the executor: the lead's run is on the event (`run`, from the first text). */
 export const callNowStep =
   (depsFor: (client: string | null) => CallNowDeps | Promise<CallNowDeps>): Step =>
   async (_port, e, at) => {

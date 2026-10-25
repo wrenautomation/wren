@@ -10,6 +10,7 @@
 import type * as restate from "@restatedev/restate-sdk";
 import { sendsOn } from "@wren/core/clients";
 import { type CapHolds, capWaitMs, liveHolds } from "@wren/core/content";
+import { executorEmit, replyFired } from "@wren/core/executor";
 import { isVendorStop } from "@wren/core/metered";
 import type { OutreachChannel } from "@wren/core/outreach";
 import { replyWho } from "@wren/core/reply-who";
@@ -23,7 +24,6 @@ import {
   type UnitLimits,
   unitLimits,
 } from "@wren/core/restate";
-import { replyFired, spineEmit } from "@wren/core/spine";
 import { gate } from "@wren/core/vendors";
 import { COLD_EVERY_MS, warmEveryMs } from "@wren/core/warm";
 import { type HealthStats, lastTouches, listAccounts, refreshHealth } from "../accounts.js";
@@ -441,7 +441,7 @@ async function threadsPass(
             out.kept += got.kept.length;
             out.answered += got.answered.length;
             if (got.kept.length)
-              spineEmit(ctx, {
+              executorEmit(ctx, {
                 client: scope.client,
                 workflow: COMMENTS_FLOW,
                 from: COMMENTS_FROM,
@@ -562,7 +562,7 @@ async function watchPass(
         );
         kept.kept += rows.length;
         if (rows.length)
-          spineEmit(ctx, {
+          executorEmit(ctx, {
             client: scope.client,
             workflow: COMMENTS_FLOW,
             from: COMMENTS_FROM,

@@ -25,6 +25,7 @@
 import * as restate from "@restatedev/restate-sdk";
 import { recordedRun } from "@wren/core";
 import { findClient } from "@wren/core/clients";
+import { executorEmit, type FireTriggers, replyFired } from "@wren/core/executor";
 import type { KeyStore } from "@wren/core/keys";
 import { type Notifier, namedFor } from "@wren/core/notify";
 import { replyWho } from "@wren/core/reply-who";
@@ -40,7 +41,6 @@ import {
   setLastPass,
   stoppedPass,
 } from "@wren/core/restate";
-import { type FireTriggers, replyFired, spineEmit } from "@wren/core/spine";
 import { cadenceId } from "@wren/core/workflows";
 import type { Db } from "@wren/db";
 import type { LlmClient } from "@wren/llm";
@@ -219,7 +219,7 @@ export function makeSmsSender(wren: SmsDeps) {
     });
     // Each sent step leaves its node; the cadence's wire waits, then queues the next (follow.ts).
     for (const s of pass.stats?.stepped ?? [])
-      spineEmit(ctx, {
+      executorEmit(ctx, {
         client,
         workflow: cadenceId(s.sequence),
         from: `s${s.step}.sent`,
@@ -243,7 +243,7 @@ export function makeSmsEvents(
     SmsDeps,
     "db" | "provider" | "notifier" | "pusher" | "clock" | "campaignId" | "clientDb"
   > & {
-    /** Each lead's reply to the spine's Reply triggers (`spineFire`). Unset, none fire. */
+    /** Each lead's reply to the executor's Reply triggers (`executorFire`). Unset, none fire. */
     fire?: FireTriggers;
     /** Missed calls and texted-back callers' replies (answers.ts). Unset, calls are rows only. */
     calls?: CallHooks;

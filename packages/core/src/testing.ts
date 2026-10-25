@@ -5,7 +5,7 @@ import {
   type TestEnvironmentOptions,
 } from "@restatedev/restate-sdk-testcontainers";
 import { selfRemoving } from "@wren/db/testing";
-import { SPINE, type SpineEvent } from "./spine.js";
+import { EXECUTOR, type ExecutorEvent } from "./executor.js";
 
 /** Restate for one test file, sized for tests: one partition and a 64 MiB RocksDB take a container
  *  from about 630 MB to 230 MB. A custom container skips the helper's own replay and retry flags,
@@ -29,12 +29,16 @@ export function startTestRestate(options: TestEnvironmentOptions): Promise<Resta
   });
 }
 
-/** A Spine that only records what parts emit, for a test whose service sends along a workflow. */
-export function spineRecorder() {
-  const emitted: { client: string | null; workflow: string; from: string; events: SpineEvent[] }[] =
-    [];
+/** An Executor that only records what parts emit, for a test whose service sends along a workflow. */
+export function executorRecorder() {
+  const emitted: {
+    client: string | null;
+    workflow: string;
+    from: string;
+    events: ExecutorEvent[];
+  }[] = [];
   const service = restate.service({
-    name: SPINE.name,
+    name: EXECUTOR.name,
     handlers: {
       emit: async (_ctx: restate.Context, req: (typeof emitted)[number]) => {
         emitted.push(req);

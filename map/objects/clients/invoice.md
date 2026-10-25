@@ -25,7 +25,7 @@ Wren makes the invoice and the client types its number into the transfer memo, s
 - PDF: `invoicePdf` (`packages/documents/src/pdf.ts:192`) via `invoiceFile` (`billing/mail.ts:20`); the portal's download is `delivery/invoicePdf` (`service.ts:527`, money permission).
 - Read with `money` on the client: `invoicesOf` (`index.ts:1872`) reports open past due as `overdue`.
 
-- `told` (migration `0299_invoice_told`): which of `invoiced`, `paid`, `refunded`, `late` the spine has heard, each with the claim token. `BillingWatch` fires `trigger.payment` once per change after its pass (`claimInvoiceChanges`, `packages/delivery/src/billing/tell.ts`), about the billing email (else the first owner). The demo client tells nothing. A manual `markInvoice` is heard at the next pass.
+- `told` (migration `0299_invoice_told`): which of `invoiced`, `paid`, `refunded`, `late` the executor has heard, each with the claim token. `BillingWatch` fires `trigger.payment` once per change after its pass (`claimInvoiceChanges`, `packages/delivery/src/billing/tell.ts`), about the billing email (else the first owner). The demo client tells nothing. A manual `markInvoice` is heard at the next pass.
 
 Citations: `packages/delivery/src/schema.ts:364`, `:372`, `:443`, `packages/delivery/src/billing/match.ts:69`, `packages/delivery/src/billing/credits.ts:88`
 

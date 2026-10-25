@@ -1,21 +1,21 @@
 /**
- * The spine's In group step (designs/2026-10-15-channel-stats.md): is the person this event is
+ * The executor's In group step (designs/2026-10-15-channel-stats.md): is the person this event is
  * about in a People group now? Yes or no; skip when no person is found. A client's workflow
  * checks the client's own database (`open`).
  */
 import * as restate from "@restatedev/restate-sdk";
 import type { Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
+import type { ExecutorEvent, Step, StepAt } from "./executor.js";
 import { personOf } from "./message-step.js";
 import { type ProfileKey, profileOf } from "./profiles.js";
 import { inSegment, segmentById } from "./segments.js";
-import type { SpineEvent, Step, StepAt } from "./spine.js";
 
 /** A channel thread's subject, as its touch and Reply steps name it: `lead:email:<enrollment>`. */
 const THREAD = /^(?:lead|reply):(email|sms|reach):(\d+)$/;
 
 /** The thread an event rides on, from its subject, else the ids its data carries. */
-function threadOf(e: SpineEvent): { channel: string; id: number } | null {
+function threadOf(e: ExecutorEvent): { channel: string; id: number } | null {
   const m = THREAD.exec(e.subject);
   if (m) return { channel: m[1] as string, id: Number(m[2]) };
   const enrollment = Number(e.data?.enrollmentId);
@@ -62,7 +62,7 @@ async function threadKeys(
  * phone; else the thread it rides on (an email enrollment, a text or DM contact), by the
  * thread's person, then its address.
  */
-export async function profileOfEvent(db: Queryable, e: SpineEvent): Promise<number | null> {
+export async function profileOfEvent(db: Queryable, e: ExecutorEvent): Promise<number | null> {
   const named = Number(e.data?.profile ?? (/^profile:(\d+)$/.exec(e.subject)?.[1] || NaN));
   if (Number.isSafeInteger(named) && named > 0) return named;
   const p = personOf(e);
@@ -80,7 +80,7 @@ export async function profileOfEvent(db: Queryable, e: SpineEvent): Promise<numb
 }
 
 /** "Would check segment 4 for sam@example.com": what a dry test says. */
-export function segmentWould(w: StepAt["with"], e: SpineEvent): string {
+export function segmentWould(w: StepAt["with"], e: ExecutorEvent): string {
   const p = personOf(e);
   const who = p.email || p.phone || (e.data?.profile ? `profile ${e.data.profile}` : e.subject);
   return `Would check if ${who} is in group ${String(w.segment ?? "?")}`;

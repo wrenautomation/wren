@@ -1,5 +1,5 @@
+import type { ExecutorEvent } from "@wren/core/executor";
 import { triggerHears } from "@wren/core/logic";
-import type { SpineEvent } from "@wren/core/spine";
 import { describe, expect, it } from "vitest";
 import { flow } from "../test/fixtures.js";
 import { entryOf } from "./entry.js";
@@ -9,7 +9,7 @@ import { causeOf, factsOf } from "./steps.js";
 const NOW = new Date("2026-10-19T10:00:00Z");
 
 /** What the sourced feed fires when person 42 is added to list 12. */
-const added: SpineEvent = {
+const added: ExecutorEvent = {
   subject: "source:import:12:42",
   kind: "lead",
   data: {

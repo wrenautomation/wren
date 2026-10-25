@@ -200,7 +200,7 @@ export function Executions({
           />
         ) : (
           <Empty>
-            {q ? "Nothing matches that." : "Nothing has run through this workflow on the spine."}
+            {q ? "Nothing matches that." : "Nothing has run through this workflow on the executor."}
           </Empty>
         )}
       </div>

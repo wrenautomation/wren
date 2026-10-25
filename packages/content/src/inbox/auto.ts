@@ -51,7 +51,7 @@ export async function setAutoMode(
     });
 }
 
-/** What a reply the spine heard is, as an Inbox thread; null when there is none to answer. */
+/** What a reply the executor heard is, as an Inbox thread; null when there is none to answer. */
 export async function threadOfReply(
   db: Queryable,
   channel: "email" | "sms" | "dm" | "comment",

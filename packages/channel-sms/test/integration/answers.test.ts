@@ -5,10 +5,10 @@
  */
 import { addSuppression } from "@wren/core";
 import { clients } from "@wren/core/clients";
+import { liveFor } from "@wren/core/executor";
 import { serveRecords } from "@wren/core/records/serve";
 import { workflowInstalls } from "@wren/core/schema";
 import { accountFacts, clientAccounts } from "@wren/core/setup-schema";
-import { liveFor } from "@wren/core/spine";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";

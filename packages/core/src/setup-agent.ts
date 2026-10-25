@@ -11,11 +11,11 @@ import type { Db } from "@wren/db";
 import { z } from "zod";
 import { DoFailed, restateDo } from "./content/do.js";
 import type { Wake } from "./content/restate.js";
+import { executorEmit } from "./executor.js";
 import { serviceHandler } from "./restate/form.js";
 import { type AgentAnswer, type AgentJob, accountRow, agentDone, type Setup } from "./setup.js";
 import type { AlertPart } from "./setup-alerts.js";
 import type { AccountRow } from "./setup-schema.js";
-import { spineEmit } from "./spine.js";
 
 export const SETUP_AGENT = "SetupAgent";
 
@@ -97,7 +97,7 @@ export function makeSetupAgent(deps: {
           const emit = await ctx.run("record", () =>
             agentDone(deps.main, s, job, out, now, deps.parts),
           );
-          if (emit) spineEmit(ctx, emit);
+          if (emit) executorEmit(ctx, emit);
           return out;
         },
       ),

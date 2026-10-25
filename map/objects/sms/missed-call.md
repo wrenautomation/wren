@@ -28,7 +28,7 @@ Citations: `packages/channel-sms/src/schema.ts:555`, `packages/channel-sms/src/e
 ## Connected to
 
 - **owned-by:** the `missed_call` part (`packages/channel-sms/src/components.ts`), a Shop template; needs fact `number.calls_routed` (setup `setup.call_routing`, `setups.ts:111`)
-- **joins:** [[sms/sms-event]] (call events), [[sms/sms-message]] (the `text_back` text), [[sms/speed-run]], [[platform/spine]]
+- **joins:** [[sms/sms-event]] (call events), [[sms/sms-message]] (the `text_back` text), [[sms/speed-run]], [[platform/executor]]
 - **looks-like-but-is-not:** `voice_calls` ([[voice/call]], calls we place)
 
 ## If you change this
@@ -41,7 +41,7 @@ Citations: `packages/channel-sms/src/schema.ts:555`, `packages/channel-sms/src/e
 | Surface | Role |
 |---|---|
 | Telnyx `/webhooks/telnyx/<client>` → `SmsEvents/ingestFor` | writes |
-| `Spine/emit` → `sms.text_back` | writes the text back |
+| `Executor/emit` → `sms.text_back` | writes the text back |
 | portal Texts > Missed calls (`SmsConsole.records*`) | reads |
 
 ## See

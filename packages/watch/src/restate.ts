@@ -9,10 +9,10 @@
  */
 import type * as restate from "@restatedev/restate-sdk";
 import type { SiteClient } from "@wren/core/content";
+import { executorEmit } from "@wren/core/executor";
 import type { Mailbox } from "@wren/core/mailbox";
 import type { Notifier } from "@wren/core/notify";
 import { makeLoopObject, type PassOutcome, runPass } from "@wren/core/restate";
-import { spineEmit } from "@wren/core/spine";
 import { wallClock } from "@wren/core/time";
 import type { Db } from "@wren/db";
 import {
@@ -178,7 +178,7 @@ export function makeWatch(deps: WatchDeps) {
     })) as PassOutcome<Stats>;
     const kept = outcome.stats?.kept ?? [];
     if (kept.length)
-      spineEmit(ctx, {
+      executorEmit(ctx, {
         client: null,
         workflow: WATCH_FLOW,
         from: WATCH_FROM,
@@ -187,7 +187,7 @@ export function makeWatch(deps: WatchDeps) {
     await relinkOld(ctx, deps, now);
     const added = outcome.stats?.feeds?.added ?? [];
     if (added.length)
-      spineEmit(ctx, {
+      executorEmit(ctx, {
         client: null,
         workflow: LEARN_FLOW,
         from: LEARN_FEEDS_FROM,

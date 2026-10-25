@@ -11,9 +11,9 @@
  */
 import { activeSuppressionOf } from "@wren/core";
 import { type DoorLead, leadOf } from "@wren/core/door";
+import type { ExecutorEvent, Step } from "@wren/core/executor";
 import { linkPeople } from "@wren/core/leads";
 import { noteContacts } from "@wren/core/profiles-backfill";
-import type { SpineEvent, Step } from "@wren/core/spine";
 import type { Db } from "@wren/db";
 import { and, eq } from "drizzle-orm";
 import { SPEED } from "./components.js";
@@ -212,10 +212,11 @@ export async function firstText(
 }
 
 /** The lead on an event: the door's facts, else read from the event as a payload. */
-const leadOn = (e: SpineEvent): DoorLead => (e.data.lead as DoorLead | undefined) ?? leadOf(e.data);
+const leadOn = (e: ExecutorEvent): DoorLead =>
+  (e.data.lead as DoorLead | undefined) ?? leadOf(e.data);
 
 /**
- * `sms.forms` on the spine: the first text. `texted` carries the text contact on as its lead
+ * `sms.forms` on the executor: the first text. `texted` carries the text contact on as its lead
  * (`lead:sms:<id>`, which the follow-up's touches know); `untexted` (no consent, no phone,
  * "would send", refused) goes on with the door's subject, so the rep is still alerted.
  */

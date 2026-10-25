@@ -1,6 +1,6 @@
 /**
  * Missed-call text back (designs/2026-10-07-missed-call-and-reviews.md). A call to the client's
- * number that nobody picked up (missed, busy, voicemail) arrives on the spine once its template
+ * number that nobody picked up (missed, busy, voicemail) arrives on the executor once its template
  * is live. `textBack` texts the caller from the number they called, within a minute, in texting
  * hours on their clock (else the next morning), in the client's words: one for a new caller, one
  * for someone already in their texts.
@@ -11,9 +11,9 @@
  * and the worker hands the caller to speed to lead when the client has it live.
  */
 import { activeSuppressionOf } from "@wren/core";
+import type { Step } from "@wren/core/executor";
 import { linkPeople } from "@wren/core/leads";
 import { noteContacts } from "@wren/core/profiles-backfill";
-import type { Step } from "@wren/core/spine";
 import { liveOrDefault } from "@wren/core/templates/defaults";
 import type { Db, Queryable } from "@wren/db";
 import { and, desc, eq, gt, inArray, isNull, ne, sql } from "drizzle-orm";
@@ -294,7 +294,7 @@ type TextBackDeps = Omit<TextBackOptions, "now"> & {
 };
 
 /**
- * `sms.text_back` on the spine: `texted` carries the caller on as a text lead (`lead:sms:<id>`);
+ * `sms.text_back` on the executor: `texted` carries the caller on as a text lead (`lead:sms:<id>`);
  * `untexted` (skipped, would send, refused) goes on with the call's subject.
  */
 export const textBackStep =

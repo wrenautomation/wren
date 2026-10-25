@@ -5,13 +5,13 @@
 import { landerHits } from "@wren/channel-email/calls";
 import { makeBroadcast } from "@wren/core/broadcast-run";
 import { listClients } from "@wren/core/clients";
+import { editsOf, savedWorkflows } from "@wren/core/executor";
 import { meteredModel } from "@wren/core/metered";
 import { makePeopleConsole, PEOPLE_RECORDS } from "@wren/core/people/console";
 import { siteCountReader } from "@wren/core/people-map";
 import { makePeopleMap, makePeopleMapNet } from "@wren/core/people-map-pass";
 import { profileRecords } from "@wren/core/profile-records";
 import { makeSegments, makeSegmentsNet } from "@wren/core/segments-pass";
-import { editsOf, savedWorkflows } from "@wren/core/spine";
 import { makeTouchFeed } from "@wren/core/touch-feed";
 import { flowsWith } from "@wren/core/workflows";
 import { llmForKey } from "@wren/llm";
@@ -48,7 +48,7 @@ export function peopleServices(deps: Deps): AnyService[] {
           : llm,
     }),
     // Segments (B5): each workspace's live segments kept true, entries, exits, trait changes and
-    // dates told to the spine; woken on a changed row, the net every 15 minutes.
+    // dates told to the executor; woken on a changed row, the net every 15 minutes.
     ...(() => {
       const segments = {
         main: db,
@@ -74,7 +74,7 @@ export function peopleServices(deps: Deps): AnyService[] {
       };
       return [makePeopleMap(map), makePeopleMapNet(map)];
     })(),
-    // Touch feed (designs/2026-10-18-journeys.md): each workspace's new touches told to the spine
+    // Touch feed (designs/2026-10-18-journeys.md): each workspace's new touches told to the executor
     // once each, every minute, for `trigger.touch`. Started by hand, never on its own.
     makeTouchFeed({
       main: db,

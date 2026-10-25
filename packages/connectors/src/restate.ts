@@ -6,6 +6,7 @@
  */
 import * as restate from "@restatedev/restate-sdk";
 import { WREN } from "@wren/core/access";
+import type { FireTriggers } from "@wren/core/executor";
 import { noRawKeys } from "@wren/core/key-refs";
 import {
   answer,
@@ -19,7 +20,6 @@ import {
   teamCan,
 } from "@wren/core/portal";
 import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
-import type { FireTriggers } from "@wren/core/spine";
 import type { Db } from "@wren/db";
 import { z } from "zod";
 import { CONNECTOR_APPS, type ConnectorApp } from "./apps.js";

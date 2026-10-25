@@ -9,6 +9,7 @@
 import * as restate from "@restatedev/restate-sdk";
 import { outcomeIn } from "@wren/core/calls";
 import type { Client } from "@wren/core/clients";
+import { executorEmit, liveFor } from "@wren/core/executor";
 import {
   answer,
   PortalRefusal,
@@ -31,7 +32,6 @@ import {
   serveRecords,
 } from "@wren/core/records/serve";
 import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
-import { liveFor, spineEmit } from "@wren/core/spine";
 import { atomic, type Db, setAuditActor, snapshot } from "@wren/db";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
@@ -216,7 +216,7 @@ export function makeSmsConsole(deps: SmsConsoleDeps) {
           answer(async () => {
             const ask = await api.askingReview(req);
             const id = ctx.rand.uuidv4();
-            spineEmit(ctx, {
+            executorEmit(ctx, {
               client: ask.client,
               workflow: REVIEWS_FLOW,
               from: "in.customers",

@@ -410,7 +410,7 @@ export const invoices = delivery.table(
     units: integer("units"),
     /** What it billed, line by line (designs/2026-10-09-rebilling.md); empty before lines. */
     lines: jsonb("lines").$type<InvoiceLine[]>().default([]).notNull(),
-    /** Changes the spine has heard, each once ever: change to the claim that told it. */
+    /** Changes the executor has heard, each once ever: change to the claim that told it. */
     told: jsonb("told").$type<Partial<Record<InvoiceChange, string>>>().default({}).notNull(),
     createdBy: text("created_by").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),

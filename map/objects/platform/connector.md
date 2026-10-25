@@ -18,7 +18,7 @@ Three apps, one OAuth shape, so a thin package and no vendor (Nango, Composio). 
 ## Shape
 
 - `connector_links`: client, app, `external_id` (hub, realm, account), name, `token_ref` (key store, never the token), `extra` (QuickBooks realm), state connected|broken, why, `cursor` jsonb (newest change per read), counts, `synced_at`, `connected_at`. Unique (client, app, external_id).
-- `connector_grants`: one sign-in's `state`, spent once, 30 minutes. `connector_fired`: (link, key) told to the spine once.
+- `connector_grants`: one sign-in's `state`, spent once, 30 minutes. `connector_fired`: (link, key) told to the executor once.
 - Apps `packages/connectors/src/apps.ts` (no imports: the portal Worker reads it). OAuth is autobrowse's `./oauth` (`appConnectUrl`, `appExchange`, `appRefresh`, called with `APPS[app]` in `connectors.ts`): QuickBooks takes the app's keys as basic auth; QuickBooks and Jobber rotate the refresh token, kept at once (`connectors.ts` `tokenOf`). Wire pinned by `src/oauth.wire.test.ts`.
 - Reads `src/pull/{hubspot,quickbooks,jobber}.ts`: 100 a page, 2000 a run. Jobber's names checked live 10-10 (jobs filter by `completedAt`; `JOBBER_VERSION` pinned).
 - Sync `src/sync.ts` `syncLink`: pull, land (`CrmLanding`, the worker passes reactivation's `crmLanding`), fire `trigger.app` for changes after `connected_at`, once each. Token refused: broken. Other failures: `why` on the page, next hour.
@@ -31,7 +31,7 @@ Citations: `packages/connectors/src/sync.ts:1`, `packages/connectors/src/restate
 
 - **owns:** `connector_grants`, `connector_links`, `connector_fired`
 - **writes:** [[reactivation/crm-contact]] through the CRM import
-- **fires:** [[platform/spine]] `trigger.app` (contact_added, invoice_paid, job_done), webhook event `app.changed`
+- **fires:** [[platform/executor]] `trigger.app` (contact_added, invoice_paid, job_done), webhook event `app.changed`
 - **looks-like-but-is-not:** client social (`social_connections`), which posts; connectors only read
 
 ## If you change this

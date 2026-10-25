@@ -7,9 +7,9 @@
  * Synthetic data only.
  */
 import { randomUUID } from "node:crypto";
+import { type Fired, pgExecutorStore, type Walk, walk } from "@wren/core/executor";
 import { resolveProfile } from "@wren/core/profiles";
 import { journeyShape } from "@wren/core/segments";
-import { type Fired, pgSpineStore, type Walk, walk } from "@wren/core/spine";
 import type { Workflow } from "@wren/core/workflows";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import type { Terms } from "@wren/offers";
@@ -74,7 +74,7 @@ const reasons = (p: Promise<unknown>) =>
     (e: unknown) => (e instanceof Refused ? e.errors : [String(e)]),
   );
 
-/** What `Spine/emit` does with an Emit: walk it from its node, as its own invocation. */
+/** What `Executor/emit` does with an Emit: walk it from its node, as its own invocation. */
 async function play(e: Emit) {
   const fired: Fired[] = [];
   const flows: Workflow[] = await shapeWorkflowsOf(pg.db, "wren");
@@ -82,7 +82,7 @@ async function play(e: Emit) {
     flows: new Map(flows.map((f) => [f.id, f])),
     parts: new Map(),
     steps: journeySteps({ db: () => pg.db }),
-    store: pgSpineStore(pg.db),
+    store: pgExecutorStore(pg.db),
     client: null,
     by: randomUUID(),
     run: (_name, fn) => fn(),

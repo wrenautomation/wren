@@ -1,6 +1,6 @@
 /**
  * Outbound webhooks, the pure half (designs/2026-10-07-webhooks-out.md): the events a client's
- * URL may hear and where each comes from on the spine, the URL guard, and the Send webhook node's
+ * URL may hear and where each comes from on the executor, the URL guard, and the Send webhook node's
  * slots. No Node APIs, so the portal reads it too.
  */
 import type { EventKind } from "./components.js";
@@ -31,7 +31,7 @@ export const isWebhookEvent = (v: unknown): v is WebhookEvent =>
   typeof v === "string" && Object.hasOwn(WEBHOOK_EVENTS, v);
 
 /**
- * The webhook events a reply, a booking or a journey's move the spine fired makes; none for what
+ * The webhook events a reply, a booking or a journey's move the executor fired makes; none for what
  * clients don't hear. A journey that enters an offer node makes two: it moved, and a deal was won.
  * A skipped node is no move.
  */

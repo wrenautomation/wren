@@ -9,11 +9,11 @@ entity: packages/core/src/setup.ts:1
 
 # account setup (registry, facts, setup runs)
 
-Every account an owner has (a number, a domain, an inbox, a property, a login) is a `client_accounts` row with named facts. A setup is a workflow of `kind: "setup"` on the spine that makes those facts true, one step each (designs/2026-10-07-setup-and-vendors.md).
+Every account an owner has (a number, a domain, an inbox, a property, a login) is a `client_accounts` row with named facts. A setup is a workflow of `kind: "setup"` on the executor that makes those facts true, one step each (designs/2026-10-07-setup-and-vendors.md).
 
 ## Why this shape
 
-One engine: a setup walks the spine like any workflow, one subject per account and generation (`account:<id>:g<gen>`). The spine keeps one arrival per node and subject, so a step that checks again goes round its own self wire with a wait under a round subject (`#<n>`); `done` always leaves with the base subject. A lost fact starts the setup over as the next generation; old rounds see a stale generation and do nothing. Facts live on the account they describe, so each number and domain carries its own.
+One engine: a setup walks the executor like any workflow, one subject per account and generation (`account:<id>:g<gen>`). The executor keeps one arrival per node and subject, so a step that checks again goes round its own self wire with a wait under a round subject (`#<n>`); `done` always leaves with the base subject. A lost fact starts the setup over as the next generation; old rounds see a stale generation and do nothing. Facts live on the account they describe, so each number and domain carries its own.
 
 ## Shape
 
@@ -31,7 +31,7 @@ One engine: a setup walks the spine like any workflow, one subject per account a
 
 ## Connected to
 
-- **owned-by:** [[platform/spine]] (runs it), [[platform/worker]] (registers `setup.step`, checks, `SetupWatch`)
+- **owned-by:** [[platform/executor]] (runs it), [[platform/worker]] (registers `setup.step`, checks, `SetupWatch`)
 - **joins:** [[platform/vendors]] (a setup's buys fold into managed billing, Open); outside the tree, autobrowse `do` (`DoRequest.owner`, refused 409 for another owner; autobrowse map `processes/do`)
 - **looks-like-but-is-not:** `clients.accounts` (the Shop's one link per site; the registry is the superset: `updateClient`/`addClient` write each saved one's row too, `registerAccounts` in `packages/core/src/clients/index.ts`; migration 0154 backfilled them; turning a site off keeps its row)
 
@@ -47,7 +47,7 @@ One engine: a setup walks the spine like any workflow, one subject per account a
 | Account → Accounts (client and Wren's team) | reads; marks, starts, checks now |
 | Clients record, Accounts section | reads |
 | Part page, a required fact | reads; links to Accounts |
-| `setup.step` on the spine | writes facts and runs |
+| `setup.step` on the executor | writes facts and runs |
 | SetupWatch | writes on recheck, sweep and alerts |
 | Now (Wren's home, client Apps page), Accounts badge | reads alerts |
 | Canvas, Shop, template plan | reads paused parts |

@@ -14,7 +14,7 @@ import { journaledSites } from "@wren/core/content/restate";
 import { foldRows } from "@wren/core/records";
 import type { PassOutcome } from "@wren/core/restate";
 import { dbSendJournal } from "@wren/core/send-journal";
-import { spineRecorder, startTestRestate } from "@wren/core/testing";
+import { executorRecorder, startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { addAccount, setAccountState } from "../../src/accounts.js";
@@ -137,7 +137,7 @@ const sites: SiteClient = {
 
 let pg: TestPostgres;
 let env: RestateTestEnvironment;
-const spine = spineRecorder();
+const executor = executorRecorder();
 beforeAll(async () => {
   pg = await startTestPostgres();
   const a = await addAccount(pg.db, { platform: "reddit", account: "reddit@test", now });
@@ -145,7 +145,7 @@ beforeAll(async () => {
   await pg.db.execute(`update reach_accounts set handle = 'wren_test' where id = '${a.id}'`);
   env = await startTestRestate({
     services: [
-      spine.service,
+      executor.service,
       makeReachWatch({
         db: pg.db,
         policy: DEFAULT_POLICY,
@@ -179,7 +179,7 @@ const textsOf = (rs: Record<string, unknown>[], who: string) =>
 const reads = () => paths.filter((p) => p === "/comments/p1").length;
 /** The comments the passes sent along the comments flow, one event each. */
 const emitted = () =>
-  spine.emitted.filter((e) => e.workflow === COMMENTS_FLOW).flatMap((e) => e.events);
+  executor.emitted.filter((e) => e.workflow === COMMENTS_FLOW).flatMap((e) => e.events);
 
 describe("a whole ReachWatch pass over a thread", () => {
   it("keeps the inbox reply and the follow-ups it never lists, folded per person", async () => {

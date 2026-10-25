@@ -264,7 +264,7 @@ export const checkRates = pgView("check_rates", {
   group by o.stage, o.source, o."check"`);
 
 /**
- * The spine's log (designs/2026-10-05-workflows.md, src/spine.ts): one row per event arriving at
+ * The executor's log (designs/2026-10-05-workflows.md, src/executor.ts): one row per event arriving at
  * a node's input, keyed by workflow, node path and port and subject, so nothing enters twice. A
  * row with `due` is an event waiting on a wire until then. Main holds Wren's; each client's
  * database holds theirs.
@@ -316,7 +316,7 @@ export const events = pgTable(
     oneOf("ck_events_kind", t.kind, Object.keys(EVENT_KINDS)),
   ],
 );
-export type SpineRow = typeof events.$inferSelect;
+export type ExecutorRow = typeof events.$inferSelect;
 /** One event a step sent on, as `events.sent` keeps it. */
 export interface SentEvent {
   port: string;
@@ -325,8 +325,8 @@ export interface SentEvent {
   data: Record<string, unknown>;
 }
 
-/** The spine's arrivals as the console lists them (`console.event`): failed, waiting, or passed on. */
-export const spineEvents = pgView("spine_events", {
+/** The executor's arrivals as the console lists them (`console.event`): failed, waiting, or passed on. */
+export const executorEvents = pgView("executor_events", {
   id: text("id"),
   workflow: text("workflow"),
   node: text("node"),
@@ -350,7 +350,7 @@ export const spineEvents = pgView("spine_events", {
  * Its title names who and what: "Dana Lee: Re: pricing", not "mail:104". `person` and `firm` say
  * who it's about apart, so its list searches by either (a firm's name never fits in the title).
  */
-export const spineExecutions = pgView("spine_executions", {
+export const executions = pgView("executions", {
   id: text("id"),
   workflow: text("workflow"),
   subject: text("subject"),

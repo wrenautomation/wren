@@ -1,13 +1,13 @@
-/** The spine's store on Postgres: an arrival is kept once, owned by its call; waits release once. */
+/** The executor's store on Postgres: an arrival is kept once, owned by its call; waits release once. */
 import { env } from "node:process";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { defineComponent } from "../../src/components.js";
 import { consoleApi, executionSteps, workflowEffects } from "../../src/console.js";
+import { addHook, pgExecutorStore, savedWorkflows } from "../../src/executor.js";
 import type { PortalRequest } from "../../src/portal.js";
 import { events, hooks, workflowSaves } from "../../src/schema.js";
-import { addHook, pgSpineStore, savedWorkflows } from "../../src/spine.js";
 import { defineWorkflow } from "../../src/workflows.js";
 
 let pg: TestPostgres;
@@ -23,9 +23,9 @@ const a = {
   event: { subject: "lead:1", kind: "lead" as const, data: { cut: "half \uD83D" } },
 };
 
-describe("pgSpineStore", () => {
+describe("pgExecutorStore", () => {
   it("keeps an arrival once, gives it back to the call that owns it, and records a failure", async () => {
-    const store = pgSpineStore(pg.db);
+    const store = pgExecutorStore(pg.db);
     const id = await store.claim(a, "inv1");
     expect(id).toMatch(/^[0-9a-f-]{36}$/);
     expect(await store.claim(a, "inv1")).toBe(id);
@@ -37,7 +37,7 @@ describe("pgSpineStore", () => {
       .where(eq(events.id, id as string));
     expect(row).toMatchObject({ by: "inv1", error: "the model is down", data: { cut: "half " } });
     const listed = () =>
-      pg.db.execute<{ state: string }>(sql`select state from spine_events where id = ${id}`);
+      pg.db.execute<{ state: string }>(sql`select state from executor_events where id = ${id}`);
     expect(await listed()).toEqual([{ state: "failed" }]);
 
     // Retry: one call takes it, its error cleared; nobody else, and only while it's failed.
@@ -53,7 +53,7 @@ describe("pgSpineStore", () => {
   });
 
   it("releases a waiting arrival to one call, and again to that call only", async () => {
-    const store = pgSpineStore(pg.db);
+    const store = pgExecutorStore(pg.db);
     const w = { ...a, node: "out", port: "replied", version: 3 };
     const id = (await store.claim(w, "inv1", new Date(Date.now() + 60_000))) as string;
     expect(await store.release(id, "inv2")).toEqual({
@@ -66,7 +66,7 @@ describe("pgSpineStore", () => {
     expect(await store.claim(w, "inv2")).toBe(id);
   });
   it("keeps what a step sent on, and lists each subject's walk as one execution", async () => {
-    const store = pgSpineStore(pg.db);
+    const store = pgExecutorStore(pg.db);
     const one = { ...a, workflow: "runs", node: "a", event: { ...a.event, subject: "lead:9" } };
     const first = (await store.claim(one, "inv1")) as string;
     await store.sent?.(first, [{ port: "replied", event: { ...one.event, kind: "reply" } }]);
@@ -78,7 +78,7 @@ describe("pgSpineStore", () => {
     ]);
     expect(row?.sentAt).toBeInstanceOf(Date);
     const runs = await pg.db.execute<{ id: string; state: string; node: string; steps: number }>(
-      sql`select id, state, node, steps from spine_executions where workflow = 'runs'`,
+      sql`select id, state, node, steps from executions where workflow = 'runs'`,
     );
     expect(runs).toEqual([{ id: "runs/lead:9", state: "waiting", node: "b", steps: 2 }]);
     const steps = await executionSteps(pg.db, "runs/lead:9");
@@ -88,7 +88,7 @@ describe("pgSpineStore", () => {
     ]);
     await store.fail(two, "it broke");
     const [failed] = await pg.db.execute<{ state: string; error: string }>(
-      sql`select state, error from spine_executions where id = 'runs/lead:9'`,
+      sql`select state, error from executions where id = 'runs/lead:9'`,
     );
     expect(failed).toEqual({ state: "failed", error: "it broke" });
   });
@@ -101,13 +101,13 @@ describe("pgSpineStore", () => {
       insert into reach_contacts (platform, handle, url, found_in, name, company_id)
       values ('linkedin', 'dana', 'https://www.linkedin.com/in/dana', 'search', 'Dana Lee', ${firm?.id})
       returning id`);
-    const store = pgSpineStore(pg.db);
+    const store = pgExecutorStore(pg.db);
     const at = (subject: string) => ({ ...a, workflow: "who", event: { ...a.event, subject } });
     await store.claim(at(`lead:reach:${dm?.id}`), "inv1");
     await store.claim(at(`company:${firm?.id}`), "inv1");
     await store.claim(at("lead:sms:x1"), "inv1");
     const rows = await pg.db.execute<{ subject: string; person: string; firm: string }>(
-      sql`select subject, person, firm from spine_executions where workflow = 'who' order by subject`,
+      sql`select subject, person, firm from executions where workflow = 'who' order by subject`,
     );
     expect(rows).toEqual([
       { subject: `company:${firm?.id}`, person: null, firm: "Acme Advisors" },
@@ -354,7 +354,7 @@ describe("workflow saves", () => {
   });
 
   it("keeps the wiring each subject entered on", async () => {
-    const store = pgSpineStore(pg.db);
+    const store = pgExecutorStore(pg.db);
     const at = { ...a, workflow: "pinned", event: { ...a.event, subject: "lead:p" } };
     expect(await store.entered?.("pinned", "lead:p")).toBeUndefined();
     await store.claim({ ...at, version: 7 }, "inv1");

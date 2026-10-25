@@ -19,6 +19,7 @@
  * and runs a pass at once. While the watch lives, the loop polls only as a net.
  */
 import * as restate from "@restatedev/restate-sdk";
+import { type FireTriggers, replyFired } from "@wren/core/executor";
 import { type Notifier, plural } from "@wren/core/notify";
 import { replyWho } from "@wren/core/reply-who";
 import {
@@ -29,7 +30,6 @@ import {
   sharedHandler,
   unitOfKey,
 } from "@wren/core/restate";
-import { type FireTriggers, replyFired } from "@wren/core/spine";
 import type { Db } from "@wren/db";
 import type { InboxReader } from "@wrenautomation/autobrowse/mail";
 import { z } from "zod";
@@ -73,7 +73,7 @@ interface InboxSchedulerDeps {
    * the net's pace, not `syncMs`.
    */
   quiet?: (sender: string) => boolean;
-  /** Each person's reply to the spine's Reply triggers (`spineFire`). Unset, none fire. */
+  /** Each person's reply to the executor's Reply triggers (`executorFire`). Unset, none fire. */
   fire?: FireTriggers;
 }
 

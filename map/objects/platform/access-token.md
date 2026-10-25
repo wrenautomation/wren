@@ -32,7 +32,7 @@ Citations: `packages/core/src/clients/schema.ts:351`, `packages/core/src/tokens.
 - **owns:** `access_tokens`
 - **owned-by:** [[platform/restate-services]]
 - **joins:** [[clients/client]] by `client` (cascade); [[clients/client-member]] decides a pin
-- **looks-like-but-is-not:** the door's hook tokens ([[platform/spine]]); sign-in sessions (`@wren/auth`); webhook secrets ([[platform/webhook-subscription]])
+- **looks-like-but-is-not:** the door's hook tokens ([[platform/executor]]); sign-in sessions (`@wren/auth`); webhook secrets ([[platform/webhook-subscription]])
 
 ## If you change this
 

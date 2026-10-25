@@ -7,8 +7,8 @@
  */
 import * as restate from "@restatedev/restate-sdk";
 import { findClient } from "@wren/core/clients";
+import { executorEmit, liveFor } from "@wren/core/executor";
 import { serviceHandler } from "@wren/core/restate";
-import { liveFor, spineEmit } from "@wren/core/spine";
 import type { Db } from "@wren/db";
 import { z } from "zod";
 import { callReplied, missedCallEvent, runOfCall } from "../missed.js";
@@ -31,7 +31,7 @@ export function callHooks(d: { main: Db; clientDb(id: string): Db }): CallHooks 
   return {
     missed: (ctx, client, callId) => {
       if (client === null) return;
-      spineEmit(ctx, {
+      executorEmit(ctx, {
         client,
         workflow: MISSED_FLOW,
         from: "in.calls",
@@ -53,7 +53,7 @@ export function callHooks(d: { main: Db; clientDb(id: string): Db }): CallHooks 
       });
       if (run === null) return;
       // As if speed to lead's first text had just gone: Call now after its wait, the follow-up.
-      spineEmit(ctx, {
+      executorEmit(ctx, {
         client,
         workflow: SPEED_FLOW,
         from: "text.texted",

@@ -1,13 +1,13 @@
 /**
- * The journey rows the spine steps and the Journeys service share (designs/2026-10-19-business-map.md):
+ * The journey rows the executor steps and the Journeys service share (designs/2026-10-19-business-map.md):
  * who a cause is about, the shape workflows a workspace lists, and a drop. All DB reads and
  * writes here; the pure rules are in `entry.ts`, `model.ts` and `workflow.ts`.
  */
 
 import type { Component } from "@wren/core/components";
+import type { ExecutorEvent } from "@wren/core/executor";
 import { profileOf } from "@wren/core/profiles";
 import { profiles } from "@wren/core/profiles-schema";
-import type { SpineEvent } from "@wren/core/spine";
 import { checkWorkflows, type Workflow } from "@wren/core/workflows";
 import { atomic, type Queryable } from "@wren/db";
 import { and, desc, eq, sql } from "drizzle-orm";
@@ -152,11 +152,11 @@ export function soundShapes(
   });
 }
 
-/** Where a drop leaves, for `Spine/emit`: the newest version's workflow, whatever the journey's version. */
+/** Where a drop leaves, for `Executor/emit`: the newest version's workflow, whatever the journey's version. */
 interface DropEmit {
   workflow: string;
   from: string;
-  events: SpineEvent[];
+  events: ExecutorEvent[];
 }
 
 /**
@@ -167,7 +167,7 @@ const lockPerson = (tx: Queryable, profile: number) =>
   tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${`journey:${profile}`}))`);
 
 /**
- * Close an open journey as dropped and give back the event that tells the spine
+ * Close an open journey as dropped and give back the event that tells the executor
  * (`Journeys/drop` sends it at `in.dropped`). Null when it is not open. The event leaves from the
  * newest version's workflow: the journey's own may have left the list.
  */

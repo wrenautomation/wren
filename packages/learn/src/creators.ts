@@ -340,7 +340,7 @@ export const tiktokReader =
 /**
  * Read the creators that are due and that `read` can read, keeping new posts. A creator's first
  * read keeps its posts as seen. `macReads` marks new reels for the Mac as they're kept: the Mac
- * reads them in the same pass, with no spine between.
+ * reads them in the same pass, with no executor between.
  */
 export async function pullCreators(
   db: Db,

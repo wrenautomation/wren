@@ -265,7 +265,7 @@ const SERVICES: Record<
       }),
     },
   },
-  // Accounts and vendors. Steps move on the spine, which isn't here: a write saves, nothing runs.
+  // Accounts and vendors. Steps move on the executor, which isn't here: a write saves, nothing runs.
   accounts: {
     routes: Object.keys(ACCOUNTS_CONSOLE_ROUTES),
     guard: { needs: ACCOUNTS_CONSOLE_ROUTES, apps: ACCOUNTS_CONSOLE_APPS, unnamed: "first" },
@@ -417,7 +417,7 @@ const SERVICES: Record<
       drive: googleDrive({}),
     }),
   },
-  // Learn: a save is kept here; its read and score run on the spine, which isn't here.
+  // Learn: a save is kept here; its read and score run on the executor, which isn't here.
   learn: {
     routes: Object.keys(LEARN_CONSOLE_ROUTES),
     guard: { needs: LEARN_CONSOLE_ROUTES, apps: LEARN_CONSOLE_APPS, unnamed: "wren" },
@@ -447,7 +447,7 @@ const SERVICES: Record<
     guard: { needs: SMS_CONSOLE_ROUTES, apps: SMS_CONSOLE_APPS, unnamed: "first" },
     api: smsConsoleApi({ db: main, open: (c) => cachedDb(clientUrl(settings.databaseUrl, c)) }),
   },
-  // Journeys: the board's reads. A hand move runs on Restate, through the spine: not here.
+  // Journeys: the board's reads. A hand move runs on Restate, through the executor: not here.
   pipeline: {
     routes: ["recordsTypes", "recordsList", "recordsGet", "recordsExport", "recordsStats"],
     guard: { needs: PIPELINE_CONSOLE_ROUTES, apps: PIPELINE_CONSOLE_APPS, unnamed: "wren" },
@@ -609,7 +609,7 @@ const dist = join(import.meta.dirname, "..", "dist");
 /**
  * A client's booking page at /c/<client>/book, its API at /c/<client>/__book/<handler>: the same
  * flows as ClientCalendar, in-process on a stand-in for Restate's context. No Google and no mail
- * here: a booking holds its slot and sends nothing; reminders and the spine are dropped.
+ * here: a booking holds its slot and sends nothing; reminders and the executor are dropped.
  */
 const BOOK_PAGE =
   /^\/c\/[a-z][a-z0-9_]{0,39}\/(?:book(?:\/[A-Za-z0-9_-]{1,64})?|booking\/[A-Za-z0-9._-]{1,80})\/?$/;
@@ -780,7 +780,7 @@ const server = createServer(async (req, res) => {
       >;
       const out = await pub.form(
         { ...body, fields, host: "localhost", human: "off", visitor: null },
-        async () => ({ status: 503, error: "the preview runs no spine" }),
+        async () => ({ status: 503, error: "the preview runs no executor" }),
       );
       return res
         .writeHead(out.status, { "content-type": "application/json" })

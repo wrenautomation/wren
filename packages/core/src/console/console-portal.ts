@@ -8,12 +8,12 @@ import { ASK, type AskService, ask, type QuestionRequest } from "../ask.js";
 import type { LoopKey } from "../components.js";
 import { CONSOLE_APPS, CONSOLE_ROUTES } from "../console-routes.js";
 import { customHandlers } from "../custom-console.js";
+import { EXECUTOR, type ExecutorService, failedOf } from "../executor.js";
 import type { ExperimentInput } from "../experiment-store.js";
 import type { FlagInput } from "../flag-store.js";
 import type { SnippetInput } from "../library.js";
 import { answer, PortalRefusal, type PortalRequest, portalService } from "../portal.js";
 import type { ExportAsk, GetAsk, ListAsk, StatsAsk } from "../records-serve.js";
-import { failedOf, SPINE, type SpineService } from "../spine.js";
 import type { SurveyInput } from "../survey-store.js";
 import { viewAsApi, viewAsHandlers } from "../view-as.js";
 import type { ComponentRequest, InstallRequest } from "./components.js";
@@ -272,16 +272,18 @@ export function makeConsolePortal(deps: Parameters<typeof consoleApi>[0]) {
       // Journaled once: a retry reads the same token, and never makes a second one.
       doorRotate: (ctx: restate.Context, req: DoorRequest) =>
         answer(() => ctx.run("rotate door", () => answer(() => api.doorRotate(req)))),
-      /** A failed spine step, again, waited on so the button says how it went. */
+      /** A failed executor step, again, waited on so the button says how it went. */
       retryEvent: (ctx: restate.Context, req: PortalRequest & { id?: unknown }) =>
         answer(async () => {
           const id = api.eventToRetry(req);
-          const got = await ctx.serviceClient<SpineService>(SPINE).retry({ client: null, id });
+          const got = await ctx
+            .serviceClient<ExecutorService>(EXECUTOR)
+            .retry({ client: null, id });
           if (!got) throw new PortalRefusal("it isn't failed now", 409);
           return { done: [id], ...got };
         }),
       /**
-       * Many failed runs again at once: each failed step behind them gets `Spine/retry`. Sent,
+       * Many failed runs again at once: each failed step behind them gets `Executor/retry`. Sent,
        * not waited on; the list shows them leave Failed as each runs.
        */
       replay: (ctx: restate.Context, req: PortalRequest & { ids?: unknown }) =>
@@ -290,7 +292,7 @@ export function makeConsolePortal(deps: Parameters<typeof consoleApi>[0]) {
           const ids = await ctx.run("failed steps", () => failedOf(deps.main, refs));
           if (!ids.length) throw new PortalRefusal("none of them is failed now", 409);
           for (const id of ids)
-            ctx.serviceSendClient<SpineService>(SPINE).retry({ client: null, id });
+            ctx.serviceSendClient<ExecutorService>(EXECUTOR).retry({ client: null, id });
           return { done: refs, replayed: ids.length };
         }),
       releaseHold: (_: restate.Context, req: PortalRequest & { id?: unknown }) =>

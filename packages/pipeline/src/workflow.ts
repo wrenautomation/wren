@@ -1,5 +1,5 @@
 /**
- * A shape version as a spine workflow (designs/2026-10-19-business-map.md). Pure, the way
+ * A shape version as an executor workflow (designs/2026-10-19-business-map.md). Pure, the way
  * `cadenceWorkflow` is. Per node `k` that holds journeys (every kind but source):
  *
  *   t_<k>_<i>  the node's i-th Advance trigger, with its settings

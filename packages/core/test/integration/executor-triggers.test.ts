@@ -1,6 +1,6 @@
 /**
  * Triggers on a real Restate (designs/2026-10-06-workflow-editor.md, step 5): a reply and a
- * booking fired at the Spine enter each live node that hears them, never an uninstalled template's;
+ * booking fired at the Executor enter each live node that hears them, never an uninstalled template's;
  * a Schedule node's clock ticks its slot in once, and a stale tick does nothing. A reply lets a
  * subject held at a Wait until a reply go by `out`; its most sends it by `timeout`, once. A reply
  * on one channel lets go of a Wait until an answer held on the same person's other thread.
@@ -13,18 +13,18 @@ import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { clients as clientRows } from "../../src/clients/schema.js";
-import { workflowInstalls, workflowSaves } from "../../src/schema.js";
 import {
   clockKey,
+  type ExecutorClock,
+  type ExecutorService,
+  executorEmit,
+  executorFire,
   type Fired,
-  makeSpine,
-  makeSpineClock,
+  makeExecutor,
+  makeExecutorClock,
   replyFired,
-  type SpineClock,
-  type SpineService,
-  spineEmit,
-  spineFire,
-} from "../../src/spine.js";
+} from "../../src/executor.js";
+import { workflowInstalls, workflowSaves } from "../../src/schema.js";
 import { startTestRestate } from "../../src/testing.js";
 import { defineWorkflow, type WorkflowEdits } from "../../src/workflows.js";
 
@@ -64,23 +64,25 @@ const EDITS: WorkflowEdits = {
   ],
 };
 
-/** A public door for the test: the Spine and its clocks take private calls only. */
+/** A public door for the test: the Executor and its clocks take private calls only. */
 const probe = restate.service({
   name: "Probe",
   handlers: {
-    fire: async (ctx: restate.Context, req: Fired) => spineFire(ctx, req),
+    fire: async (ctx: restate.Context, req: Fired) => executorFire(ctx, req),
     emit: async (ctx: restate.Context, req: { subjects: string[] }) =>
-      spineEmit(ctx, {
+      executorEmit(ctx, {
         client: null,
         workflow: "trig",
         from: "in.leads",
         events: req.subjects.map((subject) => ({ subject, kind: "lead" as const, data: {} })),
       }),
-    /** A wait's most, now: the delayed release the Spine sent itself. */
+    /** A wait's most, now: the delayed release the Executor sent itself. */
     release: async (ctx: restate.Context, req: { id: string }) =>
-      ctx.serviceClient<SpineService>({ name: "Spine" }).release({ client: null, id: req.id }),
+      ctx
+        .serviceClient<ExecutorService>({ name: "Executor" })
+        .release({ client: null, id: req.id }),
     tick: async (ctx: restate.Context, req: { key: string; slot?: string }) => {
-      const clock = ctx.objectClient<SpineClock>({ name: "SpineClock" }, req.key);
+      const clock = ctx.objectClient<ExecutorClock>({ name: "ExecutorClock" }, req.key);
       const { next } = await clock.start();
       await clock.tick({ slot: req.slot ?? (next as string) });
       return { next };
@@ -98,8 +100,8 @@ beforeAll(async () => {
   const deps = { main: pg.db, workflows: [FLOW], components: [] };
   env = await startTestRestate({
     services: [
-      makeSpine({ ...deps, clientDb: () => pg.db, steps: {}, rule: async () => false }),
-      makeSpineClock(deps),
+      makeExecutor({ ...deps, clientDb: () => pg.db, steps: {}, rule: async () => false }),
+      makeExecutorClock(deps),
       probe,
     ],
   });
@@ -128,7 +130,7 @@ async function arrivals(want: number, holds = false): Promise<string[]> {
   throw new Error(`fewer than ${want} arrivals`);
 }
 
-describe("triggers on the spine", () => {
+describe("triggers on the executor", () => {
   it("send a reply and a booking to the nodes that hear them", async () => {
     await call().fire(replyFired(null, "sms", 5));
     // Email isn't heard here: the node hears texts.

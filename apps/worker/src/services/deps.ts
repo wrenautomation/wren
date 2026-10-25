@@ -91,6 +91,7 @@ import { findClient, settingsFor } from "@wren/core/clients";
 import { sitesHost } from "@wren/core/content/box";
 import { ingressSites } from "@wren/core/content/ingress";
 import { DESK, restateSites } from "@wren/core/content/restate";
+import { executorFire, type FireTriggers } from "@wren/core/executor";
 import { wrenFacts } from "@wren/core/facts";
 import { siteEdge } from "@wren/core/flag-store";
 import { keyStoreFromEnv } from "@wren/core/keys";
@@ -102,7 +103,6 @@ import { namedFor } from "@wren/core/notify";
 import { PortalRefusal } from "@wren/core/portal";
 import { clientKey, LIMITS, within } from "@wren/core/restate";
 import { dnsChecks } from "@wren/core/setup";
-import { type FireTriggers, spineFire } from "@wren/core/spine";
 import { vendorKeys } from "@wren/core/vendor-keys";
 import { meterTokens } from "@wren/core/vendors";
 import { cachedDb, clientDatabaseName, clientDatabaseUrl, createDb, type Db } from "@wren/db";
@@ -230,9 +230,9 @@ export async function buildDeps(
   opts: BuildOptions,
   bound: (service: string) => boolean,
 ) {
-  // The spine hears every trigger; a reply also reaches AutoReply.
+  // The executor hears every trigger; a reply also reaches AutoReply.
   const fireAll: FireTriggers = (ctx, req) => {
-    spineFire(ctx, req);
+    executorFire(ctx, req);
     autoReplyFire(ctx, req);
   };
   const { rootDir } = opts;

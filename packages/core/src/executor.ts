@@ -1,5 +1,5 @@
 /**
- * The spine (designs/2026-10-05-workflows.md): events move along a workflow's routed wires. An
+ * The executor (designs/2026-10-05-workflows.md): events move along a workflow's routed wires. An
  * event leaves a node's output, or the workflow's own input. Each routed wire from there passes
  * it on, after its rule and its wait, and it arrives at the next node's input. That node's step
  * runs, and what it returns leaves on its outputs in turn. A node whose part has no step yet
@@ -53,7 +53,7 @@ import {
   type WorkflowNode,
 } from "./workflows.js";
 
-export interface SpineEvent {
+export interface ExecutorEvent {
   /** Who or what it is about, unique per thing: "lead:42". */
   subject: string;
   kind: EventKind;
@@ -72,25 +72,25 @@ export interface StepAt {
   /** The part whose inside this node runs in (`follow_up`); null at a workflow's top. */
   part?: string | null;
   /**
-   * Tell the spine an event happened (`Spine/fire`). Journaled with the step, sent once the step's
+   * Tell the executor an event happened (`Executor/fire`). Journaled with the step, sent once the step's
    * result is kept, so a retried step fires once. Absent in a dry test: nothing leaves the walk.
    */
   fire?(f: Omit<Fired, "client">): void;
 }
 
-/** A part's code on the spine: an event at one of its inputs in, events on its outputs out. */
+/** A part's code on the executor: an event at one of its inputs in, events on its outputs out. */
 export type Step = (
   port: string,
-  e: SpineEvent,
+  e: ExecutorEvent,
   at: StepAt,
-) => Promise<Array<{ port: string; event: SpineEvent }>>;
+) => Promise<Array<{ port: string; event: ExecutorEvent }>>;
 
 /**
  * A touch given another channel's lead (a mixed cadence: a text between two emails) sends nothing
  * and passes the lead on as `sent`, so the cadence goes on. Reaching that lead on this channel
  * would need an enroll there, and who may be enrolled is a consent call. Null for its own lead.
  */
-export const passOn = (e: SpineEvent, channel: "email" | "sms" | "reach") =>
+export const passOn = (e: ExecutorEvent, channel: "email" | "sms" | "reach") =>
   e.subject.startsWith(`lead:${channel}:`) ? null : [{ port: "sent", event: e }];
 
 /** An event at a node's input: `node` is the dotted path from `workflow` down. */
@@ -98,14 +98,14 @@ export interface Arrival {
   workflow: string;
   node: string;
   port: string;
-  event: SpineEvent;
+  event: ExecutorEvent;
   /** The wiring its subject entered on (`events.version`): a save's id, 0 the code's. */
   version?: number | null;
   /** Held at a Wait until this event (`events.until`); it leaves by `out` or `timeout`. */
   until?: Until | null;
 }
 
-export interface SpineStore {
+export interface ExecutorStore {
   /**
    * Keep an arrival, owned by `by`. Its id when new, or when `by` already owns it (a retry);
    * null when another call kept it first. With `due`, it waits on its wire until then; with
@@ -124,7 +124,7 @@ export interface SpineStore {
   /** Take a failed arrival for `by` to run again, its error cleared; null when it isn't failed. */
   retry(id: string, by: string): Promise<Arrival | null>;
   /** What the arrival's step sent on, kept for its execution's page. */
-  sent?(id: string, outs: Array<{ port: string; event: SpineEvent }>): Promise<void>;
+  sent?(id: string, outs: Array<{ port: string; event: ExecutorEvent }>): Promise<void>;
 }
 
 export interface Walk {
@@ -138,7 +138,7 @@ export interface Walk {
   parts: ReadonlyMap<string, Component>;
   /** By part id, or a custom step's registered name. */
   steps: Readonly<Record<string, Step>>;
-  store: SpineStore;
+  store: ExecutorStore;
   /** Whose database the store is in; null is Wren's. */
   client: string | null;
   /** This call's id: who owns what it claims. */
@@ -148,7 +148,7 @@ export interface Walk {
   /** Release a waiting arrival after `ms`. */
   later(id: string, ms: number): void;
   /** Does the event pass a wire's rule, in words? */
-  rule(when: string, e: SpineEvent): Promise<boolean>;
+  rule(when: string, e: ExecutorEvent): Promise<boolean>;
   /** A step in `workflow` failed past its tries and stopped as `id`: auto-retry's turn. */
   failed?(id: string, workflow: string): void;
   /** A step's fired event (`StepAt.fire`), sent after the step's result is journaled. */
@@ -176,7 +176,7 @@ interface Move {
   /** Node ids down to the workflow the ref is in; [] is the top one. */
   at: string[];
   ref: string;
-  e: SpineEvent;
+  e: ExecutorEvent;
 }
 
 const UNIT_MS = { minute: 60_000, hour: 3_600_000, day: 86_400_000, week: 604_800_000 };
@@ -404,12 +404,12 @@ const add = (a: Tally, b: Tally): Tally => ({
  * Events leaving `from` ("node.port", or "in.port" for the workflow's own input). A subject
  * already in the workflow walks the wiring it entered on; a new one takes the live wiring.
  */
-export async function walk(w: Walk, workflow: string, from: string, batch: SpineEvent[]) {
-  const moves = (es: SpineEvent[]): Move[] =>
+export async function walk(w: Walk, workflow: string, from: string, batch: ExecutorEvent[]) {
+  const moves = (es: ExecutorEvent[]): Move[] =>
     es.map((e) => ({ arrive: false, at: [], ref: from, e }));
   const entered = w.store.entered;
   if (!entered || !w.liveOf) return walkMoves(w, workflow, moves(batch));
-  const by = new Map<number | null, SpineEvent[]>();
+  const by = new Map<number | null, ExecutorEvent[]>();
   for (const e of batch) {
     const v = await w.run(`entered ${e.subject}`, () =>
       entered.call(w.store, workflow, e.subject).then((x) => x ?? null),
@@ -427,7 +427,7 @@ export async function walk(w: Walk, workflow: string, from: string, batch: Spine
  * instead: by `out` when `happened` is that event, by `timeout` when its time ran out. Whichever
  * takes it first wins; the other finds it gone and does nothing.
  */
-export async function resume(w: Walk, id: string, happened?: SpineEvent): Promise<Tally | null> {
+export async function resume(w: Walk, id: string, happened?: ExecutorEvent): Promise<Tally | null> {
   const a = await w.run("release", () => w.store.release(id, w.by));
   if (!a) return null;
   const path = a.node.split(".");
@@ -438,7 +438,7 @@ export async function resume(w: Walk, id: string, happened?: SpineEvent): Promis
       { arrive: true, at: path, ref: `${last}.${a.port}`, e: a.event },
     ]);
   const port = happened ? "out" : "timeout";
-  const e: SpineEvent = happened
+  const e: ExecutorEvent = happened
     ? {
         ...a.event,
         data: {
@@ -468,7 +468,7 @@ export async function retry(w: Walk, id: string): Promise<Tally | null> {
 const SENT_MAX = 32_000;
 
 /** A step's outputs as `events.sent` keeps them: each one's data dropped when they don't fit. */
-export function sentOf(outs: ReadonlyArray<{ port: string; event: SpineEvent }>): SentEvent[] {
+export function sentOf(outs: ReadonlyArray<{ port: string; event: ExecutorEvent }>): SentEvent[] {
   const all = outs.map((o) => ({
     port: o.port,
     subject: o.event.subject,
@@ -546,7 +546,7 @@ export async function failedOf(db: Queryable, refs: readonly string[]): Promise<
   return rows.map((r) => r.id);
 }
 
-export function pgSpineStore(db: Db): SpineStore {
+export function pgExecutorStore(db: Db): ExecutorStore {
   type Row = {
     workflow: string;
     node: string;
@@ -691,7 +691,7 @@ export function hookEvent(
   h: Pick<typeof hooks.$inferSelect, "workflow" | "input" | "subject">,
   flows: ReadonlyMap<string, Workflow>,
   payload: unknown,
-): { from: string; event: SpineEvent } | { status: number; error: string } {
+): { from: string; event: ExecutorEvent } | { status: number; error: string } {
   const f = flows.get(h.workflow);
   const node = f?.nodes.find((n) => n.id === h.input && doorOf(n) !== null);
   const port = node
@@ -912,7 +912,7 @@ export class MadeLive extends Error {
 export const editsOf = (saved: Readonly<Record<string, SavedWorkflow>>) =>
   Object.fromEntries(Object.entries(saved).map(([id, s]) => [id, s.edits]));
 
-export const SPINE = { name: "Spine" } as const;
+export const EXECUTOR = { name: "Executor" } as const;
 
 interface Target {
   /** Whose database; null is Wren's. */
@@ -926,14 +926,14 @@ interface Target {
 type EmitRequest = Target & {
   workflow: string;
   from: string;
-  events: SpineEvent[];
+  events: ExecutorEvent[];
   onlyLive?: boolean;
 };
-export type SpineService = {
+export type ExecutorService = {
   emit: (ctx: restate.Context, req: EmitRequest) => Promise<Tally>;
   release: (
     ctx: restate.Context,
-    req: Target & { id: string; happened?: SpineEvent },
+    req: Target & { id: string; happened?: ExecutorEvent },
   ) => Promise<Tally | null>;
   retry: (
     ctx: restate.Context,
@@ -952,7 +952,7 @@ export type SpineService = {
  * about its subject (`aboutOf`) and anything in `about` (a booking's email thread, its email), so
  * a Wait until it, holding the same subject, lets it go.
  */
-export type Fired = Target & { facts: TriggerFacts; event: SpineEvent; about?: string[] };
+export type Fired = Target & { facts: TriggerFacts; event: ExecutorEvent; about?: string[] };
 
 /** Every thing a fired event is about, as a Wait's hold keeps it (`aboutOf`). */
 export const aboutsOf = (f: Pick<Fired, "event" | "about">): string[] => [
@@ -963,10 +963,10 @@ export const aboutsOf = (f: Pick<Fired, "event" | "about">): string[] => [
  * A reply or a booking, told to every live workflow of `client` with a trigger node that hears it
  * (`triggerHears`). Send-only, so the channel's own step never waits on a walk.
  */
-export const spineFire = (ctx: restate.Context, req: Fired) => {
-  ctx.serviceSendClient<SpineService>(SPINE).fire(req);
+export const executorFire = (ctx: restate.Context, req: Fired) => {
+  ctx.serviceSendClient<ExecutorService>(EXECUTOR).fire(req);
 };
-/** A channel's way to tell the spine: `spineFire` on the worker; unset where no Spine runs. */
+/** A channel's way to tell the executor: `executorFire` on the worker; unset where no Executor runs. */
 export type FireTriggers = (ctx: restate.Context, req: Fired) => void;
 
 /**
@@ -1048,16 +1048,16 @@ export function hearersOf(
 }
 
 /**
- * The event as a hearer takes it in. The spine enters a subject at a node once, so a Group node
+ * The event as a hearer takes it in. The executor enters a subject at a node once, so a Group node
  * that repeats gets the entry's own row (`data.member`) on its subject: leaving the group and
  * entering again is a new arrival, where a node that does not repeat sees the person once.
  */
-export const heardAs = (h: { repeat?: true }, event: SpineEvent): SpineEvent =>
+export const heardAs = (h: { repeat?: true }, event: ExecutorEvent): ExecutorEvent =>
   h.repeat && event.data.member !== undefined
     ? { ...event, subject: `${event.subject}@${String(event.data.member)}` }
     : event;
 
-const SPINE_CLOCK = { name: "SpineClock" } as const;
+const EXECUTOR_CLOCK = { name: "ExecutorClock" } as const;
 /** One Schedule node's clock: `<client>|<workflow>|<node>`, the client blank for Wren. */
 export const clockKey = (client: string | null, workflow: string, node: string) =>
   `${client ?? ""}|${workflow}|${node}`;
@@ -1071,20 +1071,20 @@ export function clockOfKey(
 export const clocksOf = (client: string | null, flow: Workflow): LoopKey[] =>
   flow.nodes
     .filter((n) => n.uses === "trigger.schedule")
-    .map((n) => ({ service: SPINE_CLOCK.name, key: clockKey(client, flow.id, n.id) }));
+    .map((n) => ({ service: EXECUTOR_CLOCK.name, key: clockKey(client, flow.id, n.id) }));
 
 /** A Schedule node's event for one slot: the same slot enters once, however often it's sent. */
-export const slotEvent = (node: string, slot: Date): SpineEvent => ({
+export const slotEvent = (node: string, slot: Date): ExecutorEvent => ({
   subject: `item:schedule:${node}@${slot.toISOString()}`,
   kind: "item",
   data: { at: slot.toISOString() },
 });
 
 /** Events leaving `from` in a workflow, sent by a part's own code: a sender that sent a step. */
-export const spineEmit = (ctx: restate.Context, req: EmitRequest) =>
-  ctx.serviceSendClient<SpineService>(SPINE).emit(req);
+export const executorEmit = (ctx: restate.Context, req: EmitRequest) =>
+  ctx.serviceSendClient<ExecutorService>(EXECUTOR).emit(req);
 
-interface SpineDeps {
+interface ExecutorDeps {
   main: Db;
   clientDb(id: string): Db;
   workflows: readonly Workflow[];
@@ -1096,7 +1096,7 @@ interface SpineDeps {
   components: readonly Component[];
   steps: Readonly<Record<string, Step>>;
   /** Does `e` pass `when`? `client` (null: Wren) is whose model share answers it. */
-  rule(when: string, e: SpineEvent, client?: string | null): Promise<boolean>;
+  rule(when: string, e: ExecutorEvent, client?: string | null): Promise<boolean>;
   /** An event a client's webhooks may hear (`./webhooks.ts`): sent on, journaled. */
   publish?(
     ctx: restate.Context,
@@ -1111,7 +1111,7 @@ interface SpineDeps {
 
 const STEP_RETRY = { maxRetryAttempts: 3 };
 
-export function makeSpine(d: SpineDeps) {
+export function makeExecutor(d: ExecutorDeps) {
   const parts = new Map(d.components.map((c) => [c.id, c]));
   const steps = { ...logicSteps(d.rule), ...CODE_STEPS, ...d.steps };
   // The client's saved wiring, read once per call and journaled, so a replay walks the same wires.
@@ -1148,24 +1148,24 @@ export function makeSpine(d: SpineDeps) {
       },
       parts,
       steps,
-      store: pgSpineStore(t.client ? d.clientDb(t.client) : d.main),
+      store: pgExecutorStore(t.client ? d.clientDb(t.client) : d.main),
       client: t.client,
       by: ctx.request().id,
       run: (name, fn, capped) => ctx.run(name, fn, capped ? STEP_RETRY : {}),
       later: (id, ms) =>
         ctx
-          .serviceSendClient<SpineService>(SPINE)
+          .serviceSendClient<ExecutorService>(EXECUTOR)
           .release({ client: t.client, id }, restate.rpc.sendOpts({ delay: ms })),
       rule: (when, e) => d.rule(when, e, t.client),
       fire: (req) => {
-        ctx.serviceSendClient<SpineService>(SPINE).fire(req);
+        ctx.serviceSendClient<ExecutorService>(EXECUTOR).fire(req);
       },
       // Auto-retry: the next rung of the ladder, counted in the call, until the workflow's tries.
       failed: (id, workflow) => {
         const n = t.auto ?? 0;
         if (n >= retryTriesOf(flows.get(workflow)?.retry)) return;
         ctx
-          .serviceSendClient<SpineService>(SPINE)
+          .serviceSendClient<ExecutorService>(EXECUTOR)
           .retry(
             { client: t.client, id, auto: n + 1 },
             restate.rpc.sendOpts({ delay: RETRY_LADDER_MS[n] ?? 0 }),
@@ -1206,7 +1206,7 @@ export function makeSpine(d: SpineDeps) {
     const event = webhookEventOfDoor(got.event.kind);
     if (event && d.publish)
       d.publish(ctx, { client: h.client, event, subject: got.event.subject, data: got.event.data });
-    ctx.serviceSendClient<SpineService>(SPINE).emit({
+    ctx.serviceSendClient<ExecutorService>(EXECUTOR).emit({
       client: h.client,
       workflow: h.workflow,
       from: got.from,
@@ -1216,7 +1216,7 @@ export function makeSpine(d: SpineDeps) {
   };
 
   return restate.service({
-    name: SPINE.name,
+    name: EXECUTOR.name,
     handlers: {
       /** Events leaving a node's output or a workflow's input. Parts and the door send it. */
       emit: restate.handlers.handler(
@@ -1236,12 +1236,12 @@ export function makeSpine(d: SpineDeps) {
         },
       ),
       /**
-       * A wait is over. Only the spine sends it: delayed, when its time is up; from `fire`, with
+       * A wait is over. Only the executor sends it: delayed, when its time is up; from `fire`, with
        * the event `happened`, when a Wait until it holds the same subject.
        */
       release: restate.handlers.handler(
         { ingressPrivate: true },
-        (ctx: restate.Context, req: Target & { id: string; happened?: SpineEvent }) =>
+        (ctx: restate.Context, req: Target & { id: string; happened?: ExecutorEvent }) =>
           walkFor(ctx, req).then((w) => resume(w, req.id, req.happened)),
       ),
       /**
@@ -1278,7 +1278,7 @@ export function makeSpine(d: SpineDeps) {
             req.facts,
           );
           for (const h of at)
-            ctx.serviceSendClient<SpineService>(SPINE).emit({
+            ctx.serviceSendClient<ExecutorService>(EXECUTOR).emit({
               client: req.client,
               workflow: h.workflow,
               from: h.from,
@@ -1295,7 +1295,7 @@ export function makeSpine(d: SpineDeps) {
           });
           for (const id of held)
             ctx
-              .serviceSendClient<SpineService>(SPINE)
+              .serviceSendClient<ExecutorService>(EXECUTOR)
               .release({ client: req.client, id, happened: req.event });
           return { entered: at.length, resolved: held.length };
         },
@@ -1337,7 +1337,7 @@ const NEXT = "next";
  * kept one is stale and does nothing, so a changed time never fires twice. A tick that finds no
  * Schedule node live there stops.
  */
-export function makeSpineClock(d: Pick<SpineDeps, "main" | "workflows" | "components">) {
+export function makeExecutorClock(d: Pick<ExecutorDeps, "main" | "workflows" | "components">) {
   type Self = {
     tick: (ctx: restate.ObjectContext, req: { slot: string }) => Promise<void>;
   };
@@ -1366,7 +1366,7 @@ export function makeSpineClock(d: Pick<SpineDeps, "main" | "workflows" | "compon
     if ((await ctx.get<string>(NEXT)) === iso) return iso;
     ctx.set(NEXT, iso);
     ctx
-      .objectSendClient<Self>(SPINE_CLOCK, ctx.key)
+      .objectSendClient<Self>(EXECUTOR_CLOCK, ctx.key)
       .tick(
         { slot: iso },
         restate.rpc.sendOpts({ delay: Math.max(0, slot.getTime() - after.getTime()) }),
@@ -1374,7 +1374,7 @@ export function makeSpineClock(d: Pick<SpineDeps, "main" | "workflows" | "compon
     return iso;
   };
   return restate.object({
-    name: SPINE_CLOCK.name,
+    name: EXECUTOR_CLOCK.name,
     handlers: {
       /** From the live settings: the next slot. Again with the same settings changes nothing. */
       start: restate.handlers.object.exclusive(
@@ -1400,7 +1400,7 @@ export function makeSpineClock(d: Pick<SpineDeps, "main" | "workflows" | "compon
             ctx.clear(NEXT);
             return;
           }
-          spineEmit(ctx, {
+          executorEmit(ctx, {
             client: n.client,
             workflow: n.workflow,
             from: `${n.node}.out`,
@@ -1416,4 +1416,4 @@ export function makeSpineClock(d: Pick<SpineDeps, "main" | "workflows" | "compon
   });
 }
 
-export type SpineClock = ReturnType<typeof makeSpineClock>;
+export type ExecutorClock = ReturnType<typeof makeExecutorClock>;

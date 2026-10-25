@@ -2,7 +2,7 @@
  * LearnConsole: the Learn app's hands. Save a link (the box, the phone's Shortcut), follow a
  * source and pick when it tells you, browse items like a drive (places, filters, sorts,
  * collections, tags, marks), keep where playback is, read one again, ask for items in an SOP,
- * and search every transcript. A save that still has to be read goes onto the spine.
+ * and search every transcript. A save that still has to be read goes onto the executor.
  *
  * Every call works in one workspace, picked here as in the Inbox: Wren's own for its team naming
  * no client, else the client the guard opened, checked again (its Learn grant, read or act).
@@ -10,6 +10,7 @@
  */
 import type * as restate from "@restatedev/restate-sdk";
 import { WREN } from "@wren/core/access";
+import { executorEmit } from "@wren/core/executor";
 import {
   answer,
   canAt,
@@ -23,7 +24,6 @@ import {
   teamCan,
 } from "@wren/core/portal";
 import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
-import { spineEmit } from "@wren/core/spine";
 import { atomic, type Db, setAuditActor, type Tx } from "@wren/db";
 import type { Embed } from "@wren/llm";
 import { and, eq, inArray, isNull, or } from "drizzle-orm";
@@ -463,7 +463,7 @@ export function learnConsoleApi(
       }),
     /**
      * Clear a failed read, or a score that waited (a client's models allowance), so it's taken
-     * again; returns those to put back on the spine.
+     * again; returns those to put back on the executor.
      */
     readAgain: (req: IdsRequest) => {
       const ids = idsOf(req);
@@ -536,7 +536,7 @@ export function makeLearnConsole(
   const api = learnConsoleApi(db, fetchFn, clientDb, embed && keepQueries(embed));
   const read = (ctx: restate.Context, ids: string[]) => {
     if (ids.length)
-      spineEmit(ctx, {
+      executorEmit(ctx, {
         client: null,
         workflow: LEARN_FLOW,
         from: LEARN_SAVED_FROM,

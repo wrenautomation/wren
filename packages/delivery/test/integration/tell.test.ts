@@ -1,5 +1,5 @@
 /**
- * Our invoices as the spine hears them (`claimInvoiceChanges`): each change once ever, about the
+ * Our invoices as the executor hears them (`claimInvoiceChanges`): each change once ever, about the
  * client's billing person. Synthetic data only.
  */
 import { addMember, clients } from "@wren/core/clients";

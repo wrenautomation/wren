@@ -2,6 +2,7 @@
 import { serializable, setAuditActor } from "@wren/db";
 import { WREN } from "../../access.js";
 import { release } from "../../checks.js";
+import { REPLAY_MOST } from "../../executor.js";
 import {
   isDemo,
   PortalRefusal,
@@ -9,7 +10,6 @@ import {
   type SignedViewer,
   teamCan,
 } from "../../portal.js";
-import { REPLAY_MOST } from "../../spine.js";
 import type { ConsoleContext } from "./context.js";
 
 export function executionsHandlers(ctx: ConsoleContext) {

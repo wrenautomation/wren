@@ -1,7 +1,7 @@
 /**
  * Comments as an event source (designs/2026-10-01-reach-reddit-linkedin.md, Comments). Each
  * account's inbox is read with its DMs; every new comment on our posts or under our comments is a
- * row and one `comment` event on the spine. `comments.sort` reads it: clear words in code for $0,
+ * row and one `comment` event on the executor. `comments.sort` reads it: clear words in code for $0,
  * a model for the rest, which also drafts an answer when they asked something. William answers,
  * DMs or drops each one from the Replies queue; nothing goes out without his click.
  */
@@ -9,6 +9,7 @@
 import { warmupOf } from "@wren/channel-reddit";
 import { editsFor } from "@wren/core/ask";
 import { llmOf, type RejectReason, recordDraft } from "@wren/core/draft-record";
+import type { ExecutorEvent, Step } from "@wren/core/executor";
 import { factsBlock, humanBlock } from "@wren/core/facts";
 import { guardDraft, recordGuard } from "@wren/core/grounded";
 import { isVendorStop } from "@wren/core/metered";
@@ -16,7 +17,6 @@ import { CanonError, resolveComments, resolveObjectOrNull } from "@wren/core/obj
 import type { CommentIn, OutreachChannel } from "@wren/core/outreach";
 import { modelDrafts } from "@wren/core/reply-drafts";
 import { whereSent } from "@wren/core/sent-url";
-import type { SpineEvent, Step } from "@wren/core/spine";
 import { atomic, type Db, type Queryable } from "@wren/db";
 import { completeAndParse, type LlmClient, type Outcome } from "@wren/llm";
 import { and, eq, inArray, lte, ne, sql } from "drizzle-orm";
@@ -171,13 +171,13 @@ export async function keepComments(
   return theirs;
 }
 
-/** One kept comment on the spine. */
+/** One kept comment on the executor. */
 export const commentEvent = (c: Pick<Comment, "id" | "platform" | "author" | "post">) =>
   ({
     subject: `comment:${c.id}`,
     kind: "comment",
     data: { commentId: c.id, platform: c.platform, author: c.author, post: c.post },
-  }) satisfies SpineEvent;
+  }) satisfies ExecutorEvent;
 
 const NAMES: Record<string, string> = {
   linkedin: "LinkedIn",
@@ -331,7 +331,7 @@ export async function sortComment(
 }
 
 /**
- * `comments.sort` on the spine: the comment leaves by its sort's port; unsorted, by `chat`; ours
+ * `comments.sort` on the executor: the comment leaves by its sort's port; unsorted, by `chat`; ours
  * and noise leave by none.
  */
 export const sortStep =

@@ -1,6 +1,6 @@
 /**
  * Account setup (designs/2026-10-07-setup-and-vendors.md): a setup is a workflow of steps, each
- * making one named fact true on one account. It walks the spine like any workflow, one subject
+ * making one named fact true on one account. It walks the executor like any workflow, one subject
  * per account and generation. A step that isn't true yet waits on its own self wire for its
  * `every`, then checks again, for as long as the status takes. Parts name the facts they need;
  * a lost fact sends the account's setup round again.
@@ -12,6 +12,7 @@ import { clients, type SetupMode } from "./clients/schema.js";
 import { ACCOUNT_SITES, ACCOUNTS, type Component, type Port } from "./components.js";
 import { DO_OWNER, type DoRequest } from "./content/do.js";
 import type { DnsType, Resolver } from "./doh.js";
+import { type ExecutorEvent, type Step, waitMs } from "./executor.js";
 import type { Notifier } from "./notify.js";
 import { type AlertPart, clearStep, factMoved, setupAlert, tellAlerts } from "./setup-alerts.js";
 import {
@@ -24,7 +25,6 @@ import {
   type SetupState,
   setupRuns,
 } from "./setup-schema.js";
-import { type SpineEvent, type Step, waitMs } from "./spine.js";
 import { defineWorkflow, type Wire, type Workflow } from "./workflows.js";
 
 /**
@@ -112,7 +112,7 @@ export const SETUP_STEP = "setup.step";
 
 const ACCOUNT_IN: Port = { id: "account", label: "accounts", kind: "account" };
 
-/** A setup as the spine runs it: a line of steps, each with a self wire for its next check. */
+/** A setup as the executor runs it: a line of steps, each with a self wire for its next check. */
 export function setupWorkflow(s: Setup): Workflow {
   const wires: Wire[] = [];
   s.steps.forEach((st, i) => {
@@ -168,18 +168,18 @@ export function parseSetupSubject(
   return { accountId, gen, base: setupSubject(accountId, gen) };
 }
 
-const accountEvent = (subject: string, accountId: number): SpineEvent => ({
+const accountEvent = (subject: string, accountId: number): ExecutorEvent => ({
   subject,
   kind: "account",
   data: { account: accountId },
 });
 
-/** Events into a setup: what the caller hands `spineEmit` (or the spine's `emit`). */
+/** Events into a setup: what the caller hands `executorEmit` (or the executor's `emit`). */
 export interface SetupEmit {
   client: string | null;
   workflow: string;
   from: string;
-  events: SpineEvent[];
+  events: ExecutorEvent[];
 }
 
 // ---- checks ----
@@ -474,7 +474,7 @@ async function runOf(main: Queryable, accountId: number, setup: string) {
 
 /**
  * Start a setup on an account, or start it over once it's done, lost or stuck (the next
- * generation). One in flight answers its own subject again, which the spine has already seen.
+ * generation). One in flight answers its own subject again, which the executor has already seen.
  */
 export async function startSetup(
   main: Db,
@@ -732,7 +732,7 @@ export async function sweepStuck(main: Db, setups: readonly Setup[], now: Date):
   return n;
 }
 
-// ---- the step on the spine ----
+// ---- the step on the executor ----
 
 interface SetupDeps {
   main: Db;

@@ -161,7 +161,7 @@ export interface ReconcileStats {
   noted: number;
   /** Clients skipped: no key, or Stripe refused it (`why`). */
   skipped: { client: string; why: string }[];
-  /** Links a fix touched: their thread mark and the spine follow after the pass. */
+  /** Links a fix touched: their thread mark and the executor follow after the pass. */
   touched: string[];
 }
 

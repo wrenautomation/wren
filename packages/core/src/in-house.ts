@@ -200,7 +200,7 @@ export const IN_HOUSE: readonly InHouse[] = [
   },
   {
     id: "workflows",
-    name: "Workflows: the spine and webhooks",
+    name: "Workflows: the executor and webhooks",
     parts: [],
     apps: [],
     instead: [
@@ -244,7 +244,7 @@ export const IN_HOUSE: readonly InHouse[] = [
       },
     ],
     costsUs: 0,
-    why: "Draws and edits the spine's workflows in the portal.",
+    why: "Draws and edits the executor's workflows in the portal.",
     state: "building",
   },
   {

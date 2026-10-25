@@ -28,7 +28,7 @@ A step that throws is retried; a step that returns a wrong answer counts as done
 
 - **joins:** [[research/enrichment]] (every loop skips held ids, holds poison units), [[research/team-search]] (counted, never pauses), [[research/lead-check]]
 - **joins:** reactivation score (`whereConflict`, stage `reactivation.where`, subject `person:<id>`): a tie of sources holds the person from compose
-- **looks-like-but-is-not:** domain send pauses (deliverability plain-test rate), the spine's failed steps
+- **looks-like-but-is-not:** domain send pauses (deliverability plain-test rate), the executor's failed steps
 
 ## If you change this
 

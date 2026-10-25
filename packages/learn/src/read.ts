@@ -7,7 +7,7 @@
  * client's video is read on that client's own `models` allowance: gated before, metered after.
  */
 import { WREN } from "@wren/core/access";
-import type { Step } from "@wren/core/spine";
+import type { Step } from "@wren/core/executor";
 import { gate, meter } from "@wren/core/vendors";
 import type { Db } from "@wren/db";
 import { pgSafe } from "@wren/db/columns";
@@ -184,7 +184,7 @@ export async function readItem(
   return "read";
 }
 
-/** `learn.read` on the spine: a read item leaves by `read`; one for the Mac stops here. */
+/** `learn.read` on the executor: a read item leaves by `read`; one for the Mac stops here. */
 export const readStep =
   (db: Db, fetchFn: FetchFn, video: VideoReader | null = null): Step =>
   async (_port, e) =>

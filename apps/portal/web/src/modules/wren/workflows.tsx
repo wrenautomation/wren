@@ -101,7 +101,7 @@ const ROOT = "wren";
 const DAYS = 30;
 const ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
 const PAGE = "/workflows/canvas";
-/** How often the canvas asks the spine for new events, and the most dots in flight. */
+/** How often the canvas asks the executor for new events, and the most dots in flight. */
 const POLL_MS = 8000;
 const MOST_DOTS = 24;
 
@@ -195,7 +195,7 @@ export function Workflows({ params, team, can }: PageProps) {
   );
   const all = w ? [w, ...(insides?.values() ?? [])] : [];
   const refs = [...new Map(all.flatMap(countsIn).map((r) => [countKey(r), r])).values()];
-  // The spine is Wren's own: a client's copy counts its views only.
+  // The executor is Wren's own: a client's copy counts its views only.
   const ports = client ? [] : all.flatMap(portsIn);
   // A number that fails stays off its card; the drawing never waits on one.
   const counts = useCall(
@@ -312,7 +312,7 @@ const consoleApi = (client: string | null): RecordsApi =>
   );
 
 /**
- * Real events as they land: the spine's newest rows, asked every few seconds while the page
+ * Real events as they land: the executor's newest rows, asked every few seconds while the page
  * shows. The first answer only marks where "new" starts; nothing old replays.
  */
 function useEvents(w: Drawn, on: boolean): GraphDot[] {

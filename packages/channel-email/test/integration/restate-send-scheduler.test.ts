@@ -6,7 +6,7 @@ import { ingressOf, loadSettings } from "@wren/config";
 import { runs } from "@wren/core";
 import { restateAdmin } from "@wren/core/console";
 import { LOOP } from "@wren/core/restate";
-import { spineRecorder, startTestRestate } from "@wren/core/testing";
+import { executorRecorder, startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -53,7 +53,7 @@ const FLEET: Fleet = {
 let pg: TestPostgres;
 let env: RestateTestEnvironment;
 const transport = new ConsoleTransport({ write: () => {} });
-const spine = spineRecorder();
+const executor = executorRecorder();
 let scheduler: SendScheduler;
 /** The old code's delayed self-call, as it sits queued on prod: `loop(generation)`. */
 const queued = restate.service({
@@ -75,7 +75,7 @@ beforeAll(async () => {
     tickMs: 5_000,
   });
   env = await startTestRestate({
-    services: [spine.service, scheduler, queued],
+    services: [executor.service, scheduler, queued],
     alwaysReplay: true,
   });
 });
@@ -128,10 +128,10 @@ describe("SendScheduler", () => {
     expect(status.running).toBe(false);
     expect(status.last?.stats?.sent).toBe(1);
 
-    // The opener left its node on the spine; its cadence's next touch lets the follow-up go.
-    for (let i = 0; i < 50 && spine.emitted.length === 0; i++)
+    // The opener left its node on the executor; its cadence's next touch lets the follow-up go.
+    for (let i = 0; i < 50 && executor.emitted.length === 0; i++)
       await new Promise((r) => setTimeout(r, 100));
-    expect(spine.emitted).toEqual([
+    expect(executor.emitted).toEqual([
       {
         client: null,
         workflow: "follow_up.email_sec_ria_test-seq",

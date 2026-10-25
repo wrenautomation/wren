@@ -8,6 +8,7 @@ import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { and, eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { clients } from "../../src/clients/schema.js";
+import { pgExecutorStore, resume, type Walk, walk } from "../../src/executor.js";
 import {
   AGENT_ON_IT,
   addAccount,
@@ -30,7 +31,6 @@ import {
 } from "../../src/setup-alerts.js";
 import { setupAlerts, setupRuns } from "../../src/setup-schema.js";
 import { setupWatchPass } from "../../src/setup-watch.js";
-import { pgSpineStore, resume, type Walk, walk } from "../../src/spine.js";
 
 let pg: TestPostgres;
 beforeAll(async () => {
@@ -114,7 +114,7 @@ function walker(client: string) {
         now: () => now,
       }),
     },
-    store: pgSpineStore(pg.db),
+    store: pgExecutorStore(pg.db),
     client,
     by: `inv-${client}`,
     run: (_n, fn) => fn(),

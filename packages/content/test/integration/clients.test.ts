@@ -12,7 +12,7 @@ import { addClient, findClient, sendsOn, updateClient } from "@wren/core/clients
 import { fakeContentChannel, type Platform } from "@wren/core/content";
 import { type Channels, makeContent, SENDS_OFF } from "@wren/core/content/restate";
 import type { PassOutcome } from "@wren/core/restate";
-import { spineRecorder, startTestRestate } from "@wren/core/testing";
+import { executorRecorder, startTestRestate } from "@wren/core/testing";
 import { vendorUsage } from "@wren/core/vendor-schema";
 import { setManaged } from "@wren/core/vendors";
 import { cachedDb, clientDatabaseUrl, type Db } from "@wren/db";
@@ -59,7 +59,7 @@ let pg: TestPostgres;
 let env: RestateTestEnvironment;
 let kappa: Db;
 let lambda: Db;
-const spine = spineRecorder();
+const executor = executorRecorder();
 const open = (id: string) => cachedDb(clientDatabaseUrl(pg.url, `wren_client_${id}`));
 const products = (about?: string) => ({
   "content.posting": {},
@@ -100,7 +100,7 @@ beforeAll(async () => {
   lambda = open("lambda");
   env = await startTestRestate({
     services: [
-      spine.service,
+      executor.service,
       makeContent(() => ({}), {
         channels: async (_ctx, client) => channels[client] ?? {},
         sends: async (client) => {
@@ -274,10 +274,10 @@ describe("metrics and social reads per client", () => {
     expect((await kappa.select().from(contentMetrics)).map((r) => r.views)).toEqual([40]);
     expect(await pg.db.select().from(contentMetrics)).toEqual([]);
 
-    spine.emitted.length = 0;
+    executor.emitted.length = 0;
     const s = await loop<SocialStats>("SocialWatch", "kappa/social");
     expect(s.stopped).toBeUndefined();
     expect(s.stats).toMatchObject({ posts: 1, comments: 1 });
-    expect(spine.emitted).toEqual([expect.objectContaining({ client: "kappa" })]);
+    expect(executor.emitted).toEqual([expect.objectContaining({ client: "kappa" })]);
   });
 });

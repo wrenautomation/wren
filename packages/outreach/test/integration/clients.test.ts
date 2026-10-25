@@ -11,7 +11,7 @@ import { ingressOf } from "@wren/config";
 import { addClient, updateClient } from "@wren/core/clients";
 import { SiteCallError, type SiteClient } from "@wren/core/content";
 import { type PassOutcome, within } from "@wren/core/restate";
-import { spineRecorder, startTestRestate } from "@wren/core/testing";
+import { executorRecorder, startTestRestate } from "@wren/core/testing";
 import { vendorUsage } from "@wren/core/vendor-schema";
 import { setManaged } from "@wren/core/vendors";
 import { cachedDb, clientDatabaseUrl, type Db } from "@wren/db";
@@ -104,7 +104,7 @@ let pg: TestPostgres;
 let env: RestateTestEnvironment;
 let kappa: Db;
 let lambda: Db;
-const spine = spineRecorder();
+const executor = executorRecorder();
 const open = (id: string) => cachedDb(clientDatabaseUrl(pg.url, `wren_client_${id}`));
 
 beforeAll(async () => {
@@ -193,7 +193,7 @@ beforeAll(async () => {
   };
   env = await startTestRestate({
     services: [
-      spine.service,
+      executor.service,
       makeReachWatch(deps),
       makeReachDesk(deps),
       // Live globally: only the client's own flag holds its DMs.
@@ -260,7 +260,7 @@ describe("a client's logins", () => {
 describe("the comment reader per client", () => {
   it("one client: reads its inbox on its own login, metered, into its own database", async () => {
     calls.length = 0;
-    spine.emitted.length = 0;
+    executor.emitted.length = 0;
     const out = await watch("kappa/daily");
     expect(out.stopped).toBeUndefined();
     expect(out.stats).toMatchObject({ comments: { kept: 1 }, stopped: null });
@@ -269,7 +269,7 @@ describe("the comment reader per client", () => {
       { author: "kappa_reader" },
     ]);
     expect(await pg.db.select().from(comments)).toEqual([]);
-    expect(spine.emitted).toEqual([
+    expect(executor.emitted).toEqual([
       expect.objectContaining({ client: "kappa", workflow: "reach.comments" }),
     ]);
     const used = await pg.db.select().from(vendorUsage).where(eq(vendorUsage.client, "kappa"));

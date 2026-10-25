@@ -5,6 +5,7 @@
 import type { Queryable } from "@wren/db";
 import { type Client, sendsWords, settingsFor } from "../clients/index.js";
 import { ACCOUNTS, CHANNELS, type Component, type Port, STAGES } from "../components.js";
+import type { SavedWorkflow, WorkflowVersion } from "../executor.js";
 import { inHouseOfPart } from "../in-house.js";
 import { accountsLacking, has } from "../installs.js";
 import { LOGIC, logicOf, startWith } from "../logic.js";
@@ -13,7 +14,6 @@ import { cued, defineRecord, type RecordType, status, tags, text } from "../reco
 import type { WorkflowInstall } from "../schema.js";
 import { factsLacking, type Setup, setupOf } from "../setup.js";
 import { pausedText } from "../setup-alerts.js";
-import type { SavedWorkflow, WorkflowVersion } from "../spine.js";
 import {
   copyLabel,
   copyRefs,

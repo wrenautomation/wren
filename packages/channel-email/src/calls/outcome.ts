@@ -1,11 +1,11 @@
 /**
  * A call's outcome, marked by a person once it's over (designs/2026-10-07-close-brief-outcome.md).
  * One write for every call: cal.com's and our own calendar's mirror alike. What it moves on the
- * spine is `outcomeEmits`: won queues onboarding, not yet goes back to keep warm after the
+ * executor is `outcomeEmits`: won queues onboarding, not yet goes back to keep warm after the
  * `close` wire's wait, a no-show is the row alone. Nothing here sends.
  */
 import type { MeetingOutcome } from "@wren/core/calls";
-import type { SpineEvent } from "@wren/core/spine";
+import type { ExecutorEvent } from "@wren/core/executor";
 import type { Queryable } from "@wren/db";
 import { and, eq, inArray, isNotNull, lte, type SQL } from "drizzle-orm";
 import { callBookings } from "../schema.js";
@@ -68,7 +68,7 @@ export const callSubject = (id: number) => `call:${id}`;
 interface OutcomeEmit {
   workflow: string;
   from: string;
-  events: SpineEvent[];
+  events: ExecutorEvent[];
   /** Only into a template the client installed and set live (review requests). */
   onlyLive?: boolean;
 }
@@ -77,14 +77,14 @@ interface OutcomeEmit {
 const MET = { won: "won", not_yet: "done", not_fit: "done" } as const;
 
 /**
- * What each marked call sends on the spine. Won leaves `close` and enters `onboarding`, whose
+ * What each marked call sends on the executor. Won leaves `close` and enters `onboarding`, whose
  * contract has no step yet, so it waits there. Not yet leaves `close` by `later`, whose wire
  * waits 30 days into keep warm. Any meeting that happened enters review requests, where the
  * client has them live. A no-show or a clear moves nothing.
  */
 export function outcomeEmits(marked: readonly MarkedCall[]): OutcomeEmit[] {
   const out: OutcomeEmit[] = [];
-  const eventOf = (m: MarkedCall, kind: SpineEvent["kind"]): SpineEvent => ({
+  const eventOf = (m: MarkedCall, kind: ExecutorEvent["kind"]): ExecutorEvent => ({
     subject: callSubject(m.id),
     kind,
     data: {

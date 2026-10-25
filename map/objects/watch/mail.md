@@ -13,7 +13,7 @@ One email the Monitor read in William's inboxes (`reader = 'monitor'`), or in a 
 
 ## Why this shape
 
-The Monitor is Wren's first routed workflow: `Watch/all` reads, the spine carries each row to `watch.triage`, and the verdict picks the port. A row keeps sender, subject, a summary and the verdict, never a body. The snippet stays only until triage reads it. A rule with a sender and a verdict settles in code for $0; the model reads the rest with every rule's words in its prompt. Whatever can't be settled shows: no model, an answer that doesn't parse, or triage still failing.
+The Monitor is Wren's first routed workflow: `Watch/all` reads, the executor carries each row to `watch.triage`, and the verdict picks the port. A row keeps sender, subject, a summary and the verdict, never a body. The snippet stays only until triage reads it. A rule with a sender and a verdict settles in code for $0; the model reads the rest with every rule's words in its prompt. Whatever can't be settled shows: no model, an answer that doesn't parse, or triage still failing.
 
 ## Shape
 
@@ -30,7 +30,7 @@ Citations: `packages/watch/src/schema.ts:30`, `:50`, `:106`, `:148`; `packages/w
 ## Connected to
 
 - **owns:** its rules
-- **joins:** [[platform/spine]] (workflow `watch`: `read.mail` → `triage.mail` → `out.needs_you` / `out.held`)
+- **joins:** [[platform/executor]] (workflow `watch`: `read.mail` → `triage.mail` → `out.needs_you` / `out.held`)
 - **looks-like-but-is-not:** [[books/document]] (the books keep whole billing emails; the Monitor keeps headers); `marketing.inbox` (leads' answers, not William's mail)
 
 ## If you change this
@@ -42,8 +42,8 @@ Citations: `packages/watch/src/schema.ts:30`, `:50`, `:106`, `:148`; `packages/w
 
 | Surface | Role |
 |---|---|
-| `Watch/all` on the box, every 15 min (`wren monitor start`) | writes rows, emits to Spine |
-| Spine `watch.triage` (Lambda, `WREN_WATCH_LLM`) | writes verdicts |
+| `Watch/all` on the box, every 15 min (`wren monitor start`) | writes rows, emits to Executor |
+| Executor `watch.triage` (Lambda, `WREN_WATCH_LLM`) | writes verdicts |
 | WatchConsole (Inbox app: Done, Hide like this, Show like this, Sort again, rules) | writes |
 | Inbox app, admins only (`needs: team`) | reads |
 

@@ -7,7 +7,7 @@
  */
 import type { Effect, EventKind, Port } from "./components.js";
 import { type FieldMap, fieldMapOfWith, fieldMapProblems, HOOK_PRESETS } from "./door.js";
-import type { SpineEvent, Step } from "./spine.js";
+import type { ExecutorEvent, Step } from "./executor.js";
 import { canonicalZone, wallClock, zonedInstant } from "./time.js";
 import {
   bodyProblem,
@@ -63,7 +63,7 @@ interface LogicPart {
   icon: string;
   /** Actions reach outside Wren: Send webhook. */
   group: "logic" | "trigger" | "action";
-  /** Runs on the spine. Not yet: drawn faded, "In development", and publishing refuses it. */
+  /** Runs on the executor. Not yet: drawn faded, "In development", and publishing refuses it. */
   ready: boolean;
   /** What it does outside Wren, as a part's effects: publishing one is William's yes. */
   effects?: readonly Effect[];
@@ -112,7 +112,7 @@ export const shareOf = (v: unknown) => {
   return Number.isFinite(n) && n >= 1 && n <= 99 ? n : 50;
 };
 
-/** A trigger: no inputs, one output of `kind`, entered by the spine when its event happens. */
+/** A trigger: no inputs, one output of `kind`, entered by the executor when its event happens. */
 const trigger = (
   id: string,
   name: string,
@@ -195,7 +195,7 @@ export type TriggerFacts =
   | { trigger: "trigger.trait"; key: string; value: string | null }
   | { trigger: "trigger.date"; key: string; offset: number; every: DateEvery };
 
-/** What a journey tells the spine: it entered a node, passed over one, or was dropped. */
+/** What a journey tells the executor: it entered a node, passed over one, or was dropped. */
 const JOURNEY_CHANGES = {
   entered: "Enters a node",
   skipped: "Skips a node",
@@ -264,7 +264,7 @@ export const offsetOf = (v: unknown): number => {
 export const everyOf = (v: unknown): DateEvery =>
   String(v ?? "") === "yearly" ? "yearly" : "once";
 
-/** What a sent document tells the spine (designs/2026-10-09-documents.md). */
+/** What a sent document tells the executor (designs/2026-10-09-documents.md). */
 const DOC_CHANGES = {
   viewed: "Opened",
   signed: "Signed",
@@ -273,7 +273,7 @@ const DOC_CHANGES = {
 type DocChange = keyof typeof DOC_CHANGES;
 
 /**
- * What a payment tells the spine, each once (designs/2026-10-07-forms-and-pay.md). A pay link
+ * What a payment tells the executor, each once (designs/2026-10-07-forms-and-pay.md). A pay link
  * says paid, refunded and failed; Wren's own invoice also says invoiced and late.
  */
 export const PAY_CHANGES = {
@@ -285,7 +285,7 @@ export const PAY_CHANGES = {
 } as const;
 export type PayChange = keyof typeof PAY_CHANGES;
 
-/** What a connected app tells the spine (designs/2026-10-09-connectors.md). */
+/** What a connected app tells the executor (designs/2026-10-09-connectors.md). */
 const APP_CHANGES = {
   contact_added: "A contact added",
   invoice_paid: "An invoice paid",
@@ -358,7 +358,7 @@ export function triggerHears(n: WorkflowNode, f: TriggerFacts): boolean {
   return on === "any" || on === f.change;
 }
 
-/** What a Wait may wait until: an event fired at the spine about the same subject. */
+/** What a Wait may wait until: an event fired at the executor about the same subject. */
 export const UNTILS = ["reply", "booking", "answer", "cancelled"] as const;
 export type Until = (typeof UNTILS)[number];
 /** What a Wait may wait until, as its panel offers it. */
@@ -1322,9 +1322,9 @@ export function bucketOf(subject: string, node: string): number {
 
 /** Each logic node's step. If asks `rule`, the same model a wire's `when` asks. */
 export function logicSteps(
-  rule: (when: string, e: SpineEvent, client?: string | null) => Promise<boolean>,
+  rule: (when: string, e: ExecutorEvent, client?: string | null) => Promise<boolean>,
 ) {
-  const pass = (port: string, e: SpineEvent) => [{ port, event: e }];
+  const pass = (port: string, e: ExecutorEvent) => [{ port, event: e }];
   const steps: Record<string, Step> = {
     "logic.if": async (_p, e, at) =>
       pass((await rule(text(at.with.when), e, at.client)) ? "yes" : "no", e),

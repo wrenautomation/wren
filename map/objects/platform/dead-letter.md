@@ -13,7 +13,7 @@ One Restate invocation that used up its retries and paused (`dead_letters`), fil
 
 ## Why this shape
 
-A paused call holds its object's lock and moves only when someone acts, so it must not live only in a Discord line. Restate stays the source of truth for the call; the row is the handle and the history: who ended it, how, and whether it paused again (`designs/2026-10-11-dead-letters.md`). A terminal error is not a letter: it goes back to its caller. A spine step's error is not either: it waits on its event with Replay ([[platform/spine]]).
+A paused call holds its object's lock and moves only when someone acts, so it must not live only in a Discord line. Restate stays the source of truth for the call; the row is the handle and the history: who ended it, how, and whether it paused again (`designs/2026-10-11-dead-letters.md`). A terminal error is not a letter: it goes back to its caller. An executor step's error is not either: it waits on its event with Replay ([[platform/executor]]).
 
 ## Shape
 
@@ -29,12 +29,12 @@ Citations: `packages/core/src/dead-letter-schema.ts:26`
 ## Connected to
 
 - **joins:** Restate's `sys_invocation`, `sys_journal` and `sys_journal_events` by invocation id
-- **looks-like-but-is-not:** a spine step's error (`events.error`, Replay); a loop's failed pass (`runs`, `last`, [[platform/loop-object]]); `scripts/restate-lag.mjs` (late timers and calls stuck ready, running or backing off; no longer paused ones)
+- **looks-like-but-is-not:** an executor step's error (`events.error`, Replay); a loop's failed pass (`runs`, `last`, [[platform/loop-object]]); `scripts/restate-lag.mjs` (late timers and calls stuck ready, running or backing off; no longer paused ones)
 
 ## If you change this
 
 - **Hits:** `wren dlq` (`apps/cli/src/dlq.ts:32`), the Caddyfile on the box (rerun `box-restate.sh` over SSM), `docs/restate-operations.md` "Dead letters"
-- **Does not hit:** the spine, loops' own retries, Restate's retry policy
+- **Does not hit:** the executor, loops' own retries, Restate's retry policy
 
 ## Surfaces
 

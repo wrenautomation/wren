@@ -853,7 +853,7 @@ async function enroll(
       linkCode: input.drafts.linkCodes[index] as string,
       approvedAt,
       approvedBy,
-      // Every follow-up waits for its touch on the spine (follow.ts); the opener goes on its own.
+      // Every follow-up waits for its touch on the executor (follow.ts); the opener goes on its own.
       held: index > 0,
     };
   });

@@ -1,5 +1,5 @@
 /**
- * Send message and Notify me on the spine (designs/2026-10-14-automations.md, Templates). Send
+ * Send message and Notify me on the executor (designs/2026-10-14-automations.md, Templates). Send
  * message is one person's broadcast: the same consent, suppression and cap gate (`mayMarket`),
  * the same words and fills, email through the workspace's mailer (`MailOf`) with its footer and
  * one-click unsubscribe, a text queued (kind `broadcast`) on their existing thread for the texts
@@ -12,12 +12,12 @@ import { atomic } from "@wren/db/isolation";
 import { and, eq, sql } from "drizzle-orm";
 import { mintMessageId } from "./bounces.js";
 import { checkWords, factsOf, isUnset, type MailOf, renderFor } from "./broadcasts.js";
+import type { ExecutorEvent, Step, StepAt } from "./executor.js";
 import { dig } from "./logic.js";
 import { addressOf, mayMarket, recordMarketingSend } from "./marketing.js";
 import type { Notifier } from "./notify.js";
 import { PortalRefusal } from "./refusal.js";
 import { topics } from "./schema.js";
-import type { SpineEvent, Step, StepAt } from "./spine.js";
 import { fillText } from "./webhook-events.js";
 
 type Channel = "email" | "sms";
@@ -33,7 +33,7 @@ const VERDICT_WORDS: Record<string, string> = {
 };
 
 const text = (v: unknown) => (typeof v === "string" ? v.trim() : "");
-const first = (e: SpineEvent, ...paths: string[]) => {
+const first = (e: ExecutorEvent, ...paths: string[]) => {
   for (const p of paths) {
     const v = text(dig(e, p));
     if (v) return v;
@@ -42,7 +42,7 @@ const first = (e: SpineEvent, ...paths: string[]) => {
 };
 
 /** Who the event is about, as the triggers carry them: a door lead, else the event's own fields. */
-export function personOf(e: SpineEvent): { email: string; phone: string; name: string | null } {
+export function personOf(e: ExecutorEvent): { email: string; phone: string; name: string | null } {
   return {
     email: first(e, "data.lead.email", "data.email"),
     phone: first(e, "data.lead.phone", "data.phone"),
@@ -53,14 +53,14 @@ export function personOf(e: SpineEvent): { email: string; phone: string; name: s
 const channelOf = (w: StepAt["with"]): Channel => (w.channel === "sms" ? "sms" : "email");
 
 /** One send per workflow, node and subject, kept on the consent's sent event. */
-const sentKey = (at: StepAt, e: SpineEvent) => ({
+const sentKey = (at: StepAt, e: ExecutorEvent) => ({
   workflow: at.workflow,
   node: at.node,
   subject: e.subject,
 });
 
 /** "Would email sam@example.com: Welcome": what a dry test says instead of sending. */
-export function messageWould(w: StepAt["with"], e: SpineEvent): string {
+export function messageWould(w: StepAt["with"], e: ExecutorEvent): string {
   const p = personOf(e);
   const channel = channelOf(w);
   const to = channel === "email" ? p.email : p.phone;
@@ -185,7 +185,7 @@ export function messageStep(
 }
 
 /** The line Notify me sends, filled from the event: `{{data.lead.name}}` and the like. */
-export function notifyLine(w: StepAt["with"], e: SpineEvent, workflow: string): string {
+export function notifyLine(w: StepAt["with"], e: ExecutorEvent, workflow: string): string {
   const line = fillText(text(w.line), e).trim();
   return line || `${personOf(e).name ?? e.subject} reached ${workflow}`;
 }

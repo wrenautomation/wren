@@ -30,7 +30,7 @@ Citations: `packages/calendar/src/schema.ts:75`, `packages/calendar/src/book.ts:
 ## Connected to
 
 - **owns:** the Google event and Meet link on the owner's calendar
-- **joins:** [[email/call-booking]] (the mirror), [[platform/phone-worker]] (`/calendar/<handler>`), [[platform/records]], the spine (Booking triggers)
+- **joins:** [[email/call-booking]] (the mirror), [[platform/phone-worker]] (`/calendar/<handler>`), [[platform/records]], the executor (Booking triggers)
 - **looks-like-but-is-not:** `call_bookings` (every source's bookings, cal.com's too); `call_invites` (a reply's proposed slot)
 
 ## If you change this

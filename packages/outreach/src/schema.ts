@@ -331,7 +331,7 @@ export type CommentChannel = (typeof COMMENT_CHANNELS)[number];
  * Every comment on our posts and every answer to our comments (designs/2026-10-01-reach-reddit-linkedin.md,
  * Comments; designs/2026-10-06-social-inbox.md). Reach rows come from an account's inbox; content rows
  * from SocialWatch reading our published posts. One row per platform id; nothing is dropped, ours and
- * removed ones included. Each new row leaves as a `comment` event on the spine.
+ * removed ones included. Each new row leaves as a `comment` event on the executor.
  */
 export const comments = pgTable(
   "comments",

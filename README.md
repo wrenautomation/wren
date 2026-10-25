@@ -94,7 +94,7 @@ database, once `sms.texts` is installed. Steps: `walkthrough/05-sms.md`. Design:
 `wren [--client <id>] hooks add <workflow> <input> --subject <field> [--name ...]` prints a
 `https://phone.wrenautomation.com/hooks/<token>` URL once. Anything that POSTs JSON or a form to
 it enters that workflow's input, about the payload's `<field>`. `wren hooks list` shows each
-hook's calls. Design: `designs/2026-10-05-workflows.md` (The spine).
+hook's calls. Design: `designs/2026-10-05-workflows.md` (The executor).
 `wren hooks preset site` makes the lander's hook into Wren's speed to lead and says where the URL
 goes (the lander's `WREN_DOOR_URL` Pages secret).
 
@@ -126,7 +126,7 @@ reading, 4 to 6 holds. Follow a feed from Inbox → Feeds.
 New York. It reads comments on our posts of the last 14 days (older than 3 days every 2 hours),
 activity since the newest kept row (LinkedIn every 2 hours), and the follower count once a day.
 LinkedIn's count only on demand: `wren social audience linkedin` or Followers → Read now.
-New comments go on the `reach.comments` spine. One Discord ping per pass that kept something; a text
+New comments go on the `reach.comments` executor. One Discord ping per pass that kept something; a text
 only when a comment asks. Work them in Marketing → Inbox; answers go out only on William's click.
 
 ## Drafts

@@ -37,7 +37,7 @@ export interface ExecutionStep {
   sentAt: string | null;
 }
 
-/** An execution's id: its workflow and subject, as `spine_executions` keys it. */
+/** An execution's id: its workflow and subject, as `executions` keys it. */
 export const executionId = (workflow: string, subject: string) => `${workflow}/${subject}`;
 
 /** Every step one subject took through one workflow, in the order it took them. */
@@ -98,7 +98,7 @@ export function nowAtLabels(
 }
 
 /**
- * Wren's executions (`spine_executions`): each subject's walk through a workflow, where it is now
+ * Wren's executions (`executions`): each subject's walk through a workflow, where it is now
  * and how long since it entered. Its page lights the path and shows each step's data. ponytail:
  * main only, as `console.event`. `labels` says a node inside a part in words.
  */
@@ -108,7 +108,7 @@ export const executionRecordOf = (labels: Readonly<Record<string, string>> = {})
     app: "workflows",
     channel: null,
     name: { one: "execution", many: "executions" },
-    view: "spine_executions",
+    view: "executions",
     key: "id",
     title: "title",
     subtitle: "workflow",

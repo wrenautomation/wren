@@ -7,10 +7,10 @@
 
 import { marketingSends, suppressions } from "@wren/core";
 import { FakeCalendar } from "@wren/core/calendar";
+import type { StepAt } from "@wren/core/executor";
 import { personKeyOf } from "@wren/core/message-settings";
 import type { Notifier } from "@wren/core/notify";
 import { parseTemplate } from "@wren/core/slots";
-import type { StepAt } from "@wren/core/spine";
 import { emailRef, saveLive } from "@wren/core/templates";
 import type { Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";

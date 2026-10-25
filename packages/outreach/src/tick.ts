@@ -15,7 +15,7 @@
  * step is due the tick reads the relationship: connected = send (and mark the
  * contact connected), pending = ask again tomorrow, past `connectWaitDays` =
  * `unreachable`. An accepted invite's send queues step 1. A sent step is listed
- * in `stepped`: the sender hands it to the spine, whose wire waits `afterDays`
+ * in `stepped`: the sender hands it to the executor, whose wire waits `afterDays`
  * and queues the next (`touch`). After the last, the contact is `finished`.
  * The live gate off holds every sequence and follow-up row; a manual row is William's own yes and
  * goes, from an active or a warming account (its rung's caps still apply).
@@ -106,7 +106,7 @@ export interface TickStats {
   reconciled: number;
   finished: number;
   unreachable: number;
-  /** Sequence steps sent, each leaving its cadence node on the spine. */
+  /** Sequence steps sent, each leaving its cadence node on the executor. */
   stepped: Array<{ contactId: number; sequence: string; step: number }>;
 }
 
@@ -433,7 +433,7 @@ async function queueStep(
 }
 
 /**
- * Queue step `step` of a contact's sequence, due now: the spine's `reach.touch`, once its wait
+ * Queue step `step` of a contact's sequence, due now: the executor's `reach.touch`, once its wait
  * is over. A contact who replied answers "replied"; any other end, or an emptied step, sends
  * nothing. Queueing a step twice is a no-op.
  */

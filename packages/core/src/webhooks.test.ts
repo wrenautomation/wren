@@ -129,7 +129,7 @@ describe("signing", () => {
 });
 
 describe("events", () => {
-  it("maps the spine's moments to webhook events", () => {
+  it("maps the executor's moments to webhook events", () => {
     expect(webhookEventsOfFired({ trigger: "trigger.reply", channel: "sms" })).toEqual([
       "reply.received",
     ]);
@@ -248,7 +248,7 @@ describe("safePost", () => {
     expect(got.error).toContain("https");
   });
 
-  it("the step throws on no answer, so the spine's tries and auto-retry apply", async () => {
+  it("the step throws on no answer, so the executor's tries and auto-retry apply", async () => {
     const step = webhookStep({ resolve: async () => [{ address: "10.0.0.5", family: 4 }] });
     await expect(
       step(

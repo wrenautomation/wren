@@ -30,7 +30,7 @@ Saved and followed items are one table, so a link saved after its feed brought i
 
 ## Connected to
 
-- **joins:** [[platform/spine]] (workflow `learn`: `feeds.items`/`saved.item` → `read.item` → `score.item` → `out.to_read`), [[watch/mail]] (the Monitor's pass pulls feeds and sends Learn's alerts)
+- **joins:** [[platform/executor]] (workflow `learn`: `feeds.items`/`saved.item` → `read.item` → `score.item` → `out.to_read`), [[watch/mail]] (the Monitor's pass pulls feeds and sends Learn's alerts)
 - **joins:** [[platform/decide]] (`learn_worth`: a star, pin, save or SOP add is worth, an archive alone skip; Wren's cards carry the model's pick)
 - **looks-like-but-is-not:** the Library's SOPs (`library.sop`, pushed playbook texts); Reddit discovery (finds places to talk, not to learn)
 
@@ -43,8 +43,8 @@ Saved and followed items are one table, so a link saved after its feed brought i
 
 | Surface | Role |
 |---|---|
-| `Watch/all` on the box, each source hourly | writes items, emits to Spine, sends alerts and the digest, writes each person's bell alerts |
-| Spine `learn.read`, `learn.score` (Lambda) | reads articles and YouTube videos, marks other videos for the Mac, scores |
+| `Watch/all` on the box, each source hourly | writes items, emits to Executor, sends alerts and the digest, writes each person's bell alerts |
+| Executor `learn.read`, `learn.score` (Lambda) | reads articles and YouTube videos, marks other videos for the Mac, scores |
 | `wren learn read` on the Mac | reads videos, reels and episode audio for every workspace, scores, writes Wren's SOP asks into folders |
 | LearnConsole (Learn app, `/learn/add?url=`) | writes |
 | `wren learn catalog` on the Mac | queues and reads a creator's older reels |

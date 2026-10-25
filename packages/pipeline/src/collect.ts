@@ -6,9 +6,9 @@
  */
 import { createHash } from "node:crypto";
 import type { Port } from "@wren/core/components";
+import type { Step } from "@wren/core/executor";
 import { UUID } from "@wren/core/ids";
 import { profileEvents } from "@wren/core/profiles-schema";
-import type { Step } from "@wren/core/spine";
 import { defineWorkflow, type Workflow } from "@wren/core/workflows";
 import { atomic, type Db } from "@wren/db";
 import { and, desc, eq, sql } from "drizzle-orm";
@@ -73,7 +73,7 @@ interface CollectDeps {
 const dollars = (cents: number, currency: string) =>
   `${(Math.abs(cents) / 100).toFixed(2)} ${currency}`;
 
-/** `pipeline.collect`, to register by name in the spine's `steps`. */
+/** `pipeline.collect`, to register by name in the executor's `steps`. */
 export function collectSteps(d: CollectDeps): Record<string, Step> {
   const collect: Step = async (_port, e, at) => {
     const delta = collectedDelta(e.data);

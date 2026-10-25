@@ -12,7 +12,7 @@ import type { Workflow, WorkflowEdits } from "./workflows.js";
 /** The run rows' record for a workflow's asks (`runs.argv.record`). */
 export const WORKFLOW_ASK = "console.workflow";
 
-const SYSTEM = `You edit one workflow on Wren's spine. A workflow is nodes with ports and wires from an output port to an input port of the same kind.
+const SYSTEM = `You edit one workflow on Wren's executor. A workflow is nodes with ports and wires from an output port to an input port of the same kind.
 Answer with one JSON object and nothing else: {"reply": "<one or two plain sentences on what you changed>", "patch": {"wires": [...], "steps": [...]}}.
 "patch" is the whole next draft: every routed wire and every added node, not only the change. Keep what the draft has unless asked to change it. Use "patch": null when you only answer.
 A wire: {"from": "<node>.<port>" or "in.<port>", "to": "<node>.<port>" or "out.<port>", "via": "events", "when"?: "<a rule in plain words>", "wait"?: "<n> minutes|hours|days|weeks"}.

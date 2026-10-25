@@ -3,9 +3,10 @@
  * `watch` workflow, and moved by the Inbox app's hands. Mail and model are fakes; every address
  * here is made up.
  */
+
+import { pgExecutorStore, type Walk, walk } from "@wren/core/executor";
 import type { Mailbox, MailMeta } from "@wren/core/mailbox";
 import type { PortalRequest } from "@wren/core/portal";
-import { pgSpineStore, type Walk, walk } from "@wren/core/spine";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
 import { eq, sql } from "drizzle-orm";
@@ -81,13 +82,13 @@ describe("readMail", () => {
   });
 });
 
-describe("triage on the spine", () => {
+describe("triage on the executor", () => {
   const steps = (llm: FakeLlm | null) => ({ "watch.triage": triageStep(pg.db, llm) });
   const walker = (llm: FakeLlm | null, by = "inv1"): Walk => ({
     flows: new Map(WATCH_WORKFLOWS.map((f) => [f.id, f])),
     parts: new Map(WATCH_COMPONENTS.map((c) => [c.id, c])),
     steps: steps(llm),
-    store: pgSpineStore(pg.db),
+    store: pgExecutorStore(pg.db),
     client: null,
     by,
     run: (_name, fn) => fn(),

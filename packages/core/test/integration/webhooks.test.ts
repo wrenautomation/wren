@@ -4,8 +4,8 @@ import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { addClient, addMember } from "../../src/clients/index.js";
+import { failedOf, failedRuns } from "../../src/executor.js";
 import { events, webhookSubscriptions } from "../../src/schema.js";
-import { failedOf, failedRuns } from "../../src/spine.js";
 import {
   addSubscription,
   attemptDelivery,

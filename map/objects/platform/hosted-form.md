@@ -34,7 +34,7 @@ Citations: `packages/sites/src/schema.ts:138`, `packages/sites/src/forms.ts:60`,
 - **owns:** `site_form_defs`, `site_form_splits`
 - **owned-by:** `@wren/sites`
 - **writes:** [[leads/profile]]: Wren's entries here; a client's in its workspace with one `profile_events` line (`keepForm` with `open`, `noteClientForm`)
-- **joins:** [[clients/client]] by `client`; [[platform/spine]] (the door); [[platform/webhook-subscription]] (`form.submitted`)
+- **joins:** [[clients/client]] by `client`; [[platform/executor]] (the door); [[platform/webhook-subscription]] (`form.submitted`)
 - **looks-like-but-is-not:** a Sites page's default form section (no def row); `Ads.leads` (Meta form fills)
 
 ## If you change this

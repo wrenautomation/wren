@@ -1,6 +1,6 @@
 /**
  * `SetupWatch/all`: once an hour, done setups whose repeat is due get every check again
- * (`recheck`). A fact that fails starts its setup over on the spine and pauses the parts that
+ * (`recheck`). A fact that fails starts its setup over on the executor and pauses the parts that
  * need it. A run past its step's `within` that no round will catch turns stuck (`sweepStuck`).
  * Then the team hears each new alert once (`tellAlerts`) and, once a day, what's still open
  * (`digestAlerts`). Started by hand, like every loop.
@@ -10,11 +10,11 @@
  */
 import type * as restate from "@restatedev/restate-sdk";
 import type { Db } from "@wren/db";
+import { executorEmit } from "./executor.js";
 import type { Notifier } from "./notify.js";
 import { makeLoopObject, type PassOutcome, runPass } from "./restate/loop.js";
 import { recheck, type Setup, type SetupCheck, type SetupEmit, sweepStuck } from "./setup.js";
 import { type AlertPart, digestAlerts, tellAlerts } from "./setup-alerts.js";
-import { spineEmit } from "./spine.js";
 
 const SETUP_WATCH_EVERY_MS = 3_600_000;
 
@@ -62,7 +62,7 @@ export function makeSetupWatch(deps: SetupWatchDeps) {
       retryMs: SETUP_WATCH_EVERY_MS,
       ...(deps.notifier ? { notifier: deps.notifier } : {}),
     })) as PassOutcome<SetupWatchPass>;
-    for (const e of outcome.stats?.emits ?? []) spineEmit(ctx, e);
+    for (const e of outcome.stats?.emits ?? []) executorEmit(ctx, e);
     return outcome;
   });
 }

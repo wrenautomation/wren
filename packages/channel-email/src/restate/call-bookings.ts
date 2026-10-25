@@ -8,7 +8,7 @@
  */
 import * as restate from "@restatedev/restate-sdk";
 import { findClient } from "@wren/core/clients";
-import { type FireTriggers, spineEmit } from "@wren/core/spine";
+import { executorEmit, type FireTriggers } from "@wren/core/executor";
 import type { Db } from "@wren/db";
 import { bookingEmit, bookingFired } from "../calls/restate.js";
 import {
@@ -21,7 +21,7 @@ import {
 export function makeCallBookings(deps: {
   db: Db;
   clientDb?: ((client: string) => Db) | null;
-  /** Each booking to the spine's Booking triggers (`spineFire`). Unset, none fire. */
+  /** Each booking to the executor's Booking triggers (`executorFire`). Unset, none fire. */
   fire?: FireTriggers;
 }) {
   const apply = async (ctx: restate.Context, db: Db, body: unknown, client: string | null) => {
@@ -36,7 +36,7 @@ export function makeCallBookings(deps: {
     const now = new Date(await ctx.date.now());
     const done = await ctx.run("apply", () => applyBooking(db, booking, { now }));
     const emit = bookingEmit({ ...done, start: booking.start });
-    if (emit) spineEmit(ctx, { client, ...emit });
+    if (emit) executorEmit(ctx, { client, ...emit });
     // Every live Booking trigger that hears it, booked, moved or cancelled.
     deps.fire?.(ctx, bookingFired(client, done, booking));
     return done;

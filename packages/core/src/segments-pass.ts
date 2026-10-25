@@ -5,7 +5,7 @@
  * 2. What uses each segment written on its row (workflows' Segment triggers, other rules,
  *    broadcasts not yet done).
  * 3. Segments unused for 90 days archived.
- * 4. The spine told: each entry and exit past the last one told, to a Segment trigger that
+ * 4. The executor told: each entry and exit past the last one told, to a Segment trigger that
  *    hears it; each trait change, to a Trait changed trigger; once a day from 09:00 (New York),
  *    each date trait whose day it is, to a Date trigger.
  *
@@ -18,6 +18,7 @@ import * as restate from "@restatedev/restate-sdk";
 import type { Db, Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
 import { broadcastUses } from "./broadcasts.js";
+import { executorFire, type Fired } from "./executor.js";
 import { type DateEvery, everyOf, offsetOf, SCHEDULE_ZONE, type TriggerFacts } from "./logic.js";
 import { exclusiveHandler, NO_INPUT, sharedHandler } from "./restate/form.js";
 import { clientKey, clientOfKey } from "./restate/keys.js";
@@ -30,7 +31,6 @@ import {
   setUses,
 } from "./segments.js";
 import type { SegmentUse } from "./segments-schema.js";
-import { type Fired, spineFire } from "./spine.js";
 import { wallClock } from "./time.js";
 import type { Workflow } from "./workflows.js";
 
@@ -399,7 +399,7 @@ export function makeSegments(d: SegmentsDeps) {
           ctx.set(LAST, { at: now.toISOString(), error: out.error });
           return { error: out.error };
         }
-        for (const f of out.fires) spineFire(ctx, f);
+        for (const f of out.fires) executorFire(ctx, f);
         ctx.set(CURSOR, out.cursor);
         const { fires: _fires, ...stats } = out;
         ctx.set(LAST, { at: now.toISOString(), ...stats });

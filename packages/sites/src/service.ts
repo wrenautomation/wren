@@ -2,11 +2,11 @@
  * `Sites`: what the portal Worker asks for on `/o/*`, no sign-in (designs/2026-10-07-sites.md,
  * "Serving"). `serve` renders a live page or a draft behind its preview token; `serveForm` a
  * hosted form (designs/2026-10-07-forms-and-pay.md); `track` keeps a tracker event; `form` keeps
- * a submit and enters its page's or form's door on the spine as `form.submitted`.
+ * a submit and enters its page's or form's door on the executor as `form.submitted`.
  */
 import * as restate from "@restatedev/restate-sdk";
+import { EXECUTOR, type ExecutorService } from "@wren/core/executor";
 import { serviceHandler } from "@wren/core/restate";
-import { SPINE, type SpineService } from "@wren/core/spine";
 import type { Db } from "@wren/db";
 import { z } from "zod";
 import { formArmToServe, specForArm } from "./form-split.js";
@@ -43,7 +43,7 @@ export interface Served {
   split?: { id: string; label: string; cookie: string; days: number } | null;
 }
 
-/** Enters a form's payload through a hook: the spine's `door`, or nothing where none runs. */
+/** Enters a form's payload through a hook: the executor's `door`, or nothing where none runs. */
 type EnterDoor = (
   hook: string,
   payload: Record<string, unknown>,
@@ -525,7 +525,7 @@ export function makeSites(deps: { main: Db; shareKey?: string | null; open?: Ope
         },
         (_: restate.Context, req: Parameters<typeof api.hop>[0]) => api.hop(req),
       ),
-      // Kept once (journaled), then the spine's door: a Restate call of its own, then marked.
+      // Kept once (journaled), then the executor's door: a Restate call of its own, then marked.
       form: serviceHandler(
         {
           input: z.looseObject({
@@ -549,7 +549,7 @@ export function makeSites(deps: { main: Db; shareKey?: string | null; open?: Ope
           if (!("form" in k)) return k;
           const res = k.hook
             ? await ctx
-                .serviceClient<SpineService>(SPINE)
+                .serviceClient<ExecutorService>(EXECUTOR)
                 .door({ hook: k.hook, payload: k.payload })
                 .catch(failed)
             : null;

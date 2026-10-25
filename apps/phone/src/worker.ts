@@ -797,7 +797,7 @@ async function takeDrop(req: Request, env: Env, id: string): Promise<Response> {
 
 /**
  * The door (designs/2026-10-05-workflows.md): any webhook into a workflow's input, by a token
- * `wren hooks add` made. JSON or a form; the Spine checks the token and answers the status.
+ * `wren hooks add` made. JSON or a form; the Executor checks the token and answers the status.
  */
 async function door(req: Request, env: Env, token: string): Promise<Response> {
   if (!/^[A-Za-z0-9_-]{43}$/.test(token)) return json({ error: "no such hook" }, 404);
@@ -815,7 +815,7 @@ async function door(req: Request, env: Env, token: string): Promise<Response> {
   }
   let res: Response;
   try {
-    res = await fetch(ingress(env, "Spine/hook"), {
+    res = await fetch(ingress(env, "Executor/hook"), {
       method: "POST",
       headers: restateHeaders(env),
       body: JSON.stringify({ token, payload }),

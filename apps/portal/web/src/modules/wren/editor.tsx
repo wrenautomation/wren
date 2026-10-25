@@ -319,7 +319,7 @@ type EventDetail = {
   sentAt: string | null;
 };
 
-/** The node's last event on the spine, read once per node and shared. */
+/** The node's last event on the executor, read once per node and shared. */
 export function useLast(workflow: string, node: string) {
   return useCall(`node-last:${workflow}:${node}`, async () => {
     const page = await call<RecordsPage>("console/recordsList", {
@@ -341,7 +341,7 @@ export function useLast(workflow: string, node: string) {
   });
 }
 
-/** The node's last event on the spine: what came in, and what its step sent on. */
+/** The node's last event on the executor: what came in, and what its step sent on. */
 function LastOutput({ workflow, node }: { workflow: string; node: string }) {
   const got = useLast(workflow, node);
   if (got.error) return <LoadFailed error={got.error} onRetry={got.retry} what="event" />;

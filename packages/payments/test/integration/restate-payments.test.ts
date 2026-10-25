@@ -2,8 +2,8 @@
  * Payments through Restate, every step replayed (`alwaysReplay`): Stripe's 5xx and dropped
  * connections retried with the same idempotency keys and never marked failed; Stripe's refusal
  * and a Stripe down past the retry window failing the link once, saying why; a webhook taken
- * twice telling the spine once; a refund telling it again. A fake Stripe and a recorder for
- * the spine, synthetic data, no network, no charge.
+ * twice telling the executor once; a refund telling it again. A fake Stripe and a recorder for
+ * the executor, synthetic data, no network, no charge.
  */
 
 import * as restate from "@restatedev/restate-sdk";
@@ -11,8 +11,8 @@ import * as restateClients from "@restatedev/restate-sdk-clients";
 import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
 import { smsContacts } from "@wren/channel-sms/schema";
 import { addClient, addOperator, clients } from "@wren/core/clients";
+import type { Fired } from "@wren/core/executor";
 import { pgKeyStore, throwawayRing } from "@wren/core/keys";
-import type { Fired } from "@wren/core/spine";
 import { startTestRestate } from "@wren/core/testing";
 import { cachedDb, clientDatabaseUrl, type Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
@@ -62,7 +62,7 @@ const fakeStripe: Fetch = async (url, init) => {
   return Response.json({ error: { message: "?" } }, { status: 404 });
 };
 
-/** The spine, as a recorder: what Payments told it, once per journaled send. */
+/** The executor, as a recorder: what Payments told it, once per journaled send. */
 const heard: Fired[] = [];
 const ear = restate.service({
   name: "Ear",
@@ -198,7 +198,7 @@ describe("Payments/stripe", () => {
   const hook = (raw: string) =>
     payments().stripe({ client: "acme", raw, signature: signFor(raw, SECRET, new Date()) });
 
-  it("taken twice, the spine hears paid once; a refund, once more", async () => {
+  it("taken twice, the executor hears paid once; a refund, once more", async () => {
     const l = await createLink(pg.db, {
       client: "acme",
       channel: "sms",

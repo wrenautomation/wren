@@ -1,10 +1,11 @@
 /**
- * DM follow-ups on the spine, as texts do (channel-sms/src/follow.ts). Each sequence is a cadence
+ * DM follow-ups on the executor, as texts do (channel-sms/src/follow.ts). Each sequence is a cadence
  * of `reach.touch` nodes. Enroll queues the opener, or the invite, whose send queues step 1. When
  * the tick sends a step it leaves that node as `sent`; the next touch queues the next DM due now.
  */
+
+import { type ExecutorEvent, passOn, type Step, type StepAt } from "@wren/core/executor";
 import { type FollowNote, followStart, isFollowTouch, passed } from "@wren/core/follow";
-import { passOn, type SpineEvent, type Step, type StepAt } from "@wren/core/spine";
 import { refText } from "@wren/core/templates";
 import { liveOrDefault } from "@wren/core/templates/defaults";
 import { labelOf, sequenceLabel } from "@wren/core/templates/labels";
@@ -17,8 +18,8 @@ import { dmSeed, type ReachSequence, render, stepKey } from "./sequences.js";
 import { dmRef } from "./store.js";
 import { type TickOptions, touch } from "./tick.js";
 
-/** One DM contact as a lead on the spine. */
-export const reachLead = (contactId: number): SpineEvent => ({
+/** One DM contact as a lead on the executor. */
+export const reachLead = (contactId: number): ExecutorEvent => ({
   subject: `lead:reach:${contactId}`,
   kind: "lead",
   data: { contactId },
@@ -113,7 +114,7 @@ interface FollowDms {
 }
 
 /**
- * `reach.touch` on the spine: the node's `step`, queued in the database of whoever's run it is
+ * `reach.touch` on the executor: the node's `step`, queued in the database of whoever's run it is
  * (Wren's main, or a client's own). The client's sender sends it once its live flag is on. A
  * node with no `step` is a follow-up touch (`followDm`); `db` is then also where clients are.
  */

@@ -7,9 +7,9 @@ import * as clients from "@restatedev/restate-sdk-clients";
 import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
 import { ingressOf } from "@wren/config";
 import { HOOK_PRESETS } from "@wren/core/door";
+import { addHook, EXECUTOR, makeExecutor } from "@wren/core/executor";
 import { serveRecords } from "@wren/core/records/serve";
 import { events } from "@wren/core/schema";
-import { addHook, makeSpine, SPINE } from "@wren/core/spine";
 import { startTestRestate } from "@wren/core/testing";
 import { defineWorkflow } from "@wren/core/workflows";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
@@ -74,7 +74,7 @@ beforeAll(async () => {
   pg = await startTestPostgres();
   env = await startTestRestate({
     services: [
-      makeSpine({
+      makeExecutor({
         main: pg.db,
         clientDb: () => pg.db,
         workflows: [FLOW],
@@ -117,7 +117,7 @@ async function post(payload: unknown) {
     fields: { name: "contact.full_name", phone: "contact.cell", consent: "agree_sms" },
   });
   // The phone Worker's call for `POST /hooks/<token>`.
-  return ingress().serviceClient<Door>(SPINE).hook({ token, payload });
+  return ingress().serviceClient<Door>(EXECUTOR).hook({ token, payload });
 }
 
 const LEAD = {
@@ -224,7 +224,7 @@ describe("the lander's door (site preset)", () => {
       subject: site.subject,
       fields: site.fields,
     });
-    return (payload: unknown) => ingress().serviceClient<Door>(SPINE).hook({ token, payload });
+    return (payload: unknown) => ingress().serviceClient<Door>(EXECUTOR).hook({ token, payload });
   };
   const entered = () => pg.db.select().from(events).where(eq(events.node, "text"));
 

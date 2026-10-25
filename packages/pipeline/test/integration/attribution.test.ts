@@ -6,8 +6,8 @@
  * Synthetic data only.
  */
 import { randomUUID } from "node:crypto";
+import { hookEvent, pgExecutorStore, type Walk, walk } from "@wren/core/executor";
 import { resolveProfile } from "@wren/core/profiles";
-import { hookEvent, pgSpineStore, type Walk, walk } from "@wren/core/spine";
 import type { Workflow } from "@wren/core/workflows";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { asc, eq, sql } from "drizzle-orm";
@@ -108,7 +108,7 @@ async function submit(data: Record<string, unknown>) {
     flows: map,
     parts: new Map(),
     steps: journeySteps({ db: () => pg.db }),
-    store: pgSpineStore(pg.db),
+    store: pgExecutorStore(pg.db),
     client: null,
     by: randomUUID(),
     run: (_name, fn) => fn(),

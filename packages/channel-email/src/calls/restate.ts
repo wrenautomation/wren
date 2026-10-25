@@ -1,15 +1,15 @@
 /**
- * The brief on the spine and before the call (designs/2026-10-07-close-brief-outcome.md). A booked
+ * The brief on the executor and before the call (designs/2026-10-07-close-brief-outcome.md). A booked
  * call enters `close` at `in.calls`; the `calls.brief` step builds and keeps its brief, then asks
  * `CallBriefs/send` to run `leadMinutes` before the start. That send rebuilds it and pings the
  * team's channel with a link, never the lead's words. A moved or cancelled call's old send skips.
  */
 import * as restate from "@restatedev/restate-sdk";
 import type { MeetingOutcome } from "@wren/core/calls";
+import { type ExecutorEvent, executorEmit, type Fired, type Step } from "@wren/core/executor";
 import { aboutOf } from "@wren/core/logic";
 import type { Notifier } from "@wren/core/notify";
 import { serviceHandler } from "@wren/core/restate";
-import { type Fired, type SpineEvent, type Step, spineEmit } from "@wren/core/spine";
 import { atomic, type Db, setAuditActor } from "@wren/db";
 import type { LlmClient } from "@wren/llm";
 import { eq } from "drizzle-orm";
@@ -20,7 +20,7 @@ import { callSubject, outcomeEmits, setCallOutcome } from "./outcome.js";
 import type { BriefSettings } from "./settings.js";
 
 /** A booked call as it enters `close`: one arrival per call and start, so a moved call is new. */
-export const bookedCall = (id: number, start: Date | string | null): SpineEvent => {
+export const bookedCall = (id: number, start: Date | string | null): ExecutorEvent => {
   const at = start ? new Date(start).toISOString() : null;
   return {
     subject: `${callSubject(id)}${at ? `:${at}` : ""}`,
@@ -73,7 +73,7 @@ export const bookingFired = (
 };
 
 /**
- * Mark calls' outcome as one person, in one transaction, then move them on the spine
+ * Mark calls' outcome as one person, in one transaction, then move them on the executor
  * (`outcomeEmits`). The answer's `done` are the call ids it changed.
  */
 export async function markOutcome(
@@ -94,7 +94,7 @@ export async function markOutcome(
       return setCallOutcome(tx, { ...ask, now });
     }),
   );
-  for (const e of outcomeEmits(marked)) spineEmit(ctx, { client, ...e });
+  for (const e of outcomeEmits(marked)) executorEmit(ctx, { client, ...e });
   return { changed: marked.length, done: marked.map((m) => m.id) };
 }
 
@@ -123,7 +123,7 @@ export interface SendAsk {
 }
 
 /**
- * `calls.brief` on the spine: build and keep the brief, then queue its send before the call.
+ * `calls.brief` on the executor: build and keep the brief, then queue its send before the call.
  * `queue` is a delayed one-way call (the worker's ingress); it runs inside the step's `ctx.run`.
  */
 export const briefStep =

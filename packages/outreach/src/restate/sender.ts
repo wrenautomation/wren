@@ -5,6 +5,7 @@
  */
 import * as restate from "@restatedev/restate-sdk";
 import { finishRun, openRun } from "@wren/core";
+import { executorEmit } from "@wren/core/executor";
 import {
   clientOfKey,
   errorText,
@@ -14,7 +15,6 @@ import {
   setLastPass,
   stoppedPass,
 } from "@wren/core/restate";
-import { spineEmit } from "@wren/core/spine";
 import { cadenceId } from "@wren/core/workflows";
 import { clientReach, clientSends, syncLogins } from "../clients.js";
 import { reachLead } from "../follow.js";
@@ -102,7 +102,7 @@ async function senderPass(
   await ctx.run("finish run", () => finishRun(deps.db, runId, stats ?? { error }));
   // Each sent step leaves its node; the cadence's wire waits, then queues the next (follow.ts).
   for (const s of stats?.stepped ?? [])
-    spineEmit(ctx, {
+    executorEmit(ctx, {
       client: scope.client,
       workflow: cadenceId(s.sequence),
       from: `s${s.step}.sent`,

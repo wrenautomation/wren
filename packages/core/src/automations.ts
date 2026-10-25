@@ -40,7 +40,7 @@ export interface AutomationRow {
   ref: string;
 }
 
-/** One workflow's spine numbers, per subject the way `spine_executions` counts them. */
+/** One workflow's executor numbers, per subject the way `executions` counts them. */
 interface FlowStats {
   workflow: string;
   runs: number;

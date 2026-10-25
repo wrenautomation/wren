@@ -420,7 +420,7 @@ export const modelRecord = defineRecord({
 /**
  * Per campaign, the named people and firms stuck before a send (`pipeline_leaks`), and threads
  * stuck between sends: a follow-up still held an hour after the step before it went (its touch
- * on the spine failed or never came; the spine's failed events say why).
+ * on the executor failed or never came; the executor's failed events say why).
  */
 export const stallRecord = defineRecord({
   id: "email.stall",

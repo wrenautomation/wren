@@ -20,11 +20,11 @@ A delivery is a row before it is a request, keyed `(subscription, event_id)`, so
 - `webhook_subscriptions` (main only): `client` (null is Wren), `name`, `url`, `events text[]`, `secret` and `prev_secret` (sealed, `whsec_<base64>`), `prev_until`, `active`, `by`, `at`, `rotated_at`, `failing_since`, `disabled_at`, `disabled_why`. At most 20 per client.
 - `webhook_deliveries`: `subscription` (cascade), `event`, `event_id` (`msg_<32>` from the Restate call, `eventIdOf`), `payload {type, timestamp, data}`, `state` pending|delivered|failed, `attempts`, last `status`, `latency_ms`, `response` (first 1000 chars), `error`, `at`, `last_at`, `next_at` (the next try while a failed one waits).
 - `webhook_attempts`: `delivery` (cascade), `n`, `status`, `latency_ms`, `response`, `error`, `at`.
-- Events (`WEBHOOK_EVENTS`, `packages/core/src/webhook-events.ts:10`): `lead.created` and `form.submitted` (the door, `Spine/hook` and `Spine/door`), `reply.received`, `booking.made`, `booking.cancelled` (`Spine/fire`), `journey.moved` (a journey entered or dropped, `Spine/fire`, `webhookEventsOfFired`), `deal.won` (`close` emits `outcome.won`; a journey entering its sale stage fires it too, fact `sale`). Migration 0303 renamed `deal.moved` to `journey.moved`. Test sends `webhook.test` to one URL.
+- Events (`WEBHOOK_EVENTS`, `packages/core/src/webhook-events.ts:10`): `lead.created` and `form.submitted` (the door, `Executor/hook` and `Executor/door`), `reply.received`, `booking.made`, `booking.cancelled` (`Executor/fire`), `journey.moved` (a journey entered or dropped, `Executor/fire`, `webhookEventsOfFired`), `deal.won` (`close` emits `outcome.won`; a journey entering its sale stage fires it too, fact `sale`). Migration 0303 renamed `deal.moved` to `journey.moved`. Test sends `webhook.test` to one URL.
 - Guard: `urlProblem` (`:130`) wants https, no login, a dotted public host, no private or metadata address; `privateIp` (`:104`) covers v4, v6, mapped and NAT64. `safePost` (`packages/core/src/webhooks.ts:125`) checks every resolved address before connecting (DNS rebinding), follows no redirect, 10 s timeout, 64 KB cap.
 - Headers `webhook-id`, `webhook-timestamp`, `webhook-signature` (`v1,<base64 HMAC-SHA256>`, two during a rotate; `signedHeaders`, `:51`). Receivers turn away a timestamp past 5 minutes.
 - `Webhooks/publish` and `Webhooks/deliver` are private; `Webhooks/redeliver {id}` is public (zod input) so the CLI calls it through ingress. Retried: no answer, 408, 425, 429, 5xx. An off subscription fails its pending deliveries ("the webhook is off"). `tally` (`packages/core/src/webhooks.ts`) sets `failing_since` on a failed try and clears it on a landed one. Past `DISABLE_AFTER_DAYS` (5) it turns the subscription off with `disabled_at` and `disabled_why`. `editSubscription` turning it on clears all three.
-- Send webhook node (`logic.webhook`, `packages/core/src/logic.ts:382`, step `webhookStep`, `webhooks.ts:726`): URL, method, headers, JSON body with `{{data.x}}` slots (a whole slot keeps its type), `keep` names parts of the answer onto `data.webhook`. Out `answered` (2xx) or `refused`; no answer or a 5xx throws so the spine's tries and auto-retry apply. It has effect `sends` (`effectsIn`, `packages/core/src/workflows.ts`), so the Effects column, template install and Publish all ask the id typed back.
+- Send webhook node (`logic.webhook`, `packages/core/src/logic.ts:382`, step `webhookStep`, `webhooks.ts:726`): URL, method, headers, JSON body with `{{data.x}}` slots (a whole slot keeps its type), `keep` names parts of the answer onto `data.webhook`. Out `answered` (2xx) or `refused`; no answer or a 5xx throws so the executor's tries and auto-retry apply. It has effect `sends` (`effectsIn`, `packages/core/src/workflows.ts`), so the Effects column, template install and Publish all ask the id typed back.
 
 Citations: `packages/core/src/schema.ts:512`, `packages/core/src/schema.ts:551`, `packages/core/src/schema.ts:588`, `packages/core/src/webhooks.ts:630`, `packages/core/src/webhooks.ts:689`, `packages/delivery/src/webhooks.ts:1`, `apps/cli/src/webhooks.ts:1`
 
@@ -32,8 +32,8 @@ Citations: `packages/core/src/schema.ts:512`, `packages/core/src/schema.ts:551`,
 
 - **owns:** `webhook_subscriptions`, `webhook_deliveries`, `webhook_attempts`
 - **owned-by:** [[platform/restate-services]]
-- **joins:** [[clients/client]] by `client` (cascade); [[platform/spine]] publishes into it (`SpineDeps.publish`)
-- **looks-like-but-is-not:** `hooks` (inbound doors, [[platform/spine]]); `sms_events` (Telnyx's webhooks to us)
+- **joins:** [[clients/client]] by `client` (cascade); [[platform/executor]] publishes into it (`ExecutorDeps.publish`)
+- **looks-like-but-is-not:** `hooks` (inbound doors, [[platform/executor]]); `sms_events` (Telnyx's webhooks to us)
 
 ## If you change this
 

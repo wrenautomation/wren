@@ -1,14 +1,14 @@
 /**
- * The two spine steps of a shape workflow (designs/2026-10-19-business-map.md). `journey.move`
+ * The two executor steps of a shape workflow (designs/2026-10-19-business-map.md). `journey.move`
  * maps a cause to a person's journey and moves it along the shortest flow path to the node, or
  * opens one there from a source. `journey.stage` is the arrival: the timeline line, the node's
  * research, the trigger fire, the deal or the signing. Both are idempotent: Restate may run a
  * step again, and a repeated cause finds the journey already moved.
  */
 import { createHash } from "node:crypto";
+import type { ExecutorEvent, Step } from "@wren/core/executor";
 import { profileRollups } from "@wren/core/people-map-schema";
 import { profileEvents } from "@wren/core/profiles-schema";
-import type { SpineEvent, Step } from "@wren/core/spine";
 import { atomic, type Db } from "@wren/db";
 import { desc, eq } from "drizzle-orm";
 import { attributionOf, withAdCampaign } from "./attribution.js";
@@ -54,7 +54,7 @@ interface Cause {
   at: string;
 }
 
-const KIND_OF_EVENT: Partial<Record<SpineEvent["kind"], CauseKind>> = {
+const KIND_OF_EVENT: Partial<Record<ExecutorEvent["kind"], CauseKind>> = {
   reply: "reply",
   call: "booking",
   invoice: "payment",
@@ -66,8 +66,8 @@ const KIND_OF_EVENT: Partial<Record<SpineEvent["kind"], CauseKind>> = {
 const isRecord = (v: unknown): v is Record<string, unknown> =>
   typeof v === "object" && v !== null && !Array.isArray(v);
 
-/** The cause a spine event stands for: the one its data names, else by the event's kind. */
-export function causeOf(e: SpineEvent, now: Date): Cause {
+/** The cause an executor event stands for: the one its data names, else by the event's kind. */
+export function causeOf(e: ExecutorEvent, now: Date): Cause {
   const named = isRecord(e.data.cause) ? e.data.cause : {};
   // A person entering a group: the group is the proof.
   const group = e.data.change === "entered" ? textOf(e.data.segment) : undefined;
@@ -146,7 +146,7 @@ const unnamed = (f: CauseFacts): CauseFacts => {
   return rest;
 };
 
-/** The two steps, to register by name in the spine's `steps`. */
+/** The two steps, to register by name in the executor's `steps`. */
 export function journeySteps(d: JourneyStepDeps): Record<string, Step> {
   const now = () => d.now?.() ?? new Date();
 

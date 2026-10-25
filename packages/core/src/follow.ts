@@ -9,8 +9,8 @@ import type { Queryable } from "@wren/db";
 import { z } from "zod";
 import { findClient, sendsOn, settingsFor } from "./clients/index.js";
 import { defineComponent } from "./components.js";
+import type { ExecutorEvent, StepAt } from "./executor.js";
 import { activeSequence, leadAnswered, leadOfEvent, threadOn, type Who } from "./leads.js";
-import type { SpineEvent, StepAt } from "./spine.js";
 import type { TemplateRef } from "./templates.js";
 import { defineWorkflow, type Wire, type WorkflowNode } from "./workflows.js";
 
@@ -55,15 +55,15 @@ export interface FollowNote {
   why: string | null;
 }
 
-export type Outs = Array<{ port: string; event: SpineEvent }>;
+export type Outs = Array<{ port: string; event: ExecutorEvent }>;
 
 /** The lead goes on to the next step, with what this touch did. */
-export const passed = (e: SpineEvent, note: FollowNote): Outs => [
+export const passed = (e: ExecutorEvent, note: FollowNote): Outs => [
   { port: "sent", event: { ...e, data: { ...e.data, follow: note } } },
 ];
 
 /** They answered: the lead leaves by `replied`, as a reply. */
-export const answered = (e: SpineEvent, note: FollowNote): Outs => [
+export const answered = (e: ExecutorEvent, note: FollowNote): Outs => [
   { port: "replied", event: { ...e, kind: "reply", data: { ...e.data, follow: note } } },
 ];
 
@@ -95,7 +95,7 @@ export async function followStart(
     /** The global env gate for this channel: null when on, else why off. */
     globalOff: GlobalGate;
   },
-  e: SpineEvent,
+  e: ExecutorEvent,
   at: StepAt,
 ): Promise<{ outs: Outs } | FollowStart> {
   const note: FollowNote = {

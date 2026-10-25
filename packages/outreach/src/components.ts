@@ -67,7 +67,7 @@ export const OUTREACH_COMPONENTS = [
       { id: "replied", label: "answered", kind: "reply" },
     ],
     hypothesis: {
-      from: "Wren's DM sequences, moved onto the spine 2026-10-05",
+      from: "Wren's DM sequences, moved onto the executor 2026-10-05",
       guesses: [
         {
           is: "change",

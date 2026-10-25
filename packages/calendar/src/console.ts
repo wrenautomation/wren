@@ -1,7 +1,7 @@
 /**
  * CalendarConsole: the Calendar app, Wren's and each client's. Won, Not yet, No-show and Not a
  * fit say how a past call went, on its mirror in `call_bookings` (one outcome for every call,
- * `@wren/core/calls`); Clear takes that back. Won and Not yet move the call on the spine
+ * `@wren/core/calls`); Clear takes that back. Won and Not yet move the call on the executor
  * (`markOutcome`). Cancel cancels an upcoming one the way the booker's link does: Google drops
  * the event, `call_bookings` marks it and the booker gets the cancel mail (a client's only with
  * its sends on).
@@ -217,7 +217,7 @@ export function makeCalendarConsole(deps: CalendarConsoleDeps) {
     return { db: cd.db, client: owner.id, flows: calendarFlows(cd) };
   };
 
-  /** Say how calls went: on each one's mirror, then on the spine. `done` are calendar ids. */
+  /** Say how calls went: on each one's mirror, then on the executor. `done` are calendar ids. */
   const outcome = (ctx: restate.Context, req: IdsRequest, value: MeetingOutcome | null) =>
     answer(async () => {
       const ids = idsOf(req);

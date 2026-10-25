@@ -3,14 +3,14 @@
  * collector, never real events or real mail. Slots, a signed booking end to end (row, mirror,
  * event with Meet, confirmation, manage link), a refused double booking and a refused unsigned
  * one, a move, a cancel, the hour reminder, and the console's buttons. A booking enters a
- * one-node `close` on the spine, whose brief step builds and keeps the brief and queues its ping.
+ * one-node `close` on the executor, whose brief step builds and keeps the brief and queues its ping.
  */
 import * as clients from "@restatedev/restate-sdk-clients";
 import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
 import { briefSettingsOf, briefStep, type SendAsk } from "@wren/channel-email/calls";
 import { EMAIL_COMPONENTS } from "@wren/channel-email/components";
 import { ingressOf } from "@wren/config";
-import { makeSpine } from "@wren/core/spine";
+import { makeExecutor } from "@wren/core/executor";
 import { startTestRestate } from "@wren/core/testing";
 import { defineWorkflow } from "@wren/core/workflows";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
@@ -74,7 +74,7 @@ beforeAll(async () => {
     services: [
       makeCalendar(deps),
       makeCalendarConsole({ wren: deps }),
-      makeSpine({
+      makeExecutor({
         main: pg.db,
         clientDb: () => pg.db,
         workflows: [CLOSE],

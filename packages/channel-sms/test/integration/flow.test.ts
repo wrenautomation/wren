@@ -71,7 +71,7 @@ const tickAt = async (now: Date, extra: Partial<Parameters<typeof tick>[1]> = {}
     now,
     ...extra,
   });
-  // The spine, by hand: each sent step's next touch, as its wire's wait ends.
+  // The executor, by hand: each sent step's next touch, as its wire's wait ends.
   for (const s of stats.stepped) {
     const next = SEQUENCES.get(s.sequence)?.steps.find((x) => x.step === s.step + 1);
     if (!next) continue;
@@ -306,7 +306,7 @@ describe("US and Canada", () => {
         await new Promise((r) => setTimeout(r, 50));
       expect(heard.length).toBeGreaterThan(0);
       expect(new Set(heard)).toEqual(new Set(["SmsSender/fleet"]));
-      // The first tick sends step 1; the spine queues step 2 days on.
+      // The first tick sends step 1; the executor queues step 2 days on.
       expect((await tickAt(OPEN)).nextDue).toBeNull();
       const next = (await tickAt(OPEN)).nextDue;
       expect(next && Date.parse(next)).toBeGreaterThan(OPEN.getTime());
@@ -532,7 +532,7 @@ describe("enroll → send → receipts → reply", () => {
     expect(thread?.month).toEqual({ sent: 1, cap: 4 });
   });
 
-  it("lists each sent step for the spine; a touch queues once, answers a reply, ends on an emptied step", async () => {
+  it("lists each sent step for the executor; a touch queues once, answers a reply, ends on an emptied step", async () => {
     await enrollAt(OPEN);
     const t = await tick(db(), {
       provider,

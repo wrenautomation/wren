@@ -25,8 +25,8 @@
 import * as restate from "@restatedev/restate-sdk";
 import { bookingEmit, bookingFired } from "@wren/channel-email/calls";
 import { type Client, findClient, isLive, listDomains, sendsOn } from "@wren/core/clients";
+import { executorEmit, type FireTriggers } from "@wren/core/executor";
 import { serviceHandler } from "@wren/core/restate";
-import { type FireTriggers, spineEmit } from "@wren/core/spine";
 import { canonicalZone } from "@wren/core/time";
 import type { Db } from "@wren/db";
 import { eq } from "drizzle-orm";
@@ -67,7 +67,7 @@ export interface CalendarDeps {
   db: Db;
   /** Whose calendar this books, the bookings' `calendar` column: "wren", or a client's id. */
   calendar: string;
-  /** The client it books for; unset or null is Wren. Scopes manage links, the spine, reminders. */
+  /** The client it books for; unset or null is Wren. Scopes manage links, the executor, reminders. */
   client?: string | null;
   /** The `calendar.booking` settings block, read fresh each call. */
   settings: () => Promise<unknown>;
@@ -83,7 +83,7 @@ export interface CalendarDeps {
   notify?: boolean;
   /** Who signs the booker's mail; unset is Wren. */
   signer?: string;
-  /** Each booking, move and cancel to the spine's Booking triggers (`spineFire`). */
+  /** Each booking, move and cancel to the executor's Booking triggers (`executorFire`). */
   fire?: FireTriggers;
   /** How long before a call each reminder goes, read at booking; tests shorten them. */
   leads?: { day: number; hour: number };
@@ -149,7 +149,7 @@ type RemindService = {
   remind: (ctx: restate.Context, req: RemindRequest) => Promise<{ sent: boolean }>;
 };
 
-/** A call as the spine hears it after a change: who booked rides along. */
+/** A call as the executor hears it after a change: who booked rides along. */
 interface Changed {
   id: number;
   state: "booked" | "cancelled";
@@ -226,11 +226,11 @@ export function calendarFlows(deps: CalendarDeps) {
     return id;
   };
 
-  /** Tell the spine: a booked or moved call enters `close`; every change fires Booking triggers. */
+  /** Tell the executor: a booked or moved call enters `close`; every change fires Booking triggers. */
   const tell = (ctx: restate.Context, call: Changed | null) => {
     if (!call) return;
     const emit = bookingEmit(call);
-    if (emit) spineEmit(ctx, { client, ...emit });
+    if (emit) executorEmit(ctx, { client, ...emit });
     deps.fire?.(ctx, bookingFired(client, call, call));
   };
   const changed = (row: CalendarBooking, state: "booked" | "cancelled"): Changed => ({

@@ -7,9 +7,9 @@
  */
 import { WREN } from "@wren/core/access";
 import { findClient } from "@wren/core/clients";
+import type { Step } from "@wren/core/executor";
 import type { KeyStore } from "@wren/core/keys";
 import { isVendorStop, meteredModel } from "@wren/core/metered";
-import type { Step } from "@wren/core/spine";
 import { gate } from "@wren/core/vendors";
 import type { Db, Queryable } from "@wren/db";
 import { completeAndParse, type LlmClient, llmForKey } from "@wren/llm";
@@ -336,7 +336,7 @@ export function itemIdOf(e: { subject: string; data: Record<string, unknown> }):
 }
 
 /**
- * `learn.score` on the spine: the item leaves by its verdict's port. Every workspace's items live
+ * `learn.score` on the executor: the item leaves by its verdict's port. Every workspace's items live
  * in main; each is judged by its own. `after` runs on a scored item (a client's asked SOP notes).
  */
 export const scoreStep =

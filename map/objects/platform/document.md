@@ -23,7 +23,7 @@ Rows live in main with a `client` column, so the edge serves a signing page with
 - Slots: `{contact.name|first_name|email}`, `{biz.name}`, `{biz.<fact>}` (`customFacts`), `{doc.number|total|deposit|expires}`. A slot left blocks Send.
 - Edge: `apps/portal/src/docs.ts:97` serves `/o/d/<token>` (GET page, POST sign/decline after Turnstile), `/pdf`, `/pay` on the client's host, Wren's apex, or the app host. Never cached; bots never count as an open.
 - Deposit: `/o/d/<token>/pay` makes a `pay_links` row (`pay_links.document`) on the client's Stripe key on first ask, then 303 to Stripe. Its id comes from the journal, so a retry or a second click finds one link; Stripe's 5xx is retried, its refusal shuts the page. The page follows the link both ways: paid, clearing (bank), refunded; a failed bank payment gets a new link (`packages/documents/src/service.ts:211`).
-- Spine: `trigger.document` (viewed|signed|declined), event kind `document`, webhooks out `document.*` (`docFired`, `packages/documents/src/service.ts:156`).
+- Executor: `trigger.document` (viewed|signed|declined), event kind `document`, webhooks out `document.*` (`docFired`, `packages/documents/src/service.ts:156`).
 - Sealed (`signing: sealed`, designs/2026-10-21-esign-and-newsletter.md): `Documents.send` makes a Documenso envelope from the frozen text (`sealedPdf`, placeholders `{{signature, r1}}` and `{{date, r1}}`, `documenso.ts`), keeps its id (`keepEnvelope`), makes it live and mails Documenso's link under the client's name; no Wren token and no Wren expiry. The phone Worker's `/webhooks/documenso` forwards to `Documents.signed` (`service.ts:590`): opened → viewed, completed → signed, rejected → declined, cancelled → void; on completed the sealed PDF, certificate and audit log go to the files bucket under `clients/<client>/documents/<doc>/` (`sealSigned`, `sealedKeys`) and `consent_version` is `SEALED_CONSENT_VERSION`. A void calls `Documents.cancel`, which cancels the envelope. `own` and `sealed` never mix: `signDoc` and `declineDoc` refuse a sealed one. Config `WREN_DOCUMENSO_URL`/`_TOKEN` (SSM `env-3`); unset, a sealed send stops with a reason.
 - Migrations `0222_documents`, `0316_docs_sealed`. Texts kind `doc` (in `ANSWER_KINDS`).
 
@@ -33,7 +33,7 @@ Citations: `packages/documents/src/schema.ts:128`, `packages/documents/src/servi
 
 - **owns:** `docs`, `doc_templates`, `doc_events`, `doc_counters`
 - **owned-by:** `@wren/documents`
-- **joins:** [[clients/client]] by `client`; [[sms/sms-contact]] by `contact`; [[sms/sms-message]] (the `doc` text via `SmsDesk.reply`); [[platform/pay-link]] (the deposit); [[platform/spine]] (`trigger.document`); Documenso (outside, [[effects/CONTEXT]])
+- **joins:** [[clients/client]] by `client`; [[sms/sms-contact]] by `contact`; [[sms/sms-message]] (the `doc` text via `SmsDesk.reply`); [[platform/pay-link]] (the deposit); [[platform/executor]] (`trigger.document`); Documenso (outside, [[effects/CONTEXT]])
 - **looks-like-but-is-not:** research's `documents` table (source documents for studies)
 
 ## If you change this

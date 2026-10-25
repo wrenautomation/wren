@@ -12,6 +12,18 @@ import { leadOf } from "../../door.js";
 import { type Door, doorsFor, ensureDoors, revealDoor, rotateDoor } from "../../doors.js";
 import { type DryResult, dryStep, dryWalk, sampleEvent } from "../../dry.js";
 import { ASK_COMMAND, ASK_MESSAGE_MAX } from "../../edits.js";
+import {
+  clocksOf,
+  dropMade,
+  type ExecutorEvent,
+  hookEvent,
+  lockWorkflowSaves,
+  MadeLive,
+  type MadeWorkflow,
+  madeWorkflows,
+  savedWorkflows,
+  workflowHistory,
+} from "../../executor.js";
 import { doorOf, UNTILS } from "../../logic.js";
 import {
   isDemo,
@@ -25,18 +37,6 @@ import {
 import { staleRefusal } from "../../refusal.js";
 import { openRun } from "../../runs.js";
 import { runs, workflowSaves } from "../../schema.js";
-import {
-  clocksOf,
-  dropMade,
-  hookEvent,
-  lockWorkflowSaves,
-  MadeLive,
-  type MadeWorkflow,
-  madeWorkflows,
-  type SpineEvent,
-  savedWorkflows,
-  workflowHistory,
-} from "../../spine.js";
 import { askTemplate, installOnWorkflow } from "../../template-install.js";
 import { patchOf, WORKFLOW_ASK, workflowAskPrompt } from "../../workflow-ask.js";
 import { deleteWorkflowTemplate, saveWorkflowTemplate } from "../../workflow-templates.js";
@@ -251,7 +251,7 @@ export function workflowsHandlers(ctx: ConsoleContext) {
       return { id, problems };
     },
     /**
-     * Publish: the draft goes live, checked as the spine would run it. A workflow with a part that
+     * Publish: the draft goes live, checked as the executor would run it. A workflow with a part that
      * sends needs `effect`, one that spends `money`, and either needs its id typed back. Subjects
      * already in it keep the wiring they entered on.
      */
@@ -494,7 +494,7 @@ export function workflowsHandlers(ctx: ConsoleContext) {
      * Test the draft, dry (`./dry.ts`): the whole workflow from an input, or one node. On a
      * sample event, or a real arrival's data read from `events`. Nothing is claimed or sent.
      */
-    async workflowTest(req: WorkflowTestRequest): Promise<DryResult & { entered?: SpineEvent }> {
+    async workflowTest(req: WorkflowTestRequest): Promise<DryResult & { entered?: ExecutorEvent }> {
       team(req);
       const w = await workflowOf(
         req.workflow,

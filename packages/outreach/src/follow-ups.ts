@@ -223,7 +223,7 @@ export interface Applied {
 }
 
 /**
- * One full read applied: follow-ups kept (each one spine event for the caller), open rows our
+ * One full read applied: follow-ups kept (each one executor event for the caller), open rows our
  * account answered on the site closed, and the snapshot the context view draws saved.
  */
 export async function applyThread(

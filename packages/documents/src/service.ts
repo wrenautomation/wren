@@ -11,7 +11,7 @@
  *   `signed` hears Documenso's webhooks: opened, completed (the sealed PDF, certificate and audit
  *   log are kept in the files bucket), rejected, cancelled. `cancel` calls an envelope off.
  *
- * Opened, signed and declined each tell the spine (`trigger.document`), so workflows and the
+ * Opened, signed and declined each tell the executor (`trigger.document`), so workflows and the
  * webhooks out hear them. A deposit is a pay link made on the client's Stripe key when the
  * signer asks for it.
  */
@@ -19,8 +19,8 @@ import * as restate from "@restatedev/restate-sdk";
 import type { SmsDeskService } from "@wren/channel-sms/restate";
 import { type Client, clientMembers, findClient, sendsOn } from "@wren/core/clients";
 import { customFacts } from "@wren/core/custom-fields";
+import type { Fired, FireTriggers } from "@wren/core/executor";
 import { serviceHandler } from "@wren/core/restate";
-import type { Fired, FireTriggers } from "@wren/core/spine";
 import type { Db } from "@wren/db";
 import { payLinks } from "@wren/payments/schema";
 import type { PaymentsDeps } from "@wren/payments/service";
@@ -83,7 +83,7 @@ export interface DocumentsDeps
   > {
   /** Mail under a sender's name; null: no document email here. */
   mailer: ((from: string) => SendMail) | null;
-  /** The spine's ear for `trigger.document`; unset where no Spine runs. */
+  /** The executor's ear for `trigger.document`; unset where no Executor runs. */
   fire?: FireTriggers;
   /** The e-signature provider; null or unset: sealed documents can't go out. */
   documenso?: Documenso | null;
@@ -152,7 +152,7 @@ function docEmail(business: string, d: Doc, url: string, remind = false) {
   };
 }
 
-/** A step as the spine hears it: about the recipient's email and their thread. */
+/** A step as the executor hears it: about the recipient's email and their thread. */
 function docFired(d: Doc, change: "viewed" | "signed" | "declined"): Fired {
   return {
     client: d.client,
@@ -475,7 +475,7 @@ export function makeDocuments(deps: DocumentsDeps) {
         },
       ),
 
-      /** The page: the first open marks it viewed and tells the spine. */
+      /** The page: the first open marks it viewed and tells the executor. */
       serve: serviceHandler(
         { input: z.looseObject(ASK) },
         async (ctx: restate.Context, req: Req) => {

@@ -18,7 +18,7 @@ export interface Saved {
   kind: ItemKind;
   /** First time this link came in. */
   fresh: boolean;
-  /** It still has to be read: it goes onto the spine. */
+  /** It still has to be read: it goes onto the executor. */
   unread: boolean;
 }
 

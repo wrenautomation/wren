@@ -1,11 +1,11 @@
 /**
  * One sync of a link (designs/2026-10-09-connectors.md): read what changed, land the people in the
- * client's CRM by the import a CSV export takes, and hand back what to tell the spine. Nothing from
+ * client's CRM by the import a CSV export takes, and hand back what to tell the executor. Nothing from
  * before the link was made is news, and each change is told once (`connector_fired`).
  */
 import type { FetchLike } from "@wren/core";
+import type { Fired } from "@wren/core/executor";
 import { PortalRefusal } from "@wren/core/refusal";
-import type { Fired } from "@wren/core/spine";
 import type { Db, Queryable } from "@wren/db";
 import { eq, sql } from "drizzle-orm";
 import type { ConnectorApp } from "./apps.js";

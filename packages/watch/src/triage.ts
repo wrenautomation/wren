@@ -4,8 +4,9 @@
  * rest with every rule in its prompt. Anything it can't settle shows: a missed email costs more
  * than a glance.
  */
+
+import type { ExecutorEvent, Step } from "@wren/core/executor";
 import { isWarmupMail, senderMatches } from "@wren/core/mailbox";
-import type { SpineEvent, Step } from "@wren/core/spine";
 import type { Db } from "@wren/db";
 import { completeAndParse, type LlmClient } from "@wren/llm";
 import { and, asc, eq, inArray, isNull } from "drizzle-orm";
@@ -15,8 +16,8 @@ import { mail, rules, VERDICTS, type Verdict } from "./schema.js";
 export type Rule = typeof rules.$inferSelect;
 type Mail = typeof mail.$inferSelect;
 
-/** One kept email on the spine. */
-export const mailEvent = (id: number): SpineEvent => ({
+/** One kept email on the executor. */
+export const mailEvent = (id: number): ExecutorEvent => ({
   subject: `mail:${id}`,
   kind: "mail",
   data: { mailId: id },
@@ -146,7 +147,7 @@ export async function sortAgain(
 }
 
 /**
- * `mail.triage` on the spine: a client's email, in its own database, by its own rules. `of` says
+ * `mail.triage` on the executor: a client's email, in its own database, by its own rules. `of` says
  * the client's database, its name, and the model for a mailbox when its gate is open (null: rules,
  * else it shows). A Google mailbox's model is one that doesn't train on it, or none.
  */
@@ -169,7 +170,7 @@ export const clientTriageStep =
     return verdict ? [{ port: verdict, event: e }] : [];
   };
 
-/** `watch.triage` on the spine: the email leaves by its verdict's port. Wren's own, in main. */
+/** `watch.triage` on the executor: the email leaves by its verdict's port. Wren's own, in main. */
 export const triageStep =
   (db: Db, llm: LlmClient | null): Step =>
   async (_port, e) => {

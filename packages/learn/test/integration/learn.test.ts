@@ -10,9 +10,9 @@ import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { SiteClient } from "@wren/core/content";
+import { pgExecutorStore, type Walk, walk } from "@wren/core/executor";
 import type { Notifier } from "@wren/core/notify";
 import type { PortalRequest } from "@wren/core/portal";
-import { pgSpineStore, type Walk, walk } from "@wren/core/spine";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { type Embed, FakeLlm } from "@wren/llm";
 import { asc, eq, sql } from "drizzle-orm";
@@ -146,7 +146,7 @@ const walker = (llm: FakeLlm | null, fetchFn: FetchFn): Walk => ({
     "learn.read": readStep(pg.db, fetchFn),
     "learn.score": scoreStep(pg.db, judge(llm)),
   },
-  store: pgSpineStore(pg.db),
+  store: pgExecutorStore(pg.db),
   client: null,
   by: "inv1",
   run: (_name, fn) => fn(),

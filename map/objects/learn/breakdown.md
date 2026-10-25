@@ -46,7 +46,7 @@ Citations: `packages/learn/src/breakdown.ts`, `packages/learn/src/calls.ts`, `pa
 
 | Surface | Role |
 |---|---|
-| `scoreItem` (spine `learn.score`, `wren learn read`, `rescore`) | writes, once an item |
+| `scoreItem` (executor `learn.score`, `wren learn read`, `rescore`) | writes, once an item |
 | `wren learn breakdown [ids] [--limit n]` | writes: backfill |
 | `wren learn import-films <json>` | writes: the seed study as film items, read on the Mac, broken down with hand facts (`by = hand`) |
 | Learn → Competitors, Breakdowns (Kind facet; Films, Posts views), Hooks (`learn.breakdown`, `learn.hook`) | read |

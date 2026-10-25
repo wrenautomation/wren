@@ -31,8 +31,8 @@ Citations: `packages/channel-sms/src/schema.ts:518`, `packages/channel-sms/src/f
 ## Connected to
 
 - **owned-by:** the `speed_to_lead` part (`packages/channel-sms/src/components.ts`), in development in the Shop with its parts `sms.forms`, `sms.follow_up`, `voice.call_now`: Install stores a block only, no door hook
-- **joins:** [[sms/sms-contact]] (`sms_contact_id`), [[platform/spine]] (the door's `data.lead`), [[voice/call]] (Call now), [[calendar/booking]] (booked check)
-- **looks-like-but-is-not:** `voice_calls` (a call made), `events` (every arrival on the spine)
+- **joins:** [[sms/sms-contact]] (`sms_contact_id`), [[platform/executor]] (the door's `data.lead`), [[voice/call]] (Call now), [[calendar/booking]] (booked check)
+- **looks-like-but-is-not:** `voice_calls` (a call made), `events` (every arrival on the executor)
 
 ## If you change this
 
@@ -43,7 +43,7 @@ Citations: `packages/channel-sms/src/schema.ts:518`, `packages/channel-sms/src/f
 
 | Surface | Role |
 |---|---|
-| `Spine/hook` → `sms.forms`, `voice.call_now`, `SmsSender` (first touch on send) | writes |
+| `Executor/hook` → `sms.forms`, `voice.call_now`, `SmsSender` (first touch on send) | writes |
 | `SmsForms` (the lander's push), `SmsWatch` form pass, `wren sms forms` | writes `site.forms` runs, emails, notices |
 | `wren sms stats`, the phone app's Stats (`SmsDesk.stats`) | reads minutes to text and email |
 | portal Texts > Speed to lead, Overview tiles Call now and Time to first text (`SmsConsole.records*`) | reads |

@@ -1032,7 +1032,7 @@ const REPLAY: Action = {
   },
 };
 
-/** A failed step, again: the answer is the spine's tally for that one event. */
+/** A failed step, again: the answer is the executor's tally for that one event. */
 const EVENT_ACTIONS: Action[] = [
   {
     id: "console.retryEvent",
@@ -1092,7 +1092,7 @@ export const workflows: Module = {
       record: "console.execution",
       requires: { ...TEAM, needs: "read" },
       empty: {
-        all: "Nothing has run through a workflow on the spine yet.",
+        all: "Nothing has run through a workflow on the executor yet.",
         waiting: "Nothing is waiting.",
         failed: "Nothing has failed.",
         done: "Nothing has finished yet.",

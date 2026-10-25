@@ -35,7 +35,7 @@ Citations: `packages/content/src/client-reports/store.ts:1`, `packages/content/s
 ## If you change this
 
 - **Hits:** the Overview tiles (keep the catalog in step), the mail from portal@, Marketing → Reports.
-- **Does not hit:** the spine: a run fires no trigger.
+- **Does not hit:** the executor: a run fires no trigger.
 
 ## Surfaces
 

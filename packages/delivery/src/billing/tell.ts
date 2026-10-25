@@ -1,11 +1,11 @@
 /**
- * Our invoices as the spine hears them (`trigger.payment`, source `invoice`): issued, paid,
+ * Our invoices as the executor hears them (`trigger.payment`, source `invoice`): issued, paid,
  * refunded, past due. Each change is told once ever, claimed under a token in `invoices.told`,
  * as pay links do. History is seeded as told, so only changes after that fire. Nothing here
- * sends: BillingWatch passes the result to `Spine/fire`.
+ * sends: BillingWatch passes the result to `Executor/fire`.
  */
 import { clientMembers, clients } from "@wren/core/clients";
-import type { Fired } from "@wren/core/spine";
+import type { Fired } from "@wren/core/executor";
 import { atomic, type Db } from "@wren/db";
 import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import {
@@ -30,7 +30,7 @@ export function invoiceReached(
   return out;
 }
 
-/** The invoice's change as the spine hears it. `email` and `name` name the billing person. */
+/** The invoice's change as the executor hears it. `email` and `name` name the billing person. */
 export function invoiceFired(
   i: Invoice,
   change: InvoiceChange,

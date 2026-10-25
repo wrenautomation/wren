@@ -2,7 +2,7 @@
  * Segments (designs/2026-10-14-customerio-audit.md, B5): a named set of profiles in a workspace.
  * `live` is its rule, kept true as profiles change; `manual` is a list kept by hand; `snapshot` is
  * a rule's answer frozen when taken. `segment_members` is who is in now, and
- * `segment_member_events` every entry and exit, which the spine's Segment trigger hears. Only
+ * `segment_member_events` every entry and exit, which the executor's Segment trigger hears. Only
  * `./segments.ts` writes these.
  */
 import { sql } from "drizzle-orm";

@@ -107,7 +107,7 @@ export const accountFacts = pgTable(
 export type FactRow = typeof accountFacts.$inferSelect;
 
 /**
- * One setup on one account. Its events walk the spine in the owner's database under subject
+ * One setup on one account. Its events walk the executor in the owner's database under subject
  * `account:<id>:g<gen>`; a restart after a lost fact is the next generation.
  */
 export const setupRuns = pgTable(

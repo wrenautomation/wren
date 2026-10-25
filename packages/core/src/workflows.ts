@@ -90,7 +90,7 @@ type Input = Omit<Workflow, "in" | "out"> & Partial<Pick<Workflow, "in" | "out">
 export const defineWorkflow = (w: Input): Workflow => ({ ...w, in: w.in ?? [], out: w.out ?? [] });
 
 /**
- * One step of any channel's sequence, as the spine runs it: after its wait, one touch by a
+ * One step of any channel's sequence, as the executor runs it: after its wait, one touch by a
  * channel's part, sending one template. Email, texts and DMs each declare their steps their own
  * way (business days from the opener, days after the last); their cadences all come out as these.
  */

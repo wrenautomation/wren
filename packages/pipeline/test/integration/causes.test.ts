@@ -5,16 +5,16 @@
  * Synthetic data only.
  */
 import { randomUUID } from "node:crypto";
-import { mergeProfiles, resolveProfile } from "@wren/core/profiles";
-import { profileEvents } from "@wren/core/profiles-schema";
 import {
+  type ExecutorEvent,
   type Fired,
   hearersOf,
-  pgSpineStore,
-  type SpineEvent,
+  pgExecutorStore,
   type Walk,
   walk,
-} from "@wren/core/spine";
+} from "@wren/core/executor";
+import { mergeProfiles, resolveProfile } from "@wren/core/profiles";
+import { profileEvents } from "@wren/core/profiles-schema";
 import { touchFired, touchPass, touchRows } from "@wren/core/touch-feed";
 import { recordTouch } from "@wren/core/touches";
 import type { Workflow } from "@wren/core/workflows";
@@ -92,7 +92,7 @@ function rig() {
       ...journeySteps({ db: () => pg.db }),
       ...collectSteps({ db: () => pg.db }),
     },
-    store: pgSpineStore(pg.db),
+    store: pgExecutorStore(pg.db),
     client: null,
     by: "test",
     run: (_name, fn) => fn(),
@@ -106,12 +106,12 @@ function rig() {
 /** The workspace's shape workflows. */
 const flowsOf = (): Promise<Workflow[]> => shapeWorkflowsOf(pg.db, "wren");
 
-/** What `Spine/fire` does: walk the event from every trigger node that hears the facts. */
+/** What `Executor/fire` does: walk the event from every trigger node that hears the facts. */
 async function hear(
   r: ReturnType<typeof rig>,
   flows: Workflow[],
   facts: Fired["facts"],
-  event: SpineEvent,
+  event: ExecutorEvent,
 ) {
   const w: Walk = { ...r.w, by: randomUUID(), flows: new Map(flows.map((f) => [f.id, f])) };
   const tallies = [];
@@ -120,7 +120,7 @@ async function hear(
 }
 
 const REPLY = { trigger: "trigger.reply", channel: "email" } as const;
-const reply = (n: number, email: string): SpineEvent => ({
+const reply = (n: number, email: string): ExecutorEvent => ({
   subject: `reply:email:${n}`,
   kind: "reply",
   data: { email, channel: "email" },
@@ -276,7 +276,7 @@ describe("collected money", () => {
     subject: string,
     change: "paid" | "refunded",
     data: Record<string, unknown>,
-  ): { facts: Fired["facts"]; event: SpineEvent } => ({
+  ): { facts: Fired["facts"]; event: ExecutorEvent } => ({
     facts: { trigger: "trigger.payment", change },
     event: {
       subject,
@@ -306,7 +306,7 @@ describe("collected money", () => {
     const paid = pay("payment:L1", "paid", { email: "pat@example.test", amount_cents: 9_800 });
     await hear(r, flows, paid.facts, paid.event);
     expect(await collected(d.id)).toBe(9_800);
-    // The same change again: the spine refuses the arrival.
+    // The same change again: the executor refuses the arrival.
     const again = await hear(r, flows, paid.facts, paid.event);
     expect(again[0]).toMatchObject({ arrived: 0 });
     expect(await collected(d.id)).toBe(9_800);
@@ -334,7 +334,7 @@ describe("collected money", () => {
     const { deal: d } = await deal("quin@example.test");
     const step = collectSteps({ db: () => pg.db })[COLLECT_STEP];
     if (!step) throw new Error("no step");
-    const e: SpineEvent = pay("payment:L2", "paid", {
+    const e: ExecutorEvent = pay("payment:L2", "paid", {
       email: "quin@example.test",
       amount_cents: 500,
     }).event;

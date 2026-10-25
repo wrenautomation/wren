@@ -11,11 +11,11 @@
 import type * as restate from "@restatedev/restate-sdk";
 import { why } from "@wren/core/access";
 import { type ClientMember, clientMembers, clients } from "@wren/core/clients";
+import type { Fired, FireTriggers } from "@wren/core/executor";
 import { grantsFor } from "@wren/core/grants";
 import type { Notifier } from "@wren/core/notify";
 import { errorText, makeLoopObject, runPass } from "@wren/core/restate";
 import { clientMailAlerts } from "@wren/core/setup-alerts";
-import type { Fired, FireTriggers } from "@wren/core/spine";
 import { wallClock } from "@wren/core/time";
 import type { Db } from "@wren/db";
 import { offerFor } from "@wren/offers";
@@ -126,7 +126,7 @@ export interface WatchDeps {
   notifier?: Notifier;
   /** Wren's own failed workflow runs, apart from the clients' flags; unset = in their digest. */
   ops?: Notifier;
-  /** Tells the spine of each flag raised or cleared; unset where no Spine runs. */
+  /** Tells the executor of each flag raised or cleared; unset where no Executor runs. */
   fire?: FireTriggers;
   /**
    * Failed workflow runs in a database (null: Wren's), and a workflow's name: the error digest.
@@ -150,7 +150,7 @@ export interface WatchStats {
   alerted: number;
   /** Clients whose health was written for the day. */
   scored: number;
-  /** Flag changes for the spine, sent once the pass is journaled. */
+  /** Flag changes for the executor, sent once the pass is journaled. */
   fired: Fired[];
   /** Moments mailed with a review ask (D13). */
   moments: number;
@@ -1217,7 +1217,7 @@ const URGENT = /^reply:/;
 
 /**
  * DeliveryWatch's problems and the new reviews and interests onto the flags list, health's
- * day and its flags, then the alerts and the spine's outbox (designs/2026-10-07-health.md).
+ * day and its flags, then the alerts and the executor's outbox (designs/2026-10-07-health.md).
  */
 async function flagClients(
   deps: WatchDeps,
@@ -1417,7 +1417,7 @@ export function makeDeliveryWatch(deps: WatchDeps) {
       retryMs: HOUR,
       ...(deps.notifier ? { notifier: deps.notifier } : {}),
     }).then((outcome) => {
-      // Journaled with the pass: each flag change reaches the spine once.
+      // Journaled with the pass: each flag change reaches the executor once.
       for (const f of outcome.stats?.fired ?? []) deps.fire?.(ctx, f);
       return outcome;
     });

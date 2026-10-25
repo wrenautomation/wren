@@ -1,9 +1,11 @@
 /**
- * Email follow-ups on the spine (designs/2026-10-05-workflows.md, Email on the spine). Each
+ * Email follow-ups on the executor (designs/2026-10-05-workflows.md, Email on the executor). Each
  * sequence is a cadence of `email.touch` nodes, node `s<n>` for step n-1. Compose writes every
  * follow-up held. When the tick sends a step it leaves that step's node as `sent`, and the next
  * touch releases the next step at once: the tick's business-day math still picks its day.
  */
+
+import { type ExecutorEvent, passOn, type Step, type StepAt } from "@wren/core/executor";
 import {
   type FollowNote,
   followPartOf,
@@ -13,7 +15,6 @@ import {
   passed,
 } from "@wren/core/follow";
 import { MissingFactError, renderKind } from "@wren/core/slots";
-import { passOn, type SpineEvent, type Step, type StepAt } from "@wren/core/spine";
 import { emailRef, refText } from "@wren/core/templates";
 import { liveOrDefault } from "@wren/core/templates/defaults";
 import { labelOf, sequenceLabel } from "@wren/core/templates/labels";
@@ -44,8 +45,12 @@ export function emailCadence(niche: string, seq: Sequence): Workflow {
   });
 }
 
-/** One thread as a lead on the spine. */
-const emailLead = (e: { id: number; personId: number | null; companyId: number }): SpineEvent => ({
+/** One thread as a lead on the executor. */
+const emailLead = (e: {
+  id: number;
+  personId: number | null;
+  companyId: number;
+}): ExecutorEvent => ({
   subject: `lead:email:${e.id}`,
   kind: "lead",
   data: { enrollmentId: e.id, personId: e.personId, companyId: e.companyId },
@@ -55,14 +60,14 @@ const emailLead = (e: { id: number; personId: number | null; companyId: number }
 export interface Touch {
   workflow: string;
   from: string;
-  event: SpineEvent;
+  event: ExecutorEvent;
 }
 
 /**
  * The touches a tick's sends leave, as `[enrollment, step]` pairs. Only threads composed onto
- * the spine (a step held or released) leave any: older ones run on the tick alone.
+ * the executor (a step held or released) leave any: older ones run on the tick alone.
  */
-export async function spineTouches(
+export async function executorTouches(
   db: Queryable,
   sent: readonly (readonly [number, number])[],
 ): Promise<Touch[]> {
@@ -148,7 +153,7 @@ export type AskFollowEmail = (
 async function followEmail(
   db: Db,
   enrollmentId: number,
-  e: SpineEvent,
+  e: ExecutorEvent,
   at: Pick<StepAt, "client" | "workflow" | "node" | "template" | "part">,
   o: { would: string | null; ask: AskFollowEmail | null; main: Db },
 ): Promise<Pick<FollowNote, "did" | "why">> {
@@ -186,7 +191,7 @@ async function followEmail(
 }
 
 /**
- * `email.touch` on the spine: the node's `step`, in the database of whoever's workflow it is. A
+ * `email.touch` on the executor: the node's `step`, in the database of whoever's workflow it is. A
  * node with no `step` is a follow-up's email (`followEmail`).
  */
 export const emailTouchStep =

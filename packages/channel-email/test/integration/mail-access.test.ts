@@ -412,7 +412,7 @@ describe("Microsoft 365", () => {
       seen: { tenant: TENANT },
     });
 
-    // Check asks the setup to look again now (its step lands the fact on the spine).
+    // Check asks the setup to look again now (its step lands the fact on the executor).
     const { emits } = await api().check({ viewer: BO, client: "beta", account: org.id });
     expect(emits[0]).toMatchObject({ client: "beta", workflow: "setup.microsoft_mail" });
     // As the setup's step would land it: then the mailbox may connect to read, in that tenant.

@@ -1,5 +1,5 @@
 /**
- * A test of a workflow, dry (designs/2026-10-06-workflow-editor.md, Test): the spine's own walker
+ * A test of a workflow, dry (designs/2026-10-06-workflow-editor.md, Test): the executor's own walker
  * on a store in memory, so nothing is claimed, and on a clock of its own, so a two-day wait
  * passes at once. Logic nodes run for real, rules answer as the test says, and every other step
  * is a stub that says what it would do and passes the event on: by its outputs of the event's
@@ -9,19 +9,19 @@
 import * as restate from "@restatedev/restate-sdk";
 import { CODE_STEPS } from "./code-step.js";
 import type { Component, Effect, Port } from "./components.js";
-import { logicOf, logicSteps, type Until, untilsFreedBy } from "./logic.js";
-import { messageWould, notifyLine } from "./message-step.js";
-import { segmentWould } from "./segment-step.js";
 import {
   type Arrival,
+  type ExecutorEvent,
+  type ExecutorStore,
   resume,
-  type SpineEvent,
-  type SpineStore,
   type Step,
   type Tally,
   type Walk,
   walk,
-} from "./spine.js";
+} from "./executor.js";
+import { logicOf, logicSteps, type Until, untilsFreedBy } from "./logic.js";
+import { messageWould, notifyLine } from "./message-step.js";
+import { segmentWould } from "./segment-step.js";
 import { fillText } from "./webhook-events.js";
 import type { Workflow, WorkflowNode } from "./workflows.js";
 
@@ -64,7 +64,7 @@ const WOULD: Record<Effect, string> = {
 };
 
 /** "Would POST to api.example.com": a Send webhook's URL with the test event's slots in. */
-function webhookWould(w: Readonly<Record<string, string | number>>, e: SpineEvent): string {
+function webhookWould(w: Readonly<Record<string, string | number>>, e: ExecutorEvent): string {
   const method = String(w.method ?? "POST") || "POST";
   try {
     return `Would ${method} to ${new URL(fillText(String(w.url ?? ""), e, true)).host}`;
@@ -100,7 +100,7 @@ export async function dryWalk(o: {
   parts: ReadonlyMap<string, Component>;
   workflow: string;
   from: string;
-  events: SpineEvent[];
+  events: ExecutorEvent[];
   client: string | null;
   rules?: boolean;
   /** What the test's store has heard: a Wait until one of these lets its subject go at once. */
@@ -120,7 +120,7 @@ export async function dryWalk(o: {
   const waits: Array<{ id: string; at: number; until?: Until }> = [];
 
   // The Postgres store's rules, in memory: a row per arrival, owned by the call that kept it.
-  const store: SpineStore = {
+  const store: ExecutorStore = {
     async claim(a, by, due) {
       const r = rows.get(key(a));
       if (r) return r.by === by ? r.id : null;
@@ -283,7 +283,7 @@ export async function dryStep(o: {
   workflow: string;
   node: string;
   port: string;
-  event: SpineEvent;
+  event: ExecutorEvent;
   client: string | null;
   rules?: boolean;
   heard?: readonly Until[];
@@ -310,16 +310,16 @@ export async function dryStep(o: {
 }
 
 /** What a test's store heard, as the event a Wait until it gets: synthetic. */
-const heardEvent = (until: Until): SpineEvent =>
+const heardEvent = (until: Until): ExecutorEvent =>
   until === "reply" || until === "answer"
     ? { subject: "reply:test", kind: "reply", data: { test: true } }
     : { subject: "call:test", kind: "call", data: { test: true, change: until } };
 
 /** A sample event of `kind` for a test: synthetic, about no one real. */
 export const sampleEvent = (
-  kind: SpineEvent["kind"],
+  kind: ExecutorEvent["kind"],
   data: Record<string, unknown> = {},
-): SpineEvent => ({
+): ExecutorEvent => ({
   subject: `test:${kind}`,
   kind,
   data,

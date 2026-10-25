@@ -1,6 +1,6 @@
 /**
  * Loops as records: one row per loop object from Restate's state (`console.loop`), failing
- * first; `setLoop`'s request; and Wren's spine arrivals (`console.event`).
+ * first; `setLoop`'s request; and Wren's executor arrivals (`console.event`).
  */
 import { sql } from "drizzle-orm";
 import type { Stage } from "../components.js";
@@ -159,7 +159,7 @@ export const loopRecord = (admin: RestateAdmin): RecordType =>
   });
 
 /**
- * Wren's spine arrivals (`spine_events`): a failed step says why, and Retry runs it again once
+ * Wren's executor arrivals (`executor_events`): a failed step says why, and Retry runs it again once
  * the cause is fixed. ponytail: main only; a client's events stay in its database until a
  * client's workflow fails for real.
  */
@@ -168,7 +168,7 @@ export const eventRecord = defineRecord({
   app: "workflows",
   channel: null,
   name: { one: "event", many: "events" },
-  view: "spine_events",
+  view: "executor_events",
   key: "id",
   title: "subject",
   subtitle: "node",

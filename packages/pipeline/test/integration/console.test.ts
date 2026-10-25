@@ -474,7 +474,7 @@ describe("who works a journey", () => {
     // b: a hand arrival by a shell name, an older one by an address: the newest decides, no address.
     await arrive(b, "gina", "manual", 5, "s_booked");
     await arrive(b, "gina@example.test", "manual", 50);
-    // c: only spine arrivals. d: a hand drop is not an arrival at a step.
+    // c: only executor arrivals. d: a hand drop is not an arrival at a step.
     await arrive(c, "touch:1", "touch", 5);
     await arrive(d, "d@example.test", "manual", 5, "dropped");
     await pg.db.execute(sql.raw(backfill));

@@ -159,7 +159,7 @@ export const clientFlags = delivery.table(
     clearedBy: text("cleared_by"),
     /** The last alert or digest that named it. */
     toldAt: at("told_at"),
-    /** The spine heard it raised, and cleared (an outbox: set when the pass hands it over). */
+    /** The executor heard it raised, and cleared (an outbox: set when the pass hands it over). */
     raiseFiredAt: at("raise_fired_at"),
     clearFiredAt: at("clear_fired_at"),
   },

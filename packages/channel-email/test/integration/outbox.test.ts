@@ -19,7 +19,7 @@ import { atomic, createDb, type Db, type Queryable } from "@wren/db";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { release, spineTouches } from "../../src/follow.js";
+import { executorTouches, release } from "../../src/follow.js";
 import { activeSuppression } from "../../src/guards.js";
 import { type Sequence, sequence, sequenceStep } from "../../src/outreach/sequences.js";
 import {
@@ -109,8 +109,8 @@ afterAll(() => pg.stop());
 beforeEach(() => truncate(pg.db, [...TABLES, "sender_pauses", "suppression_events"]));
 const db = (): Db => pg.db;
 
-/** The spine's part: each step sent, its cadence's next touch lets the next step go (follow.ts). */
-function spine() {
+/** The executor's part: each step sent, its cadence's next touch lets the next step go (follow.ts). */
+function executor() {
   const sent: [number, number][] = [];
   return {
     onSent: (enrollmentId: number, step: number) => {
@@ -122,9 +122,9 @@ function spine() {
   };
 }
 
-/** One send tick with this file's defaults: fixed clock, seeded RNG, reconcile off, the spine on. */
+/** One send tick with this file's defaults: fixed clock, seeded RNG, reconcile off, the executor on. */
 async function tick(transport: Transport, opts: Partial<SendDueOptions> = {}) {
-  const touches = spine();
+  const touches = executor();
   const stats = await sendDue(db(), {
     transport,
     policy: OPEN,
@@ -285,7 +285,7 @@ describe("ambiguity and reconcile", () => {
     expect(blocked.sent).toBe(0);
     expect(blocked.awaiting_reconcile).toBe(1);
 
-    const touches = spine();
+    const touches = executor();
     const counts = await reconcile(db(), {
       transport,
       policy: OPEN,
@@ -626,7 +626,7 @@ describe("cadence and stops", () => {
       state: "sent",
       sentAt: utcInstant,
     });
-    await release(db(), enrollment.id, 1, NOW); // its touch on the spine
+    await release(db(), enrollment.id, 1, NOW); // its touch on the executor
     const wrongDue = addBusinessDays(new PlainDate(2027, 3, 10), 3);
     const correctDue = addBusinessDays(new PlainDate(2027, 3, 11), 3);
     expect(wrongDue.compare(correctDue)).toBeLessThan(0);
@@ -804,7 +804,7 @@ describe("pacing", () => {
       sentAt: plus(NOW, -10 * DAY),
       threadId: "thread-1",
     });
-    await release(db(), riding.id, 1, NOW); // its touch on the spine
+    await release(db(), riding.id, 1, NOW); // its touch on the executor
 
     const stats = await tick(console_(), {
       policy: policyFrom({ WREN_COLD_SENDS_PER_INBOX_PER_DAY: "1" }),
@@ -1274,9 +1274,9 @@ describe("call times", () => {
   });
 });
 
-// --- email on the spine: held follow-ups, released by the cadence's touch ---
+// --- email on the executor: held follow-ups, released by the cadence's touch ---
 
-describe("email on the spine", () => {
+describe("email on the executor", () => {
   it("a held follow-up waits for its touch, which lets it go on its day", async () => {
     const enrollment = await enrollOne("held.example", "jane@held.example");
     expect([(await step(enrollment, 0)).held, (await step(enrollment, 1)).held]).toEqual([
@@ -1288,7 +1288,7 @@ describe("email on the spine", () => {
     const base = { transport, policy: OPEN, rng: seededRng(1), reconcileFirst: false };
     await sendDue(db(), { ...base, now: NOW, onSent: (id, s) => sent.push([id, s]) });
     expect(sent).toEqual([[enrollment.id, 0]]);
-    expect(await spineTouches(db(), sent)).toEqual([
+    expect(await executorTouches(db(), sent)).toEqual([
       {
         workflow: "follow_up.email_sec_ria_test-seq",
         from: "s1.sent",
@@ -1313,12 +1313,12 @@ describe("email on the spine", () => {
     const let_go = await sendDue(db(), { ...base, now: later });
     expect([let_go.sent, let_go.finished]).toEqual([1, 1]);
 
-    // A thread from before the spine (nothing held or released) leaves no touch.
+    // A thread from before the executor (nothing held or released) leaves no touch.
     await db()
       .update(messages)
       .set({ held: false, releasedAt: null })
       .where(eq(messages.enrollmentId, enrollment.id));
-    expect(await spineTouches(db(), sent)).toEqual([]);
+    expect(await executorTouches(db(), sent)).toEqual([]);
   });
 
   it("a touch on an answered thread says replied; any other end lets nothing go", async () => {
@@ -1345,7 +1345,7 @@ describe("email on the spine", () => {
     const start = new PlainDate(2026, 12, 17); // a Thursday, a week before the break
 
     /** Every calendar day for a month, one tick at noon; each send as "domain step day". */
-    async function run(onSpine: boolean): Promise<string[]> {
+    async function run(onExecutor: boolean): Promise<string[]> {
       await truncate(pg.db, [...TABLES, "sender_pauses", "suppression_events"]);
       const transport = console_();
       // Mailed 10 days ago by another firm: the cooldown stops this address's new thread.
@@ -1380,16 +1380,16 @@ describe("email on the spine", () => {
             await makeCompany(db(), { domain: "cool-new.example" }),
             "info@shared.example",
           );
-        // A thread composed before the spine: nothing held.
-        if (!onSpine) await db().update(messages).set({ held: false });
-        const touches = spine();
+        // A thread composed before the executor: nothing held.
+        if (!onExecutor) await db().update(messages).set({ held: false });
+        const touches = executor();
         await sendDue(db(), {
           transport,
           policy: weekdays,
           now: atNoon(day),
           rng: seededRng(1),
           reconcileFirst: false,
-          ...(onSpine ? { onSent: touches.onSent } : {}),
+          ...(onExecutor ? { onSent: touches.onSent } : {}),
         });
         await touches.release();
         if (day.toString() === "2026-12-18")

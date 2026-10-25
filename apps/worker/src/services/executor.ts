@@ -1,5 +1,5 @@
 /**
- * The spine: every workspace's journeys stepped, and each Schedule node's clock.
+ * The executor: every workspace's journeys stepped, and each Schedule node's clock.
  */
 import { billsStep } from "@wren/books";
 import { BOOKS_KEY } from "@wren/books/restate";
@@ -32,6 +32,7 @@ import { askFollowEmail } from "@wren/content/inbox";
 import { findClient, sendsOn } from "@wren/core/clients";
 import type { Platform } from "@wren/core/content";
 import { setFieldStep } from "@wren/core/custom-fields";
+import { type ExecutorEvent, makeExecutor, makeExecutorClock } from "@wren/core/executor";
 import { wrenFacts } from "@wren/core/facts";
 import { messageStep, notifyStep } from "@wren/core/message-step";
 import { isVendorStop, meteredModel } from "@wren/core/metered";
@@ -40,7 +41,6 @@ import { clientKey, ingressSend } from "@wren/core/restate";
 import { segmentStep } from "@wren/core/segment-step";
 import { SETUP_STEP, setupStep } from "@wren/core/setup";
 import { SETUP_AGENT } from "@wren/core/setup-agent";
-import { makeSpine, makeSpineClock, type SpineEvent } from "@wren/core/spine";
 import { gate } from "@wren/core/vendors";
 import { webhookStep, webhooksPublish } from "@wren/core/webhooks";
 import type { Db } from "@wren/db";
@@ -86,8 +86,8 @@ function youtubeReader(env: NodeJS.ProcessEnv): VideoReader | null {
 const practicesOf = async (db: Db): Promise<Practice[]> =>
   (await playbooksOf(db)).map((r) => practiceOf(r.label, r.text));
 
-/** The spine domain's services, in the order they were served from `services.ts`. */
-export function spineServices(deps: Deps): AnyService[] {
+/** The executor domain's services, in the order they were served from `services.ts`. */
+export function executorServices(deps: Deps): AnyService[] {
   const {
     bookerMailer,
     callBriefs,
@@ -129,7 +129,7 @@ export function spineServices(deps: Deps): AnyService[] {
       },
       key,
     );
-  /** Whose texts a spine step runs on: Wren's, a client's with texts on, or why they're off. */
+  /** Whose texts an executor step runs on: Wren's, a client's with texts on, or why they're off. */
   const textsOf = async (client: string | null) => {
     if (!client) return { deps: sms, off: null };
     const plan = await clientSms(db, client);
@@ -138,7 +138,7 @@ export function spineServices(deps: Deps): AnyService[] {
       : { deps: { ...sms, db: clientDb(client), bookings: null }, off: plan.why };
   };
   services.push(
-    makeSpine({
+    makeExecutor({
       main: db,
       clientDb,
       workflows: WORKFLOWS,
@@ -152,7 +152,7 @@ export function spineServices(deps: Deps): AnyService[] {
           WORKFLOWS,
           COMPONENTS,
         ),
-      // Parts register here as they move onto the spine; the rest keep arrivals and stop.
+      // Parts register here as they move onto the executor; the rest keep arrivals and stop.
       steps: {
         // The shape's moves and nodes: a journey per person, in its workspace's database.
         ...journeySteps({
@@ -385,12 +385,12 @@ export function spineServices(deps: Deps): AnyService[] {
       publish: webhooksPublish,
       // A client's rule on its own model key or Wren's, metered on its share. A stop (a cap, no
       // key) answers no: the event waits on no model it can't pay for.
-      rule: async (when: string, e: SpineEvent, client?: string | null) => {
+      rule: async (when: string, e: ExecutorEvent, client?: string | null) => {
         const model = client
           ? meteredModel(llm, {
               main: db,
               client,
-              part: "spine.rule",
+              part: "executor.rule",
               now: () => new Date(),
               store: keys,
               own: llmForKey,
@@ -405,13 +405,13 @@ export function spineServices(deps: Deps): AnyService[] {
           return /^\s*yes/i.test(r.text);
         } catch (err) {
           if (!isVendorStop(err)) throw err;
-          console.warn(`spine rule for ${client}: no (${err.why})`);
+          console.warn(`executor rule for ${client}: no (${err.why})`);
           return false;
         }
       },
     }),
     // Each Schedule node's clock: started by publish and approve, a tick at each slot.
-    makeSpineClock({ main: db, workflows: WORKFLOWS, components: COMPONENTS }),
+    makeExecutorClock({ main: db, workflows: WORKFLOWS, components: COMPONENTS }),
   );
   return services;
 }

@@ -1,7 +1,7 @@
 /**
  * SocialWatch against Postgres and a Restate test environment, through the real `Content` service
  * over fake channels: comments on recent posts kept once as content rows (ours closed), each new
- * one on the spine, activity since the newest kept row, one follower count a day, one ping per
+ * one on the executor, activity since the newest kept row, one follower count a day, one ping per
  * pass that kept something (a text only when a comment asks). Then the Inbox records, mark seen,
  * a content comment's answer plan, and the comment guide.
  */
@@ -16,11 +16,11 @@ import {
   SiteCallError,
 } from "@wren/core/content";
 import { makeContent } from "@wren/core/content/restate";
+import type { ExecutorEvent } from "@wren/core/executor";
 import type { Notifier } from "@wren/core/notify";
 import { resolveObjects } from "@wren/core/objects";
 import { fakeOutreachChannel } from "@wren/core/outreach";
 import type { PassOutcome } from "@wren/core/restate";
-import type { SpineEvent } from "@wren/core/spine";
 import { askPublish, saveDraft } from "@wren/core/templates";
 import { startTestRestate } from "@wren/core/testing";
 import { seedObjects, startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
@@ -66,11 +66,11 @@ const ytReads: string[] = [];
 let li = fakeContentChannel("linkedin");
 let yt = fakeContentChannel("youtube");
 let channels: Record<string, ContentChannel> = {};
-const emitted: SpineEvent[] = [];
-const fakeSpine = restate.service({
-  name: "Spine",
+const emitted: ExecutorEvent[] = [];
+const fakeExecutor = restate.service({
+  name: "Executor",
   handlers: {
-    emit: async (_ctx: restate.Context, req: { events: SpineEvent[] }) => {
+    emit: async (_ctx: restate.Context, req: { events: ExecutorEvent[] }) => {
       emitted.push(...req.events);
       return {};
     },
@@ -115,7 +115,7 @@ beforeAll(async () => {
   pg = await startTestPostgres();
   env = await startTestRestate({
     services: [
-      fakeSpine,
+      fakeExecutor,
       makeContent(() => channels),
       socialPushed,
       fakeReachWatch,

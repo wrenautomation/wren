@@ -162,7 +162,7 @@
     "./templates/saved": "./src/workflow-templates.ts",
     "./stats": "./src/stats.ts",
     "./time": "./src/time.ts",
-    "./spine": "./src/spine.ts",
+    "./executor": "./src/executor.ts",
     "./warm": "./src/warm.ts",
     "./webhooks": "./src/webhooks.ts",
     "./webhook-events": "./src/webhook-events.ts",

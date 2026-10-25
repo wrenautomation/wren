@@ -1,9 +1,9 @@
 /** `ReachDesk`'s comments: answered in their thread, read again, armed, DMed, dropped. */
 import * as restate from "@restatedev/restate-sdk";
 import { byOf } from "@wren/core/ask";
+import { executorEmit } from "@wren/core/executor";
 import { serviceHandler } from "@wren/core/restate";
 import { sendAcross } from "@wren/core/send-verdict";
-import { spineEmit } from "@wren/core/spine";
 import { z } from "zod";
 import { listAccounts } from "../accounts.js";
 import {
@@ -125,7 +125,7 @@ export function commentsHandlers(desk: DeskContext) {
           applyThread(deps.db, got.thread, a, read, ours, now, r, days),
         );
         if (applied.kept.length)
-          spineEmit(ctx, {
+          executorEmit(ctx, {
             client: null,
             workflow: COMMENTS_FLOW,
             from: COMMENTS_FROM,

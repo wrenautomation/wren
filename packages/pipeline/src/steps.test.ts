@@ -1,4 +1,4 @@
-import type { SpineEvent } from "@wren/core/spine";
+import type { ExecutorEvent } from "@wren/core/executor";
 import { describe, expect, it } from "vitest";
 import { flow } from "../test/fixtures.js";
 import { entryOf } from "./entry.js";
@@ -8,7 +8,7 @@ import { causeOf, factsOf } from "./steps.js";
 const NOW = new Date("2026-10-19T10:00:00Z");
 
 /** What the segments pass fires when a person enters group 7. */
-const entered: SpineEvent = {
+const entered: ExecutorEvent = {
   subject: "profile:12",
   kind: "lead",
   data: { profile: 12, segment: 7, segment_name: "Warm", change: "entered" },

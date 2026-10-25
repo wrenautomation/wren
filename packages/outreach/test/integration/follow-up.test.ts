@@ -4,7 +4,7 @@
  * global gate on. Off, it records "would send" and queues nothing. The sender holds a client's
  * follow-up DMs on that part's flag. Synthetic contacts; nothing leaves.
  */
-import type { SpineEvent, StepAt } from "@wren/core/spine";
+import type { ExecutorEvent, StepAt } from "@wren/core/executor";
 import { saveLive } from "@wren/core/templates";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { eq } from "drizzle-orm";
@@ -39,7 +39,7 @@ const copy = () =>
     "Hi {first_name|there}, checking in. Still on your list for later this year?",
     { by: "test" },
   );
-const lead = (id: number): SpineEvent => ({
+const lead = (id: number): ExecutorEvent => ({
   subject: `lead:reach:${id}`,
   kind: "lead",
   data: { contactId: id },

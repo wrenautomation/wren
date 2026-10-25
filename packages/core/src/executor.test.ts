@@ -1,13 +1,14 @@
 import * as restate from "@restatedev/restate-sdk";
 import { describe, expect, it } from "vitest";
 import { defineComponent } from "./components.js";
-import { logicSteps } from "./logic.js";
 import {
   type Arrival,
   aboutsOf,
   clockKey,
   clockOfKey,
   clocksOf,
+  type ExecutorEvent,
+  type ExecutorStore,
   heardAs,
   hearersOf,
   hookEvent,
@@ -15,15 +16,14 @@ import {
   replyFired,
   resume,
   retry,
-  type SpineEvent,
-  type SpineStore,
   type Step,
   sentOf,
   slotEvent,
   type Walk,
   waitMs,
   walk,
-} from "./spine.js";
+} from "./executor.js";
+import { logicSteps } from "./logic.js";
 import { cadenceWorkflow, defineWorkflow, type Workflow, withEdits } from "./workflows.js";
 
 const hypothesis = { from: "a test", guesses: [{ is: "fixed" as const, says: "x" }] };
@@ -128,11 +128,11 @@ function memStore() {
       by: string;
       due: Date | null;
       error?: string;
-      sent?: Array<{ port: string; event: SpineEvent }>;
+      sent?: Array<{ port: string; event: ExecutorEvent }>;
     }
   >();
   const key = (a: Arrival) => [a.workflow, a.node, a.port, a.event.subject].join("|");
-  const store: SpineStore = {
+  const store: ExecutorStore = {
     async claim(a, by, due) {
       const r = rows.get(key(a));
       if (!r) {
@@ -175,14 +175,14 @@ const touch: Step = async (_port, e, at) => {
   touched.push(at);
   return e.data.replied ? [{ port: "replied", event: { ...e, kind: "reply" } }] : [];
 };
-const lead = (n: string): SpineEvent => ({ subject: `lead:${n}`, kind: "lead", data: { n } });
+const lead = (n: string): ExecutorEvent => ({ subject: `lead:${n}`, kind: "lead", data: { n } });
 let modelDown = true;
 const answer: Step = async (_port, e) => {
   if (e.subject === "lead:bad" && modelDown) throw new Error("the model is down");
   return [{ port: "replied", event: { ...e, kind: "reply" } }];
 };
 
-function walkWith(store: SpineStore, by: string, rule = async () => false) {
+function walkWith(store: ExecutorStore, by: string, rule = async () => false) {
   const later: Array<{ id: string; ms: number }> = [];
   const w: Walk = {
     flows: new Map(FLOWS.map((f) => [f.id, f])),
@@ -407,10 +407,14 @@ describe("walk", () => {
 
 describe("passOn", () => {
   it("passes another channel's lead on as sent, and leaves a touch its own", () => {
-    const email: SpineEvent = { subject: "lead:email:7", kind: "lead", data: { enrollmentId: 7 } };
+    const email: ExecutorEvent = {
+      subject: "lead:email:7",
+      kind: "lead",
+      data: { enrollmentId: 7 },
+    };
     expect(passOn(email, "sms")).toEqual([{ port: "sent", event: email }]);
     // A DM contact's id is no text contact's: same data key, other channel.
-    const dm: SpineEvent = { subject: "lead:reach:7", kind: "lead", data: { contactId: 7 } };
+    const dm: ExecutorEvent = { subject: "lead:reach:7", kind: "lead", data: { contactId: 7 } };
     expect(passOn(dm, "sms")).toEqual([{ port: "sent", event: dm }]);
     expect(passOn(email, "email")).toBeNull();
   });
@@ -480,7 +484,7 @@ describe("logic nodes", () => {
       { from: "ab.b", to: "out.replied", via: "events" },
     ],
   });
-  const logicWalk = (store: SpineStore, by: string, vip: boolean) => {
+  const logicWalk = (store: ExecutorStore, by: string, vip: boolean) => {
     const rule = async () => vip;
     const got = walkWith(store, by, rule);
     got.w = {
@@ -539,12 +543,12 @@ describe("a Wait until an event", () => {
       { from: "hold.timeout", to: "out.quiet", via: "events" },
     ],
   });
-  const untilWalk = (store: SpineStore, by: string) => {
+  const untilWalk = (store: ExecutorStore, by: string) => {
     const got = walkWith(store, by);
     got.w = { ...got.w, flows: new Map([[flow.id, flow]]) };
     return got;
   };
-  const textLead = (n: number): SpineEvent => ({
+  const textLead = (n: number): ExecutorEvent => ({
     subject: `lead:sms:${n}`,
     kind: "lead",
     data: { contactId: n },
@@ -644,7 +648,7 @@ describe("fired triggers", () => {
       { workflow: "groups", from: "once.out" },
       { workflow: "groups", from: "each.out", repeat: true },
     ]);
-    const event: SpineEvent = {
+    const event: ExecutorEvent = {
       subject: "profile:4",
       kind: "lead",
       data: { profile: 4, member: 31 },
@@ -666,7 +670,7 @@ describe("fired triggers", () => {
   });
 
   it("keep one clock per Schedule node, and a slot enters once", () => {
-    expect(clocksOf("acme", flow)).toEqual([{ service: "SpineClock", key: "acme|heard|daily" }]);
+    expect(clocksOf("acme", flow)).toEqual([{ service: "ExecutorClock", key: "acme|heard|daily" }]);
     expect(clockOfKey("acme|heard|daily")).toEqual({
       client: "acme",
       workflow: "heard",

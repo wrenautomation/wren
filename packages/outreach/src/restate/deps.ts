@@ -8,13 +8,13 @@ import { linkedinOutreach } from "@wren/channel-linkedin";
 import { redditOutreach } from "@wren/channel-reddit";
 import type { Platform as ContentPlatform, SiteClient } from "@wren/core/content";
 import { isRefusal } from "@wren/core/content/restate";
+import type { FireTriggers } from "@wren/core/executor";
 import type { KeyStore } from "@wren/core/keys";
 import { meteredModel, meteredSites } from "@wren/core/metered";
 import type { Notifier } from "@wren/core/notify";
 import type { OurPost } from "@wren/core/our-posts";
 import type { OutreachChannel } from "@wren/core/outreach";
 import { clientKey } from "@wren/core/restate";
-import type { FireTriggers } from "@wren/core/spine";
 import type { Db } from "@wren/db";
 import { type LlmClient, llmForKey } from "@wren/llm";
 import type { ClientReach, ReachPart } from "../clients.js";
@@ -63,7 +63,7 @@ export interface ReachDeps {
    * and platforms a tab watcher is on, read cold. Unset: none.
    */
   pushes?: (ctx: restate.ObjectContext) => Promise<ReachView>;
-  /** Each lead's DM reply to the spine's Reply triggers (`spineFire`). Unset, none fire. */
+  /** Each lead's DM reply to the executor's Reply triggers (`executorFire`). Unset, none fire. */
   fire?: FireTriggers;
   policy: ReachPolicy;
   sequences: ReadonlyMap<string, ReachSequence>;

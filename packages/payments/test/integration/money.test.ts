@@ -2,7 +2,7 @@
  * A link's money on a real Postgres, the way Stripe really sends it: at least once, in any
  * order, and with our worker dying between steps (designs/2026-10-07-forms-and-pay.md, "Durable
  * payments"). Signed webhooks replayed, duplicated and reordered; a crash after the event is
- * kept; the thread's paid mark and the spine following refunds both ways; a failed bank payment
+ * kept; the thread's paid mark and the executor following refunds both ways; a failed bank payment
  * asked again; and reconcile healing what a dropped webhook missed and flagging what it can't.
  * A fake Stripe, synthetic data, no network, no charge.
  */
@@ -297,7 +297,7 @@ describe("after a crash", () => {
     expect(b.id).toBe(id);
     expect(await pg.db.select().from(payLinks).where(eq(payLinks.id, id))).toHaveLength(1);
   });
-  it("the spine hears each change once: a retried claim gets its own back, a new one none", async () => {
+  it("the executor hears each change once: a retried claim gets its own back, a new one none", async () => {
     const id = await linkOut("plink_tell");
     await hook(checkout("plink_tell"));
     expect((await claimChanges(pg.db, id, "token-a")).changes).toEqual(["paid"]);

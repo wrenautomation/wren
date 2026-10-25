@@ -6,6 +6,7 @@
  */
 import * as restate from "@restatedev/restate-sdk";
 import { WREN } from "@wren/core/access";
+import { executorEmit } from "@wren/core/executor";
 import {
   answer,
   canAt,
@@ -20,7 +21,6 @@ import {
 import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { accountsOf, checkNow, type Setup, type SetupEmit, startSetup } from "@wren/core/setup";
 import { clientAccounts } from "@wren/core/setup-schema";
-import { spineEmit } from "@wren/core/spine";
 import type { Db } from "@wren/db";
 import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
@@ -231,7 +231,7 @@ export function makeMailAccess(deps: MailConsoleDeps) {
     <R extends PortalRequest, T>(name: string, fn: (req: R) => Promise<T>) =>
     (ctx: restate.Context, req: R) =>
       answer(() => ctx.run(name, () => answer(() => fn(req))));
-  /** A write whose setups' events go onto the spine once it's journaled. */
+  /** A write whose setups' events go onto the executor once it's journaled. */
   const move =
     <R extends PortalRequest, T extends { emits: SetupEmit[] }>(
       name: string,
@@ -239,7 +239,7 @@ export function makeMailAccess(deps: MailConsoleDeps) {
     ) =>
     async (ctx: restate.Context, req: R) => {
       const out = await answer(() => ctx.run(name, () => answer(() => fn(req))));
-      for (const e of out.emits) spineEmit(ctx, e);
+      for (const e of out.emits) executorEmit(ctx, e);
       const { emits: _, ...rest } = out;
       return { ok: true, ...rest };
     };
@@ -324,7 +324,7 @@ export function makeMailCallback(deps: MailConsoleDeps) {
             }
             return { ok: r.ok, said: r.said, emits };
           });
-          for (const e of out.emits) spineEmit(ctx, e);
+          for (const e of out.emits) executorEmit(ctx, e);
           return { ok: out.ok, said: out.said };
         },
       ),

@@ -2,7 +2,7 @@
  * The shape: one directed graph per database (designs/2026-10-19-business-map.md). Sources open
  * journeys. Steps, offers and plans hold them. Flow edges carry them forward. Loop edges send them
  * back as a new journey. Pure: the known triggers, groups and lists come in as arguments, so this
- * file imports nothing from the spine.
+ * file imports nothing from the executor.
  */
 import { SOURCE_ID } from "@wren/core/logic";
 
@@ -57,7 +57,7 @@ const EDGE_KINDS = ["flow", "loop"] as const;
 type EdgeKind = (typeof EDGE_KINDS)[number];
 
 interface NodeBase {
-  /** The spine node id rule (`STAGE_KEY`). Never goes, moves or gets renamed. */
+  /** The executor node id rule (`STAGE_KEY`). Never goes, moves or gets renamed. */
   id: string;
   name: string;
 }

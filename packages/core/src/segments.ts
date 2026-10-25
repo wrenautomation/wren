@@ -1154,7 +1154,7 @@ export async function previewRule(db: Queryable, raw: unknown, now: Date): Promi
 /**
  * Is this person in the segment now? A merged profile answers as the one it merged into. A live
  * segment (or a bare rule) is checked by its rule, for this one person, at `now`; a manual or
- * snapshot one by its members. The spine's In segment step asks this.
+ * snapshot one by its members. The executor's In segment step asks this.
  */
 export async function inSegment(
   db: Queryable,

@@ -18,11 +18,11 @@ A lead who books from an email's link must stop getting mail, and the booking mu
 ## Shape
 
 - `uid` (unique), `state` (booked | cancelled), `start`, `email`, `name`, `offer`, `code`, `message_id`, `enrollment_id` (both nullable), `booked_at` (`schema.ts:639`)
-- how the call went, for every source (our calendar's too, on its mirror): `outcome` (`MEETING_OUTCOMES` in `@wren/core/calls`: won, not_yet, no_show, not_fit, checked), `outcome_reason`, `outcome_at`, `outcome_by`. `setCallOutcome` marks only a booked call that has started (`calls/outcome.ts:36`); `markOutcome` audits it and emits `outcomeEmits` on the spine: won leaves `close` and enters `onboarding` (queue only), not_yet leaves by `later` to keep warm (`calls/outcome.ts:79`)
+- how the call went, for every source (our calendar's too, on its mirror): `outcome` (`MEETING_OUTCOMES` in `@wren/core/calls`: won, not_yet, no_show, not_fit, checked), `outcome_reason`, `outcome_at`, `outcome_by`. `setCallOutcome` marks only a booked call that has started (`calls/outcome.ts:36`); `markOutcome` audits it and emits `outcomeEmits` on the executor: won leaves `close` and enters `onboarding` (queue only), not_yet leaves by `later` to keep warm (`calls/outcome.ts:79`)
 - every booking write emits `bookingEmit` into `close` at `in.calls`, one arrival per call and start (`calls/restate.ts:32`); its brief is [[email/call-brief]]
 - in: `CallBookings/ingest` (`restate/call-bookings.ts`), fed by the phone Worker's `/webhooks/calcom` (`apps/phone/src/worker.ts:114`); `wren email bookings sync [--since]` (`apps/cli/src/email.ts`)
 - a client's cal.com: `CallBookings/ingestFor {client, body}` (`restate/call-bookings.ts:37`), same rules, into its database
-- each booking, move or cancel also fires the spine's Booking triggers (`bookingFired`, the `fire` dep; [[platform/spine]])
+- each booking, move or cancel also fires the executor's Booking triggers (`bookingFired`, the `fire` dep; [[platform/executor]])
 - `call_invites` is the other source of "booked": a slot William approved from a reply
 
 Citations: `packages/channel-email/src/schema.ts:639`, `packages/channel-email/src/inbox/bookings.ts:66`, `packages/channel-email/src/calls/outcome.ts:36`
@@ -33,7 +33,7 @@ Citations: `packages/channel-email/src/schema.ts:639`, `packages/channel-email/s
 - **joins:** [[platform/phone-worker]]
 - **joins:** [[calendar/booking]] (writes here through `applyBooking`, `packages/calendar/src/book.ts:206`)
 - **owns:** [[email/call-brief]], [[email/call-recording]]
-- **joins:** [[platform/spine]] (`close`, `onboarding`)
+- **joins:** [[platform/executor]] (`close`, `onboarding`)
 - **looks-like-but-is-not:** `call_invites` (a reply's proposed slot, booked through the API on William's approve)
 
 ## If you change this

@@ -1,5 +1,5 @@
 /**
- * Text follow-ups on the spine (designs/2026-10-05-workflows.md, Follow-ups). Each sequence is a
+ * Text follow-ups on the executor (designs/2026-10-05-workflows.md, Follow-ups). Each sequence is a
  * cadence workflow of `sms.touch` nodes. Enroll queues the opener. When the tick sends a step, it
  * leaves that step's node as `sent` and waits on the wire for the next touch, which queues the
  * next text due now, so the tick still meters every send. A reply answers `replied` instead.
@@ -9,9 +9,9 @@
  */
 
 import { customFacts } from "@wren/core/custom-fields";
+import { type ExecutorEvent, passOn, type Step, type StepAt } from "@wren/core/executor";
 import { type FollowNote, followStart, isFollowTouch, type Outs, passed } from "@wren/core/follow";
 import { activeElsewhere } from "@wren/core/leads";
-import { passOn, type SpineEvent, type Step, type StepAt } from "@wren/core/spine";
 import { refText } from "@wren/core/templates";
 import { liveOrDefault } from "@wren/core/templates/defaults";
 import { sequenceLabel } from "@wren/core/templates/labels";
@@ -26,8 +26,8 @@ import { smsCalls, smsContacts, smsMessages, speedRuns } from "./schema.js";
 import { fieldsFor, liveTexts, textRef } from "./template-store.js";
 import { render, type SmsSequence, stepTemplate, textSeed } from "./templates.js";
 
-/** One text contact as a lead on the spine. */
-export const textLead = (contactId: number): SpineEvent => ({
+/** One text contact as a lead on the executor. */
+export const textLead = (contactId: number): ExecutorEvent => ({
   subject: `lead:sms:${contactId}`,
   kind: "lead",
   data: { contactId },
@@ -205,7 +205,7 @@ async function followText(
   return { did: "queued", why: null };
 }
 
-async function followTouch(texts: TouchTexts, e: SpineEvent, at: StepAt): Promise<Outs> {
+async function followTouch(texts: TouchTexts, e: ExecutorEvent, at: StepAt): Promise<Outs> {
   if (!texts.main) throw new Error("no main database for follow-up texts here");
   const start = await followStart(
     { db: texts.db, main: texts.main, channel: "text", globalOff: texts.off ?? null },
@@ -224,7 +224,7 @@ async function followTouch(texts: TouchTexts, e: SpineEvent, at: StepAt): Promis
 }
 
 /**
- * `sms.touch` on the spine: the node's `step`, on the texts of whoever's workflow it is. A node
+ * `sms.touch` on the executor: the node's `step`, on the texts of whoever's workflow it is. A node
  * with no `step` is a follow-up touch (`followTouch`).
  */
 export const touchStep =

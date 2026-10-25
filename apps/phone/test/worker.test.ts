@@ -638,7 +638,7 @@ describe("the lander's calendar calls", () => {
 describe("the door", () => {
   const TOKEN = "a".repeat(43);
 
-  it("passes a hook's JSON or form to the Spine and answers its status", async () => {
+  it("passes a hook's JSON or form to the Executor and answers its status", async () => {
     vi.stubGlobal("fetch", async (url: string, init: RequestInit) => {
       if (url.endsWith("/SmsEvents/signer")) {
         signerCalls += 1;
@@ -650,7 +650,7 @@ describe("the door", () => {
     const res = await post(`/hooks/${TOKEN}`, { email: "jane@example.com" });
     expect(res.status).toBe(202);
     expect(await res.json()).toEqual({ subject: "form:jane@example.com" });
-    expect(restateCalls[0]?.url).toBe("https://restate.test/Spine/hook");
+    expect(restateCalls[0]?.url).toBe("https://restate.test/Executor/hook");
     expect(JSON.parse(restateCalls[0]?.body ?? "")).toEqual({
       token: TOKEN,
       payload: { email: "jane@example.com" },

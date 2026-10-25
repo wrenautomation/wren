@@ -15,6 +15,7 @@ import { clientsServices } from "./services/clients.js";
 import { contentServices } from "./services/content.js";
 import { type AnyService, type BuildOptions, buildDeps, type Deps } from "./services/deps.js";
 import { emailServices } from "./services/email.js";
+import { executorServices } from "./services/executor.js";
 import { peopleServices } from "./services/people.js";
 import { platformServices } from "./services/platform.js";
 import { reachServices } from "./services/reach.js";
@@ -22,7 +23,6 @@ import { reactivationServices } from "./services/reactivation.js";
 import { researchServices } from "./services/research.js";
 import { searchServices } from "./services/search.js";
 import { smsServices } from "./services/sms.js";
-import { spineServices } from "./services/spine.js";
 import { watchServices } from "./services/watch.js";
 
 export type { AnyService, BuildOptions, Deps } from "./services/deps.js";
@@ -72,7 +72,7 @@ const DOMAINS: ((deps: Deps) => AnyService[])[] = [
   reachServices,
   searchServices,
   clientsServices,
-  spineServices,
+  executorServices,
   accountsServices,
   reactivationServices,
 ];

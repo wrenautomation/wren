@@ -6,9 +6,9 @@
 import * as clients from "@restatedev/restate-sdk-clients";
 import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
 import { ingressOf } from "@wren/config";
+import { makeExecutor } from "@wren/core/executor";
 import type { PassOutcome } from "@wren/core/restate";
 import { events } from "@wren/core/schema";
-import { makeSpine } from "@wren/core/spine";
 import { startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { eq } from "drizzle-orm";
@@ -77,7 +77,7 @@ beforeAll(async () => {
       makeSmsEvents(deps),
       makeSmsDesk(deps),
       makeSmsWatch(deps),
-      makeSpine({
+      makeExecutor({
         main: pg.db,
         clientDb: () => pg.db,
         workflows: [textCadence(SEQ)],
@@ -140,7 +140,7 @@ describe("sms on restate", () => {
     const sender = ingress().objectClient<SmsSender>({ name: "SmsSender" }, SENDER_KEY);
     const pass = (await sender.sync()) as PassOutcome<TickStats>;
     expect(pass.stats).toMatchObject({ sent: 1 });
-    // The sent opener leaves s1 on the spine and waits 3 days at step 2.
+    // The sent opener leaves s1 on the executor and waits 3 days at step 2.
     let waiting: Array<typeof events.$inferSelect> = [];
     for (let i = 0; i < 50 && waiting.length === 0; i += 1) {
       waiting = await pg.db.select().from(events).where(eq(events.node, "s2"));

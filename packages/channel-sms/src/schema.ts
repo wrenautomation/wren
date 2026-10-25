@@ -661,7 +661,7 @@ export const reviewAsks = pgTable(
   "review_asks",
   {
     id: serial("id"),
-    /** The spine subject that asked: the same customer twice is one ask. */
+    /** The executor subject that asked: the same customer twice is one ask. */
     subject: varchar("subject", { length: 200 }).notNull(),
     source: varchar("source", { length: 8, enum: REVIEW_SOURCES }).notNull(),
     name: text("name"),

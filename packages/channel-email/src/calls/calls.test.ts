@@ -1,4 +1,4 @@
-/** The brief's code checks and the outcome's spine moves, on synthetic lines only. */
+/** The brief's code checks and the outcome's executor moves, on synthetic lines only. */
 import { describe, expect, it } from "vitest";
 import { checkQuestions, factLine, gapQuestions, ownWords } from "./brief.js";
 import { outcomeEmits } from "./outcome.js";
@@ -119,7 +119,7 @@ describe("outcomeEmits", () => {
   });
 });
 
-describe("booking on the spine", () => {
+describe("booking on the executor", () => {
   it("a booked call enters close once per start; a cancel doesn't", () => {
     const a = bookedCall(7, "2026-10-05T14:00:00.000Z");
     expect(a.subject).toBe("call:7:2026-10-05T14:00:00.000Z");

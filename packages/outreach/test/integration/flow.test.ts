@@ -118,7 +118,7 @@ const tickAt = async (now: Date, live = true) => {
     live,
     now,
   });
-  // The spine, by hand: each sent step's next touch, as its wire's wait ends.
+  // The executor, by hand: each sent step's next touch, as its wire's wait ends.
   for (const s of stats.stepped) {
     const next = seqOf(s.sequence).steps.find((x) => x.step === s.step + 1);
     if (!next) continue;

@@ -310,9 +310,9 @@ export const messages = pgTable(
     approvedBy: varchar("approved_by", { length: 32, enum: APPROVAL_SOURCES }),
     /** The call times `{call.times}` offered when this message sent (ISO instants), for the reply that picks one. */
     offeredTimes: jsonb("offered_times").$type<string[]>(),
-    /** Waits for its cadence's `email.touch` on the spine before the tick may send it (follow.ts). */
+    /** Waits for its cadence's `email.touch` on the executor before the tick may send it (follow.ts). */
     held: boolean("held").default(false).notNull(),
-    /** When the touch let it go; with `held`, marks a thread whose sends go out on the spine. */
+    /** When the touch let it go; with `held`, marks a thread whose sends go out on the executor. */
     releasedAt: timestamp("released_at", { withTimezone: true }),
   },
   (t) => [

@@ -239,7 +239,7 @@ const failedOf = (err: unknown): Run => ({
   error: err instanceof Error ? err.message : String(err),
 });
 
-/** A real arrival's data, pinned into the test: the team's own spine only. */
+/** A real arrival's data, pinned into the test: the team's own executor only. */
 function LastInput({
   workflow,
   node,

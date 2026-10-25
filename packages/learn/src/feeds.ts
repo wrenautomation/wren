@@ -5,8 +5,9 @@
  * pass reads each source hourly and keeps new items before anything reads them, so a pass that
  * dies loses nothing.
  */
+
+import type { ExecutorEvent } from "@wren/core/executor";
 import { decodeHtml } from "@wren/core/html";
-import type { SpineEvent } from "@wren/core/spine";
 import type { Db, Queryable } from "@wren/db";
 import { pgSafe } from "@wren/db/columns";
 import { and, asc, eq, inArray, isNull, lt, notInArray, or } from "drizzle-orm";
@@ -457,8 +458,8 @@ export async function pullFeeds(db: Db, fetchFn: FetchFn, now: Date): Promise<Pu
   return stats;
 }
 
-/** One item on the spine. */
-export const itemEvent = (id: number): SpineEvent => ({
+/** One item on the executor. */
+export const itemEvent = (id: number): ExecutorEvent => ({
   subject: `item:${id}`,
   kind: "item",
   data: { itemId: id },

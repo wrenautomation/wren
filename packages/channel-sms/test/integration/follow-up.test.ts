@@ -5,8 +5,8 @@
  * nothing. Synthetic leads; nothing leaves (no tick runs with a live provider).
  */
 import { clients } from "@wren/core/clients";
+import type { ExecutorEvent, StepAt } from "@wren/core/executor";
 import { leadThreads } from "@wren/core/leads";
-import type { SpineEvent, StepAt } from "@wren/core/spine";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -40,7 +40,7 @@ const at = (o: Partial<StepAt> = {}): StepAt => ({
   part: "follow_up",
   ...o,
 });
-const lead = (id: number, data: Record<string, unknown> = {}): SpineEvent => ({
+const lead = (id: number, data: Record<string, unknown> = {}): ExecutorEvent => ({
   subject: `lead:sms:${id}`,
   kind: "lead",
   data: { contactId: id, ...data },
@@ -185,7 +185,7 @@ describe("a follow-up text", () => {
       (platform, handle, url, found_in, company_id, person_id, state)
       VALUES ('linkedin', 'dana-smith', 'https://linkedin.test/in/dana-smith', 'manual', ${firm},
         ${p?.id}, 'finished') RETURNING id`)) as unknown as { id: number }[];
-    const dmLead: SpineEvent = { subject: `lead:reach:${dm?.id}`, kind: "lead", data: {} };
+    const dmLead: ExecutorEvent = { subject: `lead:reach:${dm?.id}`, kind: "lead", data: {} };
     const [o] = await step("lead", dmLead, at());
     expect(o?.event.data.follow).toMatchObject({ did: "queued" });
     expect((await queued())[0]?.contactId).toBe(text);

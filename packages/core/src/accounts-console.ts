@@ -3,7 +3,7 @@
  * with its facts and setup runs, and its vendors with mode, room and the month's usage. A
  * client's people read both and act on their own steps; Wren's team adds accounts, starts and
  * switches setups, and sets vendor modes. A key is never read back. Moves on a setup go onto the
- * spine (`spineEmit`) once the write is journaled.
+ * executor (`executorEmit`) once the write is journaled.
  */
 import type * as restate from "@restatedev/restate-sdk";
 import type { Db } from "@wren/db";
@@ -12,6 +12,7 @@ import { z } from "zod";
 import { WREN } from "./access.js";
 import { ACCOUNTS_CONSOLE_APPS, ACCOUNTS_CONSOLE_ROUTES } from "./accounts-console-routes.js";
 import { clients, SETUP_MODES, type SetupMode } from "./clients/schema.js";
+import { executorEmit, waitMs } from "./executor.js";
 import { keyRef, noRawKeys } from "./key-refs.js";
 import type { KeyStore } from "./keys.js";
 import {
@@ -51,7 +52,6 @@ import {
   teamAlerts,
 } from "./setup-alerts.js";
 import type { SetupRunRow } from "./setup-schema.js";
-import { spineEmit, waitMs } from "./spine.js";
 import { vendorUsage } from "./vendor-schema.js";
 import {
   clearMode,
@@ -600,12 +600,12 @@ export function makeAccountsConsole(deps: AccountsDeps) {
     <R extends PortalRequest, T>(fn: (req: R) => Promise<T>) =>
     (_: restate.Context, req: R) =>
       answer(() => fn(req));
-  /** A write, journaled once; its events go onto the spine after it. */
+  /** A write, journaled once; its events go onto the executor after it. */
   const move =
     <R extends PortalRequest>(name: string, fn: (req: R) => Promise<{ emits: SetupEmit[] }>) =>
     async (ctx: restate.Context, req: R) => {
       const { emits } = await answer(() => ctx.run(name, () => answer(() => fn(req))));
-      for (const e of emits) spineEmit(ctx, e);
+      for (const e of emits) executorEmit(ctx, e);
       return { ok: true, moved: emits.length };
     };
   const write =

@@ -1,5 +1,5 @@
 /**
- * Send message on the spine: one person's broadcast. A yes to the topic sends once, however often
+ * Send message on the executor: one person's broadcast. A yes to the topic sends once, however often
  * the step runs; no yes leaves by skipped with why. A client's workflow runs in the client's own
  * database and sends through its own mailer, under the same rules. Synthetic.
  */
@@ -7,10 +7,10 @@ import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { BroadcastMail, MailUnset } from "../../src/broadcasts.js";
+import type { ExecutorEvent, StepAt } from "../../src/executor.js";
 import { giveConsent, withdrawConsent } from "../../src/marketing.js";
 import { messageStep } from "../../src/message-step.js";
 import { topics } from "../../src/schema.js";
-import type { SpineEvent, StepAt } from "../../src/spine.js";
 import { addSuppression } from "../../src/suppress.js";
 
 type Mail = BroadcastMail & { sent: { to: string; subject: string; text: string }[] };
@@ -100,7 +100,7 @@ beforeEach(async () => {
   }
 });
 
-const lead = (email: string): SpineEvent => ({
+const lead = (email: string): ExecutorEvent => ({
   subject: `lead:door:${email}`,
   kind: "lead",
   data: { lead: { name: "Sam Test", email } },
@@ -279,7 +279,7 @@ describe("Send message in a client's workspace", () => {
       evidence: { form: "https://example.test/signup" },
       by: "subscriber",
     });
-    const e: SpineEvent = {
+    const e: ExecutorEvent = {
       subject: "lead:door:+15555550101",
       kind: "lead",
       data: { lead: { name: "Sam Test", phone: "+15555550101" } },

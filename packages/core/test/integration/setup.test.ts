@@ -1,5 +1,5 @@
 /**
- * Account setups on the spine and Postgres: a step waits and checks again on its own wire,
+ * Account setups on the executor and Postgres: a step waits and checks again on its own wire,
  * a person marks one done, done-for-you buys wait on Wren's team, a run past its `within` is
  * stuck, and a lost fact starts the setup over as its next generation.
  */
@@ -8,6 +8,7 @@ import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { clients } from "../../src/clients/schema.js";
 import type { DoOutcome, DoRequest } from "../../src/content/do.js";
+import { pgExecutorStore, resume, type Walk, walk } from "../../src/executor.js";
 import {
   AGENT_ON_IT,
   type AgentJob,
@@ -28,7 +29,6 @@ import {
   WAITING_ON_WREN,
 } from "../../src/setup.js";
 import { setupRuns } from "../../src/setup-schema.js";
-import { pgSpineStore, resume, type Walk, walk } from "../../src/spine.js";
 
 let pg: TestPostgres;
 beforeAll(async () => {
@@ -137,7 +137,7 @@ function walker(client: string, withDo = false) {
         now: () => now,
       }),
     },
-    store: pgSpineStore(pg.db),
+    store: pgExecutorStore(pg.db),
     client,
     by: `inv-${client}`,
     run: (_n, fn) => fn(),
@@ -398,7 +398,7 @@ describe("a setup run, done for you", () => {
           now: () => now,
         }),
       },
-      store: pgSpineStore(pg.db),
+      store: pgExecutorStore(pg.db),
       client: "beta",
       by: "inv-beta-find",
       run: (_n, fn) => fn(),

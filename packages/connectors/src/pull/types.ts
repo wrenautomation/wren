@@ -24,7 +24,7 @@ export interface PulledPerson {
   lastContacted: string | null;
 }
 
-/** Something that happened, told to the spine once (`key`). */
+/** Something that happened, told to the executor once (`key`). */
 export interface PulledChange {
   key: string;
   change: AppChange;

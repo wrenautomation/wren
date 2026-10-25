@@ -62,7 +62,7 @@ export function appsServices(deps: Deps): AnyService[] {
       write: settings.llm === "fake" ? null : (p) => llm.complete(p).then((r) => r.text),
     }),
     // Text-to-pay on the client's own Stripe key (designs/2026-10-07-forms-and-pay.md), and its
-    // daily reconcile against Stripe, which tells the spine what a dropped webhook missed.
+    // daily reconcile against Stripe, which tells the executor what a dropped webhook missed.
     makePayments({ ...payDeps, mailer: bookerMailer, fire: fireAll }),
     makePaymentsConsole(payDeps),
     makePayReconcile({ ...payDeps, mailer: bookerMailer, fire: fireAll, ...notify }),

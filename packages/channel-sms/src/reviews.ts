@@ -17,11 +17,11 @@
 import { randomBytes } from "node:crypto";
 import { activeSuppressionOf, addSuppression } from "@wren/core";
 import { leadOf } from "@wren/core/door";
+import type { ExecutorEvent, Step } from "@wren/core/executor";
 import { linkPeople } from "@wren/core/leads";
 import { noteContacts } from "@wren/core/profiles-backfill";
 import { accountFacts, clientAccounts } from "@wren/core/setup-schema";
 import { factKeys, renderKind } from "@wren/core/slots";
-import type { SpineEvent, Step } from "@wren/core/spine";
 import type { TemplateRef } from "@wren/core/templates";
 import { liveOrDefault } from "@wren/core/templates/defaults";
 import type { Db, Queryable } from "@wren/db";
@@ -127,8 +127,8 @@ export interface AskOptions {
   now: Date;
 }
 
-/** The customer read from a spine event: a door's lead, or a call's name and email. */
-function customerOf(e: SpineEvent, source: ReviewSource): Customer {
+/** The customer read from an executor event: a door's lead, or a call's name and email. */
+function customerOf(e: ExecutorEvent, source: ReviewSource): Customer {
   const lead = (e.data.lead as ReturnType<typeof leadOf> | undefined) ?? leadOf(e.data);
   return {
     subject: e.subject.slice(0, 200),
@@ -496,14 +496,14 @@ type ReviewDeps = Omit<AskOptions, "now" | "client"> & {
 };
 
 /** The source an event's subject says: a call's outcome, by hand, else the door. */
-export function sourceOf(e: SpineEvent): ReviewSource {
+export function sourceOf(e: ExecutorEvent): ReviewSource {
   const s = e.data.source;
   if (s === "won" || s === "done" || s === "paid" || s === "hand") return s;
   return "door";
 }
 
 /**
- * `reviews.ask` on the spine. The ask node (round 1) asks; the remind node (`with.round` 2)
+ * `reviews.ask` on the executor. The ask node (round 1) asks; the remind node (`with.round` 2)
  * reminds the same ask after its wire's wait. `asked` carries on only a queued ask, as
  * `review:<id>`; the rest leave by `unasked`.
  */

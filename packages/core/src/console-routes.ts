@@ -120,7 +120,7 @@ export const CONSOLE_ROUTES = {
   workflowDoors: "wren:read",
   doorReveal: "wren:manage",
   doorRotate: "wren:manage",
-  // A failed spine step, run again: it may send, so it needs what an effect does.
+  // A failed executor step, run again: it may send, so it needs what an effect does.
   retryEvent: "wren:effect",
   replay: "wren:effect",
   // A held unit runs again, a paused source resumes.

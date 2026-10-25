@@ -5,9 +5,9 @@
  * ones build on the journeys of earlier ones. Synthetic data only.
  */
 import { randomUUID } from "node:crypto";
+import { type Fired, pgExecutorStore, type Walk, walk } from "@wren/core/executor";
 import { resolveProfile } from "@wren/core/profiles";
 import { serveRecords } from "@wren/core/records/serve";
-import { type Fired, pgSpineStore, type Walk, walk } from "@wren/core/spine";
 import type { Workflow } from "@wren/core/workflows";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import type { Terms } from "@wren/offers";
@@ -116,7 +116,7 @@ async function person(email: string, name = "Ada") {
 const OP = "op@example.test";
 const MISSING = randomUUID();
 
-/** What `Spine/emit` does with an Emit: walk it from its node, as its own invocation. */
+/** What `Executor/emit` does with an Emit: walk it from its node, as its own invocation. */
 async function play(e: Emit) {
   const fired: Fired[] = [];
   const flows: Workflow[] = await shapeWorkflowsOf(pg.db, "wren");
@@ -124,7 +124,7 @@ async function play(e: Emit) {
     flows: new Map(flows.map((f) => [f.id, f])),
     parts: new Map(),
     steps: journeySteps({ db: () => pg.db }),
-    store: pgSpineStore(pg.db),
+    store: pgExecutorStore(pg.db),
     client: null,
     by: randomUUID(),
     run: (_name, fn) => fn(),

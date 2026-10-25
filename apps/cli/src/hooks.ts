@@ -5,8 +5,8 @@
  */
 import { getClient } from "@wren/core/clients";
 import { fieldMapOf, HOOK_PRESETS, LEAD_FIELDS } from "@wren/core/door";
+import { addHook } from "@wren/core/executor";
 import { hooks } from "@wren/core/schema";
-import { addHook } from "@wren/core/spine";
 import type { Db } from "@wren/db";
 import type { Command } from "commander";
 import { desc } from "drizzle-orm";

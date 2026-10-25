@@ -35,7 +35,7 @@ Citations: `packages/content/src/chat/store.ts:1`, `packages/content/src/restate
 ## If you change this
 
 - **Hits:** the Inbox list and timeline, the portal Worker's `/o/` paths, Account → Domain.
-- **Does not hit:** the spine: a chat fires no trigger yet, so auto-reply and workflows don't hear it.
+- **Does not hit:** the executor: a chat fires no trigger yet, so auto-reply and workflows don't hear it.
 
 ## Surfaces
 

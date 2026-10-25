@@ -1,9 +1,10 @@
 /**
  * `SourcedFeed/all`: a person added to a list that a live sourced source of the shape takes
- * people from is told to the spine as a `trigger.source` fire, and the shape opens a journey. A tail loop (like `Segments`): a cursor per workspace and list keeps it one fire per
+ * people from is told to the executor as a `trigger.source` fire, and the shape opens a journey. A tail loop (like `Segments`): a cursor per workspace and list keeps it one fire per
  * member. Start it with `POST SourcedFeed/all/start`.
  */
 import type * as restate from "@restatedev/restate-sdk";
+import { executorFire, type Fired } from "@wren/core/executor";
 import {
   clientKey,
   makeLoopObject,
@@ -11,7 +12,6 @@ import {
   runPass,
   setLastPass,
 } from "@wren/core/restate";
-import { type Fired, spineFire } from "@wren/core/spine";
 import type { Db } from "@wren/db";
 import { type SourceCursors, sourcedPass } from "@wren/pipeline/sourced";
 
@@ -76,7 +76,7 @@ export function makeSourcedFeed(d: SourcedFeedDeps) {
       },
     )) as PassOutcome<FeedStats & { fires: Fired[]; cursors: Cursors }>;
     if (outcome.stats) {
-      for (const f of outcome.stats.fires) spineFire(ctx, f);
+      for (const f of outcome.stats.fires) executorFire(ctx, f);
       ctx.set(CURSORS, outcome.stats.cursors);
       const { fires: _f, cursors: _c, ...lean } = outcome.stats;
       const kept: PassOutcome<FeedStats> = { ...outcome, stats: lean };

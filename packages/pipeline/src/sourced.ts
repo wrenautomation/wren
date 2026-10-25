@@ -7,8 +7,9 @@
  *
  * Pure of Restate: the worker's `SourcedFeed` loop keeps the cursors and sends the fires.
  */
+
+import type { Fired } from "@wren/core/executor";
 import { SOURCE_ID } from "@wren/core/logic";
-import type { Fired } from "@wren/core/spine";
 import type { Db } from "@wren/db";
 import { desc, sql } from "drizzle-orm";
 import { liveSources as liveSourceNodes } from "./entry.js";

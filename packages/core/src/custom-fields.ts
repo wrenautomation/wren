@@ -18,6 +18,7 @@ import {
   customFieldValues,
   customValues,
 } from "./custom-schema.js";
+import type { Step } from "./executor.js";
 import { PortalRefusal } from "./portal.js";
 import {
   CUSTOM_CURRENCY,
@@ -29,7 +30,6 @@ import {
   tintOf,
   type Values,
 } from "./records.js";
-import type { Step } from "./spine.js";
 import { fillText } from "./webhook-events.js";
 
 /** Live fields an owner may keep on one record type. */
@@ -41,7 +41,7 @@ const KEY = /^[a-z][a-z0-9_]{0,39}$/;
 /** Where a field shows on a record's page. */
 const GROUP = "Custom fields";
 
-/** The record type a spine subject's prefix names: `journey:<id>` is a journey. */
+/** The record type an executor subject's prefix names: `journey:<id>` is a journey. */
 const CUSTOM_SUBJECTS: Readonly<Record<string, string>> = {
   journey: "pipeline.journey",
   deal: "pipeline.deal",

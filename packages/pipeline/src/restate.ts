@@ -1,14 +1,14 @@
 /**
  * `Journeys`: the hand and agent moves on a journey (designs/2026-10-19-business-map.md). `open`
- * and `move` send the shape workflow's `in.<node>` input through `Spine/emit`, cause `manual`,
- * so the workflow's own `journey.move` step writes the row: no second write path. `drop` closes the row (`dropJourney`) and tells the spine. `assign` sets who
- * works a journey, a column the spine never reads. `rebuild` recomputes a row from its events.
+ * and `move` send the shape workflow's `in.<node>` input through `Executor/emit`, cause `manual`,
+ * so the workflow's own `journey.move` step writes the row: no second write path. `drop` closes the row (`dropJourney`) and tells the executor. `assign` sets who
+ * works a journey, a column the executor never reads. `rebuild` recomputes a row from its events.
  *
  * `client` is the workspace: null is Wren's. `by` is the operator, kept as the cause's `ref`.
  */
 import * as restate from "@restatedev/restate-sdk";
+import { EXECUTOR, type ExecutorService } from "@wren/core/executor";
 import { serviceHandler } from "@wren/core/restate";
-import { SPINE, type SpineService } from "@wren/core/spine";
 import type { Db } from "@wren/db";
 import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
@@ -100,7 +100,7 @@ const run = async <T>(fn: () => Promise<T>): Promise<T> => {
 
 export function makeJourneys(deps: JourneysDeps) {
   const emit = (ctx: restate.Context, client: string | null, e: Emit) =>
-    ctx.serviceClient<SpineService>(SPINE).emit({ client, ...e });
+    ctx.serviceClient<ExecutorService>(EXECUTOR).emit({ client, ...e });
   const fail = (msg: string): never => {
     throw new restate.TerminalError(msg, { errorCode: 400 });
   };

@@ -23,6 +23,7 @@
 import type * as restate from "@restatedev/restate-sdk";
 import { recordedRun } from "@wren/core";
 import type { Calendar } from "@wren/core/calendar";
+import { executorEmit } from "@wren/core/executor";
 import { type Notifier, plural } from "@wren/core/notify";
 import {
   clientOfKey,
@@ -32,7 +33,6 @@ import {
   stoppedPass,
   unitOfKey,
 } from "@wren/core/restate";
-import { spineEmit } from "@wren/core/spine";
 import type { Db } from "@wren/db";
 import type { SharedSuppressions } from "../guards.js";
 import type { SendStats } from "../send/deliver.js";
@@ -137,7 +137,7 @@ export function makeSendScheduler(deps: SendSchedulerDeps) {
     // Each sent step leaves its node; the cadence's next touch lets the next step go (follow.ts).
     const client = clientOfKey(key)?.client ?? null;
     for (const t of touches)
-      spineEmit(ctx, { client, workflow: t.workflow, from: t.from, events: [t.event] });
+      executorEmit(ctx, { client, workflow: t.workflow, from: t.from, events: [t.event] });
     const outcome: TickOutcome = {
       stats,
       error: null,

@@ -6,7 +6,7 @@
  * - `shape_versions`: the business as one directed graph; every edit is a version.
  * - `funnels`, `funnel_versions`: the old funnels, kept as history. Nothing reads them; the shape
  *   replaced them (migration 0307 dropped the journey columns that pointed at them).
- * - `journeys`: one person on the shape. A cache of the spine events with subject `journey:<id>`.
+ * - `journeys`: one person on the shape. A cache of the executor events with subject `journey:<id>`.
  * - `deals`: made when a journey reaches an offer node.
  */
 import { profiles } from "@wren/core/profiles-schema";

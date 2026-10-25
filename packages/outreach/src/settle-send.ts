@@ -51,7 +51,7 @@ export async function unsureItem(db: Queryable, item: string) {
 
 /**
  * Mark it posted: recorded as sent by `by`, with no ref (he saw it; we didn't read one). A DM's
- * sequence moves on as if it sent; its steps come back for the spine. Only a DM needs the
+ * sequence moves on as if it sent; its steps come back for the executor. Only a DM needs the
  * sequences and the sender.
  */
 export async function markPosted(
