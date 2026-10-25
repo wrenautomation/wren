@@ -582,13 +582,13 @@ export async function buildDeps(
   const mediaSigner = settings.mediaBucket
     ? { bucket: settings.mediaBucket, host: s3MediaHost({ bucket: settings.mediaBucket }) }
     : undefined;
-  // The Monitor's model (Cohere on prod): mail triage, the inbox, a client's drafts. Reach drafts have their own, below.
+  // The Monitor's model: mail triage, the inbox, a client's drafts. Reach drafts have their own, below.
   const watchLlm =
     settings.watchLlm === "none" ? null : counted(makeLlm(settings.watchLlm, process.env), "watch");
   // Reach drafts (thread replies, comments on others' posts, comment answers, DMs): each item's
   // model is its arm of the saved `drafts.model` test (default gateway free chain against
-  // Cohere), apart from the Monitor's model; everything else the reach code asks still goes to
-  // watchLlm. Clients keep watchLlm. designs/2026-10-14-draft-models.md.
+  // Cohere), apart from the Monitor's model; everything else the reach code asks goes to
+  // `reachLlm` (Haiku). Clients keep watchLlm. designs/2026-10-14-draft-models.md.
   const armClients = new Map<string, ReturnType<typeof makeLlm> | null>();
   const armClient = (model: string) => {
     if (!armClients.has(model)) {
@@ -601,8 +601,10 @@ export async function buildDeps(
     }
     return armClients.get(model) ?? null;
   };
-  const draftsLlm = watchLlm
-    ? new ArmedLlm(withPart(watchLlm, "drafts"), savedArms(db), armClient)
+  // Reach's other calls (search words, ranking, judging a place) on a cheap model, not the Monitor's.
+  const reachLlm = watchLlm ? (armClient(settings.reachLlm) ?? watchLlm) : null;
+  const draftsLlm = reachLlm
+    ? new ArmedLlm(withPart(reachLlm, "drafts"), savedArms(db), armClient)
     : null;
   // Google user data goes only to a model that doesn't train on it (Limited Use); none by default.
   const googleLlm =

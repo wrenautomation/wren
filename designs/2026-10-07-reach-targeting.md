@@ -56,6 +56,13 @@ Prod made 1 to 4 comments a day against `perDay` 10. Every post at fit 70 or mor
 - A key person's post is not dropped for missing the audience's words. We chose them by firm and title. Rank and the job-ad check still apply.
 - Not used: the `authorTitle` filter. A real read with "founder" did not narrow the results.
 
+Later the same day (William: every draft waits for his yes, cheap models for keyword work):
+
+- A past model topic also must name the trade before a pass uses it again. "firm growth challenges" had 2 hits, so it came back each pass.
+- "Recruitment Consultant" is the trade's own job title. It is staff (+5), not a vendor (−15). "Consultant to staffing firms" and "I help" still mark a seller.
+- A boolean search (`"recruiting agency" (clients OR fees)`) hits on its first quoted phrase (`topicCore`).
+- Reach calls that are not drafts (topics, ranking, place checks) go to `WREN_REACH_LLM`, default `anthropic:claude-haiku-5-5`. Before, they went to the Monitor's model, which is Sonnet on prod. Drafts keep `drafts.model`.
+
 ## Not done
 
 - No LinkedIn reads to test the new search words. They are measured on prod passes.

@@ -341,6 +341,11 @@ export const settingsSchema = z.object({
   /** The model for mail the Monitor's rules can't settle (`makeLlm`); `none` shows it all. */
   watchLlm: z.string().min(1).default("none"),
   /**
+   * Reach's calls that aren't a draft: search words, ranking, judging a place. Cheap and short;
+   * drafts keep their own model (`drafts.model`). William 10-25: Haiku or Cohere for these.
+   */
+  reachLlm: z.string().min(1).default("anthropic:claude-haiku-5-5"),
+  /**
    * The model for Google user data (a client's YouTube comments, Business Profile reviews, Gmail):
    * one whose provider doesn't train on what it's sent, as Google's Limited Use asks. `none`: that
    * data reaches no model (suggestions say why; triage shows the mail).
@@ -722,6 +727,7 @@ export const ENV_KEYS = {
   watchMailboxes: "WREN_WATCH_MAILBOXES",
   watchSiteTopic: "WREN_WATCH_SITE_TOPIC",
   watchLlm: "WREN_WATCH_LLM",
+  reachLlm: "WREN_REACH_LLM",
   googleLlm: "WREN_GOOGLE_LLM",
   booksSince: "WREN_BOOKS_SINCE",
   booksAwsUsage: "WREN_BOOKS_AWS_USAGE",

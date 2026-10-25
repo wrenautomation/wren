@@ -17,6 +17,7 @@ import {
   proposeTopics,
   REST_AFTER,
   rankPost,
+  topicCore,
   vanityOf,
 } from "./reach-posts.js";
 
@@ -139,6 +140,13 @@ describe("rankPost", () => {
     expect(known.off).toBeNull();
   });
 
+  it("a boolean search hits on its quoted phrase", () => {
+    const q = '"recruiting agency" (clients OR "business development")';
+    expect(topicCore(q)).toBe("recruiting agency");
+    expect(topicCore("staffing agency")).toBe("staffing agency");
+    expect(rank(post(), [q]).why).toContain(`On "${q}".`);
+  });
+
   it("job posts are off with their reason", () => {
     expect(rank(post({ text: "#hiring Office Coordinator. Apply here." })).off).toBe("a job ad");
     expect(
@@ -154,6 +162,14 @@ describe("rankPost", () => {
     expect(authorFit("CEO, Acme Bakery", a).kind).toBe("owner");
     expect(authorFit("Director, Acme Recruiting", a).kind).toBe("manager");
     expect(authorFit("Fractional COO | Helping agency owners scale", a).kind).toBe("seller");
+    // The trade's own title is staff, not a vendor; a consultant to the trade still sells.
+    expect(authorFit("Senior Recruitment Consultant at Acme Staffing", a)).toEqual({
+      points: 5,
+      kind: "manager",
+    });
+    expect(authorFit("Director | Staffing Consultant", a).kind).toBe("manager");
+    expect(authorFit("Growth consultant to staffing firms", a).kind).toBe("seller");
+    expect(authorFit("Recruitment Consultant | I help agencies grow", a).kind).toBe("seller");
   });
 });
 
@@ -187,6 +203,12 @@ describe("planTopics", () => {
       3,
     );
     expect(out.topics).toEqual(["mine", "proven a", "proven b", "fresh one"]);
+    // With the trade's words, a past model word that names no trade is not reused.
+    expect(
+      planTopics(["mine"], [y("firm growth", 10, 4), y("staffing fees", 10, 3)], [], 2, [
+        "staffing",
+      ]).topics,
+    ).toEqual(["mine", "staffing fees"]);
     expect(planTopics(["mine"], [y("proven a", 10, 4)], ["fresh"], 1).topics).toEqual([
       "mine",
       "fresh",

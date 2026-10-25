@@ -632,10 +632,15 @@ export function authorFit(
   if (!headline.trim()) return { points: 0, kind: null };
   const head = ` ${words(headline).join(" ")} `;
   const theirs = audience.some((a) => occurrences(head, a) > 0);
-  if (SELLER.test(headline)) return { points: -15, kind: "seller" };
+  // "Recruitment Consultant" is the trade's own job title, not a vendor to it.
+  const trade = audience.map((a) => a.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
+  const staff = trade ? new RegExp(`\\b(?:${trade})\\w*\\s+consultants?\\b`, "gi") : null;
+  const rest = staff ? headline.replace(staff, " ") : headline;
+  if (SELLER.test(rest)) return { points: -15, kind: "seller" };
   if (TIER1.test(headline))
     return theirs ? { points: 18, kind: "buyer" } : { points: 10, kind: "owner" };
   if (TIER2.test(headline)) return { points: theirs ? 10 : 5, kind: "manager" };
+  if (rest !== headline) return { points: 5, kind: "manager" };
   return { points: 0, kind: null };
 }
 
@@ -667,7 +672,7 @@ export function rankPost(
 ): { fit: number; why: string; off: string | null } {
   const text = ` ${words(p.text).join(" ")} `;
   const hits = o.topics.filter((t) => {
-    const ws = words(t);
+    const ws = words(topicCore(t));
     return ws.length > 0 && ws.every((w) => text.includes(` ${w}`));
   });
   const head = p.headline ?? "";
@@ -720,6 +725,14 @@ export function rankPost(
     .filter(Boolean)
     .join(" ");
   return { fit, why, off };
+}
+
+/**
+ * What a post must say to hit a search: a boolean search (`"recruitment agency" (clients OR fees)`,
+ * LinkedIn and X both read it) hits on its first quoted phrase; plain words are themselves.
+ */
+export function topicCore(topic: string): string {
+  return /^\s*"([^"]+)"/.exec(topic)?.[1] ?? topic;
 }
 
 /**
@@ -1166,18 +1179,22 @@ export async function topicYields(
 
 const rateOf = (y: TopicYield | undefined) => (y?.read ? y.onTarget / y.read : 1);
 const keyOf = (t: string) => t.trim().toLowerCase();
+/** A model word must name the trade (one of the audience's words); with no audience, any word. */
+const namesTrade = (t: string, audience: readonly string[] | undefined) =>
+  !audience?.length || audience.some((a) => t.toLowerCase().includes(a.toLowerCase()));
 
 /**
  * The pass's search words. His own (`topics`) first, best yield first, untried ones as best;
  * one that read `REST_AFTER` posts lately with none on target rests. Then up to `extra` more:
- * past model words that found the audience (at most `extra - 1`, so one slot always explores),
- * then the model's new ones.
+ * past model words that found the audience and name its trade (at most `extra - 1`, so one slot
+ * always explores), then the model's new ones.
  */
 export function planTopics(
   own: readonly string[],
   yields: readonly TopicYield[],
   fresh: readonly string[],
   extra: number,
+  audience?: readonly string[],
 ): { topics: string[]; rested: string[] } {
   const by = new Map(yields.map((y) => [keyOf(y.topic), y]));
   const rests = (t: string) => {
@@ -1192,7 +1209,7 @@ export function planTopics(
     .map((x) => x.t);
   const seen = new Set(own.map(keyOf));
   const proven = yields
-    .filter((y) => !seen.has(keyOf(y.topic)) && y.onTarget >= 2)
+    .filter((y) => !seen.has(keyOf(y.topic)) && y.onTarget >= 2 && namesTrade(y.topic, audience))
     .sort((a, b) => rateOf(b) - rateOf(a) || b.onTarget - a.onTarget)
     .slice(0, Math.max(0, extra - 1))
     .map((y) => y.topic);
@@ -1253,8 +1270,7 @@ ${good.length ? `Found their posts before (on target of read): ${good.map((y) =>
       .trim();
     const n = t.split(" ").length;
     if (!t || n > 5 || t.length > 60 || NOT_A_TOPIC.test(t) || known.has(keyOf(t))) continue;
-    if (o.audience?.length && !o.audience.some((a) => t.toLowerCase().includes(a.toLowerCase())))
-      continue;
+    if (!namesTrade(t, o.audience)) continue;
     known.add(keyOf(t));
     kept.push(t);
   }
@@ -1390,7 +1406,13 @@ export async function postsPass(
         })
       : { topics: [], error: null };
   if (fresh.error) out.errors.push(`new topics: ${fresh.error}`);
-  const plan = planTopics(s.topics, yields, fresh.topics, need > 0 && llm ? s.newTopics : 0);
+  const plan = planTopics(
+    s.topics,
+    yields,
+    fresh.topics,
+    need > 0 && llm ? s.newTopics : 0,
+    s.audience,
+  );
   out.topics = plan.topics;
   out.rested = plan.rested;
   type Read = { foundBy: string; key?: boolean; run: () => Promise<FeedPost[]> };

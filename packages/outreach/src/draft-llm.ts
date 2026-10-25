@@ -1,8 +1,8 @@
 /**
  * The model that drafts for reach, split by arm (designs/2026-10-14-draft-models.md). The worker
  * hands the drafting code an `ArmedLlm`: any call that isn't a draft (ranking, topics, reading a
- * place) still goes to its base, the Monitor's model; a draft asks `modelFor(llm, item)` and
- * gets the arm that item's id hashes to under the saved `drafts.model` setting.
+ * place) still goes to its base, the cheap `reachLlm` (Haiku); a draft asks
+ * `modelFor(llm, item)` and gets the arm that item's id hashes to under the saved `drafts.model`.
  */
 import { armOf, type DraftArm, draftArms } from "@wren/core/draft-models";
 import type { Queryable } from "@wren/db";
