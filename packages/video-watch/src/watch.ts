@@ -19,7 +19,7 @@ import { clock, runFor, TOOL_MS } from "./tools.js";
 
 const COHERE = "https://api.cohere.com";
 const COHERE_SPEECH_MODEL = "cohere-transcribe-03-2026";
-const COHERE_VISION_MODEL = "command-a-vision-07-2025";
+export const COHERE_VISION_MODEL = "command-a-vision-07-2025";
 /** The text model for asks that need no picture (`video look --with cohere`). */
 export const COHERE_TEXT_MODEL = COMPATIBLE_PROVIDERS.cohere.defaultModel;
 /** Cohere takes 25 MB of audio a call; at 48 kbps that is about 70 minutes. */

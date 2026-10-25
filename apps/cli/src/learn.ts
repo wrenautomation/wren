@@ -8,7 +8,8 @@
  * reads a creator's back catalog a few reels a pass (Instagram through the desk, TikTok by yt-dlp).
  * Nothing here signs in to any social account.
  */
-import { readFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import type { Settings } from "@wren/config";
 import { WREN } from "@wren/core/access";
@@ -52,7 +53,9 @@ import {
   writeAsked,
   writeClientAsked,
 } from "@wren/learn";
-import { ITEM_KINDS, type ItemKind } from "@wren/learn/schema";
+import { ITEM_KINDS, type ItemKind, SHOT_INS, SHOT_MOVES, SHOT_TYPES } from "@wren/learn/schema";
+import { download, labelMatch, labelShots } from "@wren/video-watch";
+import { watchKeys } from "./video-watch.js";
 
 const itemKindOf = (raw: string): ItemKind => {
   if ((ITEM_KINDS as readonly string[]).includes(raw)) return raw as ItemKind;
@@ -313,6 +316,67 @@ export function registerLearn(
         }),
       ),
     );
+
+  learn
+    .command("shot-proof <json>")
+    .description(
+      "the 80% proof for shot labels: each hand-labelled film of a seed study downloaded, its hand shots labelled by Cohere vision, and each label's match to the hand printed (no database)",
+    )
+    .option("--no-bright", "send frames as shot, not brightened")
+    .option("--out <file>", "write the per-shot answers and the scores as JSON")
+    .action(async (file: string, o: { bright: boolean; out?: string }) => {
+      const { films } = seedStudySchema.parse(JSON.parse(await readFile(resolve(file), "utf8")));
+      const keys = watchKeys(settings, rootDir);
+      const sets = { type: SHOT_TYPES, move: SHOT_MOVES, in: SHOT_INS };
+      const rows: { slug: string; t: number; hand: object; machine: object }[] = [];
+      for (const f of films.filter((x) => x.labels === "hand")) {
+        const dir = await mkdtemp(join(tmpdir(), "wren-proof-"));
+        try {
+          // YouTube refuses a download now and then; once more before the film is skipped.
+          const video = await download(f.url, settings.ytDlp, dir)
+            .catch(() => download(f.url, settings.ytDlp, dir))
+            .then((d) => d.file)
+            .catch((err: unknown) => {
+              say(`${f.slug}: not downloaded, skipped (${String(err).split("\n")[0]})`);
+              return null;
+            });
+          if (!video) continue;
+          const got = await labelShots(video, f.shots, sets, {
+            cohereKeys: keys.cohereKeys,
+            ffmpeg: settings.ffmpeg,
+            bright: o.bright,
+          });
+          rows.push(
+            ...f.shots.map((s, i) => ({
+              slug: f.slug,
+              t: s.t,
+              hand: { type: s.type, move: s.move, in: s.in },
+              machine: got[i] ?? {},
+            })),
+          );
+          say(`${f.slug}: ${f.shots.length} shots`);
+        } finally {
+          await rm(dir, { recursive: true, force: true });
+        }
+      }
+      const score = labelMatch(
+        rows.map((r) => r.hand),
+        rows.map((r) => r.machine as never),
+      );
+      if (o.out)
+        await writeFile(
+          resolve(o.out),
+          `${JSON.stringify({ bright: o.bright, score, rows }, null, 2)}\n`,
+        );
+      json(
+        Object.fromEntries(
+          Object.entries(score).map(([l, v]) => [
+            l,
+            { n: v.n, hits: v.hits, share: Math.round(v.share * 1000) / 10 },
+          ]),
+        ),
+      );
+    });
 
   learn
     .command("follow <url>")

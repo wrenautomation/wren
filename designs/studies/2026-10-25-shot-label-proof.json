@@ -1,0 +1,2046 @@
+{
+ "study": "Shot labels by Cohere vision against the hand seed (5 films, 59 shots)",
+ "date": "2026-10-25",
+ "method": "wren learn shot-proof designs/studies/2026-10-25-launch-films.json [--no-bright]: each hand shot's own t and len; frames just before the shot (not the first), at its start, middle and end; command-a-vision-07-2025 picks type, move and in from the closed sets; an answer outside a set is null and a miss. Bar: 80% per label.",
+ "runs": {
+  "plain": {
+   "empty_shots": 3,
+   "labels": {
+    "type": {
+     "hits": 41,
+     "n": 59,
+     "share": 0.695,
+     "misses": [
+      {
+       "hand": "ui",
+       "machine": "graphic",
+       "n": 4
+      },
+      {
+       "hand": "text-card",
+       "machine": "ui",
+       "n": 3
+      },
+      {
+       "hand": "graphic",
+       "machine": "ui",
+       "n": 3
+      },
+      {
+       "hand": "logo",
+       "machine": "ui",
+       "n": 2
+      },
+      {
+       "hand": "text-card",
+       "machine": "graphic",
+       "n": 2
+      },
+      {
+       "hand": "text-card",
+       "machine": "logo",
+       "n": 1
+      },
+      {
+       "hand": "ui",
+       "machine": null,
+       "n": 1
+      },
+      {
+       "hand": "b-roll",
+       "machine": null,
+       "n": 1
+      },
+      {
+       "hand": "text-card",
+       "machine": null,
+       "n": 1
+      }
+     ]
+    },
+    "move": {
+     "hits": 21,
+     "n": 59,
+     "share": 0.356,
+     "misses": [
+      {
+       "hand": "track",
+       "machine": "static",
+       "n": 10
+      },
+      {
+       "hand": "macro",
+       "machine": "static",
+       "n": 7
+      },
+      {
+       "hand": "push",
+       "machine": "static",
+       "n": 5
+      },
+      {
+       "hand": "roll",
+       "machine": "static",
+       "n": 2
+      },
+      {
+       "hand": "orbit",
+       "machine": "static",
+       "n": 2
+      },
+      {
+       "hand": "ui-zoom",
+       "machine": "static",
+       "n": 2
+      },
+      {
+       "hand": "track",
+       "machine": "macro",
+       "n": 1
+      },
+      {
+       "hand": "pull",
+       "machine": "static",
+       "n": 1
+      },
+      {
+       "hand": "macro",
+       "machine": "pan",
+       "n": 1
+      },
+      {
+       "hand": "orbit",
+       "machine": "pan",
+       "n": 1
+      },
+      {
+       "hand": "track",
+       "machine": "ui-zoom",
+       "n": 1
+      },
+      {
+       "hand": "rack-focus",
+       "machine": "static",
+       "n": 1
+      },
+      {
+       "hand": "track",
+       "machine": null,
+       "n": 1
+      },
+      {
+       "hand": "pan",
+       "machine": null,
+       "n": 1
+      },
+      {
+       "hand": "static",
+       "machine": null,
+       "n": 1
+      },
+      {
+       "hand": "pull",
+       "machine": "pan",
+       "n": 1
+      }
+     ]
+    },
+    "in": {
+     "hits": 33,
+     "n": 59,
+     "share": 0.559,
+     "misses": [
+      {
+       "hand": "fade",
+       "machine": "cut",
+       "n": 8
+      },
+      {
+       "hand": "dissolve",
+       "machine": "cut",
+       "n": 8
+      },
+      {
+       "hand": "cut",
+       "machine": null,
+       "n": 2
+      },
+      {
+       "hand": "cut",
+       "machine": "dissolve",
+       "n": 2
+      },
+      {
+       "hand": "cut",
+       "machine": "fade",
+       "n": 2
+      },
+      {
+       "hand": "whip",
+       "machine": "cut",
+       "n": 2
+      },
+      {
+       "hand": "fade",
+       "machine": "dissolve",
+       "n": 1
+      },
+      {
+       "hand": "fade",
+       "machine": null,
+       "n": 1
+      }
+     ]
+    }
+   },
+   "rows": [
+    {
+     "slug": "linear-agent",
+     "t": 0,
+     "hand": {
+      "type": "ui",
+      "move": "push",
+      "in": "fade"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "linear-agent",
+     "t": 3.1,
+     "hand": {
+      "type": "ui",
+      "move": "roll",
+      "in": "fade"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "linear-agent",
+     "t": 11.3,
+     "hand": {
+      "type": "ui",
+      "move": "track",
+      "in": "dissolve"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "macro",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "linear-agent",
+     "t": 17.1,
+     "hand": {
+      "type": "ui",
+      "move": "track",
+      "in": "dissolve"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "linear-agent",
+     "t": 22,
+     "hand": {
+      "type": "ui",
+      "move": "roll",
+      "in": "fade"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "linear-agent",
+     "t": 29.7,
+     "hand": {
+      "type": "ui",
+      "move": "track",
+      "in": "dissolve"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "linear-agent",
+     "t": 35.1,
+     "hand": {
+      "type": "ui",
+      "move": "track",
+      "in": "dissolve"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "linear-agent",
+     "t": 40.6,
+     "hand": {
+      "type": "ui",
+      "move": "pull",
+      "in": "dissolve"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "linear-agent",
+     "t": 45.1,
+     "hand": {
+      "type": "logo",
+      "move": "static",
+      "in": "fade"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "linear-releases",
+     "t": 0,
+     "hand": {
+      "type": "ui",
+      "move": "macro",
+      "in": "fade"
+     },
+     "machine": {
+      "type": "graphic",
+      "move": "pan",
+      "in": "dissolve"
+     }
+    },
+    {
+     "slug": "linear-releases",
+     "t": 4.5,
+     "hand": {
+      "type": "ui",
+      "move": "orbit",
+      "in": "dissolve"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "dissolve"
+     }
+    },
+    {
+     "slug": "linear-releases",
+     "t": 9,
+     "hand": {
+      "type": "text-card",
+      "move": "static",
+      "in": "fade"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "linear-releases",
+     "t": 11.5,
+     "hand": {
+      "type": "ui",
+      "move": "orbit",
+      "in": "fade"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "pan",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "linear-releases",
+     "t": 15.5,
+     "hand": {
+      "type": "ui",
+      "move": "track",
+      "in": "dissolve"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "ui-zoom",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "linear-releases",
+     "t": 22,
+     "hand": {
+      "type": "text-card",
+      "move": "static",
+      "in": "fade"
+     },
+     "machine": {
+      "type": "logo",
+      "move": "static",
+      "in": "fade"
+     }
+    },
+    {
+     "slug": "linear-releases",
+     "t": 26.5,
+     "hand": {
+      "type": "logo",
+      "move": "static",
+      "in": "fade"
+     },
+     "machine": {
+      "type": "logo",
+      "move": "static",
+      "in": "fade"
+     }
+    },
+    {
+     "slug": "linear-for-agents",
+     "t": 0,
+     "hand": {
+      "type": "text-card",
+      "move": "static",
+      "in": "fade"
+     },
+     "machine": {
+      "type": "text-card",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "linear-for-agents",
+     "t": 1.5,
+     "hand": {
+      "type": "ui",
+      "move": "rack-focus",
+      "in": "dissolve"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "linear-for-agents",
+     "t": 3,
+     "hand": {
+      "type": "ui",
+      "move": "track",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "linear-for-agents",
+     "t": 5,
+     "hand": {
+      "type": "ui",
+      "move": "macro",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "linear-for-agents",
+     "t": 8,
+     "hand": {
+      "type": "ui",
+      "move": "track",
+      "in": "cut"
+     },
+     "machine": {
+      "type": null,
+      "move": null,
+      "in": null
+     }
+    },
+    {
+     "slug": "linear-for-agents",
+     "t": 12,
+     "hand": {
+      "type": "ui",
+      "move": "push",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "linear-for-agents",
+     "t": 15,
+     "hand": {
+      "type": "ui",
+      "move": "ui-zoom",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "linear-for-agents",
+     "t": 17.5,
+     "hand": {
+      "type": "ui",
+      "move": "track",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "linear-for-agents",
+     "t": 20,
+     "hand": {
+      "type": "ui",
+      "move": "track",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "linear-for-agents",
+     "t": 24,
+     "hand": {
+      "type": "text-card",
+      "move": "static",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "linear-for-agents",
+     "t": 26.5,
+     "hand": {
+      "type": "text-card",
+      "move": "static",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "text-card",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "linear-for-agents",
+     "t": 29,
+     "hand": {
+      "type": "logo",
+      "move": "static",
+      "in": "fade"
+     },
+     "machine": {
+      "type": "logo",
+      "move": "static",
+      "in": "fade"
+     }
+    },
+    {
+     "slug": "raycast-2026",
+     "t": 0,
+     "hand": {
+      "type": "b-roll",
+      "move": "pan",
+      "in": "fade"
+     },
+     "machine": {
+      "type": null,
+      "move": null,
+      "in": null
+     }
+    },
+    {
+     "slug": "raycast-2026",
+     "t": 1,
+     "hand": {
+      "type": "ui",
+      "move": "macro",
+      "in": "dissolve"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "raycast-2026",
+     "t": 3.5,
+     "hand": {
+      "type": "ui",
+      "move": "macro",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "raycast-2026",
+     "t": 5.5,
+     "hand": {
+      "type": "ui",
+      "move": "ui-zoom",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "raycast-2026",
+     "t": 8.5,
+     "hand": {
+      "type": "ui",
+      "move": "macro",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "raycast-2026",
+     "t": 11,
+     "hand": {
+      "type": "ui",
+      "move": "track",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "raycast-2026",
+     "t": 15,
+     "hand": {
+      "type": "ui",
+      "move": "macro",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "raycast-2026",
+     "t": 17,
+     "hand": {
+      "type": "ui",
+      "move": "push",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "graphic",
+      "move": "static",
+      "in": "dissolve"
+     }
+    },
+    {
+     "slug": "raycast-2026",
+     "t": 20,
+     "hand": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "raycast-2026",
+     "t": 21,
+     "hand": {
+      "type": "ui",
+      "move": "push",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "raycast-2026",
+     "t": 22.5,
+     "hand": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "raycast-2026",
+     "t": 24,
+     "hand": {
+      "type": "ui",
+      "move": "track",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "raycast-2026",
+     "t": 26,
+     "hand": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "raycast-2026",
+     "t": 28.5,
+     "hand": {
+      "type": "text-card",
+      "move": "static",
+      "in": "cut"
+     },
+     "machine": {
+      "type": null,
+      "move": null,
+      "in": null
+     }
+    },
+    {
+     "slug": "raycast-2026",
+     "t": 36.5,
+     "hand": {
+      "type": "logo",
+      "move": "static",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "logo",
+      "move": "static",
+      "in": "fade"
+     }
+    },
+    {
+     "slug": "browserbase-director2",
+     "t": 0,
+     "hand": {
+      "type": "ui",
+      "move": "macro",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "browserbase-director2",
+     "t": 15,
+     "hand": {
+      "type": "graphic",
+      "move": "static",
+      "in": "whip"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "browserbase-director2",
+     "t": 17,
+     "hand": {
+      "type": "logo",
+      "move": "static",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "browserbase-director2",
+     "t": 19,
+     "hand": {
+      "type": "graphic",
+      "move": "push",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "browserbase-director2",
+     "t": 22,
+     "hand": {
+      "type": "graphic",
+      "move": "static",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "graphic",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "browserbase-director2",
+     "t": 22.5,
+     "hand": {
+      "type": "text-card",
+      "move": "static",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "graphic",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "browserbase-director2",
+     "t": 26,
+     "hand": {
+      "type": "text-card",
+      "move": "static",
+      "in": "dissolve"
+     },
+     "machine": {
+      "type": "graphic",
+      "move": "static",
+      "in": "dissolve"
+     }
+    },
+    {
+     "slug": "browserbase-director2",
+     "t": 29.5,
+     "hand": {
+      "type": "ui",
+      "move": "macro",
+      "in": "whip"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "browserbase-director2",
+     "t": 35.5,
+     "hand": {
+      "type": "ui",
+      "move": "track",
+      "in": "fade"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "browserbase-director2",
+     "t": 49,
+     "hand": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "graphic",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "browserbase-director2",
+     "t": 50.5,
+     "hand": {
+      "type": "graphic",
+      "move": "orbit",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "graphic",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "browserbase-director2",
+     "t": 56.5,
+     "hand": {
+      "type": "graphic",
+      "move": "pull",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "pan",
+      "in": "dissolve"
+     }
+    },
+    {
+     "slug": "browserbase-director2",
+     "t": 59.5,
+     "hand": {
+      "type": "graphic",
+      "move": "static",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "graphic",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "browserbase-director2",
+     "t": 64.5,
+     "hand": {
+      "type": "ui",
+      "move": "track",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "graphic",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "browserbase-director2",
+     "t": 69.5,
+     "hand": {
+      "type": "text-card",
+      "move": "static",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "browserbase-director2",
+     "t": 72.5,
+     "hand": {
+      "type": "logo",
+      "move": "static",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "logo",
+      "move": "static",
+      "in": "fade"
+     }
+    }
+   ]
+  },
+  "bright": {
+   "empty_shots": 3,
+   "labels": {
+    "type": {
+     "hits": 41,
+     "n": 59,
+     "share": 0.695,
+     "misses": [
+      {
+       "hand": "ui",
+       "machine": "graphic",
+       "n": 5
+      },
+      {
+       "hand": "text-card",
+       "machine": "graphic",
+       "n": 3
+      },
+      {
+       "hand": "ui",
+       "machine": null,
+       "n": 2
+      },
+      {
+       "hand": "text-card",
+       "machine": "ui",
+       "n": 2
+      },
+      {
+       "hand": "graphic",
+       "machine": "ui",
+       "n": 2
+      },
+      {
+       "hand": "logo",
+       "machine": "ui",
+       "n": 1
+      },
+      {
+       "hand": "text-card",
+       "machine": "logo",
+       "n": 1
+      },
+      {
+       "hand": "b-roll",
+       "machine": "graphic",
+       "n": 1
+      },
+      {
+       "hand": "logo",
+       "machine": null,
+       "n": 1
+      }
+     ]
+    },
+    "move": {
+     "hits": 21,
+     "n": 59,
+     "share": 0.356,
+     "misses": [
+      {
+       "hand": "track",
+       "machine": "static",
+       "n": 10
+      },
+      {
+       "hand": "macro",
+       "machine": "static",
+       "n": 7
+      },
+      {
+       "hand": "push",
+       "machine": "static",
+       "n": 5
+      },
+      {
+       "hand": "track",
+       "machine": null,
+       "n": 2
+      },
+      {
+       "hand": "orbit",
+       "machine": "static",
+       "n": 2
+      },
+      {
+       "hand": "ui-zoom",
+       "machine": "static",
+       "n": 2
+      },
+      {
+       "hand": "roll",
+       "machine": "macro",
+       "n": 1
+      },
+      {
+       "hand": "roll",
+       "machine": "static",
+       "n": 1
+      },
+      {
+       "hand": "pull",
+       "machine": "static",
+       "n": 1
+      },
+      {
+       "hand": "macro",
+       "machine": "pan",
+       "n": 1
+      },
+      {
+       "hand": "orbit",
+       "machine": "pan",
+       "n": 1
+      },
+      {
+       "hand": "track",
+       "machine": "pan",
+       "n": 1
+      },
+      {
+       "hand": "rack-focus",
+       "machine": "static",
+       "n": 1
+      },
+      {
+       "hand": "pan",
+       "machine": "static",
+       "n": 1
+      },
+      {
+       "hand": "static",
+       "machine": null,
+       "n": 1
+      },
+      {
+       "hand": "pull",
+       "machine": "ui-zoom",
+       "n": 1
+      }
+     ]
+    },
+    "in": {
+     "hits": 36,
+     "n": 59,
+     "share": 0.61,
+     "misses": [
+      {
+       "hand": "fade",
+       "machine": "cut",
+       "n": 7
+      },
+      {
+       "hand": "dissolve",
+       "machine": "cut",
+       "n": 6
+      },
+      {
+       "hand": "cut",
+       "machine": null,
+       "n": 2
+      },
+      {
+       "hand": "cut",
+       "machine": "dissolve",
+       "n": 2
+      },
+      {
+       "hand": "cut",
+       "machine": "fade",
+       "n": 2
+      },
+      {
+       "hand": "whip",
+       "machine": "cut",
+       "n": 2
+      },
+      {
+       "hand": "dissolve",
+       "machine": null,
+       "n": 1
+      },
+      {
+       "hand": "fade",
+       "machine": "dissolve",
+       "n": 1
+      }
+     ]
+    }
+   },
+   "rows": [
+    {
+     "slug": "linear-agent",
+     "t": 0,
+     "hand": {
+      "type": "ui",
+      "move": "push",
+      "in": "fade"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "linear-agent",
+     "t": 3.1,
+     "hand": {
+      "type": "ui",
+      "move": "roll",
+      "in": "fade"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "macro",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "linear-agent",
+     "t": 11.3,
+     "hand": {
+      "type": "ui",
+      "move": "track",
+      "in": "dissolve"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "linear-agent",
+     "t": 17.1,
+     "hand": {
+      "type": "ui",
+      "move": "track",
+      "in": "dissolve"
+     },
+     "machine": {
+      "type": null,
+      "move": null,
+      "in": null
+     }
+    },
+    {
+     "slug": "linear-agent",
+     "t": 22,
+     "hand": {
+      "type": "ui",
+      "move": "roll",
+      "in": "fade"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "linear-agent",
+     "t": 29.7,
+     "hand": {
+      "type": "ui",
+      "move": "track",
+      "in": "dissolve"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "linear-agent",
+     "t": 35.1,
+     "hand": {
+      "type": "ui",
+      "move": "track",
+      "in": "dissolve"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "linear-agent",
+     "t": 40.6,
+     "hand": {
+      "type": "ui",
+      "move": "pull",
+      "in": "dissolve"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "linear-agent",
+     "t": 45.1,
+     "hand": {
+      "type": "logo",
+      "move": "static",
+      "in": "fade"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "linear-releases",
+     "t": 0,
+     "hand": {
+      "type": "ui",
+      "move": "macro",
+      "in": "fade"
+     },
+     "machine": {
+      "type": "graphic",
+      "move": "pan",
+      "in": "dissolve"
+     }
+    },
+    {
+     "slug": "linear-releases",
+     "t": 4.5,
+     "hand": {
+      "type": "ui",
+      "move": "orbit",
+      "in": "dissolve"
+     },
+     "machine": {
+      "type": "graphic",
+      "move": "static",
+      "in": "dissolve"
+     }
+    },
+    {
+     "slug": "linear-releases",
+     "t": 9,
+     "hand": {
+      "type": "text-card",
+      "move": "static",
+      "in": "fade"
+     },
+     "machine": {
+      "type": "graphic",
+      "move": "static",
+      "in": "fade"
+     }
+    },
+    {
+     "slug": "linear-releases",
+     "t": 11.5,
+     "hand": {
+      "type": "ui",
+      "move": "orbit",
+      "in": "fade"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "pan",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "linear-releases",
+     "t": 15.5,
+     "hand": {
+      "type": "ui",
+      "move": "track",
+      "in": "dissolve"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "pan",
+      "in": "dissolve"
+     }
+    },
+    {
+     "slug": "linear-releases",
+     "t": 22,
+     "hand": {
+      "type": "text-card",
+      "move": "static",
+      "in": "fade"
+     },
+     "machine": {
+      "type": "logo",
+      "move": "static",
+      "in": "fade"
+     }
+    },
+    {
+     "slug": "linear-releases",
+     "t": 26.5,
+     "hand": {
+      "type": "logo",
+      "move": "static",
+      "in": "fade"
+     },
+     "machine": {
+      "type": "logo",
+      "move": "static",
+      "in": "fade"
+     }
+    },
+    {
+     "slug": "linear-for-agents",
+     "t": 0,
+     "hand": {
+      "type": "text-card",
+      "move": "static",
+      "in": "fade"
+     },
+     "machine": {
+      "type": "text-card",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "linear-for-agents",
+     "t": 1.5,
+     "hand": {
+      "type": "ui",
+      "move": "rack-focus",
+      "in": "dissolve"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "linear-for-agents",
+     "t": 3,
+     "hand": {
+      "type": "ui",
+      "move": "track",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "linear-for-agents",
+     "t": 5,
+     "hand": {
+      "type": "ui",
+      "move": "macro",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "linear-for-agents",
+     "t": 8,
+     "hand": {
+      "type": "ui",
+      "move": "track",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "linear-for-agents",
+     "t": 12,
+     "hand": {
+      "type": "ui",
+      "move": "push",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "linear-for-agents",
+     "t": 15,
+     "hand": {
+      "type": "ui",
+      "move": "ui-zoom",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "linear-for-agents",
+     "t": 17.5,
+     "hand": {
+      "type": "ui",
+      "move": "track",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "linear-for-agents",
+     "t": 20,
+     "hand": {
+      "type": "ui",
+      "move": "track",
+      "in": "cut"
+     },
+     "machine": {
+      "type": null,
+      "move": null,
+      "in": null
+     }
+    },
+    {
+     "slug": "linear-for-agents",
+     "t": 24,
+     "hand": {
+      "type": "text-card",
+      "move": "static",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "linear-for-agents",
+     "t": 26.5,
+     "hand": {
+      "type": "text-card",
+      "move": "static",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "text-card",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "linear-for-agents",
+     "t": 29,
+     "hand": {
+      "type": "logo",
+      "move": "static",
+      "in": "fade"
+     },
+     "machine": {
+      "type": "logo",
+      "move": "static",
+      "in": "fade"
+     }
+    },
+    {
+     "slug": "raycast-2026",
+     "t": 0,
+     "hand": {
+      "type": "b-roll",
+      "move": "pan",
+      "in": "fade"
+     },
+     "machine": {
+      "type": "graphic",
+      "move": "static",
+      "in": "fade"
+     }
+    },
+    {
+     "slug": "raycast-2026",
+     "t": 1,
+     "hand": {
+      "type": "ui",
+      "move": "macro",
+      "in": "dissolve"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "raycast-2026",
+     "t": 3.5,
+     "hand": {
+      "type": "ui",
+      "move": "macro",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "raycast-2026",
+     "t": 5.5,
+     "hand": {
+      "type": "ui",
+      "move": "ui-zoom",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "raycast-2026",
+     "t": 8.5,
+     "hand": {
+      "type": "ui",
+      "move": "macro",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "raycast-2026",
+     "t": 11,
+     "hand": {
+      "type": "ui",
+      "move": "track",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "raycast-2026",
+     "t": 15,
+     "hand": {
+      "type": "ui",
+      "move": "macro",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "raycast-2026",
+     "t": 17,
+     "hand": {
+      "type": "ui",
+      "move": "push",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "graphic",
+      "move": "static",
+      "in": "dissolve"
+     }
+    },
+    {
+     "slug": "raycast-2026",
+     "t": 20,
+     "hand": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "raycast-2026",
+     "t": 21,
+     "hand": {
+      "type": "ui",
+      "move": "push",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "raycast-2026",
+     "t": 22.5,
+     "hand": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "raycast-2026",
+     "t": 24,
+     "hand": {
+      "type": "ui",
+      "move": "track",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "raycast-2026",
+     "t": 26,
+     "hand": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "raycast-2026",
+     "t": 28.5,
+     "hand": {
+      "type": "text-card",
+      "move": "static",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "text-card",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "raycast-2026",
+     "t": 36.5,
+     "hand": {
+      "type": "logo",
+      "move": "static",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "logo",
+      "move": "static",
+      "in": "fade"
+     }
+    },
+    {
+     "slug": "browserbase-director2",
+     "t": 0,
+     "hand": {
+      "type": "ui",
+      "move": "macro",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "browserbase-director2",
+     "t": 15,
+     "hand": {
+      "type": "graphic",
+      "move": "static",
+      "in": "whip"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "browserbase-director2",
+     "t": 17,
+     "hand": {
+      "type": "logo",
+      "move": "static",
+      "in": "cut"
+     },
+     "machine": {
+      "type": null,
+      "move": null,
+      "in": null
+     }
+    },
+    {
+     "slug": "browserbase-director2",
+     "t": 19,
+     "hand": {
+      "type": "graphic",
+      "move": "push",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "browserbase-director2",
+     "t": 22,
+     "hand": {
+      "type": "graphic",
+      "move": "static",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "graphic",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "browserbase-director2",
+     "t": 22.5,
+     "hand": {
+      "type": "text-card",
+      "move": "static",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "graphic",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "browserbase-director2",
+     "t": 26,
+     "hand": {
+      "type": "text-card",
+      "move": "static",
+      "in": "dissolve"
+     },
+     "machine": {
+      "type": "graphic",
+      "move": "static",
+      "in": "dissolve"
+     }
+    },
+    {
+     "slug": "browserbase-director2",
+     "t": 29.5,
+     "hand": {
+      "type": "ui",
+      "move": "macro",
+      "in": "whip"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "browserbase-director2",
+     "t": 35.5,
+     "hand": {
+      "type": "ui",
+      "move": "track",
+      "in": "fade"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "browserbase-director2",
+     "t": 49,
+     "hand": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "graphic",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "browserbase-director2",
+     "t": 50.5,
+     "hand": {
+      "type": "graphic",
+      "move": "orbit",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "graphic",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "browserbase-director2",
+     "t": 56.5,
+     "hand": {
+      "type": "graphic",
+      "move": "pull",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "graphic",
+      "move": "ui-zoom",
+      "in": "dissolve"
+     }
+    },
+    {
+     "slug": "browserbase-director2",
+     "t": 59.5,
+     "hand": {
+      "type": "graphic",
+      "move": "static",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "graphic",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "browserbase-director2",
+     "t": 64.5,
+     "hand": {
+      "type": "ui",
+      "move": "track",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "graphic",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "browserbase-director2",
+     "t": 69.5,
+     "hand": {
+      "type": "text-card",
+      "move": "static",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "ui",
+      "move": "static",
+      "in": "cut"
+     }
+    },
+    {
+     "slug": "browserbase-director2",
+     "t": 72.5,
+     "hand": {
+      "type": "logo",
+      "move": "static",
+      "in": "cut"
+     },
+     "machine": {
+      "type": "logo",
+      "move": "static",
+      "in": "fade"
+     }
+    }
+   ]
+  }
+ },
+ "verdict": "No label reaches 80% (best: type 69.5%, in 61.0% brightened, move 35.6%). Shot labels stay null. Moves read as static from stills; fades and dissolves read as cuts. Empty shots: 3 a run, ffmpeg frame grabs that hung (since -nostdin)."
+}

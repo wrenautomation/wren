@@ -4,6 +4,7 @@
  * `@wren/research/sops`), Learn's Mac reader and `video look --with cohere`. No database here.
  */
 export * from "./gemini.js";
+export * from "./shots.js";
 export * from "./tools.js";
 export * from "./watch.js";
 
