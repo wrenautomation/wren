@@ -1,6 +1,6 @@
 {
  "study": "launch films 2026-10-25",
- "method": "yt-dlp 720p; cuts: PySceneDetect 0.7.2 detect-adaptive, ffmpeg scene>0.25, blackdetect d=0.3 pix_th=0.1; LUFS: ffmpeg ebur128 integrated; hand shots from 2 fps contact sheets; on-screen text: wren video watch (Cohere vision). Media stays out of the repo.",
+ "method": "yt-dlp 720p; cuts: PySceneDetect 0.7.2 detect-adaptive and detect-hash, ffmpeg scene>0.25, blackdetect d=0.3 pix_th=0.1; LUFS: ffmpeg ebur128 integrated; hand shots from 2 fps contact sheets; on-screen text: wren video watch (Cohere vision). Media stays out of the repo.",
  "films": [
   {
    "url": "https://youtu.be/mRql2VJ99gM",
@@ -13,8 +13,10 @@
    "cuts_by_signal": {
     "ffmpeg_scene_0.25": 0,
     "pyscenedetect_adaptive": 8,
-    "fade_blackdetect": 3
+    "fade_blackdetect": 3,
+    "pyscenedetect_hash": 7
    },
+   "cuts_trust": "low",
    "shot_median_s": 5.5,
    "shot_p90_s": 8.2,
    "cuts_per_10s": [
@@ -145,8 +147,10 @@
    "cuts_by_signal": {
     "ffmpeg_scene_0.25": 0,
     "pyscenedetect_adaptive": 0,
-    "fade_blackdetect": 2
+    "fade_blackdetect": 2,
+    "pyscenedetect_hash": 5
    },
+   "cuts_trust": "low",
    "shot_median_s": 4.5,
    "shot_p90_s": 4.5,
    "cuts_per_10s": [
@@ -254,8 +258,10 @@
    "cuts_by_signal": {
     "ffmpeg_scene_0.25": 0,
     "pyscenedetect_adaptive": 0,
-    "fade_blackdetect": 6
+    "fade_blackdetect": 6,
+    "pyscenedetect_hash": 10
    },
+   "cuts_trust": "low",
    "shot_median_s": 2.5,
    "shot_p90_s": 3.7,
    "cuts_per_10s": [
@@ -414,8 +420,10 @@
    "cuts_by_signal": {
     "ffmpeg_scene_0.25": 7,
     "pyscenedetect_adaptive": 4,
-    "fade_blackdetect": 1
+    "fade_blackdetect": 1,
+    "pyscenedetect_hash": 14
    },
+   "cuts_trust": "low",
    "shot_median_s": 2.1,
    "shot_p90_s": 3,
    "cuts_per_10s": [
@@ -604,8 +612,10 @@
    "cuts_by_signal": {
     "ffmpeg_scene_0.25": 20,
     "pyscenedetect_adaptive": 22,
-    "fade_blackdetect": 3
+    "fade_blackdetect": 3,
+    "pyscenedetect_hash": 23
    },
+   "cuts_trust": "ok",
    "shot_median_s": 0.9,
    "shot_p90_s": 2.5,
    "cuts_per_10s": [
@@ -867,8 +877,10 @@
    "cuts_by_signal": {
     "ffmpeg_scene_0.25": 14,
     "pyscenedetect_adaptive": 11,
-    "fade_blackdetect": 0
+    "fade_blackdetect": 0,
+    "pyscenedetect_hash": 10
    },
+   "cuts_trust": "ok",
    "shot_median_s": 1.2,
    "shot_p90_s": 1.9,
    "cuts_per_10s": [
@@ -1018,8 +1030,10 @@
    "cuts_by_signal": {
     "ffmpeg_scene_0.25": 42,
     "pyscenedetect_adaptive": 43,
-    "fade_blackdetect": 3
+    "fade_blackdetect": 3,
+    "pyscenedetect_hash": 45
    },
+   "cuts_trust": "ok",
    "shot_median_s": 1.4,
    "shot_p90_s": 2.8,
    "cuts_per_10s": [
@@ -1495,8 +1509,10 @@
    "cuts_by_signal": {
     "ffmpeg_scene_0.25": 24,
     "pyscenedetect_adaptive": 28,
-    "fade_blackdetect": 1
+    "fade_blackdetect": 1,
+    "pyscenedetect_hash": 30
    },
+   "cuts_trust": "ok",
    "shot_median_s": 3.0,
    "shot_p90_s": 4.8,
    "cuts_per_10s": [
@@ -1824,8 +1840,10 @@
    "cuts_by_signal": {
     "ffmpeg_scene_0.25": 3,
     "pyscenedetect_adaptive": 6,
-    "fade_blackdetect": 2
+    "fade_blackdetect": 2,
+    "pyscenedetect_hash": 14
    },
+   "cuts_trust": "low",
    "shot_median_s": 1.7,
    "shot_p90_s": 5.5,
    "cuts_per_10s": [
@@ -1927,8 +1945,10 @@
    "cuts_by_signal": {
     "ffmpeg_scene_0.25": 4,
     "pyscenedetect_adaptive": 6,
-    "fade_blackdetect": 4
+    "fade_blackdetect": 4,
+    "pyscenedetect_hash": 14
    },
+   "cuts_trust": "low",
    "shot_median_s": 1.6,
    "shot_p90_s": 9.6,
    "cuts_per_10s": [
@@ -2030,8 +2050,10 @@
    "cuts_by_signal": {
     "ffmpeg_scene_0.25": 8,
     "pyscenedetect_adaptive": 5,
-    "fade_blackdetect": 4
+    "fade_blackdetect": 4,
+    "pyscenedetect_hash": 21
    },
+   "cuts_trust": "low",
    "shot_median_s": 6.9,
    "shot_p90_s": 12.7,
    "cuts_per_10s": [
@@ -2127,8 +2149,10 @@
    "cuts_by_signal": {
     "ffmpeg_scene_0.25": 3,
     "pyscenedetect_adaptive": 10,
-    "fade_blackdetect": 1
+    "fade_blackdetect": 1,
+    "pyscenedetect_hash": 43
    },
+   "cuts_trust": "low",
    "shot_median_s": 3.5,
    "shot_p90_s": 6,
    "cuts_per_10s": [
@@ -2334,8 +2358,10 @@
    "cuts_by_signal": {
     "ffmpeg_scene_0.25": 18,
     "pyscenedetect_adaptive": 15,
-    "fade_blackdetect": 0
+    "fade_blackdetect": 0,
+    "pyscenedetect_hash": 15
    },
+   "cuts_trust": "ok",
    "shot_median_s": 7.6,
    "shot_p90_s": 14.6,
    "cuts_per_10s": [
@@ -2537,8 +2563,10 @@
    "cuts_by_signal": {
     "ffmpeg_scene_0.25": 67,
     "pyscenedetect_adaptive": 71,
-    "fade_blackdetect": 0
+    "fade_blackdetect": 0,
+    "pyscenedetect_hash": 70
    },
+   "cuts_trust": "ok",
    "shot_median_s": 1.8,
    "shot_p90_s": 3.2,
    "cuts_per_10s": [
@@ -3301,8 +3329,10 @@
    "cuts_by_signal": {
     "ffmpeg_scene_0.25": 18,
     "pyscenedetect_adaptive": 18,
-    "fade_blackdetect": 0
+    "fade_blackdetect": 0,
+    "pyscenedetect_hash": 17
    },
+   "cuts_trust": "ok",
    "shot_median_s": 3.3,
    "shot_p90_s": 7.3,
    "cuts_per_10s": [

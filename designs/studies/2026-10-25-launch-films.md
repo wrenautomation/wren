@@ -6,23 +6,24 @@ Media stays in `.scratch/launch-films`, never the repo.
 
 ## Method
 
-- yt-dlp, 720p. Cuts by three signals: PySceneDetect 0.7.2 `detect-adaptive`, ffmpeg `scene>0.25`,
+- yt-dlp, 720p. Cuts by four signals: PySceneDetect 0.7.2 `detect-hash` and `detect-adaptive`, ffmpeg `scene>0.25`,
   `blackdetect` (d=0.3, pix_th=0.1). Loudness: ffmpeg `ebur128`, integrated.
 - Hand shots from 2 fps contact sheets (0.5 s grid) for the five films nearest ours. The rest: cuts only, no labels.
 - On-screen text: `wren video watch --every 1` (ffmpeg frames, Cohere vision). Cohere reads nothing on very dark frames (Linear Agent 32-47 s).
 
 ## Detector check (hand count is the judge)
 
-| Film | Hand | PySceneDetect | ffmpeg 0.25 | fades |
-|---|---|---|---|---|
-| Linear Agent | 9 | 9 | 1 | 3 |
-| Linear Releases | 7 | 1 | 1 | 2 |
-| Linear for Agents | 12 | 1 | 1 | 6 |
-| Raycast 2026 | 15 | 5 | 8 | 1 |
-| Browserbase Director 2.0 | ~35 | 11 | 4 | 1 |
+| Film | Hand | PSD hash | PSD adaptive | ffmpeg 0.25 | fades |
+|---|---|---|---|---|---|
+| Linear Agent | 9 | 8 | 9 | 1 | 3 |
+| Linear Releases | 7 | 6 | 1 | 1 | 2 |
+| Linear for Agents | 12 | 11 | 1 | 1 | 6 |
+| Raycast 2026 | 15 | 15 | 5 | 8 | 1 |
+| Browserbase Director 2.0 | ~35 | 44 | 11 | 4 | 1 |
 
-PySceneDetect matches only on Linear Agent. It misses word swaps on black, fast mono cards and macro
-montages. No detector alone gives the shot count of craft films.
+Counts are shots. `detect-hash` is within 20% of the hand count on four of five films. It also finds
+word swaps on black and 0.5 s cards. On Director it over-counts the macro montage (+26%). Adaptive and
+ffmpeg miss swaps, cards and dark fades. `cuts_trust` is `low` when detectors disagree by more than 2x.
 
 ## The films
 
