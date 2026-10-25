@@ -39,8 +39,8 @@ export interface ProofTarget {
   /** The thread the comment is in, when `parent` is a comment (Reddit `t3_…`). */
   post?: string | null;
   /**
-   * Our other logins on the platform (`reddit@two`): a stranger's view when the signed-out reader
-   * is spent, since a filtered comment is dropped from any other user's view too.
+   * Our other logins on the platform (`reddit@two`): a stranger's view, read before the signed-out
+   * reader, since a filtered comment is dropped from any other user's view too.
    */
   peers?: string[];
 }
@@ -229,36 +229,32 @@ export function siteProof(deps: ProofDeps): CommentProof {
       sites
         .call<RedditListing>(site, "GET", "/api/info", { id: t.ref, raw_json: 1 }, account)
         .then((l) => l.data?.children?.[0]?.data ?? null);
-    // The stranger's reader: signed out, else one of our other logins (Reddit answers a
-    // signed-out reader 403 for hours at a time; a peer's view is as good as a stranger's).
-    let stranger: { site: string; account?: string; note: string | null } = {
-      site: "reddit-public",
-      note: null,
-    };
+    // The stranger's reader: one of our other logins first (a peer's view is as good as a
+    // stranger's), signed out last. Reddit refuses signed-out `/api/info` and its feed (403,
+    // every read since 10-19), so leading with it spent two refused calls per check.
+    const readers: Array<{ site: string; account?: string; note: string | null }> = [
+      ...(t.peers ?? [])
+        .filter((p) => p !== t.account)
+        .map((p) => ({ site: "reddit", account: p, note: "read as another account of ours" })),
+      { site: "reddit-public", note: null },
+    ];
+    let found: (typeof readers)[number] | null = null;
     let open: RedditThing | null = null;
-    try {
-      open = await info("reddit-public");
-    } catch (e) {
-      // A used daily cap is the caller's to wait out, not a check that read nothing.
-      if (capWaitMs(e) !== null) throw e;
-      const why = `the public read failed: ${message(e)}`;
-      let read = false;
-      for (const peer of (t.peers ?? []).filter((p) => p !== t.account)) {
-        try {
-          open = await info("reddit", peer);
-        } catch {
-          continue;
-        }
-        stranger = {
-          site: "reddit",
-          account: peer,
-          note: `read as another account of ours; ${why}`,
-        };
-        read = true;
-        break;
+    let failed = "";
+    for (const r of readers) {
+      try {
+        open = await info(r.site, r.account);
+      } catch (e) {
+        // A used daily cap is the caller's to wait out, not a check that read nothing.
+        if (r.site === "reddit-public" && capWaitMs(e) !== null) throw e;
+        if (r.site === "reddit-public") failed = `the public read failed: ${message(e)}`;
+        continue;
       }
-      if (!read) return pending(t, why);
+      found = r;
+      break;
     }
+    if (!found) return pending(t, failed);
+    const stranger = found;
     const tree = (a: string) =>
       sites
         .call<[RedditListing, RedditListing]>(

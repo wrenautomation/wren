@@ -173,7 +173,7 @@ describe("siteProof", () => {
     expect(d.log).not.toContain("reddit GET /api/info@reddit@one");
   });
 
-  it("reads as another account of ours when the signed-out reader is spent", async () => {
+  it("reads as another account of ours before the refused signed-out reader", async () => {
     const d = desk({
       "reddit-public GET /api/info": new Error("HTTP 403 (feed after a 403)"),
       "reddit GET /api/info@reddit@two": listing(thing("hi")),
@@ -191,7 +191,8 @@ describe("siteProof", () => {
     expect(p.state).toBe("live");
     expect(p.note).toContain("read as another account of ours");
     expect(d.log).not.toContain("reddit GET /api/info@reddit@one");
-    // No peer: the check waits, as before.
+    expect(d.log).not.toContain("reddit-public GET /api/info");
+    // No peer: the signed-out read, and the check waits when it fails.
     const alone = await siteProof({ sites: d, now: () => NOW }).check({
       platform: "reddit",
       ref: "t1_c1",
