@@ -203,6 +203,13 @@
   fill: var(--ui-ink-3);
   font-variant-numeric: tabular-nums;
 }
+/* A discount's old price, struck (the Design Language's `td .was`). No paper halo: SVG strokes
+   the strike line too, and the halo would cut the digits. */
+.mm .sub .was {
+  text-decoration: line-through;
+  text-decoration-color: var(--ui-hair);
+  stroke: none;
+}
 .mm .xl {
   font: 700 10.5px var(--ui-font);
 }

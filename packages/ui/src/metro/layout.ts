@@ -646,6 +646,7 @@ function mark(
     y,
     ...(s.label ? { n: s.label } : {}),
     ...(s.sub ? { s: s.sub } : {}),
+    ...(s.sub && s.was ? { was: s.was } : {}),
     ...(s.icon ? { icon: s.icon } : {}),
     ...(s.bad ? { bad: true } : {}),
     ...(s.bundle ? { bundle: true } : {}),

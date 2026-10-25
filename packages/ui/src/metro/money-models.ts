@@ -1,7 +1,9 @@
 /**
  * Money models as metro views: each play from the $100M Money Models video (sops/money-models), one
  * map each, in the SOP's stage order. Prices are the video's examples. Each choice point is one
- * A/B (`ab`) or one condition (`dec`), never a menu: the SOP's anchor rule.
+ * A/B (`ab`) or one condition (`dec`), never a menu: the SOP's anchor rule. A line is what the buyer
+ * gets: a choice of how to pay stays on its line, and only a change in what they get (a lesser offer,
+ * a failed goal, an exit) starts a new one.
  */
 import type { MetroView } from "./view.js";
 
@@ -56,7 +58,7 @@ const WIN_BACK: MetroView = {
       sub: "we keep $600",
     },
     { id: "pick", kind: "ab", line: "ch", column: "Money", label: "Cash or credit" },
-    { id: "cash", kind: "exit", line: "ch", column: "Money", label: "Cash back" },
+    { id: "cash", kind: "exit", line: "ch", column: "Money", label: "Cash back", icon: "cashback" },
     {
       id: "next",
       kind: "cash",
@@ -64,6 +66,7 @@ const WIN_BACK: MetroView = {
       column: "Money",
       label: "Credit to next offer",
       sub: "$600 kept",
+      icon: "credit",
     },
   ],
   tracks: [
@@ -88,7 +91,15 @@ const GIVEAWAY: MetroView = {
     hub,
     { id: "go", kind: "att", line: "gw", column: "Sales", label: "Apply to win", sub: "many" },
     { id: "pick", kind: "dec", line: "gw", column: "Sales", label: "Picked?" },
-    { id: "win", kind: "ok", line: "gw", column: "Delivery", label: "Winner", sub: "free, public" },
+    {
+      id: "win",
+      kind: "ok",
+      line: "gw",
+      column: "Delivery",
+      label: "Winner",
+      sub: "free, public",
+      icon: "free",
+    },
     {
       id: "part",
       kind: "cash",
@@ -96,6 +107,7 @@ const GIVEAWAY: MetroView = {
       column: "Money",
       label: "Partial scholarship",
       sub: "the rest",
+      icon: "discount",
     },
   ],
   tracks: [
@@ -116,7 +128,15 @@ const DECOY: MetroView = {
   stations: [
     ad,
     hub,
-    { id: "go", kind: "cash", line: "pass", column: "Sales", label: "5-day pass", sub: "$5" },
+    {
+      id: "go",
+      kind: "cash",
+      line: "pass",
+      column: "Sales",
+      label: "5-day pass",
+      sub: "$5",
+      icon: "anchor",
+    },
     {
       id: "visit",
       kind: "time",
@@ -148,77 +168,86 @@ const DECOY: MetroView = {
 
 const BUY_GET: MetroView = {
   title: "Buy X get Y free",
-  columns: ["Marketing", "Sales", "Money"],
-  lines: [
-    adLine,
-    { id: "mo", offer: "Month to month", tier: "front", colour: 1 },
-    { id: "pre", offer: "6 + 12 free", tier: "core", colour: 0 },
-  ],
+  columns: ["Marketing", "Sales", "Delivery"],
+  lines: [adLine, { id: "gym", offer: "Membership", tier: "core", colour: 0 }],
   stations: [
     ad,
     hub,
-    { id: "go", kind: "ab", line: "mo", column: "Sales", label: "Monthly or 6 + 12" },
+    { id: "go", kind: "ab", line: "gym", column: "Sales", label: "Monthly or 6 + 12" },
     {
       id: "monthly",
       kind: "cash",
-      line: "mo",
-      column: "Money",
+      line: "gym",
+      column: "Sales",
       label: "Month to month",
       sub: "$100 / mo",
+      icon: "anchor",
       repeat: "monthly",
     },
     {
       id: "prepaid",
       kind: "cash",
-      line: "pre",
-      column: "Money",
+      line: "gym",
+      column: "Sales",
       label: "Buy 6, get 12 free",
       sub: "$1,800 now",
+      icon: "free",
     },
+    { id: "train", kind: "time", line: "gym", column: "Delivery", label: "Member trains" },
   ],
   tracks: [
     ...intro,
-    { from: "go", to: "monthly", by: "system", label: "anchor" },
-    { from: "go", to: "prepaid", by: "system", label: "same total, cash now" },
+    { from: "go", to: "monthly", by: "system", label: "monthly" },
+    { from: "go", to: "prepaid", by: "system", label: "cash now" },
+    { from: "monthly", to: "train", by: "system" },
+    { from: "prepaid", to: "train", by: "system" },
   ],
 };
 
 const PAY_LATER: MetroView = {
   title: "Pay less now or more later",
-  lines: [
-    adLine,
-    { id: "later", offer: "$0 down", tier: "front", colour: 1 },
-    { id: "now", offer: "Pay now + bonuses", tier: "core", colour: 0 },
-  ],
+  lines: [adLine, { id: "ws", offer: "3-day workshop", tier: "front", colour: 1 }],
   stations: [
     ad,
     hub,
-    { id: "go", kind: "time", line: "later", column: "Sales", label: "Workshop signup" },
-    { id: "pick", kind: "ab", line: "later", column: "Sales", label: "Now or later" },
-    { id: "held", kind: "time", line: "later", column: "Delivery", label: "3-day workshop" },
+    { id: "go", kind: "time", line: "ws", column: "Sales", label: "Workshop signup" },
+    { id: "pick", kind: "ab", line: "ws", column: "Sales", label: "Now or later" },
     {
-      id: "after",
+      id: "card",
       kind: "cash",
-      line: "later",
-      column: "Money",
-      label: "Card charged after",
-      sub: "$500",
+      line: "ws",
+      column: "Sales",
+      label: "$0 down",
+      sub: "card on file",
     },
     {
       id: "paid",
       kind: "cash",
-      line: "now",
-      column: "Money",
+      line: "ws",
+      column: "Sales",
       label: "Paid today",
       sub: "$299 + recordings, call",
+      was: "$500",
+      icon: "discount",
+    },
+    { id: "held", kind: "time", line: "ws", column: "Delivery", label: "3-day workshop" },
+    {
+      id: "after",
+      kind: "cash",
+      line: "ws",
+      column: "Money",
+      label: "Card charged after",
+      sub: "$500",
     },
   ],
   tracks: [
     ...intro,
     { from: "go", to: "pick", by: "system" },
-    { from: "pick", to: "held", by: "system", label: "$0 down" },
-    { from: "held", to: "after", by: "system" },
-    { from: "pick", to: "paid", by: "system", label: "pay now" },
+    { from: "pick", to: "card", by: "system", label: "later" },
+    { from: "pick", to: "paid", by: "system", label: "now" },
+    { from: "card", to: "held", by: "system" },
+    { from: "paid", to: "held", by: "system" },
+    { from: "held", to: "after", by: "system", label: "if $0 down" },
   ],
 };
 
@@ -316,6 +345,7 @@ const ANCHOR: MetroView = {
       column: "Sales",
       label: "Show premium first",
       sub: "$16k tag",
+      icon: "anchor",
     },
     { id: "pick", kind: "ab", line: "prem", column: "Delivery", label: "Care about designer?" },
     {
@@ -365,6 +395,7 @@ const ROLLOVER: MetroView = {
       column: "Money",
       label: "Cash back",
       sub: "never hostage",
+      icon: "cashback",
     },
     {
       id: "mem",
@@ -372,7 +403,9 @@ const ROLLOVER: MetroView = {
       line: "mem",
       column: "Money",
       label: "Membership",
-      sub: "$150 not $200 / mo",
+      sub: "$150 / mo",
+      was: "$200",
+      icon: "credit",
       repeat: "monthly",
     },
   ],
@@ -391,28 +424,25 @@ const ROLLOVER: MetroView = {
 
 const PAYMENT_PLAN: MetroView = {
   title: "Payment plan downsell",
-  lines: [
-    adLine,
-    { id: "full", offer: "Paid in full", tier: "core", colour: 0 },
-    { id: "plan", offer: "Payment plan", tier: "front", colour: 1 },
-  ],
+  lines: [adLine, { id: "buy", offer: "Program", tier: "core", colour: 0 }],
   stations: [
     ad,
     hub,
-    { id: "go", kind: "ab", line: "full", column: "Sales", label: "Pay in full + bonuses?" },
-    { id: "fin", kind: "ab", line: "plan", column: "Sales", label: "Card or financing?" },
-    { id: "half", kind: "ab", line: "plan", column: "Delivery", label: "Half now, half later?" },
-    { id: "want", kind: "dec", line: "plan", column: "Delivery", label: "Still want it?" },
+    { id: "go", kind: "ab", line: "buy", column: "Sales", label: "Pay in full + bonuses?" },
+    { id: "fin", kind: "ab", line: "buy", column: "Sales", label: "Card or financing?" },
+    { id: "half", kind: "ab", line: "buy", column: "Delivery", label: "Half now, half later?" },
+    { id: "want", kind: "dec", line: "buy", column: "Delivery", label: "Still want it?" },
     {
       id: "pif",
       kind: "cash",
-      line: "full",
+      line: "buy",
       column: "Money",
       label: "Paid in full",
       sub: "all bonuses",
+      icon: "free",
     },
-    { id: "split", kind: "cash", line: "plan", column: "Money", label: "3 payments" },
-    { id: "value", kind: "exit", line: "plan", column: "Money", label: "Value problem", bad: true },
+    { id: "split", kind: "cash", line: "buy", column: "Money", label: "3 payments" },
+    { id: "value", kind: "exit", line: "buy", column: "Money", label: "Value problem", bad: true },
   ],
   tracks: [
     ...intro,
@@ -452,6 +482,7 @@ const TRIAL_PENALTY: MetroView = {
       column: "Delivery",
       label: "Free start",
       sub: "card on file",
+      icon: "free",
     },
     { id: "duty", kind: "dec", line: "trial", column: "Delivery", label: "Did every duty?" },
     {
@@ -566,6 +597,8 @@ const BONUS_CONT: MetroView = {
       column: "Money",
       label: "Prepaid 6 months",
       sub: "$960 now",
+      was: "$1,200",
+      icon: "discount",
     },
   ],
   tracks: [
@@ -579,19 +612,15 @@ const BONUS_CONT: MetroView = {
 
 const DISCOUNT_CONT: MetroView = {
   title: "Discount continuity",
-  lines: [
-    adLine,
-    { id: "end", offer: "Free months at the end", tier: "front", colour: 1 },
-    { id: "life", offer: "Spread for life", tier: "core", colour: 0 },
-  ],
+  lines: [adLine, { id: "mem", offer: "Membership", tier: "core", colour: 0 }],
   stations: [
     ad,
     hub,
-    { id: "go", kind: "ab", line: "end", column: "Sales", label: "Which discount?" },
+    { id: "go", kind: "ab", line: "mem", column: "Sales", label: "Which discount?" },
     {
       id: "year",
       kind: "cash",
-      line: "end",
+      line: "mem",
       column: "Delivery",
       label: "12 months",
       sub: "$200 / mo",
@@ -600,20 +629,22 @@ const DISCOUNT_CONT: MetroView = {
     {
       id: "quit",
       kind: "exit",
-      line: "end",
+      line: "mem",
       column: "Delivery",
       label: "Cancels early",
       sub: "loses 3 free",
       bad: true,
     },
-    { id: "free", kind: "ok", line: "end", column: "Money", label: "3 months free" },
+    { id: "free", kind: "ok", line: "mem", column: "Money", label: "3 months free", icon: "free" },
     {
       id: "rate",
       kind: "cash",
-      line: "life",
+      line: "mem",
       column: "Money",
       label: "Rate kept for life",
       sub: "$150 / mo",
+      was: "$200",
+      icon: "discount",
       repeat: "on time",
     },
   ],
@@ -628,38 +659,36 @@ const DISCOUNT_CONT: MetroView = {
 
 const WAIVED_FEE: MetroView = {
   title: "Waived fee",
-  lines: [
-    adLine,
-    { id: "mtm", offer: "Fee + month to month", tier: "front", colour: 1 },
-    { id: "yr", offer: "Year, fee waived", tier: "core", colour: 0 },
-  ],
+  lines: [adLine, { id: "mem", offer: "Membership", tier: "core", colour: 0 }],
   stations: [
     ad,
     hub,
-    { id: "go", kind: "ab", line: "mtm", column: "Sales", label: "Fee or a year?" },
+    { id: "go", kind: "ab", line: "mem", column: "Sales", label: "Fee or a year?" },
     {
       id: "fee",
       kind: "cash",
-      line: "mtm",
+      line: "mem",
       column: "Money",
       label: "Setup fee + monthly",
       sub: "cancel any time",
+      icon: "anchor",
     },
     {
       id: "year",
       kind: "cash",
-      line: "yr",
+      line: "mem",
       column: "Delivery",
       label: "Year, no fee",
+      icon: "free",
       repeat: "monthly",
     },
-    { id: "quit", kind: "dec", line: "yr", column: "Delivery", label: "Quits early?" },
-    { id: "owed", kind: "cash", line: "yr", column: "Money", label: "Pays the waived fee" },
-    { id: "stay", kind: "ok", line: "yr", column: "Money", label: "Committed client" },
+    { id: "quit", kind: "dec", line: "mem", column: "Delivery", label: "Quits early?" },
+    { id: "owed", kind: "cash", line: "mem", column: "Money", label: "Pays the waived fee" },
+    { id: "stay", kind: "ok", line: "mem", column: "Money", label: "Committed client" },
   ],
   tracks: [
     ...intro,
-    { from: "go", to: "fee", by: "system", label: "anchor" },
+    { from: "go", to: "fee", by: "system" },
     { from: "go", to: "year", by: "system", label: "commit" },
     { from: "year", to: "quit", by: "system" },
     { from: "quit", to: "owed", by: "system", label: "yes" },
@@ -676,7 +705,6 @@ export const GYM_MODEL: MetroView = {
     adLine,
     { id: "ch", offer: "Win-back challenge", tier: "front", colour: 1 },
     { id: "mem", offer: "Membership", tier: "core", colour: 0 },
-    { id: "plan", offer: "Payment plan", tier: "front", colour: 2 },
   ],
   stations: [
     ad,
@@ -690,7 +718,14 @@ export const GYM_MODEL: MetroView = {
     },
     { id: "goal", kind: "dec", line: "ch", column: "Delivery", label: "Hit the goal?" },
     { id: "pick", kind: "ab", line: "ch", column: "Delivery", label: "Cash or credit" },
-    { id: "cash", kind: "exit", line: "ch", column: "Delivery", label: "Cash back" },
+    {
+      id: "cash",
+      kind: "exit",
+      line: "ch",
+      column: "Delivery",
+      label: "Cash back",
+      icon: "cashback",
+    },
     {
       id: "pre",
       kind: "ab",
@@ -706,6 +741,8 @@ export const GYM_MODEL: MetroView = {
       column: "Money",
       label: "Prepaid",
       sub: "$960 now · continuity",
+      was: "$1,200",
+      icon: "discount",
     },
     {
       id: "mo",
@@ -714,12 +751,14 @@ export const GYM_MODEL: MetroView = {
       column: "Money",
       label: "Member",
       sub: "$150 / mo · rollover",
+      was: "$200",
+      icon: "credit",
       repeat: "monthly",
     },
     {
       id: "pp",
       kind: "cash",
-      line: "plan",
+      line: "mem",
       column: "Money",
       label: "Member on a plan",
       sub: "downsell",

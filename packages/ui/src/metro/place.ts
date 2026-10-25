@@ -31,7 +31,10 @@ const PAD = { side: 14, top: 34 } as const;
 /** The room a station takes: its marker, its name and sub above and below, a chip under it. */
 export function sizeOf(s: ViewStation): { width: number; height: number } {
   const r = s.kind === "hub" ? RADIUS.hub : 10;
-  const text = Math.max(s.label ? textWidth(s.label) : 0, s.sub ? textWidth(s.sub, 12) : 0);
+  const text = Math.max(
+    s.label ? textWidth(s.label) : 0,
+    s.sub ? textWidth(s.was ? `${s.was} ${s.sub}` : s.sub, 12) : 0,
+  );
   const words = (s.label ? 22 : 0) + (s.sub ? 15 : 0) + (s.repeat ? 26 : 0);
   return { width: Math.max(2 * r + 8, text + 8), height: 2 * r + 2 * words };
 }

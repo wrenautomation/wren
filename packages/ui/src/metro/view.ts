@@ -58,6 +58,8 @@ export interface ViewStation {
   icon?: IconName;
   /** The line under the label: a count, a price. */
   sub?: string;
+  /** The price the sub replaces, struck through before it: a discount's old price. */
+  was?: string;
   /** People in it now: zoom adds them up for a capsule. */
   now?: number;
   /** People who reached it over the window: a fold's in and out. */

@@ -43,6 +43,8 @@ export interface MarkStation {
   /** Name, and the line under it. */
   n?: string;
   s?: string;
+  /** The price the sub replaces, struck through before it. */
+  was?: string;
   /** The glyph of what it does (an email, a call); else its kind's. */
   icon?: IconName;
   /** Where the name sits. */

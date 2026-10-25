@@ -85,8 +85,8 @@ const marked = (name: string, mark: Mark | undefined) =>
   mark ? `${name}, ${MARK_WORD[mark]}` : name;
 
 /** What a mark says to a screen reader: its name, its count and its diff mark. */
-const nameOf = (s: Pick<MarkStation, "n" | "s" | "t" | "mark">) =>
-  marked(s.n ? (s.s ? `${s.n}, ${s.s}` : s.n) : s.t, s.mark);
+const nameOf = (s: Pick<MarkStation, "n" | "s" | "was" | "t" | "mark">) =>
+  marked(s.n ? (s.s ? `${s.n}, ${s.was ? `was ${s.was}, ` : ""}${s.s}` : s.n) : s.t, s.mark);
 
 /**
  * The small tag of a diff mark: a dot with + (added), ~ (changed) or the minus sign (removed).
@@ -453,6 +453,11 @@ export function Marker({
               textAnchor={lab.anchor}
               {...delay(at, LABEL_LAG)}
             >
+              {s.was ? (
+                <>
+                  <tspan className="was">{s.was}</tspan>{" "}
+                </>
+              ) : null}
               <Num text={s.s} on={at !== undefined} />
             </text>
           ) : null}

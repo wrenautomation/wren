@@ -273,6 +273,7 @@ type LabelStation = Pick<
   | "r"
   | "n"
   | "s"
+  | "was"
   | "p"
   | "rep"
   | "repGlyph"
@@ -307,6 +308,10 @@ export function labelOf(s: LabelStation) {
   return { p, anchor, x, y, sub: y + 15, tag, r };
 }
 
+/** The sub line as it reads: the struck price first, when there is one. */
+export const subText = (s: { s?: string | undefined; was?: string | undefined }): string =>
+  s.was && s.s ? `${s.was} ${s.s}` : (s.s ?? "");
+
 /** The boxes of a station's name, its sub and its diff tag. Empty when it has no name. */
 export function labelBoxes(s: LabelStation): Box[] {
   if (!s.n) return [];
@@ -320,7 +325,7 @@ export function labelBoxes(s: LabelStation): Box[] {
   const [n0, n1] = at(textWidth(s.n));
   const out: Box[] = [{ x0: n0, y0: l.y - 11, x1: n1, y1: l.y + 4 }];
   if (s.s) {
-    const [s0, s1] = at(textWidth(s.s, 12));
+    const [s0, s1] = at(textWidth(subText(s), 12));
     out.push({ x0: s0, y0: l.sub - 9.5, x1: s1, y1: l.sub + 3.5 });
   }
   if (s.mark) out.push(tagBox(l.tag));
