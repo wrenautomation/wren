@@ -32,6 +32,7 @@ import {
   soundFile,
   spaced,
 } from "./sounds.js";
+import { LOUDNESS } from "./loudness.js";
 import { besideAt, eventsIn, paneOf, paneSeconds, type Take, type TakePane } from "./take.js";
 
 export * from "./promo-clock.js";
@@ -323,6 +324,8 @@ export type PromoProps = {
   height: number;
   look: Look;
   audio: AudioProps;
+  /** The finished film's integrated loudness, LUFS: `LOUDNESS.i`, or `SOFT.bedLufs` when soft. */
+  lufs: number;
   finish: { glow: boolean; dither: boolean };
   scenes: TimedScene[];
 };
@@ -572,6 +575,7 @@ export function promoProps(
       fps,
       script.sounds === "soft" ? SOFT.bedLufs : FX_BED_LUFS.music,
     ),
+    lufs: script.sounds === "soft" ? SOFT.bedLufs : LOUDNESS.i,
     finish: script.finish,
     scenes,
   };

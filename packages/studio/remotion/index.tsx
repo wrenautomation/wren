@@ -1740,6 +1740,7 @@ const PROMO_PLACEHOLDER: PromoProps = {
   height: 1080,
   look: DEFAULT_LOOK,
   audio: { sounds: [], music: null },
+  lufs: -14,
   finish: { glow: false, dither: false },
   scenes: [
     {

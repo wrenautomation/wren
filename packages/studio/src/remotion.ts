@@ -234,7 +234,7 @@ export async function renderPromo(
       ...["render", bundle, "Promo", mp4, "--props", file],
       ...["--codec=h264", "--hardware-acceleration=if-possible", "--video-bitrate=10M"],
     ]);
-    await normalizeLoudness(mp4, ffmpeg);
+    await normalizeLoudness(mp4, ffmpeg, { i: props.lufs });
     return mp4;
   });
 }

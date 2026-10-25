@@ -196,8 +196,11 @@ describe("take scene", () => {
 
   it("plays soft: a low tap on each click under a -16 LUFS bed, and nothing else", () => {
     const soft = promoScript.parse({ ...script, sounds: "soft" });
-    const audio = promoProps(soft, {}, { takes: { t1: take } }).audio;
+    const quiet = promoProps(soft, {}, { takes: { t1: take } });
+    const audio = quiet.audio;
     const loud = promoProps(script, {}, { takes: { t1: take } }).audio;
+    expect(quiet.lufs).toBe(-16);
+    expect(promoProps(script, {}, { takes: { t1: take } }).lufs).toBe(-14);
     expect(audio.sounds.length).toBe(1);
     expect(audio.sounds[0]?.file).toMatch(/land-light/);
     expect(loud.sounds.length).toBeGreaterThan(audio.sounds.length);
