@@ -14,7 +14,7 @@ export const FACTS_PAGE = "/marketing/facts";
 export const FACTS_DROP = "made things up: ";
 
 export const DEFAULT_FACTS: readonly string[] = [
-  "I'm William, the founder of Wren Automation, a one-person automation agency.",
+  "I'm William. I founded and run Wren Automation, a one-person automation agency.",
   "I built Wren's cold email system: it finds leads, checks each address, writes each email, sends from a fleet of inboxes and reads the replies.",
   "I built autobrowse, a browser automation tool on npm that signs in to sites and runs tasks on them.",
   "I built a lead reactivation product: it researches a business's old CRM contacts and drafts messages to win them back.",

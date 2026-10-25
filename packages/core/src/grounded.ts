@@ -34,8 +34,9 @@ const sentences = (s: string) =>
     .filter(Boolean);
 
 // Past tense of doing things: a story about the writer. Reactions to the post ("I liked") pass.
+// "-eed" words ("need", "feed") are present tense.
 const DID =
-  "built|ran|run|paid|made|sold|saw|seen|found|got|did|done|spent|lost|grew|led|took|went|wrote|hit|cut|won|brought|bought|began|kept|left|met|put|set|told|gave|chose|drove|held|taught|spoke|heard|been|had|[a-z]{2,}ed";
+  "built|ran|run|paid|made|sold|saw|seen|found|got|did|done|spent|lost|grew|led|took|went|wrote|hit|cut|won|brought|bought|began|kept|left|met|put|set|told|gave|chose|drove|held|taught|spoke|heard|been|had|(?![a-z]*eed\\b)[a-z]{2,}ed";
 const REACTION = new Set([
   "liked",
   "loved",
@@ -106,6 +107,29 @@ const contentWords = (s: string, drop: (w: string) => boolean = () => false) =>
       .filter((w) => w.length >= 2),
   );
 
+// A clause starts where a new subject or a new deed does: "I founded Wren, and I built X",
+// "I run Wren and built X". "At Wren, clients book more" stays one clause.
+const CLAUSE = new RegExp(
+  `(?:[,;:]|\\s[—–])\\s+(?:(?:and|but|so|then)\\s+)?(?=(?:i|we|you|it|they|he|she)\\b)|\\s+(?:and|but|so)\\s+(?=(?:i|we|${DID}|build|make|help|write|send|use)\\b)`,
+  "i",
+);
+const SUBJECT = /^(?:i|we)\b/i;
+
+/** A sentence's clauses. One that starts on a past deed takes the subject before it ("and built X" reads "i built X"). */
+function clauses(sentence: string): string[] {
+  const out: string[] = [];
+  let subject: string | null = null;
+  for (const piece of norm(sentence).split(CLAUSE)) {
+    const c = piece.trim();
+    if (!c) continue;
+    const own = SUBJECT.exec(c)?.[0] ?? null;
+    const deed = VERBS.test(c.split(/\s+/)[0]?.toLowerCase() ?? "");
+    out.push(!own && subject && deed ? `${subject} ${c}` : c);
+    subject = own ?? subject;
+  }
+  return out;
+}
+
 /**
  * A claim is backed when one fact or one of his own sentences says the same deed ("built" backs
  * "built", never "booked") and most of the rest of what it says.
@@ -156,10 +180,15 @@ export function numbersIn(text: string): { text: string; value: number }[] {
 export function groundingFlags(draft: string, g: Grounding): GroundingFlag[] {
   const flags: GroundingFlag[] = [];
   const backers = [...g.facts, ...(g.own ?? []).flatMap(sentences)];
-  for (const s of sentences(draft)) {
-    const claim = claimIn(s);
-    if (claim && !backed(s, claim, backers)) flags.push({ kind: "claim", text: s });
-  }
+  // Each clause's claim needs its own backer, so one sentence may stand on two facts.
+  for (const s of sentences(draft))
+    if (
+      clauses(s).some((c) => {
+        const claim = claimIn(c);
+        return claim !== null && !backed(c, claim, backers);
+      })
+    )
+      flags.push({ kind: "claim", text: s });
   const known = new Set(
     [...g.facts, ...g.sources, ...(g.own ?? [])].flatMap((t) => numbersIn(t).map((n) => n.value)),
   );

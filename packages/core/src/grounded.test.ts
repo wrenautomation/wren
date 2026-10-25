@@ -66,6 +66,18 @@ describe("made up: flagged", () => {
       ["claim"],
     ],
     [
+      "an intro does not back the rest",
+      "Most agencies chase new logos.",
+      "At Wren, clients book twice the calls.",
+      ["claim"],
+    ],
+    [
+      "a carried subject still needs a fact",
+      "Most agencies chase new logos.",
+      "I run Wren Automation and sold it to a staffing firm.",
+      ["claim"],
+    ],
+    [
       "in my experience",
       "Follow-up is where deals die.",
       "In my experience the second call matters more than the first.",
@@ -116,6 +128,17 @@ describe("grounded: passes", () => {
       "I built the inbox tool myself, so it bends to the job.",
       ["I built the inbox tool myself."],
     ],
+    [
+      "two facts in one sentence",
+      "Old leads sit in every CRM.",
+      "I founded Wren Automation, and I built a lead reactivation tool for old CRM contacts.",
+    ],
+    [
+      "a subject carried to the next deed",
+      "Old leads sit in every CRM.",
+      "I run Wren Automation and built a lead reactivation tool for old CRM contacts.",
+    ],
+    ["need is not a deed", "Want a call?", "All I need is a quick call to get started."],
     ["saying nothing", "Anything.", ""],
   ];
   for (const [name, post, draft, own] of cases)
