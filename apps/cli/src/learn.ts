@@ -16,6 +16,7 @@ import type { Db } from "@wren/db";
 import {
   addCollection,
   askSop,
+  BROKEN_DOWN,
   breakdownItem,
   breakdowns,
   type CatalogReader,
@@ -54,6 +55,12 @@ import {
   writeAsked,
   writeClientAsked,
 } from "@wren/learn";
+import { ITEM_KINDS, type ItemKind } from "@wren/learn/schema";
+
+const itemKindOf = (raw: string): ItemKind => {
+  if ((ITEM_KINDS as readonly string[]).includes(raw)) return raw as ItemKind;
+  throw new Error(`--kind is one of ${ITEM_KINDS.join(", ")}`);
+};
 import {
   ClaudeCodeLlm,
   fleetKeys,
@@ -286,7 +293,8 @@ export function registerLearn(
     .option("--title <title>", "blank takes the page's own")
     .option("--model <name>", "the scoring model", "cohere")
     .option("--no-read", "only save it: the Mac's next `learn read` takes it")
-    .action(async (url: string, o: { title?: string; model: string; read: boolean }) =>
+    .option("--kind <kind>", `what it is, when the link doesn't say: ${ITEM_KINDS.join(", ")}`)
+    .action(async (url: string, o: { title?: string; model: string; read: boolean; kind?: string }) =>
       json(
         // A profile is its newest reels: the catalog's first pass.
         creatorOf(url)
@@ -298,6 +306,7 @@ export function registerLearn(
                 by: BY,
                 via: "cli",
                 title: o.title ?? null,
+                ...(o.kind ? { kind: itemKindOf(o.kind) } : {}),
               });
               if (!saved.unread || !o.read) return saved;
               const r = needsMac(saved.kind)
@@ -441,7 +450,7 @@ export function registerLearn(
                   .where(
                     and(
                       eq(items.client, client),
-                      inArray(items.kind, ["reel", "video"]),
+                      inArray(items.kind, [...BROKEN_DOWN]),
                       isNotNull(items.transcript),
                       isNull(breakdowns.itemId),
                     ),

@@ -183,7 +183,7 @@ export async function instagramPage(
       const video = m.media_type === "VIDEO" || m.media_product_type === "REELS";
       const text = m.caption?.trim() ?? "";
       return {
-        kind: video ? "reel" : "article",
+        kind: video ? "reel" : "post",
         url: m.permalink as string,
         title: titleOf(text, `@${by} post`),
         text,
@@ -225,7 +225,7 @@ async function xPosts(sites: SiteClient, handle: string): Promise<CreatorPost[]>
   return (a.data ?? [])
     .filter((t) => !t.pinned && !t.reposted_by && t.text.trim())
     .map((t) => ({
-      kind: "article" as const,
+      kind: "post" as const,
       url: `https://x.com/${t.author_username}/status/${t.id}`,
       title: titleOf(t.text, `@${t.author_username} post`),
       text: t.text,

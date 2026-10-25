@@ -9,7 +9,7 @@ entity: packages/learn/src/schema.ts:313
 
 # breakdown (Learn)
 
-How one reel or video is made: its hook style from a fixed set (`HOOK_STYLES`), the hook line and why it works, topic, format, beats with times, the call to action. Table `learn.breakdowns`, one row an [[learn/item]]. Learn → Competitors reads it beside the post's numbers (`items.stats`).
+How one item is made: its hook style from a fixed set (`HOOK_STYLES`, the same set for every kind), the hook line and why it works, topic, beats with times, the call to action, and in `facts` what its kind's rubric adds (a reel's `format`; a post's shape and counts; a film's shots). `kind` is the item's kind when it was broken down; `BROKEN_DOWN` (`breakdown.ts`) lists the kinds with a rubric. Table `learn.breakdowns`, one row an [[learn/item]]. Design: `designs/2026-10-25-competitor-analyzer.md`. Learn → Competitors reads it beside the post's numbers (`items.stats`).
 
 ## Why this shape
 

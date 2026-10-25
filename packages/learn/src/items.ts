@@ -24,14 +24,22 @@ export interface Saved {
 
 /**
  * Save a link. The same link twice in a workspace is one item: a second save only marks it saved
- * again. One the feed already brought keeps its read and score, and comes back from done.
+ * again. One the feed already brought keeps its read and score, and comes back from done. `kind`
+ * overrides what the link says: a launch film on YouTube is a `film`, not a `video`.
  */
 export async function saveLink(
   db: Db,
-  p: { client: string; url: string; by: string | null; via: Via; title?: string | null },
+  p: {
+    client: string;
+    url: string;
+    by: string | null;
+    via: Via;
+    title?: string | null;
+    kind?: ItemKind;
+  },
 ): Promise<Saved> {
   const url = cleanUrl(p.url);
-  const kind = kindOf(url);
+  const kind = p.kind ?? kindOf(url);
   const now = new Date();
   const [row] = await db
     .insert(items)

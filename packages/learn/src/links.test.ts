@@ -44,7 +44,9 @@ describe("kindOf", () => {
     expect(kindOf("https://youtube.com/shorts/abc123XYZ_-")).toBe("reel");
     expect(kindOf("https://instagram.com/reel/Cabc123")).toBe("reel");
     expect(kindOf("https://tiktok.com/@someone/video/123")).toBe("reel");
-    expect(kindOf("https://x.com/someone/status/123")).toBe("reel");
+    expect(kindOf("https://x.com/someone/status/123")).toBe("post");
+    expect(kindOf("https://instagram.com/p/Cabc123")).toBe("post");
+    expect(kindOf("https://www.threads.net/@someone/post/Cabc")).toBe("post");
     expect(kindOf("https://example.substack.com/p/a-post")).toBe("article");
     expect(kindOf("https://example.com/ep/1", "https://cdn.example.com/1.mp3")).toBe("episode");
   });

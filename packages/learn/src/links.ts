@@ -44,20 +44,26 @@ export function cleanUrl(raw: string): string {
 
 const REEL_HOST = /(^|\.)(instagram\.com|tiktok\.com|x\.com|twitter\.com|threads\.net)$/i;
 
-/** What an address is: a YouTube video, a short video elsewhere, or text. An audio enclosure is an episode. */
+/**
+ * What an address is: a YouTube video, a short video elsewhere, a social post, or text. An audio
+ * enclosure is an episode. A film is never told from its link: it is saved as one (`learn add
+ * --kind film`).
+ */
 export function kindOf(clean: string, audio?: string | null): ItemKind {
   if (audio) return "episode";
   const url = new URL(clean);
   if (youtubeId(url)) return url.pathname.startsWith("/shorts/") ? "reel" : "video";
   if (REEL_HOST.test(url.hostname)) {
-    if (/instagram\.com$/i.test(url.hostname))
-      return /^\/(reel|reels|p|tv)\//.test(url.pathname) ? "reel" : "article";
+    if (/instagram\.com$/i.test(url.hostname)) {
+      if (/^\/(reel|reels|tv)\//.test(url.pathname)) return "reel";
+      return /^\/p\//.test(url.pathname) ? "post" : "article";
+    }
     if (/tiktok\.com$/i.test(url.hostname))
       return /\/video\/|^\/t\//.test(url.pathname) || /^vm\./.test(url.hostname)
         ? "reel"
         : "article";
-    // An X or Threads post may be text only; the reader tells, so it's read as a reel.
-    return /\/status\/|\/post\//.test(url.pathname) ? "reel" : "article";
+    // An X or Threads post is read whole as its site gives it; a clip in it is the post's picture.
+    return /\/status\/|\/post\//.test(url.pathname) ? "post" : "article";
   }
   return "article";
 }
@@ -68,7 +74,7 @@ export function kindOf(clean: string, audio?: string | null): ItemKind {
  * from its show notes.
  */
 export const needsMac = (kind: ItemKind, media?: string | null): boolean =>
-  kind === "video" || kind === "reel" || (kind === "episode" && !!media);
+  kind === "video" || kind === "reel" || kind === "film" || (kind === "episode" && !!media);
 
 /** The site a social profile is on, for a follow that isn't a creator Learn reads (`creatorOf`). */
 export function creatorSite(raw: string): string | null {

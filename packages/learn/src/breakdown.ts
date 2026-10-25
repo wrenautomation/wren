@@ -1,8 +1,9 @@
 /**
- * How a reel or video is made (designs/2026-10-11-competitor-breakdowns.md): its hook style from a
- * fixed set, the hook line and why it works, the beats, the call to action. Read off the
- * transcript once it is read, by the same judge that scored it (a client's on its own allowance).
- * The style set is fixed so reels group: "which hook reaches in my space" is a count, not a read.
+ * How an item is made (designs/2026-10-11-competitor-breakdowns.md, 2026-10-25-competitor-analyzer.md):
+ * its hook style from a fixed set, the hook line and why it works, the beats, the call to action,
+ * and its kind's facts. Read off the transcript once it is read, by the same judge that scored it
+ * (a client's on its own allowance). The style set is fixed and the same for every kind, so items
+ * group: "which hook reaches in my space" is a count, not a read.
  */
 import { isVendorStop } from "@wren/core/metered";
 import type { Db } from "@wren/db";
@@ -16,6 +17,7 @@ import {
   CTA_KINDS,
   HOOK_STYLES,
   type HookStyle,
+  type ItemKind,
   items,
   POST_FORMATS,
 } from "./schema.js";
@@ -25,8 +27,10 @@ import type { JudgeFor } from "./score.js";
 const PROMPT_TEXT = 6_000;
 const TRIES = 2;
 
-/** The kinds that have a hook and beats to read. */
-const BROKEN_DOWN = new Set(["reel", "video"]);
+/** The kinds with a rubric: a hook, beats and facts to read. */
+export const BROKEN_DOWN = ["reel", "video"] as const satisfies readonly ItemKind[];
+const isBrokenDown = (k: ItemKind): k is (typeof BROKEN_DOWN)[number] =>
+  (BROKEN_DOWN as readonly string[]).includes(k);
 
 /** Each style as the model is told it: what the opening does. */
 export const HOOK_STYLE_ABOUT: Record<HookStyle, string> = {
@@ -97,7 +101,7 @@ export async function breakdownItem(db: Db, judgeFor: JudgeFor, id: number): Pro
     .where(eq(items.id, id));
   if (!row || row.done !== null) return false;
   const { item } = row;
-  if (!BROKEN_DOWN.has(item.kind) || !item.readAt || !item.transcript) return false;
+  if (!isBrokenDown(item.kind) || !item.readAt || !item.transcript) return false;
   const judge = await judgeFor(item.client);
   if (judge.wait || !judge.llm) return false;
   const prompt = breakdownPrompt({ title: item.title, url: item.url, text: item.transcript });
@@ -121,7 +125,8 @@ export async function breakdownItem(db: Db, judgeFor: JudgeFor, id: number): Pro
         hook: v.hook,
         hookWhy: v.hook_why,
         topic: v.topic,
-        format: v.format,
+        kind: item.kind,
+        facts: { format: v.format },
         beats: beatsOf(v.beats),
         ctaKind: v.cta_kind,
         cta: v.cta_kind === "none" ? null : (v.cta ?? null),

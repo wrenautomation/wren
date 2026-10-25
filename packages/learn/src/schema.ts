@@ -82,8 +82,12 @@ export type Tell = (typeof TELLS)[number];
 /** The score "top" alerts at. */
 export const TOP_SCORE = 8;
 
-/** article: text. video: YouTube. reel: a short off YouTube (Instagram, TikTok, X). episode: a podcast's. */
-export const ITEM_KINDS = ["article", "video", "reel", "episode"] as const;
+/**
+ * article: text (a blog, a newsletter). video: YouTube. reel: a short off YouTube (Instagram,
+ * TikTok). post: a text, image or carousel post (LinkedIn, X, Instagram, Threads). film: a produced
+ * launch or demo film. episode: a podcast's.
+ */
+export const ITEM_KINDS = ["article", "video", "reel", "post", "film", "episode"] as const;
 
 /** A post's public numbers; each only when its platform gives it (Instagram: no views). */
 export interface PostStats {
@@ -267,8 +271,10 @@ export const items = learn.table(
 );
 
 /**
- * How a reel or video is made (`breakdown.ts`): its hook style from a fixed set, the hook line,
- * the beats, the call to action. One row an item, written once its transcript is read.
+ * How an item is made (`breakdown.ts`, designs/2026-10-25-competitor-analyzer.md): its hook style
+ * from a fixed set, the hook line, the beats, the call to action, and in `facts` what its kind's
+ * rubric adds (a reel's format, a post's shape and counts, a film's shots). One row an item,
+ * written once it is read.
  */
 export const HOOK_STYLES = [
   "contrarian",
@@ -320,7 +326,10 @@ export const breakdowns = learn.table(
     /** Why the hook works, one sentence. */
     hookWhy: text("hook_why").notNull(),
     topic: text("topic").notNull(),
-    format: varchar("format", { length: 16, enum: POST_FORMATS }).notNull(),
+    /** The item's kind when it was broken down: which rubric `facts` follows. */
+    kind: varchar("kind", { length: 8, enum: ITEM_KINDS }).notNull(),
+    /** The kind's facts, checked by its rubric's schema at write time (`FACTS` in breakdown.ts). */
+    facts: jsonb("facts").$type<Record<string, unknown>>().notNull().default({}),
     beats: jsonb("beats").$type<Beat[]>().notNull().default([]),
     ctaKind: varchar("cta_kind", { length: 12, enum: CTA_KINDS }).notNull(),
     /** The ask, as said; null with `none`. */
@@ -335,8 +344,9 @@ export const breakdowns = learn.table(
       name: "fk_breakdowns_item_id_items",
     }).onDelete("cascade"),
     index("ix_learn_breakdowns_hook_style").on(t.hookStyle),
+    index("ix_learn_breakdowns_kind").on(t.kind),
     oneOf("ck_learn_breakdowns_hook_style", t.hookStyle, HOOK_STYLES),
-    oneOf("ck_learn_breakdowns_format", t.format, POST_FORMATS),
+    oneOf("ck_learn_breakdowns_kind", t.kind, ITEM_KINDS),
     oneOf("ck_learn_breakdowns_cta_kind", t.ctaKind, CTA_KINDS),
   ],
 );
@@ -657,7 +667,7 @@ export const breakdownRecords = learn
     select i.id, i.title, coalesce(i.creator, s.name) creator, coalesce(s.name, 'Saved') source,
       i.source_id, case when i.source_id is null then 'saved' else 'followed' end followed,
       i.type::text type, i.kind::text kind, b.hook_style::text hook_style, b.hook, b.hook_why,
-      b.topic, b.format::text format,
+      b.topic, b.facts->>'format' format,
       (select string_agg(case when x.value->>'t' is null then '' else
           '[' || ((x.value->>'t')::int / 60) || ':' || lpad(((x.value->>'t')::int % 60)::text, 2, '0') || '] ' end
           || (x.value->>'beat'), chr(10) order by x.ordinality)
