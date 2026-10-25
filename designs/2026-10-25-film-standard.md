@@ -52,6 +52,9 @@ New, all in the promo script and `remotion/index.tsx`:
    with its lines, not with empty rows. Camera points move into the crop's space.
 9. Script `sounds: "soft"`: the bed at -16 LUFS, one low tap per click 18 dB under it, nothing else.
    The finished film is leveled to -16 LUFS, not -14.
+10. Take and screen `caption`: the words blur in and rise one by one (`CaptionWords`, the cards' curve).
+    Under a lens the caption sits on the shot, lower left, over a dark scrim (`OverCaption`), so the window
+    keeps the full frame. Without a lens it stays under the window. The scene's own fade takes it out.
 
 Not used, on purpose:
 - `@remotion/three`: a video on a WebGL plane re-samples the page and softens small text.
@@ -69,15 +72,15 @@ Real recordings with `autobrowse film`. Learn comes from Storybook on synthetic 
 | 1 | 3 | Terminal: `autobrowse cloudflare-token …`, typed | rack |
 | 2 | 5 | Cloudflare: the agent names the token and picks its permission | roll |
 | 3 | 3 | Create Token clicked, then the terminal's `stored as` line (account id masked) | macro |
-| 4 | 3 | Card: William's words (placeholder `THE FLOW`) | caps |
-| 5 | 4 | The flow's source (`cloudflare-token.ts`) in the terminal | track |
-| 6 | 5 | X: the agent writes a post, stops before Post | orbit |
-| 7 | 5 | LinkedIn (the Wren page): the same, stops before Post | roll |
-| 8 | 4 | Learn, from Storybook: Today, the alerts, Home | push |
-| 9 | 3 | Terminal: `autobrowse workflows` and `flows` | pull |
-| 10 | 7 | End: pill into the wordmark, `npm i @wrenautomation/autobrowse` | pill |
+| 4 | 4 | The flow's source (`cloudflare-token.ts`) in the terminal | track |
+| 5 | 5 | X: the agent writes a post, stops before Post | orbit |
+| 6 | 5 | LinkedIn (the Wren page): the same, stops before Post | roll |
+| 7 | 4 | Learn, from Storybook: Today, the alerts, Home | push |
+| 8 | 3 | Terminal: `autobrowse workflows` and `flows` | pull |
+| 9 | 7 | End: pill into the wordmark, `npm i @wrenautomation/autobrowse` | pill |
 
-Nothing posts. A post needs William's yes and his caption. Every shot is a real run: the token is
+Each shot has one caption that says what the tool does in it (mine, 10-25). Nothing posts. A post needs
+William's yes. Every shot is a real run: the token is
 a real one with one read permission, revoked after the take. The flow never shows the token's value.
 The account id and the account's email sit under `mask` blocks (a take scene's `mask`, px on the pane,
 for a time range), or the cut skips them.
@@ -88,3 +91,5 @@ for a time range), or the cut skips them.
   Figtree for the wordmark (07 v3 frames). Sound: bed plus soft UI ticks, sample first.
 - 2026-10-25: brand rules moved to `sops/launch-films/notes.md` (William's yes). Kit built: lens, dip,
   card, caps, swap, tagline, pill, dark theme. `tilt` dropped: each move sets its own angles.
+- 2026-10-25: captions on every take; the `THE FLOW` card dropped, the flow shot's caption says it.
+  A caption under a lens overlays the shot: a reserved strip shrank the window and wasted the lens.

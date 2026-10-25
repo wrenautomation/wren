@@ -932,6 +932,62 @@ const Vignette: FC = () => (
   />
 );
 
+/** A caption's words blur in and rise, one after another, on the cards' curve. */
+const CaptionWords: FC<{ text: string }> = ({ text }) => {
+  const f = useBeat();
+  const u = useUnit();
+  const words = text.split(/\s+/).map((word, i) => {
+    const p = easeOut((f - 8 - i * 3) / 12);
+    return (
+      <span
+        // biome-ignore lint/suspicious/noArrayIndexKey: a word may repeat; its place is its identity
+        key={i}
+        style={{
+          display: "inline-block",
+          whiteSpace: "pre",
+          opacity: p,
+          transform: p < 0.999 ? `translateY(${((1 - p) * 10 * u).toFixed(2)}px)` : undefined,
+          filter: p < 0.999 ? `blur(${((1 - p) * 10 * u).toFixed(2)}px)` : undefined,
+        }}
+      >
+        {i ? ` ${word}` : word}
+      </span>
+    );
+  });
+  return <>{words}</>;
+};
+
+/**
+ * Under a lens the shot fills the frame: the caption sits on it, lower left, over a scrim that
+ * keeps it legible on a light page. Always light text, since the scrim is always dark.
+ */
+const OverCaption: FC<{ text: string }> = ({ text }) => {
+  const u = useUnit();
+  return (
+    <AbsoluteFill style={{ pointerEvents: "none" }}>
+      <AbsoluteFill
+        style={{ background: "linear-gradient(to top, rgba(0,0,0,.72), rgba(0,0,0,0) 36%)" }}
+      />
+      <div
+        style={{
+          position: "absolute",
+          left: 110 * u,
+          right: 110 * u,
+          bottom: 96 * u,
+          fontSize: 46 * u,
+          lineHeight: 1.2,
+          fontWeight: 600,
+          letterSpacing: "-0.02em",
+          color: "#ececee",
+          textShadow: `0 ${2 * u}px ${18 * u}px rgba(0,0,0,.5)`,
+        }}
+      >
+        <CaptionWords text={text} />
+      </div>
+    </AbsoluteFill>
+  );
+};
+
 /** The word a swap shows `f` beats in: the line's own, then each swap in turn after `hold` beats. */
 const swapWord = (own: string, swap: readonly string[], f: number, hold: number) => {
   const i = f < hold ? 0 : Math.min(swap.length, 1 + Math.floor((f - hold) / SWAP_BEATS));
@@ -1162,7 +1218,7 @@ const PromoScreen: FC<{ s: Scene<"screen">; look: Look }> = ({ s, look }) => {
   const p = f / Math.max(1, s.frames - 1);
   const cam = cameraAt(s.moves, p);
   const pad = 70 * u;
-  const capH = s.caption ? 120 * u : 0;
+  const capH = s.caption && !s.lens ? 120 * u : 0;
   const { w, h } = fitBox(s.size, width - pad * 2, height - pad * 2 - capH);
   // Under a lens the moves give the focus point; the lens owns the zoom.
   const { scale, tx, ty } = framing(s.lens ? { ...cam, zoom: 1 } : cam, w, h);
@@ -1230,7 +1286,8 @@ const PromoScreen: FC<{ s: Scene<"screen">; look: Look }> = ({ s, look }) => {
         </div>
       </Lensed>
       {s.lens?.light ? <Vignette /> : null}
-      {s.caption ? (
+      {s.caption && s.lens ? <OverCaption text={s.caption} /> : null}
+      {s.caption && !s.lens ? (
         <div
           style={{
             width: w,
@@ -1243,7 +1300,7 @@ const PromoScreen: FC<{ s: Scene<"screen">; look: Look }> = ({ s, look }) => {
             color: look.foreground,
           }}
         >
-          {s.caption}
+          <CaptionWords text={s.caption} />
         </div>
       ) : null}
     </AbsoluteFill>
@@ -1464,7 +1521,7 @@ const PromoTake: FC<{ s: Scene<"take">; look: Look }> = ({ s, look }) => {
   const pad = 70 * u;
   const gap = 36 * u;
   const bar = 46 * u;
-  const capH = s.caption ? 120 * u : 0;
+  const capH = s.caption && !s.lens ? 120 * u : 0;
   const roomW = width - pad * 2 - (tall ? 0 : gap * (panes.length - 1));
   const roomH =
     height -
@@ -1524,7 +1581,8 @@ const PromoTake: FC<{ s: Scene<"take">; look: Look }> = ({ s, look }) => {
         </div>
       </Lensed>
       {s.lens?.light ? <Vignette /> : null}
-      {s.caption ? (
+      {s.caption && s.lens ? <OverCaption text={s.caption} /> : null}
+      {s.caption && !s.lens ? (
         <div
           style={{
             width: capW,
@@ -1539,7 +1597,7 @@ const PromoTake: FC<{ s: Scene<"take">; look: Look }> = ({ s, look }) => {
             color: look.foreground,
           }}
         >
-          {s.caption}
+          <CaptionWords text={s.caption} />
         </div>
       ) : null}
     </AbsoluteFill>
