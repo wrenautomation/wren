@@ -323,6 +323,8 @@ export const settingsSchema = z.object({
   ffmpeg: z.string().min(1).default("ffmpeg"),
   /** The yt-dlp command SOP sources are read with (split on spaces: `uvx yt-dlp`). */
   ytDlp: z.string().min(1).default("yt-dlp"),
+  /** The PySceneDetect command a film's cuts are found with (split on spaces). */
+  sceneDetect: z.string().min(1).default("uvx scenedetect"),
   /** Where SOP folders live (relative to the repo root): private, not this repo. */
   sopsDir: z.string().min(1).default("../sops"),
   /** The autobrowse checkout whose CLI (and tokens) `sop add drive:` runs. */
@@ -720,6 +722,7 @@ export const ENV_KEYS = {
   videosWatchBase: "WREN_VIDEOS_WATCH_BASE",
   ffmpeg: "WREN_FFMPEG",
   ytDlp: "WREN_YT_DLP",
+  sceneDetect: "WREN_SCENEDETECT",
   sopsDir: "WREN_SOPS_DIR",
   autobrowseDir: "WREN_AUTOBROWSE_DIR",
   booksBucket: "WREN_BOOKS_BUCKET",

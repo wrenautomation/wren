@@ -93,3 +93,4 @@ Our posted pieces get breakdowns. `learn.standards` joins their deep numbers (ho
 - 2026-10-25: William: one hook-style set across kinds; no scores; the system is the SOP loop, he decides, the machine does the rest.
 - 2026-10-25: detector: hash default, adaptive second, ffmpeg out of the trust vote (seed f0a242e5).
 - 2026-10-25: William: `points/` generated only, calls replace line deletes; film rules move to `sops/launch-films/notes.md`.
+- 2026-10-25: builds 2 and 3: `post` counts in code, `film` facts off a `## Facts` fence in the read page (one write path, offline re-breakdown), `breakdowns.by` (model | hand), `learn import-films` for the seed, `WREN_SCENEDETECT`.

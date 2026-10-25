@@ -8,6 +8,7 @@
  * reads a creator's back catalog a few reels a pass (Instagram through the desk, TikTok by yt-dlp).
  * Nothing here signs in to any social account.
  */
+import { readFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import type { Settings } from "@wren/config";
 import { contentPlaybooks } from "@wren/content/schema";
@@ -43,6 +44,8 @@ import {
   saveLink,
   scoreItem,
   searchItems,
+  seedFilmFacts,
+  seedStudySchema,
   sourcesByKind,
   TELLS,
   type Tell,
@@ -61,6 +64,7 @@ const itemKindOf = (raw: string): ItemKind => {
   if ((ITEM_KINDS as readonly string[]).includes(raw)) return raw as ItemKind;
   throw new Error(`--kind is one of ${ITEM_KINDS.join(", ")}`);
 };
+
 import {
   ClaudeCodeLlm,
   fleetKeys,
@@ -148,12 +152,20 @@ export function registerLearn(
     const geminiKeys = fleetKeys(process.env, "gemini");
     return async ({ url, kind, title, creator, mediaUrl }) => {
       const youtube = /^https:\/\/youtube\.com\//.test(url);
+      // A film is watched, never read from its captions: its cuts are the point (`filmFacts`).
       const s =
         kind === "episode" && mediaUrl
           ? await audioSource(mediaUrl, { url, title, creator, geminiKeys })
-          : youtube
-            ? await youtubeSource(url, settings.ytDlp, undefined, { geminiKeys })
-            : await videoSource(url, settings.ytDlp, undefined, watchKeys(settings, rootDir));
+          : kind === "film"
+            ? await videoSource(url, settings.ytDlp, undefined, {
+                ...watchKeys(settings, rootDir),
+                sceneDetect: settings.sceneDetect,
+              })
+            : youtube
+              ? await youtubeSource(url, settings.ytDlp, undefined, {
+                  geminiKeys,
+                })
+              : await videoSource(url, settings.ytDlp, undefined, watchKeys(settings, rootDir));
       return { file: s.name, md: s.md };
     };
   };
@@ -197,7 +209,11 @@ export function registerLearn(
   ) => {
     const read = reader();
     const judge = judgeFor(db, o.model);
-    const out: Array<{ id: number; read: string | null; verdict: string | null }> = [];
+    const out: Array<{
+      id: number;
+      read: string | null;
+      verdict: string | null;
+    }> = [];
     // TikTok creators are listed here (yt-dlp, the home IP); their new videos read below.
     const tiktok = await pullCreators(db, tiktokReader(settings.ytDlp), new Date(), {
       kinds: ["tiktok"],
@@ -294,29 +310,30 @@ export function registerLearn(
     .option("--model <name>", "the scoring model", "cohere")
     .option("--no-read", "only save it: the Mac's next `learn read` takes it")
     .option("--kind <kind>", `what it is, when the link doesn't say: ${ITEM_KINDS.join(", ")}`)
-    .action(async (url: string, o: { title?: string; model: string; read: boolean; kind?: string }) =>
-      json(
-        // A profile is its newest reels: the catalog's first pass.
-        creatorOf(url)
-          ? await catalog(url, { reels: 12, read: o.read, model: o.model })
-          : await inWorkspace(async (db, client) => {
-              const saved = await saveLink(db, {
-                client,
-                url,
-                by: BY,
-                via: "cli",
-                title: o.title ?? null,
-                ...(o.kind ? { kind: itemKindOf(o.kind) } : {}),
-              });
-              if (!saved.unread || !o.read) return saved;
-              const r = needsMac(saved.kind)
-                ? await readVideo(db, reader(), saved.id)
-                : await readItem(db, fetch, saved.id);
-              const verdict =
-                r === "read" ? await scoreItem(db, judgeFor(db, o.model), saved.id) : null;
-              return { ...saved, read: r, verdict };
-            }),
-      ),
+    .action(
+      async (url: string, o: { title?: string; model: string; read: boolean; kind?: string }) =>
+        json(
+          // A profile is its newest reels: the catalog's first pass.
+          creatorOf(url)
+            ? await catalog(url, { reels: 12, read: o.read, model: o.model })
+            : await inWorkspace(async (db, client) => {
+                const saved = await saveLink(db, {
+                  client,
+                  url,
+                  by: BY,
+                  via: "cli",
+                  title: o.title ?? null,
+                  ...(o.kind ? { kind: itemKindOf(o.kind) } : {}),
+                });
+                if (!saved.unread || !o.read) return saved;
+                const r = needsMac(saved.kind)
+                  ? await readVideo(db, reader(), saved.id)
+                  : await readItem(db, fetch, saved.id);
+                const verdict =
+                  r === "read" ? await scoreItem(db, judgeFor(db, o.model), saved.id) : null;
+                return { ...saved, read: r, verdict };
+              }),
+        ),
     );
 
   learn
@@ -334,6 +351,50 @@ export function registerLearn(
     );
 
   learn
+    .command("import-films <json>")
+    .description(
+      "the launch-films seed study (designs/studies): each film saved as a film item, watched here (yt-dlp, the cut detectors, Cohere), then broken down with the study's hand facts in place of code's",
+    )
+    .option("--model <name>", "the labelling model", "cohere")
+    .action(async (file: string, o: { model: string }) =>
+      json(
+        await inWorkspace(async (db, client) => {
+          const { films } = seedStudySchema.parse(
+            JSON.parse(await readFile(resolve(file), "utf8")),
+          );
+          const read = reader();
+          const judge = judgeFor(db, o.model);
+          const out: Array<{
+            id: number;
+            slug: string;
+            read: string;
+            breakdown: boolean;
+          }> = [];
+          for (const f of films) {
+            const saved = await saveLink(db, {
+              client,
+              url: f.url,
+              by: BY,
+              via: "cli",
+              title: `${f.brand}: ${f.slug}`,
+              kind: "film",
+            });
+            const r = saved.unread ? ((await readVideo(db, read, saved.id)) ?? "gone") : "read";
+            const broke =
+              r === "read" &&
+              (await breakdownItem(db, judge, saved.id, {
+                facts: seedFilmFacts(f),
+                by: "hand",
+              }));
+            say(`${f.slug}: ${saved.id} ${r}${broke ? " broken down" : ""}`);
+            out.push({ id: saved.id, slug: f.slug, read: r, breakdown: broke });
+          }
+          return out;
+        }),
+      ),
+    );
+
+  learn
     .command("follow <url>")
     .description("follow a YouTube channel, a Substack, a blog or a podcast: its page or its feed")
     .option("--name <name>", "blank takes the feed's own title")
@@ -341,7 +402,13 @@ export function registerLearn(
     .action(async (url: string, o: { name?: string; tell?: string }) =>
       json(
         await inWorkspace((db, client) =>
-          follow(db, fetch, { client, url, name: o.name ?? null, tell: tellOf(o.tell), by: BY }),
+          follow(db, fetch, {
+            client,
+            url,
+            name: o.name ?? null,
+            tell: tellOf(o.tell),
+            by: BY,
+          }),
         ),
       ),
     );
@@ -355,7 +422,11 @@ export function registerLearn(
     .action(async (o: { saved?: boolean; waiting?: boolean; limit: number }) =>
       json(
         await inWorkspace((db, client) =>
-          listItems(db, client, { saved: !!o.saved, waiting: !!o.waiting, limit: o.limit }),
+          listItems(db, client, {
+            saved: !!o.saved,
+            waiting: !!o.waiting,
+            limit: o.limit,
+          }),
         ),
       ),
     );
@@ -563,7 +634,10 @@ export function registerLearn(
           if (client !== WREN) {
             const [done] = await notesFor(db, client, itemId);
             return (
-              done ?? { asked: ask.sop, note: "Not read yet: the next `learn read` writes it." }
+              done ?? {
+                asked: ask.sop,
+                note: "Not read yet: the next `learn read` writes it.",
+              }
             );
           }
           const done = await writeAsked(db, sopsDir, writer(o.sopModel), {
@@ -572,7 +646,10 @@ export function registerLearn(
           });
           return done.length
             ? { ...done[0], folder: join(sopsDir, ask.sop) }
-            : { asked: ask.sop, note: "Not read yet: the next `learn read` writes it." };
+            : {
+                asked: ask.sop,
+                note: "Not read yet: the next `learn read` writes it.",
+              };
         }),
       ),
     );

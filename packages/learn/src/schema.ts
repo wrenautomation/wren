@@ -310,6 +310,47 @@ export const POST_FORMATS = [
 ] as const;
 export type PostFormat = (typeof POST_FORMATS)[number];
 
+// A post's rubric (text, image or carousel post). Code counts; the model labels the shape.
+/** What a post is made of; null when the saved link does not say (a caption cannot tell an image from a carousel). */
+export const POST_MEDIA = ["text", "image", "carousel", "doc", "video"] as const;
+export type PostMedia = (typeof POST_MEDIA)[number];
+/** Where its link is; code writes `body` or null (a link in the first comment is not in the saved text). */
+export const POST_LINKS = ["body", "comment", "none"] as const;
+export type PostLink = (typeof POST_LINKS)[number];
+export const POST_SHAPES = ["list", "story", "essay", "one-liner", "thread"] as const;
+export type PostShape = (typeof POST_SHAPES)[number];
+
+// A film's rubric (a produced launch or demo film): closed sets for each shot, hand or code.
+export const SHOT_TYPES = ["ui", "b-roll", "graphic", "logo", "text-card", "talking-head"] as const;
+export type ShotType = (typeof SHOT_TYPES)[number];
+export const SHOT_MOVES = [
+  "static",
+  "push",
+  "pull",
+  "pan",
+  "track",
+  "orbit",
+  "roll",
+  "rack-focus",
+  "macro",
+  "ui-zoom",
+] as const;
+export type ShotMove = (typeof SHOT_MOVES)[number];
+export const SHOT_INS = ["cut", "dissolve", "fade", "whip"] as const;
+export type ShotIn = (typeof SHOT_INS)[number];
+export const SHOT_SOUNDS = ["music", "vo", "both", "silent"] as const;
+export type ShotSound = (typeof SHOT_SOUNDS)[number];
+/** Where a shot's bounds came from: a person's count, or the scene detector. */
+export const SHOT_SRCS = ["hand", "scene"] as const;
+export type ShotSrc = (typeof SHOT_SRCS)[number];
+/** Whether a film's cut count can be trusted (designs/2026-10-25-competitor-analyzer.md, Read). */
+export const CUTS_TRUSTS = ["ok", "low"] as const;
+export type CutsTrust = (typeof CUTS_TRUSTS)[number];
+
+/** Who wrote the breakdown's facts: the model and code, or a person (the seed study's hand labels). */
+export const BREAKDOWN_BYS = ["model", "hand"] as const;
+export type BreakdownBy = (typeof BREAKDOWN_BYS)[number];
+
 /** One beat of a script: when it starts (seconds, when the transcript is timed) and what it does. */
 export interface Beat {
   t: number | null;
@@ -330,6 +371,7 @@ export const breakdowns = learn.table(
     kind: varchar("kind", { length: 8, enum: ITEM_KINDS }).notNull(),
     /** The kind's facts, checked by its rubric's schema at write time (`FACTS` in breakdown.ts). */
     facts: jsonb("facts").$type<Record<string, unknown>>().notNull().default({}),
+    by: varchar("by", { length: 8, enum: BREAKDOWN_BYS }).notNull().default("model"),
     beats: jsonb("beats").$type<Beat[]>().notNull().default([]),
     ctaKind: varchar("cta_kind", { length: 12, enum: CTA_KINDS }).notNull(),
     /** The ask, as said; null with `none`. */
@@ -348,6 +390,7 @@ export const breakdowns = learn.table(
     oneOf("ck_learn_breakdowns_hook_style", t.hookStyle, HOOK_STYLES),
     oneOf("ck_learn_breakdowns_kind", t.kind, ITEM_KINDS),
     oneOf("ck_learn_breakdowns_cta_kind", t.ctaKind, CTA_KINDS),
+    oneOf("ck_learn_breakdowns_by", t.by, BREAKDOWN_BYS),
   ],
 );
 

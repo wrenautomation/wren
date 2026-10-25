@@ -8,8 +8,11 @@ import {
   cutsLine,
   frameCounts,
   onScreenLines,
+  parseScenes,
   readScreen,
+  readWatchFacts,
   renderWatched,
+  type Watched,
   watch,
 } from "./index.js";
 
@@ -208,6 +211,39 @@ describe("cohereCall", () => {
     ).catch((e: Error) => e);
     expect((err as Error).message).toMatch(/every try refused, last HTTP 401/);
     expect((err as Error).message).not.toMatch(/key-[ab]/);
+  });
+});
+
+describe("scene detector output", () => {
+  const csv = [
+    "Scene Number,Start Frame,Start Timecode,Start Time (seconds),End Frame,End Timecode,End Time (seconds),Length (frames),Length (timecode),Length (seconds)",
+    "1,1,00:00:00.000,0.000,80,00:00:03.337,3.337,80,00:00:03.337,3.337",
+    "2,81,00:00:03.337,3.337,175,00:00:07.299,7.299,95,00:00:03.962,3.962",
+    "3,176,00:00:07.299,7.299,274,00:00:11.428,11.428,99,00:00:04.129,4.129",
+  ];
+  it("reads a cut where each scene after the first starts", () => {
+    expect(parseScenes(csv.join("\n"))).toEqual([3.34, 7.3]);
+    expect(parseScenes(csv.slice(0, 2).join("\n"))).toEqual([]);
+    expect(parseScenes("")).toEqual([]);
+  });
+  it("renders a film's facts fence and reads it back; a reel's page has none", () => {
+    const w: Watched = {
+      durationS: 12.5,
+      cuts: [7.3],
+      cutsBy: { hash: [3.34, 7.3], adaptive: [3.34] },
+      audio: true,
+      speech: "",
+      frames: [],
+    };
+    const md = renderWatched(w);
+    expect(readWatchFacts(md)).toEqual({
+      duration_s: 12.5,
+      audio: true,
+      cuts_by: { ffmpeg: [7.3], hash: [3.34, 7.3], adaptive: [3.34] },
+    });
+    const { cutsBy: _, ...reel } = w;
+    expect(renderWatched(reel)).not.toContain("## Facts");
+    expect(readWatchFacts(renderWatched(reel))).toBeNull();
   });
 });
 

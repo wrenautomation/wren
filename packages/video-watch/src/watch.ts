@@ -55,10 +55,18 @@ export interface Frame {
   text: string | null;
 }
 
+/** PySceneDetect's detectors: `hash` is the one films trust, `adaptive` the second signal. */
+export const SCENE_DETECTORS = ["hash", "adaptive"] as const;
+export type SceneDetector = (typeof SCENE_DETECTORS)[number];
+
 export interface Watched {
   durationS: number;
   /** Scene cuts ffmpeg found, in seconds. */
   cuts: number[];
+  /** PySceneDetect's cuts by detector; only with `sceneDetect`. */
+  cutsBy?: Record<SceneDetector, number[]>;
+  /** Whether the file has a sound track at all. */
+  audio: boolean;
   /** What Cohere heard; "" when nobody speaks or speech was not asked for. */
   speech: string;
   frames: Frame[];
@@ -75,6 +83,8 @@ export interface WatchOptions {
   /** The yt-dlp command (split on spaces: `uvx yt-dlp`); needed for a URL. */
   ytDlp?: string;
   ffmpeg?: string;
+  /** The PySceneDetect command (split on spaces: `uvx scenedetect`); set, its cuts come too (`cutsBy`). */
+  sceneDetect?: string;
   fetchFn?: typeof fetch;
   /** False: skip the transcription (the caller has the words already). */
   speech?: boolean;
@@ -327,6 +337,46 @@ async function frames(file: string, dir: string, every: number, ffmpeg: string):
   );
 }
 
+/** Cut times from a `list-scenes` CSV (`--skip-cuts`: the header, then one row a scene). Each scene after the first starts on a cut. */
+export function parseScenes(csv: string): number[] {
+  const rows = csv.trim().split("\n");
+  const col = (rows[0] ?? "").split(",").indexOf("Start Time (seconds)");
+  if (col < 0) return [];
+  return rows
+    .slice(2)
+    .map((r) => Math.round(Number(r.split(",")[col]) * 100) / 100)
+    .filter((n) => Number.isFinite(n));
+}
+
+/** PySceneDetect's cuts by one detector. ffmpeg's `scene` misses a fade and a card swap on black; `hash` finds them (designs/studies/2026-10-25-launch-films.md). */
+export async function sceneDetectCuts(
+  file: string,
+  detector: SceneDetector,
+  cmd: string,
+  dir: string,
+): Promise<number[]> {
+  const [bin, ...pre] = cmd.split(/\s+/) as [string, ...string[]];
+  const name = `scenes-${detector}.csv`;
+  await runFor(
+    bin,
+    [
+      ...pre,
+      "-q",
+      "-i",
+      file,
+      `detect-${detector}`,
+      "list-scenes",
+      "-o",
+      dir,
+      "-f",
+      name,
+      "--skip-cuts",
+    ],
+    TOOL_MS,
+  );
+  return parseScenes(await readFile(join(dir, name), "utf8"));
+}
+
 /** Shot changes: the frames `select` keeps are logged by `showinfo`, on stderr. */
 export async function sceneCuts(file: string, ffmpeg: string): Promise<number[]> {
   const { stderr } = await runFor(
@@ -485,8 +535,14 @@ export async function watch(input: string, opts: WatchOptions): Promise<Watched>
     const durationS = facts.durationS || info?.duration || 0;
     const every = Math.max(opts.everyS ?? FRAME_EVERY_S, Math.ceil(durationS / MAX_FRAMES));
     const call = { fetchFn, ...(opts.pause ? { pause: opts.pause } : {}) };
-    const [c, f, s, g] = await allSettled<[number[], Frame[], string, string | undefined]>([
+    const psd = async (d: SceneDetector) =>
+      opts.sceneDetect ? sceneDetectCuts(file, d, opts.sceneDetect, dir) : [];
+    const [c, h, a, f, s, g] = await allSettled<
+      [number[], number[], number[], Frame[], string, string | undefined]
+    >([
       sceneCuts(file, ffmpeg),
+      psd("hash"),
+      psd("adaptive"),
       frames(file, dir, every, ffmpeg).then((shots) => readScreen(shots, opts.cohereKeys, call)),
       opts.speech === false || !facts.audio
         ? Promise.resolve("")
@@ -506,6 +562,8 @@ export async function watch(input: string, opts: WatchOptions): Promise<Watched>
     return {
       durationS: Math.round(durationS * 100) / 100,
       cuts: c,
+      ...(opts.sceneDetect ? { cutsBy: { hash: h, adaptive: a } } : {}),
+      audio: facts.audio,
       speech: s,
       frames: f,
       ...(g ? { gemini: g } : {}),
@@ -539,6 +597,32 @@ export function frameCounts(w: Pick<Watched, "frames">) {
 }
 
 /** The `## Speech`, `## On screen` and `## Cuts` sections; the CLI prints it and a SOP source holds it. */
+/** What a film's facts are read from later (`filmFacts` in `@wren/learn`): the length, the sound track, every detector's cuts. */
+export interface WatchFacts {
+  duration_s: number;
+  audio: boolean;
+  cuts_by: { ffmpeg: number[] } & Partial<Record<SceneDetector, number[]>>;
+}
+
+export const watchFacts = (
+  w: Pick<Watched, "durationS" | "audio" | "cuts" | "cutsBy">,
+): WatchFacts => ({
+  duration_s: w.durationS,
+  audio: w.audio,
+  cuts_by: { ffmpeg: w.cuts, ...(w.cutsBy ?? {}) },
+});
+
+/** The facts fence of a rendered page, when it has one. */
+export function readWatchFacts(md: string): WatchFacts | null {
+  const m = /## Facts\n\n```json\n([\s\S]*?)\n```/.exec(md);
+  if (!m) return null;
+  try {
+    return JSON.parse(m[1] as string) as WatchFacts;
+  } catch {
+    return null;
+  }
+}
+
 export function renderWatched(w: Watched): string {
   const screen = onScreenLines(w).join("\n") || "(no text on screen)";
   return [
@@ -546,5 +630,7 @@ export function renderWatched(w: Watched): string {
     `## On screen\n\n${screen}`,
     ...(w.gemini ? [`## On screen (Gemini)\n\n${w.gemini}`] : []),
     `## Cuts\n\n${cutsLine(w)}`,
+    // Only a film's page carries the fence: a reel's cuts are the line above.
+    ...(w.cutsBy ? [`## Facts\n\n\`\`\`json\n${JSON.stringify(watchFacts(w))}\n\`\`\``] : []),
   ].join("\n\n");
 }

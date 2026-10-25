@@ -17,11 +17,13 @@ A closed style set so reels group and rank; free tags would never count. Written
 
 ## Shape
 
-- `item_id` (pk, FK items, cascade), `hook_style`, `hook`, `hook_why`, `topic`, `format` (`POST_FORMATS`), `beats` jsonb `[{t, beat}]` (`t` null when unplaced), `cta_kind` (`CTA_KINDS`), `cta` (null with `none`), `created_at`
+- `item_id` (pk, FK items, cascade), `hook_style`, `hook`, `hook_why`, `topic`, `kind`, `facts` jsonb (the kind's rubric, checked by `FACTS[kind]`), `by` (`model`: code counted and the model labelled; `hand`: the seed study's facts, `learn import-films`), `beats` jsonb `[{t, beat}]` (`t` null when unplaced), `cta_kind` (`CTA_KINDS`), `cta` (null with `none`), `created_at`
+- `facts` by kind: reel and video `{format}` (`POST_FORMATS`); post `{format, chars, lines, first_line_chars, link, hashtags, shape}` (`postCounts` + the model's `shape`); film `filmFactsSchema` (`film.ts`): `cuts`, `cuts_by_signal`, `cuts_trust`, `shot_median_s`, `shot_p90_s`, `cuts_per_10s`, `first_product_s`, `logo_s`, `cta_s`, `music`, `vo`, `shots[]` (`type`, `move`, `in` null until vision proves itself)
+- A film's facts come off its read page: `renderWatched` (`@wren/video-watch`) writes a `## Facts` JSON fence (duration, audio, each detector's cuts) when the Mac reader ran the scene detectors (`WREN_SCENEDETECT`, default `uvx scenedetect`); `filmFactsOf` reads it at breakdown time, so an old page re-breaks down offline. Trust: hash within 20% of a hand count, else hash and adaptive within 2x (`cutsTrust`); ffmpeg's `scene` is evidence only
 - `items.stats` jsonb `{likes, comments, views}` and `items.stats_at`: set by each creator pass (`pullCreators`, `creators.ts`), refreshed on posts seen before; the back catalog sets them on insert
 - Views `learn.breakdown_records` (Wren's own, `reach`, beats as `[m:ss] beat` lines) and `learn.hook_records` (per style: reels, creators, median and best reach, best reel)
 
-Citations: `packages/learn/src/breakdown.ts`, `packages/learn/src/creators.ts` (`statsOf`)
+Citations: `packages/learn/src/breakdown.ts`, `packages/learn/src/film.ts`, `packages/learn/src/creators.ts` (`statsOf`), `packages/video-watch/src/watch.ts` (`sceneDetectCuts`, `watchFacts`, `readWatchFacts`)
 
 ## Connected to
 
@@ -31,7 +33,7 @@ Citations: `packages/learn/src/breakdown.ts`, `packages/learn/src/creators.ts` (
 
 ## If you change this
 
-- **Hits:** the style labels in `records.ts` (`HOOK`) must list every `HOOK_STYLES` value; the prompt (`breakdownPrompt`) names each style's meaning (`HOOK_STYLE_ABOUT`); adding a style needs a migration (check constraint)
+- **Hits:** the style labels in `records.ts` (`HOOK`) must list every `HOOK_STYLES` value; the prompt (`breakdownPrompt`) names each style's meaning (`HOOK_STYLE_ABOUT`); adding a style needs a migration (check constraint); a new fact key goes in `FACTS[kind]` and the design's rubric list, never a column; a film page without a facts fence is skipped (`breakdownItem` returns false) until the Mac re-reads it
 - **Does not hit:** the score or the verdict
 
 ## Surfaces
@@ -40,6 +42,7 @@ Citations: `packages/learn/src/breakdown.ts`, `packages/learn/src/creators.ts` (
 |---|---|
 | `scoreItem` (spine `learn.score`, `wren learn read`, `rescore`) | writes, once an item |
 | `wren learn breakdown [ids] [--limit n]` | writes: backfill |
+| `wren learn import-films <json>` | writes: the seed study as film items, read on the Mac, broken down with hand facts (`by = hand`) |
 | Learn → Competitors, Reels, Hooks (`learn.breakdown`, `learn.hook`) | read |
 
 ## See
