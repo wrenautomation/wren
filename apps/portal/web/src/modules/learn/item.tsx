@@ -21,6 +21,7 @@ import {
   StateMark,
   say,
   Textarea,
+  useEdit,
   usePageKeys,
 } from "@wren/ui";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -542,19 +543,22 @@ const CALL_TONE: Record<FactCall, string> = {
  */
 function Facts({ id, b }: { id: number; b: Breakdown }) {
   const [open, setOpen] = useState<{ path: string; call: FactCall } | null>(null);
-  const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const standing = useMemo(() => new Map(b.calls.map((c) => [c.path, c])), [b.calls]);
+  // His words on the open fact: unsaved words keep per fact, over the standing comment.
+  const words = useEdit(
+    open ? `learn:call:${id}:${open.path}` : null,
+    open ? (standing.get(open.path)?.comment ?? "") : "",
+  );
   const rows: FactRow[] = [{ path: ITEM_PATH, label: "Whole piece", value: "" }, ...b.facts];
-  const start = (path: string, call: FactCall) => {
-    setOpen({ path, call });
-    setNote(standing.get(path)?.comment ?? "");
-  };
+  const start = (path: string, call: FactCall) => setOpen({ path, call });
   const save = async () => {
     if (!open) return;
     setBusy(true);
     try {
-      await learn.call(id, open.path, open.call, note.trim() || null);
+      const sent = words.value;
+      await learn.call(id, open.path, open.call, sent.trim() || null);
+      words.saved(sent);
       setOpen(null);
       changed();
     } catch (err) {
@@ -602,13 +606,19 @@ function Facts({ id, b }: { id: number; b: Breakdown }) {
                 <div className="flex flex-col gap-1.5">
                   <Textarea
                     aria-label={`Your words on ${r.label}`}
-                    value={note}
-                    onChange={(e) => setNote(e.target.value)}
+                    {...words.field}
                     placeholder={open.call === "tune" ? "What to change" : "Why (optional)"}
                     rows={2}
                   />
                   <div className="flex justify-end gap-2">
-                    <Button size="dense" tone="secondary" onClick={() => setOpen(null)}>
+                    <Button
+                      size="dense"
+                      tone="secondary"
+                      onClick={() => {
+                        words.discard();
+                        setOpen(null);
+                      }}
+                    >
                       Cancel
                     </Button>
                     <Button size="dense" tone="primary" busy={busy} onClick={() => void save()}>
