@@ -5,7 +5,7 @@
  * all ours in the SOP's scope comes back on each piece he kept it on as "check this". His calls
  * stay as he made them; he re-calls there. Ours never reach Competitors or the standard.
  */
-import type { Db } from "@wren/db";
+import { atomic, type Db } from "@wren/db";
 import { and, eq, inArray, isNotNull } from "drizzle-orm";
 import { saveLink } from "./items.js";
 import { breakdowns, type CheckMeasure, checks, type ItemKind, items } from "./schema.js";
@@ -162,7 +162,7 @@ export function checksOf(
 
 /** An SOP's checks, written whole: the last run's rows go. */
 export async function writeChecks(db: Db, sop: string, rows: CheckRow[]): Promise<void> {
-  await db.transaction(async (tx) => {
+  await atomic(db, async (tx) => {
     await tx.delete(checks).where(eq(checks.sop, sop));
     if (rows.length) await tx.insert(checks).values(rows);
   });
