@@ -194,6 +194,15 @@ describe("take scene", () => {
     expect(sounds?.filter(([t]) => (t as number) < 0)).toEqual([]);
   });
 
+  it("plays soft: a low tap on each click under a -16 LUFS bed, and nothing else", () => {
+    const soft = promoScript.parse({ ...script, sounds: "soft" });
+    const audio = promoProps(soft, {}, { takes: { t1: take } }).audio;
+    const loud = promoProps(script, {}, { takes: { t1: take } }).audio;
+    expect(audio.sounds.length).toBe(1);
+    expect(audio.sounds[0]?.file).toMatch(/land-light/);
+    expect(loud.sounds.length).toBeGreaterThan(audio.sounds.length);
+  });
+
   it("crops the window to part of the page, the camera's points in the crop", () => {
     const crop = { x: 200, y: 100, w: 400, h: 300 };
     const cut = promoScript.parse({

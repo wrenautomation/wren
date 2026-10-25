@@ -222,8 +222,12 @@ export const promoScript = z
       .default({}),
     /** The bed: a kit id (`bed-calm`) or a music file beside the script, his own; none: silent. */
     music: z.string().optional(),
-    /** Kit sounds on the scenes (`PROMO_SOUNDS`); false: the music alone. */
-    sounds: z.boolean().default(true),
+    /**
+     * Kit sounds on the scenes (`PROMO_SOUNDS`); false: the music alone. `soft`: the film standard
+     * (designs/2026-10-25-film-standard.md): the bed at `SOFT.bedLufs`, a low tap on each click
+     * `SOFT.db` under it, and nothing else (no keys, whooshes, cut or end sounds).
+     */
+    sounds: z.union([z.boolean(), z.literal("soft")]).default(true),
     /**
      * A flow edit's finish. `glow`: accent words and the highlight bloom. `dither`: the whole
      * frame in an ordered dither, a few tones a channel, like an old screen.
@@ -377,6 +381,22 @@ function takeSounds(
   return out.sort((a, b) => a[0] - b[0]);
 }
 
+/** The `soft` sounds: a light finger tap (150-260 Hz) per click, 18 dB under a bed at -16 LUFS. */
+export const SOFT = { tap: "land.light", db: -18, bedLufs: -16 } as const satisfies {
+  tap: Role;
+  db: number;
+  bedLufs: number;
+};
+
+/** The `soft` sounds on the promo's scenes: a tap on each click of a shot. */
+function softSounds(scenes: readonly TimedScene[]): [number, string, number][] {
+  return scenes.flatMap((s) =>
+    (s.shot?.sounds ?? []).flatMap(([t, id]): [number, string, number][] =>
+      id === TAKE_SOUNDS.down ? [[s.from / PROMO_FPS + t, SOFT.tap, SOFT.db]] : [],
+    ),
+  );
+}
+
 /** The kit sounds on the promo's scenes: `[seconds, id, gainDb?]`, in order. */
 function promoSounds(scenes: readonly TimedScene[]): [number, string, number?][] {
   const out: [number, string, number?][] = [];
@@ -402,26 +422,26 @@ function promoSounds(scenes: readonly TimedScene[]): [number, string, number?][]
 }
 
 /**
- * The promo's sounds and bed as the composition plays them. The music plays at
- * `FX_BED_LUFS.music`: a kit bed is at `BED_LUFS`; his own file is at `musicLufs`, measured.
+ * The promo's sounds and bed as the composition plays them. The music plays at `bed`
+ * (`FX_BED_LUFS.music` unless `soft`): a kit bed is at `BED_LUFS`; his own file is at `musicLufs`, measured.
  */
 function promoAudio(
   music: string | undefined,
   sounds: [number, string, number?][],
   musicLufs: number | undefined,
   fps: number,
+  bed: number,
 ): AudioProps {
   const kit = music !== undefined && BED_ID.test(music);
   const lufs = kit ? BED_LUFS : musicLufs;
   return {
-    sounds: placeEffects(sounds, { fps, bed: FX_BED_LUFS.music }),
+    sounds: placeEffects(sounds, { fps, bed }),
     music:
       music === undefined
         ? null
         : {
             file: kit ? soundFile(music) : music,
-            volume:
-              lufs === undefined ? 1 : Math.round(dbToGain(FX_BED_LUFS.music - lufs) * 1000) / 1000,
+            volume: lufs === undefined ? 1 : Math.round(dbToGain(bed - lufs) * 1000) / 1000,
             duck: [],
             duckDb: 0,
           },
@@ -545,7 +565,13 @@ export function promoProps(
       ...(script.theme === "dark" ? DARK_LOOK : DEFAULT_LOOK),
       ...Object.fromEntries(Object.entries(script.look).filter(([, v]) => v !== undefined)),
     },
-    audio: promoAudio(script.music, script.sounds ? promoSounds(scenes) : [], o.musicLufs, fps),
+    audio: promoAudio(
+      script.music,
+      script.sounds === "soft" ? softSounds(scenes) : script.sounds ? promoSounds(scenes) : [],
+      o.musicLufs,
+      fps,
+      script.sounds === "soft" ? SOFT.bedLufs : FX_BED_LUFS.music,
+    ),
     finish: script.finish,
     scenes,
   };
