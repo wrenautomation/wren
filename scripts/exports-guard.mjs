@@ -5,7 +5,7 @@
  * count as readers, never as sources):
  *   dead     an export no other file names, that its own file does not use either: delete it
  *   private  a value (function, const, class) only its own file uses: drop `export`
- * A name counts as read when any ts/tsx file, or any mjs/js/json/sh/yml under the repo, holds it as
+ * A name counts as read when any ts/tsx file, or any mjs/js/json/sh/yml/toml under the repo (wrangler names a Durable Object class), holds it as
  * an identifier or string (Restate handlers and consoles are reached by name). Types only read by
  * their own file keep `export`: declaration emit may need the name when another module's exported
  * function returns them by inference. Skipped: default exports (imported under another name),
@@ -109,7 +109,7 @@ for (const f of files) {
   if (ex.length) exportsOf.set(f, ex);
 }
 const otherNames = new Set();
-for (const f of walk(root, /\.(mjs|cjs|js|json|sh|yml|yaml)$/))
+for (const f of walk(root, /\.(mjs|cjs|js|json|sh|yml|yaml|toml|jsonc)$/))
   for (const m of fs.readFileSync(f, "utf8").matchAll(/[A-Za-z_$][\w$]*/g)) otherNames.add(m[0]);
 
 const bad = [];
