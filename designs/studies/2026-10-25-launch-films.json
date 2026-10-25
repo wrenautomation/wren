@@ -16,7 +16,7 @@
     "fade_blackdetect": 3,
     "pyscenedetect_hash": 7
    },
-   "cuts_trust": "low",
+   "cuts_trust": "ok",
    "shot_median_s": 5.5,
    "shot_p90_s": 8.2,
    "cuts_per_10s": [
@@ -36,6 +36,108 @@
    "music": true,
    "vo": false,
    "labels": "hand",
+   "screen_text": [
+    [
+     0,
+     "Linear"
+    ],
+    [
+     8,
+     "Find issues with |"
+    ],
+    [
+     9,
+     "Find issues with loading per|"
+    ],
+    [
+     10,
+     "Find issues with loading performance|"
+    ],
+    [
+     11,
+     "Ask Linear"
+    ],
+    [
+     12,
+     "Find issues with loading performance"
+    ],
+    [
+     13,
+     "I found 13 bug issues matching syncing errors. The most relevant active ones are in review or in progress."
+    ],
+    [
+     14,
+     "ENG-1139 Driver rating takes too long to..."
+    ],
+    [
+     16,
+     "Ask Linear"
+    ],
+    [
+     17,
+     "I found 13 bug issues with loading performance"
+    ],
+    [
+     18,
+     "ENG-1139 Driver rating summary appears blank to riders"
+    ],
+    [
+     19,
+     "ENG-1691 Trip summary looks stuck on loading"
+    ],
+    [
+     20,
+     "ENG-1020 Driver message and delivery tab switch"
+    ],
+    [
+     21,
+     "ENG-1081 Ride and Delivery slow to respond"
+    ],
+    [
+     22,
+     "ENG-1123 Request ride location updates are slow"
+    ],
+    [
+     23,
+     "ENG-1181 Driver map location confirmation is slow"
+    ],
+    [
+     24,
+     "Optimistic loading refactor"
+    ],
+    [
+     25,
+     "Overview"
+    ],
+    [
+     26,
+     "The product currently has multiple flows where the interface waits for the server response or refreshed data. This creates the perception that the core actions are slow, or the product is within accep"
+    ],
+    [
+     27,
+     "At a glance"
+    ],
+    [
+     28,
+     "Area Current user-visible problem Proposed options Solution impact"
+    ],
+    [
+     29,
+     "Ride request Request ride is slow to respond Show immediate feedback, save user state, refresh on server response Faster perceived response, reduced frustration"
+    ],
+    [
+     30,
+     "Live ride updates Driver map location updates late, ETA refresh is too slow, pickup pin changes update late Predict and smoothly interpolate updates while background refresh continues Faster perceived"
+    ],
+    [
+     31,
+     "Architecture"
+    ],
+    [
+     48,
+     "Linear. At your command."
+    ]
+   ],
    "shots": [
     {
      "t": 0,
@@ -168,6 +270,24 @@
    "music": true,
    "vo": false,
    "labels": "hand",
+   "screen_text": [
+    [
+     23,
+     "RELEASES"
+    ],
+    [
+     24,
+     "AVA"
+    ],
+    [
+     25,
+     "AVAILABLE NOW"
+    ],
+    [
+     26,
+     "Linear"
+    ]
+   ],
    "shots": [
     {
      "t": 0,
@@ -279,6 +399,56 @@
    "music": true,
    "vo": false,
    "labels": "hand",
+   "screen_text": [
+    [
+     0,
+     "Linear for Agents"
+    ],
+    [
+     1,
+     "Engineering backlog"
+    ],
+    [
+     16,
+     "ChatPRO"
+    ],
+    [
+     17,
+     "Devin"
+    ],
+    [
+     18,
+     "Fin"
+    ],
+    [
+     19,
+     "Sentry"
+    ],
+    [
+     20,
+     "Stilla"
+    ],
+    [
+     24,
+     "Agents for Coding"
+    ],
+    [
+     25,
+     "Agents for Triage"
+    ],
+    [
+     26,
+     "Linear for"
+    ],
+    [
+     27,
+     "Linear for Agents"
+    ],
+    [
+     29,
+     "Linear"
+    ]
+   ],
    "shots": [
     {
      "t": 0,
@@ -441,6 +611,48 @@
    "music": true,
    "vo": false,
    "labels": "hand",
+   "screen_text": [
+    [
+     4,
+     "Search"
+    ],
+    [
+     5,
+     "|Search"
+    ],
+    [
+     6,
+     "|Search f"
+    ],
+    [
+     7,
+     "clip|"
+    ],
+    [
+     8,
+     "Command"
+    ],
+    [
+     11,
+     "Set Hotkey"
+    ],
+    [
+     12,
+     "Clipboard History"
+    ],
+    [
+     13,
+     "Saved"
+    ],
+    [
+     14,
+     "< Type to filter entries..."
+    ],
+    [
+     15,
+     "Today"
+    ]
+   ],
    "shots": [
     {
      "t": 0,
@@ -633,6 +845,68 @@
    "music": null,
    "vo": null,
    "labels": "none (cuts only; peer decision 6)",
+   "screen_text": [
+    [
+     7,
+     "version"
+    ],
+    [
+     8,
+     "can mean"
+    ],
+    [
+     9,
+     "everything"
+    ],
+    [
+     10,
+     "v1.0 video game v1.0"
+    ],
+    [
+     11,
+     "v1.0 pixar v1.0"
+    ],
+    [
+     12,
+     "v1.0 youtube video v1.0"
+    ],
+    [
+     14,
+     "nothing"
+    ],
+    [
+     15,
+     "v1.0 segway v1.0"
+    ],
+    [
+     24,
+     "Arc"
+    ],
+    [
+     25,
+     "v1.0"
+    ],
+    [
+     26,
+     "journey"
+    ],
+    [
+     27,
+     "v.013"
+    ],
+    [
+     28,
+     "Today"
+    ],
+    [
+     32,
+     "download now"
+    ],
+    [
+     33,
+     "arc.net"
+    ]
+   ],
    "shots": [
     {
      "t": 0.0,
@@ -896,6 +1170,44 @@
    "music": null,
    "vo": null,
    "labels": "none (cuts only; peer decision 6)",
+   "screen_text": [
+    [
+     8,
+     "what are chapulines?"
+    ],
+    [
+     9,
+     "This page was long, so I read the first 84%."
+    ],
+    [
+     10,
+     "According to the passage:"
+    ],
+    [
+     11,
+     "Chapulines, or grasshoppers, are a significant protein source in Oaxaca. They are sold in open-air markets, either plain or seasoned, to be prepared at home. You can find them as a snack, fried until "
+    ],
+    [
+     12,
+     "Find on Page >"
+    ],
+    [
+     13,
+     "Ask a question..."
+    ],
+    [
+     14,
+     "EATER"
+    ],
+    [
+     15,
+     "THE EATER GUIDE TO OAXACA"
+    ],
+    [
+     16,
+     "MAX"
+    ]
+   ],
    "shots": [
     {
      "t": 0.0,
@@ -1055,6 +1367,72 @@
    "music": null,
    "vo": null,
    "labels": "none (cuts only; peer decision 6)",
+   "screen_text": [
+    [
+     46,
+     "Dia"
+    ],
+    [
+     47,
+     "Mention a tab or website"
+    ],
+    [
+     48,
+     "Dia already knows"
+    ],
+    [
+     49,
+     "SEE ALL"
+    ],
+    [
+     50,
+     "Event Feedback"
+    ],
+    [
+     51,
+     "Branzino"
+    ],
+    [
+     52,
+     "Tuscan Garden Par... mail.google.com/..."
+    ],
+    [
+     53,
+     "quick zucchini appetizer for family feast"
+    ],
+    [
+     55,
+     "Based on your family's allergies, the branzino entree, and theme (Tuscan Garden Party), here are some zucchini appetizer ideas:"
+    ],
+    [
+     64,
+     "Quick zucchini appetizer for family feast \u2013 NO nuts, soy, sesame, or avocado."
+    ],
+    [
+     65,
+     "Should go with the branzino recipe we\u2019re making for our entree: 2 whole branzino, scaled, gutted, and pectoral fins removed (1 to 1\u00bd pounds each), kosher salt such as Diamond Crystal, black pepper, \u00bc "
+    ],
+    [
+     66,
+     "Also should go with the theme Dad laid out:"
+    ],
+    [
+     67,
+     "You should know how I get about our family feast. So, after a lot of \u201cresearch\u201d (read: eating bread and daydreaming about Italy), I\u2019ve decided this year\u2019s theme is a Tuscan Garden Party! Imagine us ou"
+    ],
+    [
+     68,
+     "Quick zucchini appetizer for family feast"
+    ],
+    [
+     72,
+     "Dia"
+    ],
+    [
+     76,
+     "diabrowser.com"
+    ]
+   ],
    "shots": [
     {
      "t": 0.0,
@@ -1536,6 +1914,52 @@
    "music": null,
    "vo": null,
    "labels": "none (cuts only; peer decision 6)",
+   "screen_text": [
+    [
+     6,
+     "Michael Truell Co-Founder"
+    ],
+    [
+     7,
+     "Sualeah Asif Co-Founder, Michael Truell Co-Founder"
+    ],
+    [
+     48,
+     "Glass test stabilization"
+    ],
+    [
+     49,
+     "Flaky tests root cause"
+    ],
+    [
+     50,
+     "anywhere/cursor-shifting"
+    ],
+    [
+     51,
+     "Git & checkpoints automatic cycling"
+    ],
+    [
+     52,
+     "Local server"
+    ],
+    [
+     53,
+     "Performance"
+    ],
+    [
+     54,
+     "Localized page"
+    ],
+    [
+     55,
+     "Marketing page"
+    ],
+    [
+     88,
+     "CURSOR"
+    ]
+   ],
    "shots": [
     {
      "t": 0.0,
@@ -1861,6 +2285,48 @@
    "music": null,
    "vo": null,
    "labels": "none (cuts only; peer decision 6)",
+   "screen_text": [
+    [
+     0,
+     "Get started for free"
+    ],
+    [
+     2,
+     "Product Pricing About Careers Support"
+    ],
+    [
+     4,
+     "The Internet Canvas"
+    ],
+    [
+     6,
+     "An infinite canvas with modern layout, styling, and typography features. Design, then publish."
+    ],
+    [
+     7,
+     "Email"
+    ],
+    [
+     8,
+     "The Internet Canvas"
+    ],
+    [
+     14,
+     "A Brand and Product Designer currently leading the team at Oendo Studio"
+    ],
+    [
+     24,
+     "Imagine it & publish it"
+    ],
+    [
+     32,
+     "Invite"
+    ],
+    [
+     33,
+     "Publish"
+    ]
+   ],
    "shots": [
     {
      "t": 0.0,
@@ -1966,6 +2432,72 @@
    "music": null,
    "vo": null,
    "labels": "none (cuts only; peer decision 6)",
+   "screen_text": [
+    [
+     0,
+     "Get s"
+    ],
+    [
+     1,
+     "Get started for f"
+    ],
+    [
+     6,
+     "Meet your n"
+    ],
+    [
+     7,
+     "Meet your new AI assistant"
+    ],
+    [
+     9,
+     "Truly unique, always helpful, never boring"
+    ],
+    [
+     10,
+     "Get started for free"
+    ],
+    [
+     11,
+     "Gemma"
+    ],
+    [
+     12,
+     "Roger"
+    ],
+    [
+     13,
+     "Laurie"
+    ],
+    [
+     14,
+     "Harrison"
+    ],
+    [
+     24,
+     "Everywhere you work"
+    ],
+    [
+     25,
+     "Our suite of apps keep your assistant always at hand"
+    ],
+    [
+     26,
+     "Get Started Learn More"
+    ],
+    [
+     29,
+     "Create Account"
+    ],
+    [
+     30,
+     "Full Name Enter Name Email Enter Email Password Enter Password"
+    ],
+    [
+     31,
+     "Let's Go"
+    ]
+   ],
    "shots": [
     {
      "t": 0.0,
@@ -2075,6 +2607,68 @@
    "music": null,
    "vo": null,
    "labels": "none (cuts only; peer decision 6)",
+   "screen_text": [
+    [
+     3,
+     "A browser"
+    ],
+    [
+     4,
+     "A browser built for you."
+    ],
+    [
+     6,
+     "Connecting the dots between"
+    ],
+    [
+     7,
+     "Connecting the dots between..."
+    ],
+    [
+     9,
+     "Tabs"
+    ],
+    [
+     10,
+     "Emails"
+    ],
+    [
+     11,
+     "Calendars"
+    ],
+    [
+     12,
+     "Socials"
+    ],
+    [
+     13,
+     "Life"
+    ],
+    [
+     15,
+     "Ask m"
+    ],
+    [
+     39,
+     "and do more than ever"
+    ],
+    [
+     40,
+     "Ask anything or dimension a tab"
+    ],
+    [
+     63,
+     "Ask anything, anywhere."
+    ],
+    [
+     64,
+     "Browse at the speed of thought."
+    ],
+    [
+     66,
+     "of thought."
+    ]
+   ],
    "shots": [
     {
      "t": 0.0,
@@ -2174,6 +2768,152 @@
    "music": true,
    "vo": false,
    "labels": "hand",
+   "screen_text": [
+    [
+     0,
+     "License Number ^ First Name ^ Last Name ^ Zip Code ^ City"
+    ],
+    [
+     1,
+     "DRE#0196323 ^ Michael ^ Thompson ^ 94102 ^ San Francisco"
+    ],
+    [
+     2,
+     "DRE#02156789 ^ Sarah ^ Chen ^ 92101 ^ San Diego"
+    ],
+    [
+     3,
+     "DRE#01876234 ^ David ^ Rodriguez ^ 95014 ^ Cupertino"
+    ],
+    [
+     4,
+     "DRE#02098765 ^ Emily ^ Johnson ^ 94121 ^ Santa Monica"
+    ],
+    [
+     5,
+     "DRE#01765432 ^ Look Up \"01923456\"*"
+    ],
+    [
+     6,
+     "Emoji & Symbols"
+    ],
+    [
+     7,
+     "Undo ^ Redo ^ Cut ^ Copy ^ Paste ^ Paste and Match Style ^ Select All"
+    ],
+    [
+     8,
+     "Active"
+    ],
+    [
+     10,
+     "DRE#022"
+    ],
+    [
+     11,
+     "DRE#01956789"
+    ],
+    [
+     12,
+     "DRE#02123498"
+    ],
+    [
+     13,
+     "DRE#018"
+    ],
+    [
+     14,
+     "Cut"
+    ],
+    [
+     15,
+     "DRE#02237476"
+    ],
+    [
+     30,
+     "Describe what you need done in natural language"
+    ],
+    [
+     31,
+     "Ver ou nCalifornia real estate l #02237476"
+    ],
+    [
+     32,
+     "02237476"
+    ],
+    [
+     33,
+     "Verify the California real estate license for DRE#02237476, then fill the row on this spreadsheet."
+    ],
+    [
+     35,
+     "Thought for 5s"
+    ],
+    [
+     36,
+     "Navigating to page..."
+    ],
+    [
+     37,
+     "Navigating to the California DRE Public License Lookup page to verify the license DRE#02237476"
+    ],
+    [
+     38,
+     "Thought"
+    ],
+    [
+     39,
+     "Perfect! I can see the California DRE Public License Information page. I need to enter the license ID 02237476 in the License ID field and click Find."
+    ],
+    [
+     40,
+     "Typed on page: Entering the DRE license number to search for the license information"
+    ],
+    [
+     41,
+     "Thought: Good! The license number has been entered. Now I'll click the \"Find\" button to search for the license information."
+    ],
+    [
+     42,
+     "Clicked: Clicking the \"Find\" button to search for the license information for DRE0022376"
+    ],
+    [
+     56,
+     "Schedule &"
+    ],
+    [
+     60,
+     "What used to take hours"
+    ],
+    [
+     61,
+     "Now takes seconds"
+    ],
+    [
+     63,
+     "Get your time back"
+    ],
+    [
+     66,
+     "your time back"
+    ],
+    [
+     72,
+     "Try it out today at director.ai"
+    ],
+    [
+     73,
+     "Director"
+    ],
+    [
+     75,
+     "Powered by"
+    ],
+    [
+     76,
+     "Powered by B Browserbase"
+    ]
+   ],
    "shots": [
     {
      "t": 0,
@@ -2389,6 +3129,240 @@
    "music": null,
    "vo": null,
    "labels": "none (cuts only; peer decision 6)",
+   "screen_text": [
+    [
+     1,
+     "Hey, Product Hunt!"
+    ],
+    [
+     2,
+     "I'm stoked to show you Director today."
+    ],
+    [
+     4,
+     "So our team built Director,"
+    ],
+    [
+     6,
+     "to take the most mundane"
+    ],
+    [
+     7,
+     "repetitive work off your shoulders"
+    ],
+    [
+     12,
+     "We've given AI a web browser"
+    ],
+    [
+     13,
+     "on your behalf."
+    ],
+    [
+     14,
+     "Let me show you."
+    ],
+    [
+     15,
+     "What do you want to automate?"
+    ],
+    [
+     23,
+     "to browser automations."
+    ],
+    [
+     28,
+     "So here's what's happening"
+    ],
+    [
+     29,
+     "under the hood."
+    ],
+    [
+     30,
+     "uses the web browser"
+    ],
+    [
+     31,
+     "just like you would,"
+    ],
+    [
+     36,
+     "fill forms and download data"
+    ],
+    [
+     37,
+     "So we can see here"
+    ],
+    [
+     38,
+     "it landed on producthunt.com"
+    ],
+    [
+     39,
+     "and it's navigating through the different pages we've designed Director to be"
+    ],
+    [
+     55,
+     "In Director you can jump in at any time"
+    ],
+    [
+     57,
+     "and the agent will listen."
+    ],
+    [
+     58,
+     "Let's get the agent"
+    ],
+    [
+     59,
+     "to email the team about"
+    ],
+    [
+     60,
+     "new browser products for each week"
+    ],
+    [
+     62,
+     "So I'm going to first"
+    ],
+    [
+     63,
+     "have a log into my Gmail"
+    ],
+    [
+     67,
+     "have a log into my Gmail"
+    ],
+    [
+     68,
+     "Now, dealing with Gmail"
+    ],
+    [
+     70,
+     "a little bit tricky, but Director can actually log in"
+    ],
+    [
+     71,
+     "to websites for you."
+    ],
+    [
+     80,
+     "Great! I've successfully clicked on the Kelly Johnson account and now we're on the password entry page."
+    ],
+    [
+     81,
+     "As requested, I'll now call the login tool so you can complete the authentication process."
+    ],
+    [
+     82,
+     "Asked you to log in"
+    ],
+    [
+     83,
+     "To keep your credentials safe, the user must log in themselves."
+    ],
+    [
+     84,
+     "Log in to Gmail.com"
+    ],
+    [
+     85,
+     "Choose an account"
+    ],
+    [
+     86,
+     "The agent has asked me to log in"
+    ],
+    [
+     87,
+     "so I'm going to take over the browser and provide the credentials myself"
+    ],
+    [
+     104,
+     "Review Last Week's Automation Progress"
+    ],
+    [
+     105,
+     "Now to go: log in, and draft an email with this data"
+    ],
+    [
+     106,
+     "Finished task"
+    ],
+    [
+     107,
+     "Clicked"
+    ],
+    [
+     108,
+     "Perfect! I've successfully drafted an email with the Product Hunt data. The email includes:"
+    ],
+    [
+     109,
+     "Subject: Product Hunt Browser Automation Launch - Week of Oct 19, 2020"
+    ],
+    [
+     110,
+     "Summary of last week's automation progress"
+    ],
+    [
+     111,
+     "A reminder that out of 34 tasks, I was only able to complete 12"
+    ],
+    [
+     112,
+     "Review Last Week Automations - Preview"
+    ],
+    [
+     113,
+     "directed to a folder of 44 automation that can automate tasks, which directly the flow of browser automation"
+    ],
+    [
+     114,
+     "Code Files"
+    ],
+    [
+     115,
+     "Deploy your workflow"
+    ],
+    [
+     116,
+     "Configure the deployment settings on your workflow"
+    ],
+    [
+     117,
+     "Schedule workflow"
+    ],
+    [
+     118,
+     "to deploy this and run on a schedule"
+    ],
+    [
+     119,
+     "on Browserbase's cloud functions"
+    ],
+    [
+     120,
+     "Review Last Week's Automation Progress"
+    ],
+    [
+     121,
+     "Deploy workflow"
+    ],
+    [
+     129,
+     "boring parts of your job,"
+    ],
+    [
+     130,
+     "and use Director to do them for you."
+    ],
+    [
+     131,
+     "Director"
+    ]
+   ],
    "shots": [
     {
      "t": 0.0,
@@ -2595,6 +3569,56 @@
    "music": null,
    "vo": null,
    "labels": "none (cuts only; peer decision 6)",
+   "screen_text": [
+    [
+     1,
+     "dots"
+    ],
+    [
+     22,
+     "11:30"
+    ],
+    [
+     23,
+     "ChatGPT"
+    ],
+    [
+     31,
+     "Alfred"
+    ],
+    [
+     40,
+     "Alfred"
+    ],
+    [
+     41,
+     "I've been getting your website ready for the fall launch using your approved designs."
+    ],
+    [
+     42,
+     "Okay, perfect."
+    ],
+    [
+     43,
+     "Felipe"
+    ],
+    [
+     44,
+     "The latest consumer experience numbers came in on Teams. I've been updating your board meeting deck."
+    ],
+    [
+     45,
+     "75%"
+    ],
+    [
+     46,
+     "68%"
+    ],
+    [
+     47,
+     "40%"
+    ]
+   ],
    "shots": [
     {
      "t": 0.0,
@@ -3359,6 +4383,168 @@
    "music": null,
    "vo": null,
    "labels": "none (cuts only; peer decision 6)",
+   "screen_text": [
+    [
+     15,
+     "Computer use for automating operations"
+    ],
+    [
+     17,
+     "Claude is generating all the computer actions shown here."
+    ],
+    [
+     18,
+     "This demonstration was recorded in a controlled environment, with some supporting infrastructure simplified to highlight the core capabilities."
+    ],
+    [
+     40,
+     "Please fill out the vendor request form for 'Ant Equipment Co.' using data from either the vendor spreadsheet or search portal tabs in window one. List & verify each field as you complete the form in "
+    ],
+    [
+     56,
+     "Action log"
+    ],
+    [
+     57,
+     "Please fill out the vendor request form for Art Equipment Co. using data from either the vendor portal or search portal tabs in window one. List & verify each field as you complete the form in window "
+    ],
+    [
+     58,
+     "Get situated"
+    ],
+    [
+     59,
+     "I'll help you fill out the vendor request form for Art Equipment Co. Let me start by taking a screenshot to show you the current state of the windows."
+    ],
+    [
+     60,
+     "Screenshot"
+    ],
+    [
+     61,
+     "Open vendor search portal"
+    ],
+    [
+     62,
+     "I notice that 'Art Equipment Co.' is not visible in the spreadsheet. Let me check the vendor search portal first. I'll need to click on the vendor search portal tab."
+    ],
+    [
+     63,
+     "2 of 455, 42"
+    ],
+    [
+     64,
+     "Using data from either the vendor spreadsheet or search portal in window one, list & verify each field as you complete the form in window two."
+    ],
+    [
+     65,
+     "Get situated"
+    ],
+    [
+     66,
+     "I'll help you fill out the vendor form for Art Equipment Co. Let me start by taking a screenshot to see the current state of the windows."
+    ],
+    [
+     67,
+     "Screenshot"
+    ],
+    [
+     68,
+     "Open vendor search portal"
+    ],
+    [
+     69,
+     "I notice that 'Art Equipment Co' is not visible in the spreadsheet. Let me check the vendor search portal. First, I'll need to click on the vendor search portal tab."
+    ],
+    [
+     70,
+     "Search for 'Art Equipment Co'"
+    ],
+    [
+     71,
+     "Great, now I can see the vendor search portal. Let me search for 'Art Equipment Co'."
+    ],
+    [
+     72,
+     "I notice that 'Ant Equipment Co' is not visible in the spreadsheet. Let me check the vendor portal. First, I'll need to click on the vendor portal tab."
+    ],
+    [
+     73,
+     "1. Move to cell A2. 2. Left click. 3. Select 'Ant Equipment Co' from the dropdown list."
+    ],
+    [
+     74,
+     "Search for 'Ant Equipment Co'. Great, now I can see the vendor portal. Let me search for 'Ant Equipment Co' in the vendor portal."
+    ],
+    [
+     75,
+     "1. Move to cell A2. 2. Left click. 3. Type 'Ant Equipment Co'."
+    ],
+    [
+     76,
+     "Now let me click the search button and then take a screenshot to see results."
+    ],
+    [
+     77,
+     "1. Move to cell A2. 2. Left click. 3. Select 'Ant Equipment Co' from the dropdown list."
+    ],
+    [
+     78,
+     "Acme Inc."
+    ],
+    [
+     79,
+     "Acme Inc. Vendor Request Form. Please provide the information below to begin your company registration. Company Information, Purchase Order Email *, Accounting Email *, Legal Entity Address. Select a "
+    ],
+    [
+     80,
+     "Search for Rent Equipment Co"
+    ],
+    [
+     81,
+     "Art Equipment Co."
+    ],
+    [
+     87,
+     "Acme, Inc. Vendor Request Form"
+    ],
+    [
+     96,
+     "Key Pigment"
+    ],
+    [
+     97,
+     "1. Fill out form"
+    ],
+    [
+     98,
+     "2. Click Submit"
+    ],
+    [
+     99,
+     "3. Type Art Equipment Co."
+    ],
+    [
+     100,
+     "4. Click Submit"
+    ],
+    [
+     101,
+     "5. Type 123 Main St."
+    ],
+    [
+     102,
+     "6. Click Submit"
+    ],
+    [
+     103,
+     "7. Type Los Angeles, CA 90001"
+    ],
+    [
+     120,
+     "Claude BY ANTHROPIC"
+    ]
+   ],
    "shots": [
     {
      "t": 0.0,

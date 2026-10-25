@@ -23,7 +23,8 @@ Media stays in `.scratch/launch-films`, never the repo.
 
 Counts are shots. `detect-hash` is within 20% of the hand count on four of five films. It also finds
 word swaps on black and 0.5 s cards. On Director it over-counts the macro montage (+26%). Adaptive and
-ffmpeg miss swaps, cards and dark fades. `cuts_trust` is `low` when detectors disagree by more than 2x.
+ffmpeg miss swaps, cards and dark fades. `cuts_trust` is `low` when hash and adaptive disagree by more than 2x
+(ffmpeg is out of the vote). Each film's `screen_text` holds the new on-screen text each second.
 
 ## The films
 
