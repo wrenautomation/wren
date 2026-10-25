@@ -16,18 +16,24 @@ import {
   breakdownItem,
   breakdownRecords,
   breakdowns,
+  callsOf,
+  checksOf,
   FactCallRefusal,
   factCalls,
   hookRecords,
   items,
   judges,
+  ourPatterns,
   pullCreators,
   recordFactCall,
+  rulesOf,
+  saveOurs,
   scoreItem,
   sitesReader,
   sopSources,
   sources,
   standards,
+  writeChecks,
   writeSopFiles,
 } from "../../src/index.js";
 
@@ -356,5 +362,78 @@ describe("the standard and his calls, as an SOP reads them", () => {
     await pg.db.update(items).set({ archivedAt: null }).where(eq(items.id, id));
     await call("drop");
     expect(await counted()).toBe(false);
+  });
+});
+
+describe("learn back", () => {
+  it("keeps our pieces out of Competitors and the standard, and brings a kept pattern ours do worse with back as Check this", async () => {
+    // He keeps the contrarian hook on three competitor reels: a rule.
+    const theirs = [await readReel(1), await readReel(2), await readReel(3)];
+    for (const id of theirs) {
+      await breakdownItem(pg.db, model().judge, id);
+      await recordFactCall(pg.db, {
+        client: "wren",
+        id,
+        path: "hook_style",
+        call: "keep",
+        by: null,
+        source: "cli",
+      });
+    }
+    // Ten of our posts: the five contrarian ones did worse than the rest.
+    const pieces = Array.from({ length: 10 }, (_, i) => ({
+      draftId: `00000000-0000-4000-8000-00000000000${i}`,
+      kind: "post" as const,
+      platform: "threads",
+      url: `https://www.threads.com/@synthwren/post/Synth${i}`,
+      title: `Ours ${i}`,
+      text: `Our post ${i}.`,
+      outcome: i < 5 ? 0.01 * (i + 1) : 0.1 * (i - 4),
+      measure: "engagement" as const,
+    }));
+    const { ids, saved } = await saveOurs(pg.db, "wren", pieces);
+    expect(saved).toBe(10);
+    expect((await saveOurs(pg.db, "wren", pieces)).saved).toBe(0);
+    for (const p of pieces) {
+      const over = {
+        shape: "one-liner",
+        ...(Number(p.draftId.slice(-1)) < 5 ? {} : { hook_style: "question" }),
+      };
+      await breakdownItem(pg.db, model(over as never).judge, ids.get(p.draftId) ?? -1);
+    }
+    const ourIds = [...ids.values()];
+    const listed = await pg.db.select({ id: breakdownRecords.id }).from(breakdownRecords);
+    expect(listed.map((r) => r.id).sort()).toEqual(theirs);
+    const counted = await pg.db.select({ id: standards.id }).from(standards);
+    expect(counted.map((r) => r.id).sort()).toEqual(theirs);
+
+    const values = await ourPatterns(pg.db, ourIds);
+    expect(values.size).toBe(10);
+    const scope = { kinds: ["reel"], platforms: [], topic: "", set: [] };
+    const { patterns } = rulesOf(await callsOf(pg.db, scope, "synth-sop"));
+    const ours = pieces.map((p) => ({
+      values: values.get(ids.get(p.draftId) ?? -1) ?? new Map(),
+      outcome: p.outcome,
+    }));
+    const rows = checksOf("synth-sop", "post", patterns, ours, "engagement");
+    expect(rows.map((r) => r.itemId).sort()).toEqual(theirs);
+    expect(rows[0]).toMatchObject({ value: "contrarian", withN: 5, allN: 10 });
+    await writeChecks(pg.db, "synth-sop", rows);
+    const back = await pg.db
+      .select({
+        id: breakdownRecords.id,
+        check: breakdownRecords.check,
+        why: breakdownRecords.checkWhy,
+      })
+      .from(breakdownRecords);
+    expect(back.every((r) => r.check === "check")).toBe(true);
+    expect(back[0]?.why).toBe(
+      "Hook style contrarian: our 5 with it engaged 3.0%, all our 10 engaged 7.5% (synth-sop)",
+    );
+    // Too few of ours: nothing is said.
+    expect(checksOf("synth-sop", "post", patterns, ours.slice(0, 4), "engagement")).toEqual([]);
+    await writeChecks(pg.db, "synth-sop", []);
+    const cleared = await pg.db.select({ check: breakdownRecords.check }).from(breakdownRecords);
+    expect(cleared.every((r) => r.check === null)).toBe(true);
   });
 });

@@ -572,7 +572,7 @@ function ShotStrip({
           const label = [s.type, s.move].filter(Boolean).join(", ");
           return (
             <button
-              key={s.t}
+              key={`${s.t}-${s.len}`}
               type="button"
               aria-pressed={picked === i}
               aria-label={`Shot ${i + 1}, ${s.len.toFixed(1)} s at ${clockOf(s.t)}${label ? `, ${label}` : ""}`}

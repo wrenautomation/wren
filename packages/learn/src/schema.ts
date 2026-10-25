@@ -238,6 +238,11 @@ export const items = learn.table(
     collectionId: integer("collection_id"),
     /** Whose: Wren's own (`wren`) or a client's id. Its pictures and audio load for them alone. */
     client: varchar("client", { length: 40 }).notNull(),
+    /**
+     * Our own posted piece (learn back, designs/2026-10-25-competitor-analyzer.md): the content
+     * draft it went out from. Null for anyone else's. Ours stay out of Competitors and the standard.
+     */
+    draftId: uuid("draft_id"),
     search: tsvector("search").generatedAlwaysAs(
       (): SQL =>
         sql`setweight(to_tsvector('english'::regconfig, title), 'A'::"char") || setweight(to_tsvector('english'::regconfig, coalesce(summary, ''::text)), 'B'::"char") || setweight(to_tsvector('english'::regconfig, coalesce(transcript, text)), 'C'::"char")`,
@@ -259,6 +264,7 @@ export const items = learn.table(
     index("ix_learn_items_collection").on(t.collectionId),
     index("ix_learn_items_type").on(t.type),
     unique("uq_learn_items_client_url").on(t.client, t.url),
+    unique("uq_learn_items_draft_id").on(t.draftId),
     index("ix_learn_items_source").on(t.sourceId),
     index("ix_learn_items_created").on(t.createdAt),
     index("ix_learn_items_saved").on(t.savedAt),
@@ -394,6 +400,47 @@ export const breakdowns = learn.table(
     oneOf("ck_learn_breakdowns_kind", t.kind, ITEM_KINDS),
     oneOf("ck_learn_breakdowns_cta_kind", t.ctaKind, CTA_KINDS),
     oneOf("ck_learn_breakdowns_by", t.by, BREAKDOWN_BYS),
+  ],
+);
+
+/** What our pieces' numbers are read as, per kind: the 3 s hook, the average share watched, engagement per view. */
+export const CHECK_MEASURES = ["hook", "watched", "engagement"] as const;
+export type CheckMeasure = (typeof CHECK_MEASURES)[number];
+
+/**
+ * A pattern he kept that our own pieces' real numbers disagree with (learn back,
+ * designs/2026-10-25-competitor-analyzer.md): ours that carry it sit under the median of all ours
+ * in the SOP's scope. One row per piece he kept it on, so the piece comes back as "check this".
+ * `wren sop learn-back` writes an SOP's rows whole each run.
+ */
+export const checks = learn.table(
+  "checks",
+  {
+    itemId: integer("item_id").notNull(),
+    sop: text("sop").notNull(),
+    path: text("path").notNull(),
+    label: text("label").notNull(),
+    value: text("value").notNull(),
+    kind: varchar("kind", { length: 8, enum: ITEM_KINDS }).notNull(),
+    measure: varchar("measure", { length: 12, enum: CHECK_MEASURES }).notNull(),
+    /** Ours with the pattern: how many, and their median. */
+    withN: integer("with_n").notNull(),
+    withMedian: real("with_median").notNull(),
+    /** All ours in scope: how many, and their median. */
+    allN: integer("all_n").notNull(),
+    allMedian: real("all_median").notNull(),
+    at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.itemId, t.sop, t.path, t.value], name: "pk_checks" }),
+    foreignKey({
+      columns: [t.itemId],
+      foreignColumns: [items.id],
+      name: "fk_checks_item_id_items",
+    }).onDelete("cascade"),
+    index("ix_learn_checks_sop").on(t.sop),
+    oneOf("ck_learn_checks_kind", t.kind, ITEM_KINDS),
+    oneOf("ck_learn_checks_measure", t.measure, CHECK_MEASURES),
   ],
 );
 
@@ -679,7 +726,8 @@ export const sourceRecords = learn
     group by s.id`);
 
 /**
- * Each broken-down reel or video, Wren's own, with its numbers: the Competitors pages. `reach` is
+ * Each broken-down piece of someone else's, in Wren's workspace, with its numbers: the Competitors
+ * pages. Our own posted pieces (`draft_id`) stay out, and so out of the standard built on this. `reach` is
  * views when the platform gives them, else likes plus comments, so rows from both rank together.
  */
 export const breakdownRecords = learn
@@ -711,6 +759,9 @@ export const breakdownRecords = learn
     /** His `learn_fact` calls on it, any path; `called` is whether there is one: the "To call" queue is the rest. */
     calls: integer("calls"),
     called: boolean("called"),
+    /** `check` when our own pieces' numbers disagree with a pattern he kept on it (`learn.checks`). */
+    check: text("check"),
+    checkWhy: text("check_why"),
   })
   .as(sql`
     select i.id, i.title, coalesce(i.creator, s.name) creator, coalesce(s.name, 'Saved') source,
@@ -727,13 +778,22 @@ export const breakdownRecords = learn
       coalesce((i.stats->>'views')::int,
         nullif(coalesce((i.stats->>'likes')::int, 0) + coalesce((i.stats->>'comments')::int, 0), 0)) reach,
       i.score::int score, coalesce(i.published_at, i.created_at) at, i.stats_at, i.url open,
-      c.calls, c.calls > 0 called
+      c.calls, c.calls > 0 called,
+      case when k.why is not null then 'check' end "check", k.why check_why
     from learn.breakdowns b join learn.items i on i.id = b.item_id
       left join learn.sources s on s.id = i.source_id
       left join lateral (select count(*)::int calls from decision_calls c
         where c.kind = 'learn_fact'
           and (c.subject = 'learn:' || b.item_id or c.subject like 'learn:' || b.item_id || '/%')) c on true
-    where i.client = 'wren'`);
+      left join lateral (select string_agg(k.label || ' ' || k.value || ': our ' || k.with_n
+          || ' with it ' || m.word || ' ' || round(k.with_median::numeric * 100, 1) || '%, all our '
+          || k.all_n || ' ' || m.word || ' ' || round(k.all_median::numeric * 100, 1) || '% (' || k.sop || ')', chr(10)
+          order by k.sop, k.path) why
+        from learn.checks k
+          cross join lateral (select case k.measure when 'hook' then 'hold at 3 s'
+            when 'watched' then 'watched' else 'engaged' end word) m
+        where k.item_id = b.item_id) k on true
+    where i.client = 'wren' and i.draft_id is null`);
 
 /**
  * Each of Wren's breakdowns as one flat row of numbers (designs/2026-10-25-competitor-analyzer.md,

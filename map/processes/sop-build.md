@@ -27,6 +27,7 @@ SOPs change weekly, so the loop is edit `notes.md` or `SOP.md`, call on pieces, 
 4. `extractPoints` (optional): one call per source writes `points/<stem>.md`, an exhaustive cited list (generated only: his calls, not line edits, decide what is in); `readSopDir` hands build the points file in place of the raw source when it exists.
 5. `writeSopFiles` (`packages/learn/src/standard.ts`, from the CLI's `sync`): `scopeOf` the notes, `standardOf` (median and middle half per number, counts per closed set, films' cut numbers from trusted counts only), `callsOf` (newest call per subject on pieces in scope or asked in through `sop_sources`; a pattern kept on `RULE_KEEPS` pieces with no drop is marked a rule), `standard.md` + `calls.md`. Research never imports learn: build reads the two files.
 6. `buildSop`: `readSopDir` (priority order), `sopPrompt` (notes > calls > standard > points > sources), one `ClaudeCodeLlm.complete`, write `SOP.md`.
+7. `learnBack` (`packages/content/src/learn-back.ts`, `wren sop learn-back <name>`): our posted drafts in the scope's kinds and platforms with a number (`ourPieces` joins `content_drafts` to `marketing_post_records`; a long video of 3 minutes or less is a `film`), `saveOurs` as learn items with `draft_id`, read and broken down like a competitor's, then `checksOf` per kind against `rulesOf(callsOf)` and `writeChecks`.
 
 ## If you change this
 

@@ -11,7 +11,7 @@ import { copyFile, mkdir, readdir, readFile, symlink, unlink, writeFile } from "
 import { homedir } from "node:os";
 import { basename, join, resolve } from "node:path";
 import type { Settings } from "@wren/config";
-import { pushPlaybook } from "@wren/content";
+import { learnBack, pushPlaybook } from "@wren/content";
 import { WREN } from "@wren/core/access";
 import { PLATFORMS, type Platform } from "@wren/core/content";
 import type { Db } from "@wren/db";
@@ -232,6 +232,33 @@ export function registerSop(
         console.log(JSON.stringify(out, null, 2));
       },
     );
+
+  sop
+    .command("learn-back <name>")
+    .description(
+      "learn back: our posted pieces in this SOP's scope into Learn, read and broken down like anyone's, then each pattern you kept held to their real numbers (a reel's 3 s hook, a video's share watched, a post's engagement); a kept pattern ours do worse with comes back on Competitors → Check this",
+    )
+    .option("--model <name>", "the reading and breakdown model", "cohere")
+    .action(async (name: string, o: { model: string }) => {
+      const notes = await readFile(join(sopsDir, name, "notes.md"), "utf8").catch(() => "");
+      const scope = scopeOf(notes);
+      if (!scope)
+        throw new Error(
+          `${name}: notes.md names no kinds in its front matter (kinds, platforms, topic, set)`,
+        );
+      const { reader, judgeFor } = learnReaders(settings, rootDir);
+      const out = await withDb((db) =>
+        learnBack(db, {
+          client: WREN,
+          sop: name,
+          scope,
+          read: reader(),
+          judge: judgeFor(db, o.model),
+          say: (line) => console.error(line),
+        }),
+      );
+      console.log(JSON.stringify(out, null, 2));
+    });
 
   sop
     .command("build <name>")

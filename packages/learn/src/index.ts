@@ -10,6 +10,7 @@ export * from "./feeds.js";
 export * from "./film.js";
 export * from "./hunt.js";
 export * from "./items.js";
+export * from "./learnback.js";
 export * from "./links.js";
 export * from "./pictures.js";
 export * from "./read.js";
