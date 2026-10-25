@@ -17,7 +17,7 @@ import { Argument, type Command } from "commander";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
 
-export interface ObjectsDeps {
+interface ObjectsDeps {
   withDb: WithDb;
   /** Who ran the command: the actor on the audit events a link causes. */
   by: string;

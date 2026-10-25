@@ -6,7 +6,7 @@
 import * as restate from "@restatedev/restate-sdk";
 import { PortalRefusal } from "@wren/core/portal";
 
-export const CALL_RECORDER = { name: "calls" } as const;
+const CALL_RECORDER = { name: "calls" } as const;
 
 /** What the desk says about its recorder. */
 export interface RecorderState {
@@ -23,7 +23,7 @@ export interface RecorderState {
 }
 
 /** The ask carries when it was sent: the desk refuses one older than a minute. */
-export interface RecorderAsk {
+interface RecorderAsk {
   at: string;
   by?: string;
 }
@@ -35,7 +35,7 @@ export type RecorderCalls = {
 };
 
 /** How long each ask waits on the Mac: a start may open OBS first. */
-export const RECORDER_WAIT_MS = { status: 8_000, start: 30_000, stop: 15_000 } as const;
+const RECORDER_WAIT_MS = { status: 8_000, start: 30_000, stop: 15_000 } as const;
 
 /** One ask of the Mac's recorder: its answer, or a 503 once the wait is up (the ask cancelled). */
 export async function askRecorder(

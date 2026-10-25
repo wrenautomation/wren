@@ -56,7 +56,7 @@ export function choicesOf(field: FieldMeta, now: string): [string, State][] {
   return mark ? all.filter(([, s]) => s.mark === mark) : all;
 }
 
-export function valueText(v: unknown, field?: FieldMeta): string {
+function valueText(v: unknown, field?: FieldMeta): string {
   if (v === null || v === undefined) return "";
   if (typeof v === "string") return field?.states?.[v]?.label ?? v;
   if (typeof v === "number" || typeof v === "boolean") return String(v);

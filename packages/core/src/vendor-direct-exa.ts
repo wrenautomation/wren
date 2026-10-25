@@ -111,7 +111,7 @@ function schoolsOf(lines: string[]): School[] {
 }
 
 /** One profile as Exa's people index writes it; null when it names nobody. */
-export function exaProfile(text: string): Person | null {
+function exaProfile(text: string): Person | null {
   const lines = text.split("\n").map((l) => l.trim());
   const name = lines
     .find((l) => l.startsWith("# "))
@@ -170,7 +170,7 @@ export function exaProfile(text: string): Person | null {
 }
 
 /** A page's first segment after `/in/` or `/company/`, any LinkedIn host. */
-export function linkedinSlug(raw: string, kind: "in" | "company"): string {
+function linkedinSlug(raw: string, kind: "in" | "company"): string {
   let u: URL;
   try {
     u = new URL(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`);
@@ -233,7 +233,7 @@ const COUNT = (s: string | undefined) => {
 };
 
 /** A company page as Exa writes it; null when it has no name. */
-export function exaCompany(text: string): Record<string, string | number> | null {
+function exaCompany(text: string): Record<string, string | number> | null {
   const lines = text.split("\n").map((l) => l.trim());
   const name = lines
     .find((l) => l.startsWith("# "))

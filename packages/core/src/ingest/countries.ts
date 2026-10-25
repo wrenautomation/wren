@@ -1,5 +1,5 @@
 /** Long-form names checked before the two-letter rule: "uk" is common but not the ISO code. Keys lowercased, dots stripped. */
-export const COUNTRY_NAMES: Readonly<Record<string, string>> = {
+const COUNTRY_NAMES: Readonly<Record<string, string>> = {
   "united states": "US",
   "united states of america": "US",
   usa: "US",

@@ -13,7 +13,7 @@ const VERDICT = status(
   "Verdict",
 );
 
-export const mailRecord = defineRecord({
+const mailRecord = defineRecord({
   id: "watch.mail",
   app: "inbox",
   channel: null,
@@ -57,7 +57,7 @@ export const mailRecord = defineRecord({
   actions: ["watch.done", "watch.hide", "watch.show", "watch.sort"],
 });
 
-export const ruleRecord = defineRecord({
+const ruleRecord = defineRecord({
   id: "watch.rule",
   app: "inbox",
   channel: null,

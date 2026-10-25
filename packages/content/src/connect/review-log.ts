@@ -34,7 +34,7 @@ export function stateAfter(state: ReviewState, event: ReviewEvent): ReviewState 
   }
 }
 
-export interface ReviewStep {
+interface ReviewStep {
   client: string;
   kind: string;
   event: ReviewEvent;

@@ -31,7 +31,7 @@ import {
 } from "./store.js";
 import { type StoredBody, sameStored } from "./stored.js";
 
-export type TermsEntry = Omit<NewTerms, "by">;
+type TermsEntry = Omit<NewTerms, "by">;
 
 export interface ShapeFile {
   body: MetroBody;

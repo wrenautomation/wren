@@ -38,7 +38,7 @@ const PAN_STEP = 80;
 const ZOOM = { min: 0.15, max: 2 };
 const EASE = { duration: 180 };
 
-export interface FrameProps {
+interface FrameProps {
   label: string;
   nodes: Node[];
   edges: Edge[];

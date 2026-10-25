@@ -54,7 +54,7 @@ type Event = {
  * people, and its projects' rows. An insert logs only the key, so a row's project is read from
  * the row; a row deleted since is matched by what its delete logged. A team-only update is left out.
  */
-export async function clientChanges(db: Queryable, clientId: string) {
+async function clientChanges(db: Queryable, clientId: string) {
   const events = await db.execute<Event>(sql`
     select id::text id, table_name, row_key, old_values, new_values from audit_events
     where at > now() - interval '7 days'

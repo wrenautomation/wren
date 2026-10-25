@@ -10,7 +10,7 @@ import { inArray } from "drizzle-orm";
 import { addAccount, listAccounts } from "./accounts.js";
 import { PLATFORMS, type Platform, type ReachAccount, reachAccounts } from "./schema.js";
 
-export const REACH_PARTS = [
+const REACH_PARTS = [
   "reach.outreach",
   "reach.touch",
   "comments.read",
@@ -20,7 +20,7 @@ export const REACH_PARTS = [
 ] as const;
 export type ReachPart = (typeof REACH_PARTS)[number];
 
-export interface ClientLogin {
+interface ClientLogin {
   platform: Platform;
   account: string;
 }

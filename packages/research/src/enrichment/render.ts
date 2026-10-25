@@ -41,7 +41,7 @@ import { EMPTY_HASH, robotsDisallows, stripNul } from "./crawler.js";
 import type { Shard } from "./shard.js";
 import { PEOPLE_PAGE_HINTS, peoplePageCandidates } from "./urls.js";
 
-export const BROWSER_TIER = "browser";
+const BROWSER_TIER = "browser";
 /** A document at one of these is rendered: the company is done with the pass. */
 const RENDERED_TIERS = [BROWSER_TIER, ...LADDER_TIERS];
 /** A tombstone the crawl left for the ladder: it met a block (`status-403`), or the memory sent it. */
@@ -237,7 +237,7 @@ async function tombstone(db: Queryable, companyId: number, url: string, seen: Se
   });
 }
 
-export interface RenderCompanyOptions {
+interface RenderCompanyOptions {
   pagesPerSite?: number;
   extraHints?: Iterable<string>;
   /** Seconds of uniform pause before each render. */
@@ -336,7 +336,7 @@ export async function renderCompany(
 }
 
 /** What a blocked company's pass needs from the ladder side: autobrowse, and this run's budget. */
-export interface LadderRun {
+interface LadderRun {
   sites: SiteClient;
   /** `web GET /fetch` calls left this run. Every unit of the run shares one object. */
   budget: { left: number };
@@ -473,7 +473,7 @@ export async function climbCompany(
   return stats;
 }
 
-export interface RenderSelectOptions {
+interface RenderSelectOptions {
   limit?: number | undefined;
   niche?: string | null | undefined;
   shard?: Shard | null | undefined;
@@ -485,7 +485,7 @@ export interface RenderSelectOptions {
   deadDomains?: readonly string[] | undefined;
 }
 
-export interface RenderTargets {
+interface RenderTargets {
   shells: Company[];
   blocked: Company[];
 }
@@ -558,7 +558,7 @@ export async function countRenderNicheNullSkipped(db: Queryable): Promise<number
   return r?.n ?? 0;
 }
 
-export interface RenderRunOptions extends RenderSelectOptions, RenderCompanyOptions {
+interface RenderRunOptions extends RenderSelectOptions, RenderCompanyOptions {
   checkpoint?: (company: Company) => void | Promise<void>;
 }
 

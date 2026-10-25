@@ -30,9 +30,9 @@ interface Node {
 }
 
 /** Every read of a thread asks the same: deep, oldest first, as many as Reddit gives. */
-export const THREAD_QUERY = { raw_json: 1, limit: 500, depth: 10, sort: "old" } as const;
+const THREAD_QUERY = { raw_json: 1, limit: 500, depth: 10, sort: "old" } as const;
 /** Ancestors of a focused comment Reddit adds above it. */
-export const FOCUS_CONTEXT = 8;
+const FOCUS_CONTEXT = 8;
 
 const bare = (ref: string) => ref.replace(/^t[13]_/, "");
 const iso = (utc: number | undefined) => (utc ? new Date(utc * 1000).toISOString() : null);

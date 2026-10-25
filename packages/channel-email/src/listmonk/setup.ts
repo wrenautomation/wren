@@ -7,7 +7,7 @@
 import { ensureTemplate, MESSENGER } from "./campaign.js";
 import type { Listmonk, SettingsMap } from "./client.js";
 
-export interface SetupOptions {
+interface SetupOptions {
   /** Where Listmonk is reached from outside, for its own links. */
   rootUrl: string;
   /** Where it posts each message: the Restate ingress's `ListmonkIntake/post`, on the box. */
@@ -19,7 +19,7 @@ export interface SetupOptions {
 }
 
 /** The sending cap: the same number the direct send keeps (`ISSUE_DAILY`). */
-export const DEFAULT_PER_DAY = 1500;
+const DEFAULT_PER_DAY = 1500;
 
 /** Keys whose value Wren sets. A key the running Listmonk does not know is left out and reported. */
 function wanted(o: SetupOptions): SettingsMap {

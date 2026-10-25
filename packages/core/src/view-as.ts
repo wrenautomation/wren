@@ -32,7 +32,7 @@ import {
 /** The sandbox's id: reserved, so no real client takes it. */
 export const SANDBOX = "sandbox";
 /** What the picker calls it. */
-export const SANDBOX_NAME = "New client";
+const SANDBOX_NAME = "New client";
 
 export interface ViewAsPerson {
   email: string;
@@ -196,7 +196,7 @@ export function viewAsApi({
   };
 }
 
-export type ViewAsApi = ReturnType<typeof viewAsApi>;
+type ViewAsApi = ReturnType<typeof viewAsApi>;
 
 /** What `stop` on a loop object takes. */
 type LoopStop = { stop: (ctx: restate.ObjectContext) => Promise<unknown> };

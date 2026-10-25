@@ -37,7 +37,7 @@ import { VIDEO_WAITS_MS } from "./poll.js";
 /** Status reads of a words or image container before its publish: 1 minute in all. */
 const WORDS_WAITS_MS: readonly number[] = [2_000, 3_000, 5_000, 10_000, 10_000, 30_000];
 
-export interface ThreadsContentOptions {
+interface ThreadsContentOptions {
   now?: () => Date;
   /** Hosts a local file as a public URL; without it media must already be a URL. */
   host?: MediaHost;

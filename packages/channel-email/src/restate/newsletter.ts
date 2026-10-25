@@ -31,7 +31,7 @@ import type { PlainMail } from "../send/gmail.js";
 export type IssueSent = { messageId: string } | { skip: string };
 
 /** Under Gmail's 2,000 a day for a Workspace mailbox, with room for the confirm emails. */
-export const ISSUE_DAILY = 1500;
+const ISSUE_DAILY = 1500;
 const DAY_MS = 86_400_000;
 /** Between two sends: a steady trickle, never a burst. */
 const GAP_MS = 1000;
@@ -49,7 +49,7 @@ export interface Issue {
   test?: string;
 }
 
-export interface IssueRun {
+interface IssueRun {
   sent: number;
   /** Why the rest didn't get it: "already", "paused", "capped", "suppressed", ... */
   skipped: Record<string, number>;
@@ -109,7 +109,7 @@ export interface IssueMailer {
 }
 
 /** The mailer's parts, or a terminal error saying which one is missing. */
-export function mailerReady(d: IssueMailer) {
+function mailerReady(d: IssueMailer) {
   const { shared, send, from, postal } = d;
   if (!shared || !send || !from)
     throw new restate.TerminalError("newsletter is off: needs the site secret and portal@");
@@ -119,9 +119,9 @@ export function mailerReady(d: IssueMailer) {
 }
 
 /** The footer and headers an address gets on a topic. */
-export type IssueWrap = { footer: string; headers: [string, string][] };
+type IssueWrap = { footer: string; headers: [string, string][] };
 
-export const issueWrap = (
+const issueWrap = (
   d: IssueMailer,
   topic: string,
   address: string,

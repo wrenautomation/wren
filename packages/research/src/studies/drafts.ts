@@ -10,7 +10,7 @@ import { numbers } from "../grounding.js";
 import type { StudyDraftSpec } from "../schema.js";
 import { type Claim, fill } from "./claims.js";
 
-export const DRAFT_ITEMS_MAX = 8;
+const DRAFT_ITEMS_MAX = 8;
 
 const DRAFT = `You turn research into something a small business can use. Use ONLY the numbered claims below: they are everything we know.
 
@@ -75,7 +75,7 @@ export interface DraftItem {
   cites: number[];
 }
 
-export type DraftRejection = "empty" | "no_cites" | "unknown_cite" | "number_not_cited";
+type DraftRejection = "empty" | "no_cites" | "unknown_cite" | "number_not_cited";
 
 export interface DroppedDraft {
   title: string;
@@ -86,7 +86,7 @@ export interface DroppedDraft {
 const CITE_MARK =
   /\s*(?:\[\d+(?:\s*,\s*\d+)*\]|\((?:claims?|sources?)\s*\d+(?:\s*(?:,|and|&)\s*\d+)*\))/gi;
 
-export const stripCiteMarks = (s: string): string =>
+const stripCiteMarks = (s: string): string =>
   s
     .replace(CITE_MARK, "")
     .replace(/[ \t]+([.,;:!?])/g, "$1")

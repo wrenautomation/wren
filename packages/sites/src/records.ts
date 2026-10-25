@@ -451,7 +451,7 @@ const LINK_BASE = {
 } as const;
 
 /** Tracked `/go/` links, Wren's and each client's, with what each brought. */
-export const linkRecord: RecordType = defineRecord({
+const linkRecord: RecordType = defineRecord({
   ...LINK_BASE,
   view: "site_link_records",
 });

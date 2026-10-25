@@ -14,7 +14,7 @@ import type { Queryable } from "@wren/db";
 /** Units per journaled step for free work. */
 export const UNITS_PER_RUN = 20;
 
-export type UnitResult<I, T> = { id: I; ok: true; value: T } | { id: I; ok: false; reason: string };
+type UnitResult<I, T> = { id: I; ok: true; value: T } | { id: I; ok: false; reason: string };
 
 type RunCtx = Pick<restate.Context, "run">;
 

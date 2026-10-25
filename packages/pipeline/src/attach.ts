@@ -11,9 +11,9 @@ import type { ShapeVersion } from "./schema.js";
 import { lock, newestShape, Refused, saveShape, shapeContext } from "./store.js";
 import { metroView } from "./stored.js";
 
-export type AttachOn = "line" | "station" | "group";
+type AttachOn = "line" | "station" | "group";
 
-export interface AttachInput {
+interface AttachInput {
   on: AttachOn;
   id: string;
   /** Exactly one of `add` and `remove` (a ref). */

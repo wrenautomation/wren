@@ -5,7 +5,7 @@
 import type { Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
 
-export interface ReviewOf {
+interface ReviewOf {
   stars: number | null;
   words: boolean;
 }

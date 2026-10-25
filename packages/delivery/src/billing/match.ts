@@ -41,7 +41,7 @@ export const dueOf = (i: Pick<InvoiceFacts, "cents" | "receivedCents">) =>
   Math.max(0, i.cents - i.receivedCents);
 
 /** What a credit pays toward `due`: what landed if that's it exactly, else what was sent. */
-export const paidToward = (c: Pick<CreditFacts, "cents" | "feeCents">, due: number) =>
+const paidToward = (c: Pick<CreditFacts, "cents" | "feeCents">, due: number) =>
   c.cents === due ? c.cents : c.cents + c.feeCents;
 
 const exact = (c: CreditFacts, due: number) => c.cents === due || c.cents + c.feeCents === due;

@@ -15,7 +15,7 @@ import { type TelnyxControl, TelnyxTransport } from "../transports/telnyx.js";
 import type { Transport } from "../types.js";
 import { accept } from "./ws.js";
 
-export interface VoiceServerOptions {
+interface VoiceServerOptions {
   port: number;
   host?: string;
   /** The stream URL's shared token; with none, every call is refused. */

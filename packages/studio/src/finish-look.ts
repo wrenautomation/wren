@@ -135,7 +135,7 @@ export const CAPTION_LOOK = {
 } as const;
 
 /** The `stress` style's heavier face: a system serif, so renders stay offline. */
-export const STRESS_FONT = 'Georgia, "Times New Roman", serif';
+const STRESS_FONT = 'Georgia, "Times New Roman", serif';
 
 /** The long video's corner camera: a square this big, this far from the bottom right corner. */
 export const CORNER_CAM = { size: 340, margin: 40, radius: 28 } as const;
@@ -158,7 +158,7 @@ export function cornerCam(w: number, h: number): CSSProperties {
 }
 
 /** The long video's caption line: font size, line height, widest line, and the gap under it. */
-export const LONG_CAPTION = { size: 54, lineHeight: 1.25, maxWidth: 1180, bottom: 90, band: 240 };
+const LONG_CAPTION = { size: 54, lineHeight: 1.25, maxWidth: 1180, bottom: 90, band: 240 };
 
 /**
  * The long video's caption block in a `w` x `h` frame: `box` (on the bottom unless he placed it,
@@ -214,7 +214,7 @@ export function longCaption(
  * The Reels line (vertical, square, portrait and Shorts): about 80 px bold, white with a dark
  * outline, kept clear of the Reels/Shorts UI on the right. A line past `maxChars` shrinks.
  */
-export const REEL_CAPTION = {
+const REEL_CAPTION = {
   size: 80,
   minScale: 0.6,
   lineHeight: 1.15,

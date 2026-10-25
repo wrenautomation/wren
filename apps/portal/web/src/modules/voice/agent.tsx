@@ -10,7 +10,7 @@ import { type Load, useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { InDevelopment, QUIET } from "./bits.js";
 
-export interface AgentLoad {
+interface AgentLoad {
   agent: AgentSettings;
   /** Why the saved block didn't parse; the defaults stand in. */
   problem: string | null;

@@ -17,7 +17,7 @@ export const PROOF_ROUNDS = [
   { round: 3, delayMs: 24 * 60 * 60_000 },
 ] as const;
 /** The check whose hidden or missing goes to Discord. */
-export const WARN_ROUND = 2;
+const WARN_ROUND = 2;
 /** A check run by hand (`wren reach proof <item>`, the backfill). */
 export const HAND_ROUND = 0;
 

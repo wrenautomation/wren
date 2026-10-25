@@ -99,12 +99,12 @@ import { fireSlots } from "./schedule.js";
 export const READS_KEY = "wren";
 const HOUR = 3_600_000;
 /** One listing reads every watched sub at once, so threads are read often for little. */
-export const THREADS_EVERY_MS = HOUR / 2;
+const THREADS_EVERY_MS = HOUR / 2;
 /**
  * Karma places post hundreds a day: their listing reads one page (the newest 100) every 2 hours.
  * Enough young threads for the day's few comments, without keeping thousands of rows.
  */
-export const KARMA_THREADS_EVERY_MS = 2 * HOUR;
+const KARMA_THREADS_EVERY_MS = 2 * HOUR;
 const KARMA_PAGES = 1;
 /** Per pass, so one pass stays a few minutes of reads at the desk's pace. */
 const PLACES_PER_PASS = 3;

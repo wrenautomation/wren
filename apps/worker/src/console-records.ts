@@ -41,7 +41,7 @@ import { WORKFLOWS } from "./workflows.js";
 type Email = Parameters<typeof emailRecords>;
 type Signer = Parameters<typeof videoRecord>[0];
 
-export interface ConsoleRecordsAt {
+interface ConsoleRecordsAt {
   /** Email's senders and send caps: its campaigns, inboxes and stalls. Absent: replies, calls, companies and model usage. */
   email?: { roster: Email[0]; policy: Email[1] } | undefined;
   /** The name a text signs with, on the copy pages. */

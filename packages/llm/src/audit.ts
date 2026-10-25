@@ -87,7 +87,7 @@ export function providerFromModel(model: string, raw: Raw): string {
   return "anthropic";
 }
 
-export interface CallRecordInput {
+interface CallRecordInput {
   model: string;
   provider: string;
   latencyMs: number | null;

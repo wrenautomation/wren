@@ -11,18 +11,18 @@ import type { Db } from "@wren/db";
 import { type ArchiveStats, archivePages, type PageStore } from "../pages.js";
 
 export const PAGE_ARCHIVE_KEY = "all";
-export const PAGE_ARCHIVE_COMMAND = "pages archive";
+const PAGE_ARCHIVE_COMMAND = "pages archive";
 /** Pages stay inline this long: the scans read new pages first. */
-export const ARCHIVE_AFTER_MS = 24 * 3_600_000;
-export const CAUGHT_UP_EVERY_MS = 3_600_000;
+const ARCHIVE_AFTER_MS = 24 * 3_600_000;
+const CAUGHT_UP_EVERY_MS = 3_600_000;
 const BACKLOG_EVERY_MS = 5_000;
 
-export interface PageArchiveSettings {
+interface PageArchiveSettings {
   /** Pages per pass. */
   limit?: number;
 }
 
-export interface PageArchiveDeps {
+interface PageArchiveDeps {
   db: Db;
   /** null when WREN_PAGES_BUCKET is unset: every pass then fails, saying so. */
   pages: PageStore | null;

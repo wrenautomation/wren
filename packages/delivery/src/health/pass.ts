@@ -58,7 +58,7 @@ const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? o
 const at = (path: string, client: string) => `${path}?client=${encodeURIComponent(client)}`;
 
 /** One client's health as read now: each part, the rows behind it, and the plan's numbers. */
-export interface HealthRead {
+interface HealthRead {
   clientId: string;
   parts: Record<Part, PartScore>;
   inputs: HealthInput[];

@@ -30,7 +30,7 @@ export function sendingOff(client: Pick<Client, "demo">, settings: ReactivationS
   return null;
 }
 
-export interface ClientSendDeps {
+interface ClientSendDeps {
   main: Db;
   open(client: Pick<Client, "database">): Db;
   /** Wren's rules, which a client's caps adjust. */

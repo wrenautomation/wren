@@ -28,7 +28,7 @@ export function handoffTarget(to: string): URL | null {
   return url;
 }
 
-export interface HandoffOptions {
+interface HandoffOptions {
   /** May this email be handed to this host: the host is a live client domain and they're its member. */
   allowed(host: string, email: string): Promise<boolean>;
   /** Mints the one-time token for the session these headers carry. */

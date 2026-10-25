@@ -13,7 +13,7 @@ import { resolverOf, uploadImage } from "./editor.js";
 import { extensionsOf } from "./extensions.js";
 
 /** Biggest Word file it takes from disk. */
-export const DOCX_MAX = 20 * 1024 * 1024;
+const DOCX_MAX = 20 * 1024 * 1024;
 const MARKDOWN_MAX = 500_000;
 
 export function download(name: string, type: string, data: string | Uint8Array) {

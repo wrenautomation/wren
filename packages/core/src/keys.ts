@@ -75,7 +75,7 @@ export interface Sealer {
 }
 
 /** What opens too: every private key by kid, the first the current one. Only the worker. */
-export interface KeyRing extends Sealer {
+interface KeyRing extends Sealer {
   kids: readonly string[];
   open(aad: string, row: { kid: string; wrapped: Uint8Array; sealed: Uint8Array }): string;
   /** The data key sealed again for the current public key; the value stays as it is. */
@@ -180,7 +180,7 @@ export function publicSpecOf(privateSpec: string): string {
 export const STAGED_FOR_MS = 60 * 60_000;
 
 /** The label a key has when none is named. */
-export const DEFAULT_LABEL = "default";
+const DEFAULT_LABEL = "default";
 
 const aadOf = (client: string, name: string) => `wren-key|${client}|${name}`;
 const newRef = () => `ks_${randomBytes(16).toString("hex")}`;
@@ -188,7 +188,7 @@ const newRef = () => `ks_${randomBytes(16).toString("hex")}`;
 export class KeyRefusal extends PortalRefusal {}
 
 /** A kept key as a page may see it: never the value. */
-export interface KeyInfo {
+interface KeyInfo {
   ref: string;
   name: string;
   /** The account part of its address: `default`, `bulk-2`. */

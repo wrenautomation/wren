@@ -50,7 +50,7 @@ import {
 import { angleEvidence, type Hit, pageKey, pickReads, terms } from "./evidence.js";
 import type { StudyInput } from "./recipes.js";
 
-export const READS_PER_ANGLE = 6;
+const READS_PER_ANGLE = 6;
 const HITS_PER_QUERY = 8;
 const READ_MAX_CHARS = 20_000;
 /** Less text than this is a shell, a cookie wall or an error page. */
@@ -90,20 +90,20 @@ export async function openStudy(
   return had;
 }
 
-export async function studyBySlug(db: Queryable, slug: string): Promise<Study> {
+async function studyBySlug(db: Queryable, slug: string): Promise<Study> {
   const [row] = await db.select().from(studies).where(eq(studies.slug, slug));
   if (!row) throw new Error(`no study '${slug}'`);
   return row;
 }
 
-export interface StudyDeps {
+interface StudyDeps {
   sites: SiteClient;
   llm: LlmClient;
   now?: () => Date;
   sleep?: (ms: number) => Promise<void>;
 }
 
-export interface StudyRunOptions {
+interface StudyRunOptions {
   runId?: string | null;
   tracer?: Tracer | null;
   /** Also ask an answer engine each angle (perplexity: its sources get read, never its prose). */
@@ -114,7 +114,7 @@ export interface StudyRunOptions {
   onProgress?: (line: string) => void;
 }
 
-export interface StudyStats {
+interface StudyStats {
   planned: number;
   searched: number;
   asked: number;
@@ -142,7 +142,7 @@ export const pageTitle = (title: string | null | undefined): string | null => {
 };
 
 /** On a `read` a person added by hand (`study add-page`); a fetched read has none. */
-export interface ManualPage {
+interface ManualPage {
   by: string;
   at: string;
   /** YYYY-MM-DD, when given. */
@@ -153,7 +153,7 @@ export interface ManualPage {
 export const manualOf = (r: StudyStepRow): ManualPage | null =>
   (r.detail as { manual?: ManualPage }).manual ?? null;
 
-export interface HeldPage {
+interface HeldPage {
   text: string;
   title: string | null;
   /** Where it lives, cited in the report; null keys it `manual:<hash>`. */
@@ -587,7 +587,7 @@ function outcomeOf(
 }
 
 /** An answer engine's sources as hits: its citations in order, titled from its results. */
-export function answerSources(a: Perplexity): Hit[] {
+function answerSources(a: Perplexity): Hit[] {
   const results = a.search_results ?? [];
   const urls = [...new Set([...(a.citations ?? []), ...results.map((r) => r.url)])];
   return urls.map((url) => {
@@ -609,7 +609,7 @@ const claimsOf = (row: StudyStepRow | null): Claim[] =>
   (row?.detail as { kept?: Claim[] } | undefined)?.kept ?? [];
 
 /** Claims numbered in report order: angle by angle, as each angle ranked them. */
-export function numberClaims(byAngle: readonly (readonly Claim[])[]): NumberedClaim[] {
+function numberClaims(byAngle: readonly (readonly Claim[])[]): NumberedClaim[] {
   return byAngle.flat().map((c, i) => ({ ...c, n: i + 1 }));
 }
 

@@ -368,7 +368,7 @@ function faceOf(edit: VideoEdit): Face {
  * What Short `short` plays of the cut file (the long cut's timeline), in order: its span, with
  * the pauses the Short knobs cut (`shortCutsOver`) taken out.
  */
-export function shortSegments(edit: VideoEdit, short: Short): Span[] {
+function shortSegments(edit: VideoEdit, short: Short): Span[] {
   const d = edit.tracks.main.durationS;
   const keep = keepSegments(edit.cuts, d, FPS);
   const tight = keepSegments(shortCutsOver(edit.cuts, edit.shortCuts ?? []), d, FPS);

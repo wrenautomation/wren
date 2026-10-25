@@ -9,7 +9,7 @@ const ask = <T>(route: string, p: PageProps) =>
 export const useAccount = (p: PageProps) =>
   useCall(`account:${p.client}:${p.team}`, () => ask<AccountView>("account", p));
 
-export type Recap = { subject: string; text: string };
+type Recap = { subject: string; text: string };
 export const useRecap = (p: PageProps) =>
   useCall(`recap:${p.client}:${p.team}`, () => ask<{ recap: Recap | null }>("recap", p));
 

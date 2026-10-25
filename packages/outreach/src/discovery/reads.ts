@@ -29,7 +29,7 @@ export type Post = Thing & {
   link_flair_text?: string | null;
 };
 
-export interface SubredditAbout {
+interface SubredditAbout {
   display_name?: string;
   title?: string;
   public_description?: string;

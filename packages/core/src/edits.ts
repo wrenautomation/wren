@@ -52,7 +52,7 @@ const pick = (v: Values, keys: readonly string[]): Values =>
 export const versionOf = (values: Values): string =>
   createHash("sha256").update(json(values)).digest("base64url").slice(0, 12);
 
-export function recordEdits(type: RecordType): RecordEdits {
+function recordEdits(type: RecordType): RecordEdits {
   if (!type.edits) throw new PortalRefusal(`${type.name.many} can't be edited`, 400);
   return type.edits;
 }
@@ -100,7 +100,7 @@ export interface RecordAskAsk {
   message: string;
 }
 
-export interface EditOpts {
+interface EditOpts {
   patch: unknown;
   /** The version the editor started from; absent, the edit lands on whatever is there. */
   expect?: string | null;
@@ -239,7 +239,7 @@ export interface Proposal {
   diff: { field: string; before: unknown; after: unknown }[];
 }
 
-export async function proposalOf(
+async function proposalOf(
   db: Queryable,
   type: RecordType,
   id: string,

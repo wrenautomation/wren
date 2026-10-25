@@ -75,7 +75,7 @@ export function numberArg(v: string): number {
 }
 
 /** A JSON file's value. The message names the file. */
-export function readJson(path: string): unknown {
+function readJson(path: string): unknown {
   try {
     return JSON.parse(readFileSync(path, "utf8"));
   } catch (e) {

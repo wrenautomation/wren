@@ -50,7 +50,7 @@ export interface SmsStats {
 }
 
 /** Leads in the window who said yes to texts, and how fast they heard from us. */
-export interface SpeedStats {
+interface SpeedStats {
   leads: number;
   texted: number;
   /** Median minutes from the lead to its first text; null with none. */

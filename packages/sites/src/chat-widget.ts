@@ -7,7 +7,7 @@
 export const CHAT_SCRIPT_PATH = "/o/__chat.js";
 export const CHAT_PATH = "/o/__chat";
 /** How often an open bubble checks for replies. */
-export const CHAT_POLL_MS = 4000;
+const CHAT_POLL_MS = 4000;
 /** How long a chat message may run. */
 export const CHAT_MAX = 2000;
 

@@ -76,14 +76,14 @@ const EVIDENCE_ORDER: Record<CandidateEvidence, number> = {
 
 const authoritativeRaw = sql`${verifications.raw}->>'authoritative' = 'true'`;
 
-export interface DomainKnowledge {
+interface DomainKnowledge {
   domain: string;
   provenPattern: string | null;
   catchAll: boolean;
   creditsSpent: number;
 }
 
-export const patternUnknown = (k: DomainKnowledge, budget: number): boolean =>
+const patternUnknown = (k: DomainKnowledge, budget: number): boolean =>
   k.provenPattern === null && !k.catchAll && k.creditsSpent >= budget;
 
 /** What the ledger already knows about a domain: always derived, never a table. */
@@ -459,7 +459,7 @@ export interface ResolutionStats {
   aborted: string | null;
 }
 
-export interface ResolutionOptions {
+interface ResolutionOptions {
   domainBudget?: number;
   creditLimit?: number | null;
   /** Test seam, like runVerification's. */
@@ -757,7 +757,7 @@ export async function promoteCandidates(db: Queryable, refs: PromotionRef[]): Pr
 }
 
 /** Queued candidates at one domain in walk order, suppressed addresses left queued and counted. */
-export async function queuedAtDomain(
+async function queuedAtDomain(
   db: Queryable,
   domain: string,
 ): Promise<{ candidates: ContactCandidate[]; suppressedSkipped: number }> {
@@ -864,11 +864,7 @@ export async function selectNewResolutionTargets(
 }
 
 /** True while any `risky` verdict at the domain is inside its backoff (`riskyHolds`). */
-export async function riskyWaiting(
-  db: Queryable,
-  domain: string,
-  retryDays: number,
-): Promise<boolean> {
+async function riskyWaiting(db: Queryable, domain: string, retryDays: number): Promise<boolean> {
   const rows = await db.execute(sql`SELECT 1 FROM contact_candidates x
     JOIN verifications v ON v.contact_candidate_id = x.id
     WHERE x.domain = ${domain} AND ${riskyHolds("v", sql`make_interval(days => ${retryDays})`)}
@@ -876,7 +872,7 @@ export async function riskyWaiting(
   return rows.length > 0;
 }
 
-export interface DomainUnitOptions {
+interface DomainUnitOptions {
   domainBudget: number;
   checker: LocalCheckerLike;
   /** Credits already spent by this run, for the run-wide credit limit. */
@@ -886,7 +882,7 @@ export interface DomainUnitOptions {
   retryRiskyAfterDays?: number;
 }
 
-export interface DomainUnitResult {
+interface DomainUnitResult {
   stats: ResolutionStats;
   promotions: PromotionRef[];
   spent: number;

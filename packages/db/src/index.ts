@@ -17,7 +17,7 @@ export interface DbHandle {
 
 const MIGRATIONS_FOLDER = new URL("../drizzle", import.meta.url).pathname;
 
-export interface DbOptions {
+interface DbOptions {
   max?: number;
   idleSeconds?: number;
   /** The connection's application_name, kept on every audit event: `wren-worker`, `wren-cli:<command>`. */

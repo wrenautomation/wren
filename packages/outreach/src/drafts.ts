@@ -45,7 +45,7 @@ const THREAD_TAIL = 10;
 export type DmGuide = (platform: DmPlatform) => Promise<string>;
 
 /** Ask Claude's kinds a DM edit is kept under: a reply and a first message are one kind here. */
-export const DM_RECORDS = ["dm", "invite"] as const;
+const DM_RECORDS = ["dm", "invite"] as const;
 
 const SITES: Record<DmPlatform, string> = {
   reddit: "Reddit",

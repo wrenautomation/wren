@@ -24,7 +24,7 @@ export interface Envelope {
 }
 
 /** What the model was asked: kept beside a draft so its record says what it was written from. */
-export interface StageRequest {
+interface StageRequest {
   prompt: string;
   system: string | null;
   maxTokens: number;
@@ -58,7 +58,7 @@ export class Outcome<T> {
   }
 }
 
-export interface StageOptions {
+interface StageOptions {
   maxTokens: number;
   system?: string;
   runId?: string | null;

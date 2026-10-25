@@ -91,16 +91,16 @@ export function columnOf(board: Pick<Board, "columns">, ref: string): BoardColum
   return board.columns.find((c) => c.id === ref || c.name.toLowerCase() === r) ?? null;
 }
 
-export const firstOpen = (cols: readonly BoardColumn[]): BoardColumn =>
+const firstOpen = (cols: readonly BoardColumn[]): BoardColumn =>
   cols.find((c) => !c.done) ?? (cols[0] as BoardColumn);
-export const firstDone = (cols: readonly BoardColumn[]): BoardColumn =>
+const firstDone = (cols: readonly BoardColumn[]): BoardColumn =>
   cols.find((c) => c.done) ?? (cols.at(-1) as BoardColumn);
 
 /**
  * Where an agent leaves a card a person owns instead of closing it: "Review", else the last
  * column that isn't done.
  */
-export function reviewColumn(cols: readonly BoardColumn[]): BoardColumn {
+function reviewColumn(cols: readonly BoardColumn[]): BoardColumn {
   return (
     cols.find((c) => !c.done && c.name.toLowerCase() === "review") ??
     [...cols].reverse().find((c) => !c.done) ??
@@ -173,7 +173,7 @@ const taskFields = {
 
 const toRow = (r: Record<string, unknown>): TaskRow => r as unknown as TaskRow;
 
-export interface TaskFilter {
+interface TaskFilter {
   board?: string;
   column?: string;
   /** An email or agent id; `null` for cards nobody owns. */
@@ -335,7 +335,7 @@ export async function needsYou(db: Queryable, email: string, today: string): Pro
 
 // ---- Create ----
 
-export interface NewTask {
+interface NewTask {
   board: Board;
   title: string;
   by: string;
@@ -426,7 +426,7 @@ export async function createTask(db: Db, o: NewTask): Promise<Note> {
 
 // ---- Move ----
 
-export interface MoveOpts {
+interface MoveOpts {
   /** A column id or name; the card's own when left out (a reorder). */
   column?: string | undefined;
   /** Put it just above this card, or just below. None puts it at the end of the column. */

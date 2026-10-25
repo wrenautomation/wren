@@ -86,7 +86,7 @@ export function formatLaunches(rows: AdLaunch[]): string[] {
 }
 
 /** What an ad set did over the watched window, from adset-level insight rows. */
-export interface AdsetResult {
+interface AdsetResult {
   adsetId: string;
   campaignId: string | null;
   spendUsd: number;

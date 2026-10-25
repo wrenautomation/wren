@@ -16,7 +16,7 @@ export const esc = (s: unknown) =>
     .replace(/'/g, "&#39;");
 
 /** What the page takes from the owner's Look: a brand color and a logo, if they're safe. */
-export interface PageLook {
+interface PageLook {
   accent: string | null;
   logo: string | null;
 }
@@ -68,7 +68,7 @@ footer{color:var(--muted);font-size:14px;margin-top:40px}
 `;
 
 /** Light marks (`# `, `## `, `- `, blank lines) as HTML, escaped. */
-export function marksHtml(body: string): string {
+function marksHtml(body: string): string {
   const out: string[] = [];
   let para: string[] = [];
   let list: string[] = [];
@@ -113,7 +113,7 @@ const day = (d: Date | string | null) =>
     : "";
 
 /** The lines and totals table; empty when there are no lines. */
-export function linesHtml(
+function linesHtml(
   d: Pick<Doc, "lines" | "currency" | "subtotalCents" | "taxCents" | "totalCents" | "depositCents">,
 ) {
   if (!d.lines.length) return "";

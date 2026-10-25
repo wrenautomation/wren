@@ -190,7 +190,7 @@ export function cohereLooker(
 }
 
 const TL = "https://api.twelvelabs.io/v1.3";
-export const TL_INDEX = "wren-videos";
+const TL_INDEX = "wren-videos";
 /** The free plan: minutes shared by indexing and analysis. */
 export const TL_FREE_MINUTES = 600;
 
@@ -213,7 +213,7 @@ const TL_SCHEMA = (() => {
 })();
 
 /** A TwelveLabs call; the key goes in a header and never into an error. */
-export function twelvelabsApi(key: string, fetchFn: typeof fetch = fetch) {
+function twelvelabsApi(key: string, fetchFn: typeof fetch = fetch) {
   return async <T>(method: string, path: string, body?: object | FormData): Promise<T> => {
     const form = body instanceof FormData;
     const res = await fetchFn(`${TL}${path}`, {
@@ -233,7 +233,7 @@ export function twelvelabsApi(key: string, fetchFn: typeof fetch = fetch) {
 type TlApi = ReturnType<typeof twelvelabsApi>;
 
 /** `wren-videos`, made on first use (Marengo, visual + audio: what `find` searches). */
-export async function tlIndex(api: TlApi): Promise<string> {
+async function tlIndex(api: TlApi): Promise<string> {
   const { data } = await api<{ data: { _id: string; index_name: string }[] }>(
     "GET",
     `/indexes?index_name=${TL_INDEX}`,

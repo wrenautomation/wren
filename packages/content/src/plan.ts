@@ -13,7 +13,7 @@ import { questionIdea } from "./ideas/questions.js";
 import { type ContentIdea, contentDrafts, contentIdeas } from "./schema.js";
 import { DEFAULT_SLOTS, type Slots, slotInstants } from "./slots.js";
 
-export interface PlatformPlan {
+interface PlatformPlan {
   platform: Platform;
   slots: number;
   /** Approved or publishing drafts scheduled inside the day. */
@@ -121,7 +121,7 @@ export async function openSlots(
   return out;
 }
 
-export interface NextIdea {
+interface NextIdea {
   idea: Pick<ContentIdea, "id" | "source" | "text"> | null;
 }
 

@@ -38,8 +38,8 @@ import { Refused } from "./refused.js";
 import { metroView, type StoredBody } from "./stored.js";
 
 /** The kinds of thing an op acts on. */
-export const OP_ONS = ["line", "station", "track", "group"] as const;
-export type OpOn = (typeof OP_ONS)[number];
+const OP_ONS = ["line", "station", "track", "group"] as const;
+type OpOn = (typeof OP_ONS)[number];
 
 export type MetroOp =
   | { op: "add"; on: "line"; item: MetroLine }
@@ -57,7 +57,7 @@ export type MetroOp =
   | { op: "attach"; on: "line" | "station" | "group"; id: string; ref: Attach }
   | { op: "detach"; on: "line" | "station" | "group"; id: string; ref: string };
 
-export const OP_KINDS = ["add", "rename", "move", "remove", "set", "attach", "detach"] as const;
+const OP_KINDS = ["add", "rename", "move", "remove", "set", "attach", "detach"] as const;
 
 // --- The envelope -------------------------------------------------------------------------------
 

@@ -13,7 +13,7 @@ import { clientKey } from "@wren/core/restate";
 import { createDb, type Listening, listen } from "@wren/db";
 import type { Logger } from "pino";
 
-export const WAKE_CHANNEL = "wren_wake";
+const WAKE_CHANNEL = "wren_wake";
 /** Notices for one loop inside this window are one wake. */
 const SETTLE_MS = 1000;
 /** The least time between two wakes of one loop: a storm of rows is four wakes a minute. */
@@ -32,7 +32,7 @@ export function wakeTarget(
   return { service, key: owner ? clientKey(owner, unit) : unit };
 }
 
-export interface WakeOptions {
+interface WakeOptions {
   databaseUrl: string;
   ingress: { url: string; headers?: Record<string, string> };
   log: Logger;

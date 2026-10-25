@@ -9,7 +9,7 @@
  */
 
 export const CALL_TIMES = "{call.times}";
-export const CALL_TIMES_FALLBACK = "early next week";
+const CALL_TIMES_FALLBACK = "early next week";
 /** A lead with no known zone hears Wren's own. */
 export const FLEET_ZONE = "America/New_York";
 /** How far ahead the offered times may sit: a weekday name stays unambiguous inside a week. */

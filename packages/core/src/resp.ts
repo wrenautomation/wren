@@ -19,7 +19,7 @@ export interface RespClient {
   close(): void;
 }
 
-export interface RespOptions {
+interface RespOptions {
   /** Per command, from send to reply; the connection is dropped when one runs over. */
   timeoutMs?: number;
 }

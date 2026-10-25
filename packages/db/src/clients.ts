@@ -14,7 +14,7 @@ import { createDb, type Db, migrate } from "./index.js";
 /** A client id: lowercase, starts with a letter, at most 40 characters. */
 export const CLIENT_ID = /^[a-z][a-z0-9_]{0,39}$/;
 /** A client database name, which is also its login's name. */
-export const CLIENT_DATABASE = /^wren_client_[a-z][a-z0-9_]{0,39}$/;
+const CLIENT_DATABASE = /^wren_client_[a-z][a-z0-9_]{0,39}$/;
 
 /** `wren_client_<id>`. Refuses an id that is not a plain identifier. */
 export function clientDatabaseName(id: string): string {
@@ -126,9 +126,9 @@ export async function clientDatabases(main: Db): Promise<string[]> {
  * database `watch` holds only that client's mail and rules; William's is in main, out of reach.
  * `pipeline` holds the client's own funnels, journeys and deals (designs/2026-10-18-journeys.md).
  */
-export const CLIENT_SCHEMAS = ["calendar", "watch", "pipeline"] as const;
+const CLIENT_SCHEMAS = ["calendar", "watch", "pipeline"] as const;
 
-export async function grantClientAccess(admin: Db, mainUrl: string, database: string) {
+async function grantClientAccess(admin: Db, mainUrl: string, database: string) {
   const role = checkedDatabase(database);
   const verifier = scramVerifier(clientLoginPassword(mainUrl, database));
   const run = (text: string) => admin.execute(sql.raw(text));

@@ -56,7 +56,7 @@ import { checkStress, remapStress } from "./stress.js";
 import { transcribe } from "./whisper.js";
 import { fixWordAt, fixWords } from "./words.js";
 
-export const STUDIO_COMPONENT = "studio";
+const STUDIO_COMPONENT = "studio";
 
 /** The cut knobs for one format; a bad block reads as the defaults. */
 export async function cutKnobs(db: Queryable, format: CutFormat = "long"): Promise<CutKnobs> {
@@ -118,7 +118,7 @@ export const CAM = /cam|camera|webcam|face/i;
  * The recording's tracks: a file, or a folder holding OBS's recording and Source Record's camera
  * file (named cam/camera/webcam/face, else the smaller picture).
  */
-export async function findTracks(input: string): Promise<{ main: string; cam?: string }> {
+async function findTracks(input: string): Promise<{ main: string; cam?: string }> {
   const at = resolve(input);
   if (VIDEO.test(at)) return { main: at };
   const files = (await readdir(at)).filter((f) => VIDEO.test(f) && !f.startsWith("cut-")).sort();
@@ -132,7 +132,7 @@ export async function findTracks(input: string): Promise<{ main: string; cam?: s
     : { main: join(at, a), cam: join(at, b) };
 }
 
-export interface AddOptions {
+interface AddOptions {
   ffmpeg: string;
   script?: { url: string; text: string };
   camBox?: [number, number, number, number];

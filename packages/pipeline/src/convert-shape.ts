@@ -29,7 +29,7 @@ import { checkStored, type StoredBody } from "./stored.js";
 import { shapeWorkflow } from "./workflow.js";
 
 /** Where the deal opens on one offer line, and where the map's rule would open it. */
-export interface DealRule {
+interface DealRule {
   /** The offer line (its id is the offer node's id). */
   line: string;
   /** The line's first station: the lowest place on the line, ties by body order. */
@@ -181,7 +181,7 @@ export function planConvert(
 }
 
 /** `planConvert` with the workspace read from the database. Reads only. */
-export async function convertPlan(
+async function convertPlan(
   db: Queryable,
   stored: StoredBody,
   number: number,

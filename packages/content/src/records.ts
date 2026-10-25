@@ -264,7 +264,7 @@ export const draftRecordOf = (signer?: VideoSigner) =>
   });
 
 /** Published posts; the fields show what went out. */
-export const postRecordOf = (signer?: VideoSigner) =>
+const postRecordOf = (signer?: VideoSigner) =>
   defineRecord({
     id: "marketing.post",
     app: "marketing",

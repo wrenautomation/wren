@@ -28,7 +28,7 @@ export interface Dataset {
   download?: (fetcher: PoliteFetcher, remote: RemoteFile, dest: string) => Promise<DownloadResult>;
 }
 
-export interface FetchedFile extends DownloadResult {
+interface FetchedFile extends DownloadResult {
   remote: RemoteFile;
 }
 

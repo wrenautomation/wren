@@ -91,7 +91,7 @@ import { nextRunAt } from "./planner.js";
 import type { Pushed, SocialPushed } from "./social-push.js";
 
 export const SOCIAL_KEY = "wren";
-export const SOCIAL_EVERY_MS = 30 * 60 * 1000;
+const SOCIAL_EVERY_MS = 30 * 60 * 1000;
 const FIRST_HOUR = 7;
 const LAST_HOUR = 23;
 /** Object state: each post's last check, ms, by `platform:id`: a read, or a count that held. */
@@ -110,7 +110,7 @@ const CAP_HOLDS = "capHolds";
 /** Object state: the last Google Maps review read, ms. */
 const MAPS_READ = "mapsRead";
 /** Platforms whose activity is read less often than every pass: LinkedIn's 12 reads a day. */
-export const ACTIVITY_EVERY_MS: Partial<Record<Platform, number>> = {
+const ACTIVITY_EVERY_MS: Partial<Record<Platform, number>> = {
   linkedin: 2 * 60 * 60 * 1000,
 };
 
@@ -127,7 +127,7 @@ const HOUR = 60 * 60 * 1000;
  * Site reads on their own pace, by `<kind> <platform>`. 2026-10-24: Instagram suspended the account
  * a day after its Following-list scrape went live, then gave it back; William: twice a day, far apart.
  */
-export const SITE_EVERY_MS_OF: Readonly<Record<string, number>> = {
+const SITE_EVERY_MS_OF: Readonly<Record<string, number>> = {
   "following instagram": 12 * HOUR,
   "following threads": 12 * HOUR,
 };
@@ -145,7 +145,7 @@ export function siteReadDue(unit: string, last: Readonly<Record<string, number>>
 const SITE_POSTS = 100;
 
 /** Follower counts read only on his click (`SocialDesk.readAudience`): LinkedIn's is a desk read. */
-export const AUDIENCE_ON_DEMAND: readonly Platform[] = ["linkedin"];
+const AUDIENCE_ON_DEMAND: readonly Platform[] = ["linkedin"];
 
 /** The `Content` service's read handlers as the worker serves them. */
 type ForClient = { client?: string | null };
@@ -192,7 +192,7 @@ type SocialInboxRead = {
   ) => Promise<{ messages: number; errors: string[] }>;
 };
 
-export interface SocialWatchDeps {
+interface SocialWatchDeps {
   db: Db;
   /** The configured content channels (`WREN_CONTENT_CHANNELS`). */
   platforms: readonly Platform[];

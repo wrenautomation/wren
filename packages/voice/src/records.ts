@@ -9,7 +9,7 @@ import { asc, eq } from "drizzle-orm";
 import { STAGES } from "./call.js";
 import { voiceCalls, voiceTurns } from "./schema.js";
 
-export const OUTCOME_STATUS = {
+const OUTCOME_STATUS = {
   booked: { label: "Booked", tone: "good" },
   transferred: { label: "Put through", tone: "good" },
   message: { label: "Message", tone: "warn" },
@@ -19,7 +19,7 @@ export const OUTCOME_STATUS = {
   failed: { label: "Failed", tone: "bad" },
 } as const;
 
-export const DIRECTION_STATUS = {
+const DIRECTION_STATUS = {
   inbound: { label: "Inbound", tone: "neutral" },
   outbound: { label: "Outbound", tone: "neutral" },
   test: { label: "Test", tone: "neutral" },
@@ -116,11 +116,11 @@ export const callRecord = defineRecord({
   load: callDetail,
 });
 
-export const STAGE_STATUS = Object.fromEntries(
+const STAGE_STATUS = Object.fromEntries(
   Object.entries(STAGES).map(([k, label]) => [k, { label, tone: "neutral" as const }]),
 );
 
-export const latencyRecord = defineRecord({
+const latencyRecord = defineRecord({
   id: "voice.latency",
   app: "voice",
   channel: "phone",

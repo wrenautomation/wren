@@ -108,7 +108,7 @@ export async function spendGrant(
   throw new PortalRefusal("that grant is used up", 403);
 }
 
-export interface NewGrant {
+interface NewGrant {
   email: string;
   client: string;
   verbs: readonly Permission[];
@@ -282,7 +282,7 @@ async function othersManage(db: Queryable, client: string, email: string): Promi
   return r?.ok === true;
 }
 
-export interface RoleView {
+interface RoleView {
   id: string;
   client: string | null;
   name: string;
@@ -375,7 +375,7 @@ const slug = (s: string) =>
     .replace(/^-|-$/g, "")
     .slice(0, 20);
 
-export interface RoleInput {
+interface RoleInput {
   /** Left out: a new role. */
   id?: string;
   client: string;

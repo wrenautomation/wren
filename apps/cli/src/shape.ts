@@ -357,7 +357,7 @@ export function blameLines(
 }
 
 /** The fields `add-node` takes. */
-export interface NodeOptions {
+interface NodeOptions {
   kind: string;
   name: string;
   via?: string;

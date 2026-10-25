@@ -189,7 +189,7 @@ export const CONSOLE_APPS = {
   teamSet: "team",
   teamRemove: "team",
 } as const satisfies RouteApps<typeof CONSOLE_ROUTES>;
-export type ConsoleRoute = keyof typeof CONSOLE_ROUTES;
+type ConsoleRoute = keyof typeof CONSOLE_ROUTES;
 /** The ones that change something: never cached, never on the demo. */
 export const CONSOLE_WRITES: readonly ConsoleRoute[] = [
   "customFieldSave",

@@ -6,7 +6,7 @@
 export const CONNECTOR_APPS = ["hubspot", "quickbooks", "jobber"] as const;
 export type ConnectorApp = (typeof CONNECTOR_APPS)[number];
 
-export interface AppSpec {
+interface AppSpec {
   label: string;
   authorize: string;
   token: string;

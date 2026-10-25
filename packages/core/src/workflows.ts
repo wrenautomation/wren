@@ -94,7 +94,7 @@ export const defineWorkflow = (w: Input): Workflow => ({ ...w, in: w.in ?? [], o
  * channel's part, sending one template. Email, texts and DMs each declare their steps their own
  * way (business days from the opener, days after the last); their cadences all come out as these.
  */
-export interface CadenceStep {
+interface CadenceStep {
   /** The wait after the previous step went ("2 days"); none = right away. */
   after?: string;
   /** The part that makes the touch: `sms.touch`. */

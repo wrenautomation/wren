@@ -19,7 +19,7 @@ import { withLock } from "./lock.js";
 /** Quiet this long after the last change, it saves. */
 export const SAVE_DELAY_MS = 1_200;
 /** A save that hasn't answered by now is tried again. */
-export const SAVE_TIMEOUT_MS = 20_000;
+const SAVE_TIMEOUT_MS = 20_000;
 const BACKOFF_MS = 1_000;
 const BACKOFF_MAX_MS = 30_000;
 /** Own values remembered to tell our echo from someone else's change. */
@@ -140,7 +140,7 @@ export function failureKind(
 export const wordsOf = (err: unknown) => (err instanceof Error ? err.message : String(err));
 
 /** Default equality: the same value, or the same JSON. */
-export function sameValue<T>(a: T, b: T): boolean {
+function sameValue<T>(a: T, b: T): boolean {
   if (Object.is(a, b)) return true;
   if (typeof a !== "object" || typeof b !== "object" || a === null || b === null) return false;
   try {

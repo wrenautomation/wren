@@ -156,17 +156,17 @@ export async function setFormStatus(
   return rows.map((r) => r.id);
 }
 
-export interface FormDayNumbers {
+interface FormDayNumbers {
   day: string;
   views: number;
   starts: number;
   submits: number;
 }
-export interface FormStepNumbers {
+interface FormStepNumbers {
   step: number;
   views: number;
 }
-export interface FormSourceNumbers {
+interface FormSourceNumbers {
   channel: string;
   source: string;
   campaign: string;
@@ -177,7 +177,7 @@ export interface FormSourceNumbers {
 }
 
 /** A form's numbers by day, last 30 days, and by where its visitors came from. */
-export async function formNumbers(db: Queryable, id: string) {
+async function formNumbers(db: Queryable, id: string) {
   const days = await db.execute(sql`
     select to_char(d::date, 'YYYY-MM-DD') as day,
       count(e.id) filter (where e.name = 'view')::int views,
@@ -230,7 +230,7 @@ export interface FormDetail {
 }
 
 /** Where a form lives: Wren's apex, else the owner's first live custom domain, else none yet. */
-export async function formHost(db: Queryable, client: string | null): Promise<string | null> {
+async function formHost(db: Queryable, client: string | null): Promise<string | null> {
   if (client === null) return WREN_SITE;
   const rows = await db.execute(sql`
     select hostname from client_domains where client_id = ${client} and status = 'active'

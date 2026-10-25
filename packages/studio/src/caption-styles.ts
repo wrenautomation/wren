@@ -63,9 +63,9 @@ export const ENTRY_S = {
 /** Unsaid wipe words, and words done saying in wipe, sit at this opacity. */
 export const DIM = 0.5;
 
-export const power2Out = (x: number) => 1 - (1 - x) ** 2;
-export const power3Out = (x: number) => 1 - (1 - x) ** 3;
-export const power2In = (x: number) => x * x;
+const power2Out = (x: number) => 1 - (1 - x) ** 2;
+const power3Out = (x: number) => 1 - (1 - x) ** 3;
+const power2In = (x: number) => x * x;
 const clamp01 = (x: number) => Math.min(1, Math.max(0, x));
 /** 0 before `from`, 1 after `from + dur`, eased between. */
 const ease = (t: number, from: number, dur: number, f: (x: number) => number) =>

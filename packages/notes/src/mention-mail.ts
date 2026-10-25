@@ -20,7 +20,7 @@ export type SendMention = (m: MentionMail) => Promise<void>;
 const WITHIN_MS = 24 * 3600_000;
 const EXCERPT = 400;
 
-export interface MailMentionsOpts {
+interface MailMentionsOpts {
   send: SendMention;
   /** The portal's origin, for the link. */
   portal: string;

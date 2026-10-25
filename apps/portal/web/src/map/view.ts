@@ -28,7 +28,7 @@ import { waitsOf } from "./tasks.js";
 type Marks = Map<string, "added" | "changed">;
 
 /** The window's numbers `viewOf` reads: the stations' rows by station id. */
-export interface ViewNumbers {
+interface ViewNumbers {
   stations: ReadonlyMap<string, NodeNumbers>;
 }
 

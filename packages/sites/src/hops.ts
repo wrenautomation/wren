@@ -9,7 +9,7 @@
 import { type Channel, channelOf, SLUG } from "./model.js";
 
 /** The short names, as the lander's `src/data/links.json` has them. An unknown one still counts. */
-export const GO_LINKS: Readonly<Record<string, { source: string; medium: string }>> = {
+const GO_LINKS: Readonly<Record<string, { source: string; medium: string }>> = {
   yt: { source: "youtube", medium: "organic" },
   li: { source: "linkedin", medium: "organic" },
   ig: { source: "instagram", medium: "organic" },
@@ -28,7 +28,7 @@ export const GO_LINKS: Readonly<Record<string, { source: string; medium: string 
  * Link unfurlers, crawlers and uptime checks: the lander's list, plus headless browsers. Not a
  * person: not counted, and never put in a split.
  */
-export const BOT_UA =
+const BOT_UA =
   /bot|crawl|spider|preview|facebookexternalhit|embedly|slack|discord|whatsapp|telegram|linkedinbot|twitterbot|redditbot|headless|lighthouse|pingdom|uptime/i;
 export const isBot = (ua: string | null | undefined) => !ua || BOT_UA.test(ua);
 
@@ -36,9 +36,9 @@ const WORD = /^[a-z0-9][a-z0-9._-]{0,79}$/i;
 /** Where a hop may land on a client's host: one of its pages or forms, or its booking page. */
 const TO = /^\/(?:o\/(?:f\/)?[a-z0-9](?:[a-z0-9-]{0,78}[a-z0-9])?|book)$/;
 /** With no `to`, the booking page: a client host's root is its portal, not a page. */
-export const GO_DEFAULT = "/book";
+const GO_DEFAULT = "/book";
 
-export interface Hop {
+interface Hop {
   link: string;
   channel: Channel;
   source: string;
@@ -93,7 +93,7 @@ export function hopOf(path: string, search: URLSearchParams): Hop | null {
  * The short names Wren's own links may use: the lander's `/go/` knows these
  * (lander/src/data/links.json). Any other name still lands there, credited as `<name>` / `link`.
  */
-export const WREN_GO_LINKS = ["yt", "li", "ig", "tt", "x", "rd", "fb", "ads", "sms"] as const;
+const WREN_GO_LINKS = ["yt", "li", "ig", "tt", "x", "rd", "fb", "ads", "sms"] as const;
 
 /** A word for a link's path: lower case, dashes for anything else, at most 80. Empty when none. */
 export function linkWord(raw: string | null | undefined): string {

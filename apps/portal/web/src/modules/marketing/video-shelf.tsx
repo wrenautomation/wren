@@ -15,7 +15,7 @@ import { CARD, EYEBROW, LIFT } from "./studio-due.js";
 import { type ShelfRow, shelfState, wentTo } from "./video-shelf-state.js";
 
 /** The cards Studio shows; All recordings lists the rest. */
-export const SHELF_MAX = 12;
+const SHELF_MAX = 12;
 const STUDIO = "/content/studio";
 
 /** The Recordings page, as the module defines it: Studio opens its records in place. */
@@ -26,7 +26,7 @@ export const studioVideos = <T extends ListPage>(page: T): T => {
 };
 
 /** Studio's link to a video's editor. */
-export const studioVideoHref = (id: string | number, keep?: URLSearchParams) =>
+const studioVideoHref = (id: string | number, keep?: URLSearchParams) =>
   href(STUDIO, { video: String(id), make: null }, keep);
 
 const shelf = () =>

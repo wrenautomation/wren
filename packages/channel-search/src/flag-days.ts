@@ -9,7 +9,7 @@ import { touchChannel } from "@wren/core/clients";
 import type { FlagDay } from "@wren/core/schema";
 import type { BookedCall } from "./site-days.js";
 
-export type FlagDayRow = Omit<FlagDay, "syncedAt">;
+type FlagDayRow = Omit<FlagDay, "syncedAt">;
 
 const KEY = /^[a-z][a-z0-9_.-]{0,59}$/;
 const VARIANT = /^[a-z][a-z0-9_-]{0,39}$/;

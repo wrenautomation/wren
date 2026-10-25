@@ -34,7 +34,7 @@ export const MODEL = {
   bytes: 175_997_641,
 } as const;
 
-export const MODELS_DIR = join(homedir(), ".cache", "wren", "models");
+const MODELS_DIR = join(homedir(), ".cache", "wren", "models");
 
 export const MATTE = {
   /** The model's square input. */
@@ -50,8 +50,8 @@ export const MATTE = {
 } as const;
 
 /** rembg's u2net_human_seg normalisation: ImageNet mean and std, over the frame's max pixel. */
-export const MEAN = [0.485, 0.456, 0.406] as const;
-export const STD = [0.229, 0.224, 0.225] as const;
+const MEAN = [0.485, 0.456, 0.406] as const;
+const STD = [0.229, 0.224, 0.225] as const;
 
 async function sha256(file: string): Promise<string> {
   const h = createHash("sha256");
@@ -276,7 +276,7 @@ function done(p: ReturnType<typeof spawn>, what: string, err: string[]): Promise
   });
 }
 
-export interface MatteSource {
+interface MatteSource {
   file: string;
   width: number;
   height: number;

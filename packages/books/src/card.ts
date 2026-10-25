@@ -23,7 +23,7 @@ import {
 import { type DocumentStore, sha256, storeKey } from "./store.js";
 
 /** The bank's alert mail: one per purchase once William turns purchase alerts on. */
-export const CARD_ALERTS: MailSpec = { from: ["bmoalerts@bmo.com"] };
+const CARD_ALERTS: MailSpec = { from: ["bmoalerts@bmo.com"] };
 /** As a vendor-less spec, so `capture` keeps it beside the bills. */
 export const CARD_ALERT_SPEC: VendorSpec = {
   key: "card-alerts",
@@ -33,13 +33,13 @@ export const CARD_ALERT_SPEC: VendorSpec = {
 };
 
 /** Days a charge waits for its mailed bill before one is made from the line. */
-export const CARD_GRACE_DAYS = 5;
+const CARD_GRACE_DAYS = 5;
 /** How far a bill's date may sit from its charge. */
 const MATCH_DAYS = 5;
 /** How far a foreign bill's CAD may sit from the charge: the card's own rate and fee. */
 const MATCH_SLACK = 0.06;
 
-export interface StatementLine {
+interface StatementLine {
   card: string;
   on: string;
   description: string;
@@ -92,7 +92,7 @@ export function statementDay(s: string): string {
 const lastFour = (s: string) => /(\d{4})\D*$/.exec(s)?.[1] ?? null;
 
 /** An OFX or QFX statement (SGML or XML). Card statements sign purchases negative. */
-export function parseOfx(text: string): StatementLine[] {
+function parseOfx(text: string): StatementLine[] {
   const tag = (block: string, name: string) =>
     new RegExp(`<${name}>([^<\\r\\n]*)`, "i").exec(block)?.[1]?.trim() ?? null;
   const card = lastFour(tag(text, "ACCTID") ?? "") ?? "";
@@ -153,7 +153,7 @@ export function csvRows(text: string): string[][] {
  * it), one amount column or debit and credit. A card's lines are mostly
  * charges, so whichever sign most lines carry is a charge.
  */
-export function parseCsv(text: string, card?: string): StatementLine[] {
+function parseCsv(text: string, card?: string): StatementLine[] {
   const rows = csvRows(text);
   const find = (header: string[], re: RegExp) => header.findIndex((h) => re.test(h.trim()));
   const at = rows.findIndex(
@@ -217,7 +217,7 @@ export function fingerprints(lines: readonly StatementLine[]): string[] {
   });
 }
 
-export interface CardImport {
+interface CardImport {
   lines: number;
   added: number;
   known: number;
@@ -318,7 +318,7 @@ const AlertReading = z.object({
   card: z.string().nullable(),
 });
 
-export function alertPrompt(doc: { subject: string | null; text: string | null }): string {
+function alertPrompt(doc: { subject: string | null; text: string | null }): string {
   return [
     "A bank sent this email. If it reports one card purchase or charge, say so and give its",
     "merchant as printed, amount (a number), currency (ISO code), day (YYYY-MM-DD) and the card's",

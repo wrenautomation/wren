@@ -29,9 +29,9 @@ import { type SyncDeps, syncLink } from "./sync.js";
 
 /** A link's reads: hourly, sooner when a run stopped at its cap. */
 export const SYNC_EVERY_MS = 60 * 60_000;
-export const SYNC_MORE_MS = 5 * 60_000;
+const SYNC_MORE_MS = 5 * 60_000;
 
-export interface ConnectorsDeps {
+interface ConnectorsDeps {
   main: Db;
   access: ConnectorAccess;
 }
@@ -42,7 +42,7 @@ type ConnectorSyncObject = ReturnType<typeof makeConnectorSync>;
 const SYNC = { name: "ConnectorSync" } as unknown as ConnectorSyncObject;
 
 /** Start a link's reads now; any older chain of hourly runs stops at its next turn. */
-export const startSync = (ctx: restate.Context, link: number) =>
+const startSync = (ctx: restate.Context, link: number) =>
   ctx.objectSendClient(SYNC, String(link)).run({});
 
 /** The handlers as plain calls. */
@@ -160,7 +160,7 @@ export function makeConnectors(deps: ConnectorsDeps) {
  * What an app sends back, as the portal's Worker passes it on. Its code and state look like keys
  * and are one-time, so this one input skips `noRawKeys`, as SocialCallback's does.
  */
-export const CONNECTOR_LANDING = z.looseObject({
+const CONNECTOR_LANDING = z.looseObject({
   app: z.enum(CONNECTOR_APPS),
   state: z.string().max(128),
   code: z.string().max(4096).nullish(),
@@ -185,7 +185,7 @@ export function makeConnectorCallback(deps: ConnectorsDeps) {
   });
 }
 
-export interface ConnectorSyncDeps extends SyncDeps {
+interface ConnectorSyncDeps extends SyncDeps {
   fire?: FireTriggers;
 }
 

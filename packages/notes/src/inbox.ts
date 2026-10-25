@@ -11,7 +11,7 @@ import { type InboxNote, inboxNotes, noteMentions } from "./schema.js";
 /** `@someone@firm.com` in the words, as the notes' comments read it. */
 const AT_EMAIL = /(?:^|[^\w.@])@([^\s@]+@[^\s@]+\.[\w-]+)/g;
 /** How long a note may run. */
-export const INBOX_NOTE_MAX = 4000;
+const INBOX_NOTE_MAX = 4000;
 
 /** The emails `@`ed in these words, lowercased, each once. */
 export const atEmails = (body: string): string[] => [

@@ -63,7 +63,7 @@ export interface Campaign {
   readonly fill?: Filler;
 }
 
-export interface ComposeSchedulerDeps {
+interface ComposeSchedulerDeps {
   db: Db;
   policy: SendPolicy;
   campaigns: ReadonlyMap<string, Campaign>;
@@ -102,7 +102,7 @@ export interface TopUpStats {
   exhausted: boolean;
 }
 
-export const COMPOSE_COMMAND = "outreach compose";
+const COMPOSE_COMMAND = "outreach compose";
 const DEFAULT_RETRY_MS = 60 * 60 * 1000;
 
 /** Approved openers for this niche that have not sent yet. */

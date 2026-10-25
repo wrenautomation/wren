@@ -33,14 +33,14 @@ export interface DictationRun {
   audioMs: number;
 }
 
-export interface DictationEvents {
+interface DictationEvents {
   /** Words that may still change, commands applied. */
   partial(text: string): void;
   /** Words to put in, commands applied. */
   final(text: string): void;
 }
 
-export interface DictationSession {
+interface DictationSession {
   /** A slice of the mic's audio (the first one marks the mic open). */
   push(frame: Frame): void;
   /** Released: hear the rest, then the timings. */

@@ -78,7 +78,7 @@ export async function activePauses(db: Queryable): Promise<Map<string, SenderPau
 }
 
 /** One sending domain's trailing numbers — what a switch decides on. */
-export interface DomainHealth {
+interface DomainHealth {
   readonly domain: string;
   readonly senders: readonly string[];
   readonly windowStart: Date;
@@ -338,7 +338,7 @@ export function resolveTarget(target: string, senders: readonly string[]): strin
   return picked.sort();
 }
 
-export type SenderDay = typeof sendHealth.$inferSelect;
+type SenderDay = typeof sendHealth.$inferSelect;
 
 /** The `send_health` view, newest day first. Read through the view: the view is the definition of the daily numbers. */
 export async function senderDays(db: Queryable, opts: { since: string }): Promise<SenderDay[]> {

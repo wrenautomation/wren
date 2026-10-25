@@ -82,7 +82,7 @@ export function bookingFromWebhook(body: unknown): BookingEvent | null {
 }
 
 /** One booking as cal.com's v2 list has it. */
-export interface ListedBooking extends Fields {
+interface ListedBooking extends Fields {
   uid: string;
   status: string;
   start: string;

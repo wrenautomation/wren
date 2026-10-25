@@ -31,7 +31,7 @@ const PAGE = 100;
 const MAX_PAGES = 10;
 
 /** One booking as cal.com's v2 list returns it. */
-export interface CalcomBooking {
+interface CalcomBooking {
   uid: string;
   status: string;
   start: string;
@@ -44,10 +44,10 @@ export interface CalcomBooking {
 }
 
 /** cal.com's bookings list for some query: the response body (`{data: [...]}`). */
-export type BookingsQuery = (params: Record<string, string>) => Promise<unknown>;
+type BookingsQuery = (params: Record<string, string>) => Promise<unknown>;
 
 /** Wren's own cal.com, by its API key. */
-export const calcomByKey =
+const calcomByKey =
   (apiKey: string, fetchImpl: typeof fetch = globalThis.fetch): BookingsQuery =>
   async (params) => {
     const url = new URL(CALCOM);

@@ -23,7 +23,7 @@ export interface LabelSpec {
   about: string;
 }
 
-export interface KindSpec {
+interface KindSpec {
   kind: DecisionKind;
   /** As people read it. */
   name: string;

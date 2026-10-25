@@ -9,14 +9,14 @@ import { domainCandidates } from "./candidates.js";
 import { type GateEvidence, gatePage } from "./gate.js";
 import { dohResolves, type HomepageFetcher, type Resolves } from "./service.js";
 
-export interface FoundHomepage {
+interface FoundHomepage {
   domain: string;
   /** "stated": the site we were given; "guessed": from the name. */
   how: "stated" | "guessed";
   evidence: GateEvidence;
 }
 
-export interface FindHomepageDeps {
+interface FindHomepageDeps {
   fetchHomepage: HomepageFetcher;
   resolves?: Resolves;
   genericWords?: ReadonlySet<string>;

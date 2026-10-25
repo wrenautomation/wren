@@ -9,7 +9,7 @@ import type { Cited } from "./brief.js";
 type Site = Parameters<typeof siteExport>[1];
 
 /** How much a brief keeps: the pages seen most, the newest sessions, the visitors looked at. */
-export const SITE_LIMITS = { pages: 4, sessions: 2, visitors: 3 } as const;
+const SITE_LIMITS = { pages: 4, sessions: 2, visitors: 3 } as const;
 
 const day = (ts: string) => new Date(ts).toISOString().slice(0, 10);
 const mins = (secs: number) =>
@@ -83,7 +83,7 @@ export function landerVisits(site: Site): (email: string) => Promise<Cited[]> {
 }
 
 /** How many visit lines a profile page shows: the newest. */
-export const VISIT_LINES = 40;
+const VISIT_LINES = 40;
 
 /**
  * People's `VisitReader` for Wren's own profiles (designs/2026-10-14-customerio-audit.md, B7):

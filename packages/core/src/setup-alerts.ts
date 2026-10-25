@@ -28,7 +28,7 @@ import {
 export type AlertPart = Pick<Component, "id" | "name" | "requires">;
 
 /** A step as alerts read it. */
-export interface AlertStep {
+interface AlertStep {
   id: string;
   label: string;
   fact: string;
@@ -36,13 +36,13 @@ export interface AlertStep {
   within?: string;
 }
 
-export interface AlertAccount {
+interface AlertAccount {
   id: number;
   client: string | null;
   site: string;
 }
 
-export interface AlertInput {
+interface AlertInput {
   kind: AlertKind;
   account: AlertAccount;
   /** The site as a person says it: "Sending domain". */
@@ -62,7 +62,7 @@ export interface AlertInput {
 }
 
 /** Who must act. A client step, self-serve, is the client's; the rest is Wren's team's. */
-export function alertFor(
+function alertFor(
   kind: AlertKind,
   step: Pick<AlertStep, "who"> | null | undefined,
   mode: SetupMode | null | undefined,
@@ -73,7 +73,7 @@ export function alertFor(
 }
 
 /** Lost or stuck: warning. Waiting on a person: action. The rest: info. */
-export function alertLevel(kind: AlertKind): NotifyLevel {
+function alertLevel(kind: AlertKind): NotifyLevel {
   if (kind === "lost" || kind === "stuck") return "warning";
   return kind === "waiting" ? "action" : "info";
 }
@@ -82,7 +82,7 @@ const cut = (s: string | null | undefined, n: number) =>
   s ? (s.length > n ? `${s.slice(0, n - 1)}…` : s) : null;
 
 /** What the alert says, without the account's ref: the ref is the client's, the title travels. */
-export function alertTitle(a: AlertInput): string {
+function alertTitle(a: AlertInput): string {
   const what = a.factLabel ?? a.step?.label ?? a.fact ?? "";
   switch (a.kind) {
     case "lost":
@@ -188,10 +188,7 @@ export async function clearStep(
 // ---- facts and parts ----
 
 /** An owner's facts at their best over its accounts: ok anywhere is ok; else lost; else waiting. */
-export async function factStates(
-  db: Queryable,
-  client: string | null,
-): Promise<Map<string, FactState>> {
+async function factStates(db: Queryable, client: string | null): Promise<Map<string, FactState>> {
   const rows = await db
     .select({ fact: accountFacts.fact, state: accountFacts.state })
     .from(accountFacts)
@@ -211,7 +208,7 @@ export async function factStates(
  * fact never set yet reads "Needs your account", as before: it pauses nothing that runs today.
  * Answers the first lost fact it needs, or null.
  */
-export const pausedOn = (
+const pausedOn = (
   part: Pick<Component, "requires">,
   states: ReadonlyMap<string, FactState>,
 ): string | null => part.requires.facts.find((f) => states.get(f) === "lost") ?? null;

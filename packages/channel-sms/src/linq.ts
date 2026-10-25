@@ -21,9 +21,9 @@ import { parseTelnyxEvent } from "./telnyx.js";
 const BASE = "https://api.linqapp.com/api/partner/v3";
 
 /** Linq refuses a link in a new chat's first text. */
-export const FIRST_LINK_CODE = "1005";
+const FIRST_LINK_CODE = "1005";
 
-export interface LinqOptions {
+interface LinqOptions {
   apiKey: string;
   fetch?: typeof fetch;
   timeoutMs?: number;

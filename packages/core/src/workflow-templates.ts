@@ -13,7 +13,7 @@ import { workflowInstalls, workflowSaves, workflowTemplates } from "./schema.js"
 import { templatesOf } from "./template-install.js";
 import { flowsWith, type Workflow } from "./workflows.js";
 
-export const SAVED_PREFIX = "saved_";
+const SAVED_PREFIX = "saved_";
 const NAME_MAX = 80;
 const BLURB_MAX = 300;
 
@@ -27,7 +27,7 @@ export function savedIdOf(name: string): string {
   return `${SAVED_PREFIX}${slug}`.slice(0, 64).replace(/_+$/, "");
 }
 
-export interface SaveTemplateAsk {
+interface SaveTemplateAsk {
   /** Whose live workflow; null is Wren's. */
   client: string | null;
   workflow: string;

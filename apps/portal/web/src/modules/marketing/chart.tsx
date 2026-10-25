@@ -37,7 +37,7 @@ export function weeksOf(series: RecordsStat["series"], weeks = WEEKS): number[] 
   return out;
 }
 
-export function WeeklyBookings() {
+function WeeklyBookings() {
   const load = useCall("marketing-weekly-bookings", () =>
     Promise.all(
       (Object.keys(CHANNELS) as Channel[]).map(async (channel) => {
@@ -112,7 +112,7 @@ const DAYS = 30;
  * Which formats earn the most, last 30 days: the median engagement per 100 views of each
  * format's posts, each a link to its posts on the leaderboard.
  */
-export function FormatBoard() {
+function FormatBoard() {
   const load = useCall("marketing-format-board", () =>
     Promise.all(
       (Object.keys(FORMATS) as Format[]).map(async (format) => {

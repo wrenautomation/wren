@@ -276,6 +276,6 @@ export function templateRecordFor(client: string): RecordType {
 }
 
 /** The types as the portal lists them: the same fields and views, no rows. */
-export const DOC_RECORD_TYPE = documentRecordFor("");
-export const TEMPLATE_RECORD_TYPE = templateRecordFor("");
+const DOC_RECORD_TYPE = documentRecordFor("");
+const TEMPLATE_RECORD_TYPE = templateRecordFor("");
 export const DOCUMENTS_RECORDS: readonly RecordType[] = [DOC_RECORD_TYPE, TEMPLATE_RECORD_TYPE];

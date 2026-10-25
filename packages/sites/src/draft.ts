@@ -69,7 +69,7 @@ function keepFrame(t: Template, start: Content, raw: Record<string, unknown>): C
 }
 
 /** What the offer says, as the source the guard checks numbers against. */
-export function offerText(o: Offer): string[] {
+function offerText(o: Offer): string[] {
   return [
     o.name,
     o.audience,

@@ -19,7 +19,7 @@ import { type Db, serializable, setAuditActor } from "@wren/db";
 /** A cap as a person reads it. */
 export const capText = (n: number | null): string => (n === null ? "No cap" : String(n));
 
-export interface MessagingDeps {
+interface MessagingDeps {
   main: Db;
   /** A client's own database; without it nothing here changes. */
   open?: ((client: Pick<Client, "id" | "database">) => Db) | undefined;

@@ -72,7 +72,7 @@ const one = async (c: DuckDBConnection, sql: string) =>
   Number(Object.values((await rows(c, sql))[0] ?? {})[0] ?? 0);
 const pgQuery = (alias: string, sql: string) => `postgres_query(${ql(alias)}, ${ql(sql)})`;
 
-export type LakeOptions = {
+type LakeOptions = {
   /** `s3://bucket/` or a local directory. */
   dataPath: string;
   /** The catalog: a Postgres URL, or a local `.ducklake` file. */
@@ -157,7 +157,7 @@ async function pgTables(c: DuckDBConnection, alias: string): Promise<PgTable[]> 
     }));
 }
 
-export type TableResult = {
+type TableResult = {
   table: string;
   result: "created" | "changed" | "unchanged" | "failed";
   rows: number;
@@ -274,7 +274,7 @@ async function evolve(c: DuckDBConnection, target: string, probe: string) {
   }
 }
 
-export type DatabaseSync = { owner: string | null; tables: TableResult[]; ms: number };
+type DatabaseSync = { owner: string | null; tables: TableResult[]; ms: number };
 
 /**
  * Every table of one database into the lake. A table that fails is reported; the rest go on.

@@ -204,7 +204,7 @@ export function usePhoneWalk({
     },
   };
 }
-export type PhoneWalk = ReturnType<typeof usePhoneWalk>;
+type PhoneWalk = ReturnType<typeof usePhoneWalk>;
 
 /** On a phone, the window scrolls: each page's place is kept, and a way back lands there. */
 export function useScrollKeep(on: boolean, at: string) {

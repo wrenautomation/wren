@@ -18,29 +18,25 @@ import type { SocialPlatform } from "./platforms.js";
 import type { SocialConnectionRow } from "./schema.js";
 
 /** The platforms whose DMs Wren reads and answers. */
-export const DM_SOCIAL = [
-  "facebook",
-  "instagram",
-  "x",
-] as const satisfies readonly SocialPlatform[];
-export type DmSocial = (typeof DM_SOCIAL)[number];
+const DM_SOCIAL = ["facebook", "instagram", "x"] as const satisfies readonly SocialPlatform[];
+type DmSocial = (typeof DM_SOCIAL)[number];
 export const isDmSocial = (p: string): p is DmSocial =>
   (DM_SOCIAL as readonly string[]).includes(p);
 
 /** Meta lets a Page answer only within a day of their last message. */
-export const META_WINDOW_MS = 24 * 3_600_000;
+const META_WINDOW_MS = 24 * 3_600_000;
 /** The same words to the same person this soon after are a second click, not a new answer. */
 const SAME_WORDS_MS = 10 * 60_000;
 /** Messages per conversation read each pass. */
 const TAIL = 10;
 
-export interface DmMessage {
+interface DmMessage {
   id: string;
   text: string;
   at: string;
   mine: boolean;
 }
-export interface DmThread {
+interface DmThread {
   /** The person on the other side: the platform's id for them, and how they show. */
   them: { id: string; handle: string; name: string | null };
   messages: DmMessage[];

@@ -53,15 +53,15 @@ export interface Evidence {
 }
 
 export type Cold = "cold" | "warm" | "unknown";
-export interface ColdStart {
+interface ColdStart {
   account: Cold;
   pixel: Cold;
   conversion: Cold;
   why: { account: string; pixel: string; conversion: string };
 }
 
-export type Severity = "critical" | "high" | "medium" | "info";
-export type ControlState = "pass" | "fail" | "unknown" | "not_applicable";
+type Severity = "critical" | "high" | "medium" | "info";
+type ControlState = "pass" | "fail" | "unknown" | "not_applicable";
 export type Category =
   | "measurement"
   | "creative"

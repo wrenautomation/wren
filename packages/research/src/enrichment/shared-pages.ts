@@ -14,7 +14,7 @@ import { documents } from "../schema.js";
 import { HTTP_TIER, pageRow } from "./crawler.js";
 
 /** How long a kept page answers for its URL. */
-export const SHARED_PAGE_DAYS = 30;
+const SHARED_PAGE_DAYS = 30;
 
 export function sharedPages(main: Db, inner: Fetcher, store?: PageStore | null): Fetcher {
   return {

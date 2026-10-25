@@ -52,7 +52,7 @@ export const STAGE_WORDS: Readonly<Record<Stage, string>> = {
 };
 
 /** A title's role, first match wins: an owner, then an executive, then a manager; else staff. */
-export const ROLE_PATTERNS: readonly [Exclude<PersonaRole, "staff" | "unknown">, string][] = [
+const ROLE_PATTERNS: readonly [Exclude<PersonaRole, "staff" | "unknown">, string][] = [
   [
     "owner",
     "\\y(owner|co-owner|founder|co-founder|ceo|chief executive|president|principal|proprietor|managing member|managing partner)\\y",
@@ -115,7 +115,7 @@ const day = (col: string) => `to_char(${col} at time zone 'UTC', 'Mon FMDD')`;
  * us (a reason in `WARM_REASONS`) and what we sent them (`contacted`). A site read is two lines,
  * its first (n = the count) and its last (n = 0), so sum, min and max come out right.
  */
-export function rollupRows(scope: Scope): SQL {
+function rollupRows(scope: Scope): SQL {
   const counts = sql.join(
     ROLLUP_COUNTS.map((r) => countCols(r)),
     sql`, `,
@@ -385,7 +385,7 @@ export function rollupRows(scope: Scope): SQL {
 }
 
 /** Every `profile_rollups` column the refresh writes, in `rollupRows`' names. */
-export const ROLLUP_COLUMNS = [
+const ROLLUP_COLUMNS = [
   "stage",
   "warmth",
   "why",
@@ -417,7 +417,7 @@ const asRows = (scope: Scope) => sql`
   )}
   from (${rollupRows(scope)}) r`;
 
-export interface RefreshCount {
+interface RefreshCount {
   /** Rows written: new or changed. */
   written: number;
   /** Rows dropped: their profile merged into another. */
@@ -499,7 +499,7 @@ const iso = (v: unknown) => {
 };
 
 /** A `rollupRows` or `profile_rollups` row as a `Rollup`. */
-export function rollupOf(r: Record<string, unknown>): Rollup {
+function rollupOf(r: Record<string, unknown>): Rollup {
   const counts = Object.fromEntries(
     ROLLUP_COUNTS.map((c) => [
       c,
@@ -560,7 +560,7 @@ export interface Recipient {
 }
 
 /** The live profiles these addresses and person row are. */
-export async function profilesOf(db: Queryable, who: Recipient): Promise<number[]> {
+async function profilesOf(db: Queryable, who: Recipient): Promise<number[]> {
   const keys: Key[] = [
     ...(who.keys ?? []),
     ...(who.personId ? [{ kind: "person", value: who.personId }] : []),
@@ -650,7 +650,7 @@ export async function keyLooseHandles(db: Queryable): Promise<{ seen: number; ke
 }
 
 /** A visitor's site log, counted: page views, watch-page views, first and last of each. */
-export interface SiteCounts {
+interface SiteCounts {
   visits: number;
   visitFirst: Date | null;
   visitLast: Date | null;
@@ -663,7 +663,7 @@ export interface SiteCounts {
 export type SiteCountReader = (visitors: readonly string[]) => Promise<SiteCounts | null>;
 
 /** Profiles whose site counts are read in one pass, the longest unread first. */
-export const SITE_READS_MOST = 200;
+const SITE_READS_MOST = 200;
 
 /** Site counts read for the profiles with a `visitor` key, the longest unread first. */
 export async function readSiteCounts(

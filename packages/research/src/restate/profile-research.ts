@@ -17,12 +17,12 @@ import { keepingAnswers } from "../findings.js";
 import { readLedger } from "../linkedin-reads.js";
 import { failProfileResearch, researchPlan, researchProfile } from "../people/profile-research.js";
 
-export const PROFILE_RESEARCH_COMMAND = "people research";
+const PROFILE_RESEARCH_COMMAND = "people research";
 
 const RUN = z.looseObject({
   lookupId: z.number().int().describe("The queued run (profile_lookups id) to carry out"),
 });
-export interface ProfileResearchInput {
+interface ProfileResearchInput {
   lookupId: number;
 }
 
@@ -33,7 +33,7 @@ export interface ProfileResearchStats {
   error?: string;
 }
 
-export interface ProfileResearchDeps {
+interface ProfileResearchDeps {
   db: Db;
   /** autobrowse's sites (`web` for search, `linkedin` for the account); null = a run fails, saying so. */
   sites?: SiteClient | null;

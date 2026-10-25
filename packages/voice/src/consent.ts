@@ -21,7 +21,7 @@ import { clientStateOf } from "./transports/telnyx.js";
 
 const E164 = /^\+[1-9]\d{6,14}$/;
 
-export type DialVerdict =
+type DialVerdict =
   | { ok: true; consent: PhoneConsent }
   | {
       ok: false;

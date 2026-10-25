@@ -25,7 +25,7 @@ function says(el: Element): boolean {
 }
 
 /** The nearest element up from a node with hover text to give; one cut-short name passes to its row. */
-export function tipAt(node: EventTarget | null): Element | null {
+function tipAt(node: EventTarget | null): Element | null {
   let el = node instanceof Element ? node.closest("[data-tip]") : null;
   while (el) {
     if (says(el)) return el;

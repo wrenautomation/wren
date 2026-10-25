@@ -53,7 +53,7 @@ export function attributionOf(data: Record<string, unknown>): Attribution {
  * as a `/go/` word (lower case, dashes for runs of other characters). The newest day wins when two
  * campaigns share a name. Null when no insight row matches (no ad ran, or none is read yet).
  */
-export async function adCampaignOf(db: Queryable, word: string): Promise<string | null> {
+async function adCampaignOf(db: Queryable, word: string): Promise<string | null> {
   const w = word.trim().toLowerCase();
   if (!w) return null;
   const rows = (await db.execute(sql`

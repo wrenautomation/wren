@@ -12,7 +12,7 @@ import { bareCompanyName, type Firm, firmNames, isFirm } from "./names.js";
 import { linkedinProfile } from "./profile-link.js";
 
 /** Profiles one search returns: the route's most, the same 7 mills as one. */
-export const TEAM_SEARCH_SIZE = 25;
+const TEAM_SEARCH_SIZE = 25;
 
 /** One profile as the search returns it, trimmed to what we keep. */
 export interface TeamProfile {
@@ -33,7 +33,7 @@ export interface TeamMember {
   vanity: string;
 }
 
-export interface TeamSearchResult {
+interface TeamSearchResult {
   query: string;
   /** Every profile returned, kept or not. */
   profiles: TeamProfile[];

@@ -19,7 +19,7 @@ import {
 } from "@wren/core/slots";
 import type { Platform } from "./schema.js";
 
-export interface ReachStep {
+interface ReachStep {
   /** 1-based. Step 1 is the opener. */
   step: number;
   /** Days after the previous step went (step 1: 0; on LinkedIn, after the invite was accepted). */
@@ -157,7 +157,7 @@ export function sequenceSlots(seq: ReachSequence): TemplateSlot[] {
   });
 }
 
-export const CONNECT_SLOT: TemplateSlot = {
+const CONNECT_SLOT: TemplateSlot = {
   key: CONNECT_NOTE,
   platform: "linkedin",
   purpose: "LinkedIn invite: the note, optional (empty sends the invite with none)",
@@ -175,7 +175,7 @@ export function checkBody(slot: TemplateSlot, body: string): string {
   return checkSource("dm", slot.key, body, slot)?.source ?? "";
 }
 
-export interface RenderedDm {
+interface RenderedDm {
   body: string;
   /** What `reach_messages.provenance` keeps: the version, the seed and each variant's pick. */
   provenance: RenderProvenance;

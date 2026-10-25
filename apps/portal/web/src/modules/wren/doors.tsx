@@ -82,7 +82,7 @@ export function FieldMapForm({
  * The doors into a workflow, read once per open and again after each change (`retry`): one key,
  * so an older answer never repaints a rotated door.
  */
-export function useDoors(workflow: string, client: string | null) {
+function useDoors(workflow: string, client: string | null) {
   return useCall(`doors:${client ?? ""}:${workflow}`, () =>
     call<Door[]>("console/workflowDoors", { workflow, ...(client ? { client } : {}) }),
   );
@@ -95,7 +95,7 @@ const copy = (text: string) =>
     .catch(() => say.failed("Couldn't copy: select it instead."));
 
 /** One door: its URL, Show, Copy and Rotate, its state and calls. */
-export function DoorLine({
+function DoorLine({
   door,
   workflow,
   client,

@@ -26,7 +26,7 @@ const BASE = "https://api.telnyx.com/v2";
 /** "Blocked due to STOP message": the recipient opted out of this number with the carrier. */
 const STOPPED_CODES: ReadonlySet<string> = new Set(["40300"]);
 
-export interface TelnyxOptions {
+interface TelnyxOptions {
   apiKey: string;
   /** Messages go out under this profile (it holds the webhook URL and the 10DLC campaign's numbers). */
   messagingProfileId?: string | null;

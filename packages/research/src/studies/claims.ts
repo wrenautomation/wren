@@ -10,9 +10,9 @@ import { z } from "zod";
 import { type EvidencePage, numbersQuoted, pageQuoted, words } from "../grounding.js";
 
 export const STUDY_VERSION = "v1";
-export const QUERIES_PER_ANGLE = 3;
-export const CLAIMS_PER_ANGLE = 8;
-export const CLAIM_MAX_WORDS = 60;
+const QUERIES_PER_ANGLE = 3;
+const CLAIMS_PER_ANGLE = 8;
+const CLAIM_MAX_WORDS = 60;
 const QUOTE_MIN_WORDS = 5;
 /** The prompt asks for 60; a quote past this is a pasted section, not the words a claim rests on. */
 const QUOTE_MAX_WORDS = 80;
@@ -109,7 +109,7 @@ export interface Claim {
   source_url: string;
 }
 
-export type ClaimRejection =
+type ClaimRejection =
   | "too_long"
   | "no_quote"
   | "quote_too_long"
@@ -122,7 +122,7 @@ export interface DroppedClaim {
 }
 
 /** Keep the claim only when it stands on a quote from a page shown; the URL is the page's own. */
-export function groundClaim(
+function groundClaim(
   p: ClaimProposal,
   pages: readonly EvidencePage[],
 ): { claim: Claim | null; rejected: ClaimRejection | null } {

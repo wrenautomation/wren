@@ -30,7 +30,7 @@ import { journeys, offerVersions, pipelineDeals } from "./schema.js";
 import { liveTerms } from "./store.js";
 import { JOURNEY_PORT, MOVE_STEP, parseShapeFlow, STAGE_STEP } from "./workflow.js";
 
-export const CAUSE_KINDS = [
+const CAUSE_KINDS = [
   "touch",
   "payment",
   "booking",
@@ -45,10 +45,10 @@ export const CAUSE_KINDS = [
   "import",
   "version",
 ] as const;
-export type CauseKind = (typeof CAUSE_KINDS)[number];
+type CauseKind = (typeof CAUSE_KINDS)[number];
 
 /** Why a journey moved: its kind, the cause's own id, and when. */
-export interface Cause {
+interface Cause {
   kind: CauseKind;
   ref: string;
   at: string;
@@ -99,7 +99,7 @@ export function factsOf(data: Record<string, unknown>): CauseFacts {
   return f;
 }
 
-export interface JourneyStepDeps {
+interface JourneyStepDeps {
   /** The workspace database: Wren's for `null`, else that client's. */
   db(client: string | null): Db;
   now?(): Date;

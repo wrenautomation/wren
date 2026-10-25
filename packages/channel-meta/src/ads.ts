@@ -23,9 +23,9 @@ export const META_OBJECTIVES = [
   "OUTCOME_SALES",
 ] as const;
 export type MetaObjective = (typeof META_OBJECTIVES)[number];
-export type AdStatus = "ACTIVE" | "PAUSED";
+type AdStatus = "ACTIVE" | "PAUSED";
 
-export interface MetaAdsOptions {
+interface MetaAdsOptions {
   /** `act_<id>` or the bare id; the first account on the token when absent. */
   adAccountId?: string;
   /** The Page the ads run as; the first Page when absent. */
@@ -34,7 +34,7 @@ export interface MetaAdsOptions {
   now?: () => Date;
 }
 
-export interface Targeting {
+interface Targeting {
   countries: string[];
   ageMin?: number;
   ageMax?: number;
@@ -102,7 +102,7 @@ export interface Lead {
 
 const LEAD_FIELDS = "id,created_time,ad_id,campaign_id,field_data,custom_disclaimer_responses";
 
-export const DEFAULT_LEAD_QUESTIONS: Record<string, unknown>[] = [
+const DEFAULT_LEAD_QUESTIONS: Record<string, unknown>[] = [
   { type: "EMAIL" },
   { type: "FULL_NAME" },
 ];

@@ -6,7 +6,7 @@
 import type { Db } from "@wren/db";
 import { sql } from "drizzle-orm";
 
-export interface KeywordLine {
+interface KeywordLine {
   phrase: string;
   source: string;
   page: string | null;

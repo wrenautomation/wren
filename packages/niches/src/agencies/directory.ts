@@ -260,7 +260,7 @@ function profileUrl(row: RawRow): string | null {
  * its parent segment marks a single listing. A key that would overflow the column
  * is refused rather than sinking a row that never needed it.
  */
-export function slugKey(url: string): string {
+function slugKey(url: string): string {
   const domain = extractDomain(url);
   if (!domain) return "";
   let pathname: string;

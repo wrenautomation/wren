@@ -52,7 +52,7 @@ import {
   mailGrants,
 } from "./schema.js";
 
-export interface MailDeps {
+interface MailDeps {
   main: Db;
   /** Wren's mail apps, from config or the key store; a missing one is "Needs setup". */
   apps: () => Promise<MailApps>;
@@ -91,7 +91,7 @@ export class MailRefusal extends PortalRefusal {
 export const domainOf = (address: string) => address.split("@")[1]?.toLowerCase() ?? "";
 
 /** Who reads and writes mailbox tokens in the key store's log. */
-export const MAIL_KEYS = "wren:mail";
+const MAIL_KEYS = "wren:mail";
 
 /** The key store's name for a mailbox's refresh token, under its client: the address hashed. */
 export function tokenName(provider: MailProvider, address: string) {
@@ -100,7 +100,7 @@ export function tokenName(provider: MailProvider, address: string) {
 }
 
 /** The org account's site for a provider. */
-export const orgSite = (p: MailProvider) => (p === "google" ? "google_workspace" : "microsoft_365");
+const orgSite = (p: MailProvider) => (p === "google" ? "google_workspace" : "microsoft_365");
 
 /** What a mailbox wants, from its account's role. */
 export const wantOf = (a: Pick<AccountRow, "role">): MailAccess =>

@@ -22,12 +22,12 @@ import { type Rule, ruleWords, segmentById, segmentNames } from "./segments.js";
 import type { SegmentKind } from "./segments-schema.js";
 
 /** Each kind its own swatch: hashed, live and snapshot would share one. */
-export const SEGMENT_KIND_STATES: Readonly<Record<SegmentKind, State>> = {
+const SEGMENT_KIND_STATES: Readonly<Record<SegmentKind, State>> = {
   live: { label: "Live", tone: "good", tint: 4 },
   manual: { label: "Manual", tone: "neutral", tint: 6 },
   snapshot: { label: "Snapshot", tone: "neutral", tint: 1 },
 };
-export const SEGMENT_STATE_STATES = cued({
+const SEGMENT_STATE_STATES = cued({
   active: { label: "Active", tone: "good" },
   archived: { label: "Archived", tone: "neutral" },
 } as const);
@@ -72,14 +72,14 @@ export async function segmentDetail(db: Queryable, id: string): Promise<SegmentD
 }
 
 /** The handlers a group's buttons call; Save is its Rule section's. */
-export const SEGMENT_ACTIONS = [
+const SEGMENT_ACTIONS = [
   "people.segmentSave",
   "people.segmentArchive",
   "people.segmentRestore",
   "people.segmentRetake",
 ] as const;
 
-export const segmentRecord = defineRecord({
+const segmentRecord = defineRecord({
   id: "people.segment",
   app: "people",
   channel: null,
@@ -112,7 +112,7 @@ export const segmentRecord = defineRecord({
   load: segmentDetail,
 });
 
-export const memberRecord = defineRecord({
+const memberRecord = defineRecord({
   id: "people.member",
   app: "people",
   channel: null,

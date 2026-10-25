@@ -56,7 +56,7 @@ export function awsCostExplorer(
 }
 
 /** Days fetched again each pass: Cost Explorer revises a day for about two more. */
-export const SETTLE_DAYS = 3;
+const SETTLE_DAYS = 3;
 
 export interface UsageIngest {
   from: string;
@@ -100,12 +100,12 @@ export async function ingestUsage(
 const maxDay = (a: string, b: string) => (a > b ? a : b);
 
 /** A day counts as a spike past both: twice the usual, and this much more. */
-export const SPIKE_FACTOR = 2;
-export const SPIKE_FLOOR = 0.5;
+const SPIKE_FACTOR = 2;
+const SPIKE_FLOOR = 0.5;
 /** "The usual" is the mean of this many days before. */
-export const SPIKE_BASELINE_DAYS = 14;
+const SPIKE_BASELINE_DAYS = 14;
 
-export interface Spike {
+interface Spike {
   on: string;
   service: string;
   currency: string;
@@ -138,7 +138,7 @@ export async function usageSpikes(db: Db, provider: UsageProvider, on: string): 
     .sort((a, b) => b.amount - a.amount);
 }
 
-export interface UsageMonth {
+interface UsageMonth {
   service: string;
   currency: string;
   /** This month through `on` (exclusive). */

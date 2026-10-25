@@ -10,7 +10,7 @@ import { createRemoteJWKSet, customFetch, errors, type JWTPayload, jwtVerify } f
 /** Who the token is for: every Wren app checks this. */
 export const AUDIENCE = "wren";
 
-export interface TokenCheck {
+interface TokenCheck {
   /** The sign-in's origin, e.g. https://auth.wrenautomation.com: the token's `iss`. */
   issuer: string;
   /** Who the token must be for: `wren`. */

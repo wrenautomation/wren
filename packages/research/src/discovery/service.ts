@@ -50,7 +50,7 @@ export const dohResolves: Resolves = async (domain) => {
   }
 };
 
-export interface DiscoveryOptions {
+interface DiscoveryOptions {
   genericWords?: ReadonlySet<string>;
   limit?: number;
   /** Days a miss keeps a company out of the queue (default 30). */
@@ -76,7 +76,7 @@ export interface DiscoveryStats {
 }
 
 /** A miss keeps its company out of the queue this long before it is guessed again. */
-export const DEFAULT_RETRY_AFTER_DAYS = 30;
+const DEFAULT_RETRY_AFTER_DAYS = 30;
 
 /** "No attempt of this kind in the window" as a WHERE fragment on `companies`. */
 const notAttempted = (kind: DiscoveryKind, retryAfterDays: number) => {
@@ -292,7 +292,7 @@ export async function runDomainDiscovery(
   return { batch: { ...batch, stats: counts }, stats: counts };
 }
 
-export interface DomainVerificationOptions {
+interface DomainVerificationOptions {
   genericWords?: ReadonlySet<string>;
   limit?: number;
   retryAfterDays?: number;

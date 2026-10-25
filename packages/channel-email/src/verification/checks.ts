@@ -9,7 +9,7 @@ import { firmSite } from "@wren/research/companies";
 import { plain } from "@wren/research/people";
 import type { LeadCheckKind, LeadCheckResult } from "../schema.js";
 
-export interface CheckOutcome {
+interface CheckOutcome {
   readonly kind: LeadCheckKind;
   readonly result: LeadCheckResult;
   readonly evidence: Record<string, unknown>;

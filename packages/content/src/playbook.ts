@@ -9,7 +9,7 @@ import { and, desc, eq, notInArray, sql } from "drizzle-orm";
 import { type ContentPlaybook, contentPlaybooks } from "./schema.js";
 
 /** About 2,000 words: an SOP past this is too long to steer a 1,300-character post. */
-export const MAX_PLAYBOOK_CHARS = 16_000;
+const MAX_PLAYBOOK_CHARS = 16_000;
 
 /** The SOP pushed as `comments` steers answers to comments, never post drafts. */
 export const COMMENTS_SOP = "comments";
@@ -52,8 +52,7 @@ async function sopFor(
 }
 
 /** The newest `comments` SOP pushed for the platform. */
-export const commentsSopFor = (db: Queryable, platform: Platform) =>
-  sopFor(db, platform, COMMENTS_SOP);
+const commentsSopFor = (db: Queryable, platform: Platform) => sopFor(db, platform, COMMENTS_SOP);
 
 /**
  * What a DM draft follows: the `outbound-copy` SOP pushed for the platform, else the newest pushed

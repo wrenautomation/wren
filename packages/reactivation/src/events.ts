@@ -13,7 +13,7 @@ import { failedLine } from "./feed.js";
 
 const ERROR_STREAK = 5;
 const RECHECK_DAYS = 30;
-export const EVENTS_TIMEZONE = "America/Chicago";
+const EVENTS_TIMEZONE = "America/Chicago";
 
 export interface CrmEventsStats {
   selected: number;
@@ -48,7 +48,7 @@ export const EVENT_FIRMS = sql`
   select co.id from mover_addresses m join companies co on co.domain = m.domain
   where m.outcome = 'found'`;
 
-export async function crmEventSubjects(db: Queryable, opts: { limit?: number } = {}) {
+async function crmEventSubjects(db: Queryable, opts: { limit?: number } = {}) {
   return db.execute<{ company_id: number; name: string | null; domain: string | null }>(sql`
     select co.id company_id, co.name, co.domain
     from (${EVENT_FIRMS}) f join companies co on co.id = f.company_id

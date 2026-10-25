@@ -49,7 +49,7 @@ export interface DraftDetail {
 }
 
 /** An immutable label on a version. */
-export interface TagRef {
+interface TagRef {
   name: string;
   note: string | null;
   by: string;

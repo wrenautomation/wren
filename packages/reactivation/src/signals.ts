@@ -35,13 +35,13 @@ export interface CrmSignalsStats {
   aborted: string | null;
 }
 
-export interface CrmSignalsDeps {
+interface CrmSignalsDeps {
   /** For the firm's own site and its job board; null = LinkedIn only. */
   fetcher: Fetcher | null;
   sites: SiteClient;
 }
 
-export interface CrmSignalsOptions {
+interface CrmSignalsOptions {
   /** The account for logged-in LinkedIn reads; null = job boards only. */
   linkedin: string | null;
   limit?: number;

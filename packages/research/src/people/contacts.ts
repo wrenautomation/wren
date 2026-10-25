@@ -12,8 +12,7 @@ import { bareCompanyName, type Firm, firmNames, isFirm } from "./names.js";
 import { linkedinProfile } from "./profile-link.js";
 
 /** The people who hire: talent, recruiting, HR, people teams. */
-export const HIRING_ROLES =
-  /\b(talent|recruit\w*|hr|human resources|people|hiring|staffing|workforce)\b/i;
+const HIRING_ROLES = /\b(talent|recruit\w*|hr|human resources|people|hiring|staffing|workforce)\b/i;
 const HIRING_WORDS = ["talent acquisition", "recruiting", "HR", "people team"];
 const SEARCH_PEOPLE = 10;
 const OR = new Intl.ListFormat("en", { type: "disjunction" });
@@ -30,7 +29,7 @@ interface ProfilePerson {
   roles: ProfileRole[];
 }
 
-export interface FoundContact {
+interface FoundContact {
   fullName: string;
   firstName: string;
   lastName: string;
@@ -42,7 +41,7 @@ export interface FoundContact {
   linkedin: string;
 }
 
-export interface ContactsOptions {
+interface ContactsOptions {
   max?: number;
   roles?: RegExp;
   /** Words the query ORs together; they steer the search, `roles` decides. */

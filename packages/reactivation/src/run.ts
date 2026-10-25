@@ -38,7 +38,7 @@ export interface CrmRunDeps {
   llm: LlmClient | null;
 }
 
-export interface CrmRunOptions {
+interface CrmRunOptions {
   /** The client's LinkedIn account for logged-in reads; null = search only. */
   linkedin: string | null;
   /** At most this many units per stage. */

@@ -25,7 +25,7 @@ export interface AuthMail {
   text: string;
 }
 
-export interface AuthOptions {
+interface AuthOptions {
   db: Db;
   /** Signs sessions and encrypts the JWKS private keys. */
   secret: string;
@@ -57,16 +57,16 @@ export interface AuthOptions {
   portal?: string;
 }
 
-export const NOT_INVITED =
+const NOT_INVITED =
   "This email has no access yet. Ask the person you work with at Wren to invite you.";
-export const UNVERIFIED =
+const UNVERIFIED =
   "Your provider didn't confirm this email. Sign in with the emailed code instead.";
 
 /** How long a code lasts; the email says so. */
-export const CODE_MINUTES = 10;
+const CODE_MINUTES = 10;
 
 /** The sign-in email: a link that opens a button (a link scanner can't burn it), and the code (A8). */
-export function codeMail(baseURL: string, email: string, code: string): AuthMail {
+function codeMail(baseURL: string, email: string, code: string): AuthMail {
   const link = new URL("/link", baseURL);
   link.searchParams.set("email", email);
   link.searchParams.set("code", code);
@@ -84,7 +84,7 @@ export function codeMail(baseURL: string, email: string, code: string): AuthMail
   };
 }
 
-export function passwordMail(email: string, url: string): AuthMail {
+function passwordMail(email: string, url: string): AuthMail {
   return {
     to: email,
     subject: "Set your Wren password",
@@ -101,10 +101,10 @@ export function passwordMail(email: string, url: string): AuthMail {
  * Passkeys belong to the registrable domain (auth.example.com → example.com),
  * so the same passkey still works if sign-in ever moves host.
  */
-export const rpIdOf = (baseURL: string) => new URL(baseURL).hostname.replace(/^auth\./, "");
+const rpIdOf = (baseURL: string) => new URL(baseURL).hostname.replace(/^auth\./, "");
 
 /** How long a handoff's one-time token lasts: the hop is a redirect. */
-export const HANDOFF_MINUTES = 1;
+const HANDOFF_MINUTES = 1;
 
 export function makeAuth(o: AuthOptions) {
   const gate = async (email: string) => o.allowed(email.trim().toLowerCase());

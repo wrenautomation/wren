@@ -39,7 +39,7 @@ export interface Run {
 }
 
 /** Restate as the portal sees it: one run per request id; a send's outcome read by its id. */
-export class FakeRestate {
+class FakeRestate {
   runs = new Map<string, Run>();
   order: string[] = [];
 

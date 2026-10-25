@@ -25,12 +25,7 @@ export const briefSettingsSchema = z
   .strict();
 export type BriefSettings = z.infer<typeof briefSettingsSchema>;
 
-export const NOT_YET_REASONS = [
-  "Timing",
-  "Budget",
-  "Needs a partner's yes",
-  "Wants proof",
-] as const;
+const NOT_YET_REASONS = ["Timing", "Budget", "Needs a partner's yes", "Wants proof"] as const;
 
 export const outcomeSettingsSchema = z
   .object({
@@ -41,7 +36,7 @@ export const outcomeSettingsSchema = z
       .describe("Reasons offered for a not yet; the rep can write their own"),
   })
   .strict();
-export type OutcomeSettings = z.infer<typeof outcomeSettingsSchema>;
+type OutcomeSettings = z.infer<typeof outcomeSettingsSchema>;
 
 /** A block as saved, or Wren's defaults when it doesn't parse. */
 export const briefSettingsOf = (block: unknown): BriefSettings => {

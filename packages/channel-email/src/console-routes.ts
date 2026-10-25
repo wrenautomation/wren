@@ -51,7 +51,7 @@ export const EMAIL_CONSOLE_APPS = {
   callClear: "calls",
   callBrief: "calls",
 } as const satisfies RouteApps<typeof EMAIL_CONSOLE_ROUTES>;
-export type EmailConsoleRoute = keyof typeof EMAIL_CONSOLE_ROUTES;
+type EmailConsoleRoute = keyof typeof EMAIL_CONSOLE_ROUTES;
 /** The ones that change something: never cached, never on the demo. */
 export const EMAIL_CONSOLE_WRITES: readonly EmailConsoleRoute[] = (
   Object.keys(EMAIL_CONSOLE_ROUTES) as EmailConsoleRoute[]

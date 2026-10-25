@@ -44,7 +44,7 @@ export const PORTAL_APPS = {
   recordsExport: null,
   recordsStats: null,
 } as const satisfies RouteApps<typeof PORTAL_ROUTES>;
-export type PortalRoute = keyof typeof PORTAL_ROUTES;
+type PortalRoute = keyof typeof PORTAL_ROUTES;
 /** The ones that change a list: never cached, never on the demo. */
 export const PORTAL_WRITES: readonly PortalRoute[] = [
   "approve",

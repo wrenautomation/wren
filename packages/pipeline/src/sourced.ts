@@ -18,7 +18,7 @@ import { runOf } from "./stored.js";
 /** The last `people.id` seen, per list id. */
 export type SourceCursors = Record<string, number>;
 
-export interface SourcedPass {
+interface SourcedPass {
   fires: Fired[];
   cursors: SourceCursors;
   scanned: number;

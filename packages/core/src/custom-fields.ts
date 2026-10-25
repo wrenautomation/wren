@@ -33,16 +33,16 @@ import type { Step } from "./spine.js";
 import { fillText } from "./webhook-events.js";
 
 /** Live fields an owner may keep on one record type. */
-export const CUSTOM_MOST = 50;
+const CUSTOM_MOST = 50;
 /** The longest text a value or business fact holds. */
-export const CUSTOM_VALUE_MOST = 2000;
+const CUSTOM_VALUE_MOST = 2000;
 const OPTIONS_MOST = 40;
 const KEY = /^[a-z][a-z0-9_]{0,39}$/;
 /** Where a field shows on a record's page. */
 const GROUP = "Custom fields";
 
 /** The record type a spine subject's prefix names: `journey:<id>` is a journey. */
-export const CUSTOM_SUBJECTS: Readonly<Record<string, string>> = {
+const CUSTOM_SUBJECTS: Readonly<Record<string, string>> = {
   journey: "pipeline.journey",
   deal: "pipeline.deal",
 };
@@ -290,7 +290,7 @@ export async function orderCustomFields(
 }
 
 /** One record's custom values, by key; a field with none is null. */
-export async function customValuesOf(
+async function customValuesOf(
   db: Queryable,
   fields: readonly CustomField[],
   row: string,
@@ -318,7 +318,7 @@ export async function customValuesOf(
 }
 
 /** Set one record's values by key, each checked by its field; null clears one. */
-export async function setCustomValues(
+async function setCustomValues(
   db: Queryable,
   fields: readonly CustomField[],
   row: string,

@@ -12,7 +12,7 @@ import { getDomain } from "tldts";
  * Providers where the email domain identifies a person, not a business. Never keys a company.
  * HubSpot's list (free-email-domains) plus the ISP mailboxes it lacks.
  */
-export const FREEMAIL_DOMAINS: ReadonlySet<string> = new Set([
+const FREEMAIL_DOMAINS: ReadonlySet<string> = new Set([
   ...freeEmailDomains,
   "centurylink.net",
   "gpcom.net",
@@ -27,7 +27,7 @@ export const FREEMAIL_DOMAINS: ReadonlySet<string> = new Set([
  * spotify.com) only the hosted-content subdomain is listed. Niche-specific listing
  * hosts (clutch.co) are passed by the caller as `extra`.
  */
-export const PLATFORM_DOMAINS: ReadonlySet<string> = new Set([
+const PLATFORM_DOMAINS: ReadonlySet<string> = new Set([
   "linkedin.com",
   "facebook.com",
   "fb.com",
@@ -189,7 +189,7 @@ export function isPlatformDomain(domain: string, extra: Iterable<string> = []): 
  * own (blogspot.com, wixsite.com, square.site are already there): each subdomain is a
  * different business, so none of them groups with another.
  */
-export const SITE_BUILDER_HOSTS: ReadonlySet<string> = new Set([
+const SITE_BUILDER_HOSTS: ReadonlySet<string> = new Set([
   "business.site",
   "wix.com",
   "weebly.com",

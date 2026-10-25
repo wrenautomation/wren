@@ -30,7 +30,7 @@ const CHUNK = 5000;
 /** An alias longer than this is not a spelling worth keeping (a btree entry has a size limit). */
 const MAX_ALIAS = 1000;
 
-export interface ObjectInput {
+interface ObjectInput {
   platform: Platform;
   kind: ObjectKind;
   /** The spelling the writer holds: an API id, a fullname, a URN or a URL. */
@@ -131,7 +131,7 @@ export async function resolveObjectOrNull(
 }
 
 /** A comment a reader saw: its id, what it answers (the post, or another comment) and the rest. */
-export interface CommentSeen {
+interface CommentSeen {
   raw: string;
   /** Null or the post's own spelling: a root comment. */
   parent?: string | null | undefined;
@@ -140,7 +140,7 @@ export interface CommentSeen {
   url?: string | null | undefined;
 }
 
-export interface CommentsResolved {
+interface CommentsResolved {
   /** The post's ref. */
   post: string;
   /** Each kept comment's refs, by the `raw` it came in under. */
@@ -480,7 +480,7 @@ export class LinkRefusedError extends Error {
   override name = "LinkRefusedError";
 }
 
-export interface LinkMove {
+interface LinkMove {
   table: string;
   column: string;
   /** Rows now naming the kept ref. */

@@ -11,7 +11,7 @@ import type { Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
 import { type SiteChannel, siteDays } from "./schema.js";
 
-export type SiteDayRow = Omit<typeof siteDays.$inferSelect, "syncedAt">;
+type SiteDayRow = Omit<typeof siteDays.$inferSelect, "syncedAt">;
 interface Source {
   channel: SiteChannel;
   campaign: string;
@@ -33,7 +33,7 @@ export interface BookedCall {
   email: string | null;
 }
 /** An engagement's first paid invoice, with the source it was set to (`delivery.engagements`). */
-export interface PaidEngagement {
+interface PaidEngagement {
   day: string;
   channel: SiteChannel;
   campaign: string;

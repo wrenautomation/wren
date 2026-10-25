@@ -20,7 +20,7 @@ import { gate, meter, vendorOf } from "./vendors.js";
 
 export { isVendorStop, VendorStop };
 
-export interface MeterScope {
+interface MeterScope {
   main: Db;
   /** Null: Wren's own, client zero. */
   client: string | null;
@@ -33,7 +33,7 @@ export interface MeterScope {
 }
 
 /** The vendor a site call reads from, or null: writes and upkeep (inboxes, health) aren't. */
-export function vendorOfCall(
+function vendorOfCall(
   site: string,
   method: SiteMethod,
   path: string,

@@ -271,7 +271,7 @@ const EDIT_CHARS = 400;
 const cut = (s: string) => (s.length > EDIT_CHARS ? `${s.slice(0, EDIT_CHARS)}…` : s);
 
 /** The edits as a prompt block, oldest first; "" with none. */
-export function editsBlock(edits: readonly DraftEdit[]): string {
+function editsBlock(edits: readonly DraftEdit[]): string {
   if (!edits.length) return "";
   const pairs = [...edits]
     .reverse()

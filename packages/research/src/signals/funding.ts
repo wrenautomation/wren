@@ -8,8 +8,8 @@ import { z } from "zod";
 import { bareCompanyName, plain } from "../people/names.js";
 import { defineCollector, firmOf, subjectOf, type Tried } from "./index.js";
 
-export const EDGAR_SEARCH = "https://efts.sec.gov/LATEST/search-index";
-export const FUNDING_CONFIDENCE = 0.7;
+const EDGAR_SEARCH = "https://efts.sec.gov/LATEST/search-index";
+const FUNDING_CONFIDENCE = 0.7;
 /** SEC blocks an IP that goes over its rate for about 10 minutes; ask again after an hour. */
 const CAPPED_MS = 60 * 60 * 1000;
 
@@ -31,7 +31,7 @@ interface EdgarHit {
 const issuerOf = (display: string) => display.replace(/\s*\(CIK \d+\)\s*$/, "").trim();
 
 /** The filing's index page on sec.gov. */
-export const filingIndex = (cik: string, adsh: string) =>
+const filingIndex = (cik: string, adsh: string) =>
   `https://www.sec.gov/Archives/edgar/data/${Number(cik)}/${adsh.replace(/-/g, "")}/${adsh}-index.htm`;
 
 const ymd = (d: Date) => d.toISOString().slice(0, 10);

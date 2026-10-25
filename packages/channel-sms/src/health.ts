@@ -41,7 +41,7 @@ export const DEFAULT_HEALTH: HealthPolicy = {
   lowBalanceUsd: 5,
 };
 
-export interface NumberHealth {
+interface NumberHealth {
   e164: string;
   state: string;
   sent: number;
@@ -60,7 +60,7 @@ export interface HealthReport {
   warnings: string[];
 }
 
-export async function numberHealth(db: Queryable, since: Date): Promise<NumberHealth[]> {
+async function numberHealth(db: Queryable, since: Date): Promise<NumberHealth[]> {
   const rows = await db
     .select({
       e164: smsNumbers.e164,

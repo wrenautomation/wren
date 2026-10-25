@@ -20,7 +20,7 @@ import { boards } from "./schema.js";
 import { listTasks } from "./tasks.js";
 import { ownerName } from "./types.js";
 
-export const TASK = "notes.task";
+const TASK = "notes.task";
 
 /** The newest cards one read carries. */
 const TASK_ROWS = 2000;
@@ -28,7 +28,7 @@ const TASK_ROWS = 2000;
 const day = (d: string | null) => (d ? `${d}T00:00:00.000Z` : null);
 
 /** The cards `reader` may open, as record rows. */
-export async function taskRows(db: Queryable, reader: Omit<Reader, "cap">) {
+async function taskRows(db: Queryable, reader: Omit<Reader, "cap">) {
   if (!reader.email) return [];
   const cards = await listTasks(db, { reader, limit: TASK_ROWS });
   const ids = [...new Set(cards.map((c) => c.boardId))];

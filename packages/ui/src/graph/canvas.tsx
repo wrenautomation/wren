@@ -54,7 +54,7 @@ import {
 } from "./model.js";
 
 /** The ports a drag joined, when the nodes name theirs: an output and an input. */
-export interface GraphEnds {
+interface GraphEnds {
   from?: string | undefined;
   to?: string | undefined;
 }

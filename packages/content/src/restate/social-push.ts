@@ -24,7 +24,7 @@ import { socialConnections } from "../connect/schema.js";
 import { SOCIAL_KEY } from "./social.js";
 
 /** What a push asks the pass to read now. */
-export type PushKind = "comment" | "dm" | "review" | "activity";
+type PushKind = "comment" | "dm" | "review" | "activity";
 export interface Pushed {
   platform: Platform;
   kind: PushKind;
@@ -32,7 +32,7 @@ export interface Pushed {
   post?: string;
 }
 /** One push, before its owner is known: the id the platform names (a Page, an account, a location). */
-export interface PushedAt extends Pushed {
+interface PushedAt extends Pushed {
   account: string;
 }
 
@@ -138,7 +138,7 @@ const PENDING = "pending";
 const REACH = "reach";
 const ALIVE = "alive";
 /** A watcher beats every 10 minutes; one missed beat still counts it alive. */
-export const WATCH_ALIVE_MS = 25 * 60_000;
+const WATCH_ALIVE_MS = 25 * 60_000;
 const JSON_SERDE = restate.serde.json as unknown as restate.Serde<null>;
 const PUSHED = z.object({
   platform: z.string().min(1),
@@ -215,13 +215,13 @@ function wake(ctx: restate.ObjectContext, service: string, key: string): void {
   ctx.genericSend({ service, method: "wake", key, parameter: null, inputSerde: JSON_SERDE });
 }
 
-export interface SocialPushDeps {
+interface SocialPushDeps {
   db: Db;
   /** Our own Page and Instagram account (`WREN_META_PAGE_ID`, `WREN_META_IG_ID`). */
   ours: { pageId?: string | null; igId?: string | null };
 }
 
-export interface PushResult {
+interface PushResult {
   owners: string[];
   /** Ids no connection names: dropped. */
   unknown: number;

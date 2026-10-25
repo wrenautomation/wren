@@ -5,7 +5,7 @@
  */
 import { randomUUID } from "node:crypto";
 
-export interface PollOptions {
+interface PollOptions {
   /** The ingress: `ingressOf(settings)`. */
   url: string;
   headers?: Record<string, string>;

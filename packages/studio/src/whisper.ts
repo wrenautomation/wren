@@ -14,11 +14,11 @@ import type { Word } from "./schema.js";
 
 const run = promisify(execFile);
 
-export const WHISPER_BIN = "whisper-cli";
-export const WHISPER_MODEL = join(homedir(), ".cache/wren/whisper/ggml-large-v3-turbo.bin");
+const WHISPER_BIN = "whisper-cli";
+const WHISPER_MODEL = join(homedir(), ".cache/wren/whisper/ggml-large-v3-turbo.bin");
 const MODEL_URL =
   "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo.bin";
-export const VAD_MODEL = join(homedir(), ".cache/wren/whisper/ggml-silero-v5.1.2.bin");
+const VAD_MODEL = join(homedir(), ".cache/wren/whisper/ggml-silero-v5.1.2.bin");
 const VAD_URL = "https://huggingface.co/ggml-org/whisper-vad/resolve/main/ggml-silero-v5.1.2.bin";
 
 /** whisper-cli's `-oj` output; only what we read. */

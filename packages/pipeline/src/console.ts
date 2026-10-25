@@ -114,7 +114,7 @@ import {
 import { addTag } from "./tags.js";
 import { planUndo, undoShape } from "./undo.js";
 
-export interface PipelineConsoleDeps {
+interface PipelineConsoleDeps {
   /** Main: the client registry, and Wren's own workspace. */
   db: Db;
   /** A client's database. */
@@ -125,7 +125,7 @@ export interface PipelineConsoleDeps {
   shapes?: { files: GithubFiles; repo: string } | null;
 }
 
-export interface ShapeVersionRequest extends PortalRequest {
+interface ShapeVersionRequest extends PortalRequest {
   /** Why it changed. */
   note: string;
   /** A body to save, or `from`. The CLI and agents send a body; the web never does. */
@@ -136,59 +136,59 @@ export interface ShapeVersionRequest extends PortalRequest {
   /** Where journeys on a node the body drops go: `{ oldNode: newNode }`. */
   moves?: Record<string, string>;
 }
-export type ShapeDiffRequest = PortalRequest & DiffAsk;
-export type DraftNewRequest = PortalRequest & DraftNewAsk;
-export type DraftUpdateRequest = PortalRequest & DraftUpdateAsk;
-export type DraftEditRequest = PortalRequest & DraftEditAsk;
-export type DraftIdRequest = PortalRequest & DraftIdAsk;
-export type DraftDropRequest = PortalRequest & DraftDropAsk;
-export type BlameRequest = PortalRequest & BlameAsk;
+type ShapeDiffRequest = PortalRequest & DiffAsk;
+type DraftNewRequest = PortalRequest & DraftNewAsk;
+type DraftUpdateRequest = PortalRequest & DraftUpdateAsk;
+type DraftEditRequest = PortalRequest & DraftEditAsk;
+type DraftIdRequest = PortalRequest & DraftIdAsk;
+type DraftDropRequest = PortalRequest & DraftDropAsk;
+type BlameRequest = PortalRequest & BlameAsk;
 export type UndoRequest = PortalRequest & UndoAsk;
 export type TagRequest = PortalRequest & TagAsk;
 export type AttachRequest = PortalRequest & AttachAsk;
-export interface ShapeImportRequest extends PortalRequest {
+interface ShapeImportRequest extends PortalRequest {
   /** The shape file's YAML text. */
   text: string;
   /** The version's note when the file has none. */
   note?: string;
 }
-export interface ShapeExportRequest extends PortalRequest {
+interface ShapeExportRequest extends PortalRequest {
   /** The version or `draft:<id>` to write as a file; the newest version when left out. */
   ref?: ShapeRef;
 }
-export interface ShapePreviewRequest extends PortalRequest {
+interface ShapePreviewRequest extends PortalRequest {
   /** The shape file's YAML text. */
   text: string;
 }
-export interface JourneyOpenRequest extends PortalRequest {
+interface JourneyOpenRequest extends PortalRequest {
   person: string;
   /** A node to open at; the one the source's edge leads to when left out. */
   at?: string;
   /** A source node id. */
   entry?: string;
 }
-export interface JourneyMoveRequest extends PortalRequest {
+interface JourneyMoveRequest extends PortalRequest {
   journey: string;
   /** A node id. */
   to: string;
   /** Needed when no edge path leads there. */
   reason?: string;
 }
-export interface JourneyDropRequest extends PortalRequest {
+interface JourneyDropRequest extends PortalRequest {
   journey: string;
   reason: string;
 }
-export interface JourneyAssignRequest extends PortalRequest {
+interface JourneyAssignRequest extends PortalRequest {
   journey: string;
   /** A team member's email; left out or null clears the owner. */
   to?: string | null;
 }
-export interface DealSignRequest extends PortalRequest {
+interface DealSignRequest extends PortalRequest {
   deal: string;
   plan: string;
   force?: boolean;
 }
-export interface TermsAddRequest extends PortalRequest {
+interface TermsAddRequest extends PortalRequest {
   offer: string;
   plan: string;
   /** The first day it applies: YYYY-MM-DD. */

@@ -69,7 +69,7 @@ function mustBeOpen(d: ShapeDraft): void {
     throw new Refused([`The draft "${d.id}" is ${d.state}. Only an open draft changes.`]);
 }
 
-export interface NewDraft {
+interface NewDraft {
   name: string;
   /** A metro body: a graph body is refused (`CONVERT_FIRST`). Left out: the base, as metro. */
   body?: StoredBody;
@@ -117,7 +117,7 @@ export async function newDraft(db: Queryable, input: NewDraft): Promise<ShapeDra
   });
 }
 
-export interface DraftUpdate {
+interface DraftUpdate {
   id: string;
   /** A metro body: a graph body is refused (`CONVERT_FIRST`). */
   body: StoredBody;
@@ -204,7 +204,7 @@ export async function proposeDraft(
 }
 
 /** What apply would do with a draft. */
-export interface ApplyPlan {
+interface ApplyPlan {
   draft: ShapeDraft;
   base: number;
   live: number;

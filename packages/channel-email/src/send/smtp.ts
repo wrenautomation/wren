@@ -75,7 +75,7 @@ function failure(err: unknown, begun: boolean, email: OutgoingEmail): Error {
   return new TransportAmbiguous(what, { cause: err });
 }
 
-export interface SmtpTransportOptions {
+interface SmtpTransportOptions {
   /** Test seams: the connections for a login. */
   smtp?: (login: Login) => SMTPConnection;
   imap?: (login: Login) => ImapFlow;

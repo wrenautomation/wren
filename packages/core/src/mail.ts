@@ -13,7 +13,7 @@
  */
 import { addressParser, decodeWords } from "postal-mime";
 
-export interface MimeHeader {
+interface MimeHeader {
   readonly name: string;
   /** Unfolded (line breaks removed, continuation whitespace kept), encoded-words decoded. */
   readonly value: string;
@@ -82,7 +82,7 @@ function utf8Header(value: string): string {
 }
 
 /** The header block of a message (or a delivery-status group) as (name, value) pairs. */
-export function parseHeaders(block: string): MimeHeader[] {
+function parseHeaders(block: string): MimeHeader[] {
   const headers: MimeHeader[] = [];
   let name: string | null = null;
   let value = "";
@@ -111,7 +111,7 @@ export function parseHeaders(block: string): MimeHeader[] {
 }
 
 /** `type/subtype; a=b; c="d e"` read leniently; the type is lowercased, param names too. */
-export function parseContentType(value: string | null): ContentType | null {
+function parseContentType(value: string | null): ContentType | null {
   if (!value) return null;
   const [head, ...rest] = value.split(";");
   const type = (head ?? "").trim().toLowerCase();

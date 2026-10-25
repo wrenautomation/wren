@@ -46,7 +46,7 @@ export const REPORT_TILES = [
   { id: "paid", label: "Paid", record: "marketing.site_day", sum: "paid", view: "30d" },
   { id: "spend", label: "Ad spend", record: "marketing.ad_day", sum: "spend", view: "campaign" },
 ] as const;
-export type ReportTile = (typeof REPORT_TILES)[number];
+type ReportTile = (typeof REPORT_TILES)[number];
 export type ReportTileId = ReportTile["id"];
 export const REPORT_TILE_IDS = REPORT_TILES.map((t) => t.id) as [ReportTileId, ...ReportTileId[]];
 

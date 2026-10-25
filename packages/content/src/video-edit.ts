@@ -28,7 +28,7 @@ const FLAGGED_MAX = 20;
 /** A render that said "rendering" this long ago died with its Mac. */
 export const RENDER_STALE_MS = 3 * 3600_000;
 /** Renders from the page: never one approved (its upload points at the file) or rejected. */
-export const RENDERABLE = ["added", "edited", "rendered"];
+const RENDERABLE = ["added", "edited", "rendered"];
 
 export const videoEditDefault = () =>
   parseKind(
@@ -309,8 +309,8 @@ export async function videoSteps(db: Queryable, id: number): Promise<VideoStep[]
   });
 }
 
-export type CheckTone = "good" | "warn" | "bad" | "neutral";
-export interface VideoCheck {
+type CheckTone = "good" | "warn" | "bad" | "neutral";
+interface VideoCheck {
   tone: CheckTone;
   say: string;
 }

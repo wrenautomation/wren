@@ -25,6 +25,6 @@ export const SMS_CONSOLE_APPS = {
   callDone: { app: "texts", channel: "sms" },
   askReview: { app: "texts", channel: "sms" },
 } as const satisfies RouteApps<typeof SMS_CONSOLE_ROUTES>;
-export type SmsConsoleRoute = keyof typeof SMS_CONSOLE_ROUTES;
+type SmsConsoleRoute = keyof typeof SMS_CONSOLE_ROUTES;
 /** The ones that change something: never cached, never on the demo. */
 export const SMS_CONSOLE_WRITES: readonly SmsConsoleRoute[] = ["reply", "callDone", "askReview"];

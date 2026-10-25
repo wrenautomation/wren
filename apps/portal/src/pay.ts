@@ -12,7 +12,7 @@ import { readBody } from "@wren/core/http";
 import type { Env } from "./env.js";
 import type { Site } from "./hosts.js";
 
-export const PAY_PATH = /^\/__pay\/stripe\/([a-z0-9][a-z0-9_-]{0,39})$/;
+const PAY_PATH = /^\/__pay\/stripe\/([a-z0-9][a-z0-9_-]{0,39})$/;
 /** Stripe's events are small; a checkout session is a few KB. */
 const MAX_BODY = 256 * 1024;
 

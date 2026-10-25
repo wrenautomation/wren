@@ -43,7 +43,7 @@ import type { EmailVerifier } from "./verifier.js";
 export const latestValidCheckedAt = () =>
   sql<Date | null>`(select max(${verifications.checkedAt}) from ${verifications} where ${verifications.leadId} = ${leads.id} and ${verifications.result} = 'valid')`;
 
-export interface VerificationOptions {
+interface VerificationOptions {
   /** Test seam: a stage-1 checker with a fake resolver. */
   checker?: LocalCheckerLike;
   importId?: number;

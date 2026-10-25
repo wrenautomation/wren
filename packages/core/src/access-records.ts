@@ -27,14 +27,14 @@ import { grantsFor, rolesIn } from "./grants.js";
 import { actor, date, defineRecord, number, type RecordType, status, text } from "./records.js";
 
 export const ROLE = "access.role";
-export const GRANT = "access.grant";
+const GRANT = "access.grant";
 export const ISSUE = "access.issue";
 export const ASK = "access.ask";
 export const REVIEW = "access.review";
 export const ACCESS_TYPES = [ROLE, GRANT, ISSUE, ASK, REVIEW] as const;
 
 /** Where access is managed: Team at Wren, Account at a client. */
-export const accessApp = (client: string) => (client === WREN ? "team" : "account");
+const accessApp = (client: string) => (client === WREN ? "team" : "account");
 
 const yes = {
   yes: { label: "Yours", tone: "good" as const },
@@ -64,7 +64,7 @@ async function holders(db: Queryable, client: string): Promise<Map<string, numbe
   return new Map(rows.map((r) => [r.role, Number(r.n)]));
 }
 
-export interface AccessReader {
+interface AccessReader {
   who: Who;
   email: string;
   client: string;
@@ -85,7 +85,7 @@ const and = (xs: readonly string[]) =>
   xs.length < 2 ? (xs[0] ?? "") : `${xs.slice(0, -1).join(", ")} and ${xs.at(-1)}`;
 
 /** One app, for one person: "Act on YouTube; raise issues on and see everything", or "". */
-export function reachIn(who: Who, client: string, app: string): string {
+function reachIn(who: Who, client: string, app: string): string {
   const by = new Map<string, string[]>();
   for (const [verb, words] of REVIEW_VERBS) {
     const on = SPOTS.filter((channel) => can(who, verb, { client, app, channel }));
@@ -104,7 +104,7 @@ export function reachIn(who: Who, client: string, app: string): string {
 }
 
 /** Each app's line, apps that read the same grouped; the biggest group is "every other app". */
-export function reachLines(who: Who, client: string): string[] {
+function reachLines(who: Who, client: string): string[] {
   const groups = new Map<string, string[]>();
   for (const [app, name] of Object.entries(APPS)) {
     const line = reachIn(who, client, app);

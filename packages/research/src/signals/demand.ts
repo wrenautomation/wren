@@ -35,22 +35,17 @@ import {
 const NAME = "demand";
 const DAY = 86_400_000;
 /** Reddit threads older than this are not read. */
-export const MAX_AGE_DAYS = 90;
+const MAX_AGE_DAYS = 90;
 /** Posts the model reads in one call. */
-export const POSTS_PER_CALL = 10;
+const POSTS_PER_CALL = 10;
 /** Characters of a post the model sees. */
 const TEXT_CAP = 3_000;
 const MAX_TOKENS = 4_000;
 /** Candidates a pass considers per table, newest first. */
 const CANDIDATES = 300;
 
-export const DEMAND_BUCKETS = ["explicit", "pain", "workaround", "switching", "timing"] as const;
-export const DEMAND_STAGES = [
-  "high_intent",
-  "problem_aware",
-  "trigger_present",
-  "potential_fit",
-] as const;
+const DEMAND_BUCKETS = ["explicit", "pain", "workaround", "switching", "timing"] as const;
+const DEMAND_STAGES = ["high_intent", "problem_aware", "trigger_present", "potential_fit"] as const;
 export type Band = "strong" | "promising" | "plausible" | "out";
 
 /** Wren's offer, which `fit` is judged against. */
@@ -83,7 +78,7 @@ const searchKey = (day: string, q: string) => `reddit:search:${day}:${q}`;
 const dayOf = (d: Date) => d.toISOString().slice(0, 10);
 
 /** One post, as the model and the finding see it. */
-export interface DemandPost {
+interface DemandPost {
   /** The check subject: `reddit:t3_…` or `fb:<ref>`. */
   key: string;
   via: "reddit-thread" | "reddit-search" | "facebook-group";
@@ -303,7 +298,7 @@ const POST_READ = z.object({
   quote: z.string(),
   facts: z.array(z.object({ text: z.string(), label: z.enum(["observed", "inferred"]) })),
 });
-export type PostRead = z.infer<typeof POST_READ>;
+type PostRead = z.infer<typeof POST_READ>;
 /** The model's answer; each post is checked on its own, so one bad entry costs only that post. */
 const READS = z.object({ posts: z.array(z.unknown()) });
 
@@ -385,7 +380,7 @@ async function firmByDomain(deps: SignalDeps, domains: readonly string[]): Promi
 }
 
 /** The firm or person a post is about, as `fbGroups` maps: link, poster's site, author; else null. */
-export async function mapPost(deps: SignalDeps, p: DemandPost): Promise<Mapped | null> {
+async function mapPost(deps: SignalDeps, p: DemandPost): Promise<Mapped | null> {
   const linked = await firmByDomain(deps, linkDomains(p.links.join(" ")));
   if (linked !== null) return { subject: firmKey(linked), companyId: linked, by: "link" };
   if (!p.author) return null;

@@ -15,7 +15,7 @@ const side = (sign: "+" | "−", items: LineageVersion["added"]): Line[] => [
   ...(items.length > SHOWN ? [{ text: `and ${items.length - SHOWN} more` }] : []),
 ];
 
-export function versionNodes(versions: readonly LineageVersion[]): {
+function versionNodes(versions: readonly LineageVersion[]): {
   nodes: GraphNode[];
   edges: GraphEdge[];
 } {

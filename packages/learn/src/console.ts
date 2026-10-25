@@ -90,24 +90,24 @@ export interface SaveRequest extends PortalRequest {
   title?: string | null;
   via?: string | null;
 }
-export interface FollowRequest extends PortalRequest {
+interface FollowRequest extends PortalRequest {
   url: string;
   name?: string | null;
   tell?: string | null;
 }
-export interface TellRequest extends IdsRequest {
+interface TellRequest extends IdsRequest {
   tell: string;
 }
-export interface SopRequest extends IdsRequest {
+interface SopRequest extends IdsRequest {
   sop: string;
 }
-export interface SearchRequest extends PortalRequest {
+interface SearchRequest extends PortalRequest {
   q: string;
 }
-export interface ItemRequest extends PortalRequest {
+interface ItemRequest extends PortalRequest {
   id: string;
 }
-export interface BrowseRequest extends PortalRequest {
+interface BrowseRequest extends PortalRequest {
   place?: string | null;
   types?: string[] | null;
   sources?: string[] | null;
@@ -117,10 +117,10 @@ export interface BrowseRequest extends PortalRequest {
   offset?: number | null;
   limit?: number | null;
 }
-export interface MarkRequest extends IdsRequest {
+interface MarkRequest extends IdsRequest {
   mark: string;
 }
-export interface ProgressRequest extends PortalRequest {
+interface ProgressRequest extends PortalRequest {
   id: string;
   position: number;
   duration?: number | null;
@@ -133,15 +133,15 @@ export interface TagRequest extends IdsRequest {
   add?: string[] | null;
   remove?: string[] | null;
 }
-export interface PickRequest extends PortalRequest {
+interface PickRequest extends PortalRequest {
   /** A source's id, or `saved` for links saved by hand. */
   source: string;
   pick: string;
 }
-export interface DigestMailRequest extends PortalRequest {
+interface DigestMailRequest extends PortalRequest {
   on: boolean;
 }
-export interface CollectionRequest extends PortalRequest {
+interface CollectionRequest extends PortalRequest {
   id?: string | null;
   name?: string | null;
   /** The collection it goes inside; blank for the top. */
@@ -186,7 +186,7 @@ const pickOf = (v: string | null | undefined): AlertPick => {
 };
 
 /** A link the save can keep, or a refusal: checked before any journaled run. */
-export function checkUrl(raw: string | null | undefined): string {
+function checkUrl(raw: string | null | undefined): string {
   try {
     return cleanUrl(raw ?? "");
   } catch {
@@ -195,18 +195,14 @@ export function checkUrl(raw: string | null | undefined): string {
 }
 
 /** A client's own database, where its Notes live: an SOP from its items goes there. */
-export type ClientDbOf = (client: string) => Db;
+type ClientDbOf = (client: string) => Db;
 
 /**
  * The workspace a call works in. Wren's team naming no client: Wren's own, for those who hold
  * Wren's team. Anyone else: the client the guard opened (the login's own when none is named),
  * checked again here for `need` in its Learn app. A write never lands on the demo.
  */
-export async function learnPlace(
-  main: Db,
-  req: PortalRequest,
-  need: "read" | "act",
-): Promise<string> {
+async function learnPlace(main: Db, req: PortalRequest, need: "read" | "act"): Promise<string> {
   const named = typeof req.client === "string" && req.client !== "" && req.client !== WREN;
   if (!named && isOperator(req.viewer)) {
     if (!teamCan(req, "team", WREN)) throw new PortalRefusal("no access", 403);

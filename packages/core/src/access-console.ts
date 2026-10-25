@@ -35,7 +35,7 @@ import { DECLARED, type RecordType } from "./records.js";
 
 type Input = PortalRequest & Record<string, unknown>;
 
-export interface AccessDeps {
+interface AccessDeps {
   main: Db;
   /** The types this request reads, for a record named by an issue. */
   typesFor(req: PortalRequest): Promise<RecordType[]>;

@@ -20,7 +20,7 @@ export function questionStudy(question: string, angles: readonly string[] = []):
  * When a caller gives no copy rules for the emails draft: William's cold email
  * rules as of 2026-09-30, minus who the sender is. `--rules <file>` replaces them.
  */
-export const DEFAULT_EMAIL_RULES = `- Order: a subject they must open, the opener, why they're reading this, the pain, the usual fix and why it falls short, who is writing, one easy ask, thanks.
+const DEFAULT_EMAIL_RULES = `- Order: a subject they must open, the opener, why they're reading this, the pain, the usual fix and why it falls short, who is writing, one easy ask, thanks.
 - Subject: lowercase, a few words, specific enough to be wrong.
 - The pain: name the whole family of it first, then one concrete example from the claims, with its number when the claim has one.
 - Handle the objection to the offer before they raise it.
@@ -29,7 +29,7 @@ export const DEFAULT_EMAIL_RULES = `- Order: a subject they must open, the opene
 - Short read. Thank them at the end for reading this far.
 - No price, scope, tools or guarantees. No sign-off; the sender's signature is added.`;
 
-export interface VerticalBrief {
+interface VerticalBrief {
   /** Who we'd sell to, as specific as we know it: "recruiting firms of 10 to 50 people in the US and Canada". */
   vertical: string;
   /** What we sell, in a phrase: "automation that wins back past clients". */

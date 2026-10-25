@@ -19,7 +19,7 @@ import { fileOf } from "./read.js";
 import { items, sopSources } from "./schema.js";
 
 /** An SOP folder's name, as `wren sop add` makes one. */
-export const SOP_NAME = /^[a-z0-9][a-z0-9-]{0,63}$/;
+const SOP_NAME = /^[a-z0-9][a-z0-9-]{0,63}$/;
 
 /** Ask for this workspace's item in an SOP; a failed ask asks again. */
 export async function askSop(
@@ -50,7 +50,7 @@ export async function askSop(
 }
 
 /** What writes into a folder: `sop add`'s and `sop extract`'s, passed in by the CLI. */
-export interface SopWriter {
+interface SopWriter {
   add(dir: string, source: { name: string; md: string }): Promise<string>;
   extract(dir: string, stem: string): Promise<void>;
 }
@@ -162,7 +162,7 @@ export async function askNoteSop(
 }
 
 /** One row of the SOP library. */
-export interface SopRow {
+interface SopRow {
   id: string;
   sop: string;
   /** "folder" when `../sops` was read here, "database" when only pushes and links are known. */
@@ -271,7 +271,7 @@ async function readFolders(
 const LEARN_AGENT = "agent:learn";
 
 /** A note body for an item: its link, summary and transcript. */
-export function noteMarkdown(item: {
+function noteMarkdown(item: {
   url: string;
   summary: string | null;
   transcript: string | null;

@@ -36,12 +36,12 @@ export interface DecideSource {
   one?(db: Queryable, subject: string): Promise<DecideSubject | null>;
 }
 
-export const DECIDE_EVERY_MS = 10 * 60_000;
-export const DECIDE_MAX = 40;
-export const DECIDE_BUDGET_MS = 5 * 60_000;
-export const DECIDE_MAX_FAILURES = 3;
+const DECIDE_EVERY_MS = 10 * 60_000;
+const DECIDE_MAX = 40;
+const DECIDE_BUDGET_MS = 5 * 60_000;
+const DECIDE_MAX_FAILURES = 3;
 
-export interface DecidePassStats {
+interface DecidePassStats {
   asked: number;
   answered: number;
   refused: number;
@@ -133,7 +133,7 @@ export async function decidePass(
 }
 
 /** What a by-hand ask came to: it ran, or `why` it did not. */
-export interface DecideOneOutcome {
+interface DecideOneOutcome {
   asked: boolean;
   label: string | null;
   why: string | null;
@@ -186,7 +186,7 @@ const ONE_INPUT = z.object({
   subject: z.string().min(1).max(200),
 });
 
-export interface DecideDeps {
+interface DecideDeps {
   main: Db;
   sources: readonly DecideSource[];
   /** Read per pass, so a key set later is picked up. */

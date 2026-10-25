@@ -8,7 +8,7 @@ import { SAVE_DELAY_MS, type SaverOptions } from "./save/engine.js";
 
 export const trimmed = (a: string, b: string) => a.trim() === b.trim();
 
-export interface DraftSaving {
+interface DraftSaving {
   /** The save handler; null: the box reads only. */
   handler: string | null;
   id: string | number;
@@ -42,7 +42,7 @@ export const turnOf = (out: unknown): DraftTurnLine | null => {
 };
 
 /** The record's version a save answers with (a post's words hashed), if any. */
-export const versionOfAnswer = (out: unknown): string | null => {
+const versionOfAnswer = (out: unknown): string | null => {
   const v = (answerIn(out) as { version?: unknown } | null)?.version;
   return typeof v === "string" && v ? v : null;
 };

@@ -151,7 +151,7 @@ async function fallbackOf(db: Queryable, item: string): Promise<string | null> {
 }
 
 /** Why an account may not land in a sub: its karma or age under the sub's floor. Null = fine. */
-export function warnOf(
+function warnOf(
   sub: string | null,
   a: ReachAccount | undefined,
   rows: Parameters<typeof effectiveNeed>[0],

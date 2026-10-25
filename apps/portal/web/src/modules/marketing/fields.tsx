@@ -741,7 +741,7 @@ function TikTokFields({ shape, act }: { shape: Shape; act: RecordAct }) {
 }
 
 /** Every field of the post, grouped: editable while it waits, as it went out once posted. */
-export function PostFields({ shape, act }: { shape: Shape; act: RecordAct }) {
+function PostFields({ shape, act }: { shape: Shape; act: RecordAct }) {
   // A TikTok post still open: its Direct Post settings in their own panel.
   const tiktok = shape.platform === "tiktok" && shape.editable;
   const cells = (fields: FieldView[]) =>

@@ -114,7 +114,7 @@ export function quickFilters(meta: RecordMeta): FieldMeta[] {
 }
 
 /** The field holding a row's platform, when the list mixes them: what Group by Site groups on. */
-export function siteField(meta: RecordMeta): FieldMeta | null {
+function siteField(meta: RecordMeta): FieldMeta | null {
   if (typeof meta.channel !== "object" || !meta.channel) return null;
   const key = meta.channel.field;
   return meta.fields.find((f) => f.key === key && f.states) ?? null;
@@ -173,7 +173,7 @@ const sameKept = (a: string, b: string) => {
 };
 
 /** The link that opens a saved view: everything else the list had, dropped. */
-export function savedLink(meta: RecordMeta, place: Place, v: SavedViewLine) {
+function savedLink(meta: RecordMeta, place: Place, v: SavedViewLine) {
   const drop = Object.fromEntries(keysOf(meta).map((k) => [k, null]));
   return place.link({
     ...drop,
@@ -204,7 +204,7 @@ export function useSavedViews(keep: KeepApi | undefined, record: string): Saved 
 }
 
 /** What a list remembers between visits: its tab (a saved one too), sort, columns, list or axis. */
-export interface LastUsed {
+interface LastUsed {
   sv?: number;
   view?: string;
   sort?: string;
@@ -784,7 +784,7 @@ const GLYPH = {
   group: "M4 5h16M7 10h13M7 15h13M7 20h13",
   filter: "M4 6h16M7 12h10M10 18h4",
 } as const;
-export function BarGlyph({ name }: { name: keyof typeof GLYPH }) {
+function BarGlyph({ name }: { name: keyof typeof GLYPH }) {
   return (
     <svg
       viewBox="0 0 24 24"

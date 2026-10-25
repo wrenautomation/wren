@@ -42,7 +42,7 @@ export function Dot({ email }: { email: string }) {
 }
 
 /** Who, with their color. */
-export function Authors({ list }: { list: readonly string[] }) {
+function Authors({ list }: { list: readonly string[] }) {
   return (
     <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
       {list.map((a) => (

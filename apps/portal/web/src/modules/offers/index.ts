@@ -63,7 +63,7 @@ const termsExtras: NonNullable<ListPage["extras"]> = (detail) => {
   };
 };
 
-export const TERMS_ACTIONS: Action[] = [
+const TERMS_ACTIONS: Action[] = [
   {
     id: "pipeline.termsAdd",
     label: "Propose version",

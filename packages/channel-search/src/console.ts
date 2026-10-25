@@ -12,13 +12,13 @@ import {
 } from "@wrenautomation/autobrowse/google";
 import { INSPECTION_VERDICTS, type InspectionVerdict } from "./schema.js";
 
-export const SEARCH_CONSOLE_SCOPE = "https://www.googleapis.com/auth/webmasters";
+const SEARCH_CONSOLE_SCOPE = "https://www.googleapis.com/auth/webmasters";
 const API = "https://searchconsole.googleapis.com";
 const WEBMASTERS = `${API}/webmasters/v3`;
 /** Google's cap on rows per analytics request; `startRow` pages past it. */
-export const PAGE_ROWS = 25_000;
+const PAGE_ROWS = 25_000;
 
-export class SearchConsoleError extends Error {
+class SearchConsoleError extends Error {
   readonly status: number;
   constructor(status: number, message: string) {
     super(message);
@@ -46,7 +46,7 @@ export function searchConsoleClient(
   return { fetch, token: serviceAccountToken(key, { scopes: [SEARCH_CONSOLE_SCOPE], fetch }) };
 }
 
-export interface AnalyticsRow {
+interface AnalyticsRow {
   keys: string[];
   clicks: number;
   impressions: number;
@@ -54,7 +54,7 @@ export interface AnalyticsRow {
   position: number;
 }
 
-export interface Inspection {
+interface Inspection {
   verdict: InspectionVerdict;
   coverageState?: string;
   indexingState?: string;
@@ -171,7 +171,7 @@ export async function submitSitemap(
 }
 
 /** A property the service account is on, and how: `siteOwner`, `siteFullUser`, `siteUnverifiedUser`… */
-export interface SiteEntry {
+interface SiteEntry {
   siteUrl: string;
   permissionLevel: string;
 }

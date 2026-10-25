@@ -5,7 +5,7 @@
  */
 
 /** Bytes `start` to `end` inclusive. */
-export type ReadRange = (start: number, end: number) => Promise<Uint8Array>;
+type ReadRange = (start: number, end: number) => Promise<Uint8Array>;
 
 /** A `moov` past this is not read: a short-form video's is far smaller. */
 const MOOV_MAX = 32 * 1024 * 1024;

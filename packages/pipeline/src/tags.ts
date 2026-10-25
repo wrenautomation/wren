@@ -8,7 +8,7 @@ import { asc, eq } from "drizzle-orm";
 import { type ShapeTag, shapeTags, shapeVersions } from "./schema.js";
 import { lock, Refused } from "./store.js";
 
-export const TAG_NAME_MAX = 60;
+const TAG_NAME_MAX = 60;
 
 /** Put a tag on a version. Refused when the name is empty or long, the version is none, or the name is taken. */
 export async function addTag(

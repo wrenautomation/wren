@@ -232,7 +232,7 @@ function answerOf(text: string): Record<string, unknown> | null {
 }
 
 /** How long the model has. The light read must not wait on a slow one. */
-export const FIT_MODEL_MS = 20_000;
+const FIT_MODEL_MS = 20_000;
 
 /** True when the ICP has a rule only a model can judge. */
 export const needsModel = (icp: Icp) =>

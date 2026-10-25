@@ -2,7 +2,7 @@
 import type { SendPolicy } from "../send/policy.js";
 import { zonedInstant } from "../send/tz.js";
 
-export const REPORT_WEEKDAY = 4; // Friday, in PlainDate's 0 = Monday
+const REPORT_WEEKDAY = 4; // Friday, in PlainDate's 0 = Monday
 export const REPORT_HOUR = 19;
 
 /** The first Friday 19:00 (send timezone) strictly after `now`. */

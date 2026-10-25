@@ -7,7 +7,7 @@ import { specOf } from "./registry.js";
 import { SceneArt } from "./scenes.js";
 
 /** The vendors a row needs, as mark keys: accounts only, never the parts it builds on. */
-export const vendorsOf = (needs: unknown): string[] =>
+const vendorsOf = (needs: unknown): string[] =>
   String(needs ?? "")
     .split(",")
     .map((s) => s.trim())

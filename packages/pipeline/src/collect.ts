@@ -15,7 +15,7 @@ import { personOf, textOf } from "./journeys.js";
 import { pipelineDeals } from "./schema.js";
 
 export const COLLECT_STEP = "pipeline.collect";
-export const MONEY_WORKFLOW_ID = "pipeline.money";
+const MONEY_WORKFLOW_ID = "pipeline.money";
 
 const money: Port = { id: "payments", label: "payments", kind: "invoice" };
 
@@ -65,7 +65,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 /** `profile_events.source_id` is 64 characters: a subject fits as a hash. */
 const lineId = (subject: string) => createHash("sha256").update(subject).digest("hex").slice(0, 40);
 
-export interface CollectDeps {
+interface CollectDeps {
   /** The workspace database: Wren's for `null`, else that client's. */
   db(client: string | null): Db;
   now?(): Date;

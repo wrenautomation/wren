@@ -21,7 +21,7 @@ import { sql } from "drizzle-orm";
 import { type Bucket, bucketRoom, refusedBy, retryAfter } from "../pacing.js";
 
 export const EXA_SEARCH_COMMAND = "enrich exa-search";
-export const EXA_SEARCH_SOURCE = "exa_search";
+const EXA_SEARCH_SOURCE = "exa_search";
 /**
  * Searches a day: 30 x 7 mills is $0.21 of autobrowse's 330-mill daily `exa` cap a key, about $6.30 a
  * month. The pool sleeps to the next local day once a pass finds nothing, so on an idle pool a
@@ -29,9 +29,9 @@ export const EXA_SEARCH_SOURCE = "exa_search";
  */
 export const EXA_SEARCH_BUCKET: Bucket = { perDay: 30, burst: 30 };
 /** A city's firms change slowly: a search is read again after this. */
-export const EXA_SEARCH_EVERY_DAYS = 30;
+const EXA_SEARCH_EVERY_DAYS = 30;
 /** Results a search asks for: one price up to 25. */
-export const EXA_RESULTS = 25;
+const EXA_RESULTS = 25;
 
 /** One result as `web GET /exa/companies` answers it; `raw` is Exa's result whole. */
 export interface ExaFirm {
@@ -127,9 +127,9 @@ export async function exaSearchesDue(
     .map((s) => s.q);
 }
 
-export type ExaSearchOutcome = "read" | "capped" | "spent" | "error";
+type ExaSearchOutcome = "read" | "capped" | "spent" | "error";
 
-export interface ExaSearchUnit {
+interface ExaSearchUnit {
   q: string;
   outcome: ExaSearchOutcome;
   results: number;

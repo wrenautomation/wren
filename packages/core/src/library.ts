@@ -29,7 +29,7 @@ import { flowsWith, type Workflow } from "./workflows.js";
 
 export const SNIPPET = "library.snippet";
 export const CHANNELS = ["any", "email", "sms", "dm", "comment"] as const;
-export type SnippetChannel = (typeof CHANNELS)[number];
+type SnippetChannel = (typeof CHANNELS)[number];
 const CHANNEL: Record<SnippetChannel, State> = cued({
   any: { label: "Anywhere", tone: "neutral" },
   email: { label: "Email", tone: "neutral" },

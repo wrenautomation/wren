@@ -51,7 +51,7 @@ export const sourceEdge = (body: ShapeBody, source: string, to: string): ShapeEd
   body.edges.find((e) => e.kind === "flow" && e.from === source && e.to === to);
 
 /** The sources that may open a journey at `to`: live, with a flow edge to it. */
-export const sourcesInto = (body: ShapeBody, to: string): SourceNode[] =>
+const sourcesInto = (body: ShapeBody, to: string): SourceNode[] =>
   liveSources(body).filter((s) => sourceEdge(body, s.id, to));
 
 /**

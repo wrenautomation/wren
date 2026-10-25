@@ -11,7 +11,7 @@ import { decodeEntities, readPage } from "../fetch/htmltext.js";
 import { canFetch, type RobotsCache } from "../fetch/robots.js";
 import { companyPhrase, isFirm, mentionsFirm, plain } from "../people/names.js";
 
-export const CUSTOMERS_STAGE = "research_customers";
+const CUSTOMERS_STAGE = "research_customers";
 /** Pages read besides the home page. */
 const MAX_PAGES = 8;
 /** Characters of page text per page the model sees. */
@@ -22,7 +22,7 @@ const MAX_TOKENS = 3_000;
 const CUSTOMER_PAGE =
   /client|customer|case[\s_-]?stud|testimonial|our[\s_-]?work|portfolio|success|results|who[\s_-]?we[\s_-]?(serve|work|help)|industr|partner|review/i;
 
-export interface NamedCustomer {
+interface NamedCustomer {
   name: string;
   /** The customer's site when a link on the pages points there; null otherwise. */
   website: string | null;
@@ -30,7 +30,7 @@ export interface NamedCustomer {
   seenOn: string;
 }
 
-export interface CustomersTried {
+interface CustomersTried {
   url: string;
   outcome: string;
 }
@@ -42,7 +42,7 @@ export interface CustomersResult {
   tried: CustomersTried[];
 }
 
-export interface CustomersOptions {
+interface CustomersOptions {
   maxPages?: number;
   runId?: string | null;
 }

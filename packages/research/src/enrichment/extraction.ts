@@ -102,7 +102,7 @@ export const ExtractedPerson = z.object({
 });
 export type ExtractedPerson = z.infer<typeof ExtractedPerson>;
 
-export const ExtractionResult = z
+const ExtractionResult = z
   .object({
     people: z.array(ExtractedPerson).default([]),
     generic_emails: z.array(z.string()).default([]),
@@ -113,7 +113,7 @@ export const ExtractionResult = z
     // A nameless entry is not a person we can ever address.
     people: r.people.filter((p) => (p.full_name ?? "").trim()),
   }));
-export type ExtractionResult = z.infer<typeof ExtractionResult>;
+type ExtractionResult = z.infer<typeof ExtractionResult>;
 
 /** The parsed result, or a reason string; nameless entries dropped. */
 export function parseExtraction(text: string): ExtractionResult | string {
@@ -146,7 +146,7 @@ export function groundEmails(
   return { parsed: { ...parsed, people, generic_emails: generic }, dropped };
 }
 
-export interface PromptDocument {
+interface PromptDocument {
   url: string;
   title: string | null;
   text: string;
@@ -186,7 +186,7 @@ export interface ExtractionStats {
   aborted: string | null;
 }
 
-export interface ExtractionSelectOptions {
+interface ExtractionSelectOptions {
   limit?: number | undefined;
   niche?: string | null | undefined;
   shard?: Shard | null | undefined;
@@ -195,7 +195,7 @@ export interface ExtractionSelectOptions {
   spec?: ExtractionSpec | undefined;
 }
 
-export type ExtractionTarget = Document & { companyName: string | null };
+type ExtractionTarget = Document & { companyName: string | null };
 
 /**
  * Documents to extract for this model: no successful row under the current version;
@@ -263,13 +263,13 @@ export async function loadExtractionTarget(
   return row ? { ...row.document, companyName: row.companyName ?? null } : null;
 }
 
-export interface ExtractionUnitOptions {
+interface ExtractionUnitOptions {
   runId?: string | null | undefined;
   tracer?: Tracer | null | undefined;
   spec?: ExtractionSpec | undefined;
 }
 
-export type ExtractionOutcome = "extracted" | "parse_error" | "provider_rejected";
+type ExtractionOutcome = "extracted" | "parse_error" | "provider_rejected";
 
 /**
  * One completion for one document, persisted whatever the outcome. Throws LlmError
@@ -308,7 +308,7 @@ export async function extractDocument(
   return { outcome, ungrounded: dropped };
 }
 
-export interface ExtractionRunOptions extends ExtractionSelectOptions, ExtractionUnitOptions {
+interface ExtractionRunOptions extends ExtractionSelectOptions, ExtractionUnitOptions {
   checkpoint?: (doc: ExtractionTarget) => void | Promise<void>;
 }
 
@@ -354,7 +354,7 @@ export async function runExtraction(
 type ApplicableRow = { enrichment: Enrichment; document: Document; company: Company };
 
 /** Unapplied enrichments as a PersonSource: website people enter the inventory through the same importer. */
-export class ExtractionPersonSource implements PersonSource {
+class ExtractionPersonSource implements PersonSource {
   readonly sourceType = "website-extraction";
   readonly sourceRef: string;
   constructor(private readonly rowsIn: ApplicableRow[]) {

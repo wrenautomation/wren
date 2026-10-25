@@ -9,7 +9,7 @@
  * weights and patterns are theirs, the passage split is ours.
  */
 
-export interface PassageScore {
+interface PassageScore {
   heading: string;
   words: number;
   score: number;
@@ -164,7 +164,7 @@ export function passagesOf(markdown: string): { heading: string; text: string }[
   return out;
 }
 
-export interface Citability {
+interface Citability {
   passages: PassageScore[];
   average: number;
   /** Passages in the 134-167 word band answer engines lift most. */

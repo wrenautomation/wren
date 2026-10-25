@@ -7,7 +7,7 @@
 import { z } from "zod";
 import type { FetchLike } from "../fetch-like.js";
 
-export interface ListmonkConfig {
+interface ListmonkConfig {
   /** Base URL, no trailing path: `https://lists.example.test`. */
   url: string;
   user: string;

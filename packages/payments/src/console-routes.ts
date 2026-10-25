@@ -32,7 +32,7 @@ export const PAYMENTS_CONSOLE_APPS = {
   again: "payments",
   connect: "payments",
 } as const satisfies RouteApps<typeof PAYMENTS_CONSOLE_ROUTES>;
-export type PaymentsConsoleRoute = keyof typeof PAYMENTS_CONSOLE_ROUTES;
+type PaymentsConsoleRoute = keyof typeof PAYMENTS_CONSOLE_ROUTES;
 /** The ones that change something: never cached, never on the demo. */
 export const PAYMENTS_CONSOLE_WRITES: readonly PaymentsConsoleRoute[] = [
   "create",

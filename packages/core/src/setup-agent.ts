@@ -33,16 +33,16 @@ const JOB = z.looseObject({
  * A done-for-you step's fixed read, by name (`SetupStep.find`): the account's ref from now on, or
  * null with why not. Its calls go through `ctx`, so each is a journaled step.
  */
-export type SetupFinder = (
+type SetupFinder = (
   ctx: restate.Context,
   a: { account: FinderAccount },
 ) => Promise<{ ref: string | null; why: string }>;
 
 /** What a finder reads of the account: plain fields, so the journal keeps them as they are. */
-export type FinderAccount = Pick<AccountRow, "id" | "client" | "site" | "ref">;
+type FinderAccount = Pick<AccountRow, "id" | "client" | "site" | "ref">;
 
 /** A goal still unanswered after this is said to have failed; the run waits on Wren's team. */
-export const SETUP_AGENT_TIMEOUT_MS = 2 * 3_600_000;
+const SETUP_AGENT_TIMEOUT_MS = 2 * 3_600_000;
 
 export function makeSetupAgent(deps: {
   main: Db;

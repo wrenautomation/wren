@@ -14,7 +14,7 @@ export interface Limits {
   rpd: number;
 }
 
-export interface ProviderSpec {
+interface ProviderSpec {
   baseURL: string;
   /** The secret holding this provider's keys, one per line. */
   secret: "GEMINI_KEYS" | "OPENROUTER_KEYS" | "COHERE_KEYS";

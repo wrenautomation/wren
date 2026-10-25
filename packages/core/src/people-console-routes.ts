@@ -55,7 +55,7 @@ export const PEOPLE_CONSOLE_APPS = {
   recordsExport: null,
   recordsStats: null,
 } as const satisfies RouteApps<typeof PEOPLE_CONSOLE_ROUTES>;
-export type PeopleConsoleRoute = keyof typeof PEOPLE_CONSOLE_ROUTES;
+type PeopleConsoleRoute = keyof typeof PEOPLE_CONSOLE_ROUTES;
 /** The ones that change something: never cached, never on the demo. */
 export const PEOPLE_CONSOLE_WRITES: readonly PeopleConsoleRoute[] = [
   "segmentDescribe",

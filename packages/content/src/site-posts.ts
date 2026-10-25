@@ -17,7 +17,7 @@ const LOST_DAYS = 60;
 const KEY_CHARS = 60;
 const MIN_KEY = 20;
 
-export interface SitePostsKept {
+interface SitePostsKept {
   /** New drafts for posts made on the site. */
   added: number;
   /** Drafts whose send was lost, found on the site and stamped. */
@@ -25,7 +25,7 @@ export interface SitePostsKept {
 }
 
 /** The opening words, folded: case, spacing and a listing's "…" never decide. */
-export const wordsKey = (s: string): string =>
+const wordsKey = (s: string): string =>
   s.replace(/…$/, "").replace(/\s+/g, " ").trim().toLowerCase().slice(0, KEY_CHARS);
 
 const same = (a: string, b: string) => {

@@ -11,7 +11,7 @@ import { type IssueRow, issues } from "./clients/schema.js";
 import { PortalRefusal } from "./portal.js";
 
 /** Where an issue sits: the record and its app and channel, at one client (or `wren`). */
-export interface IssueAt {
+interface IssueAt {
   client: string;
   record: string;
   app: string;

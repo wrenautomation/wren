@@ -30,11 +30,11 @@ export type CatalogReader = (
 ) => Promise<CreatorPage> | null;
 
 /** Posts a page: Graph's discovery takes up to 50; a page is one capped read. */
-export const CATALOG_PAGE = 25;
+const CATALOG_PAGE = 25;
 /** Pages one pass walks at most: a 1,000-post profile, 40 reads of the day's 300. */
-export const CATALOG_PAGES = 40;
+const CATALOG_PAGES = 40;
 
-export interface CatalogPass {
+interface CatalogPass {
   creator: string;
   /** Items made for posts Learn never had, waiting for the Mac. */
   queued: number[];
@@ -167,7 +167,7 @@ export async function readCatalog(
 }
 
 /** Failed reads in a row that end a pass: the keys or the network are down, and the rest would only wait out the same limits. */
-export const CATALOG_FAILURES = 3;
+const CATALOG_FAILURES = 3;
 
 /** One queued post, read and scored. */
 export interface CatalogRead {
@@ -181,7 +181,7 @@ export interface CatalogRead {
 }
 
 /** What a pass's reads came to, for its last line. */
-export interface CatalogSummary {
+interface CatalogSummary {
   read: number;
   failed: number;
   waits: number;

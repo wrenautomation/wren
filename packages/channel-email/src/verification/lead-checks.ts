@@ -8,7 +8,7 @@ import { and, eq, inArray, sql } from "drizzle-orm";
 import { leadChecks } from "../schema.js";
 import { type CompanyPage, checkLead, type LookupFinding, type NamedPerson } from "./checks.js";
 
-export interface RecheckStats {
+interface RecheckStats {
   companies: number;
   leads: number;
   /** Leads where the mailbox fits someone else or the person moved on. */

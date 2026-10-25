@@ -22,7 +22,7 @@ export interface RecordAccount {
 type Source = (db: Queryable) => Promise<RecordAccount[]>;
 
 /** How long a load holds before the next read asks the database again. */
-export const ACCOUNTS_TTL_MS = 60_000;
+const ACCOUNTS_TTL_MS = 60_000;
 
 let known = new Map<string, RecordAccount>();
 let source: Source | null = null;

@@ -20,14 +20,14 @@ import { invoices, wiseCredits } from "../schema.js";
 import { BILLING_CONSOLE_APPS, BILLING_CONSOLE_ROUTES } from "./console-routes.js";
 import { dismissCredit, matchByHand } from "./credits.js";
 
-export interface CreditsRequest extends PortalRequest {
+interface CreditsRequest extends PortalRequest {
   ids?: (string | number)[];
   /** The invoice to put it on, `WREN-1001`; blank = the one the credit names as likely. */
   invoice?: string | null;
 }
 
 /** `credit:12` (To approve's id) or `12` (the record's) as 12. */
-export const creditIdOf = (v: string | number): number => {
+const creditIdOf = (v: string | number): number => {
   const n = Number(String(v).replace(/^credit:/, ""));
   if (!Number.isSafeInteger(n) || n <= 0) throw new PortalRefusal("no such credit", 404);
   return n;

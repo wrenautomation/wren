@@ -44,7 +44,7 @@ export interface ReplyCopy {
 }
 
 /** `<arm>/reply` for the enrollment's sequence, as the store has it live; null when the arm has none. */
-export async function replyTemplate(
+async function replyTemplate(
   db: Queryable,
   copy: ReplyCopy,
   enrollment: Enrollment,
@@ -115,7 +115,7 @@ export async function draftReply(
 }
 
 /** The template name a reply William wrote himself is filed under. */
-export const BY_HAND = "by-hand/reply";
+const BY_HAND = "by-hand/reply";
 
 /**
  * William's own words as the thread's next step, a draft for `sendReply`. With no `event` it

@@ -218,7 +218,7 @@ const titles = (ps: readonly Post[]) =>
     .map((p) => `- ${(p.title ?? "").slice(0, 140)} (${p.num_comments ?? 0} comments)`)
     .join("\n");
 
-export const rulesText = (rules: unknown) =>
+const rulesText = (rules: unknown) =>
   (
     ((rules as { rules?: { short_name?: string; description?: string }[] })?.rules ?? []) as {
       short_name?: string;

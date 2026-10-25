@@ -286,7 +286,7 @@ function Summary({ row }: { row: Row }) {
  * The score as shown with its band, the model's beside a score set by hand, then each part with
  * its weight, why, and a link to the rows behind it. Stale parts say so.
  */
-export function HealthCard({ row }: { row: Row }) {
+function HealthCard({ row }: { row: Row }) {
   const score = numOf(row.score);
   return (
     <div className="grid gap-5">

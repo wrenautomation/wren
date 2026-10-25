@@ -18,7 +18,7 @@ export const SOCIAL_PLATFORMS = [
 export type SocialPlatform = (typeof SOCIAL_PLATFORMS)[number];
 
 /** The content channels a connected account posts as: a subset of `@wren/core/content`'s. */
-export type SocialChannel =
+type SocialChannel =
   | "facebook"
   | "instagram"
   | "linkedin"
@@ -47,7 +47,7 @@ export const APP_NAMES: Record<SocialApp, string> = {
 export const appKey = (app: SocialApp, part: "ID" | "SECRET") =>
   `SOCIAL_${app.toUpperCase()}_CLIENT_${part}`;
 
-export interface SocialSpec {
+interface SocialSpec {
   label: string;
   app: SocialApp;
   /** The content channel it posts as. */

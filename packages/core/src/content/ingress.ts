@@ -28,7 +28,7 @@ function siteError(err: unknown, site: string, method: string, path: string): Er
 const dropped = (err: unknown) => err instanceof TypeError && err.message === "fetch failed";
 const ATTEMPTS = 4;
 
-export interface IngressSitesOptions extends Partial<SitesHost> {
+interface IngressSitesOptions extends Partial<SitesHost> {
   caller: string;
   /** Give up on a call after this long (no retry); absent = wait, asking again on a dropped connection. */
   timeoutMs?: number;

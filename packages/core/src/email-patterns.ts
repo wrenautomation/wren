@@ -17,7 +17,7 @@ export const PATTERNS = [
   "{f}.{last}",
   "{last}",
 ] as const;
-export type Pattern = (typeof PATTERNS)[number];
+type Pattern = (typeof PATTERNS)[number];
 
 /** A name as it appears in local parts: lowercased, accents folded (Núñez -> nunez), punctuation dropped. */
 export function nameToken(name: string | null | undefined): string | null {

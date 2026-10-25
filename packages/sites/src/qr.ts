@@ -11,7 +11,7 @@ const ECC_PER_BLOCK = [0, 10, 16, 26, 18, 24, 16, 18, 22, 22, 26];
 const BLOCKS = [0, 1, 1, 1, 2, 2, 4, 4, 4, 5, 5];
 /** Level M's two format bits. */
 const LEVEL_M = 0;
-export const QR_MAX_VERSION = 10;
+const QR_MAX_VERSION = 10;
 
 /** Modules that carry data and error correction, past the fixed patterns. */
 function rawModules(ver: number): number {

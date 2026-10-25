@@ -26,19 +26,19 @@ import {
 const ATTEMPTED = ["sending", "sent", "delivered", "failed", "unknown"] as const;
 
 /** The instant the fleet day containing `at` began. */
-export function fleetDayStart(at: Date): Date {
+function fleetDayStart(at: Date): Date {
   const [y, m, d] = fleetDay(at).split("-").map(Number) as [number, number, number];
   return zonedInstant(FLEET_ZONE, y, m, d);
 }
 
-export interface NumberToday {
+interface NumberToday {
   number: SmsNumber;
   cap: number;
   sentToday: number;
   lastAttemptAt: Date | null;
 }
 
-export interface PoolToday {
+interface PoolToday {
   day: string;
   numbers: NumberToday[];
   sentToday: number;

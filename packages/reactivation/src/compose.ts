@@ -39,7 +39,7 @@ import { LATEST_CRM_ROW, whereConflict, whereFinding } from "./score.js";
 import type { ReactivationSettings, Sender } from "./settings.js";
 
 export const COMPOSE_VERSION = "v5";
-export const COMPOSE_STAGE = "reactivation_compose";
+const COMPOSE_STAGE = "reactivation_compose";
 /** Enrollments carry this as their niche, sequence and offer. */
 export const REACTIVATION = "reactivation";
 export const SEQUENCE = {
@@ -65,7 +65,7 @@ const paragraphSchema = z.object({
 });
 /** An email as the model writes it: its paragraphs in order. A bare string still reads, with no "why". */
 const bodySchema = z.union([z.string(), z.array(paragraphSchema)]);
-export const answerSchema = z.object({
+const answerSchema = z.object({
   subject: z.string(),
   opener: bodySchema,
   followup: bodySchema,
@@ -143,7 +143,7 @@ const GENERIC = new Set(
   ),
 );
 
-export interface GateContext {
+interface GateContext {
   /** What the numbers in an email may come from: the brief and the profile. */
   source: string;
   /** Words the subject must not carry: the contact's names and their firm. */
@@ -298,7 +298,7 @@ export interface ComposeSubject {
  * `packages/templates/defaults/prompt/reactivation/compose.prompt`. `{fact}` is filled from the
  * subject and the client's profile, `((...))` drops when its fact is missing, `{{` is a literal `{`.
  */
-export const COMPOSE_PROMPT_REF = { system: REACTIVATION, name: "compose" } as const;
+const COMPOSE_PROMPT_REF = { system: REACTIVATION, name: "compose" } as const;
 /** The shipped words, parsed: what the store first takes, and what a test renders. */
 export const composeDefault = () =>
   parseKind(
@@ -308,7 +308,7 @@ export const composeDefault = () =>
   );
 
 /** What the prompt fills in for one subject. */
-export function composeFacts(
+function composeFacts(
   s: ComposeSubject,
   profile: Pick<ClientProfile, "firm" | "sells" | "voice">,
   sender: Pick<Sender, "name">,

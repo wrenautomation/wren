@@ -12,7 +12,7 @@
  */
 import type { FetchedWith } from "../content/index.js";
 
-export type ReachPlatform = "reddit" | "linkedin";
+type ReachPlatform = "reddit" | "linkedin";
 
 /** One person as a search shows them: enough to decide whether to read more. */
 export interface Prospect {

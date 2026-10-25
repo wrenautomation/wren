@@ -11,9 +11,9 @@ import type { SocialConnectionRow } from "./schema.js";
 /** How many of its newest videos the page lists. */
 export const TIKTOK_RECENT = 5;
 /** Past this the page shows what it has: a slow TikTok never holds Account → Social. */
-export const TIKTOK_NUMBERS_MS = 4_000;
+const TIKTOK_NUMBERS_MS = 4_000;
 
-export interface TikTokVideoLine {
+interface TikTokVideoLine {
   id: string;
   title: string | null;
   views: number | null;

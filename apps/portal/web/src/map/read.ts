@@ -65,10 +65,7 @@ function linesOf(rows: NumberRow[]): Map<string, NodeNumbers[]> {
 }
 
 /** Every row of a list, up to the caps. */
-export async function listAll(
-  at: Record<string, string>,
-  ask: Record<string, unknown>,
-): Promise<Row[]> {
+async function listAll(at: Record<string, string>, ask: Record<string, unknown>): Promise<Row[]> {
   const rows: Row[] = [];
   let cursor: string | undefined;
   for (let i = 0; i < PAGES; i++) {
@@ -86,7 +83,7 @@ export async function listAll(
 }
 
 /** What a read gives: the Map, or none when the workspace has no shape yet (a plain answer, not an error). */
-export interface MapRead {
+interface MapRead {
   map: MapData | null;
 }
 
@@ -147,7 +144,7 @@ export type DraftView = "open" | "proposed" | "all";
 const orNull = (v: Cell | undefined): string | null => (v == null || v === "" ? null : String(v));
 
 /** A `pipeline.shape_draft` row as the contract's `DraftRow`. */
-export const draftRowOf = (r: Row): DraftRow => ({
+const draftRowOf = (r: Row): DraftRow => ({
   id: String(r.id),
   name: text(r.name) ?? String(r.id),
   state: String(r.state) as DraftState,

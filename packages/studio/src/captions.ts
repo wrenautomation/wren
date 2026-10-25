@@ -141,7 +141,7 @@ export function pages<W extends Word>(words: readonly W[]): W[][] {
 }
 
 /** How long a long-video page stays after its last word, if the next doesn't start first. */
-export const PAGE_HOLD_S = 0.8;
+const PAGE_HOLD_S = 0.8;
 
 /**
  * The long video's pages as lines on screen: from the first word until the next page starts or

@@ -36,7 +36,7 @@ export class OpenSyncError extends Error {
   }
 }
 
-export interface OpenHit {
+interface OpenHit {
   id: number | string;
   token: string;
   seen_at: string;
@@ -88,7 +88,7 @@ async function rows(
   return hits as OpenHit[];
 }
 
-export interface SyncOpensOptions {
+interface SyncOpensOptions {
   baseUrl: string;
   exportToken: string;
   fetch?: FetchLike;

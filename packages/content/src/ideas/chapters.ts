@@ -28,7 +28,7 @@ export interface ChapterVideo {
   used: number[];
 }
 
-export const chapterRef = (edit: number, n: number) => `chapter:${edit}:${n}`;
+const chapterRef = (edit: number, n: number) => `chapter:${edit}:${n}`;
 
 /** What he said in chapter `n`: the kept words from its start to the next chapter's. */
 export function chapterWords(v: ChapterVideo, n: number): string {

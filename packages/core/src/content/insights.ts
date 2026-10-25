@@ -175,7 +175,7 @@ export async function readGroup(
 }
 
 /** Days after a post went up when a browser read runs: 5 reads a post, light on the account. */
-export const BROWSER_READ_DAYS: readonly number[] = [1, 3, 7, 14, 28];
+const BROWSER_READ_DAYS: readonly number[] = [1, 3, 7, 14, 28];
 const DAY_MS = 86_400_000;
 
 /** Whether today is one of a post's browser-read days (whole days since it went up). */

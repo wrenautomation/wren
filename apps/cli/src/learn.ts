@@ -77,7 +77,7 @@ import { watchKeys } from "./video-watch.js";
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
 
 /** How the commands reach their databases: main, a client's own, and `--client`'s id. */
-export interface LearnDbs {
+interface LearnDbs {
   withMainDb: WithDb;
   /** A client's own database (its Notes), opened for the call. */
   withClientDb: <T>(client: string, fn: (db: Db) => Promise<T>) => Promise<T>;

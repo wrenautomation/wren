@@ -22,7 +22,7 @@ import {
 export * from "./promo-clock.js";
 
 export const PROMO_FPS = 30;
-export const PROMO_SIZE = { wide: [1920, 1080], tall: [1080, 1920] } as const;
+const PROMO_SIZE = { wide: [1920, 1080], tall: [1080, 1920] } as const;
 export type PromoFormat = keyof typeof PROMO_SIZE;
 
 const unit = z.number().min(0).max(1);
@@ -111,7 +111,7 @@ const END = z.object({
   enter,
 });
 
-export const promoScene = z.discriminatedUnion("kind", [TEXT, TOASTS, SCREEN, STAT, END]);
+const promoScene = z.discriminatedUnion("kind", [TEXT, TOASTS, SCREEN, STAT, END]);
 export type PromoScene = z.infer<typeof promoScene>;
 
 export const promoScript = z
@@ -202,7 +202,7 @@ export const PROMO_SOUNDS = {
   stat: "click.confirm",
 } as const satisfies Record<string, Role>;
 /** The kit sounds on the promo's scenes: `[frame, id]`, in order. */
-export function promoSounds(scenes: readonly TimedScene[]): [number, string][] {
+function promoSounds(scenes: readonly TimedScene[]): [number, string][] {
   const out: [number, string][] = [];
   for (const [i, s] of scenes.entries()) {
     if (i > 0 && s.kind === "end")

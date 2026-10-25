@@ -22,7 +22,7 @@ import { SUGGEST_ADD, SUGGEST_DEL } from "@wren/notes/types";
 import { hueClass } from "./api.js";
 
 /** Changes made here skip the tracking: accepting, rejecting, the room's own updates. */
-export const SUGGEST = new PluginKey<{ on: boolean }>("suggesting");
+const SUGGEST = new PluginKey<{ on: boolean }>("suggesting");
 
 /** Who and when, rendered by the mark itself. */
 const attrs = () => ({

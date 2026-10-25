@@ -17,7 +17,7 @@ import { skipQueued } from "./deliver.js";
 import { SmsRefusal } from "./refusal.js";
 import { DISPOSITIONS, type Disposition, smsContacts, smsMessages } from "./schema.js";
 
-export const CLASSIFY_VERSION = "v1";
+const CLASSIFY_VERSION = "v1";
 export const STAGE_NAME = "sms_reply_disposition";
 export const MIN_CONFIDENCE = 0.6;
 const MAX_TOKENS = 2000;
@@ -30,7 +30,7 @@ export const proposalSchema = z.object({
 });
 export type Proposal = z.infer<typeof proposalSchema>;
 
-export interface ReplyState {
+interface ReplyState {
   reply: string;
   ours: string | null;
   company: string | null;

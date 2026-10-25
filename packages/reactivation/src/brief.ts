@@ -20,14 +20,14 @@ import { briefLine, failedLine } from "./feed.js";
 import { type BriefState, briefs } from "./schema.js";
 import { hiringFinding, LATEST_CRM_ROW, newsFinding, startedIn, whereFinding } from "./score.js";
 
-export const BRIEF_VERSION = "v6";
+const BRIEF_VERSION = "v6";
 export const STAGE_NAME = "reactivation_brief";
 const MAX_TOKENS = 2000;
 const MAX_SENTENCES = 4;
 /** Errors in a row that stop the run. */
 const ERROR_STREAK = 5;
 
-export const briefSchema = z.object({ sentences: z.array(z.string()) });
+const briefSchema = z.object({ sentences: z.array(z.string()) });
 
 export interface BriefFact {
   /** `f12` or `c3`. */
@@ -35,7 +35,7 @@ export interface BriefFact {
   text: string;
 }
 
-export interface BriefSubject {
+interface BriefSubject {
   personId: number;
   name: string;
   firm: string;
@@ -45,7 +45,7 @@ export interface BriefSubject {
   inputsHash: string;
 }
 
-export interface Gated {
+interface Gated {
   kept: string[];
   dropped: { sentence: string; why: string }[];
   cites: { findings: number[]; crm: number[] };

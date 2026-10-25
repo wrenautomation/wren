@@ -10,8 +10,8 @@ import type { Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
 import type { DraftEvent, DraftEventRow, DraftRecordKind, DraftVia } from "./schema.js";
 
-export const TRAIN_RECORD = "wren.draft/1";
-export const TRAIN_PAIR = "wren.pair/1";
+const TRAIN_RECORD = "wren.draft/1";
+const TRAIN_PAIR = "wren.pair/1";
 
 export interface TrainAsk {
   kinds?: readonly DraftRecordKind[];
@@ -22,7 +22,7 @@ export interface TrainAsk {
   people?: boolean;
 }
 
-export interface TrainVersion {
+interface TrainVersion {
   n: number;
   event: DraftEvent;
   via: DraftVia;
@@ -37,7 +37,7 @@ export interface TrainVersion {
   /** The post fields this step changed (title, thumbnail, tags): `{key: [before, after]}`. */
   fields: Record<string, [unknown, unknown]> | null;
 }
-export interface TrainDecision {
+interface TrainDecision {
   event: DraftEvent;
   via: DraftVia;
   by: string | null;
@@ -46,7 +46,7 @@ export interface TrainDecision {
   slot: string | null;
   at: string;
 }
-export interface TrainOutcome {
+interface TrainOutcome {
   measured: string | null;
   views: number | null;
   reactions: number | null;
@@ -326,8 +326,8 @@ export function redact(r: TrainRecord, names: readonly string[]): TrainRecord {
   };
 }
 
-export type PairType = "edit" | "decision" | "engagement";
-export interface TrainPair {
+type PairType = "edit" | "decision" | "engagement";
+interface TrainPair {
   schema: typeof TRAIN_PAIR;
   type: PairType;
   id: string;
@@ -351,7 +351,7 @@ const sideOf = (r: TrainRecord, v: TrainVersion) => ({
   text: v.text,
 });
 /** Reactions, comments, shares and follows: what a post earned past being seen. */
-export const engagedOf = (o: TrainOutcome | null) =>
+const engagedOf = (o: TrainOutcome | null) =>
   o ? (o.reactions ?? 0) + (o.comments ?? 0) + (o.shares ?? 0) + (o.follows ?? 0) : null;
 
 /** Sent posts this far apart are compared; further, the audience moved. */

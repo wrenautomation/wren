@@ -30,7 +30,7 @@ import { checkSequence, type SmsSequence, stepKey } from "./templates.js";
 export { SPEED };
 
 /** The first text, then day 1, 3 and 7 after it. Empty until the client's words are in. */
-export const SPEED_SEQUENCE: SmsSequence = checkSequence({
+const SPEED_SEQUENCE: SmsSequence = checkSequence({
   name: SPEED,
   label: "Speed to lead",
   steps: [
@@ -48,7 +48,7 @@ export const SPEED_SEQUENCE: SmsSequence = checkSequence({
 export const SPEED_SEQUENCES: readonly SmsSequence[] = [SPEED_SEQUENCE];
 
 /** What a client's (or Wren's) first text runs on. */
-export interface SpeedTexts {
+interface SpeedTexts {
   db: Db;
   /** `WREN_SMS_LIVE` and the client's texts both on. */
   live: boolean;
@@ -69,7 +69,7 @@ export interface SpeedTexts {
  */
 const SITE_APPLICATION = /^form:site:applications:\d+$/;
 
-export interface FirstText {
+interface FirstText {
   run: SpeedRun;
   /** The text contact, once enrolled; null when no text was queued. */
   contactId: number | null;
@@ -212,8 +212,7 @@ export async function firstText(
 }
 
 /** The lead on an event: the door's facts, else read from the event as a payload. */
-export const leadOn = (e: SpineEvent): DoorLead =>
-  (e.data.lead as DoorLead | undefined) ?? leadOf(e.data);
+const leadOn = (e: SpineEvent): DoorLead => (e.data.lead as DoorLead | undefined) ?? leadOf(e.data);
 
 /**
  * `sms.forms` on the spine: the first text. `texted` carries the text contact on as its lead

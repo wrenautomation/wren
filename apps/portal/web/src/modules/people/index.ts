@@ -15,7 +15,7 @@ import { sentPage } from "./sent.js";
 import { KIND_ICONS, profileExtras } from "./timeline.js";
 
 /** The pages both apps share; each build adds its own here. */
-export const PEOPLE_PAGES: ModulePage[] = [
+const PEOPLE_PAGES: ModulePage[] = [
   {
     id: "people",
     label: "People",

@@ -206,7 +206,7 @@ export async function notesThisMonth(db: Queryable, accountId: string, now: Date
  * account that may go now. Rows for a contact no longer enrolled are skipped
  * here.
  */
-export async function planTick(
+async function planTick(
   db: Queryable,
   o: Omit<TickOptions, "channelFor">,
 ): Promise<{ stats: TickStats; candidates: Candidate[] }> {
@@ -333,7 +333,7 @@ export async function planTick(
 }
 
 /** Step 2 (LinkedIn): what the relationship read means for this row. */
-export async function applyRelationship(
+async function applyRelationship(
   db: Queryable,
   c: Candidate,
   rel: Relationship,
@@ -374,7 +374,7 @@ export async function applyRelationship(
 }
 
 /** Step 3: intent. */
-export async function markSending(db: Queryable, rowId: number): Promise<void> {
+async function markSending(db: Queryable, rowId: number): Promise<void> {
   await db
     .update(reachMessages)
     .set({ state: "sending", stateReason: null })
@@ -522,7 +522,7 @@ const NO_INVITE_WHY: Record<NoInvite["noInvite"], string> = {
  * them); pending or Follow only = `unreachable`, which a later accept in the sweep still lifts.
  * Either way the contact is out of `new` for good, so no top-up proposes them again.
  */
-export async function recordNoInvite(
+async function recordNoInvite(
   db: Queryable,
   c: Candidate,
   out: NoInvite,
@@ -547,7 +547,7 @@ export async function recordNoInvite(
  * Step 4c: it may have gone out and no read could tell. `unknown`, never resent; the item
  * waits unsure in To approve for a person to mark it sent or send it again.
  */
-export async function recordUnsure(
+async function recordUnsure(
   db: Queryable,
   c: Candidate,
   words: string,
@@ -579,7 +579,7 @@ export async function recordUnsure(
  * Step 4d: autobrowse says nothing went out. The row waits and goes again under a new key; it is
  * no failure and spends nothing.
  */
-export async function recordNotSent(
+async function recordNotSent(
   db: Queryable,
   c: Candidate,
   reason: string,
@@ -598,7 +598,7 @@ export async function recordNotSent(
 }
 
 /** Step 4b: the platform did not take it, or we do not know. */
-export async function recordFailure(
+async function recordFailure(
   db: Queryable,
   c: Candidate,
   err: unknown,

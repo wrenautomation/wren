@@ -12,8 +12,9 @@ import { z } from "zod";
 import { BAR_IDS, type BarFormat, barLines, VIDEO_CHECK } from "./bar.js";
 
 export { VIDEO_CHECK };
+
 /** Frames on one sheet: more and each tile is too small to read. */
-export const SHEET_MAX = 48;
+const SHEET_MAX = 48;
 const SHEET_EVERY_S = 2;
 
 export interface CheckIssue {

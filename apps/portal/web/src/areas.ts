@@ -139,7 +139,7 @@ export function sidebarAreasOf<T extends { id: string; parked?: true | undefined
 }
 
 /** One of a phone's bottom tabs after the Map: a fixed item's app, or a pin. */
-export type DockPick<T, P> = { label: string; app: T } | { pin: P };
+type DockPick<T, P> = { label: string; app: T } | { pin: P };
 
 /**
  * A phone's tabs after the Map: Inbox, People, then the person's first pin. A pin that does not
@@ -157,7 +157,7 @@ export function dockOf<T extends { id: string; parked?: true | undefined }, P>(
 }
 
 /** One of an app's own bottom tabs on a phone: a page, under a short name and its icon. */
-export interface TabPick {
+interface TabPick {
   page: string;
   label?: string;
   icon: IconName;
@@ -168,7 +168,7 @@ export interface TabPick {
  * runs through, the rest under More. An app named here gets these; any other gets a tab per page
  * or group, in its own order.
  */
-export const PHONE_TABS: Readonly<Record<string, readonly TabPick[]>> = {
+const PHONE_TABS: Readonly<Record<string, readonly TabPick[]>> = {
   content: [
     { page: "plan", icon: "calendar" },
     { page: "studio", icon: "write" },
@@ -215,7 +215,7 @@ interface Tab {
   group?: string | undefined;
 }
 /** A phone tab: the shell's DockItem, with the pages it holds. */
-export interface PhoneTab {
+interface PhoneTab {
   id: string;
   label: string;
   icon: IconName;

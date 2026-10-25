@@ -48,7 +48,7 @@ const DAY_MS = 86_400_000;
 const SEARCH_N = 10;
 
 /** One post search found: theirs by its URL, dated by its id (or Exa's day). */
-export interface SearchedPost {
+interface SearchedPost {
   urn: string;
   url: string;
   text: string;
@@ -84,7 +84,7 @@ function searchFailed(err: unknown, tried: Tried[], step: string, what: string):
  * Their posts from search: Exa, then Google when Exa found fewer than `enough` recent ones and
  * Google has room. Deduped by urn, Exa's first.
  */
-export async function postsBySearch(
+async function postsBySearch(
   call: Call,
   who: { vanity: string; name: string; firm: string | null },
   o: { since: Date; enough: number; google: boolean; now: Date },

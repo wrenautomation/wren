@@ -236,7 +236,7 @@ function StateLine({ c, team }: { c: Cell; team: boolean }) {
 }
 
 /** Share still watching across the video: the curve, and YouTube's relative line dashed. */
-export function RetentionCurve({ a }: { a: Pick<Analytics, "curve" | "relative"> }) {
+function RetentionCurve({ a }: { a: Pick<Analytics, "curve" | "relative"> }) {
   const W = 600;
   const H = 160;
   const top = Math.max(1, ...a.curve.map((p) => p.value), ...a.relative.map((p) => p.value));
@@ -463,7 +463,7 @@ function Variants({ a }: { a: Analytics }) {
 }
 
 /** The sections a post's numbers add, in the page's order. */
-export function analyticsSections(detail: unknown, row: Row, team = true): [string, ReactNode][] {
+function analyticsSections(detail: unknown, row: Row, team = true): [string, ReactNode][] {
   const a = (detail as { analytics?: Analytics | null } | null)?.analytics;
   if (!a) return [];
   const id = String(row.id ?? "");

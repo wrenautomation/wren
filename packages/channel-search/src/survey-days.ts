@@ -8,7 +8,7 @@ import type { SiteAnswer, SiteHit } from "@wren/channel-email";
 import type { SurveyKind } from "@wren/core/surveys";
 import { firstChannels } from "./flag-days.js";
 
-export interface SurveyDayRow {
+interface SurveyDayRow {
   survey: string;
   day: string;
   value: string;

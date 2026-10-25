@@ -85,7 +85,7 @@ const Lines = ({ lines, quote, none }: { lines: Cited[]; quote?: boolean; none: 
   );
 
 /** The three lines worth reading if nothing else is, set big, above the tabs. */
-export function BriefTop({ brief }: { brief: CallBrief }) {
+function BriefTop({ brief }: { brief: CallBrief }) {
   if (!brief.top.length) return null;
   return (
     <section
@@ -108,7 +108,7 @@ export function BriefTop({ brief }: { brief: CallBrief }) {
 }
 
 /** How it went, once marked: the outcome, the reason in their words, who and when. */
-export function OutcomeLine({
+function OutcomeLine({
   outcome,
   reason,
   by,
@@ -146,7 +146,7 @@ export function OutcomeLine({
 }
 
 /** The whole brief, under the header: what to ask first, then where each fact came from. */
-export function BriefBody({
+function BriefBody({
   stored,
   rebuild,
 }: {

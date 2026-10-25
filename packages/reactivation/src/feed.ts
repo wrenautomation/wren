@@ -100,7 +100,7 @@ export function lookupLine(name: string, r: LookupResult): FeedEvent {
   return whereLine(name, r.state === "matched" ? headline(r.findings) : null);
 }
 
-export interface HiringOutcome {
+interface HiringOutcome {
   state: HiringResult["state"];
   finding: FoundFact | null;
   retryAt: Date | null;

@@ -122,7 +122,7 @@ export interface KeywordReplies {
   set(keyword: Keyword, words: readonly string[], text: string | null): Promise<void>;
 }
 
-export class FakeKeywordReplies implements KeywordReplies {
+class FakeKeywordReplies implements KeywordReplies {
   readonly replies = new Map<Keyword, { words: readonly string[]; text: string }>();
   /** The next set throws this. */
   fail: string | null = null;

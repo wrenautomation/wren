@@ -20,7 +20,7 @@ export const fact = (facts: FactValues, key: string): unknown =>
   Object.hasOwn(facts, key) ? facts[key] : undefined;
 
 /** Deterministic spread: one recipient always gets the same option. */
-export interface HashPick {
+interface HashPick {
   readonly kind: "hash";
 }
 
@@ -32,13 +32,13 @@ export interface Rule {
 }
 
 /** Route on facts, fall back to the hash spread. */
-export interface RulePick {
+interface RulePick {
   readonly kind: "rule";
   readonly rules: readonly Rule[];
 }
 
 /** Preview only: forces each variant point to one option (first eligible when forced one is not). */
-export interface FixedPick {
+interface FixedPick {
   readonly kind: "fixed";
   readonly choices: Readonly<Record<string, number>>;
 }
@@ -71,7 +71,7 @@ export function factText(value: unknown): string | null {
 }
 
 /** sha256 of `${seed}\x00${variant}`, as a big integer mod the eligible count. */
-export function hashPick(variant: string, eligible: readonly number[], seed: string): number {
+function hashPick(variant: string, eligible: readonly number[], seed: string): number {
   const digest = createHash("sha256").update(`${seed}\x00${variant}`, "utf8").digest("hex");
   const index = Number(BigInt(`0x${digest}`) % BigInt(eligible.length));
   return eligible[index] as number;
@@ -83,7 +83,7 @@ export function hashPick(variant: string, eligible: readonly number[], seed: str
  * walked along the eligible options' cumulative shares. The same seed and shares always
  * give the same option. No share on any eligible option: the hash spread.
  */
-export function sharePick(
+function sharePick(
   variant: string,
   eligible: readonly number[],
   seed: string,

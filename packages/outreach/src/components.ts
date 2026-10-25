@@ -8,9 +8,9 @@ import { invitesSettingsSchema } from "./invites.js";
 import { COMMENTS_SETTINGS } from "./reach-posts.js";
 
 /** A client's loop units: `ReachWatch/<client>/daily`, `ReachSender/<client>/fleet`, `RedditReads/<client>/daily`. */
-export const WATCH_UNIT = "daily";
-export const SENDER_UNIT = "fleet";
-export const READS_UNIT = "daily";
+const WATCH_UNIT = "daily";
+const SENDER_UNIT = "fleet";
+const READS_UNIT = "daily";
 
 export const OUTREACH_COMPONENTS = [
   defineComponent({

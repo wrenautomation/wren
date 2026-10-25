@@ -35,7 +35,7 @@ import {
 } from "./content.js";
 import { threadOf, threadQuery } from "./thread.js";
 
-export interface RedditOutreachOptions {
+interface RedditOutreachOptions {
   account: string;
   now?: () => Date;
   /**
@@ -112,7 +112,7 @@ const after = (l: Listing | undefined): string | null =>
   ((l?.data as { after?: string | null } | undefined)?.after ?? null) || null;
 
 /** The channel, plus a way to tell it whose ids a listing showed (see `learn`). */
-export type RedditOutreach = OutreachChannel & {
+type RedditOutreach = OutreachChannel & {
   /**
    * Who a listing's things came from (`author` and `author_fullname`). `enrich` then reads the
    * card of everyone remembered and not yet read in one read, instead of one `about` each.

@@ -49,7 +49,7 @@ export function textCadence(seq: SmsSequence): Workflow {
   });
 }
 
-export interface TouchOptions {
+interface TouchOptions {
   sequences: ReadonlyMap<string, SmsSequence>;
   senderName: string;
   /** `{booking_link}` in the copy; null = none set. */
@@ -157,7 +157,7 @@ const NEVER = new Set(["opted_out", "unreachable", "stopped"]);
  * texted, in the node's live words, queued due now as kind `follow_up` for the sender, which
  * keeps quiet hours, STOP and the monthly cap. One per contact and node, however often it runs.
  */
-export async function followText(
+async function followText(
   db: Db,
   contactId: number,
   at: Pick<StepAt, "workflow" | "node" | "template">,

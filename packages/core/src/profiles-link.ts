@@ -13,7 +13,7 @@ import { mergeProfiles } from "./profiles.js";
 import { profileEvents } from "./profiles-schema.js";
 
 /** Mail hosts anyone can sign up at: their domain says nothing about a company. */
-export const FREE_MAIL = [
+const FREE_MAIL = [
   "gmail",
   "googlemail",
   "outlook",
@@ -41,7 +41,7 @@ export const FREE_MAIL = [
 ];
 
 /** A domain's own name, the label before its suffix: `www.acme.co.uk` and `acme.io` are `acme`. */
-export function domainName(domain: string | null | undefined): string | null {
+function domainName(domain: string | null | undefined): string | null {
   if (!domain) return null;
   const host = domain
     .trim()
@@ -67,7 +67,7 @@ export function nameKey(name: string | null | undefined): string | null {
   return s.split(" ").length >= 2 && s.length >= 5 ? s : null;
 }
 
-export interface Linked {
+interface Linked {
   /** Profiles merged into the booker's (or the booker's into the older one). */
   merged: number[];
   /** Same name, nothing agreed: a line left for a person. */

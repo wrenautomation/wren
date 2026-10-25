@@ -35,7 +35,7 @@ export function nameTokens(name: string): string[] {
   );
 }
 
-export interface CandidateOptions {
+interface CandidateOptions {
   genericWords?: ReadonlySet<string>;
   tlds?: readonly string[];
   cap?: number;

@@ -958,7 +958,7 @@ function Quick({
 }
 
 /** Everything one item can do, from its ⋯. */
-export function ItemMenu({
+function ItemMenu({
   c,
   place,
   dialog,

@@ -45,7 +45,7 @@ import {
 } from "@wren/core/content";
 import { fieldsOf, languageName } from "@wren/core/content/shapes";
 
-export interface YouTubeContentOptions {
+interface YouTubeContentOptions {
   now?: () => Date;
   /** Makes a laptop file or a stored object reachable from the box; absent = paths are the box's own. */
   host?: MediaHost;
@@ -150,7 +150,7 @@ const DAYS: Record<string, string> = {
 export const ANALYTICS_PATH = "/v2/reports";
 /** The Reporting API's reach report: thumbnail impressions and their CTR per video per day. */
 export const REACH_REPORT = "channel_reach_basic_a1";
-export const REACH_JOB = "wren reach";
+const REACH_JOB = "wren reach";
 /** Reports one read downloads at most; the rest wait for the next pass (the cursor says where). */
 const REPORTS_PER_READ = 40;
 const WAITING =
@@ -206,7 +206,7 @@ export function reachRows(
   return [...by.values()];
 }
 /** autobrowse `GET /studio/videos/{id}/analytics`: Studio's own totals for one video. */
-export interface StudioTotals {
+interface StudioTotals {
   /** Percent of feed plays that stayed to watch (Shorts only). */
   viewedPct: number | null;
   avgViewSecs: number | null;

@@ -34,9 +34,9 @@ export type FieldInput =
   | "captions"
   | "number"
   | "slides";
-export type FieldStatus = "sent" | "dev" | "none";
+type FieldStatus = "sent" | "dev" | "none";
 
-export interface FieldUi {
+interface FieldUi {
   label: string;
   input: FieldInput;
   status: FieldStatus;
@@ -302,7 +302,7 @@ const CATEGORY_IDS = Object.keys(CATEGORIES) as [
   ...(keyof typeof CATEGORIES)[],
 ];
 
-export const YOUTUBE_TAGS_MAX = 500;
+const YOUTUBE_TAGS_MAX = 500;
 /** YouTube counts a tag with a space as if quoted, and a comma between tags. */
 export const tagsLength = (tags: readonly string[]): number =>
   tags.reduce((n, t) => n + t.length + (/\s/.test(t) ? 2 : 0), 0) + Math.max(0, tags.length - 1);
@@ -420,7 +420,7 @@ const youtube = shape({
 
 const SUBREDDIT = /^(r\/)?[A-Za-z0-9_]{2,21}$|^u[_/][A-Za-z0-9_-]{3,20}$/;
 /** The most subreddits one Reddit draft fans out to past its own. */
-export const REDDIT_ALSO_MAX = 9;
+const REDDIT_ALSO_MAX = 9;
 const reddit = shape({
   subreddit: line(
     "Subreddit",
@@ -540,7 +540,7 @@ const tiktok = shape(
 
 const POST_ID = /^\d{1,19}$/;
 /** X: four images a post, a poll choice 25 characters. */
-export const X_IMAGES_MAX = 4;
+const X_IMAGES_MAX = 4;
 const X_POLL_OPTION_MAX = 25;
 const x = shape(
   {

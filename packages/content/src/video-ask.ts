@@ -100,7 +100,7 @@ export function applyAnswer(
   return setEdit(db, e.id, full, { ...o, agent: true });
 }
 
-export interface VideoTurn {
+interface VideoTurn {
   id: string;
   command: string;
   by: string | null;

@@ -63,7 +63,7 @@ export interface ReminderStats {
   unreachable: number;
 }
 
-export interface ReminderOptions {
+interface ReminderOptions {
   bookings: Bookings;
   policy: SmsPolicy;
   senderName: string;

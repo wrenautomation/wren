@@ -62,7 +62,7 @@ export interface NavItem {
 }
 
 /** A tab as a drop target: data of `type` dropped on it goes to `onDrop`. */
-export interface NavDrop {
+interface NavDrop {
   type: string;
   onDrop: (data: string) => void;
 }

@@ -29,7 +29,7 @@ import { type CandidateState, contactCandidates } from "../schema.js";
 export const settledBy = (status: LeadStatus): CandidateState | null =>
   status === "verified" ? "verified" : status === "undeliverable" ? "rejected" : null;
 
-export interface ListedContactsStats {
+interface ListedContactsStats {
   leads: number;
   people_created: number;
   people_seen: number;

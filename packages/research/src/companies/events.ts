@@ -28,7 +28,7 @@ export const NEWS_KINDS = [
 export type EventKind = (typeof NEWS_KINDS)[number];
 /** The default kinds: what `crm run` searches. */
 export const EVENT_KINDS: readonly EventKind[] = ["acquisition", "merger", "funding", "leader"];
-export const EVENT_MONTHS = 6;
+const EVENT_MONTHS = 6;
 const EVENT_RESULTS = 10;
 /** Keyword reads of a snippet, not a model's: a wrong one costs a call, not a send. */
 const EVENT_CONFIDENCE = 0.6;
@@ -226,9 +226,9 @@ export function readRss(xml: string): EventHit[] | null {
   return hits;
 }
 
-export type EventsState = "found" | "none" | "unresolved" | "capped";
+type EventsState = "found" | "none" | "unresolved" | "capped";
 
-export interface EventsTried {
+interface EventsTried {
   step: "rss" | "google" | "exa";
   what: string;
   outcome: string;

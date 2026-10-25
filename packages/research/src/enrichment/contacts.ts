@@ -28,7 +28,7 @@ import {
 } from "../schema.js";
 import { linkedinLinks } from "./profiles.js";
 
-export const CONTACTS_VERSION = "v1";
+const CONTACTS_VERSION = "v1";
 export const CONTACTS_MODEL = "deterministic";
 /** A firm with more people than this is a registry, not a team page: no name matching. */
 const MAX_PEOPLE = 300;
@@ -37,7 +37,7 @@ const MAX_VALUE = 512;
 /** LinkedIn caps a company page's public URL name at 100 characters. */
 const MAX_LINKEDIN_HANDLE = 100;
 
-export interface PagePoint {
+interface PagePoint {
   kind: ContactKind;
   value: string;
   source: ContactSource;
@@ -228,7 +228,7 @@ export interface ContactsStats {
   pages_with_points: number;
 }
 
-export type ContactsTarget = Pick<
+type ContactsTarget = Pick<
   Document,
   "id" | "companyId" | "url" | "text" | "html" | "htmlKey" | "telHrefs"
 >;
@@ -349,7 +349,7 @@ export async function scanContacts(
   return points;
 }
 
-export interface ContactsRunOptions {
+interface ContactsRunOptions {
   limit?: number;
   niche?: string | null;
   runId?: string | null;

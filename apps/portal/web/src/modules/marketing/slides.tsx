@@ -65,7 +65,7 @@ export const onSlidesTyped = (f: () => void) => {
 };
 
 /** One slide drawn by the renderer's own page, scaled to `size` pixels square. */
-export function SlideFrame({
+function SlideFrame({
   slides,
   i,
   size,

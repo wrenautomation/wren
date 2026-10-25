@@ -3,7 +3,7 @@ import type { Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
 import { type AccountType, accounts, type BillCycle, type Bucket, vendors } from "./schema.js";
 
-export interface AccountSpec {
+interface AccountSpec {
   key: string;
   name: string;
   type: AccountType;
@@ -20,7 +20,7 @@ export const CARD = "card-bmo";
 export const GST_PAID = "gst-paid";
 
 /** The chart of accounts. Expense accounts are the categories spend is sorted into. */
-export const CHART: readonly AccountSpec[] = [
+const CHART: readonly AccountSpec[] = [
   { key: CARD, name: "BMO Mastercard", type: "liability" },
   { key: GST_PAID, name: "GST/HST paid (input tax credits)", type: "asset" },
   { key: "owner", name: "Owner's equity", type: "equity" },

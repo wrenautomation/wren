@@ -96,7 +96,7 @@ import { DELIVERABLE_KINDS, type DeliverableKind, type MailLevel, type Terms } f
 import { type BoardRow, type DeliveryWatch, opsBoard, recapOf, WATCH, WATCH_KEY } from "./watch.js";
 import { webhooksApi } from "./webhooks.js";
 
-export interface DeliveryDeps {
+interface DeliveryDeps {
   /** The main database: the registry and the delivery schema. */
   main: Db;
   /** What the demo host calls its client. */
@@ -784,7 +784,8 @@ export {
 } from "./watch.js";
 
 /** Where client hosts CNAME to: an originless record on our zone. */
-export const DEFAULT_TARGET = "customers.wrenautomation.com";
+const DEFAULT_TARGET = "customers.wrenautomation.com";
+
 export { type DomainView, makeDomainsResolver } from "./domains.js";
 
 /** No journal, like every portal service: pages stay out of Restate's storage. */

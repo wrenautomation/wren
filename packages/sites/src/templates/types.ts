@@ -31,7 +31,7 @@ export type SectionValue = { id: string; type: string } & Record<
   string,
   string | string[] | ItemValue[]
 >;
-export type FieldValue = string | string[] | ItemValue[] | SectionValue[];
+type FieldValue = string | string[] | ItemValue[] | SectionValue[];
 export type Content = Record<string, FieldValue>;
 
 /** What a page's render knows past its words. */

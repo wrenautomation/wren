@@ -8,7 +8,7 @@ import { type ReactNode, useState } from "react";
 import { PageRows } from "../../page-rows.js";
 
 /** Records under one fold. */
-export interface RowsGroup<T> {
+interface RowsGroup<T> {
   key: string;
   label: ReactNode;
   rows: readonly T[];

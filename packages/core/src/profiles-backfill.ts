@@ -507,7 +507,7 @@ export interface SeenPage {
 }
 
 /** A form entry's body on the timeline: its fields, then the pages seen before it. */
-export function formBody(fields: Record<string, unknown>, pages?: readonly SeenPage[] | null) {
+function formBody(fields: Record<string, unknown>, pages?: readonly SeenPage[] | null) {
   const lines = Object.entries(fields)
     .filter(([, v]) => typeof v === "string" && v)
     .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
@@ -522,7 +522,7 @@ const money = (cents: number, currency: string) =>
     : `${(cents / 100).toFixed(2)} ${currency.toUpperCase()}`;
 
 /** A client's form entry, kept on main, as its workspace's timeline line. */
-export interface ClientForm {
+interface ClientForm {
   id: string;
   title: string | null;
   fields: Record<string, unknown>;
@@ -531,7 +531,7 @@ export interface ClientForm {
 }
 
 /** A client's pay link, kept on main, as far as its timeline line needs. */
-export interface ClientPayLink {
+interface ClientPayLink {
   id: string;
   contact: number | null;
   email: string | null;
@@ -551,7 +551,7 @@ export interface ClientPayLink {
 }
 
 /** Rows kept on main that belong to a client, as their one line in its workspace (B7). */
-export const lineFrom = {
+const lineFrom = {
   form: (e: ClientForm): ElsewhereLine => ({
     kind: "form",
     channel: "site",
@@ -622,7 +622,7 @@ export async function noteClientPayLink(db: Queryable, l: ClientPayLink) {
   }
 }
 
-export interface ElsewhereCount {
+interface ElsewhereCount {
   source: "site_forms" | "pay_links";
   rows: number;
   noted: number;

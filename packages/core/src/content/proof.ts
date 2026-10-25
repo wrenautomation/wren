@@ -10,7 +10,7 @@
 import { capWaitMs, type SiteClient } from "./autobrowse.js";
 
 export const PROOF_STATES = ["live", "hidden", "missing", "pending"] as const;
-export type ProofState = (typeof PROOF_STATES)[number];
+type ProofState = (typeof PROOF_STATES)[number];
 
 export interface Proof {
   state: ProofState;
@@ -45,14 +45,14 @@ export interface ProofTarget {
   peers?: string[];
 }
 
-export interface CommentProof {
+interface CommentProof {
   check(target: ProofTarget): Promise<Proof>;
 }
 
 /** Keep a shot's JPEG; answers where it went (`s3://…`). */
 export type KeepShot = (jpeg: Uint8Array) => Promise<string>;
 
-export interface ProofDeps {
+interface ProofDeps {
   sites: SiteClient;
   /** Unset, no shot is taken. */
   keep?: KeepShot;

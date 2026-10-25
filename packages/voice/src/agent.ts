@@ -45,7 +45,7 @@ const hours = (fallback: string) =>
     .refine((s) => stretchesOf(s) !== null, "hours read like 09:00-12:00, 13:00-17:00")
     .describe("When it puts calls through to a person, like 09:00-17:00; blank is never");
 
-export const DEFAULT_PROMPT = [
+const DEFAULT_PROMPT = [
   "You answer the phone for a small business.",
   "Be brief: one or two short sentences a turn, the way people talk on the phone.",
   "Find out what the caller needs. If they want to talk to someone, offer times and book a call.",
@@ -125,7 +125,7 @@ const SAYS_AI = /\b(ai|a\.i\.|artificial|automated)\b/i;
  * States where every side must agree to a recording. A call to or from one asks first.
  * Area codes map to states at setup; until then a recording agent asks every caller.
  */
-export const TWO_PARTY_STATES = [
+const TWO_PARTY_STATES = [
   "CA",
   "CT",
   "DE",

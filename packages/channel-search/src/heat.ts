@@ -9,8 +9,8 @@ import { atomic, type Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
 import { HEAT_WIDTHS, type HeatWidth, heatDays, scrollDays } from "./schema.js";
 
-export type HeatDayRow = Omit<typeof heatDays.$inferSelect, "syncedAt">;
-export type ScrollDayRow = Omit<typeof scrollDays.$inferSelect, "syncedAt">;
+type HeatDayRow = Omit<typeof heatDays.$inferSelect, "syncedAt">;
+type ScrollDayRow = Omit<typeof scrollDays.$inferSelect, "syncedAt">;
 
 const WIDTHS = new Set<string>(HEAT_WIDTHS);
 const props = (e: SiteEvent): Record<string, unknown> => {

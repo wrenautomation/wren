@@ -19,10 +19,10 @@ export const RESTING_OUTCOMES = [
   "referral",
   "bounced",
 ] as const;
-export type RestingOutcome = (typeof RESTING_OUTCOMES)[number];
+type RestingOutcome = (typeof RESTING_OUTCOMES)[number];
 
 /** Outcomes that keep the company out of cold email: for good, or until someone acts. */
-export const BLOCKING_OUTCOMES = [
+const BLOCKING_OUTCOMES = [
   "active",
   "opted_out",
   "warm",
@@ -33,7 +33,7 @@ export const BLOCKING_OUTCOMES = [
 export type ContactOutcome = RestingOutcome | (typeof BLOCKING_OUTCOMES)[number];
 
 /** An address with one of these outcomes is never written to again, even if its company returns. */
-export const DONE_ADDRESS_OUTCOMES = ["wrong_person", "referral", "bounced", "opted_out"] as const;
+const DONE_ADDRESS_OUTCOMES = ["wrong_person", "referral", "bounced", "opted_out"] as const;
 
 export interface RecontactPolicy {
   /** Days a company rests after each outcome before its next cold sequence; null = never. */
@@ -110,7 +110,7 @@ function stillBlocks(policy: RecontactPolicy): SQL {
 }
 
 /** What a returning company must not have had already. */
-export interface Pitch {
+interface Pitch {
   readonly sequence: string;
   readonly offer: string;
 }

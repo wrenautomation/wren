@@ -9,7 +9,7 @@ import { BROKEN_IG_URL, type TouchKind } from "./touches-schema.js";
 export { BROKEN_IG_URL };
 
 /** What a source row holds about the item. */
-export interface ItemRef {
+interface ItemRef {
   /** The row's own url: the post, the thread, the profile or a DM thread. */
   url?: string | null | undefined;
   /** The platform's id for the item: a comment id, a status id, a comment URN. */

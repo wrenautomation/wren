@@ -83,7 +83,7 @@ export interface ThreadView {
   posts: { text: string; count: number; flags: string[] }[];
 }
 
-export interface CarouselView {
+interface CarouselView {
   slides: Slide[];
   /** Signed links to each square image and the PDF, once drawn. */
   images: string[];
@@ -149,7 +149,7 @@ export function slidesSaved(id: string, rows: readonly DraftRow[]): SlidesSaved 
 }
 
 /** YouTube videos a post may point at: the newest not turned down, Shorts left out. */
-export function pickableVideos(db: Queryable, except?: string): Promise<FunnelVideo[]> {
+function pickableVideos(db: Queryable, except?: string): Promise<FunnelVideo[]> {
   return db
     .select({
       id: contentDrafts.id,

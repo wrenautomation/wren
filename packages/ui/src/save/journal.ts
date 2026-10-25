@@ -9,7 +9,7 @@ import type { Store } from "./env.js";
 const PREFIX = "wren.unsaved:";
 const FORM = "wren.form:";
 /** A week: older entries are stale, whatever the record says. */
-export const JOURNAL_MS = 7 * 24 * 60 * 60 * 1000;
+const JOURNAL_MS = 7 * 24 * 60 * 60 * 1000;
 
 /** This page load's id: a reload is a new tab as far as the journal cares. */
 export const TAB = Math.random().toString(36).slice(2, 10);
@@ -79,7 +79,7 @@ export function clearEntry<T>(
 }
 
 /** A form's typed values, kept until it is sent. */
-export interface KeptForm {
+interface KeptForm {
   values: Record<string, string>;
   /** What the form started from (an ask's text): the values come back only over the same. */
   base: string;

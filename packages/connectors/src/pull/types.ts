@@ -44,7 +44,7 @@ export interface Pulled {
   more: boolean;
 }
 
-export interface PullInput {
+interface PullInput {
   fetch: FetchLike;
   token: string;
   extra: LinkExtra;

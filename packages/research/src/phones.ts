@@ -7,9 +7,9 @@
  */
 import { findNumbers, parsePhoneNumberFromString } from "libphonenumber-js/max";
 
-export type FoundKind = "tel_link" | "page_text";
+type FoundKind = "tel_link" | "page_text";
 
-export interface FoundPhone {
+interface FoundPhone {
   e164: string;
   kind: FoundKind;
 }

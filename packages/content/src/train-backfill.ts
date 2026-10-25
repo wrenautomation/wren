@@ -12,7 +12,7 @@ import { type DraftStep, recordDraft } from "@wren/core/draft-record";
 import type { Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
 
-export interface BackfillReport {
+interface BackfillReport {
   /** Items with history to fold in. */
   items: number;
   /** Items left alone: the live record already holds them. */

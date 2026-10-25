@@ -5,7 +5,7 @@
  */
 import type { CallStart, Incoming, Outgoing, Transport } from "../types.js";
 
-export interface TextCallee {
+interface TextCallee {
   /** One of our sentences, as it's sent. */
   said(text: string, turn: number): void;
   /** The agent put the call through, or hung up. */

@@ -47,7 +47,7 @@ import {
 } from "./provenance.js";
 import type { Sequence } from "./sequences.js";
 
-export type ComposeKind = "person" | "role_inbox" | "all";
+type ComposeKind = "person" | "role_inbox" | "all";
 
 export interface ComposeOptions {
   readonly niche: string;
@@ -290,7 +290,7 @@ export interface EligiblePerson {
   readonly wouldEnroll: boolean;
 }
 
-export interface EligibleRoleInbox {
+interface EligibleRoleInbox {
   readonly companyId: number;
   readonly companyName: string | null;
   readonly companyDomain: string | null;
@@ -300,7 +300,7 @@ export interface EligibleRoleInbox {
   readonly wouldEnroll: boolean;
 }
 
-export interface ListingOptions {
+interface ListingOptions {
   readonly niche: string;
   /** Narrows to firms whose name or domain contains it. */
   readonly companyMatch?: string | null;
@@ -671,7 +671,7 @@ function renderAll(shared: Shared, facts: Facts, seed: string): Drafts | null {
   }
 }
 
-export interface PossibleDuplicate {
+interface PossibleDuplicate {
   readonly enrollment_id: number;
   readonly company_id: number;
   readonly domain: string;

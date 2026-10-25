@@ -98,7 +98,7 @@ export async function markOutcome(
   return { changed: marked.length, done: marked.map((m) => m.id) };
 }
 
-export interface BriefDeps {
+interface BriefDeps {
   /** Wren's database, or the client's. */
   dbFor(client: string | null): Db;
   /** The part's settings for this client (Wren's block when null). */
@@ -161,7 +161,7 @@ export const briefStep =
     ];
   };
 
-export interface CallBriefsDeps extends BriefDeps {
+interface CallBriefsDeps extends BriefDeps {
   /** The team's channel for this client (named for it); null sends no ping. */
   notifierFor(client: string | null): Notifier | null;
   /** The portal's origin, for the link; null leaves it out. */

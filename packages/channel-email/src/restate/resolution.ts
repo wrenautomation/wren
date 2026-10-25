@@ -34,7 +34,7 @@ import { runVerification, type VerificationStats } from "../verification/service
 import { sharedVerdicts } from "../verification/shared.js";
 import type { EmailVerifier } from "../verification/verifier.js";
 
-export interface ResolutionDeps {
+interface ResolutionDeps {
   db: Db;
   verifier: EmailVerifier;
   /** Test seam: a stage-1 checker with a fake resolver. */
@@ -50,18 +50,18 @@ export interface ResolutionDeps {
 }
 
 /** Any call may name a client: its work then runs in that client's database, its verdicts shared on main. */
-export interface ClientInput {
+interface ClientInput {
   client?: string | null;
 }
 
 export const RESOLUTION_KEY = "default";
 
-export interface ResolveInput extends ClientInput {
+interface ResolveInput extends ClientInput {
   domainBudget?: number;
   creditLimit?: number | null;
 }
 
-export interface ResolveNewInput extends ClientInput {
+interface ResolveNewInput extends ClientInput {
   niche?: string;
   /** Domains walked this pass. */
   limitDomains: number;
@@ -70,7 +70,7 @@ export interface ResolveNewInput extends ClientInput {
   domainBudget?: number;
 }
 
-export interface VerifyLeadsInput extends ClientInput {
+interface VerifyLeadsInput extends ClientInput {
   niche?: string;
   limit?: number;
   /** Days after which a `risky` verdict is tried again (default 2). */
@@ -83,7 +83,7 @@ export interface VerifyLeadsInput extends ClientInput {
    */
   recheckReturning?: { policy: RecontactPolicy; olderThanDays: number };
 }
-export const DEFAULT_RETRY_RISKY_DAYS = 2;
+const DEFAULT_RETRY_RISKY_DAYS = 2;
 
 const NICHE = z.string().nullish().describe("One campaign's leads, e.g. agencies");
 const CLIENT = z.string().nullish().describe("A client's id: work in its database");
@@ -333,7 +333,7 @@ export function makeResolution(deps: ResolutionDeps) {
 }
 
 /** Leads that got a verification row this pass. */
-export const verifiedRows = (s: VerificationStats) =>
+const verifiedRows = (s: VerificationStats) =>
   s.local_invalid + s.valid + s.invalid + s.risky + s.catch_all;
 
 export type Resolution = ReturnType<typeof makeResolution>;

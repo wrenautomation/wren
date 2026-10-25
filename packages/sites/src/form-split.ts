@@ -16,7 +16,7 @@ import { type SplitCall, splitCall } from "./split-call.js";
 import { SitesRefusal, stillAt, UUID } from "./store.js";
 
 /** The split running on a form; null when none. */
-export async function runningFormSplit(db: Queryable, form: string): Promise<SiteFormSplit | null> {
+async function runningFormSplit(db: Queryable, form: string): Promise<SiteFormSplit | null> {
   const [row] = await db
     .select()
     .from(siteFormSplits)
@@ -175,7 +175,7 @@ export async function specForArm(
   return { spec: arm === "B" ? s.b : form.spec, split: s.id, arm };
 }
 
-export interface FormArmNumbers {
+interface FormArmNumbers {
   label: FormArm;
   /** Views of distinct page loads. */
   views: number;

@@ -99,7 +99,7 @@ export const DELIVERY_APPS = {
   messagingLinksOn: "account",
   messagingLinksOff: "account",
 } as const satisfies RouteApps<typeof DELIVERY_ROUTES>;
-export type DeliveryRoute = keyof typeof DELIVERY_ROUTES;
+type DeliveryRoute = keyof typeof DELIVERY_ROUTES;
 /** The ones that change something: never cached, never on the demo. */
 export const DELIVERY_WRITES: readonly DeliveryRoute[] = [
   "answer",

@@ -71,7 +71,7 @@ export const Reading = z.object({
 export type Reading = z.infer<typeof Reading>;
 
 /** What the reader saw: every text it was given, and when the email was sent. */
-export interface Corpus {
+interface Corpus {
   text: string;
   sentAt: Date | null;
 }
@@ -88,7 +88,7 @@ export interface VendorFacts {
   gstClaimable: boolean | null;
 }
 
-export interface CheckedLine {
+interface CheckedLine {
   description: string;
   quantity: string | null;
   unitPrice: string | null;
@@ -97,7 +97,7 @@ export interface CheckedLine {
   periodEnd: string | null;
 }
 
-export interface CheckedTax {
+interface CheckedTax {
   name: string;
   ratePercent: string | null;
   amountCents: number;
@@ -128,7 +128,7 @@ export interface CheckedBill {
   reasons: string[];
 }
 
-export interface CheckedPayment {
+interface CheckedPayment {
   /** null = on account: no invoice number printed. */
   invoiceNumber: string | null;
   paidOn: string;
@@ -239,7 +239,7 @@ const docKindOf = (s: string | null | undefined): DocumentKind =>
   KINDS.find((k) => k === s?.trim().toLowerCase()) ?? "other";
 
 /** ISO 4217's "no currency": a bill that prints none, held for review. */
-export const UNKNOWN_CURRENCY = "XXX";
+const UNKNOWN_CURRENCY = "XXX";
 
 /** GST/HST by name, in English or French. Other taxes (US sales tax) are never claimable. */
 const GST_HST = /\b(gst|hst|tps|tvh)\b/i;

@@ -226,10 +226,10 @@ export const delivered = (a: Pick<Answer, "status">) =>
 export const DELIVERY_LADDER_MS = [
   60_000, 300_000, 1_800_000, 7_200_000, 21_600_000, 43_200_000,
 ] as const;
-export const DELIVERY_TRIES = DELIVERY_LADDER_MS.length + 1;
+const DELIVERY_TRIES = DELIVERY_LADDER_MS.length + 1;
 
 /** A subscription whose tries have all failed this long is turned off until someone turns it on. */
-export const DISABLE_AFTER_DAYS = 5;
+const DISABLE_AFTER_DAYS = 5;
 export const DISABLE_AFTER_MS = DISABLE_AFTER_DAYS * 86_400_000;
 
 // ---- Subscriptions ----
@@ -284,7 +284,7 @@ export async function subscriptionsOf(
 }
 
 /** At most this many URLs per client. */
-export const MOST_SUBSCRIPTIONS = 20;
+const MOST_SUBSCRIPTIONS = 20;
 
 export const SubscriptionInput = z.object({
   name: z.string().trim().min(1).max(80),
@@ -375,7 +375,7 @@ export async function removeSubscription(db: Queryable, client: string | null, i
 }
 
 /** How long the old secret still signs after a rotate. */
-export const ROTATE_GRACE_MS = 86_400_000;
+const ROTATE_GRACE_MS = 86_400_000;
 
 /** A new secret, shown this once; the old one signs beside it for 24 hours. */
 export async function rotateSubscription(
@@ -512,7 +512,7 @@ export async function reopenDelivery(db: Queryable, client: string | null, id: s
 }
 
 /** What a client's URL gets: Standard Webhooks' shape. */
-export interface Payload {
+interface Payload {
   type: string;
   timestamp: string;
   data: Record<string, unknown>;
@@ -625,7 +625,7 @@ export async function attemptDelivery(
 }
 
 /** A client's subscription Wren just turned off: who to tell, and why. */
-export interface TurnedOff {
+interface TurnedOff {
   client: string;
   name: string;
   url: string;
@@ -675,7 +675,7 @@ async function tally(
 }
 
 /** The mail a client's owners get when Wren turns their URL off. */
-export function turnedOffMail(off: TurnedOff, portal: string): { subject: string; text: string } {
+function turnedOffMail(off: TurnedOff, portal: string): { subject: string; text: string } {
   return {
     subject: `Your webhook "${off.name}" is off`,
     text: [

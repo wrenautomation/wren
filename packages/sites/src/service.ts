@@ -44,7 +44,7 @@ export interface Served {
 }
 
 /** Enters a form's payload through a hook: the spine's `door`, or nothing where none runs. */
-export type EnterDoor = (
+type EnterDoor = (
   hook: string,
   payload: Record<string, unknown>,
 ) => Promise<{ status: number; error?: string }>;
@@ -403,7 +403,7 @@ export function sitesPublicApi(
   };
 }
 
-export interface FormRequest {
+interface FormRequest {
   page?: string | null;
   /** The split that served the page (the kit's `data-split`). */
   split?: string | null;

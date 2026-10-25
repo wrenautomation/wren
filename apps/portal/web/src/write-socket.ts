@@ -13,8 +13,8 @@ export const WRITES_PROTOCOL = "wren-writes";
 export const PING_MS = 30_000;
 export const PONG_MS = 10_000;
 /** Back off from 1 s to a minute; a host that never opened one is tried every five. */
-export const RETRY_MAX_MS = 60_000;
-export const NEVER_OPENED_MS = 5 * 60_000;
+const RETRY_MAX_MS = 60_000;
+const NEVER_OPENED_MS = 5 * 60_000;
 
 export interface SocketLike {
   onopen: ((e: unknown) => void) | null;
@@ -25,7 +25,7 @@ export interface SocketLike {
   close(): void;
 }
 
-export interface WriteSocketEnv {
+interface WriteSocketEnv {
   /** The sign-in token; null where there's none (no socket then). */
   token: () => Promise<string | null>;
   open: (url: string, protocols: string[]) => SocketLike;

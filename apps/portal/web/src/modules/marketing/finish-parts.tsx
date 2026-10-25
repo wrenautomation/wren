@@ -25,7 +25,7 @@ export type Short = {
   card?: boolean | undefined;
   cardText?: string | undefined;
 };
-export type LayoutShow = "corner" | "cam" | "screen";
+type LayoutShow = "corner" | "cam" | "screen";
 export type LayoutRange = { from: number; to: number; show: LayoutShow };
 export type CamBox = [number, number, number, number];
 
@@ -35,7 +35,7 @@ const NEW_SHORT_S = 30;
 /** The on-screen title's limit (`CARD.maxChars` in @wren/studio/props). */
 const CARD_MAX = 60;
 
-export const LAYOUT_NAMES: Record<LayoutShow, string> = {
+const LAYOUT_NAMES: Record<LayoutShow, string> = {
   corner: "Face in the corner",
   cam: "Face only",
   screen: "Screen only",

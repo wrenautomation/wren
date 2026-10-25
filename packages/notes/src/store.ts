@@ -47,9 +47,9 @@ import type {
 } from "./types.js";
 
 /** An auto version stays open this long after its last edit. */
-export const SESSION_MS = 10 * 60 * 1000;
+const SESSION_MS = 10 * 60 * 1000;
 
-export class NoteMissing extends Error {
+class NoteMissing extends Error {
   constructor(id: string) {
     super(`no such note: ${id}`);
   }
@@ -67,7 +67,7 @@ export const isNoteId = (s: unknown): s is string => typeof s === "string" && UU
 
 // ---- Create ----
 
-export interface NewNote {
+interface NewNote {
   owner: string;
   by: string;
   via?: Via;
@@ -161,7 +161,7 @@ export interface Changed {
   version: number;
 }
 
-export interface ChangeOpts {
+interface ChangeOpts {
   /** Start a version of this kind instead of the session's auto one. */
   kind?: Exclude<VersionKind, "auto">;
   name?: string | null;
@@ -800,7 +800,7 @@ export async function commentById(
   return row ?? null;
 }
 
-export interface NewComment {
+interface NewComment {
   noteId: string;
   by: string;
   body: string;

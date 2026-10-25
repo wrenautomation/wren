@@ -19,7 +19,7 @@ import {
 import type { Reader } from "./reads.js";
 
 /** A profile read this recently is read from the table, not Reddit. */
-export const PERSON_FRESH_MS = 30 * 86_400_000;
+const PERSON_FRESH_MS = 30 * 86_400_000;
 
 /** Hosts that say nothing about the person. */
 const NOT_THEIRS =
@@ -135,7 +135,7 @@ export async function readWords(
   };
 }
 
-export async function personByHandle(db: Queryable, handle: string): Promise<RedditPerson | null> {
+async function personByHandle(db: Queryable, handle: string): Promise<RedditPerson | null> {
   const [p] = await db
     .select()
     .from(redditPeople)

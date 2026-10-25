@@ -22,7 +22,7 @@ import {
 } from "../inbox/mail-reply.js";
 import { MAIL_PART } from "../inbox/send.js";
 
-export interface MailReplyDeps {
+interface MailReplyDeps {
   main: Db;
   clientDb: (client: string) => Db;
   /**

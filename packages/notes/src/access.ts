@@ -23,7 +23,7 @@ export interface Reader {
   cap: ShareRole | null;
 }
 
-export interface NoteAccess {
+interface NoteAccess {
   owner: string;
   general: "private" | "workspace";
   generalRole: ShareRole;
