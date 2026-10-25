@@ -4,6 +4,7 @@
  * search words rest when they find nothing on target, and the model's new ones are checked.
  * Every post here is synthetic, shaped like the cases the model caught on prod.
  */
+import { SiteCallError, type SiteClient } from "@wren/core/content";
 import { FakeLlm } from "@wren/llm";
 import { describe, expect, it } from "vitest";
 import {
@@ -15,6 +16,7 @@ import {
   MIN_FIT,
   phrase,
   planTopics,
+  postReader,
   proposeTopics,
   REST_AFTER,
   rankPost,
@@ -307,6 +309,48 @@ describe("search words", () => {
     }
     expect(shortcodeAt(code)?.toISOString()).toBe("2026-10-24T12:00:00.000Z");
     expect(shortcodeAt("bad!code")).toBeNull();
+  });
+});
+
+describe("Instagram search", () => {
+  const sites = (fail: (code: string) => Error | null): SiteClient => ({
+    via: async () => "browser",
+    call: async <T>(_site: string, _m: string, path: string): Promise<T> => {
+      if (path === "/web/search") return { shortcodes: ["AAA", "BBB", "CCC"] } as T;
+      const code = path.split("/").pop() ?? "";
+      const err = fail(code);
+      if (err) throw err;
+      return {
+        shortcode: code,
+        url: `https://www.instagram.com/p/${code}/`,
+        username: "sam.example",
+        caption: "Our recruiting agency lost a client.",
+        likes: 1,
+        comments: 0,
+        timestamp: NOW.toISOString(),
+      } as T;
+    },
+  });
+  const search = (s: SiteClient) =>
+    postReader(s, "instagram", "instagram", { now: NOW }).search("recruitmentagency", "past-24h");
+
+  it("a post page that fails costs only itself", async () => {
+    const out = await search(sites((c) => (c === "BBB" ? new Error("did not render") : null)));
+    expect(out.map((p) => p.ref).sort()).toEqual(["AAA", "CCC"]);
+  });
+
+  it("a used cap ends the search; all failing is an error", async () => {
+    const cap = new SiteCallError(
+      "instagram",
+      "GET",
+      "/web/p/BBB",
+      429,
+      "capped, retry after 36000s",
+    );
+    await expect(search(sites((c) => (c === "BBB" ? cap : null)))).rejects.toBe(cap);
+    await expect(search(sites(() => new Error("did not render")))).rejects.toThrow(
+      "did not render",
+    );
   });
 });
 

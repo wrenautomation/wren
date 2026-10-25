@@ -14,7 +14,7 @@
 
 import { editsFor, keepSentEdit } from "@wren/core/ask";
 import { settingsFor } from "@wren/core/clients";
-import type { SiteClient } from "@wren/core/content";
+import { capWaitMs, type SiteClient } from "@wren/core/content";
 import { llmOf, recordDraft } from "@wren/core/draft-record";
 import { factsBlock, humanBlock } from "@wren/core/facts";
 import { droppedWhy, type Guarded, guardDraft, recordGuard } from "@wren/core/grounded";
@@ -349,7 +349,6 @@ const igPostOf = (p: IgPost, bio?: string): FeedPost | null =>
       }
     : null;
 
-/** The shortcode in an Instagram permalink (`/p/<code>/`, `/reel/<code>/`). */
 /** When an Instagram post was made, from its shortcode alone (the media id's high bits). */
 export function shortcodeAt(code: string): Date | null {
   const A = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
@@ -372,6 +371,7 @@ export function phrase(keywords: string): string {
   return /["()]|\b(?:OR|AND|NOT)\b|(?:^|\s)[-#@]/.test(t) || !t.includes(" ") ? t : `"${t}"`;
 }
 
+/** The shortcode in an Instagram permalink (`/p/<code>/`, `/reel/<code>/`). */
 const shortcodeOf = (url: string | undefined) =>
   url ? (/instagram\.com\/(?:[\w.]+\/)?(?:p|reel|tv)\/([\w-]+)/.exec(url)?.[1] ?? null) : null;
 
@@ -540,17 +540,25 @@ export function postReader(
         .sort((a, b) => at(b) - at(a))
         .slice(0, IG_POSTS_PER_SEARCH);
       const out: FeedPost[] = [];
+      // A page that fails costs only itself; a used cap ends the search, and so do all failing.
+      let failed: unknown = null;
       for (const code of codes) {
-        const p = await sites.call<IgPost & { found?: false }>(
-          "instagram",
-          "GET",
-          `/web/p/${encodeURIComponent(code)}`,
-          { shortcode: code },
-          account,
-        );
-        const post = p.found === false ? null : igPostOf(p);
-        if (post) out.push(post);
+        try {
+          const p = await sites.call<IgPost & { found?: false }>(
+            "instagram",
+            "GET",
+            `/web/p/${encodeURIComponent(code)}`,
+            { shortcode: code },
+            account,
+          );
+          const post = p.found === false ? null : igPostOf(p);
+          if (post) out.push(post);
+        } catch (err) {
+          if (capWaitMs(err) !== null) throw err;
+          failed = err;
+        }
       }
+      if (!out.length && failed) throw failed;
       return out;
     },
     page,
