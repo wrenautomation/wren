@@ -73,6 +73,8 @@ export const invitesSettingsSchema = z
     withdrawAfterDays: z.number().int().min(7).max(90).default(21),
     /** Invites queue with no yes and go bare: model notes are only drafted on proposed ones. */
     autoApprove: z.boolean().default(false),
+    /** An accept gets a DM draft in To approve. Off: accepted people wait in Invites → To message. */
+    dmOnAccept: z.boolean().default(false),
   })
   .strict();
 export type InviteSettings = z.infer<typeof invitesSettingsSchema>;

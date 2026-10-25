@@ -272,6 +272,11 @@ export const OUTREACH_COMPONENTS = [
           says: "Send with no yes: invites go bare, no drafted note.",
           built: "settings.autoApprove",
         },
+        {
+          is: "change",
+          says: "An accept gets a drafted DM to approve. Off: it waits in To message.",
+          built: "settings.dmOnAccept",
+        },
         { is: "needs", says: "People with a LinkedIn page in the lists.", built: null },
         { is: "fixed", says: "No invite sends without your yes in To approve." },
         { is: "fixed", says: "No message goes after an accept without a click." },

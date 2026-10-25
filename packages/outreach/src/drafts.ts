@@ -22,7 +22,7 @@ import { contactById } from "./contacts.js";
 import { personLine } from "./discovery/people.js";
 import { pickedReachAccount } from "./draft-accounts.js";
 import { armMeta, guardBy, modelFor } from "./draft-llm.js";
-import { invitedSql } from "./invites.js";
+import { invitedSql, inviteSettings } from "./invites.js";
 import { ReachRefusal } from "./refusal.js";
 import {
   comments,
@@ -76,22 +76,34 @@ thread, it is the first message. Answer JSON only: {"draft": "<the message>"}`;
 
 const DRAFT = z.object({ draft: z.string() });
 
+/** How long a draft kept as none waits before one more try. */
+const REDRAFT_AFTER_MS = 3 * 86_400_000;
+
 /**
  * Contacts whose next message is ours with no fresh draft, oldest wait first: their last word is
- * unanswered and the draft answers an older one, or they accepted an invite and nobody wrote yet.
+ * unanswered and the draft answers an older one, or (on `dmOnAccept`) they accepted an invite and
+ * nobody wrote yet.
+ * A draft kept as none (dropped by the guard, empty, too long) gets one more try each
+ * `REDRAFT_AFTER_MS`: the facts and the guard change, and a model draft varies.
  */
-export async function contactsToDraft(db: Queryable, limit: number): Promise<number[]> {
+export async function contactsToDraft(
+  db: Queryable,
+  limit: number,
+  now = new Date(),
+): Promise<number[]> {
   if (limit <= 0 || !(await modelDrafts(db))) return [];
+  const onAccept = (await inviteSettings(db)).dmOnAccept;
+  const retry = sql`(c.draft IS NULL AND c.draft_at < ${new Date(now.getTime() - REDRAFT_AFTER_MS).toISOString()}::timestamptz)`;
   const rows = (await db.execute(sql`
     SELECT c.id FROM reach_contacts c
     LEFT JOIN LATERAL (SELECT id, coalesce(sent_at, created_at) at FROM reach_messages
       WHERE contact_id = c.id AND direction = 'in'
       ORDER BY coalesce(sent_at, created_at) DESC, id DESC LIMIT 1) i ON true
     WHERE c.state NOT IN ('opted_out', 'blocked')
-      AND ((i.id IS NOT NULL AND c.draft_for IS DISTINCT FROM i.id
+      AND ((i.id IS NOT NULL AND (c.draft_for IS DISTINCT FROM i.id OR ${retry})
           AND NOT EXISTS (SELECT 1 FROM reach_messages o WHERE o.contact_id = c.id
             AND o.direction = 'out' AND o.created_at > i.at))
-        OR (i.id IS NULL AND c.connected_at IS NOT NULL AND c.draft_at IS NULL
+        OR (${onAccept} AND i.id IS NULL AND c.connected_at IS NOT NULL AND (c.draft_at IS NULL OR ${retry})
           AND ${invitedSql(sql`c.id`)}
           AND NOT EXISTS (SELECT 1 FROM reach_messages o WHERE o.contact_id = c.id
             AND o.direction = 'out' AND o.kind <> 'connect')))

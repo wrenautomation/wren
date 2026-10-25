@@ -5,6 +5,7 @@
  * `reddit@wren`, and LinkedIn waits on an accepted invite.
  */
 
+import { setWrenSettings } from "@wren/core/clients";
 import { companies, people } from "@wren/core/schema";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
@@ -21,6 +22,7 @@ import {
   queueDraft,
 } from "../../src/drafts.js";
 import { messageAccount, personContact } from "../../src/from-people.js";
+import { INVITES_COMPONENT } from "../../src/invites.js";
 import { personRecord } from "../../src/records.js";
 import { receive } from "../../src/replies.js";
 import { type ReachAccount, reachContacts, reachMessages } from "../../src/schema.js";
@@ -32,6 +34,7 @@ const TABLES = [
   "reddit_people",
   "people",
   "companies",
+  "wren_settings",
 ];
 const NOW = new Date("2026-10-06T15:00:00Z");
 const later = (min: number) => new Date(NOW.getTime() + min * 60_000);
@@ -92,7 +95,7 @@ describe("DM drafts", () => {
     const kept = await contactById(db(), c.id);
     const [m1] = await db().select().from(reachMessages).where(eq(reachMessages.ref, "m1"));
     expect(kept).toMatchObject({ draft, draftFor: m1?.id });
-    expect(await contactsToDraft(db(), DRAFTS_PER_DAY)).toEqual([]);
+    expect(await contactsToDraft(db(), DRAFTS_PER_DAY, NOW)).toEqual([]);
 
     // A newer word makes the draft stale: gone, and due again.
     await inbound("jo_test", "m2", "Also, what does it cost?", later(5));
@@ -131,7 +134,7 @@ describe("DM drafts", () => {
         createdAt: later(7),
       });
     await db().update(reachContacts).set({ draftFor: null }).where(eq(reachContacts.id, c.id));
-    expect(await contactsToDraft(db(), DRAFTS_PER_DAY)).toEqual([]);
+    expect(await contactsToDraft(db(), DRAFTS_PER_DAY, later(7))).toEqual([]);
   });
 
   it("drafts a first message to an accepted invite; one past the cap is kept as none", async () => {
@@ -153,6 +156,9 @@ describe("DM drafts", () => {
       sentAt: NOW,
     });
     expect(await contactsToDraft(db(), 0)).toEqual([]);
+    // Off by default: the accept waits in To message with no draft.
+    expect(await contactsToDraft(db(), DRAFTS_PER_DAY)).toEqual([]);
+    await setWrenSettings(db(), INVITES_COMPONENT, { dmOnAccept: true }, "test");
     expect(await contactsToDraft(db(), DRAFTS_PER_DAY)).toEqual([c.id]);
 
     const { llm, asked } = model("x".repeat(DRAFT_MAX + 1));
@@ -160,8 +166,9 @@ describe("DM drafts", () => {
     expect(asked[0]?.prompt).toContain("They just accepted my LinkedIn invite.");
     expect(asked[0]?.prompt).toContain("Headline: Founder");
     expect((await contactById(db(), c.id)).draftAt).toEqual(NOW);
-    // Stamped: not asked again until something changes.
-    expect(await contactsToDraft(db(), DRAFTS_PER_DAY)).toEqual([]);
+    // Stamped: not asked again for 3 days, then once more.
+    expect(await contactsToDraft(db(), DRAFTS_PER_DAY, later(60))).toEqual([]);
+    expect(await contactsToDraft(db(), DRAFTS_PER_DAY, later(3 * 1440 + 1))).toEqual([c.id]);
     expect(await draftsToday(db(), later(60))).toBe(1);
   });
 });
