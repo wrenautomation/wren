@@ -217,6 +217,7 @@ function connect(p: Prep, order: readonly ViewLine[], at: Placement): MetroScene
         b: b.id,
         ...(markOf ? { mark: markOf } : {}),
         ...(t.label ? { cond: t.label } : {}),
+        ...(t.no ? { no: true } : {}),
       });
       return;
     }
@@ -228,6 +229,7 @@ function connect(p: Prep, order: readonly ViewLine[], at: Placement): MetroScene
       ...(t.late ? { late: true } : {}),
       ...(t.task ? { task: t.task } : {}),
       ...(t.moving ? { mv: true } : {}),
+      ...(t.no ? { no: true } : {}),
     };
     if (a.kind === "hub") {
       // A line starts at the hub and bends to its own row.

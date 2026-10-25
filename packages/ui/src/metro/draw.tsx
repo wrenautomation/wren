@@ -225,7 +225,7 @@ export function MetroSvg({ scene, still, bare, intro, selected, lit, width, ref 
             key={`xp-${k}`}
             m={r.lat ?? m}
             lab={r.lab}
-            colour={lineColour(colours, l)}
+            colour={r.no ? "var(--ui-bad)" : lineColour(colours, l)}
             l={l}
             on={on(l)}
             id={tid}
@@ -339,7 +339,7 @@ export function MetroSvg({ scene, still, bare, intro, selected, lit, width, ref 
           ? [(a[0] + c[0]) / 2, Math.max(a[1], c[1]) + r.back]
           : [(a[0] + c[0]) / 2, (a[1] + c[1]) / 2]);
       labels.push(
-        <g key={`cd-${k}`} className={cx("cond", r.cond === "else" && "else")}>
+        <g key={`cd-${k}`} className={cx("cond", r.cond === "else" && "else", r.no && "no")}>
           <Chip x={m[0]} y={m[1]} t={r.cond} icon={r.condGlyph ?? null} />
         </g>,
       );

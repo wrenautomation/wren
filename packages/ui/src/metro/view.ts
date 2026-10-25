@@ -93,6 +93,8 @@ export interface ViewTrack {
   late?: boolean;
   /** A branch label on the track, or a transfer's name ("upsell"). */
   label?: string;
+  /** The buyer said no: a downsell's branch. Its label is red. */
+  no?: boolean;
   /** The task a person track makes on Today. */
   task?: string;
   /** Dots move along it. */

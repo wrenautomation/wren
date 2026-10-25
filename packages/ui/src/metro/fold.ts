@@ -472,7 +472,7 @@ export function viewTree(view: MetroView): ViewTree {
   const lines = new Map(view.lines.map((l) => [l.id, l]));
   const lineCol = (s: ViewStation): FoldNode => {
     const line = lines.get(s.line);
-    const n = line?.label ?? s.line;
+    const n = line?.label ?? line?.offer ?? s.line;
     return { id: `${s.line}@${s.column}`, label: line?.tier === "out" ? n : `${n} · ${s.column}` };
   };
   // The hub joins every line, so it has no line · column: it folds only inside a group.

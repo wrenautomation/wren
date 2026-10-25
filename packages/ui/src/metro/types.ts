@@ -178,6 +178,8 @@ export interface MetroTrack {
   /** A branch label on the track, its glyph, its place. */
   cond?: string;
   condGlyph?: IconName | null;
+  /** The buyer said no (a downsell's branch): the label is red. */
+  no?: boolean;
   cat?: Point;
   /** A track back along its own row runs on a rail this far under the row (`layoutView` sets it). */
   back?: number;

@@ -624,6 +624,13 @@
   fill: var(--ui-ink-3);
   font-style: italic;
 }
+/* A no (a downsell's branch) reads red. */
+.mm .cond.no rect {
+  stroke: var(--ui-bad);
+}
+.mm .cond.no text {
+  fill: var(--ui-bad);
+}
 .mm .brk rect {
   fill: none;
   stroke: var(--ui-bad);
