@@ -5,11 +5,13 @@ import {
   entranceAt,
   fitBox,
   framing,
+  lensAt,
   PROMO_FPS,
   promoProps,
   promoScript,
   scatterAt,
   secondsOf,
+  typedAt,
   wordsIn,
 } from "./promo.js";
 import { BED_LUFS, FX_BED_LUFS } from "./sounds.js";
@@ -34,7 +36,13 @@ describe("promo script", () => {
   });
 
   it("gives text time by its words, within 2 to 6 seconds", () => {
-    const plain = { accent: [] as string[], layout: "stack" as const, enter: "rise" as const };
+    const plain = {
+      accent: [] as string[],
+      layout: "stack" as const,
+      style: "kinetic" as const,
+      swap: [] as string[],
+      enter: "rise" as const,
+    };
     expect(secondsOf({ kind: "text", lines: ["Hi"], ...plain })).toBe(2);
     const long = { kind: "text" as const, lines: [Array(30).fill("word").join(" ")], ...plain };
     expect(secondsOf(long)).toBe(6);
@@ -188,5 +196,64 @@ describe("promo clock", () => {
     expect(countAt(item, 0)).toBe("$0");
     expect(countAt(item, 1)).toBe("$30,797");
     expect(countAt({ value: 6.5, prefix: "", suffix: "%", decimals: 1 }, 2)).toBe("6.5%");
+  });
+});
+
+describe("film kit", () => {
+  const take = { kind: "take", take: "explore", from: 1, to: 4 };
+
+  it("moves the lens for the whole shot, eased at both ends", () => {
+    expect(lensAt("push", 0, 4).scale).toBe(1);
+    expect(lensAt("push", 1, 4).scale).toBeCloseTo(1.2);
+    expect(lensAt("push", 0.5, 4).scale).toBeCloseTo(1.1);
+    const roll = lensAt("roll", 0, 5);
+    expect([roll.rx, roll.rz, roll.scale]).toEqual([28, -8, 1.6]);
+    expect(lensAt("orbit", 1, 5).ry).toBeCloseTo(-4);
+  });
+
+  it("racks focus from soft to sharp in 0.6 s, then holds sharp", () => {
+    expect(lensAt("rack", 0, 3).blur).toBeCloseTo(8);
+    expect(lensAt("rack", 0.6 / 3, 3).blur).toBeCloseTo(0);
+    expect(lensAt("rack", 1, 3).blur).toBe(0);
+    expect(lensAt("track", 0, 3).blur).toBe(0);
+  });
+
+  it("types 20 characters a second, then blinks the caret", () => {
+    expect(typedAt(0, "AUTOBROWSE").shown).toBe("");
+    expect(typedAt(4 + 15, "AUTOBROWSE").shown).toBe("AUTOBROWSE");
+    expect(typedAt(10, "AUTOBROWSE").caret).toBe(true);
+  });
+
+  it("dips in from black with no slide and no sound", () => {
+    const e = entranceAt("dip", 0, 60);
+    expect(e.opacity).toBe(0);
+    expect(e.transform).toBe("none");
+    expect(entranceAt("dip", 10, 60).opacity).toBeCloseTo(1);
+    const p = promoProps(
+      promoScript.parse({
+        scenes: [
+          { kind: "text", lines: ["One"] },
+          { kind: "text", lines: ["Two"], enter: "dip" },
+        ],
+      }),
+    );
+    expect(p.audio.sounds.filter((x) => x.file.includes("whoosh"))).toEqual([]);
+  });
+
+  it("takes a lens, a card, caps with swaps, a pill end and a dark theme", () => {
+    const sc = promoScript.parse({
+      theme: "dark",
+      scenes: [
+        { ...take, lens: { move: "roll" } },
+        { kind: "text", lines: ["Agents for"], style: "card", swap: ["X", "LinkedIn"] },
+        { kind: "text", lines: ["autobrowse learns"], style: "caps" },
+        { kind: "end", title: "autobrowse", tagline: "Your agent, on the web", mark: "pill" },
+      ],
+    });
+    expect(sc.scenes[0]).toMatchObject({ lens: { move: "roll", light: true, focus: true } });
+    expect(secondsOf(sc.scenes[1] as never)).toBeCloseTo(1.6 + (2 * 18) / 30);
+    expect(secondsOf(sc.scenes[2] as never)).toBeCloseTo(17 / 20 + 1.2);
+    expect(secondsOf(sc.scenes[3] as never)).toBe(6);
+    expect(() => promoScript.parse({ scenes: [{ ...take, lens: { move: "spin" } }] })).toThrow();
   });
 });

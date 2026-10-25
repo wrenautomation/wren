@@ -11,6 +11,9 @@
  * Props come from `longProps`, `shortProps`, `framedProps` and `thumbnailProps` through
  * `--props`; the cut files are served from the edit's folder.
  */
+
+import { loadFont as loadFigtree } from "@remotion/google-fonts/Figtree";
+import { loadFont as loadMono } from "@remotion/google-fonts/GeistMono";
 import {
   type CSSProperties,
   createContext,
@@ -56,9 +59,14 @@ import {
   entranceAt,
   fitBox,
   framing,
+  type LensMove,
+  lensAt,
   PROMO_FPS,
+  SWAP_BEATS,
   scatterAt,
+  TAGLINE_S,
   toastAt,
+  typedAt,
   wordsIn,
 } from "../src/promo-clock.ts";
 import type {
@@ -72,6 +80,10 @@ import type {
 } from "../src/props.js";
 import { verticalRect } from "../src/safe-zones.ts";
 import type { AudioProps } from "../src/sounds.ts";
+
+// The dark look's sans (`DARK_LOOK`) and the caps cards' monospace, loaded before the first frame.
+loadFigtree("normal", { weights: ["400", "600", "700"], subsets: ["latin"] });
+const { fontFamily: MONO } = loadMono("normal", { weights: ["500"], subsets: ["latin"] });
 
 type Word = LongProps["words"][number];
 type Look = LongProps["look"];
@@ -837,7 +849,192 @@ const Scattered: FC<{ s: Scene<"text">; look: Look }> = ({ s, look }) => {
   );
 };
 
+type Lens = { move: LensMove; light: boolean; focus: boolean };
+
+/**
+ * A box on the lens (`lensAt`): the box in 3D around its focus point (`fx`, `fy`, px in the box),
+ * pulled toward the frame's middle as the lens closes in, then the spotlight on that point and the
+ * page soft away from it. The light and the blur stay flat over the frame, as on a set.
+ */
+const Lensed: FC<{
+  lens: Lens | undefined;
+  p: number;
+  seconds: number;
+  fx: number;
+  fy: number;
+  w: number;
+  h: number;
+  children: ReactNode;
+}> = ({ lens, p, seconds, fx, fy, w, h, children }) => {
+  const { width, height } = useVideoConfig();
+  const u = useUnit();
+  if (!lens) return <>{children}</>;
+  const l = lensAt(lens.move, p, seconds);
+  // How far the focus point comes to the middle: none flat, all of it from 2x on.
+  const c = Math.min(1, l.scale - 1);
+  const tx = (w / 2 - fx) * c + l.dx * w;
+  const ty = (h / 2 - fy) * c;
+  // The overlays cover the frame from wherever the box sits: three frames wide, the box's corner
+  // one frame in.
+  const at = `${width + fx + tx}px ${height + fy + ty}px`;
+  const cover: CSSProperties = {
+    position: "absolute",
+    left: -width,
+    top: -height,
+    width: width * 3,
+    height: height * 3,
+    pointerEvents: "none",
+  };
+  const inner = `${0.2 * width}px`;
+  const outer = `${0.45 * width}px`;
+  return (
+    <div style={{ position: "relative", flex: "none", width: w, height: h, perspective: 1600 * u }}>
+      <div
+        style={{
+          width: w,
+          height: h,
+          transformOrigin: `${fx}px ${fy}px`,
+          transform: `translate(${tx.toFixed(2)}px, ${ty.toFixed(2)}px) rotateX(${l.rx.toFixed(3)}deg) rotateY(${l.ry.toFixed(3)}deg) rotateZ(${l.rz.toFixed(3)}deg) scale(${l.scale.toFixed(4)})`,
+          filter: l.blur > 0.05 ? `blur(${(l.blur * u).toFixed(2)}px)` : undefined,
+        }}
+      >
+        {children}
+      </div>
+      {lens.focus ? (
+        <div
+          style={{
+            ...cover,
+            backdropFilter: `blur(${6 * u}px)`,
+            WebkitMaskImage: `radial-gradient(circle at ${at}, transparent 0, transparent ${inner}, #000 ${outer})`,
+            maskImage: `radial-gradient(circle at ${at}, transparent 0, transparent ${inner}, #000 ${outer})`,
+          }}
+        />
+      ) : null}
+      {lens.light ? (
+        <div
+          style={{
+            ...cover,
+            background: `radial-gradient(circle at ${at}, rgba(0,0,0,0) 0, rgba(0,0,0,0) ${inner}, rgba(0,0,0,.65) ${outer})`,
+          }}
+        />
+      ) : null}
+    </div>
+  );
+};
+
+/** The lens's vignette: the frame's edges dark. */
+const Vignette: FC = () => (
+  <AbsoluteFill
+    style={{
+      pointerEvents: "none",
+      background: "radial-gradient(ellipse at center, rgba(0,0,0,0) 55%, rgba(0,0,0,.55) 100%)",
+    }}
+  />
+);
+
+/** The word a swap shows `f` beats in: the line's own, then each swap in turn after `hold` beats. */
+const swapWord = (own: string, swap: readonly string[], f: number, hold: number) => {
+  const i = f < hold ? 0 : Math.min(swap.length, 1 + Math.floor((f - hold) / SWAP_BEATS));
+  return {
+    word: i === 0 ? own : (swap[i - 1] ?? own),
+    since: i === 0 ? f : f - hold - (i - 1) * SWAP_BEATS,
+  };
+};
+
+/** A small centered card: the lines blur in, the last word swaps in place. */
+const CardText: FC<{ s: Scene<"text">; look: Look }> = ({ s, look }) => {
+  const f = useBeat();
+  const u = useUnit();
+  const last = s.lines.length - 1;
+  return (
+    <AbsoluteFill style={{ justifyContent: "center", alignItems: "center", textAlign: "center" }}>
+      {s.lines.map((line, li) => {
+        const p = easeOut((f - li * 6) / 12);
+        const head = line.split(/\s+/);
+        const own = head.pop() ?? "";
+        const sw = li === last && s.swap.length ? swapWord(own, s.swap, f, 30) : null;
+        const q = sw && sw.word !== own ? easeOut(sw.since / 6) : 1;
+        return (
+          <div
+            key={line}
+            style={{
+              fontSize: 48 * u,
+              lineHeight: 1.25,
+              fontWeight: 600,
+              letterSpacing: "-0.02em",
+              color: look.foreground,
+              opacity: p,
+              filter: p < 0.999 ? `blur(${((1 - p) * 10 * u).toFixed(2)}px)` : undefined,
+            }}
+          >
+            {head.length ? `${head.join(" ")} ` : ""}
+            <span
+              style={{
+                display: "inline-block",
+                opacity: q,
+                filter: q < 0.999 ? `blur(${((1 - q) * 8 * u).toFixed(2)}px)` : undefined,
+              }}
+            >
+              {sw ? sw.word : own}
+            </span>
+          </div>
+        );
+      })}
+    </AbsoluteFill>
+  );
+};
+
+/** Monospace caps, typed with a block caret; once typed, the last word swaps in place. */
+const CapsText: FC<{ s: Scene<"text">; look: Look }> = ({ s, look }) => {
+  const f = useBeat();
+  const u = useUnit();
+  const text = s.lines.join(" ").toUpperCase();
+  const typed = typedAt(f, text);
+  const done = typed.shown.length === text.length;
+  const hold = Math.ceil((text.length / 20 + 0.8) * PROMO_FPS);
+  let shown = typed.shown;
+  if (done && s.swap.length) {
+    const head = text.split(" ");
+    const own = head.pop() ?? "";
+    shown = [...head, swapWord(own, s.swap, f, hold).word.toUpperCase()].join(" ");
+  }
+  return (
+    <AbsoluteFill style={{ justifyContent: "center", alignItems: "center" }}>
+      <div
+        style={{
+          fontFamily: MONO,
+          fontSize: 30 * u,
+          fontWeight: 500,
+          letterSpacing: "0.08em",
+          color: look.foreground,
+          whiteSpace: "pre",
+        }}
+      >
+        {shown}
+        <span
+          style={{
+            display: "inline-block",
+            width: "0.62em",
+            height: "1.05em",
+            marginLeft: "0.08em",
+            verticalAlign: "-0.15em",
+            background: look.foreground,
+            opacity: typed.caret ? 1 : 0,
+          }}
+        />
+      </div>
+    </AbsoluteFill>
+  );
+};
+
 const PromoText: FC<{ s: Scene<"text">; look: Look }> = ({ s, look }) => {
+  if (s.style === "card") return <CardText s={s} look={look} />;
+  if (s.style === "caps") return <CapsText s={s} look={look} />;
+  return <KineticText s={s} look={look} />;
+};
+
+/** Big words, one by one. */
+const KineticText: FC<{ s: Scene<"text">; look: Look }> = ({ s, look }) => {
   const f = useBeat();
   const u = useUnit();
   const all = s.lines
@@ -967,7 +1164,8 @@ const PromoScreen: FC<{ s: Scene<"screen">; look: Look }> = ({ s, look }) => {
   const pad = 70 * u;
   const capH = s.caption ? 120 * u : 0;
   const { w, h } = fitBox(s.size, width - pad * 2, height - pad * 2 - capH);
-  const { scale, tx, ty } = framing(cam, w, h);
+  // Under a lens the moves give the focus point; the lens owns the zoom.
+  const { scale, tx, ty } = framing(s.lens ? { ...cam, zoom: 1 } : cam, w, h);
   const hl = s.highlight;
   const hp = hl ? easeOut((p - hl.from) / 0.08) : 0;
   const glow = useContext(Glow);
@@ -975,52 +1173,63 @@ const PromoScreen: FC<{ s: Scene<"screen">; look: Look }> = ({ s, look }) => {
     <AbsoluteFill
       style={{ padding: pad, gap: 24 * u, alignItems: "center", justifyContent: "center" }}
     >
-      <div
-        style={{
-          position: "relative",
-          flex: "none",
-          width: w,
-          height: h,
-          overflow: "hidden",
-          borderRadius: 24 * u,
-          boxShadow: "0 30px 80px rgba(0,0,0,.18)",
-          background: "#fff",
-        }}
+      <Lensed
+        lens={s.lens}
+        p={p}
+        seconds={s.frames / PROMO_FPS}
+        fx={cam.x * w}
+        fy={cam.y * h}
+        w={w}
+        h={h}
       >
         <div
           style={{
-            position: "absolute",
-            inset: 0,
-            transformOrigin: "0 0",
-            transform: `translate(${tx}px, ${ty}px) scale(${scale})`,
+            position: "relative",
+            flex: "none",
+            width: w,
+            height: h,
+            overflow: "hidden",
+            borderRadius: 24 * u,
+            boxShadow: "0 30px 80px rgba(0,0,0,.18)",
+            background: "#fff",
           }}
         >
-          <Img
-            src={staticFile(s.image ?? "")}
-            style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }}
-          />
-          {hl ? (
-            <div
-              style={{
-                position: "absolute",
-                left: `${hl.x * 100}%`,
-                top: `${hl.y * 100}%`,
-                width: `${hl.w * 100}%`,
-                height: `${hl.h * 100}%`,
-                borderRadius: 12,
-                border: `${4 / scale}px solid ${look.accent}`,
-                boxShadow: [
-                  glow ? `0 0 ${24 / scale}px ${look.accent}` : null,
-                  `0 0 0 ${9999}px rgba(0,0,0,${0.28 * hp})`,
-                ]
-                  .filter(Boolean)
-                  .join(", "),
-                opacity: hp,
-              }}
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              transformOrigin: "0 0",
+              transform: `translate(${tx}px, ${ty}px) scale(${scale})`,
+            }}
+          >
+            <Img
+              src={staticFile(s.image ?? "")}
+              style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }}
             />
-          ) : null}
+            {hl ? (
+              <div
+                style={{
+                  position: "absolute",
+                  left: `${hl.x * 100}%`,
+                  top: `${hl.y * 100}%`,
+                  width: `${hl.w * 100}%`,
+                  height: `${hl.h * 100}%`,
+                  borderRadius: 12,
+                  border: `${4 / scale}px solid ${look.accent}`,
+                  boxShadow: [
+                    glow ? `0 0 ${24 / scale}px ${look.accent}` : null,
+                    `0 0 0 ${9999}px rgba(0,0,0,${0.28 * hp})`,
+                  ]
+                    .filter(Boolean)
+                    .join(", "),
+                  opacity: hp,
+                }}
+              />
+            ) : null}
+          </div>
         </div>
-      </div>
+      </Lensed>
+      {s.lens?.light ? <Vignette /> : null}
       {s.caption ? (
         <div
           style={{
@@ -1106,15 +1315,17 @@ const TakeWindow: FC<{
   t: number;
   shot?: Scene<"take">["shot"];
   look: Look;
-}> = ({ pane, w, h, bar, t, shot, look }) => {
+  /** On a lens: the window stays whole (the lens zooms), and the arrow and ring keep their size. */
+  lens?: number;
+}> = ({ pane, w, h, bar, t, shot, look, lens }) => {
   const { fps } = useVideoConfig();
   const u = useUnit();
   const cam = shot ? cameraAt(shot.moves, t) : { x: 0.5, y: 0.5, zoom: 1 };
-  const { scale, tx, ty } = framing(cam, w, h);
+  const { scale, tx, ty } = framing(lens ? { ...cam, zoom: 1 } : cam, w, h);
   const px = w / pane.size[0];
   // The arrow and the ring by the window, not the page: the same on a full card and a half one.
-  const arrow = ARROW_W * w;
-  const r = w / 1000;
+  const arrow = (ARROW_W * w) / (lens ?? 1);
+  const r = w / 1000 / (lens ?? 1);
   const cursor = shot?.cursor ? cursorAt(shot.cursor, t) : null;
   const video = (
     <OffthreadVideo
@@ -1241,24 +1452,42 @@ const PromoTake: FC<{ s: Scene<"take">; look: Look }> = ({ s, look }) => {
     : sizes.reduce((a, b) => a + b.w, 0) + gap * (panes.length - 1);
   // A narrow window (a terminal alone) would wrap its caption off the frame: it centers on more room.
   const capW = Math.max(total, roomW * 0.7);
+  // The lens's focus point: the camera's point on the main pane, in px of the row of windows.
+  const seconds = s.frames / PROMO_FPS;
+  const lens = s.lens ? lensAt(s.lens.move, t / seconds, seconds).scale : undefined;
+  const main = panes.indexOf(shot.pane);
+  const before = sizes.slice(0, main);
+  const cam = cameraAt(shot.moves, t);
+  const mw = sizes[main]?.w ?? 0;
+  const mh = sizes[main]?.h ?? 0;
+  const rowW = tall ? mw : total;
+  const rowH = tall
+    ? sizes.reduce((a, b) => a + b.h + bar, 0) + gap * (panes.length - 1)
+    : Math.max(...sizes.map((z) => z.h)) + bar;
+  const fx = (tall ? 0 : before.reduce((a, b) => a + b.w + gap, 0)) + cam.x * mw;
+  const fy = (tall ? before.reduce((a, b) => a + b.h + bar + gap, 0) : 0) + bar + cam.y * mh;
   return (
     <AbsoluteFill
       style={{ padding: pad, gap: 24 * u, alignItems: "center", justifyContent: "center" }}
     >
-      <div style={{ display: "flex", flexDirection: tall ? "column" : "row", gap }}>
-        {panes.map((p, i) => (
-          <TakeWindow
-            key={p.video}
-            pane={p}
-            w={sizes[i]?.w ?? 0}
-            h={sizes[i]?.h ?? 0}
-            bar={bar}
-            t={t}
-            look={look}
-            {...(p === shot.pane ? { shot } : {})}
-          />
-        ))}
-      </div>
+      <Lensed lens={s.lens} p={t / seconds} seconds={seconds} fx={fx} fy={fy} w={rowW} h={rowH}>
+        <div style={{ display: "flex", flexDirection: tall ? "column" : "row", gap }}>
+          {panes.map((p, i) => (
+            <TakeWindow
+              key={p.video}
+              pane={p}
+              w={sizes[i]?.w ?? 0}
+              h={sizes[i]?.h ?? 0}
+              bar={bar}
+              t={t}
+              look={look}
+              {...(p === shot.pane ? { shot } : {})}
+              {...(lens ? { lens } : {})}
+            />
+          ))}
+        </div>
+      </Lensed>
+      {s.lens?.light ? <Vignette /> : null}
       {s.caption ? (
         <div
           style={{
@@ -1320,15 +1549,81 @@ const PromoStat: FC<{ s: Scene<"stat">; look: Look }> = ({ s, look }) => {
   );
 };
 
+/**
+ * The end: the tagline alone (`TAGLINE_S`), then the title. With `mark: "pill"` the accent pill
+ * grows to a card and the title comes out of it (07's morph); the sub and the url follow.
+ */
 const PromoEnd: FC<{ s: Scene<"end">; look: Look }> = ({ s, look }) => {
   const u = useUnit();
+  const beat = useBeat();
+  const tag = s.tagline ? TAGLINE_S * PROMO_FPS : 0;
+  const f = beat - tag;
+  const k = (a: number, b: number) => easeOut((f - a * PROMO_FPS) / ((b - a) * PROMO_FPS));
+  const pill = s.mark === "pill";
+  const grow = pill ? k(0.3, 1.4) : 1;
+  const word = pill ? k(1.1, 1.9) : 1;
+  const rest = pill ? k(1.8, 2.5) : 1;
+  if (s.tagline && f < 0) {
+    const p = easeOut(beat / 12) * Math.min(1, (tag - beat) / 6);
+    return (
+      <AbsoluteFill style={{ justifyContent: "center", alignItems: "center" }}>
+        <div
+          style={{
+            fontSize: 48 * u,
+            fontWeight: 600,
+            letterSpacing: "-0.02em",
+            opacity: p,
+            filter: p < 0.999 ? `blur(${((1 - p) * 10 * u).toFixed(2)}px)` : undefined,
+          }}
+        >
+          {s.tagline}
+        </div>
+      </AbsoluteFill>
+    );
+  }
+  const mix = (a: number, b: number, t: number) => a + (b - a) * t;
   return (
     <AbsoluteFill
       style={{ justifyContent: "center", alignItems: "center", textAlign: "center", gap: 24 * u }}
     >
-      <div style={{ fontSize: 110 * u, fontWeight: 650, letterSpacing: "-0.03em" }}>{s.title}</div>
-      {s.sub ? <div style={{ fontSize: 40 * u, color: look.muted }}>{s.sub}</div> : null}
-      {s.url ? (
+      {pill ? (
+        <div
+          style={{
+            position: "absolute",
+            left: "50%",
+            top: "46%",
+            translate: "-50% -50%",
+            width: mix(150, 900, grow) * u,
+            height: mix(34, 240, grow) * u,
+            borderRadius: mix(9, 120, grow) * u,
+            background: look.accent,
+            opacity: 1 - word,
+            boxShadow: `0 0 ${120 * grow * u}px ${look.accent}73`,
+          }}
+        />
+      ) : null}
+      <div
+        style={{
+          fontSize: (pill ? 150 : 110) * u,
+          lineHeight: 1,
+          fontWeight: 650,
+          letterSpacing: pill ? "-0.035em" : "-0.03em",
+          opacity: word,
+          transform: `translateY(${((1 - word) * 14 * u).toFixed(2)}px)`,
+          filter: word < 0.999 ? `blur(${((1 - word) * 10 * u).toFixed(2)}px)` : undefined,
+        }}
+      >
+        {s.title}
+      </div>
+      {s.sub ? (
+        <div style={{ fontSize: 40 * u, color: look.muted, opacity: rest }}>{s.sub}</div>
+      ) : null}
+      {s.url && pill ? (
+        <div style={{ fontFamily: MONO, fontSize: 28 * u, color: look.muted, opacity: rest }}>
+          {s.url}
+        </div>
+      ) : null}
+      {s.url && !pill ? (
         <div
           style={{
             marginTop: 20 * u,
@@ -1416,6 +1711,8 @@ const PROMO_PLACEHOLDER: PromoProps = {
       lines: ["A promo", "from a script"],
       accent: ["script"],
       layout: "stack",
+      style: "kinetic",
+      swap: [],
       enter: "rise",
       from: 0,
       frames: 90,

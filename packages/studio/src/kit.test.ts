@@ -45,7 +45,7 @@ describe("the sound kit", () => {
   it("has the role each rule and each promo moment plays", () => {
     for (const id of [
       ...SOUND_RULES.map((r) => r.id),
-      ...Object.values(PROMO_SOUNDS),
+      ...Object.values(PROMO_SOUNDS).filter((r) => r !== null),
       ...Object.values(TAKE_SOUNDS),
     ])
       expect(id in FX, id).toBe(true);

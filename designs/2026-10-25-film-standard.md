@@ -4,25 +4,10 @@ The bar for every Wren product film. It comes from the launch films study
 (`studies/2026-10-25-launch-films.md`): Linear, Raycast and Framer for craft; Browserbase Director 2.0
 as the nearest rival. First film: the autobrowse demo (bead wa-qtyo.7).
 
-## Target
+## Rules
 
-A 40-50 s film of real recordings. Each shot looks like a Linear shot: a real page on a lit plane in
-3D, one slow move, shallow focus. Text is small. Music only, no voice. The match check puts our frames
-beside Linear Agent and Director 2.0. It passes when ours reads as Linear's class and holds no slogan card.
-
-## Numbers
-
-| Part | Rule |
-|---|---|
-| Length | 40-50 s. 16:9, 1920x1080, 60 fps. |
-| Shots | 9-14. UI holds 2.5-6 s, median about 3.5 s. Cards 1.5-2.5 s. |
-| Moves | One per shot, for the whole shot, eased in and out (sine). No still frame on UI. |
-| Joins | Dip through black between sections: out 6 beats, in 10 beats. Hard cuts only inside a card run. |
-| Type | One sans (Figtree). Cards: 5 words or fewer, 48 px, weight 600, tracking -0.02em, centered. Mono caps cards: 30 px, tracking 0.08em, typed 20 chars/s, block caret. |
-| Words | A word swaps in place, 0.5-0.8 s a word. No slogan, no claim line ("hours to seconds"). |
-| End | Tagline 2 s, then the wordmark alone 2.5-3 s, then the install line. |
-| Sound | Music bed only, no voice. -16 LUFS integrated, true peak -1 dBTP. UI sounds 18 dB under the bed, low-passed, no whoosh. A 10 s sample goes to William before a full render. |
-| Masks | Blur account IDs, emails, phone numbers, other people's names and faces. Codes are synthetic. |
+The brand rules (length, shot count, holds, type, words, end, sound, masks) live in the SOP:
+`sops/launch-films/notes.md` (private). This doc keeps the engineering: the moves and the kit.
 
 ## Moves
 
@@ -43,6 +28,9 @@ start and end of the shot.
   A vignette at the edges.
 - Focus: sharp in a band around the focus point, blur up to 6 px outside (`backdrop-filter`, radial mask).
 - The auto camera (`camera.ts`) still finds the focus point from the take's log. A move rides on top of it.
+- The lens owns the zoom. Under a lens the camera gives only the focus point; its zoom and its whoosh stay out.
+  The cursor arrow and ring divide by the lens scale, so they keep their size.
+- The focus point comes to the frame's middle as the lens closes in: by `min(1, scale - 1)`.
 
 ## Kit: what exists, what is new
 
@@ -52,11 +40,13 @@ kit, 60 fps renders.
 
 New, all in the promo script and `remotion/index.tsx`:
 
-1. `lens` on a take or screen scene: `move`, `light`, `focus`, `tilt`. A `Stage` wraps the window.
+1. `lens` on a take or screen scene: `move`, `light` and `focus` (both on by default). `Lensed` wraps the window.
 2. Entrance `dip`: in from black. With the old fade out, two scenes meet through black.
 3. Text scene `style: "caps"` (mono caps, typed, block caret) and `swap` (the last word changes in place).
-4. End scene `tagline` (shows before the title) and `mark: "pill"` (07: the accent pill grows into the wordmark).
-5. Look `dark`: background #0b0c10, foreground #ececee. Craft films are dark.
+4. Text `style: "card"` (small, centered, lines blur in). End scene `tagline` (shows before the title) and
+   `mark: "pill"` (07: the accent pill grows into the wordmark).
+5. Script `theme: "dark"` (`DARK_LOOK`): background #0b0c10, foreground #ececee, Figtree. Craft films are dark.
+6. Fonts from `@remotion/google-fonts`: Figtree and Geist Mono, loaded before the first frame.
 
 Not used, on purpose:
 - `@remotion/three`: a video on a WebGL plane re-samples the page and softens small text.
@@ -88,3 +78,5 @@ Nothing posts. A post needs William's yes and his caption.
 
 - 2026-10-25: standard from the 15-film study. CSS 3D over three.js. Dips over dissolves.
   Figtree for the wordmark (07 v3 frames). Sound: bed plus soft UI ticks, sample first.
+- 2026-10-25: brand rules moved to `sops/launch-films/notes.md` (William's yes). Kit built: lens, dip,
+  card, caps, swap, tagline, pill, dark theme. `tilt` dropped: each move sets its own angles.

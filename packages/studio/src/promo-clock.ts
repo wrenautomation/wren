@@ -21,6 +21,12 @@ const easeInOut = (p: number) => {
   return x < 0.5 ? 4 * x ** 3 : 1 - (-2 * x + 2) ** 3 / 2;
 };
 
+/** Ease in and out, sine: the lens moves and the dip, slower at both ends than cubic is. */
+const sineInOut = (p: number) => (1 - Math.cos(Math.PI * clamp(p, 0, 1))) / 2;
+
+/** A dip's frames in (it goes out over the usual 6). */
+const DIP_FRAMES = 10;
+
 /** Ease out, exponential: almost all of it at once, then a long settle. A speed ramp. */
 const rampOut = (p: number) => {
   const x = clamp(p, 0, 1);
@@ -95,12 +101,13 @@ export function fitBox(size: readonly [number, number] | undefined, w: number, h
 }
 
 /**
- * How a scene comes in. `rise`: up from below. `pull-back`: the camera starts close and pulls
+ * How a scene comes in. `dip`: up out of the background, slow, so two scenes meet through it (on
+ * a dark look, a dip through black). `rise`: up from below. `pull-back`: the camera starts close and pulls
  * back to the whole frame. `wipe`: a circle grows from the middle over the scene before it, a
  * track matte. `flow`: a flow edit's cut. The scene before rushes in and blurs, and this one
  * lands out of the same rush. The motion carries over the cut.
  */
-export const ENTRANCES = ["rise", "pull-back", "wipe", "flow"] as const;
+export const ENTRANCES = ["rise", "dip", "pull-back", "wipe", "flow"] as const;
 export type Entrance = (typeof ENTRANCES)[number];
 
 /** A flow cut's frames on each side, and how far and how blurred it rushes at the cut. */
@@ -153,6 +160,13 @@ function entrance(
       clipPath: "none",
     };
   }
+  if (kind === "dip") {
+    return {
+      opacity: Math.min(sineInOut(frame / DIP_FRAMES), out),
+      transform: "none",
+      clipPath: "none",
+    };
+  }
   if (kind === "wipe") {
     // 72% of the circle's reference covers the corners of any frame.
     const p = easeInOut(frame / 14);
@@ -180,3 +194,59 @@ export function scatterAt(i: number, n: number): { x: number; y: number } {
   const y = n > 1 ? 0.14 + (i / (n - 1)) * 0.72 : 0.5;
   return { x: Math.round(x * 1000) / 1000, y: Math.round(y * 1000) / 1000 };
 }
+
+/**
+ * A lens move (designs/2026-10-25-film-standard.md): the plane in 3D for the whole shot.
+ * `track` drifts across, `push` and `pull` go in and out, `orbit` turns the plane on its upright,
+ * `roll` tilts it back and rolls it (a Dutch angle), `macro` holds the page 3x past the frame's
+ * edges, `rack` pulls focus from soft to sharp, then tracks.
+ */
+export const LENS_MOVES = ["track", "push", "pull", "orbit", "roll", "macro", "rack"] as const;
+export type LensMove = (typeof LENS_MOVES)[number];
+
+/** Each move's start and end: degrees, scale, drift (a share of the window's width). */
+const LENS = {
+  track: { rx: [0, 0], ry: [0, 0], rz: [0, 0], scale: [1.15, 1.15], dx: [0.02, -0.02] },
+  push: { rx: [0, 0], ry: [0, 0], rz: [0, 0], scale: [1, 1.2], dx: [0, 0] },
+  pull: { rx: [0, 0], ry: [0, 0], rz: [0, 0], scale: [1.25, 1], dx: [0, 0] },
+  orbit: { rx: [18, 18], ry: [-12, -4], rz: [0, 0], scale: [1.1, 1.1], dx: [0, 0] },
+  roll: { rx: [28, 28], ry: [0, 0], rz: [-8, -5], scale: [1.6, 1.6], dx: [0.01, -0.01] },
+  macro: { rx: [0, 0], ry: [0, 0], rz: [0, 0], scale: [3, 3.2], dx: [0, 0] },
+  rack: { rx: [0, 0], ry: [0, 0], rz: [0, 0], scale: [1.15, 1.15], dx: [0.02, -0.02] },
+} as const satisfies Record<LensMove, Record<string, readonly [number, number]>>;
+
+/** A rack's blur at the cut, and the seconds it takes to come sharp. */
+const RACK_BLUR = 8;
+const RACK_S = 0.6;
+
+/**
+ * The lens at progress `p` of a shot `seconds` long: rotations in degrees, the scale, the drift
+ * (a share of the window's width) and the blur in px of a 1080p frame.
+ */
+export function lensAt(
+  move: LensMove,
+  p: number,
+  seconds: number,
+): { rx: number; ry: number; rz: number; scale: number; dx: number; blur: number } {
+  const k = sineInOut(p);
+  const m = LENS[move];
+  const at = ([a, b]: readonly [number, number]) => a + (b - a) * k;
+  const blur = move === "rack" ? RACK_BLUR * (1 - sineInOut((p * seconds) / RACK_S)) : 0;
+  return { rx: at(m.rx), ry: at(m.ry), rz: at(m.rz), scale: at(m.scale), dx: at(m.dx), blur };
+}
+
+/** Monospace caps type this many characters a second. */
+export const TYPE_CPS = 20;
+
+/** How much of `text` is typed `frame` beats in, and whether the block caret shows (it blinks once typed). */
+export function typedAt(frame: number, text: string): { shown: string; caret: boolean } {
+  const n = clamp(Math.floor(((frame - 4) * TYPE_CPS) / PROMO_FPS), 0, text.length);
+  const done = n === text.length;
+  return { shown: text.slice(0, n), caret: !done || Math.floor(frame / 16) % 2 === 0 };
+}
+
+/** A swap card's word each lasts this many beats. */
+export const SWAP_BEATS = 18;
+
+/** An end card's tagline holds this many seconds before the title. */
+export const TAGLINE_S = 2;

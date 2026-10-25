@@ -9,7 +9,17 @@ import { DEFAULT_LOOK, type Look } from "@wren/video";
 import { z } from "zod";
 import { autoCamera, type CameraKey, clip } from "./camera.js";
 import { type CursorTrack, cursorTrack } from "./cursor.js";
-import { clamp, ENTRANCES, type Entrance, PROMO_FPS, toastAt } from "./promo-clock.js";
+import {
+  clamp,
+  ENTRANCES,
+  type Entrance,
+  LENS_MOVES,
+  PROMO_FPS,
+  SWAP_BEATS,
+  TAGLINE_S,
+  TYPE_CPS,
+  toastAt,
+} from "./promo-clock.js";
 import {
   type AudioProps,
   BED_ID,
@@ -39,6 +49,18 @@ const seconds = z
   .describe("How long it holds; set by length when left out");
 /** How it comes in (`entranceAt`): rise, a camera pull-back, a matte wipe, or a flow cut. */
 const enter = z.enum(ENTRANCES).default("rise");
+/**
+ * The plane in 3D for the whole shot (`lensAt`), lit: a spotlight on the focus point and a
+ * vignette (`light`), and the page soft away from it (`focus`). A take's focus point is its
+ * camera's; the lens owns the zoom, so the camera's own zoom stays out.
+ */
+const lens = z
+  .object({
+    move: z.enum(LENS_MOVES),
+    light: z.boolean().default(true),
+    focus: z.boolean().default(true),
+  })
+  .optional();
 /** A camera key as a screen scene takes it: `at` is the scene's progress, 0 to 1. */
 const move = z.object({ at: unit, x: unit, y: unit, zoom: z.number().min(1).max(4) });
 
@@ -50,6 +72,13 @@ const TEXT = z.object({
   accent: z.array(z.string()).max(6).default([]),
   /** `stack`: lines under each other. `scatter`: words spread over a quiet frame (`scatterAt`). */
   layout: z.enum(["stack", "scatter"]).default("stack"),
+  /**
+   * `kinetic`: big, word by word. `card`: small and centered, the lines blur in. `caps`: monospace
+   * caps typed with a block caret.
+   */
+  style: z.enum(["kinetic", "card", "caps"]).default("kinetic"),
+  /** On a card or caps: the last word swaps in place to each of these in turn. */
+  swap: z.array(z.string().min(1).max(30)).max(12).default([]),
   seconds,
   enter,
 });
@@ -84,6 +113,7 @@ const SCREEN = z
     moves: z.array(move).max(8).default([]),
     /** A box drawn around one thing, as shares of the image, from `from` on. */
     highlight: z.object({ x: unit, y: unit, w: unit, h: unit, from: unit.default(0.3) }).optional(),
+    lens,
     seconds,
     enter,
   })
@@ -111,6 +141,7 @@ const TAKE = z
     beside: z.string().min(1).optional(),
     /** A terminal pane's window title. */
     title: z.string().max(40).default("Terminal"),
+    lens,
     enter,
   })
   .refine((s) => s.to === undefined || s.to > s.from, "a take's to is after its from");
@@ -137,6 +168,10 @@ const END = z.object({
   title: z.string().min(1).max(60),
   sub: z.string().max(90).optional(),
   url: z.string().max(60).optional(),
+  /** A line on its own before the title. */
+  tagline: z.string().max(60).optional(),
+  /** `pill`: the accent pill grows, then turns into the title. */
+  mark: z.enum(["plain", "pill"]).default("plain"),
   seconds,
   enter,
 });
@@ -147,6 +182,8 @@ export type PromoScene = z.infer<typeof promoScene>;
 export const promoScript = z
   .object({
     format: z.enum(["wide", "tall"]).default("wide"),
+    /** The base look under `look`: Wren's light one, or dark (`DARK_LOOK`), as craft films are. */
+    theme: z.enum(["light", "dark"]).default("light"),
     /** Frames a second; unset: 60 when a scene is a take, else 30. */
     fps: z.union(PROMO_RATES.map((r) => z.literal(r))).optional(),
     /** Colors and font over Wren's. */
@@ -178,13 +215,26 @@ export type PromoScript = z.infer<typeof promoScript>;
 
 const words = (s: string) => s.split(/\s+/).filter(Boolean);
 
+/** The dark base look: near black, soft white, Figtree. */
+export const DARK_LOOK: Look = {
+  background: "#0b0c10",
+  foreground: "#ececee",
+  muted: "#8a8b93",
+  accent: "#3d7bff",
+  font: '"Figtree", ui-sans-serif, system-ui, sans-serif',
+};
+
 /** A scene's seconds: as set, else by how much there is to read. */
 export function secondsOf(s: PromoScene): number {
   if (s.kind === "take") return (s.to ?? s.from + 4) - s.from;
   if (s.seconds) return s.seconds;
   switch (s.kind) {
-    case "text":
+    case "text": {
+      const swaps = (s.swap.length * SWAP_BEATS) / PROMO_FPS;
+      if (s.style === "caps") return s.lines.join(" ").length / TYPE_CPS + 1.2 + swaps;
+      if (s.style === "card") return 1.6 + swaps;
       return clamp(1.4 + words(s.lines.join(" ")).length * 0.3, 2, 6);
+    }
     case "toasts":
       return 1.2 + s.items.length * 0.55 + 1.4;
     case "screen":
@@ -192,7 +242,7 @@ export function secondsOf(s: PromoScene): number {
     case "stat":
       return 3.2;
     case "end":
-      return 3;
+      return (s.tagline ? TAGLINE_S : 0) + (s.mark === "pill" ? 4 : 3);
   }
 }
 
@@ -248,11 +298,12 @@ export type PromoProps = {
 
 /**
  * A promo's kit sounds, by scene: on each cut a whoosh by its entrance (a big low whoosh for a
- * pull-back, a shutter for a flow's rush), a dark riser into the end card and one hit on it, a pop on
+ * pull-back, a shutter for a flow's rush, none for a dip), a dark riser into the end card and one hit on it, a pop on
  * each toast and a ding as the numbers start. No voice to duck under.
  */
 export const PROMO_SOUNDS = {
   rise: "whoosh.short",
+  dip: null,
   wipe: "whoosh.short",
   "pull-back": "whoosh.long",
   flow: "snap",
@@ -260,7 +311,7 @@ export const PROMO_SOUNDS = {
   end: "hit",
   toast: "pop",
   stat: "click.confirm",
-} as const satisfies Record<string, Role>;
+} as const satisfies Record<string, Role | null>;
 
 /** A take's sounds by what the log says (`TAKE_SOUNDS`); the zoom's whoosh sits under the clicks. */
 export const TAKE_SOUNDS = {
@@ -306,7 +357,10 @@ function promoSounds(scenes: readonly TimedScene[]): [number, string, number?][]
   for (const [i, s] of scenes.entries()) {
     if (i > 0 && s.kind === "end")
       out.push([at(s.from), PROMO_SOUNDS.riser], [at(s.from), PROMO_SOUNDS.end]);
-    else if (i > 0) out.push([at(s.from), PROMO_SOUNDS[s.enter]]);
+    else if (i > 0) {
+      const cut = PROMO_SOUNDS[s.enter];
+      if (cut) out.push([at(s.from), cut]);
+    }
     if (s.kind === "toasts")
       for (const j of s.items.keys()) {
         const beat = s.from + toastAt(j, !!s.title);
@@ -389,7 +443,8 @@ function takeShot(s: TakeScene & { to: number }, take: Take): TakeShot {
     beside: other ? shotPane(take, other, at, s.title) : null,
     moves,
     cursor: pane.kind === "web" ? cursorTrack(events) : null,
-    sounds: takeSounds(shown, moves, seconds),
+    // Under a lens the camera's zoom is not shown, so no whoosh on it.
+    sounds: takeSounds(shown, s.lens ? [] : moves, seconds),
   };
 }
 
@@ -440,7 +495,7 @@ export function promoProps(
     width,
     height,
     look: {
-      ...DEFAULT_LOOK,
+      ...(script.theme === "dark" ? DARK_LOOK : DEFAULT_LOOK),
       ...Object.fromEntries(Object.entries(script.look).filter(([, v]) => v !== undefined)),
     },
     audio: promoAudio(script.music, script.sounds ? promoSounds(scenes) : [], o.musicLufs, fps),

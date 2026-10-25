@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@remotion/cli": "4.0.533",
+    "@remotion/google-fonts": "4.0.533",
     "@wren/core": "workspace:*",
     "@wren/db": "workspace:*",
     "@wren/research": "workspace:*",
