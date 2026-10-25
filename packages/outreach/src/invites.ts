@@ -17,6 +17,7 @@ import { addProspects, setContactState } from "./contacts.js";
 import { enroll } from "./enroll.js";
 import { type ReachPolicy, standingOf } from "./policy.js";
 import { type InviteFit, type ReachAccount, reachContacts, reachMessages } from "./schema.js";
+import { forgetUnsure, settleSent } from "./send-attempts.js";
 import type { ReachSequence } from "./sequences.js";
 import type { Journal } from "./tick.js";
 import { keepTouch, touchInvites } from "./touches.js";
@@ -540,7 +541,10 @@ async function lostInvites(
   return rows.map((r) => ({ contactId: r.contact_id, messageId: r.id, handle: r.handle }));
 }
 
-/** What the site says of a lost invite: out (`sent`), accepted, or never sent (`failed`). */
+/**
+ * What the site says of a lost invite: out (`sent`), accepted, or never sent (`failed`). Its
+ * unsure ledger row closes with it, so To approve no longer asks a person.
+ */
 async function settleLost(
   db: Queryable,
   inv: { contactId: number; messageId: number },
@@ -552,6 +556,7 @@ async function settleLost(
       .update(reachMessages)
       .set({ state: "sent", stateReason: "lost send: the site shows the invite" })
       .where(eq(reachMessages.id, inv.messageId));
+    await settleSent(db, `dm:${inv.messageId}`, { ref: null, at: now, by: "site", now });
     if (rel === "pending") return "sent";
     await db
       .update(reachContacts)
@@ -567,6 +572,7 @@ async function settleLost(
       .set({ state: "failed", stateReason: reason })
       .where(eq(reachMessages.id, inv.messageId));
     await setContactState(db, inv.contactId, "unreachable", { reason, now });
+    await forgetUnsure(db, `dm:${inv.messageId}`);
     return "failed";
   }
   return null;

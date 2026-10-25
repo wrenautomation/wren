@@ -31,6 +31,7 @@ import {
 import { DEFAULT_POLICY, type ReachPolicy } from "../../src/policy.js";
 import { dmRecord, inviteRecord } from "../../src/records.js";
 import { type ReachAccount, reachContacts, reachMessages } from "../../src/schema.js";
+import { parkUnsure, sendAttempt } from "../../src/send-attempts.js";
 import { CONNECT_NOTE, REACH_SEQUENCES, slotsOf } from "../../src/sequences.js";
 import { setTemplate } from "../../src/store.js";
 import { tick } from "../../src/tick.js";
@@ -407,11 +408,23 @@ describe("linkedin invites", () => {
     await tickAt(OPEN);
     const alice = await contactOf("alice-a");
     const bob = await contactOf("bob-d");
-    // Bob's send was lost on the way: `unknown`, never resent.
-    await db()
+    // Bob's send was lost on the way: `unknown`, never resent, waiting in To approve.
+    const [lostDm] = await db()
       .update(reachMessages)
       .set({ state: "unknown" })
-      .where(eq(reachMessages.contactId, bob.id));
+      .where(eq(reachMessages.contactId, bob.id))
+      .returning({ id: reachMessages.id });
+    await parkUnsure(db(), {
+      item: `dm:${lostDm?.id}`,
+      platform: "linkedin",
+      account: acct.account,
+      words: "",
+      target: "bob-d",
+      url: null,
+      now: at(2),
+      why: "this route has no verify read",
+      tries: 1,
+    });
     const on = new Date("2026-10-03T00:00:00Z");
     const rows = [
       { handle: "alice-a", name: "Alice Test", url: null, headline: null, connectedOn: on },
@@ -442,6 +455,11 @@ describe("linkedin invites", () => {
     expect(zed.connectedAt).toEqual(on);
     // The site shows Bob's invite: it went out after all.
     expect(await statuses()).toMatchObject({ "bob-d": "pending" });
+    // Its To approve row closes with it.
+    expect(await sendAttempt(db(), `dm:${lostDm?.id}`)).toMatchObject({
+      state: "sent",
+      settledBy: "site",
+    });
     // Zed never got our invite: no "just accepted" first message, no invite record.
     const invites = (await inviteRecord.rows?.(db())) ?? [];
     expect(invites.map((r) => r.who)).not.toContain("Zed Hand");
