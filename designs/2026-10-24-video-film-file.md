@@ -65,7 +65,7 @@ Sourcing (builder researches, William's yes on the pick before it ships):
 Use in renders:
 - New edit field `sounds: { at, id, gainDb }[]` (raw seconds), and `music: { id, gainDb, duck: true } | null`.
 - Remotion `<Audio>` per sound and the bed. Voice stays at -14 LUFS; effects sit near -24, the bed near -30 and ducks 8 dB under speech (from `words` times).
-- Auto-placement, deterministic, per format: a click on each Cap click event, a swish on each crop or layout change, a pop on each overlay in, a key bed under terminal typing (Cap key events), a low hit on the title card. The edit pass may add or remove; a person's choice locks.
+- Auto-placement, deterministic, per format: a click on each click event, a swish on each crop or layout change, a pop on each overlay in, a key bed under terminal typing (key events), a low hit on the title card. The edit pass may add or remove; a person's choice locks.
 - Long videos get fewer: no swish on plain cuts.
 
 Built (2026-10-24, wa-qtyo.3). What changed from the plan, and why:

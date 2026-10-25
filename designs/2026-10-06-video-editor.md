@@ -483,3 +483,5 @@ Answered 10-06: agreed; OBS; captions on the long video and Shorts.
   his eyes in the face-on-top layout, on from frame 0 (the cover), gone at 3 s; per Short `card` /
   `cardText`. The approved drafts got the new render without a new approval (`video swap`); TikTok
   drafts stay waiting.
+- 2026-10-24: William: Cap is dropped; he records with OBS only. `cap.ts` still reads a Cap project
+  and the sound rules still take click and key events, but no recorder gives them yet.
