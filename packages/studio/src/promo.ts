@@ -23,7 +23,6 @@ export * from "./promo-clock.js";
 
 export const PROMO_FPS = 30;
 const PROMO_SIZE = { wide: [1920, 1080], tall: [1080, 1920] } as const;
-export type PromoFormat = keyof typeof PROMO_SIZE;
 
 const unit = z.number().min(0).max(1);
 const seconds = z

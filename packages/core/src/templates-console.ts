@@ -110,7 +110,6 @@ const stateView = (s: TemplateState) => ({
   editable: LIBRARY_EDITS.has(s.kind),
   sends: SENDS.has(s.kind),
 });
-export type TemplateView = ReturnType<typeof stateView>;
 
 const REF = z.string().max(200).describe("<kind>:<system>/<name>");
 const WHY = z.string().max(500).nullish().describe("One line: why");

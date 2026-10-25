@@ -223,5 +223,3 @@ export function makeTouchFeed(d: TouchFeedDeps) {
     return outcome;
   });
 }
-
-export type TouchFeedService = ReturnType<typeof makeTouchFeed>;

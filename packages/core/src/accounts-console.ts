@@ -590,7 +590,6 @@ export function accountsApi(deps: AccountsDeps) {
     },
   };
 }
-export type AccountsApi = ReturnType<typeof accountsApi>;
 
 const ACCOUNT = z.number().int().positive().describe("The account's id");
 const SETUP = z.string().max(64).describe("The setup's id: setup.texting");

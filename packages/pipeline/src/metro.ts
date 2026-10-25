@@ -65,7 +65,6 @@ export const LOGIC_KINDS = [
   "approval",
   "link",
 ] as const satisfies readonly StationKind[];
-export type LogicKind = (typeof LOGIC_KINDS)[number];
 
 /** A track with none of these is a plain track. */
 export const TRACK_KINDS = ["exit", "xfer", "back"] as const;

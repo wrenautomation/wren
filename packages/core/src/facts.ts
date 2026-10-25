@@ -38,7 +38,6 @@ const factsSettingsSchema = z
       .default([...DEFAULT_FACTS]),
   })
   .strict();
-export type FactsSettings = z.infer<typeof factsSettingsSchema>;
 
 /** Wren's facts: the saved block, or the default when none is saved or it doesn't parse. */
 export async function wrenFacts(db: Queryable): Promise<string[]> {

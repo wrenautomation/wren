@@ -113,6 +113,3 @@ export function makePeopleMapNet(d: Pick<PeopleMapDeps, "main" | "clients">) {
     return outcome;
   });
 }
-
-export type PeopleMapService = ReturnType<typeof makePeopleMap>;
-export type PeopleMapNetService = ReturnType<typeof makePeopleMapNet>;

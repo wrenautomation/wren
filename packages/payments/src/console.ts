@@ -596,4 +596,3 @@ export function makePaymentsConsole(deps: PaymentsConsoleDeps) {
     },
   });
 }
-export type PaymentsConsoleService = ReturnType<typeof makePaymentsConsole>;

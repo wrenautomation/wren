@@ -39,7 +39,6 @@ export const missedCallSettingsSchema = z
       .describe("Your time zone, for texting hours (like America/Chicago)"),
   })
   .strict();
-export type MissedCallSettings = z.infer<typeof missedCallSettingsSchema>;
 
 export const reviewsSettingsSchema = z
   .object({
@@ -57,7 +56,6 @@ export const reviewsSettingsSchema = z
       .describe("Ask the same person at most once in this many days"),
   })
   .strict();
-export type ReviewsSettings = z.infer<typeof reviewsSettingsSchema>;
 
 export const SMS_COMPONENTS = [
   defineComponent({

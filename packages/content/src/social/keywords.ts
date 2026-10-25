@@ -33,14 +33,6 @@ export const saysKeyword = (comment: string, keyword: string) => {
   return !!k && ` ${wordsOf(comment)} `.includes(` ${k} `);
 };
 
-export interface KeywordInput {
-  keyword: string;
-  dm: string;
-  reply?: string | null;
-  platform?: KeywordPlatform | null;
-  post?: string | null;
-}
-
 const INPUT = z
   .object({
     keyword: z.string().transform(wordsOf).pipe(z.string().min(1, "say the keyword").max(40)),
