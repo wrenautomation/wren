@@ -7,7 +7,7 @@
  */
 import { DOOR_TRIGGERS } from "@wren/core/logic";
 import type { RecordAnswer, RecordsPage, RecordsStat } from "@wren/core/records/serve";
-import { isMade, type Wire } from "@wren/core/workflows";
+import { isMade } from "@wren/core/workflows";
 import {
   ACTIONS,
   Alert,
@@ -58,8 +58,9 @@ import {
   trailIsFor,
   type Where,
 } from "./canvas.js";
+import { useCanvasEdit } from "./canvas-edit.js";
 import { DoorStrip, type Fresh } from "./doors.js";
-import { type DryStep, dryNodes } from "./dry.js";
+import { dryNodes } from "./dry.js";
 import {
   AskGraph,
   EditBar,
@@ -121,8 +122,6 @@ type Detail = {
 const EMPTY: Draft = { wires: [], steps: [] };
 /** What the editor saves: the graph, and a made workflow's name. */
 type Kept = { draft: Draft; name: string };
-/** How far Undo goes back. */
-const UNDO_MOST = 50;
 
 /** The first of Wren's lists over `c`'s record, on its view. */
 const recordsAt = (c: CountRef) => {
@@ -383,23 +382,6 @@ function Canvas({
   const code = d.code ?? EMPTY;
   // The draft kept on the server, or what's live when there's none.
   const stored = d.draft ? (d.draft.edits ?? code) : first;
-  const [editing, setEditing] = useState(false);
-  const [undo, setUndo] = useState<Draft[]>([]);
-  const [picked, setPicked] = useState<{ from: string; to: string } | null>(null);
-  const [sel, setSel] = useState<string | null>(null);
-  const [adding, setAdding] = useState(false);
-  const [choices, setChoices] = useState<Wire[]>([]);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  // The builder's first ask (`?ask=`), waited on as the editor opens; cleared once answered.
-  const [pending, setPending] = useState<string | null>(params.get("ask"));
-  // Claude's answer on the graph: shown as a diff over the draft until he accepts or rejects it.
-  const [proposal, setProposal] = useState<{ reply: string; patch: Draft | null } | null>(null);
-  // Publishing a workflow that sends or spends asks its id typed back: the server names the effects.
-  const [confirm, setConfirm] = useState<{ asks: string } | null>(null);
-  // Test workflow: its panel, and the steps of the last dry run, lit until the draft changes.
-  const [testing, setTesting] = useState(false);
-  const [tested, setTested] = useState<{ steps: readonly DryStep[]; from: string } | null>(null);
   // The draft (and a made workflow's name) as he edits it, through the save engine: kept on this
   // device as he goes, so a reload or a closed tab gives it back; saved on Save draft and before
   // Publish, over the newest save the editor read (draft or live). One made elsewhere since is a
@@ -436,21 +418,24 @@ function Canvas({
     live.current = next;
     kept.set(next);
   };
+  // Everything around the draft: open or not, Undo, panels, Claude's answer, errors, the dry test.
+  const {
+    s,
+    send,
+    change: setDraft,
+    undo: undoOne,
+  } = useCanvasEdit({
+    ask: params.get("ask"),
+    now: () => live.current.draft,
+    set: (next) => put({ draft: next }),
+  });
+  const { editing, sel, picked, adding, choices, busy, error, proposal, confirm, testing, tested } =
+    s;
   const draft = editing ? kept.value.draft : null;
   const name = kept.value.name;
   const setName = (n: string) => put({ name: n });
-  const setDraftNow = (next: Draft) => {
-    put({ draft: next });
-    setEditing(true);
-  };
   const dirty = editing && kept.dirty;
   const actionKey = `${client ?? ""}:${w.id}`;
-  /** Every change to the draft goes through here, so Undo can step back. */
-  const setDraft = (next: Draft) => {
-    if (draft) setUndo((u) => [...u.slice(-(UNDO_MOST - 1)), draft]);
-    setDraftNow(next);
-    setTested(null);
-  };
   const shown = useMemo(() => {
     if (!draft) return w;
     if (proposal?.patch) return drawnDiff(w, first, draft, proposal.patch, palette).drawn;
@@ -516,18 +501,10 @@ function Canvas({
     if (opened.current || !team) return;
     if (params.get("edit") !== "1" && !test && !back) return;
     opened.current = true;
-    setEditing(true);
+    send({ type: "open", testing: test });
     if (back) say.done("Your unsaved changes are back.");
-    if (test) setTesting(true);
-  }, [team, params, back]);
+  }, [team, params, back, send]);
 
-  const undoOne = () => {
-    const last = undo.at(-1);
-    if (!last) return;
-    setUndo((u) => u.slice(0, -1));
-    setDraftNow(last);
-    setTested(null);
-  };
   // `/` opens the palette and Ctrl or Cmd Z undoes while editing, unless he's typing.
   useEffect(() => {
     if (!draft) return;
@@ -536,7 +513,7 @@ function Canvas({
       if (t?.closest("input, textarea, select, [contenteditable]")) return;
       if (e.key === "/") {
         e.preventDefault();
-        setAdding(true);
+        send({ type: "palette", open: true });
       } else if (e.key === "z" && (e.metaKey || e.ctrlKey) && !e.shiftKey) {
         e.preventDefault();
         undoOne();
@@ -559,12 +536,9 @@ function Canvas({
       connect: (a, b, ports) => {
         const ps = pairsOf(shown, a, b, ports);
         if (ps.length === 1 && ps[0]) setDraft(wired(draft, ps[0]));
-        else setChoices(ps);
+        else send({ type: "choices", wires: ps });
       },
-      pick: (a, b) => {
-        setSel(null);
-        setPicked({ from: a, to: b });
-      },
+      pick: (a, b) => send({ type: "pick", wire: { from: a, to: b } }),
     };
   }, [draft, shown, proposal]);
 
@@ -573,17 +547,13 @@ function Canvas({
     const got = addNode(shown, draft, uses, palette);
     if (!got) return;
     setDraft(got.draft);
-    setPicked(null);
-    setSel(got.id);
+    send({ type: "select", id: got.id });
   };
 
-  const answered = useCallback((reply: string, patch: Draft | null) => {
-    setPending(null);
-    setSel(null);
-    setPicked(null);
-    setAdding(false);
-    setProposal({ reply, patch });
-  }, []);
+  const answered = useCallback(
+    (reply: string, patch: Draft | null) => send({ type: "answered", reply, patch }),
+    [send],
+  );
 
   const body = ({ draft: x, name: n }: Kept) => ({
     workflow: w.id,
@@ -598,8 +568,7 @@ function Canvas({
   const drop = () =>
     ACTIONS.run(`workflow-delete:${actionKey}`, async (requestId) => {
       if (!window.confirm(`Delete ${w.name}? Its drafts go too.`)) return;
-      setBusy(true);
-      setError(null);
+      send({ type: "busy", on: true, clear: true });
       try {
         await call("console/workflowDelete", {
           workflow: w.id,
@@ -611,33 +580,17 @@ function Canvas({
       } catch (err) {
         failed(err);
       }
-      setBusy(false);
+      send({ type: "busy", on: false });
     });
-  const failed = (err: unknown) => {
-    const m = err instanceof Error ? err.message : String(err);
-    if (/to confirm$/.test(m)) setConfirm({ asks: m });
-    else setError(m);
-  };
-  const close = () => {
-    setEditing(false);
-    setUndo([]);
-    setProposal(null);
-    setChoices([]);
-    setError(null);
-    setConfirm(null);
-    setSel(null);
-    setPicked(null);
-    setAdding(false);
-    setTesting(false);
-    setTested(null);
-  };
+  const failed = (err: unknown) =>
+    send({ type: "failed", message: err instanceof Error ? err.message : String(err) });
+  const close = () => send({ type: "close" });
   /** Publish: saved first when it changed since, then live. A sending one asks its id typed. */
   // What he types while it publishes stays open as the next draft, never dropped by the close.
   const publish = (typed?: string) =>
     ACTIONS.run(`workflow-publish:${actionKey}`, async (requestId) => {
       if (!editing) return;
-      setBusy(true);
-      setError(null);
+      send({ type: "busy", on: true, clear: true });
       try {
         // A conflict or a refusal on the save shows on the bar; nothing publishes.
         if (!(await kept.flush())) return;
@@ -662,7 +615,7 @@ function Canvas({
         }
         if (live.current === sent) close();
         else {
-          setConfirm(null);
+          send({ type: "cancel" });
           say.done("Published. What you changed since is still open.");
         }
         onSaved();
@@ -670,14 +623,14 @@ function Canvas({
         failed(err);
         onSaved();
       } finally {
-        setBusy(false);
+        send({ type: "busy", on: false });
       }
     });
   const discard = () =>
     ACTIONS.run(`workflow-discard:${actionKey}`, async (requestId) => {
       if (kept.dirty && !window.confirm("Throw away your changes?")) return;
       if (d.draft) {
-        setBusy(true);
+        send({ type: "busy", on: true });
         try {
           await call("console/workflowDiscard", {
             workflow: w.id,
@@ -688,7 +641,7 @@ function Canvas({
         } catch (err) {
           return failed(err);
         } finally {
-          setBusy(false);
+          send({ type: "busy", on: false });
         }
         onSaved();
       }
@@ -719,14 +672,9 @@ function Canvas({
         ? {
             selected: sel,
             onDrop: add,
-            onPane: () => {
-              setSel(null);
-              setPicked(null);
-            },
+            onPane: () => send({ type: "select", id: null }),
             onOpen: (id: string) => {
-              if (proposal) return;
-              setPicked(null);
-              setSel(id);
+              if (!proposal) send({ type: "select", id });
             },
           }
         : {
@@ -754,7 +702,7 @@ function Canvas({
         client={client}
         workflow={w.id}
         onOpenPart={(uses) => navigate(href(PAGE, { component: uses, tab: null }, params))}
-        onClose={() => setSel(null)}
+        onClose={() => send({ type: "select", id: null })}
         test={<TestStep w={shown} workflow={w.id} client={client} draft={draft} node={sel} />}
         mayManage={mayManage}
         fresh={fresh}
@@ -767,7 +715,7 @@ function Canvas({
         setDraft={setDraft}
         from={picked.from}
         to={picked.to}
-        onClose={() => setPicked(null)}
+        onClose={() => send({ type: "pick", wire: null })}
         editKey={keptKey ?? ""}
       />
     ) : null;
@@ -782,23 +730,22 @@ function Canvas({
           }
         >
           {adding ? null : (
-            <Button tone="secondary" size="dense" onClick={() => setAdding(true)}>
+            <Button
+              tone="secondary"
+              size="dense"
+              onClick={() => send({ type: "palette", open: true })}
+            >
               Add node <kbd className="ml-1 text-[11px] text-(--ui-ink-3)">/</kbd>
             </Button>
           )}
-          <Button tone="quiet" size="dense" onClick={undoOne} disabled={!undo.length || busy}>
+          <Button tone="quiet" size="dense" onClick={undoOne} disabled={!s.undo.length || busy}>
             Undo
           </Button>
           <Button
             tone="secondary"
             size="dense"
             disabled={!!proposal}
-            onClick={() => {
-              if (testing) setTested(null);
-              setTesting(!testing);
-              setSel(null);
-              setPicked(null);
-            }}
+            onClick={() => send({ type: "test" })}
           >
             {testing ? "Close test" : "Test workflow"}
           </Button>
@@ -810,7 +757,7 @@ function Canvas({
           <HistoryMenu
             versions={d.versions ?? []}
             onOpen={(v) => {
-              setProposal(null);
+              send({ type: "proposed" });
               setDraft(v.edits ?? code);
             }}
             save={{
@@ -873,7 +820,7 @@ function Canvas({
             id={w.id}
             busy={busy}
             onPublish={publish}
-            onCancel={() => setConfirm(null)}
+            onCancel={() => send({ type: "cancel" })}
           />
         ) : null}
         {error ? <Alert className="mb-3">{error}</Alert> : null}
@@ -895,9 +842,9 @@ function Canvas({
             changes={proposal.patch ? changesOf(draft, proposal.patch) : null}
             onAccept={() => {
               if (proposal.patch) setDraft(proposal.patch);
-              setProposal(null);
+              send({ type: "proposed" });
             }}
-            onReject={() => setProposal(null)}
+            onReject={() => send({ type: "proposed" })}
           />
         ) : (
           <div className="mb-3 flex">
@@ -906,7 +853,7 @@ function Canvas({
               client={client}
               draft={draft}
               onAnswer={answered}
-              pending={pending}
+              pending={s.pending}
             />
           </div>
         )}
@@ -920,7 +867,7 @@ function Canvas({
                 size="dense"
                 onClick={() => {
                   setDraft(wired(draft, x));
-                  setChoices([]);
+                  send({ type: "choices", wires: [] });
                 }}
               >
                 {endText(shown, x.from, "from")} → {endText(shown, x.to, "to")}
@@ -930,7 +877,11 @@ function Canvas({
         ) : null}
         <div className="relative">
           {adding ? (
-            <PaletteDrawer palette={palette} onAdd={add} onClose={() => setAdding(false)} />
+            <PaletteDrawer
+              palette={palette}
+              onAdd={add}
+              onClose={() => send({ type: "palette", open: false })}
+            />
           ) : null}
           {graphEl}
           {proposal ? null : side}
@@ -942,11 +893,8 @@ function Canvas({
                 workflow={w.id}
                 client={client}
                 draft={draft}
-                onResult={setTested}
-                onClose={() => {
-                  setTesting(false);
-                  setTested(null);
-                }}
+                onResult={(result) => send({ type: "tested", result })}
+                onClose={() => send({ type: "test" })}
               />
             </div>
           ) : null}
@@ -1010,7 +958,7 @@ function Canvas({
             tone="secondary"
             size="dense"
             className="max-[900px]:hidden"
-            onClick={() => setEditing(true)}
+            onClick={() => send({ type: "open" })}
           >
             {d.draft ? "Open draft" : "Edit"}
           </Button>
