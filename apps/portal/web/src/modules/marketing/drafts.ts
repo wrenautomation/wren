@@ -81,7 +81,8 @@ export const UNSURE_ACTIONS: Action[] = [
     handler: "marketing/sendPosted",
     confirm: "Did you see it on the site? We'll record it as sent and never send it again.",
     key: "a",
-    done: said("Marked posted."),
+    // It leaves To approve, and its open panel closes, the moment it's sent.
+    optimistic: "Marked posted",
   },
   {
     id: "marketing.sendAgain",
@@ -90,7 +91,7 @@ export const UNSURE_ACTIONS: Action[] = [
     handler: "marketing/sendAgain",
     confirm:
       "Send it again? We ask the site first, but if it went out and the site can't tell, it posts twice.",
-    done: said("Sending again."),
+    optimistic: "Sending again",
   },
   {
     id: "marketing.sendDrop",

@@ -8,7 +8,7 @@
  */
 import { newSendKey } from "@wren/core/send-verdict";
 import type { Queryable } from "@wren/db";
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { and, eq, gt, inArray, isNotNull, isNull, like, not, type SQL, sql } from "drizzle-orm";
 import { ReachRefusal } from "./refusal.js";
 import { type SendAttempt, sendAttempts } from "./schema.js";
 
@@ -17,6 +17,29 @@ const SENDING_STALE_MS = 10 * 60_000;
 
 export const UNSURE_WAITS =
   "may have gone out. It waits in To approve, where you can open it on the site, mark it posted, or send it again";
+
+/**
+ * A DM parked unsure only because its answer came late (the desk's queue can hold a send for
+ * many minutes): the sender asks autobrowse's verdict again each few minutes and settles it
+ * itself. It waits on a person only when the verdict stays open past `RECHECK_FOR_MS`, or says
+ * something else.
+ */
+export const RECHECK_WHYS = [
+  "the call is still running",
+  "the verdict is still being read",
+  "the send is still running",
+];
+export const RECHECK_FOR_MS = 2 * 60 * 60_000;
+export const RECHECK_EVERY_MS = 3 * 60_000;
+
+/** SQL true for an unsure row the sender still rechecks. */
+const rechecking = (now: Date) =>
+  and(
+    like(sendAttempts.item, "dm:%"),
+    isNotNull(sendAttempts.sendKey),
+    inArray(sendAttempts.why, RECHECK_WHYS),
+    gt(sendAttempts.startedAt, new Date(now.getTime() - RECHECK_FOR_MS)),
+  ) as SQL;
 
 /** Why a key-less `sending` row taken over waits on a person. */
 export const KEYLESS_TRY =
@@ -185,13 +208,22 @@ export async function sendAttempt(db: Queryable, item: string): Promise<SendAtte
   return row ?? null;
 }
 
-/** Every unsure item, newest first: To approve's rows. */
-export async function unsureSends(db: Queryable): Promise<SendAttempt[]> {
+/** Every unsure item a person decides, newest first: To approve's rows. Rechecks wait out of sight. */
+export async function unsureSends(db: Queryable, now = new Date()): Promise<SendAttempt[]> {
   return db
     .select()
     .from(sendAttempts)
-    .where(eq(sendAttempts.state, "unsure"))
+    .where(and(eq(sendAttempts.state, "unsure"), not(rechecking(now))))
     .orderBy(sql`${sendAttempts.updatedAt} desc`);
+}
+
+/** The unsure DMs the sender asks autobrowse about again, oldest first. */
+export async function sendsToRecheck(db: Queryable, now: Date): Promise<SendAttempt[]> {
+  return db
+    .select()
+    .from(sendAttempts)
+    .where(and(eq(sendAttempts.state, "unsure"), rechecking(now)))
+    .orderBy(sendAttempts.startedAt);
 }
 
 /**

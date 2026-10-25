@@ -30,6 +30,8 @@ interface SendOnce<S> {
   tried?: boolean;
   /** Guards that run before a first send (not on a take-over: our own earlier send is there). */
   before?: () => Promise<void>;
+  /** Only ask what became of the key's writes; write nothing (a recheck of an unsure send). */
+  verifyOnly?: boolean;
 }
 
 /** The platform said no to the write: the error `isRefusal` reads, with its status. */
@@ -45,12 +47,16 @@ export const refusalOf = (err: NotSent): SiteCallError => {
  * again by a caller that releases on a throw. Any other error is thrown (nothing left).
  */
 export async function sendOnce<S>(o: SendOnce<S>): Promise<SendOutcome<S>> {
-  if (!o.tried) await o.before?.();
+  if (!o.tried && !o.verifyOnly) await o.before?.();
   const trace: SendTrace = { wrote: false };
   try {
     return {
       kind: "sent",
-      sent: await withSendKey(o.key, o.send, { recheck: o.tried === true, trace }),
+      sent: await withSendKey(o.key, o.send, {
+        recheck: o.tried === true || o.verifyOnly === true,
+        verifyOnly: o.verifyOnly === true,
+        trace,
+      }),
     };
   } catch (err) {
     if (err instanceof SentFound)

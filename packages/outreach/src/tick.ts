@@ -54,7 +54,15 @@ import {
   reachContacts,
   reachMessages,
 } from "./schema.js";
-import { parkUnsure } from "./send-attempts.js";
+import {
+  forgetUnsure,
+  parkUnsure,
+  RECHECK_EVERY_MS,
+  RECHECK_WHYS,
+  sendsToRecheck,
+  settleSent,
+  settleUnsure,
+} from "./send-attempts.js";
 import { dmSeed, type ReachSequence, render, stepKey, subjectKey } from "./sequences.js";
 import { liveDms } from "./store.js";
 import { keepTouch, touchFromMessage } from "./touches.js";
@@ -687,6 +695,7 @@ export async function tick(
     merge(stats, s);
     return s;
   };
+  await recheckUnsure(db, o, run, stepStats);
   for (const c of candidates) {
     const channel = o.channelFor(c.account);
     if (!channel || (c.checkRelationship && !channel.relationship)) {
@@ -728,10 +737,7 @@ export async function tick(
       // resent.
       const got = await sendOnce<Sent | NoInvite>({
         key: sendKey,
-        send: () =>
-          c.row.kind === "connect"
-            ? (channel.connect as NonNullable<typeof channel.connect>)(c.contact.handle, words)
-            : channel.message(c.contact.handle, words ?? "", c.row.subject),
+        send: () => sendCall(channel, c, words),
       });
       if (got.kind === "unsure") {
         const why = got.why;
@@ -761,8 +767,126 @@ export async function tick(
   return stats;
 }
 
-/** The soonest outbound row queued after `now`, ISO, or null: the sender sleeps until then. */
+/** The platform call a candidate's send makes: an invite, or a message. */
+const sendCall = (channel: OutreachChannel, c: Candidate, words: string | null) =>
+  c.row.kind === "connect"
+    ? (channel.connect as NonNullable<typeof channel.connect>)(c.contact.handle, words)
+    : channel.message(c.contact.handle, words ?? "", c.row.subject);
+
+/** An unsure DM the sender asks about again: its candidate, ledger item, key and words. */
+interface Recheck {
+  c: Candidate;
+  item: string;
+  key: string;
+  words: string | null;
+}
+
+async function recheckPlan(db: Queryable, now: Date): Promise<Recheck[]> {
+  const out: Recheck[] = [];
+  for (const a of await sendsToRecheck(db, now)) {
+    const [row] = await db
+      .select()
+      .from(reachMessages)
+      .where(
+        and(
+          eq(reachMessages.id, Number(a.item.slice("dm:".length))),
+          eq(reachMessages.state, "unknown"),
+        ),
+      );
+    if (!row?.accountId || !a.sendKey) continue;
+    const [contact] = await db
+      .select()
+      .from(reachContacts)
+      .where(eq(reachContacts.id, row.contactId));
+    const [account] = await db
+      .select()
+      .from(reachAccounts)
+      .where(eq(reachAccounts.id, row.accountId));
+    if (!contact || !account) continue;
+    out.push({
+      c: { row, contact, account, checkRelationship: false },
+      item: a.item,
+      key: a.sendKey,
+      words: row.kind === "connect" ? row.body || null : a.words,
+    });
+  }
+  return out;
+}
+
+/**
+ * Step 0: an unsure DM whose answer came late (designs/2026-10-16-maybe-sent.md). It asks
+ * autobrowse's verdict under its own key and writes nothing. Sent settles it as a send would; not
+ * sent queues it again; still running waits for the next pass; any other answer waits on a person.
+ */
+async function recheckUnsure(
+  db: Queryable,
+  o: TickOptions,
+  run: Journal,
+  stepStats: (name: string, body: (s: TickStats) => Promise<unknown>) => Promise<TickStats>,
+): Promise<void> {
+  const rechecks = await run("rechecks", () => recheckPlan(db, o.now));
+  for (const { c, item, key, words } of rechecks) {
+    const channel = o.channelFor(c.account);
+    if (!channel || (c.row.kind === "connect" && !channel.connect)) continue;
+    let got: Awaited<ReturnType<typeof sendOnce<Sent | NoInvite>>>;
+    try {
+      got = await sendOnce<Sent | NoInvite>({
+        key,
+        verifyOnly: true,
+        send: () => sendCall(channel, c, words),
+      });
+    } catch (err) {
+      // The platform said no to the first try: nothing went out. Else ask again next pass.
+      if (err instanceof SiteCallError && err.status >= 400 && err.status < 500)
+        await stepStats(`recheck failed ${c.row.id}`, async (s) => {
+          await recordFailure(db, c, err, o.now, s);
+          await forgetUnsure(db, item);
+        });
+      continue;
+    }
+    if (got.kind === "unsure") {
+      const why = got.why;
+      if (!RECHECK_WHYS.includes(why))
+        await run(`recheck unsure ${c.row.id}`, () => settleUnsure(db, item, { why, now: o.now }));
+      continue;
+    }
+    if (got.kind === "not_sent") {
+      const reason = got.reason;
+      await stepStats(`recheck not sent ${c.row.id}`, async (s) => {
+        await recordNotSent(db, c, reason, o.now, s);
+        await forgetUnsure(db, item);
+      });
+      continue;
+    }
+    const out: Sent | NoInvite =
+      got.kind === "sent"
+        ? got.sent
+        : { ref: got.seen.ref, at: got.seen.at ?? o.now.toISOString(), fetchedWith: "browser" };
+    await stepStats(`recheck sent ${c.row.id}`, async (s) => {
+      if ("noInvite" in out) {
+        await recordNoInvite(db, c, out, o, s);
+        await forgetUnsure(db, item);
+        return;
+      }
+      await recordSent(db, c, out, o, s);
+      await settleSent(db, item, { ref: out.ref, at: o.now, by: "autobrowse", now: o.now });
+    });
+  }
+}
+
+/**
+ * The soonest outbound row queued after `now`, ISO, or null: the sender sleeps until then. An
+ * unsure DM still rechecked wakes it within `RECHECK_EVERY_MS`.
+ */
 export async function nextDue(db: Queryable, now: Date): Promise<string | null> {
+  const recheck = (await sendsToRecheck(db, now)).length
+    ? new Date(now.getTime() + RECHECK_EVERY_MS).toISOString()
+    : null;
+  const queued = await queuedDue(db, now);
+  return queued && recheck ? (queued < recheck ? queued : recheck) : (queued ?? recheck);
+}
+
+async function queuedDue(db: Queryable, now: Date): Promise<string | null> {
   const [row] = await db
     .select({ at: sql<Date | string | null>`min(${reachMessages.dueAt})` })
     .from(reachMessages)

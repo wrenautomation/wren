@@ -19,6 +19,7 @@ import {
   SendUnknown,
   type SendVerdict,
   SentFound,
+  verifyingOnly,
 } from "@wren/core/send-verdict";
 import {
   commentObjects,
@@ -54,11 +55,19 @@ import {
   redditThreads,
   sendAttempts,
 } from "../../src/schema.js";
-import { claimSend, KEYLESS_TRY, parkUnsure, sendAttempt } from "../../src/send-attempts.js";
+import {
+  claimSend,
+  KEYLESS_TRY,
+  parkUnsure,
+  RECHECK_EVERY_MS,
+  RECHECK_FOR_MS,
+  sendAttempt,
+  unsureSends,
+} from "../../src/send-attempts.js";
 import { REACH_SEQUENCES, slotsOf, stepKey, subjectKey } from "../../src/sequences.js";
 import { dropItem, markPosted, requeueDm, SETTLE_OUTCOMES } from "../../src/settle-send.js";
 import { setTemplate } from "../../src/store.js";
-import { tick } from "../../src/tick.js";
+import { nextDue, tick } from "../../src/tick.js";
 
 let pg: TestPostgres;
 const db = () => pg.db;
@@ -647,6 +656,8 @@ describe("the sender's DMs", () => {
   let ch: ReturnType<typeof fakeOutreachChannel>;
   /** The key each message send ran under. */
   let keys: Array<string | null>;
+  /** What a recheck's verdict says; null = the send is still running. */
+  let verdict: Error | null;
   const channelFor = (_a: ReachAccount) => ch;
   const tickAt = (now: Date) =>
     tick(db(), {
@@ -662,8 +673,14 @@ describe("the sender's DMs", () => {
   beforeEach(async () => {
     ch = fakeOutreachChannel("reddit", { account: "reddit@alt" });
     keys = [];
+    verdict = null;
     const send = ch.message.bind(ch);
     ch.message = async (...a) => {
+      // A recheck writes nothing: it answers the verdict autobrowse holds for the key.
+      if (verifyingOnly()) {
+        if (verdict) throw verdict;
+        throw new SendUnknown("the send is still running", AT);
+      }
       keys.push(currentSendKey());
       return send(...a);
     };
@@ -747,6 +764,72 @@ describe("the sender's DMs", () => {
     expect(m?.state).toBe("failed");
     const [c] = await db().select().from(reachContacts);
     expect(c?.state).toBe("unreachable");
+  });
+
+  describe("an answer that came late (still running): the sender asks again and settles it", () => {
+    const LATER = new Date(NOW.getTime() + RECHECK_EVERY_MS);
+    const late = async () => {
+      ch.faults.push({ err: new SendUnknown("the call is still running", AT), landed: true });
+      await tickNow();
+      const [m] = await db().select().from(reachMessages);
+      return { id: m?.id ?? 0, item: `dm:${m?.id}` };
+    };
+
+    it("waits out of To approve; the next pass wakes in minutes", async () => {
+      const { item } = await late();
+      expect(await sendAttempt(db(), item)).toMatchObject({ state: "unsure" });
+      expect(await unsureSends(db(), NOW)).toHaveLength(0);
+      expect(await nextDue(db(), NOW)).toBe(LATER.toISOString());
+      // Still running: it stays as it is, and nothing is written again.
+      await tickAt(LATER);
+      expect(ch.sent).toHaveLength(1);
+      expect(await sendAttempt(db(), item)).toMatchObject({ state: "unsure" });
+    });
+
+    it("sent: recorded as a send would, by autobrowse, sent once", async () => {
+      const { item } = await late();
+      verdict = new SentFound("msg_1", null, AT);
+      const stats = await tickAt(LATER);
+      expect(stats.sent).toBe(1);
+      expect(stats.stepped).toHaveLength(1);
+      expect(ch.sent).toHaveLength(1);
+      const [m] = await db().select().from(reachMessages);
+      expect(m).toMatchObject({ state: "sent", ref: "msg_1" });
+      expect(await sendAttempt(db(), item)).toMatchObject({
+        state: "sent",
+        settledBy: "autobrowse",
+      });
+    });
+
+    it("not sent: queued again, and it goes under a new key", async () => {
+      const { item } = await late();
+      verdict = new NotSent("before_submit", "the page never loaded");
+      expect((await tickAt(LATER)).held["not-sent"]).toBe(1);
+      expect(await sendAttempt(db(), item)).toBeNull();
+      const [m] = await db().select().from(reachMessages);
+      expect(m?.state).toBe("queued");
+      expect((await tickAt(new Date(LATER.getTime() + 6 * 60_000))).sent).toBe(1);
+      expect(keys).toHaveLength(2);
+      expect(keys[0]).not.toBe(keys[1]);
+    });
+
+    it("another unknown: it waits on a person, with that reason", async () => {
+      const { item } = await late();
+      verdict = new SendUnknown("this route has no verify read", AT);
+      await tickAt(LATER);
+      expect(await sendAttempt(db(), item)).toMatchObject({
+        state: "unsure",
+        why: "this route has no verify read",
+      });
+      expect((await unsureSends(db(), LATER)).map((u) => u.item)).toEqual([item]);
+    });
+
+    it("still running past two hours: it waits on a person", async () => {
+      const { item } = await late();
+      const after = new Date(NOW.getTime() + RECHECK_FOR_MS + 60_000);
+      expect((await unsureSends(db(), after)).map((u) => u.item)).toEqual([item]);
+      expect(await nextDue(db(), after)).toBeNull();
+    });
   });
 
   it("Send again puts it back in the sender's queue", async () => {
