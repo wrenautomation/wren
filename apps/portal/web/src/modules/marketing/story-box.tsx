@@ -6,14 +6,13 @@
  */
 
 import type { Platform } from "@wren/core/content";
-import { ACTIONS, Button, cx, PlatformMark, Section } from "@wren/ui";
+import { ACTIONS, Button, cx, messageOf, Section } from "@wren/ui";
 import { useState } from "react";
-import { ApiError } from "../../api.js";
 import { useCall } from "../../load.js";
-import { ERROR, QUIET, TOOLS } from "../work/bits.js";
+import { QUIET } from "../work/bits.js";
 import { contentDesk } from "./desk.js";
+import { type Go, type Result, SendTools, said, WherePicker } from "./send-box.js";
 
-type Go = "draft" | "slot" | "now";
 const WHERE = ["instagram", "facebook"] as const satisfies readonly Platform[];
 type Where = (typeof WHERE)[number];
 const NAME: Record<Where, string> = { instagram: "Instagram story", facebook: "Facebook story" };
@@ -25,16 +24,8 @@ interface Clip {
   title: string;
   at: string;
 }
-interface Result {
-  platform: Where;
-  draftId: string | null;
-  reason: string | null;
-  at?: string | null;
-  held?: string;
-}
 
 const desk = contentDesk;
-const message = (err: unknown) => (err instanceof ApiError ? err.message : String(err));
 const day = (at: string) =>
   new Date(at).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 
@@ -63,23 +54,6 @@ async function shrink(file: File): Promise<{ name: string; data: string; url: st
   throw new Error("That photo won't fit in 2 MB");
 }
 
-function said(results: Result[], go: Go): string[] {
-  const made = results.filter((r) => r.draftId && !r.held);
-  const lines = [
-    made.length === 0
-      ? "Nothing was made."
-      : go === "draft"
-        ? `${made.length} saved as drafts. They wait in Studio.`
-        : go === "now"
-          ? `${made.length} posting on the next pass, within a few minutes.`
-          : `${made.length} scheduled at the next slots.`,
-  ];
-  for (const r of results)
-    if (r.reason) lines.push(`${NAME[r.platform]}: ${r.reason}.`);
-    else if (r.held) lines.push(`${NAME[r.platform]} waits as a draft: ${r.held}`);
-  return lines;
-}
-
 export function StoryBox(props: { demo?: boolean; only: Platform | null; made: () => void }) {
   const [where, setWhere] = useState<Where[]>(() =>
     props.only === "instagram" || props.only === "facebook" ? [props.only] : [...WHERE],
@@ -100,13 +74,13 @@ export function StoryBox(props: { demo?: boolean; only: Platform | null; made: (
       setPhoto(await shrink(file));
       setClip(null);
     } catch (err) {
-      setError(message(err));
+      setError(messageOf(err));
     } finally {
       setBusy(null);
     }
   };
 
-  const ready = (photo || clip) && where.length > 0 && !busy && !props.demo;
+  const ready = !!(photo || clip) && where.length > 0 && !busy && !props.demo;
   const send = async (go: Go) => {
     if (go === "now" && !sure) {
       setSure(true);
@@ -119,24 +93,25 @@ export function StoryBox(props: { demo?: boolean; only: Platform | null; made: (
     try {
       // One press, one story: a second while it's out gets the first's answer.
       const out = (await ACTIONS.run(`studio:story:${go}`, (requestId) =>
-        desk<{ posts: { results: Result[] }[] }>("story", {
+        desk<{ posts: { results: Result<Where>[] }[] }>("story", {
           platforms: where,
           ...(photo ? { photo: { name: photo.name, data: photo.data } } : { clip }),
           go,
           requestId,
         }),
-      )) as { posts: { results: Result[] }[] };
+      )) as { posts: { results: Result<Where>[] }[] };
       setLines(
         said(
           out.posts.flatMap((p) => p.results),
           go,
+          NAME,
         ),
       );
       setPhoto(null);
       setClip(null);
       props.made();
     } catch (err) {
-      setError(message(err));
+      setError(messageOf(err));
     } finally {
       setBusy(null);
     }
@@ -199,55 +174,17 @@ export function StoryBox(props: { demo?: boolean; only: Platform | null; made: (
             </Button>
           </div>
         ) : null}
-        <fieldset className="m-0 flex flex-wrap items-center gap-2 border-0 p-0">
-          <legend className="sr-only">Where it goes</legend>
-          {WHERE.map((p) => {
-            const on = where.includes(p);
-            return (
-              <Button
-                key={p}
-                size="dense"
-                tone={on ? "primary" : "secondary"}
-                aria-pressed={on}
-                onClick={() => setWhere((w) => (on ? w.filter((x) => x !== p) : [...w, p]))}
-              >
-                <span className="inline-flex items-center gap-1.5">
-                  <PlatformMark mark={p} size={13} />
-                  {NAME[p]}
-                </span>
-              </Button>
-            );
-          })}
-        </fieldset>
-        <div className={TOOLS}>
-          <Button
-            size="dense"
-            tone="secondary"
-            disabled={!ready}
-            onClick={() => void send("draft")}
-          >
-            {busy === "draft" ? "Saving…" : "Save as drafts"}
-          </Button>
-          <Button size="dense" tone="secondary" disabled={!ready} onClick={() => void send("slot")}>
-            {busy === "slot" ? "Scheduling…" : "Schedule"}
-          </Button>
-          <Button tone="primary" size="dense" disabled={!ready} onClick={() => void send("now")}>
-            {busy === "now" ? "Posting…" : sure ? `Post ${where.length} now?` : "Post now"}
-          </Button>
-          {sure ? (
-            <Button size="dense" tone="quiet" onClick={() => setSure(false)}>
-              Cancel
-            </Button>
-          ) : null}
-        </div>
-        {lines.length ? (
-          <ul className="m-0 grid list-none gap-1 p-0 text-[14px]">
-            {lines.map((l) => (
-              <li key={l}>{l}</li>
-            ))}
-          </ul>
-        ) : null}
-        {error ? <p className={ERROR}>{error}</p> : null}
+        <WherePicker all={WHERE} name={NAME} where={where} onChange={setWhere} />
+        <SendTools
+          ready={ready}
+          busy={busy}
+          sure={sure}
+          count={where.length}
+          send={(go) => void send(go)}
+          cancel={() => setSure(false)}
+          lines={lines}
+          error={error}
+        />
       </div>
     </Section>
   );

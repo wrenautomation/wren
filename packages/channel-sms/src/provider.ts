@@ -14,6 +14,37 @@ import { SmsRefusal } from "./refusal.js";
 import type { LineType, Service } from "./schema.js";
 import type { Keyword } from "./templates.js";
 
+/**
+ * One JSON call to a carrier with its bearer key: the status and the parsed body, or what
+ * `unparsed` makes of the first 300 characters when the body isn't JSON.
+ */
+export async function callJson(
+  fetchImpl: typeof fetch,
+  base: string,
+  opts: { apiKey: string; timeoutMs?: number },
+  method: string,
+  path: string,
+  body: unknown,
+  unparsed: (text: string) => unknown,
+): Promise<{ status: number; json: unknown }> {
+  const res = await fetchImpl(`${base}${path}`, {
+    method,
+    headers: {
+      authorization: `Bearer ${opts.apiKey}`,
+      "content-type": "application/json",
+      accept: "application/json",
+    },
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    signal: AbortSignal.timeout(opts.timeoutMs ?? 20_000),
+  });
+  const text = await res.text();
+  try {
+    return { status: res.status, json: text ? JSON.parse(text) : null };
+  } catch {
+    return { status: res.status, json: unparsed(text.slice(0, 300)) };
+  }
+}
+
 export interface SendRequest {
   from: string;
   to: string;

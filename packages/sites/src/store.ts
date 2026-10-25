@@ -4,6 +4,7 @@
  */
 import { randomBytes } from "node:crypto";
 import { HOOK_PRESETS } from "@wren/core/door";
+import { UUID } from "@wren/core/ids";
 import {
   noteClientForm,
   noteProfileFrom,
@@ -49,7 +50,6 @@ import type { Content } from "./templates/types.js";
 export class SitesRefusal extends PortalRefusal {}
 
 const newPreviewToken = () => randomBytes(32).toString("base64url");
-export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * An editor's `expect` (the row's `updatedAt` as it read it) as a WHERE term: the row still holds

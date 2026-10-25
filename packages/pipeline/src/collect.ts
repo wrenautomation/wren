@@ -6,6 +6,7 @@
  */
 import { createHash } from "node:crypto";
 import type { Port } from "@wren/core/components";
+import { UUID } from "@wren/core/ids";
 import { profileEvents } from "@wren/core/profiles-schema";
 import type { Step } from "@wren/core/spine";
 import { defineWorkflow, type Workflow } from "@wren/core/workflows";
@@ -59,8 +60,6 @@ export function collectedDelta(data: Record<string, unknown>): number {
   if (data.change === "refunded") return -whole(data.refunded_cents);
   return 0;
 }
-
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** `profile_events.source_id` is 64 characters: a subject fits as a hash. */
 const lineId = (subject: string) => createHash("sha256").update(subject).digest("hex").slice(0, 40);

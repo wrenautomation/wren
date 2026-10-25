@@ -4,9 +4,8 @@
  * calendar's own ids). Each one's undo is Clear. Won queues onboarding; Not yet goes back to keep
  * warm in 30 days. Nothing sends to the lead.
  */
-import type { Action } from "@wren/ui";
+import { type Action, said } from "@wren/ui";
 
-const said = (line: string) => () => line;
 /** Every state a call can be marked from: over, or marked already. */
 const MARKABLE = ["past", "won", "not_yet", "no_show", "not_fit"] as const;
 const from = (but: string) => ({ status: MARKABLE.filter((s) => s !== but) });

@@ -11,7 +11,9 @@ import {
   Button,
   EditConflict,
   FactsTable,
+  HINT_CLASS,
   Input,
+  LABEL_CLASS,
   num,
   Pill,
   type RecordAct,
@@ -25,8 +27,6 @@ import { QUIET } from "../work/bits.js";
 import { RowsPanel } from "../work/rows-panel.js";
 import { Said, useRun } from "./detail.js";
 
-const LABEL = "text-[13px] font-medium text-(--ui-ink-2)";
-const HINT = "text-[12px] text-(--ui-ink-3)";
 const SELECT =
   "min-h-[38px] border border-(--ui-hair) bg-(--ui-paper) px-3 py-2 text-[14.5px] text-(--ui-ink) focus-visible:border-(--ui-focus) focus:outline-none";
 
@@ -117,7 +117,7 @@ function Running({ id, s, act }: { id: string; s: SplitResult; act: RecordAct })
         </p>
       ) : null}
       <div className="grid gap-2">
-        <span className={LABEL}>Weights</span>
+        <span className={LABEL_CLASS}>Weights</span>
         <div className="flex flex-wrap items-end gap-3">
           {s.split.arms.map((a, i) => (
             <label key={a.label} className="grid gap-1 text-[13px]">
@@ -161,7 +161,7 @@ function Running({ id, s, act }: { id: string; s: SplitResult; act: RecordAct })
           onTakeTheirs={edit.takeTheirs}
           what="The weights"
         />
-        <span className={HINT}>
+        <span className={HINT_CLASS}>
           1 to 100 each. Even is 1 and 1. <UnsavedMark edit={edit} />
         </span>
       </div>
@@ -222,7 +222,7 @@ function Start({ id, d, row, act }: { id: string; d: PageDetail; row: Row; act: 
         and each keeps the one they saw.
       </p>
       <fieldset className="grid gap-1.5">
-        <legend className={LABEL}>Split it with</legend>
+        <legend className={LABEL_CLASS}>Split it with</legend>
         {d.splitWith.map((p) => (
           <label key={p.id} className="flex items-center gap-2 text-[14px]">
             <input
@@ -232,13 +232,13 @@ function Start({ id, d, row, act }: { id: string; d: PageDetail; row: Row; act: 
               onChange={(e) => pick(p.id, e.target.checked)}
             />
             {p.title}
-            <span className={HINT}>/o/{p.slug}</span>
+            <span className={HINT_CLASS}>/o/{p.slug}</span>
             {p.variant ? <Tag tone="neutral">Variant</Tag> : null}
           </label>
         ))}
       </fieldset>
       <label className="grid max-w-[260px] gap-1">
-        <span className={LABEL}>What wins</span>
+        <span className={LABEL_CLASS}>What wins</span>
         <select className={SELECT} value={goal} onChange={(e) => setGoal(e.target.value as Goal)}>
           {(Object.keys(GOALS) as Goal[])
             .filter((g) => wren || g !== "won")
@@ -358,7 +358,7 @@ function Ended({ s, act }: { s: SplitResult; act: RecordAct }) {
           }
         />
       ) : null}
-      <span className={HINT}>
+      <span className={HINT_CLASS}>
         A retired page answers gone at its address. Its numbers stay here.
       </span>
       <Said said={said} />

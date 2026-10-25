@@ -26,7 +26,9 @@ import {
   CodeBlock,
   DeviceFrame,
   FactsTable,
+  HINT_CLASS,
   Input,
+  LABEL_CLASS,
   num,
   type RecordAct,
   type RecordExtras,
@@ -43,8 +45,6 @@ import type { ListPage } from "../../module.js";
 import { QUIET } from "../work/bits.js";
 import { Said, useRun } from "./detail.js";
 
-const LABEL = "text-[13px] font-medium text-(--ui-ink-2)";
-const HINT = "text-[12px] text-(--ui-ink-3)";
 const SELECT =
   "min-h-[38px] border border-(--ui-hair) bg-(--ui-paper) px-3 py-2 text-[14.5px] text-(--ui-ink) focus-visible:border-(--ui-focus) focus:outline-none";
 const rate = (n: number | null) => (n === null ? "" : `${(n * 100).toFixed(1)}%`);
@@ -93,7 +93,7 @@ function ShowRow({
   return (
     <div className="grid gap-2 bg-(--ui-fill) p-2">
       <div className="flex flex-wrap items-center gap-2 text-[13px]">
-        <span className={HINT}>Show only when</span>
+        <span className={HINT_CLASS}>Show only when</span>
         <select
           aria-label="Field it reads"
           className={SELECT}
@@ -147,7 +147,7 @@ function ShowRow({
         </div>
       ) : wantsValues ? (
         <label className="grid gap-1">
-          <span className={HINT}>Answers that count, one per line (any case)</span>
+          <span className={HINT_CLASS}>Answers that count, one per line (any case)</span>
           <Textarea
             rows={2}
             data-edit={editKey}
@@ -192,7 +192,7 @@ function FieldRow({
     <fieldset
       className={`grid min-w-0 gap-2 border-l-2 pl-3 ${f.kind === "step" ? "border-(--ui-ink-3)" : "border-(--ui-hair)"}`}
     >
-      <legend className={LABEL}>{f.kind === "step" ? "New step" : `Field ${i + 1}`}</legend>
+      <legend className={LABEL_CLASS}>{f.kind === "step" ? "New step" : `Field ${i + 1}`}</legend>
       <div className="grid gap-2 sm:grid-cols-[160px_minmax(0,1fr)]">
         <select
           aria-label="Kind"
@@ -244,7 +244,7 @@ function FieldRow({
       </div>
       {HAS_OPTIONS.has(f.kind) ? (
         <label className="grid gap-1">
-          <span className={HINT}>Choices, one per line</span>
+          <span className={HINT_CLASS}>Choices, one per line</span>
           <Textarea
             rows={3}
             data-edit={editKey}
@@ -256,7 +256,7 @@ function FieldRow({
       {HAS_RULES.has(f.kind) ? (
         <div className="flex flex-wrap items-end gap-2">
           <label className="grid gap-1">
-            <span className={HINT}>Rule</span>
+            <span className={HINT_CLASS}>Rule</span>
             <select
               className={SELECT}
               value={f.rule ?? ""}
@@ -274,7 +274,7 @@ function FieldRow({
             </select>
           </label>
           <label className="grid w-[96px] gap-1">
-            <span className={HINT}>Fewest letters</span>
+            <span className={HINT_CLASS}>Fewest letters</span>
             <Input
               type="number"
               min={0}
@@ -286,7 +286,7 @@ function FieldRow({
             />
           </label>
           <label className="grid w-[96px] gap-1">
-            <span className={HINT}>Most letters</span>
+            <span className={HINT_CLASS}>Most letters</span>
             <Input
               type="number"
               min={1}
@@ -302,7 +302,9 @@ function FieldRow({
       {CAN_HIDE(f.kind) ? <ShowRow f={f} above={above} set={set} /> : null}
       <div className="flex flex-wrap items-center gap-2">
         {f.kind === "step" ? (
-          <span className={HINT}>Back and Next show here; the fields below are the next step.</span>
+          <span className={HINT_CLASS}>
+            Back and Next show here; the fields below are the next step.
+          </span>
         ) : f.kind !== "hidden" ? (
           <label className="flex items-center gap-1.5 text-[13px]">
             <input
@@ -316,7 +318,7 @@ function FieldRow({
             Required
           </label>
         ) : (
-          <span className={HINT}>Filled from the link the visitor opened.</span>
+          <span className={HINT_CLASS}>Filled from the link the visitor opened.</span>
         )}
         <span className="ml-auto flex gap-1">
           <Button size="sm" tone="quiet" disabled={i === 0} onClick={() => move(-1)}>
@@ -448,7 +450,7 @@ function Preview({ spec }: { spec: FormSpec }) {
   return (
     <div className="grid content-start gap-2">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className={LABEL}>Preview</span>
+        <span className={LABEL_CLASS}>Preview</span>
         <div className="flex gap-1">
           <Button size="sm" tone={phone ? "quiet" : undefined} onClick={() => setPhone(false)}>
             Laptop
@@ -479,7 +481,7 @@ function Builder({ id, d, act }: { id: string; d: FormDetail; act: RecordAct }) 
   return (
     <div className="grid min-w-0 gap-4">
       <div className="flex flex-wrap items-center gap-3 text-[13.5px]">
-        <span className={LABEL}>Editing</span>
+        <span className={LABEL_CLASS}>Editing</span>
         {(["A", "B"] as const).map((a) => (
           <label key={a} className="flex items-center gap-1.5">
             <input type="radio" name="arm" checked={arm === a} onChange={() => setArm(a)} />
@@ -608,7 +610,7 @@ function Editor({
         </p>
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="grid gap-1.5 sm:col-span-2">
-            <span className={LABEL}>Title</span>
+            <span className={LABEL_CLASS}>Title</span>
             <Input
               data-edit={formKey}
               value={spec.title}
@@ -617,8 +619,8 @@ function Editor({
             />
           </label>
           <label className="grid gap-1.5 sm:col-span-2">
-            <span className={LABEL}>
-              Intro <span className={HINT}>(optional)</span>
+            <span className={LABEL_CLASS}>
+              Intro <span className={HINT_CLASS}>(optional)</span>
             </span>
             <Textarea
               rows={2}
@@ -629,7 +631,7 @@ function Editor({
             />
           </label>
           <label className="grid gap-1.5">
-            <span className={LABEL}>Button</span>
+            <span className={LABEL_CLASS}>Button</span>
             <Input
               data-edit={formKey}
               value={spec.button}
@@ -639,7 +641,7 @@ function Editor({
           </label>
         </div>
         <div className="grid gap-4">
-          <span className={LABEL}>Fields</span>
+          <span className={LABEL_CLASS}>Fields</span>
           <FormKey.Provider value={formKey}>
             {spec.fields.map((f, i) => (
               <FieldRow
@@ -675,7 +677,7 @@ function Editor({
           </div>
         </div>
         <div className="grid gap-2 border-t border-(--ui-hair) pt-4">
-          <span className={LABEL}>After a submit</span>
+          <span className={LABEL_CLASS}>After a submit</span>
           <div className="flex flex-wrap gap-3 text-[13.5px]">
             <label className="flex items-center gap-1.5">
               <input
@@ -716,8 +718,8 @@ function Editor({
           )}
         </div>
         <div className="grid gap-2">
-          <span className={LABEL}>
-            Booking step <span className={HINT}>(optional)</span>
+          <span className={LABEL_CLASS}>
+            Booking step <span className={HINT_CLASS}>(optional)</span>
           </span>
           <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_200px]">
             <Input
@@ -756,7 +758,9 @@ function Editor({
               }
             />
           </div>
-          <span className={HINT}>Shown after the thanks, with their name and email filled in.</span>
+          <span className={HINT_CLASS}>
+            Shown after the thanks, with their name and email filled in.
+          </span>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button
@@ -812,15 +816,17 @@ function Share({ d }: { d: FormDetail }) {
   return (
     <div className="grid gap-3 text-[14px]">
       <div className="grid gap-0.5">
-        <span className={LABEL}>Link</span>
+        <span className={LABEL_CLASS}>Link</span>
         <a className="break-all underline" href={d.url} target="_blank" rel="noopener">
           {d.url}
         </a>
-        {d.status !== "live" ? <span className={HINT}>Works once it's published.</span> : null}
+        {d.status !== "live" ? (
+          <span className={HINT_CLASS}>Works once it's published.</span>
+        ) : null}
       </div>
       <CodeBlock label="Embed with a frame" code={d.embed.iframe} />
       <CodeBlock label="Or with one script tag, sized to fit" code={d.embed.script} />
-      <p className={HINT}>
+      <p className={HINT_CLASS}>
         On a Sites page, put its slug in the page's Hosted form field to use it as the page's form.
       </p>
     </div>

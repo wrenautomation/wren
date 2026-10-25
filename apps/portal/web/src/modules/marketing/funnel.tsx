@@ -4,8 +4,7 @@
  * `/go/<channel>/<stage>/<post>`, which counts the click and, for a video, hops on to YouTube
  * (`?v=`). A client's post links its own video straight. Each choice saves on its own.
  */
-import type { RecordAct } from "@wren/ui";
-import { GROUP_LABEL, Tag } from "@wren/ui";
+import { GROUP_LABEL, HINT_CLASS, LABEL_CLASS, messageOf, type RecordAct, Tag } from "@wren/ui";
 import { useState } from "react";
 import { SELECT } from "../work/bits.js";
 
@@ -44,11 +43,8 @@ const TARGETS = [
   { value: "repo", label: "The GitHub repo" },
 ] as const;
 
-const LABEL = "text-[13px] font-medium text-(--ui-ink-2)";
-const HINT = "text-[12px] text-(--ui-ink-3)";
 const GRID = "grid grid-cols-[minmax(0,1fr)] gap-5 @min-[440px]/fields:grid-cols-2";
 
-const errorOf = (err: unknown) => (err instanceof Error ? err.message : String(err));
 const labelOf = (list: readonly { value: string; label: string }[], v: string) =>
   list.find((x) => x.value === v)?.label ?? v;
 const videoState = (v: FunnelVideo) =>
@@ -66,7 +62,7 @@ function useSave(act: RecordAct) {
       await act(FUNNEL, input);
       setSaid("Saved");
     } catch (err) {
-      setSaid(errorOf(err));
+      setSaid(messageOf(err));
       setBad(true);
     }
   };
@@ -105,7 +101,7 @@ function Pick({
   return (
     <div className="grid min-w-0 content-start gap-1.5">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-        <label htmlFor={id} className={LABEL}>
+        <label htmlFor={id} className={LABEL_CLASS}>
           {label}
         </label>
         <Said said={said} bad={bad} />
@@ -124,7 +120,7 @@ function Pick({
           </option>
         ))}
       </select>
-      {hint ? <span className={HINT}>{hint}</span> : null}
+      {hint ? <span className={HINT_CLASS}>{hint}</span> : null}
     </div>
   );
 }
@@ -148,7 +144,7 @@ function LinkLine({
   return (
     <div className="grid min-w-0 gap-1.5 @min-[440px]/fields:col-span-2">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-        <span className={LABEL}>Link</span>
+        <span className={LABEL_CLASS}>Link</span>
         <Said said={said} bad={bad} />
       </div>
       <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
@@ -168,13 +164,13 @@ function LinkLine({
         {funnel.comment ? <Tag tone="green">First comment</Tag> : null}
       </div>
       {funnel.note ? (
-        <span className={HINT}>{funnel.note}</span>
+        <span className={HINT_CLASS}>{funnel.note}</span>
       ) : funnel.comment ? (
-        <span className={HINT}>
+        <span className={HINT_CLASS}>
           Posted as the first comment: a link in a LinkedIn video shows it to fewer people.
         </span>
       ) : hop ? (
-        <span className={HINT}>Counts the click, then opens the video on YouTube.</span>
+        <span className={HINT_CLASS}>Counts the click, then opens the video on YouTube.</span>
       ) : null}
       {editable && funnel.allowed ? (
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
@@ -306,7 +302,7 @@ export function FunnelFields({
 function Shown({ label, value }: { label: string; value: string }) {
   return (
     <div className="grid min-w-0 gap-1">
-      <span className={LABEL}>{label}</span>
+      <span className={LABEL_CLASS}>{label}</span>
       <span className="text-[14px] break-words">{value}</span>
     </div>
   );

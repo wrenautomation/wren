@@ -17,6 +17,7 @@ import { smsContacts } from "@wren/channel-sms/schema";
 import { mayApprove } from "@wren/core/access";
 import { type Client, findClient } from "@wren/core/clients";
 import { customFacts } from "@wren/core/custom-fields";
+import { UUID } from "@wren/core/ids";
 import {
   accessOf,
   answer,
@@ -74,7 +75,6 @@ import {
   remindable,
   saveTemplate,
   sendBlocker,
-  UUID,
   versionAt,
   voidDocs,
 } from "./store.js";

@@ -5,6 +5,7 @@
 import { createHash } from "node:crypto";
 import { smsContacts } from "@wren/channel-sms/schema";
 import { clients } from "@wren/core/clients";
+import { UUID } from "@wren/core/ids";
 import { PortalRefusal } from "@wren/core/refusal";
 import { atomic, type Db, type Queryable, type Tx } from "@wren/db";
 import { and, asc, eq, gt, inArray, isNotNull, isNull, lt, notInArray, or, sql } from "drizzle-orm";
@@ -31,8 +32,6 @@ import { STRIPE_EVENTS, type StripeFact } from "./stripe.js";
 
 /** A refusal the person asking can act on, with its HTTP status. */
 export class PayRefusal extends PortalRefusal {}
-
-export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * A link's id from a journaled seed (`ctx.rand`) and a part (a thread, a document): the same on

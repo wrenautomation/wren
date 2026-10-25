@@ -1,8 +1,7 @@
 /**
  * Reads on his click (audience, discovery), comment keywords, and the places discovery found.
  */
-import type { Action } from "@wren/ui";
-import { said } from "./drafts.js";
+import { type Action, said } from "@wren/ui";
 
 /** One read on his click; the loops behind these pages stay as they are. */
 const readNow = (id: string, handler: string, done: (answer: unknown) => string): Action => ({

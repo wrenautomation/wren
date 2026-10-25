@@ -1,8 +1,8 @@
 /**
  * Video row actions: approve (upload to YouTube), privacy, promos and the rest of a recording's life.
  */
-import type { Action } from "@wren/ui";
-import { PROMOTE_CONFIRM, PROMOTE_DONE, PROMOTE_FORM, said } from "./drafts.js";
+import { type Action, said } from "@wren/ui";
+import { PROMOTE_CONFIRM, PROMOTE_DONE, PROMOTE_FORM } from "./drafts.js";
 
 /** Who sees an upload (content VIDEO_PRIVACY); blank is private. */
 const PRIVACY = {

@@ -21,6 +21,7 @@ export {
   type FormField,
   holdWithUndo,
   Runner,
+  said,
   say,
   Toasts,
   useHeld,
@@ -139,6 +140,8 @@ export {
   FIELD_CLASS,
   FormKept,
   forgetKept,
+  HINT_CLASS,
+  LABEL_CLASS,
   MoneyField,
   RadioField,
   SELECT_CLASS,
@@ -155,6 +158,7 @@ export {
   InDevelopment,
   LoadFailed,
   Loading,
+  messageOf,
   ShowRawErrors,
 } from "./feedback.js";
 export {

@@ -6,13 +6,11 @@
 import { TIKTOK_COPY } from "@wren/core/content/tiktok";
 import { PASS_LABELS, PASS_REASONS } from "@wren/core/pass-reasons";
 import { REJECT_LABELS, REJECT_NOTE_MAX, REJECT_REASONS } from "@wren/core/reject-reasons";
-import type { Action, FormField } from "@wren/ui";
+import { type Action, type FormField, said } from "@wren/ui";
 import { draftActions } from "./ask.js";
 import { ATTACH, FIELDS } from "./fields.js";
 import { FUNNEL } from "./funnel.js";
 import { SLIDES } from "./slides.js";
-
-export const said = (line: string) => () => line;
 
 /**
  * A video's promo (designs/2026-10-07-content-funnel.md): a post per channel, an X thread or a

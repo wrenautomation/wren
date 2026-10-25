@@ -1,8 +1,6 @@
 /** What can be done to a call: the Calls list and the Schedule's side panel share them. */
-import type { Action } from "@wren/ui";
+import { type Action, said } from "@wren/ui";
 import { outcomeActions } from "../calls/actions.js";
-
-const said = (line: string) => () => line;
 
 export const CALL_ACTIONS: Action[] = [
   ...outcomeActions("calendar", { prefix: "calendar.", reasonFrom: "outcomeReason" }),

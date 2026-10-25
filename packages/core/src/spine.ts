@@ -15,6 +15,7 @@ import { CODE_STEPS } from "./code-step.js";
 import type { Component, EventKind, LoopKey } from "./components.js";
 import { type FieldMap, leadOf } from "./door.js";
 import { hashToken, newToken } from "./doors.js";
+import { UUID } from "./ids.js";
 import { leadThreads } from "./leads.js";
 import {
   aboutOf,
@@ -1109,7 +1110,6 @@ interface SpineDeps {
 }
 
 const STEP_RETRY = { maxRetryAttempts: 3 };
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export function makeSpine(d: SpineDeps) {
   const parts = new Map(d.components.map((c) => [c.id, c]));

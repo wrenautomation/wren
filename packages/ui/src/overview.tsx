@@ -385,22 +385,7 @@ function TrendCard({
             <>
               <Spark series={s.series} slots={slots} />
               <span className="text-[12.5px] text-(--ui-ink-3)">
-                {delta === null ? null : delta === 0 ? (
-                  `Same as ${before}`
-                ) : (
-                  <>
-                    <b
-                      className={cn(
-                        "font-semibold",
-                        delta > 0 ? "text-(--ui-good)" : "text-(--ui-ink)",
-                      )}
-                    >
-                      {delta > 0 ? "+" : "−"}
-                      {fmt(Math.abs(delta))}
-                    </b>
-                    {` vs ${before}`}
-                  </>
-                )}
+                <Delta delta={delta} before={before} fmt={fmt} />
               </span>
             </>
           ) : null}
@@ -409,6 +394,29 @@ function TrendCard({
         <span className="text-[13px] text-(--ui-bad)">{load.error?.message}</span>
       )}
     </a>
+  );
+}
+
+/** Against the period before: `+12 vs last month`, or the same. */
+function Delta({
+  delta,
+  before,
+  fmt,
+}: {
+  delta: number | null;
+  before: string;
+  fmt: (n: number) => string;
+}) {
+  if (delta === null || !before) return null;
+  if (delta === 0) return `Same as ${before}`;
+  return (
+    <>
+      <b className={cn("font-semibold", delta > 0 ? "text-(--ui-good)" : "text-(--ui-ink)")}>
+        {delta > 0 ? "+" : "−"}
+        {fmt(Math.abs(delta))}
+      </b>
+      {` vs ${before}`}
+    </>
   );
 }
 
@@ -472,22 +480,7 @@ function Tile({
               <span className="text-[12.5px] text-(--ui-ink-3)">
                 {s.latest != null ? `Newest ${fmt(s.latest)}` : null}
                 {s.latest != null && delta !== null && before ? " · " : null}
-                {delta === null || !before ? null : delta === 0 ? (
-                  `Same as ${before}`
-                ) : (
-                  <>
-                    <b
-                      className={cn(
-                        "font-semibold",
-                        delta > 0 ? "text-(--ui-good)" : "text-(--ui-ink)",
-                      )}
-                    >
-                      {delta > 0 ? "+" : "−"}
-                      {fmt(Math.abs(delta))}
-                    </b>
-                    {` vs ${before}`}
-                  </>
-                )}
+                <Delta delta={delta} before={before} fmt={fmt} />
               </span>
             </>
           ) : null}

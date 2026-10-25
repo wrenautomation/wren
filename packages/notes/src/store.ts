@@ -2,6 +2,8 @@
  * Notes in one database: create, change through Yjs, versions, sharing, lists and search.
  * Who may do what is `access.ts`'s answer; the console asks it before calling these.
  */
+
+import { UUID } from "@wren/core/ids";
 import { atomic, type Db, type Queryable } from "@wren/db";
 import { pgSafe } from "@wren/db/columns";
 import { and, asc, desc, eq, inArray, isNotNull, isNull, ne, or, type SQL, sql } from "drizzle-orm";
@@ -62,7 +64,6 @@ export class NotASuggestion extends Error {
   }
 }
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export const isNoteId = (s: unknown): s is string => typeof s === "string" && UUID.test(s);
 
 // ---- Create ----

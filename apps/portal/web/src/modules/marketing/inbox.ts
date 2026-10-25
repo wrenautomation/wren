@@ -1,12 +1,12 @@
 /**
  * The Inbox's row actions: typed ids, waiting states, the thread's assign, close and snooze.
  */
-import type { Action } from "@wren/ui";
+import { type Action, said } from "@wren/ui";
 import { REPLY_ACTIONS, REPLY_WAITING } from "../wren/replies.js";
 import { DRAFT_BOX } from "./ask.js";
 import { ACTIVITY_ACTIONS, COMMENT_ACTIONS, THREAD_VIEW_ACTIONS } from "./comments.js";
 import { DM_ACTIONS } from "./dm.js";
-import { said, TEXT_ACTIONS } from "./drafts.js";
+import { TEXT_ACTIONS } from "./drafts.js";
 
 /** An Inbox id carries its type (`dm:5`); a preview reads the row's own id after the colon. */
 const bare = (id: string | number) => String(id).slice(String(id).indexOf(":") + 1);
