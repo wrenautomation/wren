@@ -9,4 +9,5 @@ test("set keeps the old line as a dated comment", () => {
   assert.equal(setLines(t, ["B=V"], { V: "y" }, "D"), "A=1\n# before D: B=2\nB=y\n");
   assert.equal(setLines(t, ["-A", "C==z"], {}, "D"), "# before D: A=1\nB=2\nC=z\n");
   assert.throws(() => setLines(t, ["A=NOPE"], {}, "D"));
+  assert.equal(setLines(t, ["!A"], {}, "D"), "B=2\n");
 });

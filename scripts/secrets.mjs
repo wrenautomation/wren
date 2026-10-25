@@ -7,7 +7,8 @@
 //   node scripts/secrets.mjs set KEY=VAR KEY==text -KEY only inside `run <env file>`: rewrites
 //                                                       that file (KEY from $VAR or the literal
 //                                                       text; -KEY drops it). The old line stays
-//                                                       commented, dated: the way back
+//                                                       commented, dated: the way back. !KEY
+//                                                       deletes the line, no comment (a revoked value)
 // The agent's Bash guard (~/.claude/hooks/no-secret-print.py) sends raw reads here.
 import { execFileSync, spawn } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
@@ -60,10 +61,14 @@ function load(source) {
   return parse(text);
 }
 
-/** `text` with each change applied; the line it replaces kept as a dated comment. */
+/** `text` with each change applied; the line it replaces kept as a dated comment (`!KEY`: not kept). */
 export function setLines(text, changes, env, day = new Date().toISOString().slice(0, 10)) {
   let out = text;
   for (const c of changes) {
+    if (c.startsWith("!")) {
+      out = out.replace(new RegExp(`^${c.slice(1)}=.*\\n?`, "m"), "");
+      continue;
+    }
     const drop = c.startsWith("-");
     const m = drop ? [null, c.slice(1)] : c.match(/^([A-Za-z_]\w*)==?(.*)$/);
     if (!m) throw new Error(`not KEY=VAR, KEY==text or -KEY: ${c}`);
