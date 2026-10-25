@@ -235,7 +235,12 @@ interface PostReader {
   person(k: KeyPerson, since: Since): Promise<FeedPost[]>;
   /** One post by its ref, pasted; null when it is gone. */
   one(ref: string): Promise<FeedPost | null>;
+  /** The account's home feed, one load scrolled deep: posts by the people it follows. */
+  feed(): Promise<FeedPost[]>;
 }
+
+/** Posts one feed load reads (each autobrowse feed route's most). */
+const FEED_MAX = 50;
 
 const SINCE_DAYS: Readonly<Record<Since, number>> = {
   "past-24h": 1,
@@ -444,6 +449,11 @@ export function postReader(
         );
         return "found" in p ? null : fromRestPost(p);
       },
+      feed: async () =>
+        (
+          (await sites.call<Out>("linkedin", "GET", "/feed", { max: FEED_MAX }, account)).posts ??
+          []
+        ).map(fromLinkedin),
     };
   }
   if (platform === "x") {
@@ -493,6 +503,19 @@ export function postReader(
         );
         return r.data ? xPostOf(r.data) : null;
       },
+      // The browser leg reads the signed-in account's Following tab, whatever the id.
+      feed: async () =>
+        own(
+          (
+            await sites.call<Out>(
+              "x",
+              "GET",
+              "/2/users/me/timelines/reverse_chronological",
+              { id: "me", max_results: FEED_MAX },
+              account,
+            )
+          ).data,
+        ),
     };
   }
   type Found = { found?: boolean; profile?: { biography?: string }; media?: IgMedia[] };
@@ -573,6 +596,18 @@ export function postReader(
       );
       return p.found === false ? null : igPostOf(p);
     },
+    feed: async () =>
+      (
+        (
+          await sites.call<{ data?: IgPost[] }>(
+            "instagram",
+            "GET",
+            "/web/feed",
+            { max: FEED_MAX },
+            account,
+          )
+        ).data ?? []
+      ).flatMap((p) => igPostOf(p) ?? []),
   };
 }
 
@@ -1495,6 +1530,9 @@ export async function postsPass(
     key: true,
     run: () => o.read.page(c),
   }));
+  // The home feed leads: one load, many people the account follows. It takes a search's place.
+  // No `key`: LinkedIn's feed also shows strangers' posts a connection liked, so fit decides.
+  const feed: Read[] = s.people ? [{ foundBy: "feed", run: () => o.read.feed() }] : [];
   const searches: Read[] = plan.topics.map((t) => ({
     foundBy: `topic: ${t}`,
     run: () => o.read.search(t, since),
@@ -1502,10 +1540,13 @@ export async function postsPass(
   const reads: Read[] = graph
     ? [
         ...[...pages, ...people].slice(0, IG_GRAPH_PER_PASS),
-        ...searches.slice(0, READS_PER_PASS.instagram),
+        ...[...feed, ...searches].slice(0, READS_PER_PASS.instagram + feed.length),
       ]
     : [
-        ...[...pages, ...searches].slice(0, Math.max(0, READS_PER_PASS[platform] - people.length)),
+        ...[...feed, ...pages, ...searches].slice(
+          0,
+          Math.max(feed.length, READS_PER_PASS[platform] - people.length),
+        ),
         ...people,
       ];
   // With today's comments already waiting, nothing is read.

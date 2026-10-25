@@ -111,6 +111,15 @@ every X read does. Promoted rows are left. X account reads use the browser leg t
 (`prefer: "browser"`), so they cost $0. The API timeline bills each post read, so it costs more
 than the reads it replaces: not built (decision 3).
 
+**Built 10-25: the three feeds.** autobrowse 58af799 to 12746f8: `x/home` (the Following tab),
+`linkedin/feed` (sorted Recent; Promoted and Suggested left) and `instagram/feed` (the page's own
+timeline data; ads and unfollowed accounts left; the notifications prompt closed; the last post
+scrolled into view so it pages). Each is one load scrolled to `max` (50 at most), metered on a new
+`feed` cap of 12 a day. Tested through the desk: LinkedIn 10 posts newest first, X 20, Instagram
+30 across 11 pages with 56 left. wren: `PostReader.feed()` on all three platforms; each posts pass
+reads the feed first (one load, `foundBy: feed`, no `key` boost: LinkedIn's feed also shows what a
+connection liked, so fit decides). It takes one search's slot; key people keep their reads.
+
 **Phase 3: Act.** Search narrows to finding new people (one search a
 pass per platform). Keyword drops stop counting against the day.
 

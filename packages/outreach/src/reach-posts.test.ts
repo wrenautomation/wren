@@ -354,6 +354,77 @@ describe("Instagram search", () => {
   });
 });
 
+describe("home feeds", () => {
+  /** A desk that answers one route and records each call. */
+  const desk = (answer: unknown) => {
+    const calls: string[] = [];
+    const sites: SiteClient = {
+      via: async () => "browser",
+      call: async <T>(site: string, m: string, path: string, input?: unknown, acct?: string) => {
+        calls.push(`${acct} ${site} ${m} ${path} ${JSON.stringify(input)}`);
+        return answer as T;
+      },
+    };
+    return { sites, calls };
+  };
+  const at = NOW.toISOString();
+
+  it("LinkedIn: one /feed load as the account", async () => {
+    const { sites, calls } = desk({
+      posts: [
+        {
+          urn: "urn:li:activity:1",
+          author: "Sam Example",
+          authorUrl: "https://www.linkedin.com/in/sam-example/",
+          text: "We placed nine nurses.",
+          at,
+          reactions: 3,
+          comments: 1,
+          url: "https://www.linkedin.com/feed/update/urn:li:activity:1/",
+        },
+      ],
+    });
+    const out = await postReader(sites, "linkedin", "linkedin@test", { now: NOW }).feed();
+    expect(calls).toEqual(['linkedin@test linkedin GET /feed {"max":50}']);
+    expect(out.map((p) => [p.ref, p.handle])).toEqual([["urn:li:activity:1", "sam-example"]]);
+  });
+
+  it("X: the home timeline; reposts and pinned posts are left", async () => {
+    const t = (id: string, more = {}) => ({
+      id,
+      text: `post ${id}`,
+      author_username: "SamExample",
+      author_name: "Sam",
+      created_at: at,
+      ...more,
+    });
+    const { sites, calls } = desk({
+      data: [t("1"), t("2", { reposted_by: "Kim" }), t("3", { pinned: true })],
+    });
+    const out = await postReader(sites, "x", "x@test", { now: NOW }).feed();
+    expect(calls).toEqual([
+      'x@test x GET /2/users/me/timelines/reverse_chronological {"id":"me","max_results":50}',
+    ]);
+    expect(out.map((p) => [p.ref, p.handle])).toEqual([["1", "samexample"]]);
+  });
+
+  it("Instagram: /web/feed; a post with no owner is left", async () => {
+    const post = {
+      shortcode: "AAA",
+      url: "https://www.instagram.com/p/AAA/",
+      username: "sam.example",
+      caption: "Our agency grew.",
+      likes: 4,
+      comments: 0,
+      timestamp: at,
+    };
+    const { sites, calls } = desk({ data: [post, { ...post, shortcode: "BBB", username: null }] });
+    const out = await postReader(sites, "instagram", "instagram", { now: NOW }).feed();
+    expect(calls).toEqual(['instagram instagram GET /web/feed {"max":50}']);
+    expect(out.map((p) => p.ref)).toEqual(["AAA"]);
+  });
+});
+
 describe("vanityOf", () => {
   it("decodes a non-Latin slug so it fits the handle column", () => {
     const slug = encodeURIComponent("مصطفى-عبد-الحميد-محمد-62b041209");
