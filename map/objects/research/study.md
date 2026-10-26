@@ -37,6 +37,7 @@ A study is a content line (`designs/2026-10-25-ingestion-engine.md`): find (plan
 
 - The key format: `dropUncalledClaims`, `studyClaims` and `lines.ts` (`ended`) match on `doc:%/study:<slug>/%`; an SOP line's extract excludes `doc:%/study:%`.
 - A new step: `STUDY_STEPS` enum (migration), `runStudy`'s order, and `--redo`'s "later" list.
+- The find station's fields (`sop`, `study`): `metro.ts` and `checkEntry` on the map side, and `logicProblems` for `trigger.found` in `packages/core/src/logic.ts`, or the executor leaves the whole workflow out (`soundShapes`). Test both.
 
 ## Surfaces
 

@@ -1284,8 +1284,13 @@ export function logicProblems(at: string, n: WorkflowNode): string[] {
   }
   if (l.id === "trigger.source" && !SOURCE_ID.test(text(w.source)))
     out.push(`${at}: Source names a list's id, like import:12`);
-  if (l.id === "trigger.found" && !SOP_NAME.test(text(w.sop)))
-    out.push(`${at}: Found names an SOP's folder name, like launch-films`);
+  if (l.id === "trigger.found") {
+    const sop = text(w.sop);
+    const study = text(w.study);
+    if (sop && study) out.push(`${at}: Found names an SOP and a study. Name one.`);
+    else if (study ? !STUDY_SLUG.test(study) : !SOP_NAME.test(sop))
+      out.push(`${at}: Found names an SOP's folder name, like launch-films, or a study's slug`);
+  }
   if (l.id === "trigger.station" && !JOURNEY_KEY.test(text(w.station)))
     out.push(`${at}: Station done names a station id, like extract`);
   if ((l.id === "trigger.trait" || l.id === "trigger.date") && !TRAIT_KEY.test(text(w.trait)))

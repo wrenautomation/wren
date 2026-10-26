@@ -230,6 +230,11 @@ Logged-in finds and reads (IG, LinkedIn, X) use the reach engine's shared reads
   `doc:%/study:%`), not on any fact. Out: the synthesis reader as a station (the report is read on
   demand; a reader row would store nothing new), the portal's call screen for claims (the CLI and
   the item page's finding calls are enough while only William calls).
+- 2026-10-26: the first prod shape with a study line (v7) opened no instance: the executor's logic
+  check still required an SOP name on every `trigger.found`, so it left the whole workflow out
+  (`shape.v7 left out` in the worker log). The check now takes an SOP name or a study slug, one of
+  them (`logicProblems`). Lesson: a station field that changes a trigger's shape needs the trigger's
+  check in `logic.ts` too, and a `soundShapes` test on the metro fixture, not only `metroOf`.
 - 2026-10-25: commit 3a's FK (`learn.items.document_id` → `documents`) reached every client
   database, so `truncate documents cascade` (the demo reset) failed on `learn.items` for the
   client login. `learn` joins `CLIENT_SCHEMAS`: a client's own Learn rows, none yet. It also ends
