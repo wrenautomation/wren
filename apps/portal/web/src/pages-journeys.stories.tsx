@@ -10,7 +10,7 @@ import { forgetCalls, JOURNEY_CALLS } from "./mocks/data/journeys.js";
 import { ADMIN } from "./mocks/data/me.js";
 import { pageAt } from "./mocks/page.js";
 
-const meta: Meta = { title: "Pages/Journeys" };
+const meta: Meta = { title: "Revamp/Journeys", id: "pages-journeys" };
 export default meta;
 
 const lane = (page: HTMLElement, name: string) => within(page).findByRole("region", { name });
