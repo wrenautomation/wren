@@ -8,7 +8,7 @@ import { expect, userEvent, waitFor, within } from "storybook/test";
 import { ADMIN } from "./mocks/data/me.js";
 import { pageAt } from "./mocks/page.js";
 
-const meta: Meta = { title: "Pages/Learn" };
+const meta: Meta = { title: "Revamp/Learn", id: "pages-learn" };
 export default meta;
 
 const ago = (days: number) => new Date(Date.now() - days * 86_400_000).toISOString();
