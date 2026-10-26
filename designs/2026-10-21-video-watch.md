@@ -39,3 +39,9 @@ Output shape: the same as the sop video source: Speech and On screen sections, p
 - The dropped-frame gap ("not read", no fill).
 
 Reference proof run (by hand): `/private/tmp/claude-502/-Users-williamjin-Documents-wren-automation/4be4e300-3e32-477f-b088-1f0e5c0555d3/scratchpad/watch.py`, outputs in `.../scratchpad/reel/`. The repo is public: never commit the reel, its transcript or its frames.
+
+## Log
+
+- 2026-10-26: `watch` and the readers over it live in scribe (`src/video/watch.ts`, `read.ts`;
+  `@wrenautomation/scribe/video`, pinned exact). `videoSource` in wren is a one-line wrapper that files
+  scribe's `readVideo` with the SOP's priority (WA-886).

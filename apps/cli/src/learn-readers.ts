@@ -49,7 +49,13 @@ export function learnReaders(settings: Settings, rootDir: string) {
       // A film is watched, never read from its captions: its cuts are the point (`filmFacts`).
       const s =
         kind === "episode" && mediaUrl
-          ? await audioSource(mediaUrl, { url, title, creator, geminiKeys })
+          ? await audioSource(mediaUrl, {
+              url,
+              title,
+              creator,
+              geminiKeys,
+              ffmpeg: settings.ffmpeg,
+            })
           : kind === "film"
             ? await videoSource(url, settings.ytDlp, undefined, {
                 ...watchKeys(settings, rootDir),
