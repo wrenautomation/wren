@@ -1,98 +1,24 @@
 /**
- * Each of Wren's own apps' first page, as Wren's admin sees it, on the fake server
- * (designs/2026-10-18-portal-page-stories.md). `pnpm --filter @wren/portal storybook`.
+ * Each of Wren's own apps' first page that follows no artifact yet (Revamp), as Wren's admin sees
+ * it, on the fake server (designs/2026-10-18-portal-page-stories.md). The pages that follow one
+ * are in `pages-wren-done.stories.tsx`; Engage and Outbound in `pages-wren-port.stories.tsx`.
+ * `pnpm --filter @wren/portal storybook`.
  */
 import type { Meta } from "@storybook/react-vite";
 import { EDITS } from "@wren/ui";
-import { expect, fireEvent, userEvent, waitFor, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { type Answers, freshStory, refuse } from "./mocks/api.js";
 import { CANVAS_WORKFLOW, canvasAnswers } from "./mocks/data/canvas.js";
 import { ANSWERS } from "./mocks/data/index.js";
 import { ADMIN } from "./mocks/data/me.js";
-import { forgetTermsCalls, TERMS_CALLS } from "./mocks/data/offers.js";
-import { failedIn, pageAt } from "./mocks/page.js";
+import { pageAt } from "./mocks/page.js";
 
-const meta: Meta = { title: "Pages/Wren" };
+const meta: Meta = { title: "Revamp/Wren", id: "pages-wren" };
 export default meta;
 
-/** A records answer with no rows. */
-const NONE = { record: "", view: null, rows: [], total: 0, counts: {}, next: null, totals: {} };
-
-/**
- * Today: Write (a quota short on YouTube long-form and Instagram, met on LinkedIn and TikTok, X
- * on Autopilot) and Move (Ada's and Bo's lines under their journeys, the rest under Others).
- */
-export const Today = pageAt("/", {
-  me: ADMIN,
-  check: async (page) => {
-    const view = within(page);
-    await expect(await view.findByRole("heading", { name: /^Write/ })).toBeVisible();
-    await expect(await view.findByRole("heading", { name: /^Move/ })).toBeVisible();
-    await expect(await view.findByText("YouTube long-form")).toBeVisible();
-    await expect(await view.findByText("Autopilot")).toBeVisible();
-    // Met quotas fold away.
-    await expect(await view.findByText(/^Met today/)).toBeVisible();
-    await expect((await view.findAllByText("Prepare call")).length).toBeGreaterThan(1);
-    await expect((await view.findAllByText("Nudge or drop")).length).toBe(1);
-    await expect(await view.findByText("Others")).toBeVisible();
-    // Parked, activity and a draft are not moves.
-    await expect(view.queryByText("Kit")).toBeNull();
-  },
-});
-
-/** Nothing to write and nothing to move: Today says so once every read is in. */
-export const TodayEmpty = pageAt("/", {
-  me: ADMIN,
-  answers: {
-    "console/recordsList": () => NONE,
-    "console/recordsCounts": (b) => ({
-      totals: (Array.isArray(b.asks) ? b.asks : []).map(() => 0),
-    }),
-  },
-  check: async (page) => {
-    const view = within(page);
-    await expect(await view.findByText("Nothing waits on you.")).toBeVisible();
-    await expect(await view.findByText("Nothing is due today.")).toBeVisible();
-  },
-});
-
-/** Every read fails: Move says so with a retry, never "Nothing waits on you." */
-export const TodayFailed = pageAt("/", {
-  me: ADMIN,
-  mode: "fails",
-  check: async (page) => failedIn("Move")(page),
-});
-
-/** Only the counts fail: Move says so, and Write still draws. */
-export const TodayCountsFailed = pageAt("/", {
-  me: ADMIN,
-  answers: { "console/recordsCounts": refuse(500, "The counts failed, as asked.") },
-  check: async (page) => {
-    const today = page;
-    await failedIn("Move")(today);
-    await expect(await within(today).findByText("YouTube long-form")).toBeVisible();
-  },
-});
-
-/** On a phone: the dock under the page carries the Move count, . */
-export const TodayPhone = {
-  ...pageAt("/", {
-    me: ADMIN,
-    check: async (page) => {
-      const view = within(page);
-      await expect(await view.findByRole("heading", { name: /^Move/ })).toBeVisible();
-    },
-  }),
-  globals: { viewport: { value: "phone" } },
-};
-export const Inbox = pageAt("/inbox", { me: ADMIN });
-/** Your mail: the Monitor's queue of your own email. */
-export const InboxMail = pageAt("/inbox/mail?view=needs_you", { me: ADMIN });
 export const People = pageAt("/people", { me: ADMIN });
-export const Outbound = pageAt("/outbound", { me: ADMIN });
 export const Pipelines = pageAt("/pipelines", { me: ADMIN });
 export const Content = pageAt("/content", { me: ADMIN });
-export const Engage = pageAt("/engage", { me: ADMIN });
 export const Ads = pageAt("/ads", { me: ADMIN });
 export const Analytics = pageAt("/analytics", { me: ADMIN });
 export const Sites = pageAt("/sites", { me: ADMIN });
@@ -285,56 +211,6 @@ const shows =
     for (const text of texts)
       await expect((await within(page).findAllByText(text))[0]).toBeVisible();
   };
-
-// Offers: each offer with its versions, and the terms it sells on.
-export const OffersAll = pageAt("/offers/all", { me: ADMIN, check: shows("Starter", "Growth") });
-export const OffersTerms = pageAt("/offers/terms", {
-  me: ADMIN,
-  check: async (page) => {
-    await shows("standard")(page);
-    // A phone's row shows one property beside the name (the state): the offer reads in the wide table.
-    if (within(page).queryByRole("table")) await shows("growth")(page);
-  },
-});
-/** The read fails: the page says so and never "No terms are live yet." */
-export const OffersTermsFailed = pageAt("/offers/terms", {
-  me: ADMIN,
-  answers: { "console/recordsList": refuse(500, "The terms failed, as asked.") },
-  check: async (page) => {
-    await expect(await within(page).findByRole("alert")).toBeVisible();
-    await expect(within(page).queryByText("No terms are live yet.")).toBeNull();
-  },
-});
-/** Propose version asks for the offer, plan, date, terms JSON and why, and sends them as typed. */
-export const OffersTermsPropose = pageAt("/offers/terms", {
-  me: ADMIN,
-  check: async (page) => {
-    forgetTermsCalls();
-    const ui = within(page);
-    await userEvent.click(await ui.findByRole("button", { name: "Propose version" }));
-    // The form opens in a dialog, outside the page.
-    const form = within(await within(document.body).findByRole("dialog"));
-    const offer = (await form.findByRole("combobox", { name: "Offer" })) as HTMLSelectElement;
-    await userEvent.selectOptions(offer, offer.options[1] as HTMLOptionElement);
-    await userEvent.type(await form.findByLabelText("Plan"), "standard");
-    await userEvent.type(await form.findByLabelText("Effective from"), "2030-01-01");
-    await fireEvent.change(await form.findByLabelText("Terms JSON"), {
-      target: { value: '{"currency":"usd","payDays":7}' },
-    });
-    await userEvent.type(await form.findByLabelText("Why"), "Test price");
-    await userEvent.click(
-      await form.findByRole("button", { name: /^(Propose version|Send|Save)$/ }),
-    );
-    await waitFor(() => expect(TERMS_CALLS).toHaveLength(1));
-    expect(TERMS_CALLS[0]).toMatchObject({
-      offer: expect.any(String),
-      plan: "standard",
-      from: "2030-01-01",
-      why: "Test price",
-      body: { currency: "usd", payDays: 7 },
-    });
-  },
-});
 
 // Numbers: the shape tables, and the books pages that moved here from Money.
 export const NumbersFunnels = pageAt("/numbers/funnels", { me: ADMIN, check: shows("Engaged") });
