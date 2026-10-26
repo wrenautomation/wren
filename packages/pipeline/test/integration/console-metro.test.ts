@@ -14,7 +14,7 @@ import { pipelineConsoleApi } from "../../src/console.js";
 import { metroOf } from "../../src/convert.js";
 import { newDraft } from "../../src/drafts.js";
 import { leadsOf, numberRows } from "../../src/numbers.js";
-import { journeys, offerVersions, pipelineDeals } from "../../src/schema.js";
+import { instances, offerVersions, pipelineDeals } from "../../src/schema.js";
 import { exportShape, parseShape } from "../../src/shape-file.js";
 import { CONVERT_FIRST, newestShape, saveShape, shapeVersionsOf } from "../../src/store.js";
 import { metroView, runOf, type StoredBody } from "../../src/stored.js";
@@ -92,7 +92,7 @@ describe("a graph newest", () => {
       createdBy: "t",
     });
     const [j] = await pg.db
-      .insert(journeys)
+      .insert(instances)
       .values({ profileId: dealt, version: 1, node: "signed", entry: "yt" })
       .returning();
     await pg.db.insert(pipelineDeals).values({

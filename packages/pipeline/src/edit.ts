@@ -12,7 +12,7 @@ import { isMetro } from "./metro.js";
 import type { MetroChange } from "./metro-diff.js";
 import { undoMetroChange } from "./metro-edit.js";
 import { edgeIdOf, type ShapeBody, type ShapeEdge, type ShapeNode } from "./model.js";
-import { journeys } from "./schema.js";
+import { instances } from "./schema.js";
 import { newestShape, Refused, saveShape } from "./store.js";
 import { metroView, runOf, type StoredBody, type StoredChange } from "./stored.js";
 
@@ -70,8 +70,8 @@ export function withoutEdge(body: ShapeBody, id: string): ShapeBody {
 export async function openOn(db: Queryable, id: string): Promise<number> {
   const [row] = await db
     .select({ n: count() })
-    .from(journeys)
-    .where(and(eq(journeys.node, id), eq(journeys.status, "open")));
+    .from(instances)
+    .where(and(eq(instances.node, id), eq(instances.status, "open")));
   return row?.n ?? 0;
 }
 

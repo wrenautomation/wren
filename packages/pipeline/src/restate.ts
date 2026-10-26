@@ -22,7 +22,7 @@ import {
   personByKey,
   rebuildJourney,
 } from "./moves.js";
-import { journeys } from "./schema.js";
+import { instances } from "./schema.js";
 import { Refused } from "./store.js";
 
 export const JOURNEYS = { name: "Journeys" } as const;
@@ -126,9 +126,9 @@ export function makeJourneys(deps: JourneysDeps) {
             const profile = await personByKey(db, req.person);
             if (profile === null) return null;
             const [j] = await db
-              .select({ id: journeys.id, node: journeys.node })
-              .from(journeys)
-              .where(and(eq(journeys.profileId, profile), eq(journeys.status, "open")))
+              .select({ id: instances.id, node: instances.node })
+              .from(instances)
+              .where(and(eq(instances.profileId, profile), eq(instances.status, "open")))
               .limit(1);
             return j ?? null;
           });
@@ -159,15 +159,15 @@ export function makeJourneys(deps: JourneysDeps) {
           await emit(ctx, client, e);
           const now = await ctx.run("read", async () => {
             const [j] = await db
-              .select({ node: journeys.node, status: journeys.status })
-              .from(journeys)
-              .where(eq(journeys.id, req.journey))
+              .select({ node: instances.node, status: instances.status })
+              .from(instances)
+              .where(eq(instances.id, req.journey))
               .limit(1);
             // A loop closes the journey and opens its successor: the answer is the new one.
             const [next] = await db
-              .select({ id: journeys.id, status: journeys.status })
-              .from(journeys)
-              .where(sql`${journeys.entryRef}->>'loop' = ${req.journey}`)
+              .select({ id: instances.id, status: instances.status })
+              .from(instances)
+              .where(sql`${instances.entryRef}->>'loop' = ${req.journey}`)
               .limit(1);
             return j ? { ...j, next: next ?? null } : null;
           });

@@ -20,12 +20,13 @@ const [GUARD = "", ...CHANGES] = readFileSync(FILE, "utf8").split("--> statement
 let pg: TestPostgres;
 beforeAll(async () => {
   pg = await startTestPostgres();
-  // The table as 0306 left it: the version under its old name, node and version nullable, and
-  // no index that holds one open journey per person.
+  // The table as 0306 left it: named journeys, the version under its old name, node and version
+  // nullable, and no index that holds one open journey per person.
+  await pg.db.execute(sql`alter table pipeline.instances rename to journeys`);
   await pg.db.execute(sql`alter table pipeline.journeys rename column version to shape_version`);
   await pg.db.execute(sql`alter table pipeline.journeys alter column node drop not null,
     alter column shape_version drop not null`);
-  await pg.db.execute(sql`drop index pipeline.uq_journeys_open`);
+  await pg.db.execute(sql`drop index pipeline.uq_instances_open_person`);
   await pg.db.insert(shapeVersions).values({
     number: 1,
     body: asMetro(shape()),

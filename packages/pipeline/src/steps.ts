@@ -26,7 +26,7 @@ import {
 } from "./model.js";
 import { signDeal } from "./moves.js";
 import { icpOf, type Researcher, requestResearch } from "./research.js";
-import { journeys, offerVersions, pipelineDeals } from "./schema.js";
+import { instances, offerVersions, pipelineDeals } from "./schema.js";
 import { liveTerms } from "./store.js";
 import { JOURNEY_PORT, MOVE_STEP, parseShapeFlow, STAGE_STEP } from "./workflow.js";
 
@@ -179,7 +179,7 @@ export function journeySteps(d: JourneyStepDeps): Record<string, Step> {
       if (loop) {
         // A loop edge: close the journey it left and open a new one at `to`.
         if (!loop.journey || !loop.edge || flow.version !== loaded.newest) return null;
-        const [old] = await tx.select().from(journeys).where(eq(journeys.id, loop.journey));
+        const [old] = await tx.select().from(instances).where(eq(instances.id, loop.journey));
         const edge = body.edges.find((x) => x.id === loop.edge && x.kind === "loop");
         if (!old || old.profileId !== profile || old.version !== flow.version || !old.node)
           return null;
@@ -187,15 +187,15 @@ export function journeySteps(d: JourneyStepDeps): Record<string, Step> {
         if (j && j.id !== old.id) return null;
         if (old.status === "open") {
           await tx
-            .update(journeys)
+            .update(instances)
             .set({ status: "dropped", dropReason: `loop ${edge.id}`, closedAt: now() })
-            .where(eq(journeys.id, old.id));
+            .where(eq(instances.id, old.id));
         } else if (old.status === "done") {
           return null;
         }
         const crossing: Crossing = { edge: edge.id, from: old.node, to, at: stamp };
         const [made] = await tx
-          .insert(journeys)
+          .insert(instances)
           .values({
             profileId: profile,
             version: flow.version,
@@ -255,9 +255,9 @@ export function journeySteps(d: JourneyStepDeps): Record<string, Step> {
           return null;
         }
         await tx
-          .update(journeys)
+          .update(instances)
           .set({ node: to, trail: [...j.trail, ...crossings], movedAt: now() })
-          .where(eq(journeys.id, j.id));
+          .where(eq(instances.id, j.id));
         return { journey: j.id, from: j.node, edges, skipped };
       }
       // Only the newest version opens journeys, and only from a cause a source into `to` takes.
@@ -288,7 +288,7 @@ export function journeySteps(d: JourneyStepDeps): Record<string, Step> {
         at: stamp,
       };
       const [made] = await tx
-        .insert(journeys)
+        .insert(instances)
         .values({
           profileId: profile,
           version: flow.version,
@@ -378,9 +378,9 @@ export function journeySteps(d: JourneyStepDeps): Record<string, Step> {
       // A node with no way on ends the journey; it never reopens.
       if (isEnd(body, key)) {
         await tx
-          .update(journeys)
+          .update(instances)
           .set({ status: "done", closedAt: now() })
-          .where(eq(journeys.id, journey));
+          .where(eq(instances.id, journey));
       }
       if (node.kind !== "offer") return "none" as const;
       const [offer] = await tx
@@ -433,9 +433,9 @@ export function journeySteps(d: JourneyStepDeps): Record<string, Step> {
       // Never blocks the arrival: a failed ask is logged and the journey goes on.
       try {
         const trail = await db
-          .select({ trail: journeys.trail })
-          .from(journeys)
-          .where(eq(journeys.id, journey))
+          .select({ trail: instances.trail })
+          .from(instances)
+          .where(eq(instances.id, journey))
           .limit(1);
         const offer = offerFor(body, key, trail[0]?.trail ?? []);
         if (offer) {

@@ -152,3 +152,13 @@ Logged-in finds and reads (IG, LinkedIn, X) use the reach engine's shared reads
   is the end of the job before it. Two triggers: `trigger.found {sop}` opens an instance and
   `trigger.station {station}` says a job ended. The event kind is `doc`, not `document`: that
   word already means a contract sent to sign. Back tracks on a content line wait.
+- 2026-10-25: phase 1 commit 2 (instances). `pipeline.journeys` renames to `pipeline.instances`,
+  with its constraints and indexes. `subject_kind` (`person`, `document`) and a check hold one id
+  per row: `profile_id` (now nullable) or `document_id`. `document_id` points at research
+  `documents` (the crawl store, the one document store), not at `learn.items`: commit 3 links each
+  Learn item to a documents row. Open rules: one open journey per person; one open instance per
+  document on each line (`document_id`, `entry`). Readers that count people filter `isPerson`.
+  Stored names stay: the `pipeline.journeys` settings key, touch source `journeys`, event subject
+  `journey:<id>`, events `journey.move` and `journey.stage`. The lake finds tables live, so it
+  starts a new `instances` table; its old `journeys` table stops at the rename. Content lines
+  save and lower but do not deploy until commit 4.

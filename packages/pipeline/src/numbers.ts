@@ -34,7 +34,7 @@ import { type SkipRule, skipRuleOf, valuerOf } from "./chain-methods.js";
 import { isMetro, type MetroBody, placesOf } from "./metro.js";
 import { DROPPED, edgeIdOf, isSource, type ShapeBody } from "./model.js";
 import { scheduleOf } from "./schedule.js";
-import { journeys, pipelineDeals, termsVersions } from "./schema.js";
+import { instances, pipelineDeals, termsVersions } from "./schema.js";
 import { newestShape } from "./store.js";
 import { drawnOf, runOf } from "./stored.js";
 import { edgeFlow, moveFlow, nodeCounts, sourceNumbers } from "./views.js";
@@ -155,10 +155,10 @@ async function medianDaysOf(db: Queryable, f: NumbersFilter = {}): Promise<Map<s
 /** Open journeys now, per node. */
 export async function openNowOf(db: Queryable): Promise<Map<string, number>> {
   const rows = await db
-    .select({ node: journeys.node, n: sql<number>`count(*)::int` })
-    .from(journeys)
-    .where(eq(journeys.status, "open"))
-    .groupBy(journeys.node);
+    .select({ node: instances.node, n: sql<number>`count(*)::int` })
+    .from(instances)
+    .where(eq(instances.status, "open"))
+    .groupBy(instances.node);
   return new Map(rows.flatMap((x) => (x.node ? [[x.node, x.n] as const] : [])));
 }
 
@@ -203,12 +203,12 @@ async function dealRowsOf(db: Queryable, f: NumbersFilter): Promise<DealRow[]> {
       terms: termsVersions.body,
     })
     .from(pipelineDeals)
-    .innerJoin(journeys, eq(journeys.id, pipelineDeals.journey))
+    .innerJoin(instances, eq(instances.id, pipelineDeals.journey))
     .leftJoin(termsVersions, eq(termsVersions.id, pipelineDeals.termsVersion))
     .where(
       and(
         f.offer ? eq(pipelineDeals.offer, f.offer) : undefined,
-        f.source ? eq(journeys.entry, f.source) : undefined,
+        f.source ? eq(instances.entry, f.source) : undefined,
         r.from ? sql`${pipelineDeals.signedAt} >= ${r.from}::date` : undefined,
         r.to ? sql`${pipelineDeals.signedAt} < (${r.to}::date + 1)` : undefined,
       ),

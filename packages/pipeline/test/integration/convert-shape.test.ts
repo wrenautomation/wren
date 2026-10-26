@@ -27,7 +27,7 @@ import {
   numberRows,
   sourceNumbersOf,
 } from "../../src/numbers.js";
-import { journeys, offerVersions, pipelineDeals } from "../../src/schema.js";
+import { instances, offerVersions, pipelineDeals } from "../../src/schema.js";
 import { journeySteps } from "../../src/steps.js";
 import { addTerms, CONVERT_FIRST, Refused, saveShape, shapeVersionsOf } from "../../src/store.js";
 import { undoShape } from "../../src/undo.js";
@@ -103,9 +103,9 @@ async function start(email: string, o: { entry?: string; to?: string[] } = {}): 
   );
   const [j] = await pg.db
     .select()
-    .from(journeys)
-    .where(eq(journeys.profileId, r.id))
-    .orderBy(asc(journeys.openedAt));
+    .from(instances)
+    .where(eq(instances.profileId, r.id))
+    .orderBy(asc(instances.openedAt));
   const id = j?.id as string;
   for (const to of o.to ?? []) await play(await moveEmit(pg.db, { journey: id, to, by: OP }));
   return id;
@@ -126,7 +126,7 @@ async function readers() {
   };
 }
 
-describe("convertShape on a graph with journeys, a deal and events", () => {
+describe("convertShape on a graph with instances, a deal and events", () => {
   it("saves the metro version and every number stays the same", async () => {
     const v1 = await seedGraph(pg.db, shape());
     expect(isMetro(v1.body)).toBe(false);
@@ -161,7 +161,7 @@ describe("convertShape on a graph with journeys, a deal and events", () => {
     expect(version.depths).toEqual(v1.depths);
 
     // Open journeys carry to the new version where they are.
-    const open = await pg.db.select().from(journeys).where(eq(journeys.status, "open"));
+    const open = await pg.db.select().from(instances).where(eq(instances.status, "open"));
     expect(open.map((j) => [j.version, j.node]).sort()).toEqual([
       [2, "engaged"],
       [2, "proposal"],
@@ -228,7 +228,7 @@ describe("convertShape on a graph with journeys, a deal and events", () => {
   });
 
   it("counts a move after the convert on the new version, by the same edge ids", async () => {
-    const [b] = await pg.db.select().from(journeys).where(eq(journeys.node, "engaged"));
+    const [b] = await pg.db.select().from(instances).where(eq(instances.node, "engaged"));
     await play(await moveEmit(pg.db, { journey: b?.id as string, to: "booked", by: OP }));
     const flow = (await edgeFlowOf(pg.db)).filter((f) => f.edge === "engaged_to_booked");
     expect(flow.map((f) => f.version).sort()).toContain(2);

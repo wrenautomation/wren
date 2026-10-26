@@ -257,9 +257,9 @@ describe("journey condition", () => {
     expect(problems("journey at Booked")).toMatch(/node or source id/);
   });
 
-  it("compiles to pipeline.journeys, with the trail only for reached", () => {
+  it("compiles to pipeline.instances, with the trail only for reached", () => {
     const at = sqlOf({ kind: "journey", node: "booked", status: "open", days: 7 });
-    expect(at.sql).toContain("from pipeline.journeys j");
+    expect(at.sql).toContain("from pipeline.instances j");
     expect(at.sql).toContain("j.node = $1");
     expect(at.sql).not.toContain("trail");
     expect(at.sql).toContain("j.moved_at >=");
@@ -277,7 +277,7 @@ describe("journey condition", () => {
     expect(past.sql).toContain("j.opened_at >=");
     const none = pg.sqlToQuery(compileRule({ kind: "journey", days: null, not: true }, NOW));
     expect(none.sql.replace(/\s+/g, " ")).toMatch(
-      /^not p\.id in \(select j\.profile_id from pipeline\.journeys j where true ?\)$/,
+      /^not p\.id in \(select j\.profile_id from pipeline\.instances j where true ?\)$/,
     );
   });
 

@@ -15,9 +15,9 @@ import { events } from "@wren/core/schema";
 import { atomic, type Queryable } from "@wren/db";
 import { and, asc, eq, sql } from "drizzle-orm";
 import { entryNodes, liveSources, sourceEdge } from "./entry.js";
-import { ownerOf, personOf, versionOf } from "./journeys.js";
+import { instanceSubject, ownerOf, personOf, versionOf } from "./journeys.js";
 import { type Crossing, flowEdgesFrom, nodeOf, pathOf } from "./model.js";
-import { type Journey, journeys, pipelineDeals } from "./schema.js";
+import { type Instance, instances, pipelineDeals } from "./schema.js";
 import { liveTerms, newestShape, Refused } from "./store.js";
 import { runOf } from "./stored.js";
 import { parseShapeFlow, shapeFlowId } from "./workflow.js";
@@ -64,9 +64,9 @@ export async function personByKey(db: Queryable, key: string): Promise<number | 
 /** The open journey a person has, if any. */
 async function openOf(db: Queryable, profile: number) {
   const [open] = await db
-    .select({ id: journeys.id, node: journeys.node })
-    .from(journeys)
-    .where(and(eq(journeys.profileId, profile), eq(journeys.status, "open")))
+    .select({ id: instances.id, node: instances.node })
+    .from(instances)
+    .where(and(eq(instances.profileId, profile), eq(instances.status, "open")))
     .limit(1);
   return open;
 }
@@ -124,11 +124,11 @@ export async function openEmit(
 export async function moveEmit(
   db: Queryable,
   p: { journey: string; to: string; by: string; reason?: string; now?: Date },
-): Promise<Emit & { journey: Journey }> {
+): Promise<Emit & { journey: Instance }> {
   const [j] = await db
     .select()
-    .from(journeys)
-    .where(eq(journeys.id, idOf(p.journey, "journey")))
+    .from(instances)
+    .where(eq(instances.id, idOf(p.journey, "journey")))
     .limit(1);
   if (!j) throw new Refused([`No journey ${p.journey}.`]);
   const v = await versionOf(db, j.version);
@@ -160,7 +160,9 @@ export async function moveEmit(
       throw new Refused([
         `Journey is on shape v${j.version}; the newest is v${v.newest}. A loop crosses on the newest.`,
       ]);
-    const other = await openOf(db, j.profileId);
+    const s = instanceSubject(j);
+    if (s.kind !== "person") throw new Refused(["Only a journey loops; a document never does."]);
+    const other = await openOf(db, s.profile);
     if (other && other.id !== j.id)
       throw new Refused([`Already open at ${other.node}: ${other.id}.`]);
     return {
@@ -235,15 +237,15 @@ export async function assignJourney(
     if (!op && !member) throw new Refused([`${owner} is not on the team here.`]);
   }
   const done = await db
-    .update(journeys)
+    .update(instances)
     .set({ owner })
-    .where(eq(journeys.id, id))
-    .returning({ id: journeys.id });
+    .where(eq(instances.id, id))
+    .returning({ id: instances.id });
   if (!done.length) throw new Refused([`No journey ${id}.`]);
   return { journey: id, owner };
 }
 
-type RebuiltFields = Pick<Journey, "version" | "node" | "status" | "dropReason" | "trail">;
+type RebuiltFields = Pick<Instance, "version" | "node" | "status" | "dropReason" | "trail">;
 export interface Rebuilt {
   before: RebuiltFields;
   after: RebuiltFields;
@@ -260,8 +262,8 @@ export async function rebuildJourney(db: Queryable, id: string): Promise<Rebuilt
   return atomic(db, async (tx) => {
     const [j] = await tx
       .select()
-      .from(journeys)
-      .where(eq(journeys.id, idOf(id, "journey")))
+      .from(instances)
+      .where(eq(instances.id, idOf(id, "journey")))
       .for("update");
     if (!j) throw new Refused([`No journey ${id}.`]);
     const rows = await tx
@@ -272,7 +274,7 @@ export async function rebuildJourney(db: Queryable, id: string): Promise<Rebuilt
     let version = j.version;
     let node: string | null = null;
     let trail: Crossing[] = [];
-    let status: Journey["status"] = "open";
+    let status: Instance["status"] = "open";
     let reason: string | null = null;
     let movedAt: Date | null = null;
     let closedAt: Date | null = null;
@@ -318,9 +320,9 @@ export async function rebuildJourney(db: Queryable, id: string): Promise<Rebuilt
     // A journey that left through a loop edge was dropped by it: its successor says so. One a drop
     // event closed first keeps that reason.
     const [next] = await tx
-      .select({ trail: journeys.trail })
-      .from(journeys)
-      .where(sql`${journeys.entryRef}->>'loop' = ${id}`)
+      .select({ trail: instances.trail })
+      .from(instances)
+      .where(sql`${instances.entryRef}->>'loop' = ${id}`)
       .limit(1);
     if (next && status !== "dropped") {
       status = "dropped";
@@ -344,14 +346,14 @@ export async function rebuildJourney(db: Queryable, id: string): Promise<Rebuilt
     const changed = JSON.stringify(path(before)) !== JSON.stringify(path(after));
     if (changed)
       await tx
-        .update(journeys)
+        .update(instances)
         .set({ ...after, movedAt: movedAt ?? j.movedAt, closedAt })
-        .where(eq(journeys.id, id));
+        .where(eq(instances.id, id));
     return { before, after, changed };
   });
 }
 
-const pick = (j: Journey): RebuiltFields => ({
+const pick = (j: Instance): RebuiltFields => ({
   version: j.version,
   node: j.node,
   status: j.status,

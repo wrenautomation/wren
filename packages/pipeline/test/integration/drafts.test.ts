@@ -22,7 +22,7 @@ import {
 } from "../../src/drafts.js";
 import { isMetro, type MetroBody } from "../../src/metro.js";
 import type { ShapeBody } from "../../src/model.js";
-import { journeys, type ShapeDraft, shapeDrafts } from "../../src/schema.js";
+import { instances, type ShapeDraft, shapeDrafts } from "../../src/schema.js";
 import {
   CONVERT_FIRST,
   newestShape,
@@ -67,7 +67,7 @@ const withoutBooked = (): ShapeBody => {
 const person = async (email: string) =>
   (await resolveProfile(pg.db, [{ kind: "email", value: email }], "test"))?.id as number;
 const journeyRow = async (id: string) =>
-  (await pg.db.select().from(journeys).where(eq(journeys.id, id)))[0];
+  (await pg.db.select().from(instances).where(eq(instances.id, id)))[0];
 
 describe("drafts", () => {
   it("refuses a draft before the workspace has a shape, and a name with nothing in it", async () => {
@@ -149,7 +149,7 @@ describe("drafts", () => {
     const newest = (await newestShape(pg.db))?.number as number;
     const on = await person("bo@example.test");
     const [j] = await pg.db
-      .insert(journeys)
+      .insert(instances)
       .values({ profileId: on, version: newest, node: "engaged", entry: "yt" })
       .returning();
     if (!j) throw new Error("no journey");
@@ -189,7 +189,7 @@ describe("drafts", () => {
   it("moves a journey on a dropped node by the draft's moves", async () => {
     const newest = (await newestShape(pg.db))?.number as number;
     const [j] = await pg.db
-      .insert(journeys)
+      .insert(instances)
       .values({
         profileId: await person("cy@example.test"),
         version: newest,

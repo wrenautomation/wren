@@ -45,7 +45,9 @@ describe("a content line", () => {
   it("checks and lowers clean", () => {
     const b = withFilms();
     expect(checkMetro(b, check)).toEqual([]);
-    expect(lowerable(b)).toEqual([]);
+    expect(lowerable(b)).toEqual([
+      'Line "films" is a content line. The runtime does not run content lines yet.',
+    ]);
     expect(checkShape(graphOf(b), check)).toEqual([]);
   });
 

@@ -12,7 +12,7 @@ import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { pipelineConsoleApi, saveThenMirror } from "../../src/console.js";
 import type { ShapeBody } from "../../src/model.js";
-import { journeys } from "../../src/schema.js";
+import { instances } from "../../src/schema.js";
 import { Refused, shapeVersionsOf } from "../../src/store.js";
 import { metroView, runOf } from "../../src/stored.js";
 import { asMetro, flow } from "../fixtures.js";
@@ -225,13 +225,13 @@ describe("blame, undo and tags", () => {
     ).rejects.toThrow(/no shape version 9/);
   });
 
-  it("refuses to undo an added node while open journeys sit on it", async () => {
+  it("refuses to undo an added node while open instances sit on it", async () => {
     const a = api();
     const profile = (
       await resolveProfile(pg.db, [{ kind: "email", value: "bo@example.test" }], "test")
     )?.id as number;
     const [j] = await pg.db
-      .insert(journeys)
+      .insert(instances)
       .values({ profileId: profile, version: 2, node: "call", entry: "manual" })
       .returning();
     if (!j) throw new Error("no journey");
@@ -241,7 +241,7 @@ describe("blame, undo and tags", () => {
     );
     await expect(a.shapeUndo(ask)).rejects.toMatchObject({ status: 400 });
     expect((await shapeVersionsOf(pg.db)).length).toBe(2);
-    await pg.db.update(journeys).set({ status: "dropped" }).where(eq(journeys.id, j.id));
+    await pg.db.update(instances).set({ status: "dropped" }).where(eq(instances.id, j.id));
   });
 
   it("saves an undo as the next version with the note Undo, and a viewer cannot", async () => {

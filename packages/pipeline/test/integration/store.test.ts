@@ -11,7 +11,7 @@ import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { MetroBody } from "../../src/metro.js";
 import { depthOf } from "../../src/model.js";
-import { journeys } from "../../src/schema.js";
+import { instances } from "../../src/schema.js";
 import {
   addTerms,
   liveTerms,
@@ -259,7 +259,7 @@ describe("shape", () => {
   it("carries an open journey to the next version with a version arrival", async () => {
     const profile = await person("ada@example.test");
     const [j] = await pg.db
-      .insert(journeys)
+      .insert(instances)
       .values({ profileId: profile, version: 1, node: "booked", entry: "yt" })
       .returning();
     expect(j?.node).toBe("booked");
@@ -273,8 +273,8 @@ describe("shape", () => {
 
     const [after] = await pg.db
       .select()
-      .from(journeys)
-      .where(eq(journeys.id, j?.id as string));
+      .from(instances)
+      .where(eq(instances.id, j?.id as string));
     expect(after).toMatchObject({ version: 2, node: "booked", status: "open" });
     const arrivals = await pg.db
       .select()
@@ -289,13 +289,13 @@ describe("shape", () => {
     const profile = await person("bo@example.test");
     const ghost = (
       await pg.db
-        .insert(journeys)
+        .insert(instances)
         .values({ profileId: profile, version: 2, node: "kept", entry: "yt" })
         .returning()
     )[0];
     const moved = (
       await pg.db
-        .insert(journeys)
+        .insert(instances)
         .values({
           profileId: await person("cy@example.test"),
           version: 2,
@@ -344,5 +344,5 @@ async function person(email: string): Promise<number> {
 }
 
 async function journeyRow(id: string) {
-  return (await pg.db.select().from(journeys).where(eq(journeys.id, id)))[0];
+  return (await pg.db.select().from(instances).where(eq(instances.id, id)))[0];
 }

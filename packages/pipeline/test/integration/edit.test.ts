@@ -11,7 +11,7 @@ import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { edgeOf, editShape, ON_METRO, openOn, withNode } from "../../src/edit.js";
 import type { ShapeNode } from "../../src/model.js";
-import { journeys } from "../../src/schema.js";
+import { instances } from "../../src/schema.js";
 import { CONVERT_FIRST, Refused, saveShape } from "../../src/store.js";
 import { asMetro, seedGraph, shape, TRIGGERS } from "../fixtures.js";
 
@@ -56,9 +56,9 @@ describe("editShape", () => {
     }
   });
 
-  it("counts the open journeys on a node", async () => {
+  it("counts the open instances on a node", async () => {
     const [a, b] = [await person("a@example.test"), await person("b@example.test")];
-    await pg.db.insert(journeys).values([
+    await pg.db.insert(instances).values([
       { profileId: a, version: 1, node: "booked", entry: "yt" },
       { profileId: b, version: 1, node: "booked", entry: "yt" },
     ]);

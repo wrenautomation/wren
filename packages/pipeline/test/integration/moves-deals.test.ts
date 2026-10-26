@@ -10,7 +10,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { graphOf } from "../../src/convert.js";
 import { withoutNode } from "../../src/edit.js";
 import type { ShapeNode } from "../../src/model.js";
-import { journeys, pipelineDeals } from "../../src/schema.js";
+import { instances, pipelineDeals } from "../../src/schema.js";
 import { newestShape, Refused, saveShape } from "../../src/store.js";
 import { asMetro, flow, grown, TRIGGERS } from "../fixtures.js";
 
@@ -40,11 +40,11 @@ const journeyAt = async (email: string, node: string) => {
   const profile = (await resolveProfile(pg.db, [{ kind: "email", value: email }], "test"))
     ?.id as number;
   const [j] = await pg.db
-    .insert(journeys)
+    .insert(instances)
     .values({ profileId: profile, version: 1, node, entry: "yt" })
     .returning();
   if (!j) throw new Error("no journey");
-  return j;
+  return { ...j, profileId: profile };
 };
 const dealAt = async (
   j: { id: string; profileId: number },
@@ -96,7 +96,7 @@ describe("moves and deals", () => {
 
     // The journey and its open deal both sit on o2 now.
     expect(await nodesOf(a.id)).toEqual(["o2"]);
-    const [ja] = await pg.db.select().from(journeys).where(eq(journeys.id, a.id));
+    const [ja] = await pg.db.select().from(instances).where(eq(instances.id, a.id));
     expect(ja).toMatchObject({ node: "o2", version: 2 });
     const [moved] = await pg.db.select().from(pipelineDeals).where(eq(pipelineDeals.id, dealA.id));
     expect(moved).toMatchObject({ node: "o2", status: "open" });

@@ -15,7 +15,7 @@ import { events } from "@wren/core/schema";
 import { atomic, type Queryable } from "@wren/db";
 import { and, eq, inArray, lt } from "drizzle-orm";
 import type { Crossing } from "./model.js";
-import { journeys, pipelineDeals, shapeVersions } from "./schema.js";
+import { instances, pipelineDeals, shapeVersions } from "./schema.js";
 import { runOf } from "./stored.js";
 import { shapeFlowId } from "./workflow.js";
 
@@ -45,8 +45,8 @@ export async function carryJourneys(
     const inBody = new Set(runOf(target.body).nodes.map((n) => n.id));
     const open = await tx
       .select()
-      .from(journeys)
-      .where(and(eq(journeys.status, "open"), lt(journeys.version, toVersion)))
+      .from(instances)
+      .where(and(eq(instances.status, "open"), lt(instances.version, toVersion)))
       .for("update");
     let moved = 0;
     for (const j of open) {
@@ -60,9 +60,9 @@ export async function carryJourneys(
           : [...j.trail, { edge: null, from: j.node, to: node, at: at.toISOString() }];
       // A plain carry sets `version` only: the segments trigger fires on `node`, and nothing moved.
       await tx
-        .update(journeys)
+        .update(instances)
         .set(node === j.node ? { version: toVersion } : { version: toVersion, node, trail })
-        .where(eq(journeys.id, j.id));
+        .where(eq(instances.id, j.id));
       await tx
         .insert(events)
         .values({

@@ -32,8 +32,9 @@ import { isRowId, subjectOf } from "./moves.js";
 import { type NumberRow, numberRows } from "./numbers.js";
 import { scheduleOf } from "./schedule.js";
 import {
+  instances,
+  isPerson,
   journeyResearch,
-  journeys,
   offerVersions,
   pipelineDeals,
   shapeDrafts,
@@ -136,10 +137,10 @@ export async function offerRows(db: Queryable, o: { now?: Date } = {}) {
   // nearest offer node at or above it: the node's own, else the one it passed on its trail.
   const open = new Map<string, number>();
   const heads = await db
-    .select({ node: journeys.node, trail: journeys.trail, body: shapeVersions.body })
-    .from(journeys)
-    .innerJoin(shapeVersions, eq(shapeVersions.number, journeys.version))
-    .where(eq(journeys.status, "open"))
+    .select({ node: instances.node, trail: instances.trail, body: shapeVersions.body })
+    .from(instances)
+    .innerJoin(shapeVersions, eq(shapeVersions.number, instances.version))
+    .where(and(eq(instances.status, "open"), isPerson))
     .limit(ROWS);
   for (const h of heads) {
     const nodes = runOf(h.body).nodes;
@@ -328,8 +329,8 @@ export async function shapeRows(db: Queryable) {
   if (!top) return [];
   const opens = await db
     .select({ n: sql<number>`count(*)::int` })
-    .from(journeys)
-    .where(eq(journeys.status, "open"));
+    .from(instances)
+    .where(and(eq(instances.status, "open"), isPerson));
   // Counts are of the graph the runtime runs, whichever model the version is stored as.
   const run = runOf(top.body);
   return [
@@ -544,15 +545,16 @@ export async function shapeDetail(db: Queryable) {
 export async function journeyRows(db: Queryable, o: { id?: string; now?: Date } = {}) {
   const rows = await db
     .select({
-      j: journeys,
+      j: instances,
+      profile: profiles.id,
       person: profiles.name,
       body: shapeVersions.body,
     })
-    .from(journeys)
-    .innerJoin(profiles, eq(profiles.id, journeys.profileId))
-    .leftJoin(shapeVersions, eq(shapeVersions.number, journeys.version))
-    .where(o.id ? eq(journeys.id, o.id) : undefined)
-    .orderBy(desc(journeys.movedAt))
+    .from(instances)
+    .innerJoin(profiles, eq(profiles.id, instances.profileId))
+    .leftJoin(shapeVersions, eq(shapeVersions.number, instances.version))
+    .where(o.id ? eq(instances.id, o.id) : undefined)
+    .orderBy(desc(instances.movedAt))
     .limit(ROWS);
   const [top] = await db
     .select({ number: shapeVersions.number, body: shapeVersions.body })
@@ -561,7 +563,7 @@ export async function journeyRows(db: Queryable, o: { id?: string; now?: Date } 
     .limit(1);
   // Each person's addresses, so a row from another record (a reply, a call) finds their journey.
   const emails = new Map<number, string[]>();
-  for (const k of await keysOfProfile(db, [...new Set(rows.map((r) => r.j.profileId))]))
+  for (const k of await keysOfProfile(db, [...new Set(rows.map((r) => r.profile))]))
     if (k.kind === "email") emails.set(k.profileId, [...(emails.get(k.profileId) ?? []), k.value]);
   const now = (o.now ?? new Date()).getTime();
   const topGraph = top ? runOf(top.body) : undefined;
@@ -574,7 +576,7 @@ export async function journeyRows(db: Queryable, o: { id?: string; now?: Date } 
     graphs.set(version, g);
     return g;
   };
-  return rows.map(({ j, person, body: stored }) => {
+  return rows.map(({ j, profile, person, body: stored }) => {
     const body = stored ? graphOf(j.version, stored) : null;
     const days = Math.floor((now - j.movedAt.getTime()) / DAY_MS);
     const node = j.node;
@@ -588,9 +590,9 @@ export async function journeyRows(db: Queryable, o: { id?: string; now?: Date } 
       !topGraph?.nodes.some((n) => n.id === node);
     return {
       id: j.id,
-      name: person ?? `Person ${j.profileId}`,
-      profile: j.profileId,
-      email: (emails.get(j.profileId) ?? []).join(" "),
+      name: person ?? `Person ${profile}`,
+      profile,
+      email: (emails.get(profile) ?? []).join(" "),
       version: j.version,
       node,
       node_name: nameOf(body ?? undefined, node),
@@ -668,16 +670,16 @@ export const journeyRecord = (): RecordType =>
       owner: null,
       exists: async (db, id) =>
         isRowId(id) &&
-        (await db.select({ id: journeys.id }).from(journeys).where(eq(journeys.id, id)).limit(1))
+        (await db.select({ id: instances.id }).from(instances).where(eq(instances.id, id)).limit(1))
           .length > 0,
     },
     /** The edges it crossed, in order, with the node names of its own version. */
     load: async (db, id) => {
       const [r] = await db
-        .select({ trail: journeys.trail, body: shapeVersions.body })
-        .from(journeys)
-        .leftJoin(shapeVersions, eq(shapeVersions.number, journeys.version))
-        .where(eq(journeys.id, String(id)))
+        .select({ trail: instances.trail, body: shapeVersions.body })
+        .from(instances)
+        .leftJoin(shapeVersions, eq(shapeVersions.number, instances.version))
+        .where(eq(instances.id, String(id)))
         .limit(1);
       if (!r) return null;
       const graph = r.body ? runOf(r.body) : undefined;
@@ -715,13 +717,13 @@ export async function dealRows(db: Queryable, o: { id?: string } = {}) {
     .select({
       d: pipelineDeals,
       person: profiles.name,
-      entry: journeys.entry,
+      entry: instances.entry,
       plan: termsVersions.plan,
       planNumber: termsVersions.number,
       terms: termsVersions.body,
     })
     .from(pipelineDeals)
-    .innerJoin(journeys, eq(journeys.id, pipelineDeals.journey))
+    .innerJoin(instances, eq(instances.id, pipelineDeals.journey))
     .innerJoin(profiles, eq(profiles.id, pipelineDeals.profileId))
     .leftJoin(termsVersions, eq(termsVersions.id, pipelineDeals.termsVersion))
     .where(o.id ? eq(pipelineDeals.id, o.id) : undefined)
@@ -820,13 +822,13 @@ export async function entryRows(db: Queryable) {
   if (!top) return [];
   const counts = await db
     .select({
-      entry: journeys.entry,
-      open: sql<number>`(count(*) filter (where ${journeys.status} = 'open'))::int`,
+      entry: instances.entry,
+      open: sql<number>`(count(*) filter (where ${instances.status} = 'open'))::int`,
       all: sql<number>`count(*)::int`,
-      last: sql<string | null>`max(${journeys.openedAt})`,
+      last: sql<string | null>`max(${instances.openedAt})`,
     })
-    .from(journeys)
-    .groupBy(journeys.entry);
+    .from(instances)
+    .groupBy(instances.entry);
   const by = new Map(counts.map((c) => [c.entry, c]));
   return runOf(top.body).nodes.flatMap((n) => {
     if (n.kind !== "source") return [];

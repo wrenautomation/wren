@@ -14,7 +14,7 @@ import { editShape, ON_GRAPH, ON_METRO } from "../../src/edit.js";
 import { isMetro, type MetroBody, placesOf } from "../../src/metro.js";
 import { numberRows } from "../../src/numbers.js";
 import { shapeRecord, shapeRows } from "../../src/records.js";
-import { journeys } from "../../src/schema.js";
+import { instances } from "../../src/schema.js";
 import { exportShape, parseShape } from "../../src/shape-file.js";
 import {
   CONVERT_FIRST,
@@ -63,7 +63,7 @@ const relabel = (m: MetroBody, id: string, label: string): MetroBody => ({
 async function journeyAt(email: string, version: number, node: string): Promise<string> {
   const p = await resolveProfile(pg.db, [{ kind: "email", value: email }], "test");
   const [j] = await pg.db
-    .insert(journeys)
+    .insert(instances)
     .values({ profileId: p?.id as number, version, node, entry: "yt" })
     .returning();
   return j?.id as string;
@@ -84,7 +84,7 @@ describe("a graph version, then the metro model", () => {
     expect(v2.run).toEqual(v1.body);
     expect(v2.depths).toEqual(v1.depths);
 
-    const [after] = await pg.db.select().from(journeys).where(eq(journeys.id, journey));
+    const [after] = await pg.db.select().from(instances).where(eq(instances.id, journey));
     expect(after).toMatchObject({ version: 2, node: "booked", status: "open" });
   });
 

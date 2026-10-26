@@ -20,7 +20,7 @@ import {
   refineFit,
   requestResearch,
 } from "../../src/research.js";
-import { journeyResearch, journeys, offerVersions } from "../../src/schema.js";
+import { instances, journeyResearch, offerVersions } from "../../src/schema.js";
 import { sourcedPass } from "../../src/sourced.js";
 import { journeySteps } from "../../src/steps.js";
 import { Refused, saveShape } from "../../src/store.js";
@@ -189,8 +189,8 @@ describe("a sourced source", () => {
     // The same fire again, as a replay would send it: nothing new.
     for (const f of mine) await hear(w, flows, f);
 
-    const opened = (await pg.db.select().from(journeys)).filter((j) =>
-      l.profiles.includes(j.profileId),
+    const opened = (await pg.db.select().from(instances)).filter(
+      (j) => j.profileId !== null && l.profiles.includes(j.profileId),
     );
     expect(opened.map((j) => j.profileId).sort()).toEqual([...l.profiles].sort());
     expect(opened.every((j) => j.entry === "first" && j.node === "engaged")).toBe(true);
@@ -265,7 +265,7 @@ describe("node research", () => {
   it("starts a full run once, and a repeat after a failed start starts it", async () => {
     const l = await list(1);
     const [j] = await pg.db
-      .insert(journeys)
+      .insert(instances)
       .values({
         profileId: l.profiles[0] as number,
         version: 1,
@@ -273,7 +273,7 @@ describe("node research", () => {
         entry: "mail",
       })
       .returning();
-    if (!j) throw new Error("no journey");
+    if (!j?.profileId) throw new Error("no journey");
     const ask: ResearchAsk = {
       client: null,
       profile: j.profileId,
@@ -318,10 +318,10 @@ describe("ICP fit in the light read", () => {
   async function journeyAsk(): Promise<ResearchAsk> {
     const l = await list(1);
     const [j] = await pg.db
-      .insert(journeys)
+      .insert(instances)
       .values({ profileId: l.profiles[0] as number, version: 1, node: "booked", entry: "mail" })
       .returning();
-    if (!j) throw new Error("no journey");
+    if (!j?.profileId) throw new Error("no journey");
     return {
       client: null,
       profile: j.profileId,

@@ -25,7 +25,7 @@ export async function movePipeline(
   at = new Date(),
 ): Promise<string[]> {
   const has = await db.execute<{ yes: boolean }>(
-    sql`select to_regclass('pipeline.journeys') is not null
+    sql`select to_regclass('pipeline.instances') is not null
       and to_regclass('pipeline.shape_versions') is not null yes`,
   );
   if (!has[0]?.yes) return [];
@@ -36,7 +36,7 @@ export async function movePipeline(
     for (const p of [into, from].sort((a, b) => a - b))
       await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`journey:${p}`}))`);
     await tx.execute(
-      sql`select id from pipeline.journeys where profile_id in (${into}, ${from})
+      sql`select id from pipeline.instances where profile_id in (${into}, ${from})
         and status = 'open' for update`,
     );
     const open = (
@@ -44,7 +44,7 @@ export async function movePipeline(
         select j.id, j.profile_id profile,
           coalesce((select (v.depths ->> j.node)::int from pipeline.shape_versions v
             where v.number = j.version), 0)::int depth
-        from pipeline.journeys j
+        from pipeline.instances j
         where j.profile_id in (${into}, ${from}) and j.status = 'open'
         order by j.opened_at desc`)
     ).map((r): OpenRow => ({ ...r, profile: Number(r.profile), depth: Number(r.depth) }));
@@ -55,7 +55,7 @@ export async function movePipeline(
     const dropped = open.filter((r) => r.id !== keep?.id).map((r) => r.id);
     if (dropped.length)
       await tx.execute(
-        sql`update pipeline.journeys set status = 'dropped', drop_reason = ${MERGED_REASON},
+        sql`update pipeline.instances set status = 'dropped', drop_reason = ${MERGED_REASON},
           closed_at = ${at.toISOString()}::timestamptz
           where id in (${sql.join(
             dropped.map((id) => sql`${id}::uuid`),
@@ -63,7 +63,7 @@ export async function movePipeline(
           )})`,
       );
     await tx.execute(
-      sql`update pipeline.journeys set profile_id = ${into} where profile_id = ${from}`,
+      sql`update pipeline.instances set profile_id = ${into} where profile_id = ${from}`,
     );
     await tx.execute(
       sql`update pipeline.deals set profile_id = ${into} where profile_id = ${from}`,

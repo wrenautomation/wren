@@ -24,7 +24,7 @@ import { and, asc, eq, like, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { dropJourney, shapeWorkflowsOf } from "../../src/journeys.js";
 import { moveEmit, openEmit } from "../../src/moves.js";
-import { journeys, offerVersions, pipelineDeals } from "../../src/schema.js";
+import { instances, offerVersions, pipelineDeals } from "../../src/schema.js";
 import { journeySteps } from "../../src/steps.js";
 import { addTerms, saveShape } from "../../src/store.js";
 import { asMetro, flow, grown, shape, TRIGGERS } from "../fixtures.js";
@@ -161,9 +161,9 @@ const SIGNED = { trigger: "trigger.document", change: "signed", kind: "contract"
 const journeyOf = async (profile: number) => {
   const rows = await pg.db
     .select()
-    .from(journeys)
-    .where(eq(journeys.profileId, profile))
-    .orderBy(asc(journeys.openedAt));
+    .from(instances)
+    .where(eq(instances.profileId, profile))
+    .orderBy(asc(instances.openedAt));
   return rows.at(-1);
 };
 const arrivals = (workflow: string, node: string, journey?: string) =>
@@ -299,9 +299,9 @@ describe("a journey through the shape", () => {
     // Another cause for the node it is at: the guard holds it still.
     await hear(r, flows, REPLY, reply(3, "bo@example.test"));
 
-    expect(await pg.db.select().from(journeys).where(eq(journeys.profileId, profile))).toHaveLength(
-      1,
-    );
+    expect(
+      await pg.db.select().from(instances).where(eq(instances.profileId, profile)),
+    ).toHaveLength(1);
     expect(await journeyOf(profile)).toEqual(first);
     expect(await arrivals("shape.v1", "s_engaged", first?.id)).toHaveLength(1);
     expect(r.fired).toHaveLength(told);
@@ -325,7 +325,7 @@ describe("a journey through the shape", () => {
   });
 
   it("opens nothing for someone it cannot find", async () => {
-    const before = await pg.db.select().from(journeys);
+    const before = await pg.db.select().from(instances);
     const r = rig();
     // No key names a person: the arrival is the only record.
     const t = await hear(r, await flowsOf(), REPLY, {
@@ -334,12 +334,12 @@ describe("a journey through the shape", () => {
       data: { channel: "email" },
     });
     expect(t[0]).toMatchObject({ arrived: 1 });
-    expect(await pg.db.select().from(journeys)).toHaveLength(before.length);
+    expect(await pg.db.select().from(instances)).toHaveLength(before.length);
   });
 
   it("a journey move wakes the segments pass", async () => {
     const [t] = await pg.db.execute<{ n: number }>(
-      sql`select count(*)::int n from pg_trigger where tgname = 'journeys_segments_wake'`,
+      sql`select count(*)::int n from pg_trigger where tgname = 'instances_segments_wake'`,
     );
     expect(t?.n).toBe(1);
   });
@@ -368,7 +368,7 @@ describe("a new version", () => {
     return next;
   };
 
-  it("carries open journeys in the same write, and the new version moves them", async () => {
+  it("carries open instances in the same write, and the new version moves them", async () => {
     const profile = await person("hal@example.test");
     const r = rig();
     await hear(r, await flowsOf(), REPLY, reply(51, "hal@example.test"));
@@ -458,9 +458,9 @@ describe("a new version", () => {
     const all = (profile: number) =>
       pg.db
         .select()
-        .from(journeys)
-        .where(eq(journeys.profileId, profile))
-        .orderBy(asc(journeys.openedAt));
+        .from(instances)
+        .where(eq(instances.profileId, profile))
+        .orderBy(asc(instances.openedAt));
 
     // One person's first journey is dropped, the other's is done. Each leaves and comes back.
     const dropped = await person("rea@example.test");

@@ -392,7 +392,7 @@ export const executions = pgView("executions", {
         from client_accounts a where a.id = split_part(x.subject, ':', 2)::int)
       when subject ~ '^journey:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then (select coalesce(nullif(pr.name, ''), 'Someone') || ': ' ||
         j.node
-        from pipeline.journeys j join profiles pr on pr.id = j.profile_id
+        from pipeline.instances j join profiles pr on pr.id = j.profile_id
         where j.id = substr(x.subject, 9)::uuid)
     end, case split_part(subject, ':', 1) when 'mail' then 'Email' when 'item' then 'Learn item'
       when 'company' then 'Company' when 'account' then 'Account' when 'journey' then 'Journey'
@@ -433,7 +433,7 @@ export const executions = pgView("executions", {
       where m.id = case when x.subject ~ '^mail:[0-9]{1,9}$'
         then split_part(x.subject, ':', 2)::int end
     union all
-    select nullif(pr.name, ''), null from pipeline.journeys j
+    select nullif(pr.name, ''), null from pipeline.instances j
       join profiles pr on pr.id = j.profile_id
       where j.id = case when x.subject ~ '^journey:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
         then substr(x.subject, 9)::uuid end

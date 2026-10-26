@@ -139,14 +139,14 @@ const stepCondition = z.strictObject({
   days,
   not,
 });
-/** A journey's states (`pipeline.journeys.status`), and the clock a window counts back on. */
+/** A journey's states (`pipeline.instances.status`), and the clock a window counts back on. */
 export const JOURNEY_STATUS_NAMES = ["open", "done", "dropped"] as const;
 const JOURNEY_CLOCKS = ["moved", "opened"] as const;
 /** A node id or source id, as `@wren/pipeline` names them. */
 export const JOURNEY_KEY = /^[a-z][a-z0-9_-]{0,39}$/;
 const journeyKey = z.string().regex(JOURNEY_KEY, "a node or source id, like organic").optional();
 /**
- * The person holds a journey (`pipeline.journeys`): at a node (or `reached` it: the node is on
+ * The person holds a journey (`pipeline.instances`): at a node (or `reached` it: the node is on
  * its trail or is where it sits), in a state, opened by a source, moved or opened in the last D
  * days. A rule saved before the shape named a funnel and a `stage`: the stage reads as the node
  * and the funnel is ignored (there is one shape per workspace).
@@ -453,7 +453,7 @@ function counted(lines: SQL, least: number, most: number | undefined): SQL {
 }
 
 /**
- * A journey as a test on `p.id`, from `pipeline.journeys`. "Reached" reads the journey's own
+ * A journey as a test on `p.id`, from `pipeline.instances`. "Reached" reads the journey's own
  * trail (one `{ edge, from, to, at }` per crossing): the node is where it sits or an edge ended
  * there. A node a journey skipped is not on its trail.
  */
@@ -461,7 +461,7 @@ function journeySql(c: JourneyCondition, now: Date): SQL {
   const from = since(now, c.days);
   const clock = sql.raw(c.window === "opened" ? "j.opened_at" : "j.moved_at");
   const at = now.toISOString();
-  return sql`p.id in (select j.profile_id from pipeline.journeys j
+  return sql`p.id in (select j.profile_id from pipeline.instances j
     where true
       ${c.node && !c.reached ? sql`and j.node = ${c.node}` : sql``}
       ${c.node && c.reached ? sql`and (j.node = ${c.node} or j.trail @> ${JSON.stringify([{ to: c.node }])}::jsonb)` : sql``}

@@ -147,7 +147,7 @@ export const sourceNumbers = pipeline
     select j.entry source, (j.opened_at at time zone 'UTC')::date as day, count(distinct j.id)::int opened,
       count(d.id)::int deals, coalesce(sum(d.collected_cents), 0)::bigint collected_cents,
       null::float cost
-    from pipeline.journeys j left join pipeline.deals d on d.journey = j.id
+    from pipeline.instances j left join pipeline.deals d on d.journey = j.id
     group by j.entry, (j.opened_at at time zone 'UTC')::date
   ), newest as (
     select v.run from pipeline.shape_versions v order by v.number desc limit 1

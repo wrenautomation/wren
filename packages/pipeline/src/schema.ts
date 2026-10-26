@@ -6,15 +6,19 @@
  * - `shape_versions`: the business as one directed graph; every edit is a version.
  * - `funnels`, `funnel_versions`: the old funnels, kept as history. Nothing reads them; the shape
  *   replaced them (migration 0307 dropped the journey columns that pointed at them).
- * - `journeys`: one person on the shape. A cache of the executor events with subject `journey:<id>`.
+ * - `instances`: one subject (a person or a document) on the shape (was `journeys`;
+ *   designs/2026-10-25-ingestion-engine.md). A cache of the executor events with subject
+ *   `journey:<id>`. A person's instance is still called a journey in the app.
  * - `deals`: made when a journey reaches an offer node.
  */
 import { profiles } from "@wren/core/profiles-schema";
 import { oneOf } from "@wren/db/columns";
 import type { Icp, Offer, Terms } from "@wren/offers";
-import { sql } from "drizzle-orm";
+import { documents } from "@wren/research/schema";
+import { eq, sql } from "drizzle-orm";
 import {
   bigint,
+  check,
   date,
   foreignKey,
   index,
@@ -33,7 +37,7 @@ import {
 } from "drizzle-orm/pg-core";
 import type { Moves } from "./carry.js";
 import { DRAFT_STATES } from "./history.js";
-import type { Crossing, ShapeBody } from "./model.js";
+import { type Crossing, type ShapeBody, SUBJECT_KINDS } from "./model.js";
 import type { StoredBody } from "./stored.js";
 
 export const pipeline = pgSchema("pipeline");
@@ -264,11 +268,16 @@ export const shapeMirrors = pipeline.table(
 );
 export type ShapeMirror = typeof shapeMirrors.$inferSelect;
 
-export const journeys = pipeline.table(
-  "journeys",
+export const instances = pipeline.table(
+  "instances",
   {
     id: uuid("id").defaultRandom().notNull(),
-    profileId: integer("profile_id").notNull(),
+    /** What it is about: a person (`profile_id`) or a document (`document_id`), never both. */
+    subjectKind: varchar("subject_kind", { length: 8, enum: SUBJECT_KINDS })
+      .notNull()
+      .default("person"),
+    profileId: integer("profile_id"),
+    documentId: integer("document_id"),
     /** The shape version number it is on now. */
     version: integer("version").notNull(),
     /** A node id of that version. */
@@ -290,28 +299,47 @@ export const journeys = pipeline.table(
     legacyDeal: uuid("legacy_deal"),
   },
   (t) => [
-    primaryKey({ columns: [t.id], name: "pk_journeys" }),
-    index("ix_journeys_profile_status").on(t.profileId, t.status),
-    index("ix_journeys_shape_version").on(t.version),
-    // One open journey per person. The code holds an advisory lock on the profile; this is the
-    // backstop that makes a second open row an error.
-    uniqueIndex("uq_journeys_open").on(t.profileId).where(sql`status = 'open'`),
+    primaryKey({ columns: [t.id], name: "pk_instances" }),
+    index("ix_instances_profile_status").on(t.profileId, t.status),
+    index("ix_instances_shape_version").on(t.version),
+    // One open instance per person, on any line. The code holds an advisory lock on the profile;
+    // this is the backstop that makes a second open row an error.
+    uniqueIndex("uq_instances_open_person")
+      .on(t.profileId)
+      .where(sql`status = 'open' and subject_kind = 'person'`),
+    // One open instance per document on each line (its find source is the entry).
+    uniqueIndex("uq_instances_open_document")
+      .on(t.documentId, t.entry)
+      .where(sql`status = 'open' and subject_kind = 'document'`),
     // The fold makes one journey per old deal, even when two folds run at once.
-    uniqueIndex("uq_journeys_legacy_deal").on(t.legacyDeal).where(sql`legacy_deal is not null`),
+    uniqueIndex("uq_instances_legacy_deal").on(t.legacyDeal).where(sql`legacy_deal is not null`),
     foreignKey({
       columns: [t.profileId],
       foreignColumns: [profiles.id],
-      name: "fk_journeys_profile_id_profiles",
+      name: "fk_instances_profile_id_profiles",
+    }),
+    foreignKey({
+      columns: [t.documentId],
+      foreignColumns: [documents.id],
+      name: "fk_instances_document_id_documents",
     }),
     foreignKey({
       columns: [t.version],
       foreignColumns: [shapeVersions.number],
-      name: "fk_journeys_shape_version",
+      name: "fk_instances_shape_version",
     }),
-    oneOf("ck_journeys_status", t.status, JOURNEY_STATUSES),
+    oneOf("ck_instances_status", t.status, JOURNEY_STATUSES),
+    oneOf("ck_instances_subject_kind", t.subjectKind, SUBJECT_KINDS),
+    check(
+      "ck_instances_subject",
+      sql`(subject_kind = 'person' and profile_id is not null and document_id is null) or (subject_kind = 'document' and document_id is not null and profile_id is null)`,
+    ),
   ],
 );
-export type Journey = typeof journeys.$inferSelect;
+export type Instance = typeof instances.$inferSelect;
+
+/** Readers that mean people: a person's instance (a journey). */
+export const isPerson = eq(instances.subjectKind, "person");
 
 export const pipelineDeals = pipeline.table(
   "deals",
@@ -343,8 +371,8 @@ export const pipelineDeals = pipeline.table(
     index("ix_deals_terms_version").on(t.termsVersion),
     foreignKey({
       columns: [t.journey],
-      foreignColumns: [journeys.id],
-      name: "fk_deals_journey_journeys",
+      foreignColumns: [instances.id],
+      name: "fk_deals_journey_instances",
     }),
     foreignKey({
       columns: [t.profileId],
@@ -393,8 +421,8 @@ export const journeyResearch = pipeline.table(
     index("ix_journey_research_profile_id").on(t.profileId),
     foreignKey({
       columns: [t.journey],
-      foreignColumns: [journeys.id],
-      name: "fk_journey_research_journey_journeys",
+      foreignColumns: [instances.id],
+      name: "fk_journey_research_journey_instances",
     }),
     oneOf("ck_journey_research_state", t.state, RESEARCH_STATES),
     oneOf("ck_journey_research_level", t.level, ["light", "full"]),

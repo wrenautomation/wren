@@ -12,12 +12,26 @@ import { checkWorkflows, type Workflow } from "@wren/core/workflows";
 import { atomic, type Queryable } from "@wren/db";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { DROPPED, type ShapeBody } from "./model.js";
-import { type Journey, journeys, shapeVersions } from "./schema.js";
+import { type Instance, instances, shapeVersions } from "./schema.js";
 import { runOf } from "./stored.js";
 import { type Scope, shapeFlowId, shapeWorkflow } from "./workflow.js";
 
 const isRecord = (v: unknown): v is Record<string, unknown> =>
   typeof v === "object" && v !== null && !Array.isArray(v);
+
+/** What an instance is about: a person (a journey) or a document on a content line. */
+export type Subject = { kind: "person"; profile: number } | { kind: "document"; document: number };
+
+/** The instance's subject. `ck_instances_subject` holds the id that matches its kind. */
+export function instanceSubject(
+  j: Pick<Instance, "id" | "subjectKind" | "profileId" | "documentId">,
+): Subject {
+  if (j.subjectKind === "person" && j.profileId !== null)
+    return { kind: "person", profile: j.profileId };
+  if (j.subjectKind === "document" && j.documentId !== null)
+    return { kind: "document", document: j.documentId };
+  throw new Error(`Instance ${j.id} has no ${j.subjectKind}.`);
+}
 
 /** A string or number as text; anything else is nothing. */
 export const textOf = (v: unknown): string | undefined =>
@@ -118,7 +132,7 @@ export async function shapeWorkflowsOf(
     .from(v)
     .where(
       sql`${v.number} = (select max(m.number) from pipeline.shape_versions m)
-        or exists (select 1 from pipeline.journeys j
+        or exists (select 1 from pipeline.instances j
           where j.version = ${v.number} and j.status = 'open')`,
     )
     .orderBy(v.number);
@@ -178,14 +192,14 @@ export async function dropJourney(
   return atomic(db, async (tx) => {
     const [j] = await tx
       .select()
-      .from(journeys)
-      .where(and(eq(journeys.id, p.journey), eq(journeys.status, "open")))
+      .from(instances)
+      .where(and(eq(instances.id, p.journey), eq(instances.status, "open")))
       .for("update");
     if (!j) return null;
     await tx
-      .update(journeys)
+      .update(instances)
       .set({ status: "dropped", dropReason: p.reason, closedAt: new Date() })
-      .where(eq(journeys.id, j.id));
+      .where(eq(instances.id, j.id));
     const [top] = await tx
       .select({ number: shapeVersions.number })
       .from(shapeVersions)
@@ -213,13 +227,13 @@ export async function dropJourney(
 }
 
 /** A person's open journey, locked for the caller's transaction. One per person. */
-export async function openJourney(tx: Queryable, profile: number): Promise<Journey | null> {
+export async function openJourney(tx: Queryable, profile: number): Promise<Instance | null> {
   await lockPerson(tx, profile);
   const [j] = await tx
     .select()
-    .from(journeys)
-    .where(and(eq(journeys.profileId, profile), eq(journeys.status, "open")))
-    .orderBy(desc(journeys.openedAt))
+    .from(instances)
+    .where(and(eq(instances.profileId, profile), eq(instances.status, "open")))
+    .orderBy(desc(instances.openedAt))
     .limit(1)
     .for("update");
   return j ?? null;

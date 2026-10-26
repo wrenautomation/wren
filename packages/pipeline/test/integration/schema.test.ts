@@ -5,13 +5,14 @@
  */
 import { profiles } from "@wren/core/profiles-schema";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
+import { documents } from "@wren/research/schema";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { depthOf } from "../../src/model.js";
 import {
   funnels,
   funnelVersions,
-  journeys,
+  instances,
   offerVersions,
   pipelineDeals,
   shapeDrafts,
@@ -110,20 +111,20 @@ describe("journeys", () => {
       node: "engaged",
       entry: "yt",
     });
-    expect(await refusal(pg.db.insert(journeys).values(open(9)))).toMatch(
-      /"fk_journeys_shape_version"/,
+    expect(await refusal(pg.db.insert(instances).values(open(9)))).toMatch(
+      /"fk_instances_shape_version"/,
     );
-    const [row] = await pg.db.insert(journeys).values(open(1)).returning();
+    const [row] = await pg.db.insert(instances).values(open(1)).returning();
     expect(row).toMatchObject({ version: 1, node: "engaged", trail: [], status: "open" });
     // The legacy columns are gone.
     expect(Object.keys(row ?? {})).not.toEqual(
       expect.arrayContaining(["funnel", "funnelVersion", "stage"]),
     );
     expect(
-      await refusal(pg.db.insert(journeys).values({ ...open(1), node: null as never })),
+      await refusal(pg.db.insert(instances).values({ ...open(1), node: null as never })),
     ).toMatch(/"node" .*not-null/);
     expect(
-      await refusal(pg.db.insert(journeys).values({ ...open(1), version: null as never })),
+      await refusal(pg.db.insert(instances).values({ ...open(1), version: null as never })),
     ).toMatch(/"version" .*not-null/);
   });
 
@@ -140,16 +141,54 @@ describe("journeys", () => {
       entry: "manual",
     });
 
-    const [first] = await pg.db.insert(journeys).values(open(b.id)).returning();
+    const [first] = await pg.db.insert(instances).values(open(b.id)).returning();
     if (!first) throw new Error("no journey");
-    expect(await refusal(pg.db.insert(journeys).values(open(b.id)))).toMatch(/"uq_journeys_open"/);
+    expect(await refusal(pg.db.insert(instances).values(open(b.id)))).toMatch(
+      /"uq_instances_open_person"/,
+    );
 
     // Another person is fine.
-    await pg.db.insert(journeys).values(open(c.id));
+    await pg.db.insert(instances).values(open(c.id));
 
     // Once it is closed, the person can open a new one.
-    await pg.db.update(journeys).set({ status: "done" }).where(eq(journeys.id, first.id));
-    await pg.db.insert(journeys).values(open(b.id));
+    await pg.db.update(instances).set({ status: "done" }).where(eq(instances.id, first.id));
+    await pg.db.insert(instances).values(open(b.id));
+  });
+
+  it("is about a person or a document, and holds one open per document on each line", async () => {
+    const [e] = await pg.db
+      .insert(profiles)
+      .values([{ name: "Ed" }])
+      .returning();
+    const [doc] = await pg.db
+      .insert(documents)
+      .values({ url: "https://example.test/film", kind: "webpage", contentHash: "h", text: "t" })
+      .returning();
+    if (!e || !doc) throw new Error("no rows");
+    const on = (entry: string) => ({
+      subjectKind: "document" as const,
+      documentId: doc.id,
+      version: 1,
+      node: "read",
+      entry,
+    });
+    expect(
+      await refusal(pg.db.insert(instances).values({ ...on("find"), profileId: e.id })),
+    ).toMatch(/"ck_instances_subject"/);
+    expect(
+      await refusal(
+        pg.db.insert(instances).values({ ...on("find"), subjectKind: "person", documentId: null }),
+      ),
+    ).toMatch(/"ck_instances_subject"/);
+    await pg.db.insert(instances).values(on("find"));
+    expect(await refusal(pg.db.insert(instances).values(on("find")))).toMatch(
+      /"uq_instances_open_document"/,
+    );
+    // Another line's find is another instance; a person's open journey does not block it.
+    await pg.db.insert(instances).values(on("find_ads"));
+    await pg.db
+      .insert(instances)
+      .values({ profileId: e.id, version: 1, node: "engaged", entry: "yt" });
   });
 
   it("holds a deal at each offer node, not one deal in all", async () => {
@@ -159,7 +198,7 @@ describe("journeys", () => {
       .returning();
     if (!d) throw new Error("no profile");
     const [j] = await pg.db
-      .insert(journeys)
+      .insert(instances)
       .values({ profileId: d.id, version: 1, node: "engaged", entry: "manual" })
       .returning();
     if (!j) throw new Error("no journey");

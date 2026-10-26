@@ -41,7 +41,7 @@ import {
   readTerms,
   trailOf,
 } from "../../src/records.js";
-import { journeys, offerVersions, pipelineDeals } from "../../src/schema.js";
+import { instances, offerVersions, pipelineDeals } from "../../src/schema.js";
 import { journeySteps } from "../../src/steps.js";
 import { addTerms, newestShape, Refused, saveShape } from "../../src/store.js";
 import { runOf, type StoredBody } from "../../src/stored.js";
@@ -144,13 +144,13 @@ const move = (id: string, to: string, reason?: string) =>
 const journeyOf = async (profile: number) => {
   const rows = await pg.db
     .select()
-    .from(journeys)
-    .where(eq(journeys.profileId, profile))
-    .orderBy(asc(journeys.openedAt));
+    .from(instances)
+    .where(eq(instances.profileId, profile))
+    .orderBy(asc(instances.openedAt));
   return rows.at(-1);
 };
 const row = async (id: string) => {
-  const [j] = await pg.db.select().from(journeys).where(eq(journeys.id, id));
+  const [j] = await pg.db.select().from(instances).where(eq(instances.id, id));
   return j;
 };
 /** A person with a journey open at the first opening node, then moved along `to`. */
@@ -309,9 +309,9 @@ describe("move and drop", () => {
 
     // Damage the row; the events still say dropped at engaged.
     await pg.db
-      .update(journeys)
+      .update(instances)
       .set({ status: "open", dropReason: null, closedAt: null, node: "booked" })
-      .where(eq(journeys.id, id));
+      .where(eq(instances.id, id));
     const r = await rebuildJourney(pg.db, id);
     expect(r.changed).toBe(true);
     expect(r.after).toMatchObject({ node: "engaged", status: "dropped", dropReason: "no fit" });
@@ -328,9 +328,9 @@ describe("move and drop", () => {
     const { profile, id } = await start("done@example.test");
     await play(await move(id, "standard"));
     await pg.db
-      .update(journeys)
+      .update(instances)
       .set({ status: "open", closedAt: null, node: "engaged" })
-      .where(eq(journeys.id, id));
+      .where(eq(instances.id, id));
     const r = await rebuildJourney(pg.db, id);
     expect(r.after).toMatchObject({ node: "standard", status: "done" });
     expect((await journeyOf(profile))?.trail.map((c) => c.to)).toEqual([
@@ -516,7 +516,7 @@ describe("the pipeline records", () => {
       }
   });
 
-  it("lists journeys by status, stale, mine and shows the person's name", async () => {
+  it("lists instances by status, stale, mine and shows the person's name", async () => {
     const api = serveRecords(PIPELINE_RECORDS, pg.db, undefined, undefined, ME);
     const list = (view: string) => api.list({ record: "pipeline.journey", view });
     const open = await list("open");
@@ -528,7 +528,7 @@ describe("the pipeline records", () => {
     expect((await list("mine")).rows.length).toBeGreaterThan(0);
     // Old rows are stale: the walker sits at engaged, which reads stale after 3 days.
     await pg.db.execute(
-      sql`update pipeline.journeys set moved_at = now() - interval '20 days' where profile_id = ${walkProfile}`,
+      sql`update pipeline.instances set moved_at = now() - interval '20 days' where profile_id = ${walkProfile}`,
     );
     const fresh = serveRecords(PIPELINE_RECORDS, pg.db, undefined, undefined, ME);
     const stale = await fresh.list({ record: "pipeline.journey", view: "stale" });
@@ -554,7 +554,7 @@ describe("the pipeline records", () => {
       (await journeyRows(pg.db)).find((r) => r.profile === profiles[node])?.flag ?? null;
     const age = (days: number) =>
       pg.db.execute(
-        sql`update pipeline.journeys set moved_at = now() - make_interval(days => ${days})
+        sql`update pipeline.instances set moved_at = now() - make_interval(days => ${days})
           where profile_id in (${sql.join(Object.values(profiles), sql`, `)})`,
       );
     await age(5);
@@ -669,7 +669,7 @@ describe("the pipeline records", () => {
     ).toBe("50.00 USD per unit, up to 200.00, due in 7 days");
   });
 
-  it("gives each offer its live plans and the open journeys that reached it", async () => {
+  it("gives each offer its live plans and the open instances that reached it", async () => {
     const [a] = (await offerRows(pg.db)).filter((r) => r.id === "offer-a");
     // standard, flat and rec-plan have started; the 2999 version does not make a fourth.
     expect(a?.live_plans).toBe(3);
@@ -681,7 +681,7 @@ describe("the pipeline records", () => {
     expect((await offerRows(pg.db, { now: new Date("2019-01-01") }))[0]?.live_plans).toBe(0);
   });
 
-  it("lists the sources with journeys and the last arrival", async () => {
+  it("lists the sources with instances and the last arrival", async () => {
     const rows = await entryRows(pg.db);
     expect(rows.map((r) => r.id).sort()).toEqual(["ads1", "mail", "old", "yt"]);
     expect(rows.find((r) => r.id === "mail")).toMatchObject({
@@ -728,9 +728,9 @@ describe("loop edges", () => {
       dropReason: "loop booked_to_engaged",
     });
     expect((await row(id))?.closedAt).toBeInstanceOf(Date);
-    const fresh = (await pg.db.select().from(journeys).where(eq(journeys.profileId, profile))).find(
-      (j) => j.id !== id,
-    );
+    const fresh = (
+      await pg.db.select().from(instances).where(eq(instances.profileId, profile))
+    ).find((j) => j.id !== id);
     // The new journey keeps the owner.
     expect(fresh).toMatchObject({
       node: "engaged",
@@ -752,18 +752,18 @@ describe("loop edges", () => {
     // Rebuild keeps the old journey dropped by the loop, and the new one as it is. One journey is
     // open per person, so the new one is closed while the old one is forced open.
     await pg.db
-      .update(journeys)
+      .update(instances)
       .set({ status: "dropped", closedAt: new Date() })
-      .where(eq(journeys.id, freshId));
+      .where(eq(instances.id, freshId));
     await pg.db
-      .update(journeys)
+      .update(instances)
       .set({ status: "open", dropReason: null, closedAt: null })
-      .where(eq(journeys.id, id));
+      .where(eq(instances.id, id));
     const r = await rebuildJourney(pg.db, id);
     await pg.db
-      .update(journeys)
+      .update(instances)
       .set({ status: "open", closedAt: null })
-      .where(eq(journeys.id, freshId));
+      .where(eq(instances.id, freshId));
     expect(r.after).toMatchObject({
       node: "booked",
       status: "dropped",
@@ -782,9 +782,9 @@ describe("loop edges", () => {
     await play((await dropJourney(pg.db, { journey: id, reason: "no fit", by: OP })) as Emit);
     await play(await move(id, "engaged"));
     expect(await row(id)).toMatchObject({ status: "dropped", dropReason: "no fit" });
-    const fresh = (await pg.db.select().from(journeys).where(eq(journeys.profileId, profile))).find(
-      (j) => j.id !== id,
-    );
+    const fresh = (
+      await pg.db.select().from(instances).where(eq(instances.profileId, profile))
+    ).find((j) => j.id !== id);
     expect(fresh).toMatchObject({ node: "engaged", status: "open", entry: "ads1" });
     expect((await rebuildJourney(pg.db, id)).changed).toBe(false);
   });

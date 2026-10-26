@@ -12,11 +12,14 @@ import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { depthOf } from "../../src/model.js";
-import { journeys, shapeVersions } from "../../src/schema.js";
+import { instances, shapeVersions } from "../../src/schema.js";
 import { asMetro, shape } from "../fixtures.js";
 
 const FILE = new URL("../../../db/drizzle/0303_deals_guard_and_drop.sql", import.meta.url);
-const [GUARD = "", ...DROPS] = readFileSync(FILE, "utf8").split("--> statement-breakpoint");
+// 0303 ran before 0343 renamed journeys to instances.
+const [GUARD = "", ...DROPS] = readFileSync(FILE, "utf8")
+  .replaceAll(`"pipeline"."journeys"`, `"pipeline"."instances"`)
+  .split("--> statement-breakpoint");
 
 let pg: TestPostgres;
 const PIPE = "00000000-0000-4000-8000-0000000000a1";
@@ -95,7 +98,7 @@ describe("the deals guard", () => {
 
   it("passes once the deal has its journey", async () => {
     const p = await resolveProfile(pg.db, [{ kind: "email", value: "ada@example.test" }], "test");
-    await pg.db.insert(journeys).values({
+    await pg.db.insert(instances).values({
       profileId: p?.id as number,
       version: 1,
       node: "engaged",

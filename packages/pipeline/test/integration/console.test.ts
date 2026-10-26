@@ -21,7 +21,7 @@ import {
 } from "../../src/console-routes.js";
 import type { ShapeBody } from "../../src/model.js";
 import { assignJourney } from "../../src/moves.js";
-import { journeys } from "../../src/schema.js";
+import { instances } from "../../src/schema.js";
 import { exportShape } from "../../src/shape-file.js";
 import { Refused, saveShape, shapeVersionsOf } from "../../src/store.js";
 import { runOf, type StoredBody } from "../../src/stored.js";
@@ -245,19 +245,19 @@ describe("shape changes", () => {
   });
 });
 
-describe("the journeys board's reads", () => {
+describe("the instances board's reads", () => {
   const op = () => as(ADA, undefined, true);
   const person = async (email: string) =>
     ((await resolveProfile(pg.db, [{ kind: "email", value: email }], "test"))?.id as number) ?? 0;
 
-  it("lists the open journeys with their node, and the done ones apart", async () => {
+  it("lists the open instances with their node, and the done ones apart", async () => {
     const [a, b, c] = [
       await person("a@example.test"),
       await person("b@example.test"),
       await person("c@example.test"),
     ];
     const base = { version: 3, entry: "manual" };
-    await pg.db.insert(journeys).values([
+    await pg.db.insert(instances).values([
       { ...base, profileId: a, node: "engaged" },
       { ...base, profileId: b, node: "engaged" },
       { ...base, profileId: c, node: "signed", status: "done", closedAt: new Date() },
@@ -371,7 +371,7 @@ describe("who works a journey", () => {
     (await resolveProfile(pg.db, [{ kind: "email", value: email }], "test"))?.id as number;
   const journeyFor = async (email: string, owner: string | null = null) => {
     const [j] = await pg.db
-      .insert(journeys)
+      .insert(instances)
       .values({
         profileId: await profileOf(email),
         version: 3,
@@ -383,7 +383,7 @@ describe("who works a journey", () => {
     return j?.id as string;
   };
   const ownerOf = async (id: string) =>
-    (await pg.db.select({ o: journeys.owner }).from(journeys).where(eq(journeys.id, id)))[0]?.o;
+    (await pg.db.select({ o: instances.owner }).from(instances).where(eq(instances.id, id)))[0]?.o;
 
   it("gives a journey to a team member, in the form the Mine view reads, and clears it", async () => {
     const id = await journeyFor("own1@example.test");
@@ -432,7 +432,7 @@ describe("who works a journey", () => {
     expect(await ownerOf(id)).toBeNull();
   });
 
-  it("shows the owner, and Mine lists the open journeys the viewer owns", async () => {
+  it("shows the owner, and Mine lists the open instances the viewer owns", async () => {
     const mine = await journeyFor("own4@example.test", ADA);
     await journeyFor("own5@example.test", NEO);
     await journeyFor("own6@example.test");
@@ -449,8 +449,10 @@ describe("who works a journey", () => {
       new URL("../../../db/drizzle/0308_journey_owner.sql", import.meta.url),
       "utf8",
     );
-    const backfill = sqlText.split("--> statement-breakpoint")[1] ?? "";
-    expect(backfill).toMatch(/UPDATE "pipeline"."journeys"/);
+    const ran = sqlText.split("--> statement-breakpoint")[1] ?? "";
+    expect(ran).toMatch(/UPDATE "pipeline"."journeys"/);
+    // 0308 ran before 0343 renamed the table.
+    const backfill = ran.replace(`"pipeline"."journeys"`, `"pipeline"."instances"`);
     const arrive = (id: string, ref: string, kind: string, ago: number, node = "s_engaged") =>
       pg.db.insert(events).values({
         workflow: "shape.v3",
@@ -494,7 +496,7 @@ describe("custom fields on a journey", () => {
         ?.id as number,
     ];
     const [j] = await pg.db
-      .insert(journeys)
+      .insert(instances)
       .values({ profileId: p, version: 3, node: "engaged", entry: "manual" })
       .returning();
     const id = j?.id as string;

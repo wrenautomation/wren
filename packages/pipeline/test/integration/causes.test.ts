@@ -24,7 +24,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { COLLECT_STEP, collectSteps, MONEY_WORKFLOW } from "../../src/collect.js";
 import { shapeWorkflowsOf } from "../../src/journeys.js";
 import type { ShapeBody } from "../../src/model.js";
-import { journeys, offerVersions, pipelineDeals } from "../../src/schema.js";
+import { instances, offerVersions, pipelineDeals } from "../../src/schema.js";
 import { journeySteps } from "../../src/steps.js";
 import { saveShape } from "../../src/store.js";
 import { asMetro, flow, TRIGGERS } from "../fixtures.js";
@@ -130,9 +130,9 @@ const reply = (n: number, email: string): ExecutorEvent => ({
 const journeyOf = async (profile: number) => {
   const rows = await pg.db
     .select()
-    .from(journeys)
-    .where(eq(journeys.profileId, profile))
-    .orderBy(asc(journeys.openedAt));
+    .from(instances)
+    .where(eq(instances.profileId, profile))
+    .orderBy(asc(instances.openedAt));
   return rows.at(-1);
 };
 
@@ -240,9 +240,9 @@ describe("a profile merge", () => {
     const at = new Date("2026-10-19T12:00:00Z");
     await mergeProfiles(pg.db, a, b, "test", "test", at);
 
-    const rows = await pg.db.select().from(journeys).where(eq(journeys.profileId, a));
+    const rows = await pg.db.select().from(instances).where(eq(instances.profileId, a));
     expect(rows).toHaveLength(2);
-    expect(await pg.db.select().from(journeys).where(eq(journeys.profileId, b))).toEqual([]);
+    expect(await pg.db.select().from(instances).where(eq(instances.profileId, b))).toEqual([]);
     const open = rows.filter((x) => x.status === "open");
     expect(open).toHaveLength(1);
     expect(open[0]).toMatchObject({ id: keep?.id, profileId: a, node: "booked" });

@@ -15,7 +15,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { shapeWorkflowsOf } from "../../src/journeys.js";
 import type { ShapeBody } from "../../src/model.js";
 import { sourceNumbersOf } from "../../src/numbers.js";
-import { journeys } from "../../src/schema.js";
+import { instances } from "../../src/schema.js";
 import { journeySteps } from "../../src/steps.js";
 import { saveShape } from "../../src/store.js";
 import { asMetro, flow, TRIGGERS } from "../fixtures.js";
@@ -123,9 +123,9 @@ const journeyOf = async (profile: number) =>
   (
     await pg.db
       .select()
-      .from(journeys)
-      .where(eq(journeys.profileId, profile))
-      .orderBy(asc(journeys.openedAt))
+      .from(instances)
+      .where(eq(instances.profileId, profile))
+      .orderBy(asc(instances.openedAt))
   ).at(-1);
 
 describe("an ad-attributed person", () => {
