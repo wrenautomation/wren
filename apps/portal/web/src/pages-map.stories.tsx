@@ -32,7 +32,7 @@ import { REFUSED_UNDO } from "./mocks/data/map-drafts.js";
 import { ADMIN } from "./mocks/data/me.js";
 import { type PageAt, pageAt } from "./mocks/page.js";
 
-const meta: Meta = { title: "Pages/Map" };
+const meta: Meta = { title: "Done/Map", id: "pages-map" };
 export default meta;
 
 /** The layout is async: a station shows when the renderer has placed it. */
