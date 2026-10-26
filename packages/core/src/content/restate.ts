@@ -16,7 +16,6 @@ import { SCHEDULE_ZONE } from "../logic.js";
 import { isVendorStop } from "../metered.js";
 import { NO_INPUT, serviceHandler } from "../restate/form.js";
 import { CallTimeout, within } from "../restate/limits.js";
-import { dayEnd } from "../time.js";
 import { type JournalRecord, openTry, type SendJournal } from "../send-journal.js";
 import {
   type Delivery,
@@ -31,6 +30,7 @@ import {
   verifyingOnly,
   writeKey,
 } from "../send-verdict.js";
+import { dayEnd } from "../time.js";
 import {
   capWaitMs,
   SiteCallError,

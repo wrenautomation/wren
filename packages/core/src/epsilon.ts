@@ -31,4 +31,5 @@ export function seeded(key: string): () => number {
 }
 
 /** `at` nudged by its own seed: the same instant and key always give the same slot. */
-export const nudgeFixed = (at: Date, key: string): Date => nudge(at, seeded(`${key} ${at.toISOString()}`));
+export const nudgeFixed = (at: Date, key: string): Date =>
+  nudge(at, seeded(`${key} ${at.toISOString()}`));

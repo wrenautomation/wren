@@ -57,6 +57,7 @@ import {
   type TopUpStats,
   topUp,
 } from "../invites.js";
+import { followsLeft } from "../limits.js";
 import {
   allCommentsSettings,
   autoActs,
@@ -65,7 +66,6 @@ import {
   postReader,
   postsPass,
 } from "../reach-posts.js";
-import { followsLeft } from "../limits.js";
 import { pullReplies, type RepliesStats } from "../replies.js";
 import { schedulePosts } from "../scheduled.js";
 import { REACH_POST_PLATFORMS, type ReachAccount, type ReachPostPlatform } from "../schema.js";
