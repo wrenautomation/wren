@@ -43,7 +43,8 @@ describe("kinds", () => {
       const q = k.questions[PICK];
       expect(q?.type).toBe("choice");
       if (q?.type !== "choice") continue;
-      expect(Object.keys(q.criteria).sort()).toEqual(Object.keys(k.labels).sort());
+      // A person may have more labels than the machine is asked (his tune on a document).
+      for (const c of Object.keys(q.criteria)) expect(Object.keys(k.labels)).toContain(c);
       expect(k.gate).toBe(false);
     }
   });
@@ -61,7 +62,7 @@ describe("kinds", () => {
       p: 0.4,
       confidence: 0.4,
     });
-    expect(machineLabel("learn_worth", { pick: { type: "choice", choice: "nope" } })).toBeNull();
+    expect(machineLabel("document", { pick: { type: "choice", choice: "nope" } })).toBeNull();
   });
 });
 
@@ -86,7 +87,7 @@ describe("backends", () => {
   it("sorts failures: refused input, refused key, outage", async () => {
     const ask = async (status: number) => {
       const b = jevBackend({ apiKey: "k", fetch: fakeFetch(status, { error: "no" }).fetch });
-      return b.ask({ state: {}, questions: KINDS.learn_worth.questions }, {}).catch((e) => e);
+      return b.ask({ state: {}, questions: KINDS.document.questions }, {}).catch((e) => e);
     };
     expect(failureOf(await ask(422))).toBe("refused");
     expect(failureOf(await ask(401))).toBe("key");
@@ -97,19 +98,16 @@ describe("backends", () => {
     const llm: CompleteLike = {
       name: "gateway:free",
       complete: async () => ({
-        text: '```json\n{"pick": {"probabilities": {"worth": 3, "skip": 1}}}\n```',
+        text: '```json\n{"pick": {"probabilities": {"keep": 3, "drop": 1}}}\n```',
         raw: { usage: { inputTokens: 120, outputTokens: 9 } },
       }),
     };
-    const r = await gatewayBackend(llm).ask(
-      { state: {}, questions: KINDS.learn_worth.questions },
-      {},
-    );
+    const r = await gatewayBackend(llm).ask({ state: {}, questions: KINDS.document.questions }, {});
     expect(r.answers.pick).toEqual({
       type: "choice",
-      choice: "worth",
+      choice: "keep",
       confidence: 0.5,
-      probabilities: { worth: 0.75, skip: 0.25 },
+      probabilities: { keep: 0.75, drop: 0.25 },
     });
     expect(r.usage).toEqual({ input_tokens: 120, output_tokens: 9 });
   });

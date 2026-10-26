@@ -157,7 +157,7 @@ describe("wren sop hunt", () => {
       .where(eq(itemTags.tag, "launch-films"));
     expect(tagged.map((t) => t.itemId).sort()).toEqual([...hunt.revived, ...hunt.saved].sort());
     const [worth] = await pg.db.execute<{ n: number }>(
-      sql`select count(*)::int n from decision_calls where kind = 'learn_worth'`,
+      sql`select count(*)::int n from decision_calls where kind = 'document'`,
     );
     expect(worth?.n).toBe(0);
 

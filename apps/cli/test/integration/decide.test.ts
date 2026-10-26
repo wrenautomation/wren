@@ -12,7 +12,7 @@ import { learnDue, withLearnPicks } from "@wren/learn/decide";
 import { commentsDue } from "@wren/outreach/decide";
 import { redditPlaces, redditThreads } from "@wren/outreach/schema";
 import { Command } from "commander";
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { registerDecide } from "../../src/decide.js";
 
@@ -29,8 +29,13 @@ const calls = async (subject?: string) =>
   (await pg.db.execute(
     subject
       ? sql`select subject, label, source, ref from decision_calls where subject = ${subject} order by id`
-      : sql`select subject, label, source, ref from decision_calls where kind = 'learn_worth' order by id`,
+      : sql`select subject, label, source, ref from decision_calls where kind = 'document' order by id`,
   )) as unknown as Record<string, unknown>[];
+/** An item's call subject: its document. */
+const doc = async (id: number) => {
+  const [r] = await pg.db.select({ d: items.documentId }).from(items).where(eq(items.id, id));
+  return `doc:${r?.d}`;
+};
 
 async function item(client: string, n: number, extra: Partial<typeof items.$inferInsert> = {}) {
   const [r] = await pg.db
@@ -67,7 +72,7 @@ async function wren(...argv: string[]): Promise<string> {
 }
 
 describe("Learn calls", () => {
-  it("a star, a save and an SOP add are worth; an archive alone is skip; a client's are none", async () => {
+  it("a star, a save and an SOP add are keeps; an archive alone is a drop; a client's are none", async () => {
     const a = await item("wren", 1);
     const b = await item("wren", 2);
     const c = await item("client-x", 3);
@@ -84,15 +89,15 @@ describe("Learn calls", () => {
     });
     await askSop(pg.db, { client: "wren", itemId: b, sop: "cold-email", by: "owner@example.com" });
     expect(await calls()).toEqual([
-      { subject: `learn:${a}`, label: "worth", source: "star", ref: null },
-      { subject: `learn:${b}`, label: "skip", source: "archive", ref: null },
+      { subject: await doc(a), label: "keep", source: "star", ref: null },
+      { subject: await doc(b), label: "drop", source: "archive", ref: null },
       {
-        subject: `learn:${saved.id}`,
-        label: "worth",
+        subject: await doc(saved.id),
+        label: "keep",
         source: "save",
-        ref: `learn_worth:${saved.id}:save`,
+        ref: `document:${saved.id}:save`,
       },
-      { subject: `learn:${b}`, label: "worth", source: "sop", ref: `learn_worth:${b}:sop` },
+      { subject: await doc(b), label: "keep", source: "sop", ref: `document:${b}:sop` },
     ]);
   });
 
@@ -112,15 +117,15 @@ describe("Learn picks", () => {
     const a = await item("wren", 10);
     const c = await item("client-x", 11);
     for (const [id, label] of [
-      [a, "skip"],
-      [c, "worth"],
+      [a, "drop"],
+      [c, "keep"],
     ] as const)
       await pg.db.execute(sql`insert into decisions
         (kind, subject, mode, backend, model, state, questions, label, ref)
-        values ('learn_worth', ${`learn:${id}`}, 'recommend', 'jev', 'jev-test', '{}', '{}', ${label}, ${`t:${id}`})`);
+        values ('document', ${await doc(id)}, 'recommend', 'jev', 'jev-test', '{}', '{}', ${label}, ${`t:${id}`})`);
     expect(
       (await withLearnPicks(pg.db, "wren", [{ id: a }, { id: 999_999 }])).map((x) => x.pick),
-    ).toEqual(["skip", null]);
+    ).toEqual(["drop", null]);
     expect((await withLearnPicks(pg.db, "client-x", [{ id: c }]))[0]?.pick).toBeNull();
   });
 });
@@ -180,7 +185,7 @@ describe("wren decide", () => {
     const before = (await calls()).length;
     const dry = JSON.parse(await wren("backfill", "--dry-run"));
     expect(dry.dryRun).toBe(true);
-    expect(dry.calls.learn.worth).toBeGreaterThanOrEqual(2);
+    expect(dry.calls.learn.keep).toBeGreaterThanOrEqual(2);
     expect((await calls()).length).toBe(before);
     await wren("backfill");
     const once = (await calls()).length;
@@ -192,7 +197,7 @@ describe("wren decide", () => {
   it("stats prints a row per kind; mode refuses a gate", async () => {
     const out = await wren("stats");
     expect(out).toContain("comment_quality");
-    expect(out).toContain("learn_worth");
-    await expect(wren("mode", "learn_worth", "gate")).rejects.toThrow("no gate filter");
+    expect(out).toContain("document");
+    await expect(wren("mode", "document", "gate")).rejects.toThrow("no gate filter");
   });
 });

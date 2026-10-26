@@ -31,7 +31,7 @@ Saved and followed items are one table, so a link saved after its feed brought i
 ## Connected to
 
 - **joins:** [[platform/executor]] (workflow `learn`: `feeds.items`/`saved.item` → `read.item` → `score.item` → `out.to_read`), [[watch/mail]] (the Monitor's pass pulls feeds and sends Learn's alerts)
-- **joins:** [[platform/decide]] (`learn_worth`: a star, pin, save or SOP add is worth, an archive alone skip; Wren's cards carry the model's pick)
+- **joins:** [[platform/decide]] (`document` on `doc:<document_id>`: a star, pin, save or SOP add is keep, an archive alone drop; Wren's cards carry the model's pick). `document_id` is set by the insert trigger `learn.items_document`
 - **looks-like-but-is-not:** the Library's SOPs (`library.sop`, pushed playbook texts); Reddit discovery (finds places to talk, not to learn)
 
 ## If you change this

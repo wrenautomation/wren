@@ -203,23 +203,23 @@ export function ScoreBadge({ score, className }: { score: number | null; classNa
   );
 }
 
-/** The model's call beside the score: Worth it, or Skip. Your own marks always win. */
+/** The model's call beside the score: Keep or Drop. Your own marks always win. */
 export function PickBadge({ pick, className }: { pick?: Card["pick"]; className?: string }) {
   if (!pick) return null;
   return (
     <span
       {...tipProps(
-        pick === "worth"
+        pick === "keep"
           ? "The model thinks this is worth your time"
           : "The model thinks you can skip this",
       )}
       className={cx(
         "inline-flex h-5 items-center bg-(--ui-paper) px-1.5 text-[11.5px]",
-        pick === "worth" ? "text-(--ui-ink)" : "text-(--ui-ink-2)",
+        pick === "keep" ? "text-(--ui-ink)" : "text-(--ui-ink-2)",
         className,
       )}
     >
-      {pick === "worth" ? "Worth it" : "Skip"}
+      {pick === "keep" ? "Keep" : "Drop"}
     </span>
   );
 }

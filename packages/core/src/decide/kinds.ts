@@ -64,25 +64,29 @@ const commentQuality: KindSpec = {
   gate: false,
 };
 
-/** A reel, video, article or episode in Wren's Learn. The state carries `focus` (the scorer's). */
-const learnWorth: KindSpec = {
-  kind: "learn_worth",
-  name: "Learn items",
+/**
+ * A read piece (designs/2026-10-25-ingestion-engine.md): a reel, video, article or episode in
+ * Wren's Learn. His keep, tune or drop on the whole piece; a star, a pin, a save or an SOP add is
+ * a keep and an archive a drop. The machine says only keep or drop. The state carries `focus`.
+ */
+const documentKind: KindSpec = {
+  kind: "document",
+  name: "Documents",
   questions: {
     [PICK]: {
       type: "choice",
       instructions:
         "Is `item` worth the owner's time? He runs Wren, a small AI automation agency. `focus` is what Wren builds and runs.",
       criteria: {
-        worth:
-          "A concrete method, number or example Wren could use in `focus`. He would keep it or add it to a playbook.",
-        skip: "Generic advice, hype, entertainment, or off `focus`. He would archive it unread.",
+        keep: "A concrete method, number or example Wren could use in `focus`. He would keep it or add it to a playbook.",
+        drop: "Generic advice, hype, entertainment, or off `focus`. He would archive it unread.",
       },
     },
   },
   labels: {
-    worth: { name: "Worth it", keep: true, tone: "good", about: "Worth his time" },
-    skip: { name: "Skip", keep: false, tone: "neutral", about: "Not worth his time" },
+    keep: { name: "Keep", keep: true, tone: "good", about: "Worth his time" },
+    tune: { name: "Tune", keep: true, tone: "warn", about: "Worth it, with a change" },
+    drop: { name: "Drop", keep: false, tone: "neutral", about: "Not worth his time" },
   },
   defaultMode: "recommend",
   gate: false,
@@ -123,14 +127,14 @@ const leadFit: KindSpec = {
 };
 
 /**
- * One fact of a Learn breakdown (designs/2026-10-25-competitor-analyzer.md, Decide): a hook, a
- * beat, a call to action, a post's shape, a film's shot. His call says whether Wren's own pieces
- * should do the same: keep it, tune it (keep, with a change he names), or drop it. Only he is asked
- * today (`off`): the machine learns the rules from his calls, it does not make them.
+ * One finding on a document (designs/2026-10-25-ingestion-engine.md): a hook, a beat, a call to
+ * action, a post's shape, a film's shot. His call says whether Wren's own pieces should do the
+ * same: keep it, tune it (keep, with a change he names), or drop it. Only he is asked today
+ * (`off`): the machine learns the rules from his calls, it does not make them.
  */
-const learnFact: KindSpec = {
-  kind: "learn_fact",
-  name: "Breakdown facts",
+const finding: KindSpec = {
+  kind: "finding",
+  name: "Findings",
   questions: {
     [PICK]: {
       type: "choice",
@@ -154,9 +158,9 @@ const learnFact: KindSpec = {
 
 export const KINDS: Readonly<Record<DecisionKind, KindSpec>> = {
   comment_quality: commentQuality,
-  learn_worth: learnWorth,
+  document: documentKind,
   lead_fit: leadFit,
-  learn_fact: learnFact,
+  finding,
 };
 
 export const isDecisionKind = (k: string): k is DecisionKind =>

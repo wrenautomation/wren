@@ -262,44 +262,47 @@ export async function callsOf(db: Queryable, scope: SopScope, sop: string): Prom
   ).map((r) => Number(r.id));
   const ids = [...new Set([...inScope, ...asked])];
   if (!ids.length) return [];
-  const calls = (await db.execute(sql`
-    select distinct on (c.subject) c.subject, c.label, c.comment, c.at
-    from decision_calls c
-    where c.kind = 'learn_fact'
-      and split_part(split_part(c.subject, ':', 2), '/', 1)::int = any(${sql.raw(`array[${ids.join(",")}]::int[]`)})
-    order by c.subject, c.at desc, c.id desc`)) as unknown as Record<string, unknown>[];
-  if (!calls.length) return [];
   const rows = await db
-    .select({ b: breakdowns, title: items.title, creator: items.creator })
+    .select({ b: breakdowns, doc: items.documentId, title: items.title, creator: items.creator })
     .from(breakdowns)
     .innerJoin(items, eq(items.id, breakdowns.itemId))
     .where(inArray(breakdowns.itemId, ids));
-  const byId = new Map(rows.map((r) => [Number(r.b.itemId), r]));
+  if (!rows.length) return [];
+  // Two items can share one document: each shows the calls on it.
+  const byDoc = new Map<number, typeof rows>();
+  for (const r of rows) byDoc.set(r.doc, [...(byDoc.get(r.doc) ?? []), r]);
+  const docs = sql.raw(`array[${[...byDoc.keys()].join(",")}]::int[]`);
+  const calls = (await db.execute(sql`
+    select distinct on (c.subject) c.subject, c.label, c.comment, c.at
+    from decision_calls c
+    where c.kind in ('document', 'finding')
+      and split_part(split_part(c.subject, ':', 2), '/', 1)::int = any(${docs})
+    order by c.subject, c.at desc, c.id desc`)) as unknown as Record<string, unknown>[];
   const out: SopCall[] = [];
   for (const c of calls) {
     const subject = String(c.subject);
-    const [idPart, ...rest] = subject.slice("learn:".length).split("/");
-    const id = Number(idPart);
+    const [docPart, ...rest] = subject.slice("doc:".length).split("/");
     const path = rest.length ? rest.join("/") : ITEM_PATH;
-    const row = byId.get(id);
     const call = String(c.label);
-    if (!row || !isFactCall(call)) continue;
-    const fact =
-      path === ITEM_PATH
-        ? { label: "Whole piece", value: "" }
-        : factRows(row.b).find((r) => r.path === path);
-    if (!fact) continue;
-    out.push({
-      id,
-      title: row.title,
-      creator: row.creator,
-      path,
-      label: fact.label,
-      value: fact.value,
-      call,
-      comment: (c.comment as string | null) ?? null,
-      at: new Date(String(c.at)),
-    });
+    if (!isFactCall(call)) continue;
+    for (const row of byDoc.get(Number(docPart)) ?? []) {
+      const fact =
+        path === ITEM_PATH
+          ? { label: "Whole piece", value: "" }
+          : factRows(row.b).find((r) => r.path === path);
+      if (!fact) continue;
+      out.push({
+        id: Number(row.b.itemId),
+        title: row.title,
+        creator: row.creator,
+        path,
+        label: fact.label,
+        value: fact.value,
+        call,
+        comment: (c.comment as string | null) ?? null,
+        at: new Date(String(c.at)),
+      });
+    }
   }
   return out.sort((a, b) => a.id - b.id || a.path.localeCompare(b.path));
 }

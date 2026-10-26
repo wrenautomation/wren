@@ -99,7 +99,7 @@ export interface Card {
   tags: string[];
   saved: boolean;
   /** The model's call on Wren's item, shown while Learn items are on recommend. */
-  pick?: "worth" | "skip" | null;
+  pick?: "keep" | "drop" | null;
   at: string;
 }
 
@@ -269,7 +269,7 @@ export interface TodayLine {
   line: string | null;
   told: "bell" | "digest" | null;
   read: boolean;
-  pick?: "worth" | "skip" | null;
+  pick?: "keep" | "drop" | null;
   at: string;
 }
 export interface Today {

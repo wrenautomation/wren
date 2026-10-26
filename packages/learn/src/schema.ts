@@ -245,10 +245,13 @@ export const items = learn.table(
      */
     draftId: uuid("draft_id"),
     /**
-     * Its row in research `documents` (designs/2026-10-25-ingestion-engine.md): what an instance
-     * and a finding point at. Set by `documentOf` the first time a line or a finding needs it.
+     * Its row in research `documents` (designs/2026-10-25-ingestion-engine.md): what an instance,
+     * a finding and his calls point at. The insert trigger `learn.items_document` makes it from
+     * the url, kind and feed text, so a writer leaves it out; one url and text share one document.
      */
-    documentId: integer("document_id"),
+    documentId: integer("document_id")
+      .notNull()
+      .$defaultFn(() => sql`null`),
     search: tsvector("search").generatedAlwaysAs(
       (): SQL =>
         sql`setweight(to_tsvector('english'::regconfig, title), 'A'::"char") || setweight(to_tsvector('english'::regconfig, coalesce(summary, ''::text)), 'B'::"char") || setweight(to_tsvector('english'::regconfig, coalesce(transcript, text)), 'C'::"char")`,
@@ -768,7 +771,7 @@ export const breakdownRecords = learn
     at: timestamp("at", { withTimezone: true }),
     statsAt: timestamp("stats_at", { withTimezone: true }),
     open: text("open"),
-    /** His `learn_fact` calls on it, any path; `called` is whether there is one: the "To call" queue is the rest. */
+    /** His console or CLI calls on its document and findings (`doc:<id>`, any path; a mark is no call); `called` is whether there is one: the "To call" queue is the rest. */
     calls: integer("calls"),
     called: boolean("called"),
     /** `check` when our own pieces' numbers disagree with a pattern he kept on it (`learn.checks`). */
@@ -795,8 +798,9 @@ export const breakdownRecords = learn
     from learn.breakdowns b join learn.items i on i.id = b.item_id
       left join learn.sources s on s.id = i.source_id
       left join lateral (select count(*)::int calls from decision_calls c
-        where c.kind = 'learn_fact'
-          and (c.subject = 'learn:' || b.item_id or c.subject like 'learn:' || b.item_id || '/%')) c on true
+        where (c.kind = 'document' and c.subject = 'doc:' || i.document_id
+            and c.source in ('console', 'cli'))
+          or (c.kind = 'finding' and c.subject like 'doc:' || i.document_id || '/%')) c on true
       left join lateral (select string_agg(k.label || ' ' || k.value || ': our ' || k.with_n
           || ' with it ' || m.word || ' ' || round(k.with_median::numeric * 100, 1) || '%, all our '
           || k.all_n || ' ' || m.word || ' ' || round(k.all_median::numeric * 100, 1) || '% (' || k.sop || ')', chr(10)
@@ -812,8 +816,9 @@ export const breakdownRecords = learn
  * Write): the kind's facts as columns, the platform, the creator and the reach, so a standard is
  * a filter and a median. `standardOf` reads it for an SOP's kinds, platforms and set; the lake
  * and `wren lake sql` read it as is. Only pieces a person picked count: a hand breakdown, a saved
- * link, a followed creator's piece, or one he kept. A hunt's topic find counts once he keeps it;
- * an archived piece or one he dropped whole never counts.
+ * link, a followed creator's piece, or one he kept (a star, a pin, a save, an SOP add or a keep
+ * call on its document). A hunt's topic find counts once he keeps it; an archived piece or one he
+ * dropped whole never counts.
  */
 export const standards = learn
   .view("standards", {
@@ -860,7 +865,7 @@ export const standards = learn
     from learn.breakdown_records r join learn.breakdowns b on b.item_id = r.id
       join learn.items i on i.id = r.id
       left join lateral (select c.label from decision_calls c
-        where c.kind = 'learn_fact' and c.subject = 'learn:' || r.id
+        where c.kind = 'document' and c.subject = 'doc:' || i.document_id
         order by c.at desc, c.id desc limit 1) his on true
     where i.archived_at is null and his.label is distinct from 'drop'
       and (b."by" = 'hand' or i.saved_by is not null or i.source_id is not null

@@ -250,8 +250,26 @@ describe("his calls on the facts", () => {
         by: "w@example.com",
         source: "cli",
       });
-    expect((await call("/", "keep")).subject).toBe(`learn:${id}`);
-    expect((await call("beats/1", "tune", "  shorter proof ")).row?.label).toBe("Beat 2");
+    const [item] = await pg.db
+      .select({ doc: items.documentId })
+      .from(items)
+      .where(eq(items.id, id));
+    expect((await call("/", "keep")).subject).toBe(`doc:${item?.doc}`);
+    const beat = await call("beats/1", "tune", "  shorter proof ");
+    expect(beat.row?.label).toBe("Beat 2");
+    // A fact call's subject is its finding's key.
+    const [finding] = await pg.db
+      .select({ key: findings.factKey })
+      .from(findings)
+      .where(eq(findings.factKey, beat.subject));
+    expect(finding?.key).toBe(`doc:${item?.doc}/beats/1`);
+    const kinds = (await pg.db.execute(
+      sql`select kind, count(*)::int n from decision_calls where subject like ${`doc:${item?.doc}%`} group by kind order by kind`,
+    )) as unknown as { kind: string; n: number }[];
+    expect(kinds).toEqual([
+      { kind: "document", n: 1 },
+      { kind: "finding", n: 1 },
+    ]);
     await call("cta", "drop", "no comment-a-word asks");
     await call("cta", "tune", "a link instead");
     const calls = await factCalls(pg.db, id);

@@ -20,8 +20,12 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 
-/** What a decision is about. A new kind is a new entry here and in `KINDS` (`decide/kinds.ts`). */
-export const DECISION_KINDS = ["comment_quality", "learn_worth", "lead_fit", "learn_fact"] as const;
+/**
+ * What a decision is about. A new kind is a new entry here and in `KINDS` (`decide/kinds.ts`).
+ * `document` and `finding` are the ingestion engine's (designs/2026-10-25-ingestion-engine.md):
+ * a read piece (`doc:<id>`) and one fact of it (its finding's key, `doc:<id>/<path>`).
+ */
+export const DECISION_KINDS = ["comment_quality", "document", "lead_fit", "finding"] as const;
 export type DecisionKind = (typeof DECISION_KINDS)[number];
 
 /**
@@ -36,7 +40,7 @@ export const decisions = pgTable(
   {
     id: serial("id").notNull(),
     kind: varchar("kind", { length: 40, enum: DECISION_KINDS }).notNull(),
-    /** The thing judged: a draft's Inbox id (`thread:<id>`), `learn:<id>`. */
+    /** The thing judged: a draft's Inbox id (`thread:<id>`), `doc:<id>`. */
     subject: varchar("subject", { length: 200 }).notNull(),
     /** The kind's mode when it was asked: whether he saw the answer. */
     mode: varchar("mode", { length: 10, enum: DECIDE_MODES }).notNull(),

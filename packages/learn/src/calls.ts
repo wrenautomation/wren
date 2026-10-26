@@ -1,8 +1,8 @@
 /**
  * His calls on a breakdown's facts (designs/2026-10-25-competitor-analyzer.md, Decide): keep,
- * tune or drop, with his words, on the item (`learn:<id>`) or on one fact of it
- * (`learn:<id>/beats/2`, `learn:<id>/facts/shots/5`). Written through `recordCall` as the kind
- * `learn_fact`, so they sit in `decision_calls` beside his worth/skip calls and the agreement
+ * tune or drop, with his words, on the item's document (kind `document`, `doc:<id>`) or on one
+ * fact of it (kind `finding`, the finding's key: `doc:<id>/beats/2`, `doc:<id>/facts/shots/5`).
+ * Written through `recordCall`, so they sit in `decision_calls` beside his marks and the agreement
  * numbers; Wren's workspace only. The rows a page or the CLI shows (`factRows`) are the paths a
  * call may name: a path outside them is refused, never written on nothing. A breakdown row is
  * never regenerated, so an index path stays what he called.
@@ -40,8 +40,11 @@ export interface FactCallRow {
   at: Date;
 }
 
-export const factSubject = (id: number, path: string) =>
-  path === ITEM_PATH ? `learn:${id}` : `learn:${id}/${path}`;
+/** The subject of a call on a document, or on one of its findings (that finding's `fact_key`). */
+export const factSubject = (document: number, path: string) =>
+  path === ITEM_PATH ? `doc:${document}` : `doc:${document}/${path}`;
+/** The call kind a path takes: the whole piece is a `document`, any fact a `finding`. */
+const kindOf = (path: string) => (path === ITEM_PATH ? "document" : "finding");
 
 const mmss = (t: number) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, "0")}`;
 const beatText = (b: Beat) => (b.t === null ? b.beat : `[${mmss(b.t)}] ${b.beat}`);
@@ -126,24 +129,24 @@ export function factRows(
   return rows;
 }
 
-/** A breakdown's own row, in `client`'s workspace. */
+/** A breakdown's own row and its item's document, in `client`'s workspace. */
 async function breakdownOf(
   db: Queryable,
   client: string,
   id: number,
-): Promise<BreakdownRow | null> {
+): Promise<{ b: BreakdownRow; doc: number } | null> {
   const [row] = await db
-    .select({ b: breakdowns })
+    .select({ b: breakdowns, doc: items.documentId })
     .from(breakdowns)
     .innerJoin(items, eq(items.id, breakdowns.itemId))
     .where(and(eq(breakdowns.itemId, id), eq(items.client, client)));
-  return row?.b ?? null;
+  return row ?? null;
 }
 
 export class FactCallRefusal extends Error {}
 
 /**
- * Record his call on an item or one of its facts. Refuses a workspace that is not Wren's, an
+ * Record his call on an item's document or one of its findings. Refuses a workspace that is not Wren's, an
  * item with no breakdown, or a path the breakdown has not got. The newest call on a subject is
  * his standing one: a second call is a change of mind, never a replay, so no `ref`.
  */
@@ -160,14 +163,16 @@ export async function recordFactCall(
   },
 ): Promise<{ subject: string; row: FactRow | null }> {
   if (p.client !== WREN) throw new FactCallRefusal("calls are Wren's own for now");
-  const b = await breakdownOf(db, p.client, p.id);
-  if (!b) throw new FactCallRefusal("no breakdown yet");
+  const found = await breakdownOf(db, p.client, p.id);
+  if (!found) throw new FactCallRefusal("no breakdown yet");
+  const { b, doc } = found;
   const row = p.path === ITEM_PATH ? null : (factRows(b).find((r) => r.path === p.path) ?? null);
   if (p.path !== ITEM_PATH && !row) throw new FactCallRefusal(`no fact at ${p.path}`);
-  const subject = factSubject(p.id, p.path);
+  // A breakdown writes its findings when made (`factFindings`), so the subject is a finding's key.
+  const subject = factSubject(doc, p.path);
   const comment = p.comment?.trim() || null;
   await recordCall(db, {
-    kind: "learn_fact",
+    kind: kindOf(p.path),
     subject,
     label: p.call,
     source: p.source,
@@ -177,15 +182,25 @@ export async function recordFactCall(
   return { subject, row };
 }
 
-/** His standing call on each subject of an item: the newest per path. `/` is the item itself. */
+/**
+ * His standing call on each subject of a Wren item: the newest per path. `/` is the whole piece,
+ * where a star, a pin, a save or an SOP add is a keep and an archive a drop. A client's item
+ * answers none.
+ */
 export async function factCalls(db: Queryable, id: number): Promise<FactCallRow[]> {
+  const [item] = await db
+    .select({ doc: items.documentId })
+    .from(items)
+    .where(and(eq(items.id, id), eq(items.client, WREN)));
+  if (!item) return [];
+  const whole = factSubject(item.doc, ITEM_PATH);
   const rows = (await db.execute(sql`
     select distinct on (c.subject) c.subject, c.label, c.comment, c.by, c.at
     from decision_calls c
-    where c.kind = 'learn_fact' and (c.subject = ${factSubject(id, ITEM_PATH)}
-      or c.subject like ${`${factSubject(id, ITEM_PATH)}/%`})
+    where (c.kind = 'document' and c.subject = ${whole})
+      or (c.kind = 'finding' and c.subject like ${`${whole}/%`})
     order by c.subject, c.at desc, c.id desc`)) as unknown as Record<string, unknown>[];
-  const prefix = `${factSubject(id, ITEM_PATH)}/`;
+  const prefix = `${whole}/`;
   return rows
     .map((r) => ({
       path: String(r.subject).startsWith(prefix)

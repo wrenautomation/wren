@@ -151,7 +151,7 @@ to it. `Decide/wren` runs every 10 minutes. The Agents page shows the same numbe
 
 ```bash
 wren decide stats                   # per kind: mode, his calls, agreement, overrides, tokens, $
-wren decide mode learn_worth shadow # off, shadow, recommend (a chip), gate (refused until built)
+wren decide mode document shadow # off, shadow, recommend (a chip), gate (refused until built)
 wren decide export --called --out decisions.jsonl   # wren.decision/1: the distill set
 wren decide backfill [--dry-run] [--sample 100 --max-usd 2]   # history's calls; a Jev sample
 wren decide pass                    # one pass here

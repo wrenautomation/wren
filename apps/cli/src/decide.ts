@@ -185,7 +185,7 @@ export function registerDecide(
         decidePass(db, {
           sources: [
             sample("comment_quality", (d, k) => commentsCalled(d, Math.min(k, half))),
-            sample("learn_worth", learnCalled),
+            sample("document", learnCalled),
           ],
           backends: backends(),
           max: n,

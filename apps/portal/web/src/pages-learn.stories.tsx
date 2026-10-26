@@ -33,7 +33,7 @@ const line = (id: number, title: string, over: Record<string, unknown> = {}) => 
   line: "A clear script for a first text.",
   told: "bell",
   read: false,
-  pick: "worth",
+  pick: "keep",
   at: ago(0.2),
   ...over,
 });

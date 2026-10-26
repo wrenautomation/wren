@@ -171,3 +171,13 @@ Logged-in finds and reads (IG, LinkedIn, X) use the reach engine's shared reads
   `proof` and `by`; a fact has no person or firm, only a document, and every lead reader filters
   by person or firm, so none sees one. Each breakdown writes its facts as findings keyed
   `doc:<document>/<path>`; `wren learn findings` writes the ones made before.
+- 2026-10-25: phase 1 commit 3b (his calls on documents and findings). Every item now has its
+  document: the migration backfills them, and the insert trigger `learn.items_document` makes one
+  for each new item, so no writer changes and `document_id` is not null. `documentOf` is gone.
+  Decide kind `learn_worth` is now `document` and `learn_fact` is now `finding`. A whole-piece
+  call's subject is `doc:<document>`; a fact call's subject is its finding's own key,
+  `doc:<document>/<path>`, so no join finds it. Labels on `document` are keep, tune, drop; the
+  machine is asked keep or drop only (old worth to keep, skip to drop, in rows and answers). A
+  star, a pin, a save or an SOP add is a keep on the document, so the standard counts a starred
+  piece; the "To call" queue still counts only console and CLI calls. Two items with one url and
+  one feed text share a document and so share his calls.

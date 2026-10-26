@@ -456,7 +456,7 @@ describe("the lead check", () => {
       await decideOne(db, {
         sources,
         backends: { chain: [jev], note: null },
-        kind: "learn_worth",
+        kind: "document",
         subject,
       }),
     ).toMatchObject({ asked: false, why: expect.stringContaining("cannot be asked") });
