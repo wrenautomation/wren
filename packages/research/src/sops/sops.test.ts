@@ -3,7 +3,7 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { FakeLlm } from "@wren/llm";
-import { clock } from "@wren/video-watch";
+import { clock } from "@wrenautomation/scribe/video";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   addSource,

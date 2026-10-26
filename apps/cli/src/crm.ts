@@ -48,7 +48,7 @@ import {
   skipDrafts,
 } from "@wren/reactivation";
 import { type CrmRunObject, MAX_LIMIT, type Reactivation } from "@wren/reactivation/restate";
-import { PoliteFetcher, userAgent } from "@wren/research/fetch";
+import { PoliteFetcher, userAgent } from "@wrenautomation/scribe/fetch";
 import type { Command } from "commander";
 import { ingressSites } from "./sites.js";
 

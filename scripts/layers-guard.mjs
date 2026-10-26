@@ -5,7 +5,7 @@ import { readdirSync, readFileSync } from "node:fs";
 
 const LAYERS = [
   // What everything stands on: no product knowledge.
-  "auth config connectors core db experiments llm notes offers research sites ui video video-watch",
+  "auth config connectors core db experiments llm notes offers research sites ui video",
   // One vendor or one outside system behind an interface.
   "channel-email channel-linkedin channel-meta channel-reddit channel-search channel-sms channel-tiktok channel-x channel-youtube",
   // One domain, used by products: the money, the calendar, the shape, the papers, the studio.

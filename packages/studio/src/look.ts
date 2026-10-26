@@ -18,7 +18,7 @@ import {
   cutsLine,
   onScreenLines,
   watch,
-} from "@wren/video-watch";
+} from "@wrenautomation/scribe/video";
 import { z } from "zod";
 import { fromCutTime, type Span, toCutTime } from "./cuts.js";
 import type { Look, Word } from "./schema.js";

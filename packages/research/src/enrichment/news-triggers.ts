@@ -10,6 +10,7 @@
 import { IDENTITY_KEY, type LeadSource, type RawRow, runImport } from "@wren/core";
 import { atomic, type Queryable } from "@wren/db";
 import { completeAndParse, type LlmClient } from "@wren/llm";
+import { FetchError, type Fetcher } from "@wrenautomation/scribe/fetch";
 import { sql } from "drizzle-orm";
 import { z } from "zod";
 import {
@@ -24,7 +25,6 @@ import {
   NEWS_RSS,
   readRss,
 } from "../companies/events.js";
-import { FetchError, type Fetcher } from "../fetch/fetcher.js";
 import { keepDocument, keepSignal } from "../findings.js";
 import { type Bucket, bucketRoom } from "../pacing.js";
 import { bareCompanyName, plain } from "../people/names.js";

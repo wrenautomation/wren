@@ -1,5 +1,5 @@
 /** The SEC datasets read the publisher's catalogs and return the newest files. */
-import { PoliteFetcher } from "@wren/research/fetch";
+import { PoliteFetcher } from "@wrenautomation/scribe/fetch";
 import { describe, expect, it } from "vitest";
 import { SEC_DATASETS, SEC_REPORTS_BASE } from "./datasets.js";
 

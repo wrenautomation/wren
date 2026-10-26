@@ -3,7 +3,7 @@
  * drafts. Nothing here knows a niche; the vertical and the thing we sell are
  * arguments.
  */
-import type { StudyDraftSpec } from "../schema.js";
+import type { StudyDraftSpec } from "@wrenautomation/scribe/study";
 
 export interface StudyInput {
   question: string;

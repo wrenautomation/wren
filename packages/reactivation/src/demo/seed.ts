@@ -18,8 +18,8 @@ import {
   type Resolves,
   siteName,
 } from "@wren/research/discovery";
-import { canFetch, type Fetcher } from "@wren/research/fetch";
 import { findContacts } from "@wren/research/people";
+import { canFetch, type Fetcher } from "@wrenautomation/scribe/fetch";
 import { sql } from "drizzle-orm";
 import { CRM_FORMATS } from "../crm/formats.js";
 import { type CrmImportStats, runCrmImport } from "../crm/import.js";

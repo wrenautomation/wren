@@ -4,8 +4,8 @@
  * what SHOULD happen per the doc comments; failing ones are marked BUG.
  */
 import { SiteCallError, type SiteClient } from "@wren/core/content";
+import { FetchError, type Fetcher, type FetchResponse } from "@wrenautomation/scribe/fetch";
 import { describe, expect, it } from "vitest";
-import { FetchError, type Fetcher, type FetchResponse } from "../fetch/fetcher.js";
 import { findBoards, readBoard } from "./boards.js";
 import { type CompanySubject, checkHiring } from "./hiring.js";
 import { linkedinCompany } from "./profile.js";

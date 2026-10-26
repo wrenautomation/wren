@@ -4,9 +4,9 @@
  * Tests state what SHOULD happen; a failing one is a bug.
  */
 import { FakeLlm } from "@wren/llm";
+import type { Fetcher } from "@wrenautomation/scribe/fetch";
 import { describe, expect, it } from "vitest";
 import { siteName } from "../discovery/find.js";
-import type { Fetcher } from "../fetch/fetcher.js";
 import { findCustomers, gateCustomers, imageNames } from "./customers.js";
 
 type Page = { status?: number; url?: string; text: string };

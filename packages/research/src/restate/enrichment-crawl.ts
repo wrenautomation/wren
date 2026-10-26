@@ -2,6 +2,7 @@
 import * as restate from "@restatedev/restate-sdk";
 import { exclusiveHandler } from "@wren/core/restate";
 import { atomic } from "@wren/db";
+import type { RobotsCache } from "@wrenautomation/scribe/fetch";
 import { z } from "zod";
 import {
   CONTACTS_MODEL,
@@ -42,7 +43,6 @@ import {
   renderCompany,
   selectRenderTargets,
 } from "../enrichment/render.js";
-import type { RobotsCache } from "../fetch/robots.js";
 import {
   type CrawlInput,
   type EnrichmentContext,

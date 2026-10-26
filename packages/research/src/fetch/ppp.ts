@@ -13,9 +13,9 @@ import { mkdir, rename, stat, unlink } from "node:fs/promises";
 import { dirname } from "node:path";
 import { Readable } from "node:stream";
 import type { ReadableStream as WebReadableStream } from "node:stream/web";
+import { type DownloadResult, FetchError } from "@wrenautomation/scribe/fetch";
 import { parse } from "csv-parse";
 import type { Dataset, RemoteFile } from "./datasets.js";
-import { type DownloadResult, FetchError } from "./fetcher.js";
 
 export const PPP_DATASET_PAGE = "https://data.sba.gov/dataset/ppp-foia";
 const FILE_LINK = /href="(https:\/\/data\.sba\.gov\/[^"]*\/(public_[a-z0-9_]+?_(\d{6})\.csv))"/g;

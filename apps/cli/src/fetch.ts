@@ -6,7 +6,8 @@
 import { resolve } from "node:path";
 import type { Settings } from "@wren/config";
 import { datasetsFor } from "@wren/niches";
-import { fetchDataset, PoliteFetcher, userAgent } from "@wren/research/fetch";
+import { fetchDataset } from "@wren/research/fetch";
+import { PoliteFetcher, userAgent } from "@wrenautomation/scribe/fetch";
 import type { Command } from "commander";
 
 export function registerFetch(program: Command, settings: Settings): void {

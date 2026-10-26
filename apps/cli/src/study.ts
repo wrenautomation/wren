@@ -10,7 +10,6 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { userInfo } from "node:os";
 import { basename, resolve } from "node:path";
-import { htmlText, pdfText } from "@wren/books";
 import type { Settings } from "@wren/config";
 import { recordedRun } from "@wren/core";
 import type { Db } from "@wren/db";
@@ -24,10 +23,11 @@ import {
   openStudy,
   questionStudy,
   runStudy,
-  studyReport,
   studyView,
   verticalStudy,
 } from "@wren/research/studies";
+import { studyReport } from "@wrenautomation/scribe/study";
+import { htmlText, pdfText } from "@wrenautomation/scribe/text";
 import type { Command } from "commander";
 import { desc } from "drizzle-orm";
 import { collect } from "./args.js";
@@ -178,7 +178,9 @@ export function registerStudy(
     .description("the study as markdown, every claim cited")
     .option("--out <file>", "write it here instead of printing")
     .action(async (slug: string, opts: { out?: string }) => {
-      const text = studyReport(await withDb((db) => studyView(db, slug)));
+      const text = studyReport(await withDb((db) => studyView(db, slug)), {
+        rerun: `wren study run ${slug}`,
+      });
       if (!opts.out) return void process.stdout.write(text);
       writeFileSync(resolve(opts.out), text);
       console.log(`wrote ${opts.out}`);

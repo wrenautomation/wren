@@ -6,8 +6,8 @@
 import type { SiteClient } from "@wren/core/content";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { FakeLlm, LlmError } from "@wren/llm";
-import type { Fetcher } from "@wren/research";
 import { recordCompanyCheck } from "@wren/research/companies";
+import type { Fetcher } from "@wrenautomation/scribe/fetch";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { briefSubjects, briefsDue, writeCrmBriefs } from "../../src/brief.js";

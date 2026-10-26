@@ -1,5 +1,7 @@
 import { companies, imports, people, runs } from "@wren/core/schema";
 import { oneOf } from "@wren/db/columns";
+import type { FetchStep } from "@wrenautomation/scribe/fetch";
+import type { StudyDraftSpec } from "@wrenautomation/scribe/study";
 import { sql } from "drizzle-orm";
 import {
   boolean,
@@ -19,7 +21,6 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
-import type { FetchStep } from "./fetch/ladder.js";
 
 /**
  * `snippet`: a search engine's few lines about a page (url = the page, not the
@@ -689,15 +690,9 @@ export type SignalCheck = typeof signalChecks.$inferSelect;
  * its own single angle). Anything can be studied: a vertical before we sell to
  * it, a buyer's market, a vendor. Every claim in the report quotes a page we
  * read, or it is dropped. `drafts` are what the claims get turned into once
- * every angle is in (offer candidates, cold emails), each a task in words.
+ * every angle is in (offer candidates, cold emails), each a task in words
+ * (`StudyDraftSpec`, from scribe).
  */
-export interface StudyDraftSpec {
-  /** Names the draft in the report and on the command line: `offers`, `emails`. */
-  key: string;
-  /** The task, in full: what to write, how many, which rules to follow. */
-  ask: string;
-}
-
 export const studies = pgTable(
   "studies",
   {

@@ -6,6 +6,7 @@
 import { companies } from "@wren/core";
 import { SiteCallError, type SiteClient } from "@wren/core/content";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
+import type { Fetcher, FetchResponse } from "@wrenautomation/scribe/fetch";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { EMPTY_HASH, runCrawl } from "../../src/enrichment/crawler.js";
@@ -16,7 +17,6 @@ import {
   selectRenderTargets,
 } from "../../src/enrichment/render.js";
 import { sharedPages } from "../../src/enrichment/shared-pages.js";
-import type { Fetcher, FetchResponse } from "../../src/fetch/fetcher.js";
 import { FETCH_TIER_DAYS, type MemoryTier, tierMemory } from "../../src/fetch/tier-memory.js";
 import { documents, fetchTiers } from "../../src/schema.js";
 import { FakeFetcher, makeCompany } from "./fixtures.js";

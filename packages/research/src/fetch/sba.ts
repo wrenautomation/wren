@@ -11,8 +11,8 @@
  */
 import { mkdir, rename, stat, unlink, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
+import { type DownloadResult, FetchError } from "@wrenautomation/scribe/fetch";
 import type { Dataset, RemoteFile } from "./datasets.js";
-import { type DownloadResult, FetchError } from "./fetcher.js";
 
 export const SBA_SEARCH_URL = "https://search.certifications.sba.gov/_api/v2/search";
 const TIMEOUT_MS = 10 * 60_000;

@@ -1,6 +1,6 @@
 import { SiteCallError, type SiteClient } from "@wren/core/content";
+import { FetchError, type Fetcher } from "@wrenautomation/scribe/fetch";
 import { describe, expect, it } from "vitest";
-import { FetchError, type Fetcher } from "../fetch/fetcher.js";
 import {
   eventDate,
   eventFinding,

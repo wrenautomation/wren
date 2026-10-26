@@ -1,11 +1,10 @@
 /** Opener grounding, evidence and prompt: pure, no DB, no LLM. */
+import { type EvidencePage, foldText } from "@wrenautomation/scribe/study";
 import { describe, expect, it } from "vitest";
 import {
   buildOpenerPrompt,
   countOpener,
-  type EvidencePage,
   emptyOpenerStats,
-  foldText,
   groundOpener,
   OPENER_MAX_WORDS,
   OpenerProposal,

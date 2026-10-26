@@ -12,8 +12,8 @@
  */
 import { mkdir, rename, stat, unlink } from "node:fs/promises";
 import { dirname } from "node:path";
+import { type DownloadResult, FetchError } from "@wrenautomation/scribe/fetch";
 import type { Dataset, RemoteFile } from "./datasets.js";
-import { type DownloadResult, FetchError } from "./fetcher.js";
 
 export const OVERTURE_BUCKET = "overturemaps-us-west-2";
 const LISTING = `https://${OVERTURE_BUCKET}.s3.us-west-2.amazonaws.com/?list-type=2&prefix=release/&delimiter=/`;

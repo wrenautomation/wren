@@ -2,8 +2,8 @@
 import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { FetchError, PoliteFetcher } from "@wrenautomation/scribe/fetch";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { FetchError, PoliteFetcher } from "./fetcher.js";
 import { checkSbaAnswer, SBA_SEARCH_URL, sbaSearch, sbaSearchBody } from "./sba.js";
 
 const spec = { name: "sba-demo", description: "demo", naics: ["561311", "561320"] };

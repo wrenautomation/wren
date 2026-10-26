@@ -3,7 +3,7 @@
  * then the name's guessed domains. Either way the page must speak for the
  * firm (the ownership gate) before it counts.
  */
-import { decodeEntities } from "../fetch/htmltext.js";
+import { decodeEntities } from "@wrenautomation/scribe/fetch";
 import { domainLabel } from "../people/names.js";
 import { domainCandidates } from "./candidates.js";
 import { type GateEvidence, gatePage } from "./gate.js";

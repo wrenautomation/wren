@@ -2,7 +2,7 @@
 import { existsSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { PoliteFetcher } from "@wren/research/fetch";
+import { PoliteFetcher } from "@wrenautomation/scribe/fetch";
 import { describe, expect, it } from "vitest";
 import { downloadProfile } from "./profiles.js";
 

@@ -11,14 +11,18 @@
 import { companies, inPlay, leads } from "@wren/core";
 import { atomic, type Queryable } from "@wren/db";
 import { completeAndParse, type LlmClient, LlmError, type Tracer } from "@wren/llm";
+import {
+  type EvidencePage,
+  foldText,
+  numbersQuoted,
+  pageQuoted,
+  words,
+} from "@wrenautomation/scribe/study";
 import { and, asc, desc, eq, exists, inArray, notInArray, sql } from "drizzle-orm";
 import { z } from "zod";
-import { type EvidencePage, foldText, numbersQuoted, pageQuoted, words } from "../grounding.js";
 import { documents, enrichments } from "../schema.js";
 import type { Shard } from "./shard.js";
 import { upsertEnrichment } from "./store.js";
-
-export { type EvidencePage, foldText } from "../grounding.js";
 
 export const OPENER_VERSION = "v1";
 export const OPENER_MAX_WORDS = 25;

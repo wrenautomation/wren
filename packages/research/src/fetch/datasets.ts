@@ -7,7 +7,7 @@
  * touching research.
  */
 import { join } from "node:path";
-import type { DownloadResult, PoliteFetcher } from "./fetcher.js";
+import type { DownloadResult, PoliteFetcher } from "@wrenautomation/scribe/fetch";
 
 export interface RemoteFile {
   dataset: string;

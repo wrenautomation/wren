@@ -5,10 +5,15 @@
  * a link), so a name the model made up never gets through.
  */
 import { completeAndParse, type LlmClient } from "@wren/llm";
+import {
+  canFetch,
+  decodeEntities,
+  FetchError,
+  type Fetcher,
+  type RobotsCache,
+  readPage,
+} from "@wrenautomation/scribe/fetch";
 import { z } from "zod";
-import { FetchError, type Fetcher } from "../fetch/fetcher.js";
-import { decodeEntities, readPage } from "../fetch/htmltext.js";
-import { canFetch, type RobotsCache } from "../fetch/robots.js";
 import { companyPhrase, isFirm, mentionsFirm, plain } from "../people/names.js";
 
 const CUSTOMERS_STAGE = "research_customers";

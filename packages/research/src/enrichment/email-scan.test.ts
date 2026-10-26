@@ -1,5 +1,5 @@
+import { readPage } from "@wrenautomation/scribe/fetch";
 import { describe, expect, it } from "vitest";
-import { readPage } from "../fetch/htmltext.js";
 import { type EmailSignal, scanPage } from "./email-scan.js";
 
 const scan = (html: string, domain: string | null = "acme.com") =>

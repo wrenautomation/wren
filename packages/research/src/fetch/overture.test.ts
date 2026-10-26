@@ -1,6 +1,7 @@
 /** Overture places: releases off the S3 listing, the COPY a download runs, the spec check. */
+
+import { FetchError, PoliteFetcher } from "@wrenautomation/scribe/fetch";
 import { describe, expect, it } from "vitest";
-import { FetchError, PoliteFetcher } from "./fetcher.js";
 import {
   OVERTURE_BUCKET,
   type OverturePlacesSpec,

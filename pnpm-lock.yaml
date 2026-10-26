@@ -168,9 +168,6 @@ importers:
       '@wren/video':
         specifier: workspace:*
         version: link:../../packages/video
-      '@wren/video-watch':
-        specifier: workspace:*
-        version: link:../../packages/video-watch
       '@wren/watch':
         specifier: workspace:*
         version: link:../../packages/watch
@@ -180,6 +177,9 @@ importers:
       '@wrenautomation/autobrowse':
         specifier: 0.5.0
         version: 0.5.0(@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.1))
+      '@wrenautomation/scribe':
+        specifier: 0.1.0
+        version: 0.1.0
       commander:
         specifier: 15.0.0
         version: 15.0.0
@@ -588,6 +588,9 @@ importers:
       '@wrenautomation/autobrowse':
         specifier: 0.5.0
         version: 0.5.0(@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.1))
+      '@wrenautomation/scribe':
+        specifier: 0.1.0
+        version: 0.1.0
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
@@ -659,12 +662,12 @@ importers:
       '@wren/llm':
         specifier: workspace:*
         version: link:../llm
+      '@wrenautomation/scribe':
+        specifier: 0.1.0
+        version: 0.1.0
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
-      unpdf:
-        specifier: 1.8.1
-        version: 1.8.1
       zod:
         specifier: 4.6.5
         version: 4.6.5
@@ -751,6 +754,9 @@ importers:
       '@wrenautomation/autobrowse':
         specifier: 0.5.0
         version: 0.5.0(@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.1))
+      '@wrenautomation/scribe':
+        specifier: 0.1.0
+        version: 0.1.0
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
@@ -1329,9 +1335,9 @@ importers:
       '@wren/research':
         specifier: workspace:*
         version: link:../research
-      '@wren/video-watch':
-        specifier: workspace:*
-        version: link:../video-watch
+      '@wrenautomation/scribe':
+        specifier: 0.1.0
+        version: 0.1.0
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
@@ -1388,6 +1394,9 @@ importers:
       '@wren/research':
         specifier: workspace:*
         version: link:../research
+      '@wrenautomation/scribe':
+        specifier: 0.1.0
+        version: 0.1.0
       fflate:
         specifier: 0.8.3
         version: 0.8.3
@@ -1624,6 +1633,9 @@ importers:
       '@wren/video':
         specifier: workspace:*
         version: link:../video
+      '@wrenautomation/scribe':
+        specifier: 0.1.0
+        version: 0.1.0
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
@@ -1670,18 +1682,15 @@ importers:
       '@wren/llm':
         specifier: workspace:*
         version: link:../llm
-      '@wren/video-watch':
-        specifier: workspace:*
-        version: link:../video-watch
+      '@wrenautomation/scribe':
+        specifier: 0.1.0
+        version: 0.1.0
       csv-parse:
         specifier: 7.0.2
         version: 7.0.2
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
-      htmlparser2:
-        specifier: 12.0.0
-        version: 12.0.0
       libphonenumber-js:
         specifier: 1.13.14
         version: 1.13.14
@@ -1691,9 +1700,6 @@ importers:
       playwright-core:
         specifier: 1.63.0
         version: 1.63.0
-      robots-parser:
-        specifier: 3.0.1
-        version: 3.0.1
       tldts:
         specifier: 7.4.16
         version: 7.4.16
@@ -1774,9 +1780,9 @@ importers:
       '@wren/video':
         specifier: workspace:*
         version: link:../video
-      '@wren/video-watch':
-        specifier: workspace:*
-        version: link:../video-watch
+      '@wrenautomation/scribe':
+        specifier: 0.1.0
+        version: 0.1.0
       diff:
         specifier: 8.0.4
         version: 8.0.4
@@ -1957,19 +1963,6 @@ importers:
       '@wren/db':
         specifier: workspace:*
         version: link:../db
-      typescript:
-        specifier: 5.9.3
-        version: 5.9.3
-      vitest:
-        specifier: 5.0.1
-        version: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@26.6.4)(@vitest/browser-playwright@5.0.1)(@vitest/ui@5.0.1)(happy-dom@20.14.5)(msw@2.15.0(@types/node@26.6.4)(typescript@5.9.3))(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
-
-  packages/video-watch:
-    dependencies:
-      '@wren/llm':
-        specifier: workspace:*
-        version: link:../llm
-    devDependencies:
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -5709,6 +5702,11 @@ packages:
 
   '@wrenautomation/autobrowse@0.7.0':
     resolution: {integrity: sha512-ZKPd7BVevdjKqO/Aa713zbO2KeB7Myy81lW4OzS1oITgxZXIwb7lHoMpQNWuiUdd/fuEwivQNbgn1yJw7N6Ehw==}
+    engines: {node: '>=24'}
+    hasBin: true
+
+  '@wrenautomation/scribe@0.1.0':
+    resolution: {integrity: sha512-4o9jYutkuDSuOCPnO8hJDNHs3x73mQM1z4ZfdhwC06OevZDn+bwtT3w4qA31CzZ4hDnQX4hU/r2mf9gScE4zIQ==}
     engines: {node: '>=24'}
     hasBin: true
 
@@ -13141,6 +13139,17 @@ snapshots:
       - bufferutil
       - supports-color
       - utf-8-validate
+
+  '@wrenautomation/scribe@0.1.0':
+    dependencies:
+      commander: 15.0.0
+      entities: 8.1.0
+      htmlparser2: 12.0.0
+      robots-parser: 3.0.1
+      unpdf: 1.8.1
+      zod: 4.6.5
+    transitivePeerDependencies:
+      - '@napi-rs/canvas'
 
   '@xmldom/xmldom@0.8.15': {}
 

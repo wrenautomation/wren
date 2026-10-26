@@ -9,8 +9,9 @@
  * - CompilationReports.manifest.json: {files: [{name, size, date}]}; file URL is
  *   {BASE}/CompilationReports/{name}.
  */
-import type { Dataset, PoliteFetcher, RemoteFile } from "@wren/research/fetch";
-import { FetchError } from "@wren/research/fetch";
+
+import type { Dataset, RemoteFile } from "@wren/research/fetch";
+import { FetchError, type PoliteFetcher } from "@wrenautomation/scribe/fetch";
 
 export const SEC_REPORTS_BASE = "https://reports.adviserinfo.sec.gov/reports";
 

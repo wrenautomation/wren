@@ -1,7 +1,7 @@
 /** The hiring collector over `checkHiring`: synthetic firms, canned pages, a fake SiteClient. */
 import { SiteCallError, type SiteClient } from "@wren/core/content";
+import type { Fetcher } from "@wrenautomation/scribe/fetch";
 import { describe, expect, it } from "vitest";
-import type { Fetcher } from "../fetch/fetcher.js";
 import { signalRefusal } from "../findings.js";
 import { hiring } from "./hiring.js";
 import type { SignalDeps } from "./index.js";

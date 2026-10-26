@@ -6,6 +6,7 @@
 import { companies } from "@wren/core";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
+import type { Fetcher } from "@wrenautomation/scribe/fetch";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
@@ -16,7 +17,6 @@ import {
   triggersDue,
   triggerUnit,
 } from "../../src/enrichment/news-triggers.js";
-import type { Fetcher } from "../../src/fetch/fetcher.js";
 import { makeCompany } from "./fixtures.js";
 
 let pg: TestPostgres;

@@ -9,12 +9,16 @@
  * First or later: a later read has an earlier check that answered (found, none) or read pages.
  */
 import { createHash } from "node:crypto";
+import {
+  FetchError,
+  type Fetcher,
+  type FetchResponse,
+  type RobotsCache,
+  readPage,
+} from "@wrenautomation/scribe/fetch";
 import { sql } from "drizzle-orm";
 import { z } from "zod";
 import { HTTP_TIER, robotsDisallows, stripNul } from "../enrichment/crawler.js";
-import { FetchError, type Fetcher, type FetchResponse } from "../fetch/fetcher.js";
-import { readPage } from "../fetch/htmltext.js";
-import type { RobotsCache } from "../fetch/robots.js";
 import { pgSafe, type SignalDraft } from "../findings.js";
 import { defineCollector, firmOf, subjectOf, type Tried } from "./index.js";
 

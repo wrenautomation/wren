@@ -1,12 +1,13 @@
 import { type MimePart, parseAddr, parseDate, parseMessage } from "@wren/core/mail";
 import { type Db, serializable } from "@wren/db";
+import { pdfText, withoutNul } from "@wrenautomation/scribe/text";
 import { and, eq, inArray } from "drizzle-orm";
 import { VENDORS, type VendorSpec } from "./chart.js";
 import { shiftDay } from "./day.js";
 import { billingQuery, type Mailbox, vendorFor } from "./mailbox.js";
 import { documents, vendors } from "./schema.js";
 import { type DocumentStore, sha256, storeKey } from "./store.js";
-import { bodyText, pdfText, withoutNul } from "./text.js";
+import { bodyText } from "./text.js";
 
 export interface CaptureOptions {
   /** The first day to look at, `YYYY-MM-DD`. */

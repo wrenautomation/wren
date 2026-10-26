@@ -18,6 +18,16 @@ import { type Company, companies, inPlay } from "@wren/core";
 import type { SiteClient } from "@wren/core/content";
 import { atomic, type Queryable } from "@wren/db";
 import {
+  type Fetcher,
+  type FetchStep,
+  fetchLadder,
+  isLadderTier,
+  LADDER_TIERS,
+  looksLikeJsShell,
+  type RobotsCache,
+  readPage,
+} from "@wrenautomation/scribe/fetch";
+import {
   and,
   asc,
   count,
@@ -31,11 +41,7 @@ import {
   type SQL,
   sql,
 } from "drizzle-orm";
-import type { Fetcher } from "../fetch/fetcher.js";
-import { looksLikeJsShell, readPage } from "../fetch/htmltext.js";
-import { type FetchStep, fetchLadder } from "../fetch/ladder.js";
-import type { RobotsCache } from "../fetch/robots.js";
-import { domainOf, isLadderTier, LADDER_TIERS, type TierMemory } from "../fetch/tier-memory.js";
+import { domainOf, type TierMemory } from "../fetch/tier-memory.js";
 import { documents } from "../schema.js";
 import { EMPTY_HASH, robotsDisallows, stripNul } from "./crawler.js";
 import type { Shard } from "./shard.js";

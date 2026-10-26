@@ -28,7 +28,7 @@
     "@wren/db": "workspace:*",
     "@wren/research": "workspace:*",
     "@wren/video": "workspace:*",
-    "@wren/video-watch": "workspace:*",
+    "@wrenautomation/scribe": "0.1.0",
     "diff": "8.0.4",
     "drizzle-orm": "0.45.2",
     "onnxruntime-node": "1.30.0",

@@ -1,7 +1,8 @@
 /** The talks collector: synthetic people, canned iTunes answers, a fake YouTube. */
+
+import type { Fetcher } from "@wrenautomation/scribe/fetch";
 import { describe, expect, it } from "vitest";
 import { YouTubeError, type YouTubeGet } from "../enrichment/youtube.js";
-import type { Fetcher } from "../fetch/fetcher.js";
 import { signalRefusal } from "../findings.js";
 import type { SignalDeps } from "./index.js";
 import { decides, pacificDay, talks } from "./talks.js";

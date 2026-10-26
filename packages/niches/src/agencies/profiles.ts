@@ -11,8 +11,8 @@
  */
 import { readdirSync, readFileSync, statSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
-import type { Dataset, DownloadResult, PoliteFetcher, RemoteFile } from "@wren/research/fetch";
-import { FetchError } from "@wren/research/fetch";
+import type { Dataset, RemoteFile } from "@wren/research/fetch";
+import { type DownloadResult, FetchError, type PoliteFetcher } from "@wrenautomation/scribe/fetch";
 import {
   listingSlugs,
   looksLikeProfile,

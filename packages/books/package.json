@@ -24,8 +24,8 @@
     "@wren/core": "workspace:*",
     "@wren/db": "workspace:*",
     "@wren/llm": "workspace:*",
+    "@wrenautomation/scribe": "0.1.0",
     "drizzle-orm": "0.45.2",
-    "unpdf": "1.8.1",
     "zod": "4.6.5"
   },
   "devDependencies": {

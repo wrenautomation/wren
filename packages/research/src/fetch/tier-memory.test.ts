@@ -1,5 +1,6 @@
+import { isLadderTier } from "@wrenautomation/scribe/fetch";
 import { describe, expect, it } from "vitest";
-import { domainOf, FETCH_TIER_DAYS, isLadderTier, shouldWrite } from "./tier-memory.js";
+import { domainOf, FETCH_TIER_DAYS, shouldWrite } from "./tier-memory.js";
 
 describe("domainOf", () => {
   it("lowercases the host and drops a leading www.", () => {

@@ -25,7 +25,6 @@ import {
   triggersFor,
   youtubeSearchFor,
 } from "@wren/niches";
-import { PoliteFetcher } from "@wren/research";
 import { YOUTUBE_READ_SCOPE, youtubeApi } from "@wren/research/enrichment";
 import { s3PageStore } from "@wren/research/pages";
 import {
@@ -35,6 +34,7 @@ import {
   makeProfileResearch,
 } from "@wren/research/restate";
 import { serviceAccountToken } from "@wrenautomation/autobrowse/google";
+import { PoliteFetcher } from "@wrenautomation/scribe/fetch";
 import {
   type AnyService,
   BOOKS_DESK_TIMEOUT_MS,

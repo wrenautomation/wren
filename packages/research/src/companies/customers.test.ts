@@ -3,8 +3,8 @@
  * sees, and the gate that keeps only names the pages carry.
  */
 import { FakeLlm } from "@wren/llm";
+import type { Fetcher } from "@wrenautomation/scribe/fetch";
 import { describe, expect, it } from "vitest";
-import type { Fetcher } from "../fetch/fetcher.js";
 import { buildCustomersPrompt, findCustomers, gateCustomers, imageNames } from "./customers.js";
 
 function fetcher(pages: Record<string, string>): Fetcher & { asked: string[] } {

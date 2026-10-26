@@ -1,8 +1,8 @@
 /** PPP loans: file links off the dataset page, and the streaming NAICS filter. No network. */
 import { Readable, Writable } from "node:stream";
+import { FetchError, PoliteFetcher } from "@wrenautomation/scribe/fetch";
 import { parse } from "csv-parse/sync";
 import { describe, expect, it } from "vitest";
-import { FetchError, PoliteFetcher } from "./fetcher.js";
 import { filterLoanCsv, PPP_DATASET_PAGE, parsePppFileLinks, pppLoans } from "./ppp.js";
 
 const BASE = "https://data.sba.gov/dataset/8aa276e2/resource";

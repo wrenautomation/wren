@@ -7,7 +7,7 @@
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { askGemini, runFor, sceneCuts, TOOL_MS } from "@wren/video-watch";
+import { askGemini, runFor, sceneCuts, TOOL_MS } from "@wrenautomation/scribe/video";
 import { z } from "zod";
 import { BAR_IDS, type BarFormat, barLines, VIDEO_CHECK } from "./bar.js";
 

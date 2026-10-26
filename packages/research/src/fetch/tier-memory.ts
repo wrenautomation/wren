@@ -4,19 +4,13 @@
  * dead one again. It lives on main only: a domain is the same fact for every client.
  */
 import type { Queryable } from "@wren/db";
+import { LADDER_TIERS } from "@wrenautomation/scribe/fetch";
 import { eq } from "drizzle-orm";
 import { fetchTiers } from "../schema.js";
 
-/** autobrowse's rungs (`web GET /fetch`), lowest first. wren's own plain fetch is not one. */
-export const LADDER_TIERS = ["impersonate", "render", "exit"] as const;
-export type LadderTier = (typeof LADDER_TIERS)[number];
-
-/** What a domain needs: a rung, wren's own box browser, or nothing works (`dead`). */
+/** What a domain needs: a ladder rung (scribe's `LADDER_TIERS`), wren's own box browser, or nothing works (`dead`). */
 const MEMORY_TIERS = ["browser", ...LADDER_TIERS, "dead"] as const;
 export type MemoryTier = (typeof MEMORY_TIERS)[number];
-
-export const isLadderTier = (tier: string | null | undefined): tier is LadderTier =>
-  LADDER_TIERS.some((t) => t === tier);
 
 /** A remembered row older than this is ignored. */
 export const FETCH_TIER_DAYS = 30;

@@ -3,8 +3,9 @@
  * and that ATS's official postings API. Free, exact, no login, no cap. One
  * entry per ATS; adding one is adding an entry.
  */
+
+import type { Fetcher } from "@wrenautomation/scribe/fetch";
 import { z } from "zod";
-import type { Fetcher } from "../fetch/fetcher.js";
 
 export interface Job {
   title: string;

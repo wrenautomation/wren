@@ -133,7 +133,6 @@ import {
   browserbaseRenderer,
   browserRenderer,
   cdpRenderer,
-  userAgent,
 } from "@wren/research";
 import {
   expandHome,
@@ -143,6 +142,7 @@ import {
   serviceAccountToken,
 } from "@wrenautomation/autobrowse/google";
 import { InstantlyReader, imapClient, withImap } from "@wrenautomation/autobrowse/mail";
+import { userAgent } from "@wrenautomation/scribe/fetch";
 import { desc, eq, max } from "drizzle-orm";
 import type { Logger } from "pino";
 import { COMPONENTS } from "../components.js";

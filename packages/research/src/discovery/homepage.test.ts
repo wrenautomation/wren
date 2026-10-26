@@ -1,5 +1,5 @@
+import { FetchError, type Fetcher, type FetchResponse } from "@wrenautomation/scribe/fetch";
 import { describe, expect, it } from "vitest";
-import { FetchError, type Fetcher, type FetchResponse } from "../fetch/fetcher.js";
 import { politeHomepageFetcher } from "./homepage.js";
 
 class Canned implements Fetcher {

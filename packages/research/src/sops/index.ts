@@ -27,7 +27,7 @@ import {
   type VideoMeta,
   type WatchOptions,
   watch,
-} from "@wren/video-watch";
+} from "@wrenautomation/scribe/video";
 import { expandCites, numberCites } from "./cites.js";
 
 export { expandCites, numberCites };

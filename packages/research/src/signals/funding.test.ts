@@ -1,6 +1,7 @@
 /** The funding collector over a canned EDGAR answer: synthetic firms, a fake fetcher, no network. */
+
+import type { Fetcher } from "@wrenautomation/scribe/fetch";
 import { describe, expect, it } from "vitest";
-import type { Fetcher } from "../fetch/fetcher.js";
 import { signalRefusal } from "../findings.js";
 import { funding } from "./funding.js";
 import type { SignalDeps } from "./index.js";

@@ -29,7 +29,6 @@ import {
   runProfiles,
   selectCrawlTargets,
 } from "@wren/research/enrichment";
-import { PoliteFetcher, userAgent } from "@wren/research/fetch";
 import { collectorsWithLimits, googleLimits } from "@wren/research/limits";
 import { accountRoom, readLedger } from "@wren/research/linkedin-reads";
 import {
@@ -43,6 +42,7 @@ import {
   SIGNALS_LIMIT,
   signalSettings,
 } from "@wren/research/signals";
+import { PoliteFetcher, userAgent } from "@wrenautomation/scribe/fetch";
 import type { Command } from "commander";
 import { ingressSites } from "./sites.js";
 

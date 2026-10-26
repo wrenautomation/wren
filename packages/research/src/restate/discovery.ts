@@ -12,6 +12,7 @@ import * as restate from "@restatedev/restate-sdk";
 import { type Company, companies, finishRun, openRun } from "@wren/core";
 import { exclusiveHandler } from "@wren/core/restate";
 import type { Db } from "@wren/db";
+import type { Fetcher } from "@wrenautomation/scribe/fetch";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { politeHomepageFetcher } from "../discovery/homepage.js";
@@ -36,7 +37,6 @@ import {
   VERIFICATION_SOURCE_TYPE,
   verifyCompanyDomain,
 } from "../discovery/service.js";
-import type { Fetcher } from "../fetch/fetcher.js";
 import { keyScope } from "./enrichment.js";
 import { notHeld, stageHolds, unitBatches } from "./units.js";
 

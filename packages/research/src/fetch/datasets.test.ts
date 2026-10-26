@@ -1,9 +1,9 @@
 import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { PoliteFetcher } from "@wrenautomation/scribe/fetch";
 import { describe, expect, it } from "vitest";
 import { type Dataset, fetchDataset } from "./datasets.js";
-import { PoliteFetcher } from "./fetcher.js";
 
 const fakeFetch = (async (url: string | URL | Request) =>
   new Response(`body of ${String(url)}`, { status: 200 })) as unknown as typeof fetch;

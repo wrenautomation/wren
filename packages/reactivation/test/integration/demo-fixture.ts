@@ -4,7 +4,7 @@
  */
 import type { SiteClient } from "@wren/core/content";
 import { FakeLlm } from "@wren/llm";
-import type { Fetcher } from "@wren/research/fetch";
+import type { Fetcher } from "@wrenautomation/scribe/fetch";
 
 const PAGES: Record<string, string> = {
   "https://northside.example": `<title>Northside Talent | Recruiting in Toronto</title>

@@ -2,7 +2,7 @@
 import type { Company } from "@wren/core";
 import { companies } from "@wren/core";
 import type { Queryable } from "@wren/db";
-import type { Fetcher, FetchResponse } from "../../src/fetch/fetcher.js";
+import type { Fetcher, FetchResponse } from "@wrenautomation/scribe/fetch";
 
 export class FakeFetcher implements Fetcher {
   readonly userAgent = "wren-test/0.1";
