@@ -25,6 +25,7 @@ import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { dayLabel, ERROR, NARROW, QUIET, trimmed } from "../work/bits.js";
 import { ownerOf, useAccountsAct } from "./Accounts.js";
+import { Limits } from "./Limits.js";
 import { dollars, modeTag, roomText, unitsText, type VendorRow } from "./setups.js";
 
 type Act = ReturnType<typeof useAccountsAct>;
@@ -295,6 +296,7 @@ export function Vendors(props: PageProps) {
           {d.vendors.map((v) => (
             <Vendor key={v.id} v={v} d={d} act={act} />
           ))}
+          {d.team ? <Limits client={props.client} /> : null}
         </>
       )}
     </>

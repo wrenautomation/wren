@@ -28,7 +28,7 @@ const FB_GROUPS_VIA = "facebook-group";
  * bucket only gets its burst a day: the burst is the daily amount, and autobrowse's pace spaces the calls.
  */
 export const GROUP_SEARCH_BUCKET: Bucket = { perDay: 24, burst: 24 };
-/** Page reads a day, About and posts together; with Ad Library's 96 they stay under autobrowse's 400 (200 at CAPS_SCALE 1). */
+/** Page reads a day, About and posts together; with Ad Library's 96 they stay under autobrowse's 400 (its limits.json). */
 export const GROUP_READ_BUCKET: Bucket = { perDay: 160, burst: 160 };
 const GROUP_SEARCH_N = 20;
 const GROUP_KEYWORD_EVERY_DAYS = 7;

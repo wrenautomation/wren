@@ -31,7 +31,7 @@ export const SIGNALS_COMMAND = "enrich signals";
 export const SIGNALS_COMPONENT = "research.signals";
 /** `unit_holds.stage` for a unit out of retries; its subject is `<collector>:<subject>`. */
 export const SIGNALS_HELD = "research.signals";
-/** Google searches the collectors may spend a local day, of the 200 shared with profiles. */
+/** Google searches the collectors may spend a local day, of `GOOGLE_PER_DAY` shared with profiles. */
 export const SIGNALS_GOOGLE_PER_DAY = 100;
 /** An unresolved subject is asked again after this long. */
 const UNRESOLVED_DAYS = 30;
@@ -425,13 +425,16 @@ export async function signalUnit(
     dry?: boolean;
     /** Records a metered read's units (`meter` in `@wren/core/vendors`, bound to the owner). */
     meter?: ((vendors: readonly string[]) => Promise<void>) | null;
+    /** Google's day and the collectors' share (`googleLimits`); the code's defaults when left out. */
+    google?: { perDay: number; signals: number };
   },
 ): Promise<SignalUnit> {
   const now = new Date();
   const left = await googleLeft(base.db, {
     now,
     timezone: opts.timezone,
-    signals: SIGNALS_GOOGLE_PER_DAY,
+    ...(opts.google ? { perDay: opts.google.perDay } : {}),
+    signals: opts.google?.signals ?? SIGNALS_GOOGLE_PER_DAY,
     also: base.also ?? null,
   });
   const deps: SignalDeps = { ...base, googleLeft: left, now };
@@ -556,6 +559,7 @@ export async function runSignals(
     runId?: string | null;
     /** Records a unit's spent vendors, by collector (`meter` in `@wren/core/vendors`). */
     meter?: ((collector: string, vendors: readonly string[]) => Promise<void>) | null;
+    google?: { perDay: number; signals: number };
     onUnit?: (u: SignalUnit | { collector: string; subject: string; error: string }) => void;
   },
 ): Promise<SignalsStats> {

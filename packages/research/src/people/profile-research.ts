@@ -374,7 +374,7 @@ export async function failProfileResearch(
 /** What the day leaves for a run: Google searches, and until when LinkedIn's account is capped. */
 export async function researchPlan(
   db: Queryable,
-  o: { now: Date; timezone: string },
+  o: { now: Date; timezone: string; perDay?: number },
 ): Promise<{ google: number; linkedinUntil: string | null }> {
   return {
     google: await googleLeft(db, o),

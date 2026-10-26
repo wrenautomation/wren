@@ -1,5 +1,6 @@
 /** Enrichment handlers for people: profiles, teams and signals. */
 import * as restate from "@restatedev/restate-sdk";
+import { bucketOf } from "@wren/core/limits";
 import { keyedSites } from "@wren/core/metered";
 import { clientOfKey, exclusiveHandler } from "@wren/core/restate";
 import { type Gate, gate, meter, modesOf } from "@wren/core/vendors";
@@ -26,6 +27,7 @@ import {
   teamWork,
 } from "../enrichment/team.js";
 import { keepingAnswers } from "../findings.js";
+import { collectorsWithLimits, googleLimits, TEAM_LIMIT } from "../limits.js";
 import { ACCOUNT_VENDOR, accountRoom, readLedger, SEARCH_VENDOR } from "../linkedin-reads.js";
 import {
   type BaseDeps,
@@ -128,7 +130,11 @@ export function peopleHandlers(enrich: EnrichmentContext) {
           return {
             parked: null,
             work,
-            google: await googleLeft(db, { now, timezone: input.timezone }),
+            google: await googleLeft(db, {
+              now,
+              timezone: input.timezone,
+              perDay: (await googleLimits(deps.db)).perDay,
+            }),
             linkedin: (await linkedinParkedUntil(db))?.toISOString() ?? null,
           };
         });
@@ -192,7 +198,11 @@ export function peopleHandlers(enrich: EnrichmentContext) {
         const plan = await ctx.run("select", async () => {
           const parked = await teamParkedUntil(db);
           if (parked) return { why: `parked by a cap until ${parked.toISOString()}`, work: [] };
-          const { room, nextInMs } = await teamRoom(db, new Date());
+          const { room, nextInMs } = await teamRoom(
+            db,
+            new Date(),
+            await bucketOf(deps.db, null, TEAM_LIMIT),
+          );
           if (room === 0)
             return {
               why: `bucket empty: next search in ${Math.ceil(nextInMs / 1000)}s`,
@@ -253,7 +263,7 @@ export function peopleHandlers(enrich: EnrichmentContext) {
         const plan = await ctx.run("select", async () =>
           signalPlan(
             db,
-            COLLECTORS,
+            await collectorsWithLimits(deps.db, COLLECTORS),
             own ? signalSettingsOf(own.block) : await signalSettings(db),
             await passOf(db, niche, personIds, companyIds ?? []),
             {
@@ -305,6 +315,7 @@ export function peopleHandlers(enrich: EnrichmentContext) {
           linkedinRoom: () => accountRoom(deps.db, owner),
           also,
         };
+        const google = await ctx.run("google limits", () => googleLimits(deps.db));
         const stats = emptySignalsStats();
         // A unit's hold subject is `<collector>:<subject>`.
         const holds = await stageHolds(ctx, db, SIGNALS_HELD);
@@ -325,6 +336,7 @@ export function peopleHandlers(enrich: EnrichmentContext) {
               signalUnit(c, id.slice(c.name.length + 1), p.settings, base, {
                 timezone: input.timezone,
                 runId,
+                google,
                 meter: async (vendors) => {
                   for (const vendor of vendors)
                     await meter(deps.db, {

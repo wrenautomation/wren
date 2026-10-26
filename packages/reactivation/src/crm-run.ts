@@ -17,6 +17,7 @@ import { errorText, exclusiveHandler } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import type { LlmClient } from "@wren/llm";
 import { keepingAnswers } from "@wren/research";
+import { googleLimits } from "@wren/research/limits";
 import { z } from "zod";
 import { type RedraftStats, redraftAwaiting } from "./compose.js";
 import { familyJudge, type SettleStats, settleMoves } from "./family.js";
@@ -233,6 +234,7 @@ export function makeCrmRun(deps: CrmRunWorkerDeps) {
                 runId: s.runId,
                 feed: runFeed(s.db, s.runId),
                 ...(deps.timezone ? { timezone: deps.timezone } : {}),
+                googlePerDay: (await googleLimits(deps.main)).perDay,
                 ...(req.only?.length ? { only: req.only } : {}),
               },
             ),

@@ -65,6 +65,8 @@ export async function checkCrmEvents(
     runId?: string | null;
     now?: () => Date;
     timezone?: string;
+    /** Google's day (`googleLimits`); the code's default when left out. */
+    googlePerDay?: number;
     feed?: Feed;
   } = {},
 ): Promise<CrmEventsStats> {
@@ -75,6 +77,7 @@ export async function checkCrmEvents(
   let google = await googleLeft(db, {
     now: clock(),
     timezone: opts.timezone ?? EVENTS_TIMEZONE,
+    ...(opts.googlePerDay !== undefined ? { perDay: opts.googlePerDay } : {}),
   });
   let streak = 0;
   for (const s of subjects) {

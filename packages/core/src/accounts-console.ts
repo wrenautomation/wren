@@ -15,6 +15,7 @@ import { clients, SETUP_MODES, type SetupMode } from "./clients/schema.js";
 import { executorEmit, waitMs } from "./executor.js";
 import { keyRef, noRawKeys } from "./key-refs.js";
 import type { KeyStore } from "./keys.js";
+import { type LimitDef, limitsView, setLimit, unsetLimit } from "./limits.js";
 import {
   answer,
   canAt,
@@ -82,6 +83,8 @@ interface AccountsDeps {
   agent?: boolean;
   /** Parts that need facts (the worker's COMPONENTS): paused ones show on the page. */
   parts?: readonly AlertPart[];
+  /** The limits the team may set (`@wren/core/limits`; the worker's research list). */
+  limits?: readonly LimitDef[];
   now?: () => Date;
 }
 
@@ -218,6 +221,7 @@ export type AccountsView = Awaited<ReturnType<ReturnType<typeof accountsApi>["ac
 export type NowView = Awaited<ReturnType<ReturnType<typeof accountsApi>["now"]>>;
 export type VendorsView = Awaited<ReturnType<ReturnType<typeof accountsApi>["vendors"]>>;
 export type UsageView = Awaited<ReturnType<ReturnType<typeof accountsApi>["usage"]>>;
+export type LimitsView = Awaited<ReturnType<ReturnType<typeof accountsApi>["limits"]>>;
 
 export interface AccountRequest extends PortalRequest {
   account: number;
@@ -491,6 +495,54 @@ export function accountsApi(deps: AccountsDeps) {
     },
 
     /**
+     * The daily limits as they hold here: Wren's team. On a client's page, only the limits a
+     * client may have its own of; the rest are one pool and live on Wren's page.
+     */
+    async limits(req: PortalRequest) {
+      const owner = await ownerOf(db, req);
+      if (!teamAt(req, owner.id, "act")) throw new PortalRefusal("Wren's team does this", 403);
+      const defs = (deps.limits ?? []).filter((d) => owner.id === null || d.scope === "client");
+      const rows = await limitsView(db, owner.id, defs);
+      return {
+        owner: owner.name,
+        /** Wren's page: its rows are Wren-wide. */
+        wren: owner.id === null,
+        money: teamAt(req, owner.id, "money"),
+        limits: rows.map((r) => ({
+          name: r.def.name,
+          unit: r.def.unit,
+          why: r.def.why,
+          scope: r.def.scope,
+          default: { perDay: r.def.perDay, burst: r.def.burst },
+          wren: r.wren,
+          client: r.client,
+          holds: r.holds,
+          from: r.from,
+        })),
+      };
+    },
+
+    /** Set or drop one limit here (`perDay` null drops it): spend, so an admin. */
+    async setLimit(
+      req: PortalRequest & { name: string; perDay: number | null; burst?: number | null },
+    ) {
+      const { owner } = await writer(req, "team");
+      if (!teamAt(req, owner.id, "money"))
+        throw new PortalRefusal("Limits are spend: an admin sets them", 403);
+      const defs = deps.limits ?? [];
+      const o = { client: owner.id, name: req.name };
+      if (req.perDay === null) await unsetLimit(db, defs, o).catch(fail);
+      else
+        await setLimit(db, defs, {
+          ...o,
+          perDay: req.perDay,
+          burst: req.burst ?? null,
+          by: by(req),
+        }).catch(fail);
+      return { ok: true };
+    },
+
+    /**
      * A client's mode on a vendor: managed on Wren's key with a daily share and a monthly cap
      * (money, so an admin), the client's own key or login, or none. A key is never read back.
      */
@@ -624,6 +676,18 @@ export function makeAccountsConsole(deps: AccountsDeps) {
       vendors: serviceHandler({ input: z.looseObject(PORTAL_FIELDS) }, read(api.vendors)),
       now: serviceHandler({ input: z.looseObject(PORTAL_FIELDS) }, read(api.now)),
       usage: serviceHandler({ input: z.looseObject(PORTAL_FIELDS) }, read(api.usage)),
+      limits: serviceHandler({ input: z.looseObject(PORTAL_FIELDS) }, read(api.limits)),
+      setLimit: serviceHandler(
+        {
+          input: z.looseObject({
+            ...PORTAL_FIELDS,
+            name: z.string().max(64).describe("A limit's name: research.triggers"),
+            perDay: z.number().int().min(0).nullable().describe("null drops the row"),
+            burst: z.number().int().min(1).nullish(),
+          }),
+        },
+        write("limit", api.setLimit),
+      ),
       start: serviceHandler(
         { input: z.looseObject({ ...on, mode: z.enum(SETUP_MODES).nullish() }) },
         move("start", api.start),

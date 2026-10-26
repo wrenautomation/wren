@@ -423,11 +423,12 @@ export async function youtubeReadRoom(
   main: Queryable,
   client: string | null,
   now: Date,
+  bucket: Bucket = YOUTUBE_BUCKET,
 ): Promise<{ room: number; nextInMs: number }> {
-  if (client === null) return youtubeRoom(db, now);
+  if (client === null) return youtubeRoom(db, now, bucket);
   const own = await ownRoom(main, client, "youtube", now);
   if (own) return { room: Math.floor(own.room / READ_UNITS), nextInMs: own.nextInMs };
-  return youtubeRoom(db, now, undefined, main);
+  return youtubeRoom(db, now, bucket, main);
 }
 
 type YouTubeOutcome = "read" | "missing" | "quota" | "error";

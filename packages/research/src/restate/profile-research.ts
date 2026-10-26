@@ -14,6 +14,7 @@ import { exclusiveHandler } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import { z } from "zod";
 import { keepingAnswers } from "../findings.js";
+import { googleLimits } from "../limits.js";
 import { readLedger } from "../linkedin-reads.js";
 import { failProfileResearch, researchPlan, researchProfile } from "../people/profile-research.js";
 
@@ -72,8 +73,12 @@ export function makeProfileResearch(deps: ProfileResearchDeps) {
             return run.id;
           });
           const now = new Date(await ctx.date.now());
-          const plan = await ctx.run("plan", () =>
-            researchPlan(db, { now, timezone: deps.timezone }),
+          const plan = await ctx.run("plan", async () =>
+            researchPlan(db, {
+              now,
+              timezone: deps.timezone,
+              perDay: (await googleLimits(db)).perDay,
+            }),
           );
           // The step never throws on a site error and is never retried: a metered read is bought once.
           const r = await ctx.run(

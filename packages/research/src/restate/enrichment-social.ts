@@ -1,6 +1,7 @@
 /** Enrichment handlers that read YouTube, Instagram and Facebook groups. */
 import * as restate from "@restatedev/restate-sdk";
 import { runScreen } from "@wren/core";
+import { bucketOf } from "@wren/core/limits";
 import { clientOfKey, exclusiveHandler } from "@wren/core/restate";
 import type { Queryable } from "@wren/db";
 import { SOCIAL, socialSettingsSchema } from "../components.js";
@@ -48,6 +49,13 @@ import {
   youtubeSearchUnit,
 } from "../enrichment/youtube-search.js";
 import {
+  GROUP_READ_LIMIT,
+  GROUP_SEARCH_LIMIT,
+  INSTAGRAM_LIMIT,
+  YOUTUBE_LIMIT,
+  YOUTUBE_SEARCH_LIMIT,
+} from "../limits.js";
+import {
   clientBlock,
   type EnrichmentContext,
   HELD,
@@ -85,7 +93,13 @@ export function socialHandlers(enrich: EnrichmentContext) {
         const runId = await open(ctx, YOUTUBE_COMMAND, { limit, niche });
         const yt = client === null ? get : youtubeFor(client, get, "research.youtube", runId);
         const plan = await ctx.run("select", async () => {
-          const { room, nextInMs } = await youtubeReadRoom(db, deps.db, client, new Date());
+          const { room, nextInMs } = await youtubeReadRoom(
+            db,
+            deps.db,
+            client,
+            new Date(),
+            await bucketOf(deps.db, null, YOUTUBE_LIMIT),
+          );
           if (room < Math.min(limit, YOUTUBE_MIN_BATCH))
             return {
               why: `bucket low (${room} reads): next in ${Math.ceil(nextInMs / 1000)}s`,
@@ -137,7 +151,7 @@ export function socialHandlers(enrich: EnrichmentContext) {
           const { room, nextInMs } = await instagramRoom(
             db,
             new Date(),
-            undefined,
+            await bucketOf(deps.db, null, INSTAGRAM_LIMIT),
             client === null ? null : deps.db,
           );
           if (room < Math.min(limit, INSTAGRAM_MIN_BATCH))
@@ -190,7 +204,11 @@ export function socialHandlers(enrich: EnrichmentContext) {
         const runId = await open(ctx, YOUTUBE_SEARCH_COMMAND, { limit, niche });
         const plan = await ctx.run("select", async () => {
           const now = new Date();
-          const { room, nextInMs } = await youtubeSearchRoom(db, now);
+          const { room, nextInMs } = await youtubeSearchRoom(
+            db,
+            now,
+            await bucketOf(deps.db, null, YOUTUBE_SEARCH_LIMIT),
+          );
           if (room === 0)
             return {
               why: `bucket empty: next search in ${Math.ceil(nextInMs / 1000)}s`,
@@ -250,7 +268,11 @@ export function socialHandlers(enrich: EnrichmentContext) {
         // Searches first, so their groups and posts are in the queue the reads draw on.
         const searches = await ctx.run("select searches", async () => {
           const now = new Date();
-          const { room } = await groupSearchRoom(db, now);
+          const { room } = await groupSearchRoom(
+            db,
+            now,
+            await bucketOf(deps.db, null, GROUP_SEARCH_LIMIT),
+          );
           return groupKeywordsDue(db, niche, keywords, { now, limit: Math.min(limit, room) });
         });
         stats.selected = searches.length;
@@ -272,7 +294,11 @@ export function socialHandlers(enrich: EnrichmentContext) {
         if (!stats.stopped) {
           const plan = await ctx.run("select reads", async () => {
             const now = new Date();
-            const { room, nextInMs } = await groupReadRoom(db, now);
+            const { room, nextInMs } = await groupReadRoom(
+              db,
+              now,
+              await bucketOf(deps.db, null, GROUP_READ_LIMIT),
+            );
             const budget = Math.min(limit - stats.selected, room);
             return {
               why:

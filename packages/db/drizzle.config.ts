@@ -15,6 +15,7 @@ export default defineConfig({
     "../core/src/send-journal-schema.ts",
     "../core/src/decide-schema.ts",
     "../core/src/vendor-schema.ts",
+    "../core/src/limits-schema.ts",
     "../core/src/keys-schema.ts",
     "../core/src/touches-schema.ts",
     "../core/src/objects-schema.ts",

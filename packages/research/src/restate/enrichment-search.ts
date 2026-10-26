@@ -1,6 +1,7 @@
 /** Enrichment handlers that search: the ad library, Exa and trigger events. */
 import * as restate from "@restatedev/restate-sdk";
 import { runScreen } from "@wren/core";
+import { bucketOf } from "@wren/core/limits";
 import { clientOfKey, exclusiveHandler } from "@wren/core/restate";
 import {
   AD_LIBRARY_COMMAND,
@@ -30,6 +31,7 @@ import {
   triggersRoom,
   triggerUnit,
 } from "../enrichment/news-triggers.js";
+import { AD_LIBRARY_LIMIT, EXA_SEARCH_LIMIT, TRIGGERS_LIMIT } from "../limits.js";
 import { type EnrichmentContext, HELD, LIMIT, type LimitInput } from "./enrichment-context.js";
 import { notHeld, stageHolds } from "./units.js";
 
@@ -51,7 +53,11 @@ export function searchHandlers(enrich: EnrichmentContext) {
         const runId = await open(ctx, AD_LIBRARY_COMMAND, { limit, niche });
         const plan = await ctx.run("select", async () => {
           const now = new Date();
-          const { room, nextInMs } = await adLibraryRoom(db, now);
+          const { room, nextInMs } = await adLibraryRoom(
+            db,
+            now,
+            await bucketOf(deps.db, null, AD_LIBRARY_LIMIT),
+          );
           if (room === 0)
             return { why: `bucket empty: next read in ${Math.ceil(nextInMs / 1000)}s`, work: [] };
           const keywords = ads?.keywords ?? [];
@@ -103,7 +109,11 @@ export function searchHandlers(enrich: EnrichmentContext) {
         const runId = await open(ctx, EXA_SEARCH_COMMAND, { limit, niche });
         const plan = await ctx.run("select", async () => {
           const now = new Date();
-          const { room, nextInMs } = await exaSearchRoom(db, now);
+          const { room, nextInMs } = await exaSearchRoom(
+            db,
+            now,
+            await bucketOf(deps.db, null, EXA_SEARCH_LIMIT),
+          );
           if (room === 0)
             return {
               why: `bucket empty: next search in ${Math.ceil(nextInMs / 1000)}s`,
@@ -157,7 +167,11 @@ export function searchHandlers(enrich: EnrichmentContext) {
         const runId = await open(ctx, TRIGGERS_COMMAND, { limit, niche });
         const now = new Date(await ctx.date.now());
         const plan = await ctx.run("select", async () => {
-          const { room, nextInMs } = await triggersRoom(db, now);
+          const { room, nextInMs } = await triggersRoom(
+            db,
+            now,
+            await bucketOf(deps.db, null, TRIGGERS_LIMIT),
+          );
           if (room === 0)
             return {
               why: `bucket empty: next search in ${Math.ceil(nextInMs / 1000)}s`,

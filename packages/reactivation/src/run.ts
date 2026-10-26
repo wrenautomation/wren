@@ -57,6 +57,8 @@ interface CrmRunOptions {
   feed?: Feed;
   /** The zone Google's day and hours are kept in (WREN_SEND_TIMEZONE). */
   timezone?: string;
+  /** Google's day (`googleLimits` on main); the code's default when left out. */
+  googlePerDay?: number;
 }
 
 export type CrmStageResult =
@@ -146,6 +148,7 @@ export async function runCrm(
           stats: await checkCrmEvents(db, keepingAnswers(deps.sites, db), {
             runId: opts.runId ?? null,
             ...(opts.timezone ? { timezone: opts.timezone } : {}),
+            ...(opts.googlePerDay !== undefined ? { googlePerDay: opts.googlePerDay } : {}),
             ...watched,
             ...limit,
           }),

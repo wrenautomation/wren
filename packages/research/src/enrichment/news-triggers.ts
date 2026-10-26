@@ -45,7 +45,7 @@ const TRIGGER_DAYS = 14;
 /** A word is searched again after this: the window overlaps, so nothing falls between. */
 const TRIGGERS_EVERY_DAYS = 7;
 /** Searches a day. RSS is free; this only spaces the reads. */
-const TRIGGERS_BUCKET: Bucket = { perDay: 40, burst: 40 };
+export const TRIGGERS_BUCKET: Bucket = { perDay: 40, burst: 40 };
 /** Headlines one model call reads. */
 const PER_CALL = 25;
 /** A named firm's key: `nt:` and its bare name. */

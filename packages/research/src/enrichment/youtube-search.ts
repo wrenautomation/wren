@@ -26,7 +26,7 @@ const YOUTUBE_SEARCH_SOURCE = "youtube_search";
  * Searches a day, 101 units each. The project has 10,000 a day: the `youtube` stage keeps at most
  * 6,000 in any 24 hours and talks 2,000 (20 searches), so this takes about half of what is left.
  */
-const YOUTUBE_SEARCH_BUCKET: Bucket = { perDay: 10, burst: 10 };
+export const YOUTUBE_SEARCH_BUCKET: Bucket = { perDay: 10, burst: 10 };
 /** A niche's channels change slowly: a search is read again after this. */
 const YOUTUBE_SEARCH_EVERY_DAYS = 30;
 /** Channels a search asks for: the most one call returns, at the same 100 units. */

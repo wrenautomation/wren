@@ -35,7 +35,7 @@ import { recordLookup } from "../people/store.js";
 import type { LookupState } from "../schema.js";
 
 export const PROFILES_COMMAND = "enrich profiles";
-/** Google searches this stage may spend a local day; the `web` site's cap (300) is shared. */
+/** Google searches this stage may spend a local day; autobrowse's `web` cap (its limits.json) is shared. */
 export const GOOGLE_PER_DAY = 400;
 /** Local hours Google is asked in: [from, to). */
 const GOOGLE_HOURS = [8, 20] as const;

@@ -110,6 +110,8 @@
     "./portal": "./src/portal.ts",
     "./refusal": "./src/refusal.ts",
     "./buckets": "./src/buckets.ts",
+    "./limits": "./src/limits.ts",
+    "./limits-schema": "./src/limits-schema.ts",
     "./checks": "./src/checks.ts",
     "./setup": "./src/setup.ts",
     "./setup-agent": "./src/setup-agent.ts",

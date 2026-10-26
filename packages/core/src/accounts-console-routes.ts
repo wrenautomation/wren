@@ -14,6 +14,8 @@ export const ACCOUNTS_CONSOLE_ROUTES = {
   checkNow: "act",
   addAccount: "act",
   setVendor: "act",
+  limits: "read",
+  setLimit: "act",
   usage: "wren:read",
 } as const satisfies Record<string, Need>;
 /** All of it is the client's Account app; Wren's usage across clients is the Clients app's. */
@@ -27,4 +29,5 @@ export const ACCOUNTS_CONSOLE_WRITES: readonly (keyof typeof ACCOUNTS_CONSOLE_RO
   "checkNow",
   "addAccount",
   "setVendor",
+  "setLimit",
 ];

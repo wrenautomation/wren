@@ -30,6 +30,7 @@ import {
   selectCrawlTargets,
 } from "@wren/research/enrichment";
 import { PoliteFetcher, userAgent } from "@wren/research/fetch";
+import { collectorsWithLimits, googleLimits } from "@wren/research/limits";
 import { accountRoom, readLedger } from "@wren/research/linkedin-reads";
 import {
   type BaseDeps,
@@ -206,6 +207,7 @@ export function registerEnrich(
           verificationHorizonDays: settings.verificationHorizonDays,
         });
         const argv = { niche, limit: Number(opts.limit), again: opts.again ?? false };
+        const googlePerDay = (await googleLimits(db)).perDay;
         // Each person is written as it finishes: Ctrl-C is a pause, a rerun resumes.
         const { stats } = await recordedRun(db, { command: PROFILES_COMMAND, argv, niche }, (run) =>
           runProfiles(db, sites, {
@@ -213,6 +215,7 @@ export function registerEnrich(
             limit: argv.limit,
             again: argv.again,
             timezone: settings.sendTimezone,
+            googlePerDay,
             linkedin: settings.poolLinkedin ?? null,
             ledger: readLedger(db, { client: null, part: "profiles", runId: run.id }),
             runId: run.id,
@@ -289,8 +292,11 @@ export function registerEnrich(
           };
           const argv = { ...opts, niche };
           const signalsOn = await signalSettings(db);
+          const collectors = await collectorsWithLimits(db, COLLECTORS);
+          const google = await googleLimits(db);
           const run = (runId: string | null) =>
-            runSignals(COLLECTORS, signalsOn, base, {
+            runSignals(collectors, signalsOn, base, {
+              google,
               pass,
               timezone: settings.sendTimezone,
               limit: Number(opts.limit),

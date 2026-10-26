@@ -25,6 +25,7 @@ import { dbSendJournal } from "@wren/core/send-journal";
 import { makeSetupAgent } from "@wren/core/setup-agent";
 import { makeSetupWatch } from "@wren/core/setup-watch";
 import { crmLanding } from "@wren/reactivation";
+import { RESEARCH_LIMITS } from "@wren/research/limits";
 import { makeMailReader } from "@wren/watch/clients";
 import { SETUPS } from "../setups.js";
 import type { AnyService, Deps } from "./deps.js";
@@ -85,6 +86,7 @@ export function accountsServices(deps: Deps): AnyService[] {
       checks: new Set(Object.keys(setupChecks)),
       keys,
       parts: setupParts,
+      limits: RESEARCH_LIMITS,
     }),
     // Account → Mail, the OAuth callbacks, and the reader over every client's connected mailboxes.
     makeMailAccess({ main: db, access: clientMail, clientDb, setups: SETUPS }),

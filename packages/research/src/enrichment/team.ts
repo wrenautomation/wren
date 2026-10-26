@@ -25,7 +25,7 @@ export const TEAM_COMMAND = "enrich team";
  * at an even pace: the rest stays for lead sheets, profiles and answers. One
  * search is 7 mills, so 100 a day is $0.70 of the free $0.99.
  */
-const TEAM_BUCKET: Bucket = { perDay: 100, burst: 10 };
+export const TEAM_BUCKET: Bucket = { perDay: 100, burst: 10 };
 /** Errors in a row that stop the run: something is down, not one odd firm. */
 const ERROR_STREAK = 5;
 /**
