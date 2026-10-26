@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { SiteClient } from "./autobrowse.js";
+import { SiteCallError, type SiteClient } from "./autobrowse.js";
 import {
   holds,
   idsIn,
@@ -140,10 +140,10 @@ describe("linkedin verdict", () => {
 describe("siteProof", () => {
   const jpeg = Buffer.from("jpeg").toString("base64");
 
-  it("reads reddit signed out, then the thread, and keeps the shot", async () => {
+  it("reads reddit as another account of ours, then the thread, and keeps the shot", async () => {
     const d = desk({
-      "reddit-public GET /api/info": listing(thing("hi")),
-      "reddit-public GET /comments/p1": [listing(), listing(thing("hi"))],
+      "reddit GET /api/info@reddit@two": listing(thing("hi")),
+      "reddit GET /comments/p1@reddit@two": [listing(), listing(thing("hi"))],
       "web GET /proof/shot": { found: true, jpeg },
     });
     const kept: number[] = [];
@@ -161,6 +161,7 @@ describe("siteProof", () => {
       parent: "t3_p1",
       url: null,
       account: "reddit@one",
+      peers: ["reddit@one", "reddit@two"],
     });
     expect(p).toEqual({
       state: "live",
@@ -171,42 +172,57 @@ describe("siteProof", () => {
     });
     expect(kept).toEqual([4]);
     expect(d.log).not.toContain("reddit GET /api/info@reddit@one");
+    expect(d.log.some((l) => l.startsWith("reddit-public"))).toBe(false);
   });
 
-  it("reads as another account of ours before the refused signed-out reader", async () => {
+  it("reads signed in only: a refused peer tries the next, none waits, a used cap is the caller's", async () => {
     const d = desk({
-      "reddit-public GET /api/info": new Error("HTTP 403 (feed after a 403)"),
-      "reddit GET /api/info@reddit@two": listing(thing("hi")),
-      "reddit GET /comments/p1@reddit@two": [listing(), listing(thing("hi"))],
-      "web GET /proof/shot": { found: true, jpeg },
+      "reddit GET /api/info@reddit@two": new Error("HTTP 500"),
+      "reddit GET /api/info@reddit@three": listing(thing("hi")),
+      "reddit GET /comments/p1@reddit@three": [listing(), listing(thing("hi"))],
     });
-    const p = await siteProof({ sites: d, now: () => NOW, keep: async () => "s3://b/k" }).check({
-      platform: "reddit",
-      ref: "t1_c1",
-      parent: "t3_p1",
-      url: null,
-      account: "reddit@one",
-      peers: ["reddit@one", "reddit@two"],
+    const check = (peers?: string[]) =>
+      siteProof({ sites: d, now: () => NOW }).check({
+        platform: "reddit",
+        ref: "t1_c1",
+        parent: "t3_p1",
+        url: null,
+        account: "reddit@one",
+        ...(peers ? { peers } : {}),
+      });
+    expect((await check(["reddit@two", "reddit@three"])).state).toBe("live");
+    expect(await check()).toMatchObject({
+      state: "pending",
+      note: "no other account of ours to read as",
     });
-    expect(p.state).toBe("live");
-    expect(p.note).toContain("read as another account of ours");
-    expect(d.log).not.toContain("reddit GET /api/info@reddit@one");
-    expect(d.log).not.toContain("reddit-public GET /api/info");
-    // No peer: the signed-out read, and the check waits when it fails.
-    const alone = await siteProof({ sites: d, now: () => NOW }).check({
-      platform: "reddit",
-      ref: "t1_c1",
-      parent: "t3_p1",
-      url: null,
-      account: "reddit@one",
+    const failed = await check(["reddit@two"]);
+    expect(failed.state).toBe("pending");
+    expect(failed.note).toContain("no stranger's read answered: HTTP 500");
+    expect(d.log.some((l) => l.startsWith("reddit-public"))).toBe(false);
+    const capped = desk({
+      "reddit GET /api/info@reddit@two": new SiteCallError(
+        "reddit",
+        "GET",
+        "/api/info",
+        429,
+        "reddit reads cap for reddit@two is used (100/100 today); retry after 3600s",
+      ),
     });
-    expect(alone.state).toBe("pending");
-    expect(alone.note).toContain("the public read failed");
+    await expect(
+      siteProof({ sites: capped, now: () => NOW }).check({
+        platform: "reddit",
+        ref: "t1_c1",
+        parent: "t3_p1",
+        url: null,
+        account: "reddit@one",
+        peers: ["reddit@two"],
+      }),
+    ).rejects.toThrow(/cap/);
   });
 
   it("asks the account when strangers see a tombstone", async () => {
     const d = desk({
-      "reddit-public GET /api/info": listing(thing("[deleted]", "")),
+      "reddit GET /api/info@reddit@two": listing(thing("[deleted]", "")),
       "reddit GET /api/info@reddit@one": listing(thing("hi")),
       "web GET /proof/shot": new Error("desk down"),
     });
@@ -216,6 +232,7 @@ describe("siteProof", () => {
       parent: "t3_p1",
       url: null,
       account: "reddit@one",
+      peers: ["reddit@two"],
     });
     expect(p.state).toBe("hidden");
     expect(p.shot).toBeNull();
@@ -224,9 +241,9 @@ describe("siteProof", () => {
 
   it("keeps the moderator's reason in a removal's note", async () => {
     const d = desk({
-      "reddit-public GET /api/info": listing(thing("[removed]", "")),
+      "reddit GET /api/info@reddit@two": listing(thing("[removed]", "")),
       "reddit GET /api/info@reddit@one": listing(thing("hi")),
-      "reddit-public GET /comments/p1": [
+      "reddit GET /comments/p1@reddit@two": [
         listing(),
         listing({
           ...thing("[removed]", ""),
@@ -245,6 +262,7 @@ describe("siteProof", () => {
       parent: "t3_p1",
       url: null,
       account: "reddit@one",
+      peers: ["reddit@two"],
     });
     expect(p.state).toBe("hidden");
     expect(p.note).toContain('AutoModerator: "Needs 50 karma."');

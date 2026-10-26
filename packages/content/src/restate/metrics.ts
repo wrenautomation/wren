@@ -21,6 +21,10 @@
  * a read that gives no answer is cancelled and its post skipped till the next pass. A platform
  * that times out twice in a pass is left for the next; a post that times out three passes in a
  * row is held (`unit_holds`, stage `loop.content-metrics/<key>`).
+ *
+ * A post whose look fails waits before its next (`MISSES`): 2 hours, twice as long after each
+ * next miss, at most a day. A failed look writes no row, so the post is due every pass and
+ * each would read it again (10-24: LinkedIn's new post page failed every read).
  */
 import * as restate from "@restatedev/restate-sdk";
 import {
@@ -66,6 +70,10 @@ const REPORTS_QUIET = "reports-quiet.";
 const REPORTS_EVERY_MS = 6 * 60 * 60 * 1000;
 /** A platform whose counts read used its daily cap, until the cap resets (`metrics <platform>`). */
 const CAP_HOLDS = "capHolds";
+/** Per draft, the looks that failed in a row and when the next may try: `{ n, until }`. */
+const MISSES = "misses";
+const MISS_FIRST_MS = 2 * 60 * 60 * 1000;
+const MISS_MAX_MS = 24 * 60 * 60 * 1000;
 /** The week whose digest was last kept. */
 const DIGESTED = "digested";
 /** Hourly: a pass finds the posts whose tier is due (`LOOK_TIERS`, every 6 hours at the soonest). */
@@ -165,7 +173,10 @@ export interface MetricsStats {
   /** Account rows written per platform, once a day; an error's text where a read failed. */
   accounts?: Partial<Record<Platform, number | string>>;
   digest?: boolean;
-  /** Reads left out: their post is held, or their platform timed out twice this pass. */
+  /**
+   * Reads left out: their post is held or waits after failed looks, their platform's cap is
+   * used, or their platform timed out twice this pass.
+   */
   skipped?: number;
 }
 
@@ -176,6 +187,11 @@ export function weekOf(now: Date): string {
   d.setUTCDate(d.getUTCDate() - back);
   return d.toISOString().slice(0, 10);
 }
+
+type Misses = Record<string, { n: number; until: number }>;
+
+/** The wait after `n` failed looks in a row: 2 h, doubled each time, at most a day. */
+export const missWaitMs = (n: number) => Math.min(MISS_FIRST_MS * 2 ** (n - 1), MISS_MAX_MS);
 
 export function makeContentMetrics(deps: ContentMetricsDeps) {
   const everyMs = deps.everyMs ?? DEFAULT_EVERY_MS;
@@ -195,6 +211,12 @@ export function makeContentMetrics(deps: ContentMetricsDeps) {
     const due = await ctx.run("metrics due", () => metricsDue(db, now));
     const stats: MetricsStats = { looked: [], failed: [], reported: false };
     const holds = liveHolds((await ctx.get<CapHolds>(CAP_HOLDS)) ?? {}, now.getTime());
+    // A miss a day past its wait is dropped: the post left the watch, or its next try is a fresh start.
+    const misses: Misses = Object.fromEntries(
+      Object.entries((await ctx.get<Misses>(MISSES)) ?? {}).filter(
+        ([, m]) => m.until + MISS_MAX_MS > now.getTime(),
+      ),
+    );
     /** A read's unit, or false (and counted) when this pass leaves it out. */
     const go = (unit: string, platform: Platform) => {
       if (!limits.skip(unit, platform)) return true;
@@ -234,7 +256,12 @@ export function makeContentMetrics(deps: ContentMetricsDeps) {
       const post = `${draft.platform}:${id}`;
       const read = batched.get(post);
       // A used cap ends the platform's lone reads until it resets: each ask would be refused.
-      if (!read && capHeld(holds, `metrics ${draft.platform}`, now.getTime())) {
+      // A post whose looks failed waits out its miss, unless the batch brought its counts.
+      if (
+        !read &&
+        (capHeld(holds, `metrics ${draft.platform}`, now.getTime()) ||
+          (misses[draft.id]?.until ?? 0) > now.getTime())
+      ) {
         stats.skipped = (stats.skipped ?? 0) + 1;
         continue;
       }
@@ -288,6 +315,7 @@ export function makeContentMetrics(deps: ContentMetricsDeps) {
           await ctx.run(`record ${draft.id}`, () => recordMetrics(db, draft.id, look));
           m = look;
         }
+        delete misses[draft.id];
         const all = withCounts(m, i);
         const rows = await ctx.run(`insights ${draft.id}`, () =>
           writeInsights(db, draft.id, draft.platform, all, now),
@@ -305,6 +333,8 @@ export function makeContentMetrics(deps: ContentMetricsDeps) {
           stats.skipped = (stats.skipped ?? 0) + 1;
           continue;
         }
+        const n = (misses[draft.id]?.n ?? 0) + 1;
+        misses[draft.id] = { n, until: now.getTime() + missWaitMs(n) };
         stats.failed.push({ id: draft.id, platform: draft.platform, error: errorText(err) });
       }
     }
@@ -392,6 +422,7 @@ export function makeContentMetrics(deps: ContentMetricsDeps) {
       now: now.toISOString(),
     };
     ctx.set(CAP_HOLDS, holds);
+    ctx.set(MISSES, misses);
     await setLastPass(ctx, outcome);
     return outcome;
   });

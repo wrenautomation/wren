@@ -1,8 +1,9 @@
 /**
  * Comment proof (designs/2026-10-14-comment-proof.md): is a comment we sent there for a
  * stranger? `CommentProof.check` answers with a `Proof`: live, hidden (only its author sees it),
- * missing (gone) or pending (no reader yet, or none answered). Two readers: the public,
- * signed-out one decides live; the account's own decides hidden versus missing. Every read goes
+ * missing (gone) or pending (no reader yet, or none answered). Two readers: a stranger's decides
+ * live (Reddit: another account of ours; LinkedIn: the public page); the account's own decides
+ * hidden versus missing. Every read goes
  * through the sites facade on the desk, in the platform's API shape (Reddit `GET /api/info`,
  * `GET /comments/{article}`; LinkedIn `GET /rest/socialActions/{urn}/comments`). The shot is
  * autobrowse's `web GET /proof/shot`, signed out, kept by `keep`.
@@ -39,8 +40,8 @@ export interface ProofTarget {
   /** The thread the comment is in, when `parent` is a comment (Reddit `t3_…`). */
   post?: string | null;
   /**
-   * Our other logins on the platform (`reddit@two`): a stranger's view, read before the signed-out
-   * reader, since a filtered comment is dropped from any other user's view too.
+   * Our other logins on the platform (`reddit@two`): the stranger's view, since a filtered comment
+   * is dropped from any other user's view too. None: the check waits (pending).
    */
   peers?: string[];
 }
@@ -144,9 +145,9 @@ export function modNoteIn(tree: RedditListing | undefined, ref: string): string 
 }
 
 export interface RedditReads {
-  /** `/api/info` signed out. */
+  /** `/api/info` as a stranger (another account of ours). */
   open: RedditThing | null;
-  /** In the signed-out thread: true, false, or null (not read, or the tree is cut). */
+  /** In the stranger's thread: true, false, or null (not read, or the tree is cut). */
   inThread: boolean | null;
   /** `/api/info` as the account; undefined when not read. */
   own?: RedditThing | null;
@@ -159,7 +160,7 @@ export function redditVerdict(r: RedditReads): { state: ProofState; note: string
     ? "found by id, not in the thread"
     : r.open
       ? `${(r.open.body ?? "").trim() || "empty"} for strangers`
-      : "not found signed out";
+      : "not found by a stranger";
   if (r.own === undefined) return { state: "pending", note: `${why}; no account read` };
   // Signed in is no help: another user's view drops a filtered comment too. Its link still opens.
   if (readable(r.own)) return { state: "hidden", note: `only its author sees it: ${why}` };
@@ -200,6 +201,9 @@ interface Shot {
   jpeg?: string;
 }
 
+/** Reddit's signed-out reader as the stranger's last: off while Reddit refuses it (10-19). */
+const READ_SIGNED_OUT = false;
+
 export function siteProof(deps: ProofDeps): CommentProof {
   const { sites } = deps;
   const now = () => (deps.now ?? (() => new Date()))().toISOString();
@@ -229,31 +233,34 @@ export function siteProof(deps: ProofDeps): CommentProof {
       sites
         .call<RedditListing>(site, "GET", "/api/info", { id: t.ref, raw_json: 1 }, account)
         .then((l) => l.data?.children?.[0]?.data ?? null);
-    // The stranger's reader: one of our other logins first (a peer's view is as good as a
-    // stranger's), signed out last. Reddit refuses signed-out `/api/info` and its feed (403,
-    // every read since 10-19), so leading with it spent two refused calls per check.
-    const readers: Array<{ site: string; account?: string; note: string | null }> = [
+    // The stranger's reader: another login of ours (a peer's view is as good as a stranger's).
+    // Signed out is off since 10-25: Reddit refuses signed-out `/api/info` (403 on every read
+    // since 10-19). `READ_SIGNED_OUT` brings it back as the last reader.
+    const readers: Array<{ site: string; account?: string }> = [
       ...(t.peers ?? [])
         .filter((p) => p !== t.account)
-        .map((p) => ({ site: "reddit", account: p, note: "read as another account of ours" })),
-      { site: "reddit-public", note: null },
+        .map((p) => ({ site: "reddit", account: p })),
+      ...(READ_SIGNED_OUT ? [{ site: "reddit-public" }] : []),
     ];
+    if (!readers.length) return pending(t, "no other account of ours to read as");
     let found: (typeof readers)[number] | null = null;
     let open: RedditThing | null = null;
-    let failed = "";
+    let failed: unknown = null;
     for (const r of readers) {
       try {
         open = await info(r.site, r.account);
       } catch (e) {
         // A used daily cap is the caller's to wait out, not a check that read nothing.
-        if (r.site === "reddit-public" && capWaitMs(e) !== null) throw e;
-        if (r.site === "reddit-public") failed = `the public read failed: ${message(e)}`;
+        if (failed === null || capWaitMs(e) !== null) failed = e;
         continue;
       }
       found = r;
       break;
     }
-    if (!found) return pending(t, failed);
+    if (!found) {
+      if (capWaitMs(failed) !== null) throw failed;
+      return pending(t, `no stranger's read answered: ${message(failed)}`);
+    }
     const stranger = found;
     const tree = (a: string) =>
       sites
@@ -289,7 +296,6 @@ export function siteProof(deps: ProofDeps): CommentProof {
             .catch(() => null)
         : null;
     if (why) v.note = join(v.note, why);
-    if (stranger.note) v.note = join(v.note, stranger.note);
     const url = redditPermalink(t, open ?? own);
     // www, not old.reddit: old.reddit sends a signed-out reader to its login wall.
     const s = await shoot(url, { ref: t.ref });

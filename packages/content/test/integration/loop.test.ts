@@ -48,7 +48,12 @@ import {
 } from "../../src/index.js";
 import { PLATFORM_SPECS } from "../../src/platforms.js";
 import { DESK_KEY, makeContentDesk, SCHEDULER_KEY } from "../../src/restate/index.js";
-import { METRICS_KEY, type MetricsStats, makeContentMetrics } from "../../src/restate/metrics.js";
+import {
+  METRICS_KEY,
+  type MetricsStats,
+  makeContentMetrics,
+  missWaitMs,
+} from "../../src/restate/metrics.js";
 import { makeContentPlanner, PLANNER_KEY, type PlannerStats } from "../../src/restate/planner.js";
 import { makeContentScheduler, type PublishStats } from "../../src/restate/scheduler.js";
 
@@ -1076,15 +1081,12 @@ describe("content loop", () => {
     await sync();
     views.set(postId("linkedin", 1), 200);
     views.set("x-2", 50);
-    refuse.add("x");
     const first = await look();
-    expect(first.stats?.looked.map((l) => l.platform)).toEqual(["linkedin"]);
-    expect(first.stats?.failed).toMatchObject([{ platform: "x" }]);
-    // Looked at today: the next pass finds only the one that failed.
-    refuse.delete("x");
+    expect(first.stats?.looked.map((l) => l.platform).sort()).toEqual(["linkedin", "x"]);
+    expect(first.stats?.failed).toEqual([]);
+    // Looked at today: the next pass finds none.
     const second = await look();
-    expect(second.stats?.looked.map((l) => l.platform)).toEqual(["x"]);
-    expect((await look()).stats?.looked).toEqual([]);
+    expect(second.stats?.looked).toEqual([]);
     expect(await pg.db.select().from(contentMetrics)).toHaveLength(2);
     // Each look keeps its day's insights with the counts beside them.
     expect(first.stats?.looked[0]).toMatchObject({ insights: 5, gaps: 1 });
@@ -1135,6 +1137,28 @@ describe("content loop", () => {
     expect(rows[0]).toMatchObject({ views: 72, comments: 2, fetchedWith: "browser" });
     // The look counts: the post waits for its next tier, not the next hour.
     expect((await look()).stats?.looked).toEqual([]);
+  });
+
+  it("a post whose look failed waits before its next read, never read again the next pass", async () => {
+    const a = await desk().add({ text: "a post whose read fails", platforms: ["x"] });
+    await approveDrafts(
+      pg.db,
+      (await listDrafts(pg.db, { ideaId: a.idea.id })).map((d) => d.id),
+      { now: new Date() },
+    );
+    await sync();
+    unbuilt.add("x");
+    expect((await look()).stats?.failed).toMatchObject([{ platform: "x" }]);
+    const reads = singles.length;
+    const next = await look();
+    expect(next.stats?.failed).toEqual([]);
+    expect(next.stats?.skipped).toBe(1);
+    expect(singles).toHaveLength(reads);
+  });
+
+  it("the wait after failed looks doubles from 2 hours, at most a day", () => {
+    const h = 60 * 60 * 1000;
+    expect([1, 2, 3, 4, 5, 9].map((n) => missWaitMs(n) / h)).toEqual([2, 4, 8, 16, 24, 24]);
   });
 
   it("reads a platform's due posts in one batch, and a post the batch left out alone", async () => {
