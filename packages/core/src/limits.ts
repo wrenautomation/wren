@@ -116,7 +116,7 @@ export async function limitsView(
   });
 }
 
-export const limitDef = (defs: readonly LimitDef[], name: string): LimitDef => {
+const limitDef = (defs: readonly LimitDef[], name: string): LimitDef => {
   const def = defs.find((d) => d.name === name);
   if (!def) throw new Error(`no limit named ${name}`);
   return def;

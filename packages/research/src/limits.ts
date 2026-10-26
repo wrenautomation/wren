@@ -27,7 +27,7 @@ const bucket = (
   why: string,
 ): LimitDef => ({ name, unit, why, perDay: b.perDay, burst: b.burst, scope });
 
-export const GOOGLE_LIMIT: LimitDef = {
+const GOOGLE_LIMIT: LimitDef = {
   name: "research.google",
   unit: "Google searches a local day",
   why: "profiles, team, company events and signals together, under autobrowse's `web` cap",
@@ -35,7 +35,7 @@ export const GOOGLE_LIMIT: LimitDef = {
   burst: null,
   scope: "shared",
 };
-export const SIGNALS_GOOGLE_LIMIT: LimitDef = {
+const SIGNALS_GOOGLE_LIMIT: LimitDef = {
   name: "research.signals.google",
   unit: "Google searches a local day",
   why: "the signal collectors' share of research.google",
@@ -108,7 +108,7 @@ export const TEAM_LIMIT = bucket(
 );
 
 /** A signal collector's subjects a day: one pool for Wren and every client (`collectorRoom`). */
-export const collectorLimit = (c: Pick<Collector, "name" | "bucket">): LimitDef =>
+const collectorLimit = (c: Pick<Collector, "name" | "bucket">): LimitDef =>
   bucket(`research.signals.${c.name}`, c.bucket, "shared", `${c.name} subjects`, "signal reads");
 
 export const RESEARCH_LIMITS: readonly LimitDef[] = [
