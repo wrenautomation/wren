@@ -39,6 +39,8 @@ export async function saveLink(
     kind?: ItemKind;
     /** Who made it, when the saver knows (a hunt's search result). */
     creator?: string | null;
+    /** The saver's clock, when it has one (a hunt counts its day from it). */
+    now?: Date;
     /** Its public numbers now, when the saver has them; a later read keeps them. */
     stats?: PostStats | null;
     worth?: boolean;
@@ -46,7 +48,7 @@ export async function saveLink(
 ): Promise<Saved> {
   const url = cleanUrl(p.url);
   const kind = p.kind ?? kindOf(url);
-  const now = new Date();
+  const now = p.now ?? new Date();
   const [row] = await db
     .insert(items)
     .values({

@@ -249,6 +249,7 @@ export async function huntSop(
       }
       const saved = await saveLink(db, {
         client: o.client,
+        now,
         url: f.url,
         by: null,
         via: "cli",
