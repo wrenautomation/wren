@@ -8,7 +8,7 @@ import { freshStory } from "./mocks/api.js";
 import { starring } from "./mocks/data/apps.js";
 import { failedIn, pageAt } from "./mocks/page.js";
 
-const meta: Meta = { title: "Pages/Client" };
+const meta: Meta = { title: "Revamp/Client", id: "pages-client" };
 export default meta;
 
 export const Today = pageAt("/");
