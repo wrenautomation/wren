@@ -742,7 +742,7 @@ export async function buildDeps(
     drafts: {
       llm: draftsLlm,
       guide: (p: DmPlatform) => dmGuide(db, p),
-      commentGuide: (p: DmPlatform) => commentGuide(db, p),
+      commentGuide: (p: Parameters<typeof commentGuide>[1]) => commentGuide(db, p),
       voice: voice ?? DEFAULT_VOICE,
       facts: () => wrenFacts(db),
       // What we've posted: comments draw on it instead of retelling the other post.

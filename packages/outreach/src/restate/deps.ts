@@ -20,7 +20,7 @@ import { type LlmClient, llmForKey } from "@wren/llm";
 import type { ClientReach, ReachPart } from "../clients.js";
 import type { DmGuide } from "../drafts.js";
 import type { ReachPolicy } from "../policy.js";
-import type { DmPlatform, Platform, ReachAccount } from "../schema.js";
+import type { DmPlatform, Platform, ReachAccount, ReachPostPlatform } from "../schema.js";
 import type { ReachSequence } from "../sequences.js";
 
 /** The `Content` service's reply handler as the worker serves it. */
@@ -86,7 +86,7 @@ export interface ReachDeps {
   drafts?: {
     llm: LlmClient | null;
     guide?: DmGuide;
-    commentGuide?: DmGuide;
+    commentGuide?: (platform: DmPlatform | ReachPostPlatform) => Promise<string>;
     voice?: string;
     facts?: () => Promise<readonly string[]>;
     /** What we've posted: what comments on others' posts draw on. */

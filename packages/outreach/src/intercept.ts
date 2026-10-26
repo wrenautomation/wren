@@ -25,6 +25,7 @@ const NAME: Readonly<Record<ReachPostPlatform, string>> = {
   linkedin: "LinkedIn",
   x: "X",
   instagram: "Instagram",
+  youtube: "YouTube",
 };
 /** First path parts that are the site's own pages, not an account. */
 const X_PAGES = new Set([
@@ -116,6 +117,7 @@ export function pastedOf(raw: string): Pasted {
 export function postUrlOf(platform: ReachPostPlatform, ref: string): string {
   if (platform === "linkedin") return `https://www.linkedin.com/feed/update/${ref}/`;
   if (platform === "x") return `https://x.com/i/status/${ref}`;
+  if (platform === "youtube") return `https://www.youtube.com/watch?v=${ref}`;
   return `https://www.instagram.com/p/${ref}/`;
 }
 
@@ -311,7 +313,11 @@ export async function pickedUrl(
   if (p.platform === "linkedin" && p.authorUrl) return p.authorUrl;
   const handle = p.handle?.replace(/^@/, "");
   if (handle && p.platform !== "linkedin")
-    return p.platform === "x" ? `https://x.com/${handle}` : `https://www.instagram.com/${handle}/`;
+    return p.platform === "x"
+      ? `https://x.com/${handle}`
+      : p.platform === "youtube"
+        ? `https://www.youtube.com/channel/${handle}`
+        : `https://www.instagram.com/${handle}/`;
   if (p.authorUrl) return p.authorUrl;
   throw new ReachRefusal("its author has no address to follow");
 }

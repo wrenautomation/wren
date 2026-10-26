@@ -1,7 +1,7 @@
 /**
  * Comments on others' posts on LinkedIn, X and Instagram (designs/2026-10-07-posting-flow.md, item
  * 4; designs/2026-10-07-reach-targeting.md). Each platform has its own settings block
- * (`linkedin.comments`, `x.comments`, `instagram.comments`); an empty account is off. Each six
+ * (`linkedin.comments`, `x.comments`, `instagram.comments`, `youtube.comments`); an empty account is off. Each six
  * hours, until the day's comments wait, the watch reads recent posts as that account (never his personal LinkedIn or the research alt):
  * topic searches, pages' posts, key people's posts. Code ranks them, the model drafts a comment
  * for the best few, and each waits in To approve (`queued`). Only his Comment posts it, then a
@@ -51,39 +51,45 @@ export const COMMENTS_COMPONENTS: Readonly<Record<ReachPostPlatform, string>> = 
   linkedin: "linkedin.comments",
   x: "x.comments",
   instagram: "instagram.comments",
+  youtube: "youtube.comments",
 };
 const NAME: Readonly<Record<ReachPostPlatform, string>> = {
   linkedin: "LinkedIn",
   x: "X",
   instagram: "Instagram",
+  youtube: "YouTube",
 };
 /** The longest comment each platform takes (X: a reply from a Basic account). */
 export const COMMENT_MAX: Readonly<Record<ReachPostPlatform, number>> = {
   linkedin: 1250,
   x: 280,
   instagram: 2200,
+  youtube: 1000,
 };
 /** How long the model may write, in its words. */
 const LENGTH: Readonly<Record<ReachPostPlatform, string>> = {
   linkedin: "At most 3 sentences, under 600 characters.",
   x: "One or two sentences, under 250 characters.",
   instagram: "One or two sentences, under 300 characters.",
+  youtube: "One or two sentences, under 300 characters.",
 };
 /**
  * Reads a pass, at most, under autobrowse's caps; a pass runs every six hours until the day's
  * comments wait (`watch.ts`). LinkedIn meters `posts` at 40 a day for linkedin@wren; X searches
- * 50; an Instagram search is one read plus a page per post, 10 searches a day.
+ * 50; an Instagram search is one read plus a page per post, 10 searches a day. A YouTube search
+ * costs 100 of the channel's 10,000 quota units a day, which uploads share (1,600 each).
  */
 const READS_PER_PASS: Readonly<Record<ReachPostPlatform, number>> = {
   linkedin: 10,
   x: 10,
   instagram: 1,
+  youtube: 3,
 };
 /**
  * Results one search scrolls to, the flow's most. A platform counts searches and page loads, not
  * results, so one deep search beats several short ones (William 10-25: most data per action).
  */
-const SEARCH_MAX = { linkedin: 50, x: 100, instagram: 30 } as const;
+const SEARCH_MAX = { linkedin: 50, x: 100, instagram: 30, youtube: 50 } as const;
 /** Instagram accounts read a pass through Graph's business discovery: an API call, no page load. */
 const IG_GRAPH_PER_PASS = 8;
 /** Words a search leaves out (LinkedIn `NOT`, X `-`): job ads drown the owners' own posts. */
@@ -124,6 +130,7 @@ const NEVER: Readonly<Record<ReachPostPlatform, readonly string[]>> = {
   linkedin: ["linkedin", "linkedin@alt"],
   x: [],
   instagram: [],
+  youtube: [],
 };
 
 /** One platform's settings; all three share the shape. */
@@ -288,6 +295,38 @@ interface IgMedia {
   like_count?: number;
   comments_count?: number;
 }
+
+/** A YouTube Data API video (`videos?part=snippet,statistics`). */
+interface YtVideo {
+  id: string;
+  snippet?: {
+    title?: string;
+    description?: string;
+    channelId?: string;
+    channelTitle?: string;
+    publishedAt?: string;
+  };
+  /** `commentCount` is absent when the video takes no comments. */
+  statistics?: { likeCount?: string; commentCount?: string };
+}
+
+/** A video as a post; the channel id is its handle, case kept (an id lowercased is another). */
+const ytPostOf = (v: YtVideo): FeedPost | null => {
+  const sn = v.snippet;
+  if (!sn?.channelId || v.statistics?.commentCount === undefined) return null;
+  return {
+    ref: v.id,
+    author: sn.channelTitle || sn.channelId,
+    authorUrl: `https://www.youtube.com/channel/${sn.channelId}`,
+    handle: sn.channelId,
+    text: [sn.title, sn.description].filter(Boolean).join("\n\n"),
+    ...(sn.publishedAt ? { at: sn.publishedAt } : {}),
+    reactions: Number(v.statistics.likeCount ?? 0),
+    comments: Number(v.statistics.commentCount),
+    url: `https://www.youtube.com/watch?v=${v.id}`,
+    raw: v,
+  };
+};
 
 /** autobrowse's `GET /rest/posts/{urn}`: the API's post, or its page in that shape until granted. */
 interface RestPost {
@@ -525,6 +564,58 @@ export function postReader(
         ),
     };
   }
+  if (platform === "youtube") {
+    // A search names videos (100 units); one `videos` read (1 unit) gives their text and counts.
+    const videos = async (ids: string[]) =>
+      ids.length
+        ? (
+            (
+              await sites.call<{ items?: YtVideo[] }>(
+                "youtube",
+                "GET",
+                "/youtube/v3/videos",
+                {
+                  resource: "videos",
+                  part: "snippet,statistics",
+                  id: ids.join(","),
+                  maxResults: 50,
+                },
+                account,
+              )
+            ).items ?? []
+          ).flatMap((v) => ytPostOf(v) ?? [])
+        : [];
+    const found = async (q: Record<string, unknown>) =>
+      videos(
+        (
+          (
+            await sites.call<{ items?: Array<{ id?: { videoId?: string } }> }>(
+              "youtube",
+              "GET",
+              "/youtube/v3/search",
+              { resource: "search", part: "snippet", type: "video", order: "date", ...q },
+              account,
+            )
+          ).items ?? []
+        ).flatMap((i) => (i.id?.videoId ? [i.id.videoId] : [])),
+      );
+    const page = (channelId: string) => found({ channelId, maxResults: 10 });
+    return {
+      search: (keywords, since) =>
+        found({
+          q: `${phrase(keywords)} ${JOB_WORDS.map((w) => `-${w}`).join(" ")}`,
+          maxResults: SEARCH_MAX.youtube,
+          relevanceLanguage: "en",
+          publishedAfter: new Date(o.now.getTime() - SINCE_DAYS[since] * 86_400_000).toISOString(),
+        }),
+      page,
+      person: (k) => page(k.handle),
+      one: async (id) => (await videos([id]))[0] ?? null,
+      // Subscriptions have no cheap feed read: a search a channel would spend the day's quota.
+      feed: async () => [],
+    };
+  }
+  if (platform !== "instagram") throw new Error(`no ${platform} reader`);
   type Found = { found?: boolean; profile?: { biography?: string }; media?: IgMedia[] };
   const page = async (handle: string) => {
     // Graph's business discovery, on Wren's Facebook Login token: no page load.
@@ -1691,6 +1782,13 @@ export function followAct(
       return ["x", "POST", "/2/users/me/following", { username: h }];
     case "instagram":
       return ["instagram", "POST", `/web/${h}/follow`, { username: h }];
+    case "youtube":
+      return [
+        "youtube",
+        "POST",
+        "/youtube/v3/subscriptions",
+        { snippet: { resourceId: { channelId: h } } },
+      ];
   }
 }
 
@@ -1729,6 +1827,17 @@ export function postActs(
         comment: ["instagram", "POST", `/web/p/${ref}/comments`, { shortcode: p.ref, text: body }],
         like: like ? ["instagram", "POST", `/web/p/${ref}/like`, { shortcode: p.ref }] : null,
         follow: follow && h ? followAct("instagram", { handle: h }) : null,
+      };
+    case "youtube":
+      return {
+        comment: [
+          "youtube",
+          "POST",
+          "/youtube/v3/commentThreads",
+          { snippet: { videoId: p.ref, topLevelComment: { snippet: { textOriginal: body } } } },
+        ],
+        like: like ? ["youtube", "POST", "/youtube/v3/videos/rate", { id: p.ref }] : null,
+        follow: follow && h ? followAct("youtube", { handle: h }) : null,
       };
   }
 }

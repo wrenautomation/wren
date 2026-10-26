@@ -329,8 +329,8 @@ export const OUTREACH_COMPONENTS = [
       ],
     },
   }),
-  ...(["x", "instagram"] as const).map((p) => {
-    const name = p === "x" ? "X" : "Instagram";
+  ...(["x", "instagram", "youtube"] as const).map((p) => {
+    const name = { x: "X", instagram: "Instagram", youtube: "YouTube" }[p];
     return defineComponent({
       id: `${p}.comments`,
       stage: "reach",

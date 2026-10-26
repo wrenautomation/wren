@@ -269,7 +269,7 @@ export async function touchFromThread(db: Queryable, id: string) {
 /**
  * Ours on someone's post: the comment, then the like and the follow that went with it. LinkedIn
  * keys them by profile URL (a company page keys as `company:<slug>`), else by name; X and
- * Instagram by username. LinkedIn and X comments go out as our own page (`wren`), the rest as
+ * Instagram by username, YouTube by channel id. LinkedIn and X comments go out as our own page (`wren`), the rest as
  * the reading account. The comment's own id isn't returned, so replies to it aren't read yet.
  */
 export async function touchesFromReachPost(db: Queryable, id: number) {
@@ -283,7 +283,7 @@ export async function touchesFromReachPost(db: Queryable, id: number) {
       await recordTouch(db, {
         ...base,
         kind: "comment",
-        account: p.platform === "instagram" ? p.account : OWN_ACCOUNT,
+        account: p.platform === "linkedin" || p.platform === "x" ? OWN_ACCOUNT : p.account,
         url: p.url,
         text: p.comment,
         at: p.commentedAt,

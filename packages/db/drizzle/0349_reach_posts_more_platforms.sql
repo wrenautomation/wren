@@ -1,0 +1,2 @@
+ALTER TABLE "reach_posts" DROP CONSTRAINT "ck_reach_posts_platform";--> statement-breakpoint
+ALTER TABLE "reach_posts" ADD CONSTRAINT "ck_reach_posts_platform" CHECK (("platform")::text = ANY ((ARRAY['linkedin'::character varying, 'x'::character varying, 'instagram'::character varying, 'youtube'::character varying])::text[]));

@@ -792,7 +792,7 @@ export type RedditThread = typeof redditThreads.$inferSelect;
  */
 export const REACH_POST_STATES = ["found", "queued", "commented", "skipped", "dropped"] as const;
 export type ReachPostState = (typeof REACH_POST_STATES)[number];
-export const REACH_POST_PLATFORMS = ["linkedin", "x", "instagram"] as const;
+export const REACH_POST_PLATFORMS = ["linkedin", "x", "instagram", "youtube"] as const;
 export type ReachPostPlatform = (typeof REACH_POST_PLATFORMS)[number];
 
 export const reachPosts = pgTable(
