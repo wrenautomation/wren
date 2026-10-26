@@ -241,4 +241,13 @@ describe("soundShapes", () => {
     expect(kept.map((f) => f.id)).toEqual(["shape.v3"]);
     expect(logged).toEqual([]);
   });
+
+  it("keeps a shape with a sourced out line that joins a hub track (the pain points line)", () => {
+    const logged: string[] = [];
+    const kept = soundShapes([shapeWorkflow(4, graphOf(withPain()), "wren")], [], [], (m) =>
+      logged.push(m),
+    );
+    expect(kept.map((f) => f.id)).toEqual(["shape.v4"]);
+    expect(logged).toEqual([]);
+  });
 });
