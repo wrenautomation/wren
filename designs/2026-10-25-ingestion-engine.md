@@ -181,3 +181,20 @@ Logged-in finds and reads (IG, LinkedIn, X) use the reach engine's shared reads
   star, a pin, a save or an SOP add is a keep on the document, so the standard counts a starred
   piece; the "To call" queue still counts only console and CLI calls. Two items with one url and
   one feed text share a document and so share his calls.
+- 2026-10-25: phase 1 commit 4 (content lines run). `lowerable` no longer refuses a content line;
+  back tracks on one still wait. The worker's `LineFeed/all` loop runs `linePass`
+  (`packages/pipeline/src/lines.ts`) every 5 min, 5 s while a find has more. A find takes Wren
+  items tagged with its SOP (`item_tags`) or asked into it (`sop_sources`). It tells a document
+  once: never when an instance for that SOP exists (any status, so a renamed find cannot take it
+  again), never when this version already has an arrival for `doc:<id>` at the find's targets
+  (so a refused move is not told again). A job ends when its row is there: read when a Wren item
+  on the document is read (a read failure stays at read), extract when the document has a fact
+  finding, call when he calls the whole document from the console or CLI (a mark is no call, as
+  in the "To call" queue; fact calls tune the standard only), measure never yet. A job whose row
+  came first ends on arrival: a film he read, broke down and called before flows found → done in
+  three passes, which is the backfill. `journey.move` on a document node opens or moves the document's instance on that
+  version (lock `document:<id>`); `opensAt` matches a found source on its SOP. An instance does
+  not close when it arrives at the last station: the pass closes it when that station's job
+  ends, with no executor event. `journey.stage` does nothing for a document. The `executions`
+  view names a document by its title, else its url. Wren's workspace only. Out: a manual move or
+  drop of a document instance (those ports take a person), measure, back tracks.

@@ -38,6 +38,7 @@
     "./schedule": "./src/schedule.ts",
     "./schema": "./src/schema.ts",
     "./shape-file": "./src/shape-file.ts",
+    "./lines": "./src/lines.ts",
     "./sourced": "./src/sourced.ts",
     "./starter": "./src/starter.ts",
     "./steps": "./src/steps.ts",

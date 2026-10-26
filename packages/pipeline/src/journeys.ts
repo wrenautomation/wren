@@ -239,6 +239,30 @@ export async function openJourney(tx: Queryable, profile: number): Promise<Insta
   return j ?? null;
 }
 
+/**
+ * The open instances of a document on one version's lines, locked for this transaction. A
+ * document is on a line at most once at a time (`uq_instances_open_document`), but one version may
+ * hold several content lines.
+ */
+export async function openDocument(
+  tx: Queryable,
+  document: number,
+  version: number,
+): Promise<Instance[]> {
+  await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${`document:${document}`}))`);
+  return tx
+    .select()
+    .from(instances)
+    .where(
+      and(
+        eq(instances.documentId, document),
+        eq(instances.version, version),
+        eq(instances.status, "open"),
+      ),
+    )
+    .for("update");
+}
+
 /** The body of a version, when only the body is wanted. */
 export async function bodyOf(db: Queryable, version: number): Promise<ShapeBody | null> {
   return (await versionOf(db, version))?.body ?? null;

@@ -566,11 +566,6 @@ export function lowerable(metro: MetroBody): string[] {
       );
     }
   }
-  // Until the move and stage steps take documents (ingestion engine, phase 1 commit 4).
-  for (const l of metro.lines) {
-    if (l.tier === "content")
-      why.push(`Line "${l.id}" is a content line. The runtime does not run content lines yet.`);
-  }
   for (const l of metro.lines) {
     if (l.tier !== "out") continue;
     const own = metro.stations.filter((s) => s.line === l.id);

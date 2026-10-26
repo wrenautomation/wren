@@ -19,6 +19,8 @@ export interface CauseFacts {
   source?: string;
   /** A saved query's id. */
   group?: string;
+  /** The SOP a content line's find tagged the document with. */
+  sop?: string;
 }
 
 /** The entry a journey has when no source claims it. */
@@ -32,6 +34,7 @@ function matches(s: SourceNode, c: CauseFacts): boolean {
   if (s.via === "manual") return false;
   if (s.via === "sourced") return !!s.source && c.source === s.source;
   if (s.via === "group") return !!s.group && c.group === s.group;
+  if (s.via === "found") return !!s.sop && c.sop === s.sop;
   // organic, outbound, ads, referral: by channel and campaign. A source with neither matches nothing.
   // A channel is the cause's channel or its platform (`ads` or `meta`); a campaign is the word or
   // the ad campaign's id.
@@ -67,6 +70,7 @@ export function opensAt(body: ShapeBody, to: string, byHand: boolean, c: CauseFa
   return here.some((s) => {
     if (s.via === "group") return !!s.group && c.group === s.group;
     if (s.via === "sourced") return !!s.source && c.source === s.source;
+    if (s.via === "found") return !!s.sop && c.sop === s.sop;
     return s.via !== "manual";
   });
 }

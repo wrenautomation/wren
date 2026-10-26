@@ -12,8 +12,8 @@ import { profileEvents } from "@wren/core/profiles-schema";
 import { atomic, type Db } from "@wren/db";
 import { desc, eq } from "drizzle-orm";
 import { attributionOf, withAdCampaign } from "./attribution.js";
-import { type CauseFacts, entryOf, MANUAL, opensAt, sourceEdge } from "./entry.js";
-import { openJourney, ownerOf, personOf, textOf, versionOf } from "./journeys.js";
+import { type CauseFacts, entryOf, liveSources, MANUAL, opensAt, sourceEdge } from "./entry.js";
+import { openDocument, openJourney, ownerOf, personOf, textOf, versionOf } from "./journeys.js";
 import {
   type Crossing,
   DROPPED,
@@ -23,10 +23,11 @@ import {
   passedThrough,
   pathOf,
   type ShapeBody,
+  subjectKindOf,
 } from "./model.js";
 import { signDeal } from "./moves.js";
 import { icpOf, type Researcher, requestResearch } from "./research.js";
-import { instances, offerVersions, pipelineDeals } from "./schema.js";
+import { type Instance, instances, offerVersions, pipelineDeals } from "./schema.js";
 import { liveTerms } from "./store.js";
 import { JOURNEY_PORT, MOVE_STEP, parseShapeFlow, STAGE_STEP } from "./workflow.js";
 
@@ -41,6 +42,9 @@ const CAUSE_KINDS = [
   "funnel",
   "group",
   "sourced",
+  // A content line's find, and a job that ended at one of its stations.
+  "found",
+  "station",
   "manual",
   "import",
   "version",
@@ -91,11 +95,13 @@ export function factsOf(data: Record<string, unknown>): CauseFacts {
   const source = textOf(data.source);
   // A group's entered event carries its id as `segment`.
   const group = textOf(data.group) ?? textOf(data.segment);
+  const sop = textOf(data.sop);
   if (entry) f.entry = entry;
   if (channel) f.channel = channel;
   if (campaign) f.campaign = campaign;
   if (source) f.source = source;
   if (group) f.group = group;
+  if (sop) f.sop = sop;
   return f;
 }
 
@@ -146,9 +152,93 @@ const unnamed = (f: CauseFacts): CauseFacts => {
   return rest;
 };
 
+/**
+ * A repeat of a move that crashed before it was kept: say it again from the instance's last
+ * crossings (they share one time). The stage node refuses a second arrival.
+ */
+function again(j: Instance) {
+  const last = j.trail.at(-1);
+  const same = j.trail.filter((c) => c.at === last?.at);
+  return {
+    journey: j.id,
+    from: same[0]?.from ?? null,
+    edges: same.flatMap((c) => (c.edge ? [c.edge] : [])),
+    skipped: same.slice(0, -1).map((c) => c.to),
+  };
+}
+
 /** The two steps, to register by name in the executor's `steps`. */
 export function journeySteps(d: JourneyStepDeps): Record<string, Step> {
   const now = () => d.now?.() ?? new Date();
+
+  /**
+   * A document on a content line: on along the line from the station it is at, or opened at `to`
+   * by the find whose SOP the cause names. Nothing of a person's applies: no touch, owner or deal.
+   */
+  const moveDocument = async (
+    db: Db,
+    e: ExecutorEvent,
+    version: number,
+    loaded: { body: ShapeBody; newest: number },
+    to: string,
+  ) => {
+    const document = Number(e.data.document);
+    if (!Number.isSafeInteger(document) || document <= 0) return null;
+    const { body } = loaded;
+    const sop = factsOf(e.data).sop;
+    const stamp = now().toISOString();
+    return atomic(db, async (tx) => {
+      const open = await openDocument(tx, document, version);
+      const here = open.find((j) => j.node === to);
+      if (here) return { ...again(here), document };
+      for (const j of open) {
+        if (j.node === null || j.trail.some((c) => c.to === to)) continue;
+        const path = pathOf(body, j.node, to, { loops: false });
+        if (!path) continue;
+        const crossings: Crossing[] = edgesOf(body, path).map((x) => ({
+          edge: x.id,
+          from: x.from,
+          to: x.to,
+          at: stamp,
+        }));
+        await tx
+          .update(instances)
+          .set({ node: to, trail: [...j.trail, ...crossings], movedAt: now() })
+          .where(eq(instances.id, j.id));
+        return {
+          journey: j.id,
+          document,
+          from: j.node,
+          edges: path,
+          skipped: passedThrough(body, path),
+        };
+      }
+      // Only the newest version opens, and only from the find of the SOP the cause names.
+      if (version !== loaded.newest || !sop) return null;
+      const src = liveSources(body).find(
+        (s) => s.via === "found" && s.sop === sop && sourceEdge(body, s.id, to),
+      );
+      const edge = src ? sourceEdge(body, src.id, to) : undefined;
+      if (!src || !edge || open.some((j) => j.entry === src.id)) return null;
+      const [made] = await tx
+        .insert(instances)
+        .values({
+          subjectKind: "document",
+          documentId: document,
+          version,
+          node: to,
+          trail: [{ edge: edge.id, from: src.id, to, at: stamp }],
+          entry: src.id,
+          // The SOP is the line: a renamed find station must not let a document in again.
+          entryRef: { subject: e.subject, cause: causeOf(e, now()), sop },
+          openedAt: now(),
+          movedAt: now(),
+        })
+        .returning();
+      if (!made) return null;
+      return { journey: made.id, document, from: null, edges: [edge.id], skipped: [] as string[] };
+    });
+  };
 
   const move: Step = async (port, e, at) => {
     const db = d.db(at.client);
@@ -160,6 +250,29 @@ export function journeySteps(d: JourneyStepDeps): Record<string, Step> {
     const { body } = loaded;
     const target = nodeOf(body, to);
     if (!target || target.kind === "source") return [];
+    if (subjectKindOf(target) === "document") {
+      const done = await moveDocument(db, e, flow.version, loaded, to);
+      if (!done) return [];
+      return [
+        {
+          port: "moved",
+          event: {
+            subject: `journey:${done.journey}`,
+            kind: "doc",
+            data: {
+              journey: done.journey,
+              document: done.document,
+              version: flow.version,
+              from: done.from,
+              to,
+              edges: done.edges,
+              skipped: done.skipped,
+              cause: causeOf(e, now()),
+            },
+          },
+        },
+      ];
+    }
     const profile = await personOf(db, e.data);
     if (profile === null) return [];
     const cause = causeOf(e, now());
@@ -220,18 +333,7 @@ export function journeySteps(d: JourneyStepDeps): Record<string, Step> {
       if (j) {
         // Another version owns this journey: its own node moves it.
         if (j.version !== flow.version || j.node === null) return null;
-        if (j.node === to) {
-          // A repeat of a move that crashed before it was kept. Say it again from its last
-          // crossings (they share one time); the stage node refuses a second arrival.
-          const last = j.trail.at(-1);
-          const same = j.trail.filter((c) => c.at === last?.at);
-          return {
-            journey: j.id,
-            from: same[0]?.from ?? null,
-            edges: same.flatMap((c) => (c.edge ? [c.edge] : [])),
-            skipped: same.slice(0, -1).map((c) => c.to),
-          };
-        }
+        if (j.node === to) return again(j);
         // Never twice at one node: a trail that holds `to` means the move goes back.
         if (j.trail.some((c) => c.to === to)) return null;
         const path = pathOf(body, j.node, to, { loops: false });
@@ -343,6 +445,9 @@ export function journeySteps(d: JourneyStepDeps): Record<string, Step> {
   };
 
   const stage: Step = async (_port, e, at) => {
+    // A document's arrival is the executor's own row: no timeline line, deal or research. The line
+    // pass (`lines.ts`) closes it when the last station's job ends, never on arrival.
+    if (e.kind === "doc") return [];
     const db = d.db(at.client);
     const flow = parseShapeFlow(at.workflow);
     const key = textOf(at.with.node);

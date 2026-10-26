@@ -76,6 +76,7 @@ export const PLATFORM = {
     PeopleMapNet: "wakes every workspace's people map every 15 minutes",
     TouchFeed: "every minute: each workspace's new social touches told to the executor, once each",
     SourcedFeed: "people added to a list a sourced source takes people from open journeys there",
+    LineFeed: "documents a content line finds open instances; a job that ends moves each on",
     Decide:
       "every 10 minutes: drafted comments and Learn items judged by Jev, each answer logged beside his call",
     ProfileResearch:

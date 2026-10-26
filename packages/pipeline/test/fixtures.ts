@@ -670,3 +670,35 @@ export const metroPair = (): { a: MetroBody; b: MetroBody } => {
   ];
   return { a, b };
 };
+
+/** Launch films (designs/2026-10-25-ingestion-engine.md): find → read → extract → call. */
+export const withFilms = (): MetroBody => {
+  const b = asMetro(shape());
+  b.lines.push({ id: "films", label: "Launch films", tier: "content", colour: 3 });
+  const at = (id: string, kind: "read" | "extract" | "call", column: "marketing" | "sales") => ({
+    id,
+    label: id,
+    kind,
+    line: "films",
+    column,
+  });
+  b.stations.push(
+    {
+      id: "find",
+      label: "Find",
+      kind: "find",
+      line: "films",
+      column: "marketing",
+      sop: "launch-films",
+    },
+    at("read", "read", "marketing"),
+    at("extract", "extract", "marketing"),
+    at("call", "call", "sales"),
+  );
+  b.tracks.push(
+    { id: "find_to_read", from: "find", to: "read", line: "films", by: "system" },
+    { id: "read_to_extract", from: "read", to: "extract", line: "films", by: "system" },
+    { id: "extract_to_call", from: "extract", to: "call", line: "films", by: "system" },
+  );
+  return b;
+};

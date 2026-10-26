@@ -1,53 +1,18 @@
 import { checkWorkflows } from "@wren/core/workflows";
 import { describe, expect, it } from "vitest";
-import { asMetro, ctx, shape, TRIGGERS } from "../test/fixtures.js";
+import { asMetro, ctx, shape, TRIGGERS, withFilms } from "../test/fixtures.js";
 import { graphOf, lowerable, metroOf } from "./convert.js";
-import { checkMetro, type MetroBody } from "./metro.js";
+import { checkMetro } from "./metro.js";
 import { checkShape } from "./model.js";
 import { shapeWorkflow } from "./workflow.js";
 
 const check = ctx({ triggers: new Set([...TRIGGERS, "trigger.found", "trigger.station"]) });
 
-/** Launch films (designs/2026-10-25-ingestion-engine.md): find → read → extract → call. */
-const people = (): MetroBody => asMetro(shape());
-const withFilms = (): MetroBody => {
-  const b = people();
-  b.lines.push({ id: "films", label: "Launch films", tier: "content", colour: 3 });
-  const at = (id: string, kind: "read" | "extract" | "call", column: "marketing" | "sales") => ({
-    id,
-    label: id,
-    kind,
-    line: "films",
-    column,
-  });
-  b.stations.push(
-    {
-      id: "find",
-      label: "Find",
-      kind: "find",
-      line: "films",
-      column: "marketing",
-      sop: "launch-films",
-    },
-    at("read", "read", "marketing"),
-    at("extract", "extract", "marketing"),
-    at("call", "call", "sales"),
-  );
-  b.tracks.push(
-    { id: "find_to_read", from: "find", to: "read", line: "films", by: "system" },
-    { id: "read_to_extract", from: "read", to: "extract", line: "films", by: "system" },
-    { id: "extract_to_call", from: "extract", to: "call", line: "films", by: "system" },
-  );
-  return b;
-};
-
 describe("a content line", () => {
   it("checks and lowers clean", () => {
     const b = withFilms();
     expect(checkMetro(b, check)).toEqual([]);
-    expect(lowerable(b)).toEqual([
-      'Line "films" is a content line. The runtime does not run content lines yet.',
-    ]);
+    expect(lowerable(b)).toEqual([]);
     expect(checkShape(graphOf(b), check)).toEqual([]);
   });
 
@@ -86,7 +51,7 @@ describe("a content line", () => {
   });
 
   it("keeps the people nodes in their old order, the content nodes after", () => {
-    const old = graphOf(people()).nodes;
+    const old = graphOf(asMetro(shape())).nodes;
     const before = old.map((n) => n.id);
     const after = graphOf(withFilms()).nodes.map((n) => n.id);
     const sources = old.filter((n) => n.kind === "source").map((n) => n.id);

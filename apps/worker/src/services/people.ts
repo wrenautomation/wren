@@ -16,6 +16,7 @@ import { makeTouchFeed } from "@wren/core/touch-feed";
 import { flowsWith } from "@wren/core/workflows";
 import { llmForKey } from "@wren/llm";
 import { COMPONENTS } from "../components.js";
+import { makeLineFeed } from "../line-feed.js";
 import { makeSourcedFeed } from "../sourced-feed.js";
 import { WORKFLOWS } from "../workflows.js";
 import type { AnyService, Deps } from "./deps.js";
@@ -87,6 +88,8 @@ export function peopleServices(deps: Deps): AnyService[] {
       clientDb,
       clients: async () => (await listClients(db)).map((c) => c.id),
     }),
+    // Content lines: documents a find takes, and jobs that end at a station, told to the executor.
+    makeLineFeed({ main: db }),
     // Broadcasts (B6): each approved one started on its time and sent a batch per run.
     makeBroadcast({ main: db, clientDb, mail: (client, cdb) => mailOf(client, cdb) }),
   );
