@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { parse } from "yaml";
-import { metroPair, metroShape, wideShape } from "../test/fixtures.js";
+import { metroPair, metroShape, wideShape, withFilms } from "../test/fixtures.js";
 import { metroOf } from "./convert.js";
 import type { MetroBody } from "./metro.js";
 import { exportMetro, FIRST, ordered, parseMetroBody } from "./metro-file.js";
@@ -38,6 +38,7 @@ describe("exportMetro and parseMetroBody", () => {
     ["the starter", () => starterShape().body],
     ["the older body of metroPair()", () => metroPair().a],
     ["the newer body of metroPair()", () => metroPair().b],
+    ["a content line: withFilms(), its find naming an SOP", withFilms],
   ];
 
   it.each(cases)("round trip to the same body: %s", (_name, make) => {

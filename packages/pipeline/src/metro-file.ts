@@ -108,6 +108,7 @@ const STATION: Schema = {
   retries: "number",
   template: "text",
   platform: "text",
+  sop: "text",
   planned: "true",
   attach: "attaches",
 };

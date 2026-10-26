@@ -184,7 +184,7 @@ export function registerSop(
     .action(
       async (name: string, o: { cap: number; perQuery: number; model: string; read: boolean }) => {
         const notes = await readFile(join(sopsDir, name, "notes.md"), "utf8").catch(() => "");
-        const scope = scopeOf(notes);
+        const scope = scopeOf(notes, name);
         if (!scope)
           throw new Error(
             `${name}: notes.md names no kinds in its front matter (kinds, platforms, topic, set)`,
@@ -241,7 +241,7 @@ export function registerSop(
     .option("--model <name>", "the reading and breakdown model", "cohere")
     .action(async (name: string, o: { model: string }) => {
       const notes = await readFile(join(sopsDir, name, "notes.md"), "utf8").catch(() => "");
-      const scope = scopeOf(notes);
+      const scope = scopeOf(notes, name);
       if (!scope)
         throw new Error(
           `${name}: notes.md names no kinds in its front matter (kinds, platforms, topic, set)`,
@@ -318,7 +318,7 @@ export function registerSop(
       const text = await readFile(join(sopsDir, name, "SOP.md"), "utf8");
       // What it governs rides along, so a draft reads the SOP's set live (designs/2026-10-25-competitor-analyzer.md, Use).
       const notes = await readFile(join(sopsDir, name, "notes.md"), "utf8").catch(() => "");
-      const scope = scopeOf(notes);
+      const scope = scopeOf(notes, name);
       const { playbook, changed } = await withDb((db) =>
         pushPlaybook(db, { platform, sop: name, text, scope }),
       );

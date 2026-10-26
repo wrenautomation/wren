@@ -156,10 +156,10 @@ ${playbook.text}
 // The view counts Wren's items only (`client = 'wren'`): a client's database gives no standard.
 export function postStandardFor(
   db: Queryable,
-  playbook: Pick<ContentPlaybook, "scope"> | null,
+  playbook: Pick<ContentPlaybook, "sop" | "scope"> | null,
   platform: Platform,
 ): Promise<KindStandard | null> {
-  return kindStandardOf(db, draftScope(playbook?.scope ?? null, "post", platform));
+  return kindStandardOf(db, draftScope(playbook, "post", platform));
 }
 
 export function standardBlock(standard: KindStandard | null): string {

@@ -118,7 +118,7 @@ export async function checkDraft(
     .where(eq(contentDrafts.id, draftId));
   if (!d) throw new Error(`no draft ${draftId}`);
   const playbook = await playbookOf(db, d);
-  const scope = draftScope(playbook?.scope ?? null, "post", d.platform);
+  const scope = draftScope(playbook, "post", d.platform);
   const [standard, calls] = await Promise.all([
     kindStandardOf(db, scope),
     playbook ? callsOf(db, scope, playbook.sop) : Promise.resolve([]),

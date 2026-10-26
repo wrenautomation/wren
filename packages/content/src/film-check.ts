@@ -54,7 +54,7 @@ export async function filmCheck(
     .orderBy(desc(contentPlaybooks.createdAt))
     .limit(1);
   const scope: SopScope = pushed?.scope
-    ? { ...pushed.scope, kinds: [kind] }
+    ? { ...pushed.scope, kinds: [kind], sop: pushed.sop }
     : { kinds: [kind], platforms: ["youtube"], topic: "", set: [] };
   const standard = await kindStandardOf(db, scope);
   if (!standard) return null;

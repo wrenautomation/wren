@@ -198,3 +198,12 @@ Logged-in finds and reads (IG, LinkedIn, X) use the reach engine's shared reads
   ends, with no executor event. `journey.stage` does nothing for a document. The `executions`
   view names a document by its title, else its url. Wren's workspace only. Out: a manual move or
   drop of a document instance (those ports take a person), measure, back tracks.
+- 2026-10-25: phase 1 commit 5 (the standard reader; my call, as William left it). Once an SOP's
+  content line has taken a document, `standard.md` counts only the line's documents (still only
+  pieces `learn.standards` lets count, and in scope), and `calls.md` reads his calls on every
+  line document, a dropped one too. Before that, both read the scope as before. The SOP name
+  rides on the scope (`SopScope.sop`): `scopeOf(notes, sop)`, and `draftScope` takes the stored
+  playbook, so a stored playbook needs no new field. The shape file now takes `sop` on a station
+  (commit 1 left it off). `wren learn tag <ids...> --add|--remove` writes the tags a find reads.
+  Wren's map v6 has the launch-films line; the 15 seed films are tagged. The backfill ran on
+  prod: 25 found, 23 at call (none called yet), 2 hunt finds unread at read.

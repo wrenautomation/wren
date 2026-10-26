@@ -18,6 +18,8 @@ export interface SopScope {
   platforms: string[];
   topic: string;
   set: string[];
+  /** The SOP's own name, so the standard reads its content line when it has one (`lineItems`). */
+  sop?: string;
 }
 
 /** `a, b` or `[a, b]` as a list; lower-cased, so a set of brands matches a creator however it is cased. */
@@ -34,7 +36,7 @@ const list = (v: string | undefined) =>
     .filter(Boolean);
 
 /** The scope in `notes.md`'s front matter; null when the notes name no kinds (the SOP governs no pieces). */
-export function scopeOf(notes: string): SopScope | null {
+export function scopeOf(notes: string, sop?: string): SopScope | null {
   const fm = notes.match(/^---\n([\s\S]*?)\n---/)?.[1];
   if (!fm) return null;
   const field = (k: string) => fm.match(new RegExp(`^${k}:[ \\t]*([^\\n]*)`, "m"))?.[1]?.trim();
@@ -45,16 +47,40 @@ export function scopeOf(notes: string): SopScope | null {
     platforms: list(field("platforms")),
     topic: (field("topic") ?? "").replace(/^["']|["']$/g, ""),
     set: list(field("set")),
+    ...(sop ? { sop } : {}),
   };
 }
 
 export type StandardRow = typeof standards.$inferSelect;
 
-/** The in-scope rows of `learn.standards`: the SOP's kinds, on its platforms, by its set (each empty = any). */
+/**
+ * The Wren items on the SOP's content line (designs/2026-10-25-ingestion-engine.md): the standard
+ * is a reader over the line, so once the line has taken a document only its documents count. Null
+ * while no instance names the SOP: the scope alone decides.
+ */
+async function lineItems(db: Queryable, sop: string | undefined): Promise<Set<number> | null> {
+  if (!sop) return null;
+  const rows = (await db.execute(sql`
+    select i.id from learn.items i
+    where i.client = 'wren' and i.document_id in (select j.document_id from pipeline.instances j
+      where j.subject_kind = 'document' and j.entry_ref->>'sop' = ${sop})`)) as unknown as {
+    id: number;
+  }[];
+  return rows.length ? new Set(rows.map((r) => Number(r.id))) : null;
+}
+
+/**
+ * The in-scope rows of `learn.standards`: the SOP's kinds, on its platforms, by its set (each
+ * empty = any), and on its line when it has one.
+ */
 export async function standardRows(db: Queryable, scope: SopScope): Promise<StandardRow[]> {
-  const rows = await db.select().from(standards).where(inArray(standards.kind, scope.kinds));
+  const [rows, line] = await Promise.all([
+    db.select().from(standards).where(inArray(standards.kind, scope.kinds)),
+    lineItems(db, scope.sop),
+  ]);
   return rows.filter(
     (r) =>
+      (!line || line.has(Number(r.id))) &&
       (!scope.platforms.length || scope.platforms.includes((r.platform ?? "").toLowerCase())) &&
       (!scope.set.length || scope.set.includes((r.creator ?? "").toLowerCase())),
   );
@@ -194,14 +220,19 @@ export function standardLines(k: KindStandard): string[] {
 export const MIN_STANDARD = 5;
 
 /**
- * The scope one draft is held to: its own kind on its own platform, by the SOP's set. An SOP with
- * no scope in its notes still governs its platform's posts, by everyone Learn read.
+ * The scope one draft is held to: its own kind on its own platform, by the SOP's set and line. An
+ * SOP with no scope in its notes still governs its platform's posts, by everyone Learn read.
  */
-export const draftScope = (scope: SopScope | null, kind: string, platform: string): SopScope => ({
+export const draftScope = (
+  playbook: { sop: string; scope: SopScope | null } | null,
+  kind: string,
+  platform: string,
+): SopScope => ({
   kinds: [kind],
   platforms: [platform],
-  topic: scope?.topic ?? "",
-  set: scope?.set ?? [],
+  topic: playbook?.scope?.topic ?? "",
+  set: playbook?.scope?.set ?? [],
+  ...(playbook ? { sop: playbook.sop } : {}),
 });
 
 /** The standard for one kind in a scope; null under `MIN_STANDARD` pieces. */
@@ -249,18 +280,22 @@ export interface SopCall {
 }
 
 /**
- * His standing calls on the pieces an SOP covers: in its scope, or asked into it ("Add to SOP").
- * The newest call per subject; a call on a path the breakdown no longer lists is dropped.
+ * His standing calls on the pieces an SOP covers: on its line when it has one (a dropped piece
+ * too), else in its scope or asked into it ("Add to SOP"). The newest call per subject; a call
+ * on a path the breakdown no longer lists is dropped.
  */
 export async function callsOf(db: Queryable, scope: SopScope, sop: string): Promise<SopCall[]> {
-  const inScope = (await standardRows(db, scope)).map((r) => Number(r.id));
-  const asked = (
-    await db
-      .select({ id: sopSources.itemId })
-      .from(sopSources)
-      .where(and(eq(sopSources.sop, sop), eq(sopSources.state, "added")))
-  ).map((r) => Number(r.id));
-  const ids = [...new Set([...inScope, ...asked])];
+  const line = await lineItems(db, sop);
+  const inScope = line ? [] : (await standardRows(db, scope)).map((r) => Number(r.id));
+  const asked = line
+    ? []
+    : (
+        await db
+          .select({ id: sopSources.itemId })
+          .from(sopSources)
+          .where(and(eq(sopSources.sop, sop), eq(sopSources.state, "added")))
+      ).map((r) => Number(r.id));
+  const ids = [...new Set([...(line ?? []), ...inScope, ...asked])];
   if (!ids.length) return [];
   const rows = await db
     .select({ b: breakdowns, doc: items.documentId, title: items.title, creator: items.creator })
@@ -431,7 +466,7 @@ export async function writeSopFiles(
   sop: string,
   notes: string,
 ): Promise<{ scope: SopScope; files: string[]; pieces: number; calls: number } | null> {
-  const scope = scopeOf(notes);
+  const scope = scopeOf(notes, sop);
   if (!scope) return null;
   const [standard, calls] = await Promise.all([standardOf(db, scope), callsOf(db, scope, sop)]);
   const files = [join(dir, "standard.md"), join(dir, "calls.md")];

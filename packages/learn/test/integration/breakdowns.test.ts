@@ -387,6 +387,17 @@ describe("the standard and his calls, as an SOP reads them", () => {
     expect(await readFile(join(dir, "standard.md"), "utf8")).toContain("## reel (3 pieces)");
     // No kinds in the notes: nothing to write.
     expect(await writeSopFiles(pg.db, dir, "reels", "# Notes\n")).toBeNull();
+
+    // Once the SOP's content line has taken a document, the standard and the calls read the line.
+    await pg.db.execute(sql`insert into pipeline.shape_versions (number, body, run, depths, note, created_by)
+      values (1, '{"model": "metro"}'::jsonb, '{}'::jsonb, '{}'::jsonb, 'line', 't')`);
+    await pg.db.execute(sql`insert into pipeline.instances
+        (subject_kind, document_id, version, node, entry, entry_ref, status)
+      select 'document', i.document_id, 1, 'call', 'find', '{"sop": "reels"}'::jsonb, 'done'
+      from learn.items i where i.id = ${ids[2] as number}`);
+    const line = await writeSopFiles(pg.db, dir, "reels", notes);
+    expect(line && [line.pieces, line.calls]).toEqual([1, 3]);
+    expect(await readFile(join(dir, "standard.md"), "utf8")).toContain("## reel (1 piece)");
   });
 
   it("counts a hunt's topic find only once he keeps it, and never once he drops or archives it", async () => {

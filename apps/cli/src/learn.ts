@@ -47,6 +47,7 @@ import {
   sourcesByKind,
   TELLS,
   type Tell,
+  tagItems,
   tiktokReader,
   unfollowSources,
   unscore,
@@ -90,6 +91,7 @@ const idsOf = (raw: string[]): number[] => {
 };
 
 const json = (v: unknown) => console.log(JSON.stringify(v, null, 2));
+const collect = (v: string, prev: string[] = []) => [...prev, v];
 const BY = "cli";
 /** Progress goes to stderr, a line each, so stdout stays the JSON answer. */
 const say = (line: string) => console.error(line);
@@ -478,6 +480,22 @@ export function registerLearn(
       json(
         await inWorkspace(async (db, client) => ({
           done: await moveItems(db, client, idsOf(ids), o.to ? (idsOf([o.to])[0] ?? null) : null),
+        })),
+      ),
+    );
+
+  learn
+    .command("tag <ids...>")
+    .description("add or remove tags on items: a line's find takes items tagged with its SOP")
+    .option("--add <tag>", "a tag to add, repeatable", collect)
+    .option("--remove <tag>", "a tag to remove, repeatable", collect)
+    .action(async (ids: string[], o: { add?: string[]; remove?: string[] }) =>
+      json(
+        await inWorkspace(async (db, client) => ({
+          done: await tagItems(db, client, idsOf(ids), {
+            add: o.add ?? [],
+            remove: o.remove ?? [],
+          }),
         })),
       ),
     );
