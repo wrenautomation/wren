@@ -8,6 +8,7 @@
  * reads a creator's back catalog a few reels a pass (Instagram through the desk, TikTok by yt-dlp).
  * Nothing here signs in to any social account.
  */
+
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -57,6 +58,7 @@ import {
 } from "@wren/learn";
 import { ITEM_KINDS, type ItemKind, SHOT_INS, SHOT_MOVES, SHOT_TYPES } from "@wren/learn/schema";
 import { download, labelMatch, labelShots } from "@wren/video-watch";
+import { collect } from "./args.js";
 import { watchKeys } from "./video-watch.js";
 
 const itemKindOf = (raw: string): ItemKind => {
@@ -91,7 +93,6 @@ const idsOf = (raw: string[]): number[] => {
 };
 
 const json = (v: unknown) => console.log(JSON.stringify(v, null, 2));
-const collect = (v: string, prev: string[] = []) => [...prev, v];
 const BY = "cli";
 /** Progress goes to stderr, a line each, so stdout stays the JSON answer. */
 const say = (line: string) => console.error(line);

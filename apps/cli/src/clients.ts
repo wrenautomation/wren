@@ -2,6 +2,7 @@
  * `wren clients …`: the client registry. Always runs on the main database;
  * `--client` scopes other commands to a client's own database.
  */
+
 import type { Settings } from "@wren/config";
 import {
   APPROVERS,
@@ -28,11 +29,10 @@ import {
 import type { Db } from "@wren/db";
 import { COMPONENTS } from "@wren/worker/components";
 import type { Command } from "commander";
+import { collect } from "./args.js";
 import { changeProducts, parseAssignment, pathOf } from "./products.js";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
-
-const collect = (v: string, prev: string[] = []) => [...prev, v];
 
 /** "site=account" pairs -> { site: account }. An empty account turns the site off. */
 function accountPairs(pairs: string[] = []): Record<string, string> {

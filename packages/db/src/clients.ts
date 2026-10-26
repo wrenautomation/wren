@@ -125,8 +125,10 @@ export async function clientDatabases(main: Db): Promise<string[]> {
  * the mail its connected mailboxes bring in (designs/2026-10-07-mail-access.md). In a client's
  * database `watch` holds only that client's mail and rules; William's is in main, out of reach.
  * `pipeline` holds the client's own funnels, journeys and deals (designs/2026-10-18-journeys.md).
+ * `learn` holds the client's own Learn rows (none yet): `learn.items.document_id` points at
+ * `documents`, so a truncate of `documents` cascades into it (designs/2026-10-25-ingestion-engine.md).
  */
-const CLIENT_SCHEMAS = ["calendar", "watch", "pipeline"] as const;
+const CLIENT_SCHEMAS = ["calendar", "watch", "pipeline", "learn"] as const;
 
 async function grantClientAccess(admin: Db, mainUrl: string, database: string) {
   const role = checkedDatabase(database);

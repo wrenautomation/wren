@@ -207,3 +207,7 @@ Logged-in finds and reads (IG, LinkedIn, X) use the reach engine's shared reads
   (commit 1 left it off). `wren learn tag <ids...> --add|--remove` writes the tags a find reads.
   Wren's map v6 has the launch-films line; the 15 seed films are tagged. The backfill ran on
   prod: 25 found, 23 at call (none called yet), 2 hunt finds unread at read.
+- 2026-10-25: commit 3a's FK (`learn.items.document_id` → `documents`) reached every client
+  database, so `truncate documents cascade` (the demo reset) failed on `learn.items` for the
+  client login. `learn` joins `CLIENT_SCHEMAS`: a client's own Learn rows, none yet. It also ends
+  the older "permission denied for schema learn" when a client's planner reads `learn.standards`.

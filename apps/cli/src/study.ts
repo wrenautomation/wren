@@ -5,6 +5,7 @@
  * `study report` prints it. `study add-page` adds a page we hold (a PDF, a
  * paywalled page saved to disk). Always the main database.
  */
+
 import { readFileSync, writeFileSync } from "node:fs";
 import { userInfo } from "node:os";
 import { basename, resolve } from "node:path";
@@ -25,11 +26,10 @@ import {
 } from "@wren/research/studies";
 import type { Command } from "commander";
 import { desc } from "drizzle-orm";
+import { collect } from "./args.js";
 import { ingressSites } from "./sites.js";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
-
-const collect = (v: string, prev: string[] = []) => [...prev, v];
 
 /** A held file's text: a PDF read with unpdf, HTML stripped to text, anything else as is. */
 export async function heldPageText(bytes: Uint8Array, name: string): Promise<string> {

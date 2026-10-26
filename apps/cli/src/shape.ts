@@ -20,6 +20,7 @@
  * always holds a metro body. `draft show` prints what apply would do: the merge when live moved
  * and the conflicts. The store refuses every graph body (C1 part 4).
  */
+
 import { readFileSync, writeFileSync } from "node:fs";
 import { normalEmail } from "@wren/core/clients";
 import { TRIGGER_IDS } from "@wren/core/logic";
@@ -86,6 +87,7 @@ import {
 import { addTag, tagsOf } from "@wren/pipeline/tags";
 import { planUndo, undoShape } from "@wren/pipeline/undo";
 import { type Command, InvalidArgumentError } from "commander";
+import { collect } from "./args.js";
 import { addMove, numberArg, type PipelineWrites, plain, who } from "./pipeline.js";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
@@ -117,8 +119,6 @@ export function advanceArg(v: string): Advance {
     throw new InvalidArgumentError("settings are key=value, joined with commas");
   return { trigger, with: Object.fromEntries(pairs.map(([k, val]) => [k, val ?? ""])) };
 }
-
-const collect = (v: string, all: string[] = []): string[] => [...all, v];
 
 /** A draft state, or `all`. */
 function stateArg(v: string): DraftState | "all" {
