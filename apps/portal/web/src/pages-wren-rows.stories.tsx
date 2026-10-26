@@ -25,7 +25,7 @@ import {
 } from "./mocks/data/wren-rows.js";
 import { pageAt } from "./mocks/page.js";
 
-const meta: Meta = { title: "Pages/Wren rows" };
+const meta: Meta = { title: "Revamp/Wren rows", id: "pages-wren-rows" };
 export default meta;
 
 type Reply = (body: Record<string, unknown>) => unknown;
