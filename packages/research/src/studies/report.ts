@@ -1,6 +1,7 @@
 /**
- * A study as markdown: each angle's claims with [n] marks, the drafts that
- * cite them, then every source once. Pure: studyView reads, this writes.
+ * A study as markdown: each angle's claims with [n] marks and his calls, the
+ * drafts that cite them, then every source once. Pure: studyView reads, this
+ * writes.
  */
 import type { StudyView } from "./run.js";
 
@@ -9,25 +10,38 @@ const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? o
 export function studyReport(view: StudyView): string {
   const { study, angles, drafts, titles, manual, counts } = view;
   const claims = angles.flatMap((a) => a.claims);
-  const dropped = angles.reduce((n, a) => n + a.dropped.length, 0);
-  const open = angles.filter((a) => !a.done).length + drafts.filter((d) => !d.done).length;
+  const dropped = claims.filter((c) => c.call === "drop").length;
+  const open = counts.waiting + drafts.filter((d) => !d.done || d.stale).length;
   const out: string[] = [
     `# ${study.question}`,
     "",
-    `Study \`${study.slug}\`${study.niche ? ` for ${study.niche}` : ""}. ${plural(counts.queries, "search", "searches")}, ${plural(counts.pages, "page")} read (${counts.unread} unreadable), ${plural(claims.length, "claim")} kept, ${dropped} dropped by the quote check.${open ? ` ${plural(open, "section")} still to run: \`wren study run ${study.slug}\`.` : ""}`,
+    `Study \`${study.slug}\`${study.niche ? ` for ${study.niche}` : ""}. ${plural(counts.queries, "search", "searches")}, ${plural(counts.pages, "page")} read (${counts.unread} unreadable), ${plural(claims.length, "claim")} passed the quote check (${counts.gated} did not), ${dropped} dropped by you.${open ? ` ${plural(open, "part")} still to run: \`wren study run ${study.slug}\`.` : ""}`,
   ];
 
   for (const a of angles) {
     out.push("", `## ${a.angle}`, "");
-    if (!a.done) out.push("_Not run yet._");
-    else if (!a.claims.length) out.push("_Nothing on the pages read answered this._");
-    for (const c of a.claims) out.push(`- ${c.claim} [${c.n}]`);
+    if (!a.claims.length)
+      out.push(
+        counts.waiting || !counts.pages
+          ? "_Not run yet._"
+          : "_Nothing on the pages read answered this._",
+      );
+    for (const c of a.claims) {
+      const call = c.call ? ` (${c.call}${c.comment ? `: ${c.comment}` : ""})` : "";
+      const line = `${c.claim} [${c.n}]${call}`;
+      out.push(c.call === "drop" ? `- ~~${line}~~` : `- ${line}`);
+    }
   }
 
   for (const d of drafts) {
     out.push("", `## Draft: ${d.spec.key}`, "");
     if (!d.done) out.push("_Not run yet._");
-    else if (!d.kept.length) out.push("_Nothing survived the citation check._");
+    else if (d.stale)
+      out.push(
+        `_Your calls or new claims changed its claims: \`wren study run ${study.slug}\`._`,
+        "",
+      );
+    if (d.done && !d.kept.length) out.push("_Nothing survived the citation check._");
     for (const item of d.kept) {
       out.push(
         `### ${item.title || "(untitled)"}`,

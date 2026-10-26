@@ -121,7 +121,8 @@ Logged-in finds and reads (IG, LinkedIn, X) use the reach engine's shared reads
    paths to finding ids; the find, read, extract and call stations; the standard reader; the
    launch-films line on Wren's map. Builds 1 to 10 of the analyzer port onto it; nothing he
    called is lost. Video watch alone is the same line stopped after extract.
-2. **Study line.** The synthesis reader; claims callable; `study_steps` retires.
+2. **Study line.** The synthesis reader; claims callable as findings; `study_steps` keeps only
+   the find checkpoint.
 3. **Pain points.** A `sourced` source fed by IG and LinkedIn searches on the outreach shape;
    the post's pain as a finding on the person; outreach behind To approve; measure per line.
 4. **Port the old hardcoded workflows** to lines, last.
@@ -207,6 +208,28 @@ Logged-in finds and reads (IG, LinkedIn, X) use the reach engine's shared reads
   (commit 1 left it off). `wren learn tag <ids...> --add|--remove` writes the tags a find reads.
   Wren's map v6 has the launch-films line; the 15 seed films are tagged. The backfill ran on
   prod: 25 found, 23 at call (none called yet), 2 hunt finds unread at read.
+- 2026-10-26: phase 2 (the study line; my calls, as William left it). Claims are per page, not per
+  angle: one model call reads a page's best passages for every angle (`pageEvidence`, 12k chars)
+  and each claim names its angle; `CLAIMS_PER_PAGE` 8. Each kept claim is a `fact` finding on the
+  page, keyed `doc:<document>/study:<slug>/<sha256(quote)[0:12]>` (`claimKey`), `via` `study`,
+  `question` `angle/<i>`, `proof` `{quote}`, so the same quote read again is the same finding and
+  his call (`decision_calls` kind `finding`, subject the key) holds through a redo; a redo deletes
+  only the study's uncalled claims. `study_steps` keeps the find checkpoint (plan, search, ask,
+  read), a per-page `claims` marker (key the page url, detail `{kept, dropped, envelope}`) and the
+  `draft` units, whose detail carries `basis`, a hash of the non-dropped claims' numbers and keys:
+  a run redraws a draft whose basis changed and the report marks it stale. Not new tables: a
+  claim is a finding and a draft is a derived text; neither needs a home of its own, and the
+  study's checkpoint table already keys one row per unit. The report numbers every claim, a
+  dropped one too (struck, with his words), so `wren study call <slug> keep|tune|drop <n...>
+  [--why]` can name them by number; tune needs his words. Drafts read the claims he did not drop.
+  On the map a find station names `study: <slug>` instead of `sop` (one or the other, `metro.ts`
+  and `checkEntry`); `trigger.found` carries `{study}`; `linePass` takes the study's read pages as
+  its finds (they arrive with read ended) and judges each job per line, keyed by `entry_ref`:
+  extract ends with the page's final `claims` step, call when every claim on the page has his call
+  or he called the page. An SOP line's extract now ends only on a breakdown finding (key not
+  `doc:%/study:%`), not on any fact. Out: the synthesis reader as a station (the report is read on
+  demand; a reader row would store nothing new), the portal's call screen for claims (the CLI and
+  the item page's finding calls are enough while only William calls).
 - 2026-10-25: commit 3a's FK (`learn.items.document_id` → `documents`) reached every client
   database, so `truncate documents cascade` (the demo reset) failed on `learn.items` for the
   client login. `learn` joins `CLIENT_SCHEMAS`: a client's own Learn rows, none yet. It also ends

@@ -122,23 +122,11 @@ export function passages(text: string, want: ReadonlySet<string>, budget: number
     .join("\n\n");
 }
 
-export const PAGE_CHARS = 5_000;
-export const EVIDENCE_CHARS = 30_000;
+/** How much of one page the model is shown: its best passages for every angle. */
+export const PAGE_CHARS = 12_000;
 
-/** The pages one angle's claims are drawn from: the best passages of each, within the budget. */
-export function angleEvidence(
-  pages: readonly EvidencePage[],
-  want: ReadonlySet<string>,
-): EvidencePage[] {
-  const out: EvidencePage[] = [];
-  let used = 0;
-  for (const p of pages) {
-    const room = Math.min(PAGE_CHARS, EVIDENCE_CHARS - used);
-    if (room < 500) break;
-    const text = passages(p.text, want, room);
-    if (!text.trim()) continue;
-    out.push({ url: p.url, text });
-    used += text.length;
-  }
-  return out;
-}
+/** The part of one page its claims are drawn from. */
+export const pageEvidence = (page: EvidencePage, want: ReadonlySet<string>): EvidencePage => ({
+  url: page.url,
+  text: passages(page.text, want, PAGE_CHARS),
+});

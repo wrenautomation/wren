@@ -1,7 +1,8 @@
 /**
- * A study against the migrated schema: one row per unit, a re-run does only
- * what is left, a cap or a failed page holds the claims back, redo throws a
- * step away. Fake sites and a fake model; no network, no sleeping.
+ * A study against the migrated schema: one row per unit, claims as findings
+ * per page, a re-run does only what is left, a cap or a failed page holds the
+ * drafts back, redo throws a step away, his calls hold and redraw the drafts.
+ * Fake sites and a fake model; no network, no sleeping.
  */
 import { SiteCallError, type SiteClient } from "@wren/core/content";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
@@ -11,14 +12,21 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { documents, studySteps } from "../../src/schema.js";
 import { questionStudy } from "../../src/studies/recipes.js";
 import { studyReport } from "../../src/studies/report.js";
-import { addStudyPage, openStudy, runStudy, studyView } from "../../src/studies/run.js";
+import {
+  addStudyPage,
+  callStudyClaims,
+  openStudy,
+  runStudy,
+  studyClaims,
+  studyView,
+} from "../../src/studies/run.js";
 
 let pg: TestPostgres;
 beforeAll(async () => {
   pg = await startTestPostgres();
 });
 afterAll(() => pg.stop());
-beforeEach(() => truncate(pg.db, ["studies", "documents", "runs"]));
+beforeEach(() => truncate(pg.db, ["studies", "findings", "documents", "runs", "decision_calls"]));
 const db = () => pg.db;
 
 const QUOTE = "38% of placements came from repeat clients in 2025";
@@ -51,7 +59,7 @@ function fakeSites(fault: Fault = () => null) {
   return { sites, calls };
 }
 
-/** Plans two queries an angle, claims the quote from the first page shown, drafts one item. */
+/** Plans two queries an angle, claims the quote from each page on angle 1, drafts one item. */
 function fakeModel() {
   const prompts: string[] = [];
   const llm = new FakeLlm({
@@ -62,15 +70,14 @@ function fakeModel() {
         return JSON.stringify({ queries: [`${angle} survey`, `${angle} forum`] });
       }
       if (prompt.startsWith("You pull facts")) {
-        const url = /=== (\S+)/.exec(prompt)?.[1] ?? "";
         return JSON.stringify({
           claims: [
             {
+              angle: 1,
               claim: "A 2025 survey says 38% of placements are repeat clients.",
               quote: QUOTE,
-              source_url: url,
             },
-            { claim: "Firms double revenue with 90% retention.", quote: QUOTE, source_url: url },
+            { angle: 1, claim: "Firms double revenue with 90% retention.", quote: QUOTE },
           ],
         });
       }
@@ -105,15 +112,19 @@ describe("runStudy", () => {
       planned: 2,
       searched: 4,
       read: 4,
-      claimed: 2,
-      kept: 2,
-      dropped: 2,
+      claimed: 4,
+      kept: 4,
+      dropped: 4,
       drafted: 1,
     });
     expect(stats.waiting).toBe(0);
     // Four pages read; every site answer is kept beside them as a snippet.
     const docs = await db().select().from(documents);
     expect(docs.filter((d) => d.kind !== "snippet")).toHaveLength(4);
+    // Each kept claim is a fact finding on its page, keyed by the study.
+    const claims = await studyClaims(db(), "placements");
+    expect(claims.map((c) => c.n)).toEqual([1, 2, 3, 4]);
+    expect(claims.every((c) => /^doc:\d+\/study:placements\/[0-9a-f]{12}$/.test(c.key))).toBe(true);
 
     const md = studyReport(await studyView(db(), "placements"));
     expect(md).toContain("A 2025 survey says 38% of placements are repeat clients. [1]");
@@ -145,7 +156,7 @@ describe("runStudy", () => {
       { sites: fakeSites().sites, llm, sleep: noSleep },
       "capped",
     );
-    expect(second).toMatchObject({ read: 3, claimed: 2, drafted: 1, capped: null });
+    expect(second).toMatchObject({ read: 3, claimed: 4, drafted: 1, capped: null });
   });
 
   it("a failed page is tried again; a refused one is final", async () => {
@@ -160,8 +171,8 @@ describe("runStudy", () => {
       return null;
     });
     const first = await runStudy(db(), { sites: flaky.sites, llm, sleep: noSleep }, "faults");
-    expect(first).toMatchObject({ refused: 1, failed: 1, claimed: 1, drafted: 0 });
-    expect(first.waiting).toBe(2);
+    expect(first).toMatchObject({ refused: 1, failed: 1, claimed: 2, drafted: 0 });
+    expect(first.waiting).toBe(1);
 
     const second = await runStudy(
       db(),
@@ -181,8 +192,8 @@ describe("runStudy", () => {
     const [siteCalls, asks] = [calls.length, prompts.length];
     const stats = await runStudy(db(), { sites, llm, sleep: noSleep }, "redo", { redo: "claims" });
     expect(calls.length).toBe(siteCalls);
-    expect(prompts.length).toBe(asks + 3);
-    expect(stats).toMatchObject({ claimed: 2, drafted: 1 });
+    expect(prompts.length).toBe(asks + 5);
+    expect(stats).toMatchObject({ claimed: 4, drafted: 1 });
   });
 
   it("a provider failure stops the run and keeps what was done", async () => {
@@ -200,7 +211,7 @@ describe("runStudy", () => {
     expect(await rows("plan")).toHaveLength(1);
   });
 
-  it("a page added by hand is read once, redoes claims, survives redo, and is marked", async () => {
+  it("a page added by hand is read once, claimed, redraws the drafts, survives redo", async () => {
     await openStudy(db(), "held", input());
     const { sites, calls } = fakeSites();
     const { llm, prompts } = fakeModel();
@@ -220,14 +231,43 @@ describe("runStudy", () => {
     const siteCalls = calls.length;
     const stats = await runStudy(db(), { sites, llm, sleep: noSleep }, "held");
     expect(calls.length).toBe(siteCalls);
-    expect(stats).toMatchObject({ read: 0, claimed: 2, drafted: 1 });
+    expect(stats).toMatchObject({ read: 0, claimed: 1, drafted: 1 });
     const claimsPrompt = prompts.filter((p) => p.startsWith("You pull facts")).at(-1) ?? "";
-    expect(/=== (\S+)/.exec(claimsPrompt)?.[1]).toBe(first.key);
+    expect(/PAGE: (\S+)/.exec(claimsPrompt)?.[1]).toBe(first.key);
     const md = studyReport(await studyView(db(), "held"));
     expect(md).toContain(`<${first.key}> (added by hand by tester on `);
 
     await runStudy(db(), { sites, llm, sleep: noSleep }, "held", { redo: "read" });
     expect((await rows("read")).some((r) => r.key === first.key)).toBe(true);
+  });
+
+  it("his calls: a drop strikes the claim, redraws the drafts without it, and holds through redo", async () => {
+    await openStudy(db(), "calls", input());
+    const { sites } = fakeSites();
+    const { llm, prompts } = fakeModel();
+    await runStudy(db(), { sites, llm, sleep: noSleep }, "calls");
+    await expect(callStudyClaims(db(), "calls", [9], "drop", "tester")).rejects.toThrow(
+      /no claim 9/,
+    );
+    await expect(callStudyClaims(db(), "calls", [2], "tune", "tester")).rejects.toThrow(/--why/);
+    await callStudyClaims(db(), "calls", [1], "drop", "tester", "old survey");
+    await callStudyClaims(db(), "calls", [2], "keep", "tester");
+
+    const stale = studyReport(await studyView(db(), "calls"));
+    expect(stale).toMatch(/- ~~A 2025 survey .* \[1\] \(drop: old survey\)~~/);
+    expect(stale).toContain("[2] (keep)");
+    expect(stale).toContain("Your calls or new claims changed its claims");
+
+    const stats = await runStudy(db(), { sites, llm, sleep: noSleep }, "calls");
+    expect(stats).toMatchObject({ claimed: 0, drafted: 1 });
+    const draftPrompt = prompts.at(-1) ?? "";
+    expect(draftPrompt).not.toContain("\n[1] A 2025");
+    expect(draftPrompt).toContain("\n[2] A 2025");
+    expect(studyReport(await studyView(db(), "calls"))).not.toContain("changed its claims");
+
+    await runStudy(db(), { sites, llm, sleep: noSleep }, "calls", { redo: "claims" });
+    const after = await studyClaims(db(), "calls");
+    expect(after.map((c) => c.call)).toEqual(["drop", "keep", null, null]);
   });
 
   it("refuses a second study under a slug that asks something else", async () => {

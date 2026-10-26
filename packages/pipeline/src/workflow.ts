@@ -94,8 +94,8 @@ export function shapeWorkflow(versionNumber: number, body: ShapeBody, scope: Sco
       const settings = { source: s.source };
       kind = outKind({ trigger: SOURCE_TRIGGER, with: settings });
       node = { id: `e_${s.id}`, uses: SOURCE_TRIGGER, with: settings };
-    } else if (s.via === "found" && s.sop) {
-      const settings = { sop: s.sop };
+    } else if (s.via === "found" && (s.study || s.sop)) {
+      const settings: Record<string, string> = s.study ? { study: s.study } : { sop: s.sop ?? "" };
       kind = outKind({ trigger: FOUND_TRIGGER, with: settings });
       node = { id: `e_${s.id}`, uses: FOUND_TRIGGER, with: settings };
     }

@@ -1,7 +1,9 @@
 /**
  * A content line on the executor, on a real Postgres (designs/2026-10-25-ingestion-engine.md): the
  * line pass reads Learn rows and tells the executor; the real steps open and move one document
- * instance per document. Launch films: find → read → extract → call. Synthetic data only.
+ * instance per document. Launch films: find → read → extract → call. A study line: its read pages
+ * enter at extract, its claims step ends extract, his call on every claim ends call. Synthetic
+ * data only.
  */
 import { randomUUID } from "node:crypto";
 import { recordCall } from "@wren/core/decide";
@@ -23,15 +25,15 @@ import { linePass } from "../../src/lines.js";
 import { instances } from "../../src/schema.js";
 import { journeySteps } from "../../src/steps.js";
 import { saveShape } from "../../src/store.js";
-import { TRIGGERS, withFilms } from "../fixtures.js";
+import { TRIGGERS, withStudy } from "../fixtures.js";
 
 const NOW = new Date("2026-10-25T12:00:00Z");
 let pg: TestPostgres;
 beforeAll(async () => {
   pg = await startTestPostgres();
   await saveShape(pg.db, {
-    body: withFilms(),
-    note: "films",
+    body: withStudy(),
+    note: "films and a study",
     by: "t",
     triggers: new Set([...TRIGGERS, "trigger.found", "trigger.station"]),
   });
@@ -147,5 +149,71 @@ describe("a content line", () => {
   it("never takes a document twice: a closed one is not found again", async () => {
     expect(await feed()).toMatchObject({ found: 0, closed: 0 });
     expect(await instanceOf(a.document)).toHaveLength(1);
+  });
+});
+
+describe("a study line", () => {
+  let studyId: number;
+  let page: number;
+  const key = (document: number, n: number) => `doc:${document}/study:placements/${n}`;
+
+  /** A page the study read, as `runStudy` leaves it. */
+  async function readPage(n: number, outcome: "ok" | "refused" = "ok") {
+    const d = await one<{ id: number }>(
+      pg.db.execute(sql`insert into documents (url, kind, content_hash, text, title)
+        values (${`https://pages.example/${n}`}, 'webpage', ${String(n).padStart(64, "1")}, 'x',
+          ${`Page ${n}`}) returning id`),
+    );
+    await pg.db.execute(sql`insert into study_steps (study_id, step, key, outcome, detail, document_id)
+      values (${studyId}, 'read', ${`https://pages.example/${n}`}, ${outcome}, '{}'::jsonb,
+        ${outcome === "ok" ? d.id : null})`);
+    return d.id;
+  }
+  const claimed = (document: number, url: string) =>
+    pg.db.execute(sql`insert into study_steps (study_id, step, key, outcome, detail, document_id)
+      values (${studyId}, 'claims', ${url}, 'ok', '{}'::jsonb, ${document})`);
+  const claim = (document: number, n: number) =>
+    pg.db.execute(sql`insert into findings (kind, fact_key, value, confidence, via, document_id, question)
+      values ('fact', ${key(document, n)}, '{"claim":"c","angle":0}'::jsonb, 1, 'study', ${document}, 'angle/0')`);
+  const callClaim = (document: number, n: number) =>
+    recordCall(pg.db, { kind: "finding", subject: key(document, n), label: "keep", source: "cli" });
+
+  it("opens at extract for a page the study read, and not for a page it could not", async () => {
+    studyId = (
+      await one<{ id: number }>(
+        pg.db.execute(sql`insert into studies (slug, question, angles, drafts)
+          values ('placements', 'Why?', '["a"]'::jsonb, '[]'::jsonb) returning id`),
+      )
+    ).id;
+    page = await readPage(1);
+    await readPage(2, "refused");
+    const pass = await feed();
+    expect(pass).toMatchObject({ found: 1, done: 0 });
+    const [j] = await instanceOf(page);
+    expect(j).toMatchObject({ node: "sextract", status: "open" });
+    expect(j?.entryRef).toMatchObject({ study: "placements" });
+    expect(await feed()).toMatchObject({ found: 0 });
+  });
+
+  it("extract ends with the claims step; call ends when every claim has his call", async () => {
+    await claim(page, 1);
+    await claim(page, 2);
+    expect(await feed()).toMatchObject({ done: 0 }); // findings alone are not the step
+    await claimed(page, "https://pages.example/1");
+    expect(await feed()).toMatchObject({ done: 1 });
+    expect((await instanceOf(page))[0]?.node).toBe("scall");
+    await callClaim(page, 1);
+    expect(await feed()).toMatchObject({ closed: 0 });
+    await callClaim(page, 2);
+    expect(await feed()).toMatchObject({ closed: 1 });
+    expect((await instanceOf(page))[0]?.status).toBe("done");
+  });
+
+  it("a page with no claims closes on his call on the page", async () => {
+    const bare = await readPage(3);
+    await feed();
+    await claimed(bare, "https://pages.example/3");
+    expect(await feed()).toMatchObject({ done: 1 });
+    expect(await feed()).toMatchObject({ closed: 1 });
   });
 });

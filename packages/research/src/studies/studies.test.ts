@@ -2,10 +2,10 @@ import { describe, expect, it } from "vitest";
 import { numbersQuoted, pageQuoted } from "../grounding.js";
 import { fill, gateClaims, planQueries } from "./claims.js";
 import { gateDrafts, type NumberedClaim } from "./drafts.js";
-import { angleEvidence, passages, pickReads, terms } from "./evidence.js";
+import { pageEvidence, passages, pickReads, terms } from "./evidence.js";
 import { verticalStudy } from "./recipes.js";
 import { studyReport } from "./report.js";
-import type { StudyView } from "./run.js";
+import { claimKey, type StudyClaim, type StudyView } from "./run.js";
 
 const PAGE = {
   url: "https://staffing.example/survey",
@@ -57,27 +57,27 @@ describe("claims", () => {
     expect(planQueries({ queries: [" a  b ", "A B", "c", "d", "e"] })).toEqual(["a b", "c", "d"]);
   });
 
-  it("keeps a quoted claim, drops what the page doesn't say, keeps each quote once", () => {
+  it("keeps a quoted claim on an angle, drops what the page doesn't say, keeps each quote once", () => {
     const quote = "38% of placements came from repeat clients";
     const { kept, dropped } = gateClaims(
       {
         claims: [
-          { claim: "A survey found 38% of placements are repeat clients.", quote, source_url: "x" },
-          { claim: "Same thing again at 38%.", quote, source_url: PAGE.url },
-          { claim: "Half of placements are repeat clients (50%).", quote, source_url: PAGE.url },
-          {
-            claim: "Referrals beat ads.",
-            quote: "referrals were far cheaper than ads",
-            source_url: PAGE.url,
-          },
-          { claim: "Short quote.", quote: "repeat clients", source_url: PAGE.url },
-          { claim: "Whole section.", quote: "word ".repeat(81), source_url: PAGE.url },
+          { angle: 2, claim: "A survey found 38% of placements are repeat clients.", quote },
+          { angle: 1, claim: "Same thing again at 38%.", quote },
+          { angle: 1, claim: "Half of placements are repeat clients (50%).", quote },
+          { angle: 1, claim: "Referrals beat ads.", quote: "referrals were far cheaper than ads" },
+          { angle: 1, claim: "Short quote.", quote: "repeat clients" },
+          { angle: 1, claim: "Whole section.", quote: "word ".repeat(81) },
+          { angle: 3, claim: "No such angle.", quote },
+          { claim: "No angle at all.", quote },
         ],
       },
-      [PAGE],
+      PAGE,
+      2,
     );
     expect(kept).toEqual([
       {
+        angle: 1,
         claim: "A survey found 38% of placements are repeat clients.",
         quote,
         source_url: PAGE.url,
@@ -88,7 +88,16 @@ describe("claims", () => {
       "quote_not_found",
       "no_quote",
       "quote_too_long",
+      "no_angle",
+      "no_angle",
     ]);
+  });
+
+  it("keys a claim by its document, study and quote", () => {
+    const key = claimKey(7, "demo", "38% of placements came from repeat clients");
+    expect(key).toMatch(/^doc:7\/study:demo\/[0-9a-f]{12}$/);
+    expect(claimKey(7, "demo", "38% of placements came from repeat clients")).toBe(key);
+    expect(claimKey(8, "demo", "38% of placements came from repeat clients")).not.toBe(key);
   });
 });
 
@@ -126,26 +135,25 @@ describe("evidence", () => {
     expect(passages("short page", want, 700)).toBe("short page");
   });
 
-  it("caps each page and the whole angle", () => {
-    const big = { url: "https://big.example", text: "fees 10\n".repeat(2_000) };
-    const out = angleEvidence(
-      Array.from({ length: 10 }, () => big),
-      terms("fees"),
-    );
-    expect(out.every((p) => p.text.length <= 5_000)).toBe(true);
-    expect(out.reduce((n, p) => n + p.text.length, 0)).toBeLessThanOrEqual(30_000);
+  it("caps what the model sees of one page", () => {
+    const big = { url: "https://big.example", text: "fees 10\n".repeat(4_000) };
+    const out = pageEvidence(big, terms("fees"));
+    expect(out.url).toBe(big.url);
+    expect(out.text.length).toBeLessThanOrEqual(12_000);
   });
 });
 
 const CLAIMS: NumberedClaim[] = [
   {
     n: 1,
+    angle: 0,
     claim: "38% of placements come from repeat clients.",
     quote: "38% of placements came from repeat clients",
     source_url: PAGE.url,
   },
   {
     n: 2,
+    angle: 0,
     claim: "Firms say referrals are cheaper than ads.",
     quote: "Firms said referrals were cheaper than ads",
     source_url: PAGE.url,
@@ -211,7 +219,13 @@ describe("recipes", () => {
 });
 
 describe("report", () => {
-  it("renders claims with marks, drafts with cites, sources once", () => {
+  it("renders claims with marks and calls, drafts with cites, sources once", () => {
+    const called: StudyClaim[] = CLAIMS.map((c, i) => ({
+      ...c,
+      key: `doc:1/study:demo/${i}`,
+      call: i === 1 ? "drop" : null,
+      comment: i === 1 ? "old survey" : null,
+    }));
     const view = {
       study: {
         id: 1,
@@ -223,13 +237,8 @@ describe("report", () => {
         createdAt: new Date(0),
       },
       angles: [
-        {
-          angle: "A",
-          claims: CLAIMS,
-          dropped: [{ claim: "x", why: "quote_not_found" }],
-          done: true,
-        },
-        { angle: "B", claims: [], dropped: [], done: false },
+        { angle: "A", claims: called },
+        { angle: "B", claims: [] },
       ],
       drafts: [
         {
@@ -237,20 +246,24 @@ describe("report", () => {
           kept: [{ title: "Repeat desk", body: "Win them back.", cites: [1] }],
           dropped: [{ title: "Made up", why: "number_not_cited" }],
           done: true,
+          stale: true,
         },
       ],
       titles: new Map([[PAGE.url, "Staffing survey"]]),
-      counts: { queries: 3, pages: 2, unread: 1 },
+      counts: { queries: 3, pages: 2, unread: 1, gated: 1, waiting: 1 },
     } satisfies StudyView;
     const md = studyReport(view);
-    expect(md).toContain("- 38% of placements come from repeat clients. [1]");
+    expect(md).toContain("- 38% of placements come from repeat clients. [1]\n");
+    expect(md).toContain("- ~~Firms say referrals are cheaper than ads. [2] (drop: old survey)~~");
+    expect(md).toContain("2 claims passed the quote check (1 did not), 1 dropped by you.");
     expect(md).toContain("_Not run yet._");
+    expect(md).toContain("_Your calls or new claims changed its claims");
     expect(md).toContain("Cites [1]");
     expect(md).toContain("Made up (number not cited)");
     expect(md).toContain(
       `1. Staffing survey, <${PAGE.url}>: "38% of placements came from repeat clients"`,
     );
-    expect(md).toContain("1 section still to run");
+    expect(md).toContain("2 parts still to run");
 
     const held = { by: "tester", at: "2026-10-06T00:00:00Z", published: "2025-01-02", hash: "x" };
     const marked = studyReport({ ...view, manual: new Map([[PAGE.url, held]]) });

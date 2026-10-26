@@ -4,7 +4,7 @@
  * back as a new journey. Pure: the known triggers, groups and lists come in as arguments, so this
  * file imports nothing from the executor.
  */
-import { SOP_NAME, SOURCE_ID } from "@wren/core/logic";
+import { SOP_NAME, SOURCE_ID, STUDY_SLUG } from "@wren/core/logic";
 
 export interface Advance {
   /** A trigger component id: `trigger.booking`, `trigger.touch`, ... */
@@ -65,7 +65,7 @@ export type SubjectKind = (typeof SUBJECT_KINDS)[number];
 export const JOBS = ["read", "extract", "call", "measure"] as const;
 export type Job = (typeof JOBS)[number];
 
-export { SOP_NAME };
+export { SOP_NAME, STUDY_SLUG };
 
 const NODE_KINDS = ["source", "step", "offer", "plan", "job"] as const;
 export type NodeKind = (typeof NODE_KINDS)[number];
@@ -93,6 +93,8 @@ export interface SourceNode extends NodeBase {
   group?: string;
   /** Via `found`: the SOP whose finds enter (the tag the hunt and his saves give a document). */
   sop?: string;
+  /** Via `found`: the study whose read pages enter; a found source names this or `sop`. */
+  study?: string;
   /** Opens nothing. Keeps the node and its numbers. */
   parked?: true;
 }
@@ -324,6 +326,7 @@ interface EntryFields {
   source?: string | undefined;
   group?: string | undefined;
   sop?: string | undefined;
+  study?: string | undefined;
 }
 
 /**
@@ -348,7 +351,11 @@ export function checkEntry(
       errors.push(`${who} names source ${e.source}, which does not exist.`);
   }
   if (e.via === "found") {
-    if (!e.sop) errors.push(`${who} has via found but names no SOP.`);
+    if (e.sop && e.study) errors.push(`${who} names an SOP and a study. Name one.`);
+    else if (e.study) {
+      if (!STUDY_SLUG.test(e.study))
+        errors.push(`${who} names study "${e.study}". Use lowercase letters, digits and dashes.`);
+    } else if (!e.sop) errors.push(`${who} has via found but names no SOP or study.`);
     else if (!SOP_NAME.test(e.sop))
       errors.push(`${who} names SOP "${e.sop}". Use lowercase letters, digits and dashes.`);
   }

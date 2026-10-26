@@ -721,8 +721,9 @@ export type Study = typeof studies.$inferSelect;
 /**
  * The units of a study, in order: `plan` an angle into search queries,
  * `search` a query, `ask` an answer engine about an angle (its citations get
- * read, its prose never counts), `read` a page, `claims` an angle's pages into
- * quoted claims, `draft` the claims into something to use (offers, emails).
+ * read, its prose never counts), `read` a page, `claims` a page into quoted
+ * claims on every angle (each kept one a `fact` finding on the page), `draft`
+ * the claims into something to use (offers, emails).
  * One row per unit is the checkpoint: a re-run skips what is done.
  */
 export const STUDY_STEPS = ["plan", "search", "ask", "read", "claims", "draft"] as const;
@@ -741,10 +742,10 @@ export const studySteps = pgTable(
     id: serial("id").notNull(),
     studyId: integer("study_id").notNull(),
     step: varchar("step", { length: 16, enum: STUDY_STEPS }).notNull(),
-    /** The unit: an angle (plan, ask, claims), a query (search), a URL (read), a kind (draft). */
+    /** The unit: an angle (plan, ask), a query (search), a URL (read, claims), a kind (draft). */
     key: text("key").notNull(),
     outcome: varchar("outcome", { length: 16, enum: STUDY_OUTCOMES }).notNull(),
-    /** The page a read stored. */
+    /** The page a read stored, or claims read. */
     documentId: integer("document_id"),
     /** What the unit found: queries, hits, sources, kept and dropped claims, the LLM envelope. */
     detail: jsonb("detail").notNull(),

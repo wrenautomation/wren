@@ -112,7 +112,7 @@ describe("a content line", () => {
       expect.arrayContaining([
         'Station "stray" is a read station, so it must be on a content line.',
         'Station "note" is on content line "films", which holds only find, read, extract, call, measure stations.',
-        'Find station "find2" names no SOP.',
+        'Find station "find2" names no SOP or study.',
         'Content line "films" needs one find station, not 2.',
         'Track "read_to_find2" enters find station "find2". A find station only opens.',
         'Track "call_to_book" joins a content station to another kind. An edge never changes what an instance is about.',

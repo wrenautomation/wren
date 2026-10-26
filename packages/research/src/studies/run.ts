@@ -4,21 +4,26 @@
  * at most the unit in flight and a re-run picks up where it stopped. A
  * `failed` unit is tried again; the other outcomes are final.
  *
- * Claims wait until every page an angle picked has a final read, and drafts
- * until every angle has its claims: a report is never drawn from half the
- * evidence and then frozen.
+ * Claims are per page, on every angle at once, and each kept claim is a `fact`
+ * finding on the page's document (designs/2026-10-25-ingestion-engine.md), so
+ * William can keep, tune or drop it. Drafts wait until every page has its
+ * claims, read only the claims he has not dropped, and are drawn again when
+ * that set changes: a report is never drawn from half the evidence and then
+ * frozen.
  */
 import { createHash } from "node:crypto";
 import type { SiteClient } from "@wren/core/content";
+import { recordCall } from "@wren/core/decide";
+import { STUDY_SLUG } from "@wren/core/logic";
 import type { Queryable } from "@wren/db";
 import { completeAndParse, type LlmClient, LlmError, type Tracer } from "@wren/llm";
-import { and, asc, eq, gte, inArray, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import type { ZodType } from "zod";
 import { keepDocument, keepingAnswers } from "../findings.js";
-import type { EvidencePage } from "../grounding.js";
 import { Capped, paced, realSleep, refusedBy } from "../pacing.js";
 import {
   documents,
+  findings,
   STUDY_STEPS,
   type Study,
   type StudyDraftSpec,
@@ -33,7 +38,6 @@ import {
   buildPlanPrompt,
   type Claim,
   ClaimProposals,
-  type DroppedClaim,
   gateClaims,
   planQueries,
   QueryPlan,
@@ -47,7 +51,7 @@ import {
   gateDrafts,
   type NumberedClaim,
 } from "./drafts.js";
-import { angleEvidence, type Hit, pageKey, pickReads, terms } from "./evidence.js";
+import { type Hit, pageEvidence, pageKey, pickReads, terms } from "./evidence.js";
 import type { StudyInput } from "./recipes.js";
 
 const READS_PER_ANGLE = 6;
@@ -61,8 +65,6 @@ const PLAN_TOKENS = 400;
 const CLAIMS_TOKENS = 3_000;
 const DRAFT_TOKENS = 4_000;
 
-const SLUG = /^[a-z0-9][a-z0-9-]{1,79}$/;
-
 /** Make a study, or return the one already under this slug when it asks the same thing. */
 export async function openStudy(
   db: Queryable,
@@ -70,7 +72,7 @@ export async function openStudy(
   input: StudyInput,
   niche: string | null = null,
 ): Promise<Study> {
-  if (!SLUG.test(slug)) {
+  if (!STUDY_SLUG.test(slug)) {
     throw new Error(`study slug '${slug}': lowercase letters, digits and dashes, 2 to 80`);
   }
   if (!input.question.trim() || !input.angles.some((a) => a.trim())) {
@@ -164,9 +166,8 @@ interface HeldPage {
 
 /**
  * Add a page a person holds (a PDF, a saved paywalled page) as a `read`: the
- * next run claims from it in every angle, like a page it fetched. The same
- * text again is a no-op. A new page throws away the claims and drafts so the
- * next run redoes them with it.
+ * next run claims from it in every angle, like a page it fetched, and draws
+ * the drafts again with its claims. The same text again is a no-op.
  */
 export async function addStudyPage(
   db: Queryable,
@@ -197,9 +198,6 @@ export async function addStudyPage(
     text,
     fetchTier: "manual",
   });
-  await db
-    .delete(studySteps)
-    .where(and(eq(studySteps.studyId, study.id), inArray(studySteps.step, ["claims", "draft"])));
   const manual: ManualPage = {
     by: page.by,
     at: now.toISOString(),
@@ -291,6 +289,7 @@ export async function runStudy(
           sql`${studySteps.detail}->'manual' is null`,
         ),
       );
+    if (later.includes("claims")) await dropUncalledClaims(db, study.slug);
   }
   const rows = new Map<Unit, StudyStepRow>();
   for (const r of await db.select().from(studySteps).where(eq(studySteps.studyId, study.id))) {
@@ -490,65 +489,62 @@ export async function runStudy(
   }
 
   try {
+    const reads = [...rows.values()]
+      .filter((r) => r.step === "read" && r.outcome === "ok" && r.documentId)
+      .sort((a, b) => a.id - b.id);
     const pageText = await pagesById(
       db,
-      [...rows.values()].flatMap((r) => (r.step === "read" && r.documentId ? [r.documentId] : [])),
+      reads.map((r) => r.documentId ?? 0),
     );
-    for (const angle of study.angles) {
-      if (done("claims", angle)) continue;
-      const urls = readsOf(angle);
-      const reads = urls.map((u) => done("read", u));
-      if (
-        !done("plan", angle) ||
-        queriesOf(angle).some((q) => !done("search", q)) ||
-        reads.some((r) => !r)
-      ) {
-        stats.waiting++;
-        continue;
-      }
-      const pages: EvidencePage[] = reads.flatMap((r) =>
-        r?.outcome === "ok" && r.documentId && pageText.has(r.documentId)
-          ? [{ url: r.key, text: pageText.get(r.documentId) ?? "" }]
-          : [],
-      );
-      const evidence = angleEvidence(pages, terms(study.question, angle));
-      if (!evidence.length) {
-        await keep("claims", angle, "empty", { kept: [], dropped: [], pages: [] });
-        say(`claims "${angle}": no pages to read`);
-        continue;
-      }
+    const want = terms(study.question, ...study.angles);
+    for (const r of reads) {
+      if (done("claims", r.key) || !r.documentId) continue;
+      const text = pageText.get(r.documentId);
+      if (!text) continue;
+      const page = pageEvidence({ url: r.key, text }, want);
       const out = await ask(
-        buildClaimsPrompt(study.question, angle, evidence),
+        buildClaimsPrompt(study.question, study.angles, page),
         ClaimProposals,
         CLAIMS_TOKENS,
         "claims",
-        angle,
+        r.key,
       );
       const { kept, dropped } = out.parsed
-        ? gateClaims(out.parsed, evidence)
+        ? gateClaims(out.parsed, page, study.angles.length)
         : { kept: [], dropped: [] };
+      await keepClaims(db, study.slug, r.documentId, kept);
       await keep(
         "claims",
-        angle,
+        r.key,
         outcomeOf(out, kept.length),
-        out.envelope({ kept, dropped, pages: evidence.map((p) => p.url) }),
+        out.envelope({ kept: kept.length, dropped }),
+        r.documentId,
       );
       stats.claimed++;
       stats.kept += kept.length;
       stats.dropped += dropped.length;
-      say(`claims "${angle}": ${kept.length} kept, ${dropped.length} dropped`);
+      say(`claims ${r.key}: ${kept.length} kept, ${dropped.length} dropped`);
     }
 
     if (study.drafts.length) {
-      if (study.angles.some((a) => !done("claims", a))) {
-        stats.waiting += study.drafts.filter((d) => !done("draft", d.key)).length;
+      const open =
+        study.angles.some(
+          (a) =>
+            !done("plan", a) ||
+            queriesOf(a).some((q) => !done("search", q)) ||
+            readsOf(a).some((u) => !done("read", u)),
+        ) || reads.some((r) => !done("claims", r.key));
+      if (open) {
+        stats.waiting += study.drafts.length;
         return stats;
       }
-      const claims = numberClaims(study.angles.map((a) => claimsOf(done("claims", a))));
+      const claims = (await studyClaims(db, study.slug)).filter((c) => c.call !== "drop");
+      const basis = claimsBasis(claims);
       for (const spec of study.drafts) {
-        if (done("draft", spec.key)) continue;
+        const had = done("draft", spec.key);
+        if (had && (had.detail as DraftDetail).basis === basis) continue;
         if (!claims.length) {
-          await keep("draft", spec.key, "empty", { kept: [], dropped: [] });
+          await keep("draft", spec.key, "empty", { kept: [], dropped: [], basis });
           continue;
         }
         const out = await ask(
@@ -561,7 +557,12 @@ export async function runStudy(
         const { kept, dropped } = out.parsed
           ? gateDrafts(out.parsed, spec, claims)
           : { kept: [], dropped: [] };
-        await keep("draft", spec.key, outcomeOf(out, kept.length), out.envelope({ kept, dropped }));
+        await keep(
+          "draft",
+          spec.key,
+          outcomeOf(out, kept.length),
+          out.envelope({ kept, dropped, basis }),
+        );
         stats.drafted++;
         say(`draft ${spec.key}: ${kept.length} kept, ${dropped.length} dropped`);
       }
@@ -605,49 +606,199 @@ async function pagesById(db: Queryable, ids: readonly number[]): Promise<Map<num
   return new Map(found.map((d) => [d.id, d.text]));
 }
 
-const claimsOf = (row: StudyStepRow | null): Claim[] =>
-  (row?.detail as { kept?: Claim[] } | undefined)?.kept ?? [];
+/**
+ * The key of a study's claim: `doc:<document>/study:<slug>/<quote hash>`. The same quote read
+ * again is the same finding, so his call on it holds through a redo.
+ */
+export const claimKey = (document: number, slug: string, quote: string): string =>
+  `doc:${document}/study:${slug}/${createHash("sha256").update(quote).digest("hex").slice(0, 12)}`;
 
-/** Claims numbered in report order: angle by angle, as each angle ranked them. */
-function numberClaims(byAngle: readonly (readonly Claim[])[]): NumberedClaim[] {
-  return byAngle.flat().map((c, i) => ({ ...c, n: i + 1 }));
+/** Every claim of the study, on any document: its findings' keys match this. */
+const claimsLike = (slug: string) => `doc:%/study:${slug}/%`;
+
+/** A page's kept claims as `fact` findings on its document; his calls point at their keys. */
+async function keepClaims(
+  db: Queryable,
+  slug: string,
+  document: number,
+  claims: readonly Claim[],
+): Promise<void> {
+  if (!claims.length) return;
+  await db
+    .insert(findings)
+    .values(
+      claims.map((c) => ({
+        kind: "fact" as const,
+        factKey: claimKey(document, slug, c.quote),
+        value: { claim: c.claim, angle: c.angle },
+        documentId: document,
+        confidence: 1,
+        via: "study",
+        question: `angle/${c.angle}`,
+        proof: { quote: c.quote },
+        by: "model" as const,
+      })),
+    )
+    .onConflictDoUpdate({
+      target: findings.factKey,
+      set: { value: sql`excluded.value`, question: sql`excluded.question`, observedAt: sql`now()` },
+    });
 }
 
-/** Everything the report shows, read back from the steps. */
+/** Before claims are redone: the study's claims he has not called go; a called one stays. */
+async function dropUncalledClaims(db: Queryable, slug: string): Promise<void> {
+  await db.execute(sql`
+    delete from findings f
+    where f.kind = 'fact' and f.fact_key like ${claimsLike(slug)}
+      and not exists (select 1 from decision_calls c
+        where c.kind = 'finding' and c.subject = f.fact_key)`);
+}
+
+/** A claim as the report and drafts see it: its number, its finding and his newest call. */
+export interface StudyClaim extends NumberedClaim {
+  key: string;
+  /** keep, tune or drop; null when he has not called it. */
+  call: string | null;
+  comment: string | null;
+}
+
+/**
+ * Every claim of the study in report order (angle by angle, pages in read order, each page's own
+ * order), numbered from 1. A dropped claim keeps its number, so the numbers move only when a run
+ * adds claims.
+ */
+export async function studyClaims(db: Queryable, slug: string): Promise<StudyClaim[]> {
+  const study = await studyBySlug(db, slug);
+  const rows = (await db.execute(sql`
+    select f.fact_key as key, f.value, f.proof, d.url, c.label as call, c.comment
+    from findings f
+    join documents d on d.id = f.document_id
+    left join lateral (select x.label, x.comment from decision_calls x
+      where x.kind = 'finding' and x.subject = f.fact_key
+      order by x.at desc, x.id desc limit 1) c on true
+    left join lateral (select min(s.id) as at from study_steps s
+      where s.study_id = ${study.id} and s.step = 'read' and s.document_id = f.document_id) r on true
+    where f.kind = 'fact' and f.fact_key like ${claimsLike(slug)}
+    order by (f.value->>'angle')::int, r.at nulls last, f.id`)) as unknown as {
+    key: string;
+    value: { claim: string; angle: number };
+    proof: { quote: string };
+    url: string;
+    call: string | null;
+    comment: string | null;
+  }[];
+  return rows.map((r, i) => ({
+    n: i + 1,
+    key: r.key,
+    angle: Number(r.value.angle),
+    claim: r.value.claim,
+    quote: r.proof.quote,
+    source_url: r.url,
+    call: r.call,
+    comment: r.comment,
+  }));
+}
+
+export const CLAIM_CALLS = ["keep", "tune", "drop"] as const;
+export type ClaimCall = (typeof CLAIM_CALLS)[number];
+
+/**
+ * His call on claims by their report numbers: keep, tune (keep, with his words) or drop. A
+ * dropped claim leaves the drafts; the next run draws them again.
+ */
+export async function callStudyClaims(
+  db: Queryable,
+  slug: string,
+  numbers: readonly number[],
+  call: ClaimCall,
+  by: string,
+  comment: string | null = null,
+): Promise<StudyClaim[]> {
+  const claims = await studyClaims(db, slug);
+  const picked = numbers.map((n) => {
+    const c = claims.find((x) => x.n === n);
+    if (!c) throw new Error(`study '${slug}' has no claim ${n} (1 to ${claims.length})`);
+    return c;
+  });
+  if (call === "tune" && !comment?.trim()) throw new Error("tune needs your words: --why");
+  for (const c of picked) {
+    await recordCall(db, {
+      kind: "finding",
+      subject: c.key,
+      label: call,
+      source: "cli",
+      by,
+      comment: comment?.trim() || null,
+    });
+  }
+  return picked;
+}
+
+/** What a draft was drawn from: the claims he had not dropped, by key and number. */
+const claimsBasis = (claims: readonly StudyClaim[]): string =>
+  createHash("sha256")
+    .update(claims.map((c) => `${c.n} ${c.key}`).join("\n"))
+    .digest("hex")
+    .slice(0, 16);
+
+interface DraftDetail {
+  kept?: DraftItem[];
+  dropped?: DroppedDraft[];
+  basis?: string;
+}
+
+/** Everything the report shows, read back from the steps and the claims. */
 export interface StudyView {
   study: Study;
-  angles: { angle: string; claims: NumberedClaim[]; dropped: DroppedClaim[]; done: boolean }[];
-  drafts: { spec: StudyDraftSpec; kept: DraftItem[]; dropped: DroppedDraft[]; done: boolean }[];
+  angles: { angle: string; claims: StudyClaim[] }[];
+  /** A draft is stale when his calls or new claims changed what it would be drawn from. */
+  drafts: {
+    spec: StudyDraftSpec;
+    kept: DraftItem[];
+    dropped: DroppedDraft[];
+    done: boolean;
+    stale: boolean;
+  }[];
   /** Page titles by URL, for the sources list. */
   titles: Map<string, string>;
   /** Pages added by hand, by URL: the report says who and when. */
   manual?: Map<string, ManualPage>;
-  counts: { queries: number; pages: number; unread: number };
+  counts: {
+    queries: number;
+    pages: number;
+    unread: number;
+    /** Claims the quote check dropped. */
+    gated: number;
+    /** Pages read and not yet claimed from. */
+    waiting: number;
+  };
 }
 
-export async function studyView(db: Queryable, slug: string, since?: Date): Promise<StudyView> {
+export async function studyView(db: Queryable, slug: string): Promise<StudyView> {
   const study = await studyBySlug(db, slug);
-  const where = since
-    ? and(eq(studySteps.studyId, study.id), gte(studySteps.createdAt, since))
-    : eq(studySteps.studyId, study.id);
-  const rows = await db.select().from(studySteps).where(where).orderBy(asc(studySteps.id));
+  const rows = await db
+    .select()
+    .from(studySteps)
+    .where(eq(studySteps.studyId, study.id))
+    .orderBy(asc(studySteps.id));
   const final = (step: StudyStep, key: string) =>
     rows.find((r) => r.step === step && r.key === key && r.outcome !== "failed") ?? null;
-  const perAngle = study.angles.map((a) => final("claims", a));
-  const numbered = numberClaims(perAngle.map(claimsOf));
-  let n = 0;
-  const angles = study.angles.map((angle, i) => {
-    const row = perAngle[i] ?? null;
-    const count = claimsOf(row).length;
-    const claims = numbered.slice(n, n + count);
-    n += count;
-    const dropped = (row?.detail as { dropped?: DroppedClaim[] } | undefined)?.dropped ?? [];
-    return { angle, claims, dropped, done: row !== null };
-  });
+  const claims = await studyClaims(db, slug);
+  const angles = study.angles.map((angle, i) => ({
+    angle,
+    claims: claims.filter((c) => c.angle === i),
+  }));
+  const basis = claimsBasis(claims.filter((c) => c.call !== "drop"));
   const drafts = study.drafts.map((spec) => {
     const row = final("draft", spec.key);
-    const d = (row?.detail ?? {}) as { kept?: DraftItem[]; dropped?: DroppedDraft[] };
-    return { spec, kept: d.kept ?? [], dropped: d.dropped ?? [], done: row !== null };
+    const d = (row?.detail ?? {}) as DraftDetail;
+    return {
+      spec,
+      kept: d.kept ?? [],
+      dropped: d.dropped ?? [],
+      done: row !== null,
+      stale: row !== null && d.basis !== basis,
+    };
   });
   const titles = new Map<string, string>();
   const manual = new Map<string, ManualPage>();
@@ -657,6 +808,7 @@ export async function studyView(db: Queryable, slug: string, since?: Date): Prom
     const m = r.step === "read" ? manualOf(r) : null;
     if (m) manual.set(r.key, m);
   }
+  const ok = rows.filter((r) => r.step === "read" && r.outcome === "ok");
   return {
     study,
     angles,
@@ -665,8 +817,12 @@ export async function studyView(db: Queryable, slug: string, since?: Date): Prom
     manual,
     counts: {
       queries: rows.filter((r) => r.step === "search" && r.outcome !== "failed").length,
-      pages: rows.filter((r) => r.step === "read" && r.outcome === "ok").length,
+      pages: ok.length,
       unread: rows.filter((r) => r.step === "read" && r.outcome !== "ok").length,
+      gated: rows
+        .filter((r) => r.step === "claims")
+        .reduce((n, r) => n + ((r.detail as { dropped?: unknown[] }).dropped?.length ?? 0), 0),
+      waiting: ok.filter((r) => !final("claims", r.key)).length,
     },
   };
 }

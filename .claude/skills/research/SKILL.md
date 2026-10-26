@@ -14,6 +14,7 @@ Run the CLI as `./bin/wren` from the repo root. Studies live in the main databas
 ./bin/wren study new <slug> --vertical "<who>" --sells "<what>" [--rules <file>] [--niche <n>]
 ./bin/wren study run <slug> [--ask] [--llm <spec>] [--redo <step>]
 ./bin/wren study report <slug> [--out <file>]
+./bin/wren study call <slug> keep|tune|drop <n...> [--why "…"]   # your call on claims by report number
 ./bin/wren study list
 ```
 
@@ -22,7 +23,8 @@ Run the CLI as `./bin/wren` from the repo root. Studies live in the main databas
 - **`--vertical`** fills five angles (owner pains, benchmarks, how they win clients, their buying calendar, competitors and complaints) and two drafts: 5 offers and 3 first-touch emails. `--rules` replaces the default email rules.
 - **`study run`** does what is left: plan queries, search, read, pull claims, draft. Ctrl-C and run again to resume. A cap prints when to retry.
 - **`--ask`** also asks Perplexity per angle and reads its sources. It caps at 100 a day, so use it for thin angles only.
-- **`--redo <step>`** throws away that step and later ones. `--redo claims --llm <stronger model>` rewrites claims and drafts from pages already read, with no new fetching.
+- **`--redo <step>`** throws away that step and later ones. `--redo claims --llm <stronger model>` rewrites claims and drafts from pages already read, with no new fetching. A claim with a call survives a redo.
+- **`study call`** keeps, tunes (needs `--why`) or drops claims. A dropped claim is struck in the report and leaves the drafts; the next `run` redraws them. Numbers stay stable.
 
 ## Models
 
@@ -57,5 +59,6 @@ Read only: it shows what the runners wrote (findings, enrichments, checks, email
 ## Rules
 
 - Claims drop when their quote isn't on the page, or when a number in the claim isn't in the quote. A dropped claim is not a finding.
+- Each kept claim is a `fact` finding on its page (key `doc:<id>/study:<slug>/<hash>`), so the study is a content line: a find station that names the study puts its pages on Wren's map, and your calls move them.
 - Pages are kept as documents. Re-running never re-fetches a page already read.
 - Never put a price in an email or on a page.

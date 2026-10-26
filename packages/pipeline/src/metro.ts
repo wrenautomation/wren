@@ -29,6 +29,7 @@ import {
   type ShapeCheckContext,
   SOP_NAME,
   STAGE_KEY,
+  STUDY_SLUG,
   type Via,
 } from "./model.js";
 
@@ -173,6 +174,8 @@ export interface MetroStation {
   flow?: string;
   /** Find: the SOP whose finds enter the line (the tag the hunt and his saves give them). */
   sop?: string;
+  /** Find: the study whose read pages enter the line; a find names this or `sop`. */
+  study?: string;
   /** The retry chip: the cap, 1 to 10. */
   retries?: number;
   /**
@@ -625,6 +628,9 @@ function checkStations(
     if (s.sop !== undefined && s.kind !== "find") {
       errors.push(`Station "${k}" names an SOP but is not a find station.`);
     }
+    if (s.study !== undefined && s.kind !== "find") {
+      errors.push(`Station "${k}" names a study but is not a find station.`);
+    }
     if (s.flow !== undefined && s.kind !== "link") {
       errors.push(`Station "${k}" names a flow but is not a link.`);
     }
@@ -692,7 +698,13 @@ function checkContent(
         errors.push(`Station "${k}" is a ${s.kind} station and takes no ${field}.`);
     }
     if (s.kind === "find") {
-      if (!s.sop) errors.push(`Find station "${k}" names no SOP.`);
+      if (s.sop && s.study) errors.push(`Find station "${k}" names an SOP and a study. Name one.`);
+      else if (s.study) {
+        if (!STUDY_SLUG.test(s.study))
+          errors.push(
+            `Find station "${k}" names study "${s.study}". Use lowercase letters, digits and dashes.`,
+          );
+      } else if (!s.sop) errors.push(`Find station "${k}" names no SOP or study.`);
       else if (!SOP_NAME.test(s.sop))
         errors.push(
           `Find station "${k}" names SOP "${s.sop}". Use lowercase letters, digits and dashes.`,

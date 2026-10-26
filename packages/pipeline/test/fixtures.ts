@@ -702,3 +702,19 @@ export const withFilms = (): MetroBody => {
   );
   return b;
 };
+
+/** The films map plus a study line: find (the study's pages) → extract → call. */
+export const withStudy = (slug = "placements"): MetroBody => {
+  const b = withFilms();
+  b.lines.push({ id: "study", label: "Study", tier: "content", colour: 4 });
+  b.stations.push(
+    { id: "sfind", label: "Find", kind: "find", line: "study", column: "marketing", study: slug },
+    { id: "sextract", label: "Extract", kind: "extract", line: "study", column: "marketing" },
+    { id: "scall", label: "Call", kind: "call", line: "study", column: "sales" },
+  );
+  b.tracks.push(
+    { id: "sfind_to_sextract", from: "sfind", to: "sextract", line: "study", by: "system" },
+    { id: "sextract_to_scall", from: "sextract", to: "scall", line: "study", by: "system" },
+  );
+  return b;
+};

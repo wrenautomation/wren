@@ -128,9 +128,10 @@ const leadFit: KindSpec = {
 
 /**
  * One finding on a document (designs/2026-10-25-ingestion-engine.md): a hook, a beat, a call to
- * action, a post's shape, a film's shot. His call says whether Wren's own pieces should do the
- * same: keep it, tune it (keep, with a change he names), or drop it. Only he is asked today
- * (`off`): the machine learns the rules from his calls, it does not make them.
+ * action, a post's shape, a film's shot, or a study's claim with its quote. His call says whether
+ * Wren should act on it: keep it, tune it (keep, with a change he names), or drop it. A dropped
+ * claim leaves the study's report and drafts. Only he is asked today (`off`): the machine learns
+ * the rules from his calls, it does not make them.
  */
 const finding: KindSpec = {
   kind: "finding",
@@ -139,11 +140,11 @@ const finding: KindSpec = {
     [PICK]: {
       type: "choice",
       instructions:
-        "`fact` is one part of how a competitor's piece is made (its hook, a beat, its call to action, a shot). Should Wren's own pieces do the same? `focus` is what Wren makes.",
+        "`fact` is one part of how a competitor's piece is made (its hook, a beat, its call to action, a shot), or a claim a study drew from a page with its quote. Should Wren act on it? `focus` is what Wren makes.",
       criteria: {
-        keep: "Wren's pieces should do this as it is.",
-        tune: "Worth doing, with a change: the owner would say what.",
-        drop: "Wren's pieces should not do this.",
+        keep: "Wren should act on this as it is.",
+        tune: "Worth acting on, with a change: the owner would say what.",
+        drop: "Wren should not act on this; a claim leaves the report and drafts.",
       },
     },
   },

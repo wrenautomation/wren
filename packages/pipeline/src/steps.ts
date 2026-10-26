@@ -12,7 +12,15 @@ import { profileEvents } from "@wren/core/profiles-schema";
 import { atomic, type Db } from "@wren/db";
 import { desc, eq } from "drizzle-orm";
 import { attributionOf, withAdCampaign } from "./attribution.js";
-import { type CauseFacts, entryOf, liveSources, MANUAL, opensAt, sourceEdge } from "./entry.js";
+import {
+  type CauseFacts,
+  entryOf,
+  foundBy,
+  liveSources,
+  MANUAL,
+  opensAt,
+  sourceEdge,
+} from "./entry.js";
 import { openDocument, openJourney, ownerOf, personOf, textOf, versionOf } from "./journeys.js";
 import {
   type Crossing,
@@ -96,12 +104,14 @@ export function factsOf(data: Record<string, unknown>): CauseFacts {
   // A group's entered event carries its id as `segment`.
   const group = textOf(data.group) ?? textOf(data.segment);
   const sop = textOf(data.sop);
+  const study = textOf(data.study);
   if (entry) f.entry = entry;
   if (channel) f.channel = channel;
   if (campaign) f.campaign = campaign;
   if (source) f.source = source;
   if (group) f.group = group;
   if (sop) f.sop = sop;
+  if (study) f.study = study;
   return f;
 }
 
@@ -185,7 +195,8 @@ export function journeySteps(d: JourneyStepDeps): Record<string, Step> {
     const document = Number(e.data.document);
     if (!Number.isSafeInteger(document) || document <= 0) return null;
     const { body } = loaded;
-    const sop = factsOf(e.data).sop;
+    const cause = factsOf(e.data);
+    const { sop, study } = cause;
     const stamp = now().toISOString();
     return atomic(db, async (tx) => {
       const open = await openDocument(tx, document, version);
@@ -213,10 +224,10 @@ export function journeySteps(d: JourneyStepDeps): Record<string, Step> {
           skipped: passedThrough(body, path),
         };
       }
-      // Only the newest version opens, and only from the find of the SOP the cause names.
-      if (version !== loaded.newest || !sop) return null;
+      // Only the newest version opens, and only from the find of the SOP or study the cause names.
+      if (version !== loaded.newest || !(sop || study)) return null;
       const src = liveSources(body).find(
-        (s) => s.via === "found" && s.sop === sop && sourceEdge(body, s.id, to),
+        (s) => s.via === "found" && foundBy(s, cause) && sourceEdge(body, s.id, to),
       );
       const edge = src ? sourceEdge(body, src.id, to) : undefined;
       if (!src || !edge || open.some((j) => j.entry === src.id)) return null;
@@ -229,8 +240,12 @@ export function journeySteps(d: JourneyStepDeps): Record<string, Step> {
           node: to,
           trail: [{ edge: edge.id, from: src.id, to, at: stamp }],
           entry: src.id,
-          // The SOP is the line: a renamed find station must not let a document in again.
-          entryRef: { subject: e.subject, cause: causeOf(e, now()), sop },
+          // The SOP or study is the line: a renamed find station must not let a document in again.
+          entryRef: {
+            subject: e.subject,
+            cause: causeOf(e, now()),
+            ...(study ? { study } : { sop }),
+          },
           openedAt: now(),
           movedAt: now(),
         })

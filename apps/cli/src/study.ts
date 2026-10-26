@@ -2,8 +2,9 @@
  * `wren study …`: research a question from the open web into a report where
  * every line cites a quote on a page we read. `study new` saves the question,
  * `study run` does whatever is left (Ctrl-C and run again to resume),
- * `study report` prints it. `study add-page` adds a page we hold (a PDF, a
- * paywalled page saved to disk). Always the main database.
+ * `study report` prints it, `study call` keeps, tunes or drops its claims.
+ * `study add-page` adds a page we hold (a PDF, a paywalled page saved to
+ * disk). Always the main database.
  */
 
 import { readFileSync, writeFileSync } from "node:fs";
@@ -17,6 +18,9 @@ import { loadLlmEnv, makeLlm } from "@wren/llm";
 import { STUDY_STEPS, type StudyStep, studies } from "@wren/research/schema";
 import {
   addStudyPage,
+  CLAIM_CALLS,
+  type ClaimCall,
+  callStudyClaims,
   openStudy,
   questionStudy,
   runStudy,
@@ -164,7 +168,7 @@ export function registerStudy(
         };
         const { key, added } = await withDb((db) => addStudyPage(db, slug, page));
         if (!added) return void console.log(`already in ${slug} as ${key}`);
-        console.log(`added ${key} (${page.text.length} chars); claims and drafts will be redone`);
+        console.log(`added ${key} (${page.text.length} chars); the next run claims from it`);
         console.log(`next: wren study run ${slug}`);
       },
     );
@@ -178,6 +182,25 @@ export function registerStudy(
       if (!opts.out) return void process.stdout.write(text);
       writeFileSync(resolve(opts.out), text);
       console.log(`wrote ${opts.out}`);
+    });
+
+  study
+    .command("call <slug> <call> <numbers...>")
+    .description(`your call on claims by their report numbers: ${CLAIM_CALLS.join(", ")}`)
+    .option("--why <words>", "your words with it (tune needs them)")
+    .action(async (slug: string, call: string, numbers: string[], opts: { why?: string }) => {
+      if (!(CLAIM_CALLS as readonly string[]).includes(call))
+        throw new Error(`call is one of: ${CLAIM_CALLS.join(", ")}`);
+      const ns = numbers.map((n) => {
+        const v = Number(n);
+        if (!Number.isInteger(v) || v < 1) throw new Error(`'${n}' is not a claim number`);
+        return v;
+      });
+      const called = await withDb((db) =>
+        callStudyClaims(db, slug, ns, call as ClaimCall, userInfo().username, opts.why ?? null),
+      );
+      for (const c of called) console.log(`[${c.n}] ${call}: ${c.claim}`);
+      if (call === "drop") console.log(`drafts redo on the next run: wren study run ${slug}`);
     });
 
   study
