@@ -12,7 +12,7 @@ Prod from here: `node scripts/prod-sql.mjs "<sql>"` (read only), `node scripts/i
 Secrets: `node scripts/secrets.mjs keys <file|/ssm/name>` (names only) or `run <source> -- <cmd>` (output masked).
 
 Shipping: `./scripts/gates.sh changed` while building, commit with `git commit -- <paths>` (other sessions stage files
-here), then `scripts/push.sh <commit>`: pushes, waits for CI's gates and the deploy (no local rerun: CI is the judge),
+here), then `scripts/push.sh <commit>`: pushes (one push at a time; merges origin/main in if it moved), waits for CI's gates and the deploy (no local rerun: CI is the judge),
 then brings the folder copy up to origin/main. CI builds beside the gates and deploys `main` once lint, unit and schema pass; story tests and integration report on their own. An env change: `deploy/scripts/push-secrets.sh` (diff SSM first, it overwrites the whole parameter),
 then `gh workflow run deploy.yml --ref main`.
 

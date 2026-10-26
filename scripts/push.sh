@@ -1,45 +1,85 @@
 #!/bin/sh
 # Push one commit to main, then wait for CI's gates and the deploy. Last line: "RESULT <sha> ci=<c> deploy=<d>".
-#   scripts/push.sh <commit>    the commit must contain origin/main (cherry-pick onto it first)
+#   scripts/push.sh <commit>
 # CI is the judge: no local copy of its checks (2026-10-22: they ran twice and doubled the wait).
 # Check what you changed while you build (`gates.sh changed` or `ui`); CI runs the rest once.
-# Only the main session pushes, one push at a time; builders commit and say ready.
+# Any session may push. Pushes take turns on a lock; the CI watch runs outside it.
+# If origin/main moved past the commit, the push merges it in (a merge commit) and pushes that.
 set -eu
 W=${WREN_PUSH_DIR:-$HOME/worktrees/wren-push}
+L=/tmp/wren_automation-push.lock
+
+# --push <sha>: the part under the lock. Prints the pushed sha (the commit, or its merge with origin/main).
+if [ "${1:-}" = --push ]; then
+  sha=$2
+  cd "$W"
+  # Two sessions shared this worktree with no lock: one's checkout moved HEAD under the other's
+  # pre-push typecheck (10-26 review). The lock makes the checkout, install and push one unit.
+  fetch() { for _ in 1 2 3; do git fetch -q origin && return 0; sleep 10; done; return 1; }
+  # A run killed mid-merge leaves the worktree dirty; the next one starts clean.
+  git merge --abort 2>/dev/null || :
+  for _ in 1 2 3 4 5; do
+    fetch
+    head=$sha
+    if ! git merge-base --is-ancestor origin/main "$sha"; then
+      # Another session pushed first. Merge, never rebase: the commit keeps its sha in every checkout.
+      git checkout -q -f --detach "$sha"
+      git merge -q --no-edit -m "Merge origin/main into $(git log -1 --format=%h "$sha")" origin/main >&2 ||
+        { git merge --abort 2>/dev/null; echo "$sha conflicts with origin/main: merge it by hand" >&2; exit 1; }
+      head=$(git rev-parse HEAD)
+    fi
+    # The pre-push hook (.githooks: biome, cached typecheck) needs this commit's packages installed.
+    git checkout -q -f --detach "$head"
+    lock=$(git rev-parse HEAD:pnpm-lock.yaml) seen="$(git rev-parse --git-dir)/push-installed"
+    [ "$lock" = "$(cat "$seen" 2>/dev/null)" ] ||
+      { pnpm install --frozen-lockfile --prefer-offline --reporter=silent >&2 && echo "$lock" > "$seen"; }
+    # The given commit, never a local ref: other sessions commit to main meanwhile.
+    if out=$(git push -q origin "$head:main" 2>&1); then
+      echo "$head"
+      exit 0
+    fi
+    echo "$out" >&2
+    # A rejected push (origin moved) merges again; a network fault waits and tries again. Anything
+    # else, such as a red pre-push hook, is the commit's to fix.
+    case $out in
+      *"[rejected]"* | *"fetch first"* | *"non-fast-forward"*) ;;
+      *"Could not read from remote"* | *"Could not resolve host"* | *"RPC failed"* | *"early EOF"* | \
+        *"Operation timed out"* | *"Connection reset"* | *"Connection refused"* | *"returned error: 5"*) sleep 20 ;;
+      *) exit 1 ;;
+    esac
+  done
+  echo "push failed 5 times" >&2
+  exit 1
+fi
 
 sha=$(git rev-parse --verify "${1:?usage: scripts/push.sh <commit>}^{commit}")
 C=$(git rev-parse --show-toplevel)
-[ -d "$W" ] || git worktree add -q --detach "$W" origin/main
-cd "$W"
-git fetch -q origin
-git merge-base --is-ancestor origin/main "$sha" ||
-  { echo "$sha does not contain origin/main: cherry-pick it onto origin/main first" >&2; exit 1; }
+[ -d "$W" ] || { git fetch -q origin && git worktree add -q --detach "$W" origin/main; }
 
-# GitHub's 500s come in outages: wait for Actions and Git to be up, then push (3 tries).
+# GitHub's 500s come in outages: wait while Git is down, up to 30 min. A degraded Actions only
+# delays CI. The status page itself can be down or lag: then go on. PUSH_NOW=1 skips the check.
 up() {
-  curl -s https://www.githubstatus.com/api/v2/components.json | python3 -c "import json,sys
+  [ "${PUSH_NOW:-}" = 1 ] && return 0
+  page=$(curl -fsS --max-time 15 https://www.githubstatus.com/api/v2/components.json 2>/dev/null) || return 0
+  echo "$page" | python3 -c "import json,sys
 c={x['name']:x['status'] for x in json.load(sys.stdin)['components']}
-sys.exit(0 if c.get('Actions')=='operational' and c.get('Git Operations')=='operational' else 1)"
+if c.get('Actions')!='operational': print('Actions is '+str(c.get('Actions'))+': CI may run late', file=sys.stderr)
+sys.exit(0 if c.get('Git Operations')=='operational' else 3)" || [ $? -ne 3 ]
 }
-until up; do echo "waiting for GitHub"; sleep 120; done
-# The pre-push hook (.githooks: biome, cached typecheck) needs this commit's packages installed.
-# The pusher worktree is outside Documents (VS Code) and other sessions' unsaved work.
-git checkout -q --detach "$sha"
-lock=$(git rev-parse HEAD:pnpm-lock.yaml) seen="$(git rev-parse --git-dir)/push-installed"
-[ "$lock" = "$(cat "$seen" 2>/dev/null)" ] ||
-  { pnpm install --frozen-lockfile --prefer-offline --reporter=silent && echo "$lock" > "$seen"; }
-# The given commit, never a local ref: other sessions commit to main meanwhile.
-for try in 1 2 3; do git push -q origin "$sha:main" && break; [ $try = 3 ] && exit 1; sleep 30; done
+for _ in $(seq 1 15); do up && break; echo "waiting for GitHub Git Operations (PUSH_NOW=1 to skip)"; sleep 120; done
+
+lockf -s -t 0 "$L" true || echo "==> waiting for another push to finish"
+sha=$(lockf -s "$L" sh "$0" --push "$sha")
 echo "pushed $sha"
 
-# The ci run for this sha (deploy is its last job).
-for _ in $(seq 1 40); do
-  run=$(gh run list -w ci -b main -L 10 --json databaseId,headSha \
+# The ci run for this sha (deploy is its last job). A busy Actions can take minutes to start it.
+for _ in $(seq 1 120); do
+  run=$(gh run list -w ci -b main -L 20 --json databaseId,headSha \
     -q "[.[] | select(.headSha == \"$sha\")] | max_by(.databaseId) | .databaseId // empty" 2>/dev/null) || run=
   [ -n "$run" ] && break
   sleep 5
 done
-[ -n "$run" ] || { echo "RESULT $sha ci=missing deploy=none"; exit 1; }
+[ -n "$run" ] || { echo "pushed, but no ci run started in 10 min"; echo "RESULT $sha ci=missing deploy=none"; exit 1; }
 echo "ci run $run"
 
 # The gates' joint conclusion and the deploy job's, once both are known; API errors retry. The
@@ -56,13 +96,17 @@ STATUS='[.jobs[] | select(.name == "lint" or .name == "unit" or .name == "schema
      else ($g | map(select(.conclusion != "success")) | first | .conclusion) end) as $ci
   | "\($ci) \(if $d and $d.status == "completed" then $d.conclusion
               elif $ci == "pending" or $ci == "success" then "pending" else "none" end)"'
-while :; do
+# A run takes ~2 min; 40 min means a stuck runner or a lost network, not a slow gate.
+end=$(($(date +%s) + 2400))
+set -- timeout none
+while [ "$(date +%s)" -lt "$end" ]; do
   out=$(gh api "repos/{owner}/{repo}/actions/runs/$run/jobs?filter=latest" --jq "$STATUS" 2>/dev/null) ||
     { sleep 10; continue; }
   set -- $out
   [ "$1" = pending ] || [ "$2" = pending ] || break
   sleep 5
 done
+[ "$1" = pending ] && set -- timeout "$2"
 # The folder copy this ran from follows main (10-22: it fell 44 commits behind and ran an old
 # push.sh). Its own commits stay (a merge); a conflict or a local edit in the way leaves it as is.
 if [ "$(git -C "$C" symbolic-ref -q --short HEAD)" = main ]; then

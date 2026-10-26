@@ -4,8 +4,18 @@
 # elsewhere in the checkout never block it, so push without --no-verify.
 # Fix with `pnpm biome check --write <file>`.
 set -e
-base=$(git merge-base HEAD '@{u}' 2>/dev/null || git rev-parse HEAD~1)
-files=$(git diff --name-only --diff-filter=ACMR "$base" HEAD)
+# Base: what the remote has (git hands it on stdin). The push worktree is detached with no
+# upstream, so HEAD~1 checked only the last of several commits (10-26).
+zero=0000000000000000000000000000000000000000
+base= head=
+while read -r _ lsha _ rsha; do
+  [ "$lsha" = "$zero" ] && continue
+  head=$lsha
+  [ "$rsha" != "$zero" ] && git cat-file -e "$rsha^{commit}" 2>/dev/null && base=$(git merge-base "$rsha" "$lsha")
+done
+[ -n "$head" ] || exit 0
+[ -n "$base" ] || base=$(git merge-base "$head" origin/main 2>/dev/null || git rev-parse "$head~1")
+files=$(git diff --name-only --diff-filter=ACMR "$base" "$head")
 [ -z "$files" ] && exit 0
 # shellcheck disable=SC2086 # one path per word; repo paths have no spaces
 pnpm -s biome check --no-errors-on-unmatched $files
