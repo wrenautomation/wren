@@ -14,7 +14,8 @@
  *            the page is final (no claims is an answer).
  *   call     his console or CLI call on the whole document (`doc:<id>`): a mark (star, save, SOP
  *            add) is no call, and a fact call tunes the standard only. Study: also when every
- *            claim of the study on the page has his call.
+ *            claim of the study on the page has his call; a page with no claims has nothing to
+ *            call and ends at once.
  *   measure  never yet
  *
  * Wren's workspace only: Learn items, studies, their documents and his calls are Wren's for now.

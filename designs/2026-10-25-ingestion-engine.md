@@ -235,6 +235,9 @@ Logged-in finds and reads (IG, LinkedIn, X) use the reach engine's shared reads
   (`shape.v7 left out` in the worker log). The check now takes an SOP name or a study slug, one of
   them (`logicProblems`). Lesson: a station field that changes a trigger's shape needs the trigger's
   check in `logic.ts` too, and a `soundShapes` test on the metro fixture, not only `metroOf`.
+  Seen on prod the same hour: a page the model read with no claims ends at call at once (nothing to
+  call), so the study's 6 instances went 4 done, 2 at call for his claim calls. Kept: a page held
+  at call with nothing on it would be noise.
 - 2026-10-25: commit 3a's FK (`learn.items.document_id` → `documents`) reached every client
   database, so `truncate documents cascade` (the demo reset) failed on `learn.items` for the
   client login. `learn` joins `CLIENT_SCHEMAS`: a client's own Learn rows, none yet. It also ends
