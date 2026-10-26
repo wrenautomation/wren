@@ -2,6 +2,9 @@
  * The portal Storybook's preview: `@wren/ui`'s frame over the app's stylesheet, and a fake server
  * (MSW) started before each story. A story's answers are `parameters.msw` (`web/src/mocks/`).
  * The `data` toolbar's Messy answers every call as prod looks (`setMessy`, mocks/api.ts).
+ * The sidebar sorts pages by how far they are from the artifacts: Revamp (no artifact draws it),
+ * Ready to build (an artifact draws it, the page doesn't follow it yet), Done. Each story file
+ * keeps its old id, so `pages-wren--<app>` links still open.
  */
 import "../web/src/app.css";
 import type { Decorator, Preview } from "@storybook/react-vite";
@@ -33,4 +36,8 @@ export default {
   },
   initialGlobals: { ...preview.initialGlobals, data: "tidy" },
   loaders: [mswLoader()],
+  parameters: {
+    ...preview.parameters,
+    options: { storySort: { order: ["Revamp", "Ready to build", "Done"] } },
+  },
 } satisfies Preview;
