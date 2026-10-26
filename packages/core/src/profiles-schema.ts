@@ -55,6 +55,7 @@ export const TIMELINE_KINDS = [
   "trait",
   "merge",
   "journey",
+  "finding",
 ] as const;
 export type TimelineKind = (typeof TIMELINE_KINDS)[number];
 export const TIMELINE_KIND_NAMES: Readonly<Record<TimelineKind, string>> = {
@@ -75,6 +76,7 @@ export const TIMELINE_KIND_NAMES: Readonly<Record<TimelineKind, string>> = {
   trait: "Trait changed",
   merge: "Merged",
   journey: "Journey",
+  finding: "Finding",
 };
 
 export const profiles = pgTable(

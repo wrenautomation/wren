@@ -49,6 +49,8 @@ const rowNumbers = (r: NumberRow): NodeNumbers => ({
   left: r.left,
   medianDays: r.medianDays,
   opened: r.opened,
+  replied: r.replied,
+  booked: r.booked,
   deals: r.deals,
   collected: sum(r.collected, r.currency),
   scheduled: sum(r.scheduled, r.currency),

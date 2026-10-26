@@ -52,6 +52,8 @@ const row = (id: string, n: Partial<NodeNumbers>): [string, NodeNumbers] => [
     left: null,
     medianDays: null,
     opened: null,
+    replied: null,
+    booked: null,
     deals: null,
     collected: null,
     scheduled: null,

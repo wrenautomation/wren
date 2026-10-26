@@ -35,6 +35,7 @@ William, 2026-10-07: "10 comments a day on others' posts", all gated for his app
 
 - **joins:** [[content/platform-object]] (`ref` is keyed to it; a fold keeps the kept row, `onpost:<id>` items and `rp:` touches follow)
 - **joins:** [[content/comment-proof]] (each sent comment checked at 2 min, 1 h, 24 h: live, hidden or missing)
+- **joins:** [[content/pain-point]] (the pain points line reads the kept posts at or over `minFit` once each for a pain the author states; the comment draft here is that line's outreach)
 - **joins:** [[leads/touch]] (ours on their post: `rp:<id>` comment, `rp:<id>:like`, `rp:<id>:follow`; `touchesFromReachPost`)
 - **joins:** [[content/linkedin-invite]] (key people: invited and connected), [[content/draft-event]] (`onpost:` items)
 - **looks-like-but-is-not:** [[content/comment]], comments others leave on our posts

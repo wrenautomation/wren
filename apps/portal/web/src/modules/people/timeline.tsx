@@ -37,6 +37,8 @@ export const KIND_ICONS: Readonly<Record<string, IconName>> = {
   workflow: "bolt",
   trait: "edit",
   merge: "merge",
+  journey: "workflow",
+  finding: "quote",
 };
 
 interface Line {

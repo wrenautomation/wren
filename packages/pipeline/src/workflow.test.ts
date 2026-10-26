@@ -1,6 +1,6 @@
 import { checkWorkflows } from "@wren/core/workflows";
 import { describe, expect, it } from "vitest";
-import { flow, grown, shape, withStudy } from "../test/fixtures.js";
+import { flow, grown, shape, withPain, withStudy } from "../test/fixtures.js";
 import { graphOf } from "./convert.js";
 import { soundShapes } from "./journeys.js";
 import type { ShapeBody, ShapeNode } from "./model.js";

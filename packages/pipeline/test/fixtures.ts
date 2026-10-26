@@ -718,3 +718,25 @@ export const withStudy = (slug = "placements"): MetroBody => {
   );
   return b;
 };
+
+/** The metro body with a pain points line: a sourced out line that joins the hub's react track. */
+export const withPain = (source = "import:12"): MetroBody => {
+  const b = withStudy();
+  b.lines.push({
+    id: "pain",
+    label: "Pain points",
+    tier: "out",
+    entry: { via: "sourced", source },
+  });
+  b.stations.push({
+    id: "pain",
+    label: "Pain points",
+    kind: "att",
+    line: "pain",
+    column: "marketing",
+  });
+  b.tracks.push({ id: "pain_to_hub", from: "pain", to: "hub", line: "pain", by: "system" });
+  const hubOut = b.tracks.find((t) => t.from === "hub" && t.entries);
+  if (hubOut) hubOut.entries = [...(hubOut.entries ?? []), "pain"];
+  return b;
+};

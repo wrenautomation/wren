@@ -34,6 +34,8 @@ const numberOf = (r: Row, kind: NumberRow["kind"]): NumberRow => {
     from: null,
     to: null,
     opened: n(r.opened),
+    replied: n(r.replied),
+    booked: n(r.booked),
     deals: n(r.deals),
     collected: money(r.collected)?.amount ?? null,
     scheduled: money(r.scheduled)?.amount ?? null,

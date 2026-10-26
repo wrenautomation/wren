@@ -7,6 +7,7 @@
     ".": "./src/index.ts",
     "./components": "./src/components.ts",
     "./decide": "./src/decide.ts",
+    "./pain": "./src/pain.ts",
     "./records": "./src/records.ts",
     "./restate": "./src/restate/index.ts",
     "./schema": "./src/schema.ts",
@@ -26,6 +27,7 @@
     "@wren/core": "workspace:*",
     "@wren/db": "workspace:*",
     "@wren/llm": "workspace:*",
+    "@wren/research": "workspace:*",
     "drizzle-orm": "0.45.2",
     "zod": "4.6.5"
   },

@@ -347,6 +347,10 @@ export interface NumberRow {
   to: string | null;
   /** Source node and out line rows. */
   opened: number | null;
+  /** Source node and out line rows: of the opened, those that moved on a touch or reply of theirs. */
+  replied: number | null;
+  /** Source node and out line rows: of the opened, those that moved on a booking. */
+  booked: number | null;
   /** Source, plan, offer and line rows. */
   deals: number | null;
   collected: number | null;
@@ -373,6 +377,8 @@ const blank = {
   from: null,
   to: null,
   opened: null,
+  replied: null,
+  booked: null,
   deals: null,
   collected: null,
   scheduled: null,
@@ -519,12 +525,30 @@ export async function numberRows(db: Queryable, f: NumbersFilter = {}): Promise<
     const plans = new Map((await planNumbersOf(db, body, f)).map((p) => [p.node, p] as const));
     const bySource = new Map<
       string,
-      { opened: number; deals: number; collected: number; cost: number | null; last: string | null }
+      {
+        opened: number;
+        replied: number;
+        booked: number;
+        deals: number;
+        collected: number;
+        cost: number | null;
+        last: string | null;
+      }
     >();
     for (const s of sources) {
       const k = s.source ?? "";
-      const r = bySource.get(k) ?? { opened: 0, deals: 0, collected: 0, cost: null, last: null };
+      const r = bySource.get(k) ?? {
+        opened: 0,
+        replied: 0,
+        booked: 0,
+        deals: 0,
+        collected: 0,
+        cost: null,
+        last: null,
+      };
       r.opened += s.opened ?? 0;
+      r.replied += s.replied ?? 0;
+      r.booked += s.booked ?? 0;
       r.deals += s.deals ?? 0;
       r.collected += money(s.collectedCents ?? 0);
       if (s.cost !== null) r.cost = (r.cost ?? 0) + s.cost;
@@ -547,6 +571,8 @@ export async function numberRows(db: Queryable, f: NumbersFilter = {}): Promise<
         rows.push({
           ...base,
           opened: s?.opened ?? 0,
+          replied: s?.replied ?? 0,
+          booked: s?.booked ?? 0,
           deals: s?.deals ?? 0,
           collected: s?.collected ?? 0,
           cost: s?.cost ?? null,

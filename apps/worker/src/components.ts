@@ -77,6 +77,8 @@ export const PLATFORM = {
     TouchFeed: "every minute: each workspace's new social touches told to the executor, once each",
     SourcedFeed: "people added to a list a sourced source takes people from open journeys there",
     LineFeed: "documents a content line finds open instances; a job that ends moves each on",
+    PainFeed:
+      "reach posts read for a pain the author states, proven by a quote; each opens the author's journey on the outreach line",
     Decide:
       "every 10 minutes: drafted comments and Learn items judged by Jev, each answer logged beside his call",
     ProfileResearch:

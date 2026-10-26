@@ -79,7 +79,14 @@ describe("readMap", () => {
   });
 });
 
-const none = { opened: null, deals: null, collected: null, scheduled: null };
+const none = {
+  opened: null,
+  replied: null,
+  booked: null,
+  deals: null,
+  collected: null,
+  scheduled: null,
+};
 const station = (
   id: string,
   over: Partial<MapData["stations"] extends Map<string, infer V> ? V : never>,

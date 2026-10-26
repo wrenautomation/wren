@@ -123,8 +123,10 @@ Logged-in finds and reads (IG, LinkedIn, X) use the reach engine's shared reads
    called is lost. Video watch alone is the same line stopped after extract.
 2. **Study line.** The synthesis reader; claims callable as findings; `study_steps` keeps only
    the find checkpoint.
-3. **Pain points.** A `sourced` source fed by IG and LinkedIn searches on the outreach shape;
-   the post's pain as a finding on the person; outreach behind To approve; measure per line.
+3. **Pain points.** Built 2026-10-26. A `sourced` source fed by the reach reads (LinkedIn, X,
+   Instagram) on the outreach shape; the post's pain as a finding on the post, proven by its quote,
+   and a line on the author's timeline; outreach behind To approve (the reach comment draft on
+   the post); measure per source: opened, replied, booked.
 4. **Port the old hardcoded workflows** to lines, last.
 
 ## Out
@@ -135,6 +137,23 @@ Logged-in finds and reads (IG, LinkedIn, X) use the reach engine's shared reads
 
 ## Decision log
 
+- 2026-10-26: phase 3, the pain points line (WA-869.4). The "transfer station" is the sourced
+  source itself: a `pain` out line on Wren's map with `entry: {via: sourced, source: import:<batch>}`,
+  joining the core line at `react` (the station that advances on their comment, follow or DM), so
+  a person who states a pain gets the same reach as a person who engaged. Its feed is the reach
+  reads the engine already makes (`reach_posts` at or over the platform's `minFit`, 14 days, not
+  passed on), not new searches: one read per post, no new platform calls. The pain is a `fact`
+  finding on the post's document (key `doc:<id>/pain/<hash>`, question `pain`, proof the quote,
+  via `pain`, by `model`), not on the person: the findings check lets a fact carry no person, and
+  a post's author is a handle profile, not a `people` row (a people row needs a firm). The person
+  link is the handle profile the fire names and a `finding` line on their timeline (new timeline
+  kind). The proof rule is in code: a quote not in the post (whitespace and quote marks aside)
+  drops the pain. One `imports` row (`pain`, `reach_posts`) is the list, made by the pass, and
+  the shape names it; while no live source names it the pass waits with its cursor kept. No new
+  draft path: the reach engine's comment draft on the post waits in To approve as before.
+  Measure per source: `source_numbers` gains `replied` (a journey that moved on a touch or reply
+  of theirs) and `booked` (moved on a booking), shown on source nodes and out lines (migration
+  0348). Loop `PainFeed/all` in the worker, Wren only, bulk gateway model.
 - 2026-10-25: William: one general system on the newest stack (metro map → NFA → executor), no
   drift. Aggregate vs per-person outputs; findings with proof; one document store; decide
   modes for his calls. Old hardcoded workflows port last. Rename spine to executor.

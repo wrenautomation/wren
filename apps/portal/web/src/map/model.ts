@@ -59,6 +59,8 @@ export interface NodeNumbers {
   left: number | null;
   medianDays: number | null;
   opened: number | null;
+  replied: number | null;
+  booked: number | null;
   deals: number | null;
   collected: Sum | null;
   scheduled: Sum | null;
@@ -126,6 +128,8 @@ export function lineSays(rows: readonly NodeNumbers[] | undefined): string[] {
   if (!rows?.length) return ["No numbers yet."];
   return rows.flatMap((x) => [
     ...(x.opened != null ? [`Opened: ${num(x.opened)}`] : []),
+    ...(x.replied != null ? [`Replied: ${num(x.replied)}`] : []),
+    ...(x.booked != null ? [`Booked: ${num(x.booked)}`] : []),
     `Deals: ${num(x.deals ?? 0)}`,
     ...(x.collected || x.scheduled
       ? [`Collected: ${cash(x.collected)}`, `Scheduled: ${cash(x.scheduled)}`]

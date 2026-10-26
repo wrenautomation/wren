@@ -147,6 +147,8 @@ const num = (
   from: null,
   to: null,
   opened: null,
+  replied: null,
+  booked: null,
   deals: null,
   collected: null,
   scheduled: null,
