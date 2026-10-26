@@ -21,7 +21,7 @@ const follows = (platform: string, perDay: number, unit = "follows"): LimitDef =
   scope: "wren",
 });
 
-export const FOLLOW_LIMITS = {
+const FOLLOW_LIMITS = {
   linkedin: follows("linkedin", 15),
   x: follows("x", 15),
   instagram: follows("instagram", 10),
@@ -30,7 +30,7 @@ export const FOLLOW_LIMITS = {
   youtube: follows("youtube", 5, "subscribes"),
 } as const satisfies Record<string, LimitDef>;
 
-export const OUTREACH_LIMITS: readonly LimitDef[] = Object.values(FOLLOW_LIMITS);
+const OUTREACH_LIMITS: readonly LimitDef[] = Object.values(FOLLOW_LIMITS);
 
 /** Every limit Wren keeps, for `wren limits` and the portal. */
 export const WREN_LIMITS: readonly LimitDef[] = [...RESEARCH_LIMITS, ...OUTREACH_LIMITS];
