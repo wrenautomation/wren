@@ -36,7 +36,7 @@ export const hiring = defineCollector({
     /** Read LinkedIn jobs (as the pool account, `readAccount`) when the firm's site names no board. */
     linkedin: z.boolean().default(true),
   }),
-  bucket: { perDay: 150, burst: 20 },
+  bucket: { perDay: 300, burst: 40 },
   everyDays: 7,
   metered: false,
   async collect(deps, subject, s) {

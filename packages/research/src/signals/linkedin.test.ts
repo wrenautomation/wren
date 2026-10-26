@@ -104,10 +104,10 @@ describe("linkedin posts collector: search first", () => {
     ...over,
   });
 
-  it("is built, 20 a day, every 30 days, metered as search, 2 recent posts enough", () => {
+  it("is built, 40 a day, every 30 days, metered as search, 2 recent posts enough", () => {
     expect(linkedin).toMatchObject({
       built: true,
-      bucket: { perDay: 20, burst: 4 },
+      bucket: { perDay: 40, burst: 8 },
       everyDays: 30,
     });
     expect(linkedin.metered).toBe(true);

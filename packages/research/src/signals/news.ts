@@ -16,7 +16,7 @@ export const news = defineCollector({
       .min(1)
       .default([...NEWS_KINDS]),
   }),
-  bucket: { perDay: 200, burst: 20 },
+  bucket: { perDay: 400, burst: 40 },
   everyDays: 30,
   metered: false,
   async collect(deps, subject, s) {

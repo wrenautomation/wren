@@ -144,7 +144,7 @@ export const talks = defineCollector({
     /** YouTube searches a Pacific day, 100 units each; the `youtube` stage keeps the rest. */
     youtubePerDay: z.number().int().min(0).default(20),
   }),
-  bucket: { perDay: 200, burst: 20 },
+  bucket: { perDay: 400, burst: 40 },
   everyDays: 90,
   metered: false,
   async collect(deps, subject, s) {

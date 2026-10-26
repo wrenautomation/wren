@@ -146,7 +146,7 @@ export function stackCollector(dns: () => StackDns = defaultDns) {
       /** Read the domain's TXT and MX. */
       dns: z.boolean().default(true),
     }),
-    bucket: { perDay: 1000, burst: 20 },
+    bucket: { perDay: 2000, burst: 40 },
     everyDays: 30,
     metered: false,
     async collect(deps, subject, s) {

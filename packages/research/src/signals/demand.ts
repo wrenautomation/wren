@@ -588,7 +588,7 @@ export const demand = defineCollector({
     /** What `fit` is judged against. */
     offer: z.string().min(1).default(OFFER),
   }),
-  bucket: { perDay: 100, burst: 10 },
+  bucket: { perDay: 200, burst: 20 },
   everyDays: ONCE,
   metered: true,
   vendors: ["reddit", "models"],

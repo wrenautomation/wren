@@ -32,7 +32,7 @@ export const SIGNALS_COMPONENT = "research.signals";
 /** `unit_holds.stage` for a unit out of retries; its subject is `<collector>:<subject>`. */
 export const SIGNALS_HELD = "research.signals";
 /** Google searches the collectors may spend a local day, of the 200 shared with profiles. */
-export const SIGNALS_GOOGLE_PER_DAY = 50;
+export const SIGNALS_GOOGLE_PER_DAY = 100;
 /** An unresolved subject is asked again after this long. */
 const UNRESOLVED_DAYS = 30;
 /** A cap with no `retryAt` parks a subject this long. */

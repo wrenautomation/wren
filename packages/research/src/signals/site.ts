@@ -51,7 +51,7 @@ export const site = defineCollector({
     /** The first read's Wayback window. */
     months: z.number().int().min(1).max(60).default(12),
   }),
-  bucket: { perDay: 200, burst: 20 },
+  bucket: { perDay: 400, burst: 40 },
   everyDays: 30,
   metered: false,
   async collect(deps, subject, s) {

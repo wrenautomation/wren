@@ -44,7 +44,7 @@ export const funding = defineCollector({
     /** How far back to search, in months. */
     months: z.number().int().min(1).max(60).default(12),
   }),
-  bucket: { perDay: 300, burst: 20 },
+  bucket: { perDay: 600, burst: 40 },
   everyDays: 90,
   metered: false,
   async collect(deps, subject, s) {

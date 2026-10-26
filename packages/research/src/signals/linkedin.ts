@@ -218,8 +218,8 @@ export const linkedin = defineCollector({
     /** A post this young counts toward `enough`. */
     recentDays: z.number().int().min(1).max(365).default(90),
   }),
-  // Search reads are cheap; the account's share is bounded by the shared 20 a day.
-  bucket: { perDay: 20, burst: 4 },
+  // Search reads are cheap; the account's share is bounded by the shared total a day (20, times CAPS_SCALE).
+  bucket: { perDay: 40, burst: 8 },
   everyDays: 30,
   metered: true,
   vendors: [vendorOfSource("search")],

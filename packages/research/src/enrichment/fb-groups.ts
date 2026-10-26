@@ -27,9 +27,9 @@ const FB_GROUPS_VIA = "facebook-group";
  * Searches a day; each is a Google page or two on the Mac's IP. The pool sleeps to the next local day once a pass finds nothing, so on an idle pool a
  * bucket only gets its burst a day: the burst is the daily amount, and autobrowse's pace spaces the calls.
  */
-export const GROUP_SEARCH_BUCKET: Bucket = { perDay: 12, burst: 12 };
-/** Page reads a day, About and posts together; with Ad Library's 48 they stay under autobrowse's 200. */
-export const GROUP_READ_BUCKET: Bucket = { perDay: 80, burst: 80 };
+export const GROUP_SEARCH_BUCKET: Bucket = { perDay: 24, burst: 24 };
+/** Page reads a day, About and posts together; with Ad Library's 96 they stay under autobrowse's 400 (200 at CAPS_SCALE 1). */
+export const GROUP_READ_BUCKET: Bucket = { perDay: 160, burst: 160 };
 const GROUP_SEARCH_N = 20;
 const GROUP_KEYWORD_EVERY_DAYS = 7;
 const GROUP_ABOUT_EVERY_DAYS = 30;

@@ -8,7 +8,7 @@ import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { z } from "zod";
-import { googleLeft } from "../../src/enrichment/profiles.js";
+import { GOOGLE_PER_DAY, googleLeft } from "../../src/enrichment/profiles.js";
 import { keepFinding, keepSignal } from "../../src/findings.js";
 import { findings, signalChecks } from "../../src/schema.js";
 import {
@@ -321,7 +321,7 @@ describe("metered collectors and the vendor gate", () => {
 });
 
 describe("Google's share", () => {
-  it("signals spend at most their 50 of the day's searches", async () => {
+  it("signals spend at most their 100 of the day's searches", async () => {
     const now = new Date("2026-10-06T15:00:00Z");
     const tried = Array.from({ length: SIGNALS_GOOGLE_PER_DAY }, () => ({
       step: "google",
@@ -334,6 +334,8 @@ describe("Google's share", () => {
     expect(await googleLeft(db(), { now, timezone: "UTC", signals: SIGNALS_GOOGLE_PER_DAY })).toBe(
       0,
     );
-    expect(await googleLeft(db(), { now, timezone: "UTC" })).toBe(200 - SIGNALS_GOOGLE_PER_DAY);
+    expect(await googleLeft(db(), { now, timezone: "UTC" })).toBe(
+      GOOGLE_PER_DAY - SIGNALS_GOOGLE_PER_DAY,
+    );
   });
 });
