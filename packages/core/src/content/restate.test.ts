@@ -113,6 +113,8 @@ describe("restateSites", () => {
       path: "/rest/posts",
       input: { commentary: "hi" },
       caller: "test",
+      // The end of the call's day on Wren's clock: the desk sends it no later.
+      until: expect.stringMatching(/^\d{4}-\d\d-\d\dT0[45]:00:00\.000Z$/),
     });
   });
 
@@ -432,6 +434,7 @@ describe("restateSites keyed writes", () => {
           input: { text: "hi" },
           caller: "test",
           sendKey: WRITE,
+          until: expect.stringMatching(/^\d{4}-\d\d-\d\dT0[45]:00:00\.000Z$/),
         },
         idem: WRITE,
       },

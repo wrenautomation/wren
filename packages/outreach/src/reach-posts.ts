@@ -97,22 +97,26 @@ const AUTHOR_GAP_MS = 7 * 86_400_000;
 const HOUR = 3_600_000;
 /** The rank a post needs for a draft, unless the settings say otherwise. */
 export const MIN_FIT = 70;
-/** Wren's buyers: recruiting and staffing firms, and agency owners. */
+/**
+ * Wren's buyers: any business past the smallest, in any niche (William, 10-26). Word starts, so
+ * "compan" meets "company" and "companies".
+ */
 export const DEFAULT_AUDIENCE = [
-  "recruit",
-  "staffing",
-  "headhunt",
-  "talent acquisition",
-  "placement",
-  "executive search",
-  "search firm",
-  "candidate",
-  "rpo",
-  "agency owner",
+  "business",
+  "compan",
+  "firm",
+  "agency",
+  "founder",
+  "owner",
+  "ceo",
+  "b2b",
+  "startup",
+  "client",
+  "customer",
 ] as const;
 /** Who Wren's buyers are, in plain words: the model writes search words from it. */
 const DEFAULT_ABOUT =
-  "Owners and founders of recruiting, staffing and executive search firms, and of agencies that sell services to other businesses. In their own posts they talk about winning clients, business development, pipeline, fees, and running the firm.";
+  "Owners, founders and leaders of established businesses with ten or more people, in any industry. In their own posts they talk about winning clients, sales, growth, hiring, and running the company.";
 /** Search words the model adds a pass, unless the settings say otherwise. */
 const NEW_TOPICS = 3;
 /** Logins that never read or comment here: his own LinkedIn profile and the research alt. */
@@ -139,10 +143,13 @@ function commentsSettingsSchemaFor(platform: ReachPostPlatform) {
           (a) => !a || a.startsWith(`${platform}@`) || (platform !== "linkedin" && a === platform),
           `a ${NAME[platform]} login: ${platform}@<label>`,
         ),
-      /** Comments queued for his yes a day, at most. */
-      perDay: z.number().int().min(0).max(20).default(10),
-      /** Drafts go out on the scheduler's spaced slots without his click (`pacing.ts`). */
-      autoSend: z.boolean().default(false),
+      /** Comments drafted a day, at most; autobrowse's comment cap bounds the sends. */
+      perDay: z.number().int().min(0).max(40).default(10),
+      /**
+       * Drafts go out on the scheduler's spaced slots without his click (`pacing.ts`). On by
+       * default: quality drop accepted while he builds the full system (William, 10-26).
+       */
+      autoSend: z.boolean().default(true),
       /** Words to search posts for ("recruiting agency"); one read each. */
       topics: z.array(z.string().trim().min(1)).default([]),
       /**
@@ -1754,6 +1761,8 @@ export async function autoActs(
     step: <T>(name: string, fn: () => Promise<T>) => Promise<T>;
     holds: CapHolds;
     now: Date;
+    /** Follows still free today (the ramped day cap less today's); none = only the pass cap. */
+    followsLeft?: number;
   },
 ): Promise<ActsStats> {
   const stats: ActsStats = { liked: 0, followed: 0, held: [], errors: [] };
@@ -1761,8 +1770,9 @@ export async function autoActs(
   const key = (act: "like" | "follow") => `${o.platform} ${act}`;
   const on = {
     like: o.settings.like && !capHeld(o.holds, key("like"), t),
-    follow: o.settings.follow && !capHeld(o.holds, key("follow"), t),
+    follow: o.settings.follow && !capHeld(o.holds, key("follow"), t) && (o.followsLeft ?? 1) > 0,
   };
+  const followCap = Math.min(ACTS_PER_PASS, o.followsLeft ?? ACTS_PER_PASS);
   if (!on.like && !on.follow) return stats;
   // One journaled read: a replay acts on the same posts whatever the table holds by then.
   const due = await o.step(`acts due ${o.platform}`, async () => {
@@ -1805,7 +1815,7 @@ export async function autoActs(
     const who = p.handle ?? p.authorUrl ?? "";
     const want = {
       like: on.like && toLike && stats.liked < ACTS_PER_PASS,
-      follow: on.follow && toFollow && !followed.has(who) && stats.followed < ACTS_PER_PASS,
+      follow: on.follow && toFollow && !followed.has(who) && stats.followed < followCap,
     };
     const acts = postActs(p, want, "");
     for (const what of ["like", "follow"] as const) {

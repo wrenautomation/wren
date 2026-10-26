@@ -32,6 +32,15 @@ const HOUR = 3_600_000;
 const LOOKBACK_MS = 2 * 86_400_000;
 
 export const POST_PACE: Omit<Pace, "perDay"> = { gapMinutes: 45, from: 9, to: 20, zone: ZONE };
+/**
+ * A comment lane's pace for `perDay`: the 45-minute gap, closer when the day must hold more.
+ * Each slot may land up to half a gap late, so a gap holds 1.25 gaps of the day.
+ */
+export function postPace(perDay: number): Pace {
+  const minutes = (POST_PACE.to - POST_PACE.from) * 60;
+  const fits = Math.floor(minutes / (Math.max(1, perDay) * 1.25));
+  return { ...POST_PACE, gapMinutes: Math.max(10, Math.min(POST_PACE.gapMinutes, fits)), perDay };
+}
 export const THREAD_PACE: Omit<Pace, "perDay"> = { gapMinutes: 120, from: 8, to: 22, zone: ZONE };
 
 export interface Slotted {
@@ -131,7 +140,7 @@ export async function schedulePosts(
   const slots = fill(items, {
     now: o.now,
     taken: lane.map((r) => new Date(r.at)),
-    pace: { ...POST_PACE, perDay: s.perDay },
+    pace: postPace(s.perDay),
     rand: o.rand,
     // A comment lands while the post is still read: twice the age a post is read at.
     latest: (p) => (p.postedAt ?? p.createdAt).getTime() + 2 * s.maxAgeHours * HOUR,

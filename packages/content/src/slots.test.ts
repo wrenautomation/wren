@@ -1,5 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { DEFAULT_SLOTS, nextSlot, slotInstants } from "./slots.js";
+
+// The slot logic on bare times; the epsilon has its own tests in core.
+vi.mock("@wren/core/epsilon", async (real) => ({
+  ...(await real<typeof import("@wren/core/epsilon")>()),
+  nudgeFixed: (at: Date) => at,
+}));
 
 const ET = "America/New_York";
 

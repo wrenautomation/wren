@@ -60,7 +60,8 @@ let pg: TestPostgres;
 const db = () => pg.db;
 let fake: ReturnType<typeof fakeOutreachChannel>;
 let acct: ReachAccount;
-const SETTINGS: InviteSettings = invitesSettingsSchema.parse({ account: KEY });
+// Any size here: the floor has its own cases below.
+const SETTINGS: InviteSettings = invitesSettingsSchema.parse({ account: KEY, minEmployees: 0 });
 
 beforeAll(async () => {
   pg = await startTestPostgres();

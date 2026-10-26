@@ -109,3 +109,16 @@ export function zonedInstant(
   if (matching.length > 0) return new Date(Math.min(...matching));
   return new Date(guess - Math.min(offsetA, offsetB) * 60_000);
 }
+
+/** The instant `zone`'s day that holds `at` ends: the next local midnight. */
+export function dayEnd(zone: string, at: Date): Date {
+  const w = wallClock(zone, at);
+  const next = new Date(Date.UTC(w.year, w.month - 1, w.day + 1));
+  return zonedInstant(zone, next.getUTCFullYear(), next.getUTCMonth() + 1, next.getUTCDate());
+}
+
+/** The instant `zone`'s day that holds `at` began: its local midnight. */
+export function dayStart(zone: string, at: Date): Date {
+  const w = wallClock(zone, at);
+  return zonedInstant(zone, w.year, w.month, w.day);
+}

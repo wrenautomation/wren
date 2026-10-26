@@ -37,6 +37,7 @@ function ctxOf(
       runs.push(name);
       return step(name);
     },
+    date: { now: async () => Date.parse("2026-10-27T15:00:00Z") },
     serviceClient: (service: { name: string }) => {
       services.push(service);
       return new Proxy(

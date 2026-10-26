@@ -7,6 +7,7 @@
  */
 import type { Effect, EventKind, Port } from "./components.js";
 import { type FieldMap, fieldMapOfWith, fieldMapProblems, HOOK_PRESETS } from "./door.js";
+import { nudgeFixed } from "./epsilon.js";
 import type { ExecutorEvent, Step } from "./executor.js";
 import { canonicalZone, wallClock, zonedInstant } from "./time.js";
 import {
@@ -145,14 +146,17 @@ const hoursOf = (v: unknown) => {
 
 /**
  * A schedule's next slot strictly after `after`, or null when its settings don't read. Every day
- * at HH:MM in its zone, or every N hours on the hour (counted from midnight UTC).
+ * at HH:MM in its zone, or every N hours (counted from midnight UTC). Each slot takes the epsilon: a few minutes on, off :00 and :30.
  */
 export function nextSlot(w: Readonly<Record<string, string | number>>, after: Date): Date | null {
   if (text(w.every) === "hours") {
     const n = hoursOf(w.hours);
     if (!n) return null;
     const step = n * 3_600_000;
-    return new Date((Math.floor(after.getTime() / step) + 1) * step);
+    // The nudge keeps a slot inside its own step: past `after` whatever the base.
+    const base = Math.floor(after.getTime() / step) * step;
+    const here = nudgeFixed(new Date(base), "schedule");
+    return here.getTime() > after.getTime() ? here : nudgeFixed(new Date(base + step), "schedule");
   }
   const hm = HH_MM.exec(text(w.at) || "09:00");
   const zone = canonicalZone(text(w.zone) || SCHEDULE_ZONE);
@@ -169,7 +173,8 @@ export function nextSlot(w: Readonly<Record<string, string | number>>, after: Da
       Number(hm[1]),
       Number(hm[2]),
     );
-    if (at.getTime() > after.getTime()) return at;
+    const nudged = nudgeFixed(at, "schedule");
+    if (nudged.getTime() > after.getTime()) return nudged;
   }
   return null;
 }

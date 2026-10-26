@@ -12,9 +12,11 @@
  */
 import * as restate from "@restatedev/restate-sdk";
 import { z } from "zod";
+import { SCHEDULE_ZONE } from "../logic.js";
 import { isVendorStop } from "../metered.js";
 import { NO_INPUT, serviceHandler } from "../restate/form.js";
 import { CallTimeout, within } from "../restate/limits.js";
+import { dayEnd } from "../time.js";
 import { type JournalRecord, openTry, type SendJournal } from "../send-journal.js";
 import {
   type Delivery,
@@ -84,6 +86,8 @@ export type SitesService = {
        * as the result (autobrowse designs/2026-10-16-send-verdicts.md).
        */
       sendKey?: string;
+      /** A write's day ends here (ISO): one the desk first runs later is not sent. */
+      until?: string;
     },
   ) => Promise<unknown>;
   /**
@@ -139,6 +143,11 @@ export interface SitesHost {
    * `ArmedStop`. Reads still run, so a channel builds the same write it would send.
    */
   arm?: boolean;
+  /**
+   * The zone whose day a write belongs to (default Wren's, `SCHEDULE_ZONE`). A write the desk
+   * first runs after that day ends is not sent: the Mac was off all day (William, 10-26).
+   */
+  dayZone?: string;
 }
 
 /**
@@ -170,7 +179,9 @@ export function restateSites(
   ctx: restate.Context,
   o: { caller: string; limitMs?: number } & Partial<SitesHost>,
 ): SiteClient {
-  const { caller, wake, service = SITES, arm = false, limitMs } = o;
+  const { caller, wake, service = SITES, arm = false, limitMs, dayZone = SCHEDULE_ZONE } = o;
+  /** The end of the day `at` falls on: a write past it waits for its caller, never lands late. */
+  const untilOf = (at: number) => dayEnd(dayZone, new Date(at)).toISOString();
   const client = ctx.serviceClient<SitesService>(service);
   const statuses = new Map<string, Promise<SiteStatus>>();
   let woken: Promise<unknown> | null = null;
@@ -224,7 +235,16 @@ export function restateSites(
     try {
       answer = await waited(
         client.call(
-          { site, method, path, input, ...(account ? { account } : {}), caller, sendKey: key },
+          {
+            site,
+            method,
+            path,
+            input,
+            ...(account ? { account } : {}),
+            caller,
+            sendKey: key,
+            until: untilOf(Date.parse(since)),
+          },
           restate.rpc.opts({ idempotencyKey: key }),
         ),
         `call ${site} ${method} ${path}`,
@@ -284,6 +304,7 @@ export function restateSites(
         return verifyingOnly()
           ? keyedVerify(site, method, path, key)
           : keyedCall(site, method, path, input, account, key);
+      const until = repeatable ? null : untilOf(await ctx.date.now());
       for (let attempt = 1; ; attempt++) {
         try {
           return (await waited(
@@ -294,6 +315,7 @@ export function restateSites(
               input,
               ...(account ? { account } : {}),
               caller,
+              ...(until ? { until } : {}),
             }),
             `call ${site} ${method} ${path}`,
             // A write past its wait may still land: left running, never sent again.

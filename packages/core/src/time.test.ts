@@ -36,3 +36,19 @@ describe("tz", () => {
     expect(zonedInstant(CHI, 2026, 3, 8, 2, 30)).toEqual(new Date(Date.UTC(2026, 2, 8, 8, 30)));
   });
 });
+
+describe("dayEnd", () => {
+  it("is the next local midnight, across a month end and a DST change", async () => {
+    const { dayEnd } = await import("./time.js");
+    expect(dayEnd("America/New_York", new Date("2026-10-26T22:00:00Z")).toISOString()).toBe(
+      "2026-10-27T04:00:00.000Z",
+    );
+    expect(dayEnd("America/New_York", new Date("2026-10-31T23:00:00Z")).toISOString()).toBe(
+      "2026-11-01T04:00:00.000Z",
+    );
+    // 11-01 is the fall-back day: it ends at 05:00Z (EST).
+    expect(dayEnd("America/New_York", new Date("2026-11-01T12:00:00Z")).toISOString()).toBe(
+      "2026-11-02T05:00:00.000Z",
+    );
+  });
+});

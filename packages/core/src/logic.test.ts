@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { EVENT_KINDS } from "./components.js";
 import type { ExecutorEvent, StepAt } from "./executor.js";
 import {
@@ -25,6 +25,12 @@ import {
   untilText,
 } from "./logic.js";
 import { TOUCH_DIRECTIONS, TOUCH_KINDS, TOUCH_PLATFORMS } from "./touches-schema.js";
+
+// The slot logic on bare times; the epsilon has its own tests in core.
+vi.mock("./epsilon.js", async (real) => ({
+  ...(await real<typeof import("./epsilon.js")>()),
+  nudgeFixed: (at: Date) => at,
+}));
 
 const at = (node: string, w: Record<string, string | number>): StepAt => ({
   client: null,

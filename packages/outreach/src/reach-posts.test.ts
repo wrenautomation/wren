@@ -9,7 +9,6 @@ import { FakeLlm } from "@wren/llm";
 import { describe, expect, it } from "vitest";
 import {
   authorFit,
-  DEFAULT_AUDIENCE,
   type FeedPost,
   isJobAd,
   jobPost,
@@ -37,8 +36,17 @@ const post = (o: Partial<FeedPost> = {}): FeedPost => ({
   url: "https://www.linkedin.com/feed/update/urn:li:activity:1/",
   ...o,
 });
+/** A one-trade audience (synthetic): the rank's mechanism, not Wren's default buyers. */
+const TRADE = ["recruit", "staffing", "headhunt", "executive search", "agency owner"];
 const rank = (p: FeedPost, topics: string[] = []) =>
-  rankPost(p, { topics, key: false, foundBy: "topic: x", maxAgeHours: 72, now: NOW });
+  rankPost(p, {
+    topics,
+    audience: TRADE,
+    key: false,
+    foundBy: "topic: x",
+    maxAgeHours: 72,
+    now: NOW,
+  });
 
 describe("jobPost", () => {
   it("job ads the old regex missed", () => {
@@ -99,6 +107,18 @@ describe("jobPost", () => {
 });
 
 describe("rankPost", () => {
+  it("the default audience is any business: an owner outside recruiting passes (William, 10-26)", () => {
+    const r = rankPost(
+      post({
+        headline: "Founder, Northwind Logistics",
+        text: "Our company lost two big clients this year. Our pipeline was all referrals, so we started outreach and follow-ups to grow revenue again.",
+      }),
+      { topics: [], key: false, foundBy: "topic: x", maxAgeHours: 72, now: NOW },
+    );
+    expect(r.off).toBeNull();
+    expect(r.fit).toBeGreaterThanOrEqual(MIN_FIT);
+  });
+
   const firmText =
     "Our recruiting agency lost two retainer clients last year. The pipeline was all referrals and no outreach. Revenue now comes from old clients we follow up with.";
 
@@ -160,7 +180,7 @@ describe("rankPost", () => {
   });
 
   it("authorFit: tiers, sellers, no headline", () => {
-    const a = [...DEFAULT_AUDIENCE];
+    const a = TRADE;
     expect(authorFit("", a)).toEqual({ points: 0, kind: null });
     expect(authorFit("CEO, Acme Staffing", a).kind).toBe("buyer");
     expect(authorFit("CEO, Acme Bakery", a).kind).toBe("owner");

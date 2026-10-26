@@ -27,7 +27,7 @@ describe("sendSlots", () => {
       expect(ms(slots[i]) - ms(slots[i - 1])).toBeGreaterThanOrEqual(3_600_000);
     const days = slots.map(dayIn);
     expect(days.filter((d) => d === days[0])).toHaveLength(3);
-    expect(slots[0]?.toISOString()).toBe("2026-03-02T14:10:00.000Z");
+    expect(slots[0]?.toISOString()).toBe("2026-03-02T14:11:00.000Z"); // the epsilon: +1 min at rand 0
   });
 
   it("keeps the gap from what is already taken and counts it toward the day", () => {
@@ -39,9 +39,10 @@ describe("sendSlots", () => {
     expect(slots.map(dayIn)).toEqual(["2026-03-02", "2026-03-03"]);
   });
 
-  it("jitters within half a gap and never on top of another", () => {
+  it("jitters within half a gap plus the epsilon, never on top of another", () => {
     const slots = sendSlots(3, { now, taken: [], pace, rand: () => 0.99 });
-    expect(ms(slots[0])).toBeLessThan(new Date("2026-03-02T14:40:00Z").getTime());
+    expect(ms(slots[0])).toBeLessThan(new Date("2026-03-02T14:50:00Z").getTime());
+    expect(slots.every((d) => d.getUTCMinutes() % 30 !== 0)).toBe(true);
     expect(ms(slots[1]) - ms(slots[0])).toBeGreaterThanOrEqual(3_600_000);
   });
 
@@ -102,7 +103,7 @@ describe("Reddit thread hours", () => {
       pace: { ...THREAD_PACE, perDay: 5 },
       rand: () => 0,
     });
-    expect(first?.toISOString()).toBe("2026-10-17T12:10:00.000Z"); // Sat 08:10
+    expect(first?.toISOString()).toBe("2026-10-17T12:11:00.000Z"); // Sat 08:11
   });
 
   it("end at 22:00 and fit five a day", () => {
@@ -125,5 +126,21 @@ describe("Reddit thread hours", () => {
     });
     expect(late.map(dayIn)).toEqual(["2026-10-18"]);
     expect(late[0] && hourIn(late[0])).toBe(8);
+  });
+});
+
+describe("postPace", () => {
+  it("keeps 45 minutes for a light day and closes the gap so 30 comments fit (WA-878)", async () => {
+    const { postPace } = await import("./scheduled.js");
+    expect(postPace(10).gapMinutes).toBe(45);
+    expect(postPace(30).gapMinutes).toBe(17);
+    expect(postPace(200).gapMinutes).toBe(10);
+    const slots = sendSlots(30, {
+      now: new Date("2026-10-27T12:00:00Z"),
+      taken: [],
+      pace: postPace(30),
+      rand: () => 0.5,
+    });
+    expect(slots.length).toBe(30);
   });
 });

@@ -64,8 +64,11 @@ export const invitesSettingsSchema = z
     titles: z.array(z.string().trim().min(1)).default([]),
     /** Only founders, owners, C-level, partners, VPs, heads and directors. */
     decisionMakers: z.boolean().default(true),
-    /** Firms with at least this many people; 0 = any size. An unknown size passes unless `knownSizeOnly`. */
-    minEmployees: z.number().int().min(0).default(0),
+    /**
+     * Firms with at least this many people; 0 = any size. An unknown size passes unless
+     * `knownSizeOnly`. 10 keeps out the smallest local shops (William, 10-26).
+     */
+    minEmployees: z.number().int().min(0).default(10),
     /** Leave out firms whose size we don't know. */
     knownSizeOnly: z.boolean().default(false),
     /** People who reacted, mentioned or followed us on LinkedIn go first, past the title and size filters. */

@@ -5,6 +5,8 @@
  * column, and the call finds it gone.
  */
 
+import { nudge } from "@wren/core/epsilon";
+
 export interface Pace {
   /** Minutes between two sends on one lane, at least. */
   gapMinutes: number;
@@ -45,7 +47,7 @@ function local(d: Date, zone: string): { day: string; hour: number } {
 /**
  * The next `n` slots on a lane, each at least the gap from every taken one (sent or scheduled),
  * inside the hours, under the day's cap. `rand` (0 to 1) spreads each slot up to half a gap past
- * its earliest, so sends don't land on the minute. Fewer than `n` when the horizon fills.
+ * its earliest, then the epsilon (`nudge`) moves it off :00 and :30. Fewer than `n` when the horizon fills.
  */
 export function sendSlots(
   n: number,
@@ -82,7 +84,7 @@ export function sendSlots(
       t = near.getTime() + gap;
       continue;
     }
-    const slot = new Date(t + Math.floor(o.rand() * (gap / 2 / MINUTE)) * MINUTE);
+    const slot = nudge(new Date(t + Math.floor(o.rand() * (gap / 2 / MINUTE)) * MINUTE), o.rand);
     const s = local(slot, pace.zone);
     if (
       s.hour >= pace.to ||

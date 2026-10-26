@@ -5,7 +5,7 @@
 import { getClient } from "@wren/core/clients";
 import { limitsView, setLimit, unsetLimit } from "@wren/core/limits";
 import type { Db } from "@wren/db";
-import { RESEARCH_LIMITS } from "@wren/research/limits";
+import { WREN_LIMITS } from "@wren/outreach/limits";
 import type { Command } from "commander";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
@@ -28,7 +28,7 @@ export function registerLimits(program: Command, withMainDb: WithDb) {
       const client = opts.client ?? null;
       const rows = await withMainDb(async (db) => {
         if (client) await getClient(db, client);
-        return limitsView(db, client, RESEARCH_LIMITS);
+        return limitsView(db, client, WREN_LIMITS);
       });
       for (const r of rows)
         console.log(
@@ -53,7 +53,7 @@ export function registerLimits(program: Command, withMainDb: WithDb) {
       const client = opts.client ?? null;
       const r = await withMainDb(async (db) => {
         if (client) await getClient(db, client);
-        return setLimit(db, RESEARCH_LIMITS, {
+        return setLimit(db, WREN_LIMITS, {
           client,
           name,
           perDay: whole(perDay),
@@ -72,7 +72,7 @@ export function registerLimits(program: Command, withMainDb: WithDb) {
     .description("Drop one limit's row: the next one down holds")
     .action(async (name: string, opts: { client?: string }) => {
       const client = opts.client ?? null;
-      const r = await withMainDb((db) => unsetLimit(db, RESEARCH_LIMITS, { client, name }));
+      const r = await withMainDb((db) => unsetLimit(db, WREN_LIMITS, { client, name }));
       console.log(`${name} (${client ?? "Wren-wide"}): ${shown(r.before)} -> unset`);
     });
 }

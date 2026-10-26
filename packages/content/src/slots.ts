@@ -9,6 +9,7 @@
  * `--now` posts on the next pass.
  */
 import { PLATFORMS, type Platform } from "@wren/core/content";
+import { nudgeFixed } from "@wren/core/epsilon";
 import { wallClock, zonedInstant } from "@wren/core/time";
 
 export interface Slot {
@@ -78,7 +79,7 @@ const HORIZON_DAYS = 60;
 /** ISO weekday (1..7) of a UTC-midnight date. */
 const isoDay = (d: Date) => ((d.getUTCDay() + 6) % 7) + 1;
 
-/** The platform's slot instants on each calendar day (on `zone`'s clock) from `from`'s day, for `days` days, in order. */
+/** The platform's slot instants (each with the epsilon, the same on every call) on each calendar day (on `zone`'s clock) from `from`'s day, for `days` days, in order. */
 export function slotInstants(
   platform: Platform,
   from: Date,
@@ -96,7 +97,7 @@ export function slotInstants(
     const d = day.getUTCDate();
     const on = slots[platform]
       .filter((s) => !s.days || s.days.includes(isoDay(day)))
-      .map((s) => zonedInstant(zone, y, m, d, s.hour, s.minute));
+      .map((s) => nudgeFixed(zonedInstant(zone, y, m, d, s.hour, s.minute), platform));
     out.push(...on.sort((a, b) => a.getTime() - b.getTime()));
   }
   return out;
