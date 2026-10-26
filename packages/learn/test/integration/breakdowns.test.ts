@@ -10,6 +10,7 @@ import { join } from "node:path";
 import type { SiteClient } from "@wren/core/content";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
+import { documents, findings } from "@wren/research/schema";
 import { asc, eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
@@ -20,6 +21,8 @@ import {
   checksOf,
   FactCallRefusal,
   factCalls,
+  factFindings,
+  factRows,
   hookRecords,
   items,
   judges,
@@ -167,6 +170,30 @@ describe("competitor breakdowns", () => {
     expect(await scoreItem(pg.db, m.judge, id)).toBe("hold");
     expect(await breakdownItem(pg.db, m.judge, id)).toBe(false);
     expect(m.asked).toEqual({ score: 1, breakdown: 1 });
+
+    // Each fact is a finding on the reel's document, keyed by its path; a second write moves nothing.
+    const [item] = await pg.db.select().from(items).where(eq(items.id, id));
+    const [doc] = await pg.db
+      .select()
+      .from(documents)
+      .where(eq(documents.id, item?.documentId ?? -1));
+    expect(doc).toMatchObject({ kind: "video", url: item?.url, companyId: null });
+    if (!b) throw new Error("no breakdown");
+    expect(await factFindings(pg.db, b)).toBe(factRows(b).length);
+    const facts = await pg.db
+      .select()
+      .from(findings)
+      .where(eq(findings.documentId, doc?.id ?? -1));
+    expect(facts).toHaveLength(factRows(b).length);
+    expect(facts.find((f) => f.question === "beats/1")).toMatchObject({
+      kind: "fact",
+      factKey: `doc:${doc?.id}/beats/1`,
+      proof: { t: 12 },
+      by: "model",
+      personId: null,
+      companyId: null,
+    });
+    expect(facts.find((f) => f.question === "beats/2")?.proof).toBeNull();
   });
 
   it("skips what has no hook to read, and a cta of none keeps no ask", async () => {

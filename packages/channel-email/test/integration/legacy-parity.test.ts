@@ -23,7 +23,7 @@ const WIDENED: Record<string, string[]> = {
   ck_people_personorigin: ["linkedin", "crm"],
   ck_suppressions_suppressionkind: ["phone"],
   ck_contact_candidates_candidateevidence: ["crm"],
-  ck_documents_documentkind: ["snippet", "profile"],
+  ck_documents_documentkind: ["snippet", "profile", "video", "post", "audio"],
   ck_messages_approvalsource: ["client"],
   ck_enrichments_enrichmentkind: ["contact_scan", "opener", "video"],
   ck_enrollments_stopreason: ["undeliverable", "booked"],

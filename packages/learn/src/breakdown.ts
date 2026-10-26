@@ -16,6 +16,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { secondsOf } from "./feeds.js";
 import { type FilmFacts, filmFacts, filmFactsSchema } from "./film.js";
+import { factFindings } from "./findings.js";
 import {
   type Beat,
   type BreakdownBy,
@@ -251,7 +252,7 @@ export async function breakdownItem(
     if (!v) continue;
     const facts = hand?.facts ?? factsOf({ kind, text: item.text, transcript: item.transcript }, v);
     if (!facts) return false;
-    await db
+    const [row] = await db
       .insert(breakdowns)
       .values({
         itemId: id,
@@ -266,7 +267,9 @@ export async function breakdownItem(
         ctaKind: v.cta_kind,
         cta: v.cta_kind === "none" ? null : (v.cta ?? null),
       })
-      .onConflictDoNothing();
+      .onConflictDoNothing()
+      .returning();
+    if (row) await factFindings(db, row);
     return true;
   }
   return false;

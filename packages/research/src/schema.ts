@@ -24,8 +24,18 @@ import type { FetchStep } from "./fetch/ladder.js";
 /**
  * `snippet`: a search engine's few lines about a page (url = the page, not the
  * results page). `profile`: a platform's structured read of a profile, as JSON text.
+ * `video`, `post`, `audio`: a Learn item (a reel, a film, a post, an episode); `text` is what its
+ * feed gave, and the item keeps the read (designs/2026-10-25-ingestion-engine.md).
  */
-export const DOCUMENT_KINDS = ["webpage", "pdf", "snippet", "profile"] as const;
+export const DOCUMENT_KINDS = [
+  "webpage",
+  "pdf",
+  "snippet",
+  "profile",
+  "video",
+  "post",
+  "audio",
+] as const;
 export type DocumentKind = (typeof DOCUMENT_KINDS)[number];
 export const ENRICHMENT_KINDS = [
   "people_extraction",
@@ -212,8 +222,20 @@ export const FINDING_KINDS = [
   "site_change",
   "talk",
   "demand",
+  "fact",
 ] as const;
 export type FindingKind = (typeof FINDING_KINDS)[number];
+/** Who pulled a `fact`: a model, code, or William by hand. */
+export const FINDING_BYS = ["model", "code", "hand"] as const;
+/**
+ * Where a `fact` is on its document: `{t, len}` seconds in a video, `{quote}` on a page, `{frame}`,
+ * or `{method}` for code (designs/2026-10-25-ingestion-engine.md, Nouns).
+ */
+export type Proof =
+  | { t: number; len?: number }
+  | { quote: string }
+  | { frame: number }
+  | { method: string };
 /**
  * Kinds that may carry a signal date (designs/2026-10-06-signal-collectors.md): a specific, timely,
  * citable fact. `profile`, `still_there` and `left` never do.
@@ -254,6 +276,10 @@ export const findings = pgTable(
     /** A signal's own date: when it happened, or when we first saw it. Null = not a signal. */
     signalAt: timestamp("signal_at", { withTimezone: true }),
     signalDated: varchar("signal_dated", { length: 12, enum: SIGNAL_DATED }),
+    /** A `fact`'s question on its document: `hook`, `beats/2`, `facts/shots/5`. */
+    question: varchar("question", { length: 80 }),
+    proof: jsonb("proof").$type<Proof>(),
+    by: varchar("by", { length: 8, enum: FINDING_BYS }),
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_findings" }),
@@ -278,7 +304,12 @@ export const findings = pgTable(
       name: "fk_findings_document_id_documents",
     }),
     oneOf("ck_findings_findingkind", t.kind, FINDING_KINDS),
-    check("ck_findings_one_subject", sql`(person_id IS NULL) <> (company_id IS NULL)`),
+    // A `fact` is about its document (ingestion engine); every other kind about a person or a firm.
+    check(
+      "ck_findings_one_subject",
+      sql`CASE WHEN kind = 'fact' THEN person_id IS NULL AND company_id IS NULL AND document_id IS NOT NULL AND question IS NOT NULL ELSE (person_id IS NULL) <> (company_id IS NULL) END`,
+    ),
+    oneOf("ck_findings_by", t.by, FINDING_BYS),
     check("ck_findings_confidence", sql`confidence >= 0 AND confidence <= 1`),
     oneOf("ck_findings_signal_dated", t.signalDated, SIGNAL_DATED),
     check("ck_findings_signal_both", sql`(signal_at IS NULL) = (signal_dated IS NULL)`),

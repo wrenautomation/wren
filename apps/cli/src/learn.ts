@@ -24,6 +24,7 @@ import {
   creatorOf,
   embedMissing,
   FACT_CALLS,
+  factFindings,
   follow,
   isFactCall,
   itemPage,
@@ -540,6 +541,26 @@ export function registerLearn(
           const done: number[] = [];
           for (const id of todo) if (await breakdownItem(db, judge, id)) done.push(id);
           return { tried: todo.length, done };
+        }),
+      ),
+    );
+
+  learn
+    .command("findings")
+    .description(
+      "write every breakdown's facts as findings on its item's document (one-shot backfill; a breakdown writes its own after)",
+    )
+    .action(async () =>
+      json(
+        await inWorkspace(async (db, client) => {
+          const rows = await db
+            .select({ b: breakdowns })
+            .from(breakdowns)
+            .innerJoin(items, eq(items.id, breakdowns.itemId))
+            .where(eq(items.client, client));
+          let facts = 0;
+          for (const { b } of rows) facts += await factFindings(db, b);
+          return { breakdowns: rows.length, facts };
         }),
       ),
     );

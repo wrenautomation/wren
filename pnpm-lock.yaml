@@ -1326,6 +1326,9 @@ importers:
       '@wren/notes':
         specifier: workspace:*
         version: link:../notes
+      '@wren/research':
+        specifier: workspace:*
+        version: link:../research
       '@wren/video-watch':
         specifier: workspace:*
         version: link:../video-watch

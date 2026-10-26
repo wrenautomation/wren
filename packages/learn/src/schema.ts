@@ -5,6 +5,7 @@
  * transcripts are kept whole: the repo holds no content, the database does.
  */
 import { oneOf } from "@wren/db/columns";
+import { documents } from "@wren/research/schema";
 import { type SQL, sql } from "drizzle-orm";
 import {
   boolean,
@@ -243,6 +244,11 @@ export const items = learn.table(
      * draft it went out from. Null for anyone else's. Ours stay out of Competitors and the standard.
      */
     draftId: uuid("draft_id"),
+    /**
+     * Its row in research `documents` (designs/2026-10-25-ingestion-engine.md): what an instance
+     * and a finding point at. Set by `documentOf` the first time a line or a finding needs it.
+     */
+    documentId: integer("document_id"),
     search: tsvector("search").generatedAlwaysAs(
       (): SQL =>
         sql`setweight(to_tsvector('english'::regconfig, title), 'A'::"char") || setweight(to_tsvector('english'::regconfig, coalesce(summary, ''::text)), 'B'::"char") || setweight(to_tsvector('english'::regconfig, coalesce(transcript, text)), 'C'::"char")`,
@@ -261,6 +267,12 @@ export const items = learn.table(
       foreignColumns: [collections.id],
       name: "fk_items_collection_id_collections",
     }).onDelete("set null"),
+    foreignKey({
+      columns: [t.documentId],
+      foreignColumns: [documents.id],
+      name: "fk_items_document_id_documents",
+    }),
+    index("ix_learn_items_document_id").on(t.documentId),
     index("ix_learn_items_collection").on(t.collectionId),
     index("ix_learn_items_type").on(t.type),
     unique("uq_learn_items_client_url").on(t.client, t.url),

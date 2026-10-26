@@ -10,6 +10,7 @@
 import { WREN } from "@wren/core/access";
 import { recordCall } from "@wren/core/decide";
 import type { Queryable } from "@wren/db";
+import type { Proof } from "@wren/research/schema";
 import { and, eq, sql } from "drizzle-orm";
 import { type Beat, type BreakdownRow, breakdowns, items } from "./schema.js";
 
@@ -27,6 +28,8 @@ export interface FactRow {
   label: string;
   /** The whole value as words: never cut. */
   value: string;
+  /** Where it is in the video, when the breakdown says. */
+  proof?: Proof;
 }
 
 export interface FactCallRow {
@@ -100,6 +103,7 @@ export function factRows(
       path: `beats/${i}`,
       label: `Beat ${i + 1}`,
       value: beatText(beat),
+      ...(beat.t === null ? {} : { proof: { t: beat.t } }),
     })),
     { path: "cta", label: "Call to action", value: b.cta ? `${b.ctaKind}: ${b.cta}` : b.ctaKind },
   ];
@@ -112,6 +116,7 @@ export function factRows(
           path: `facts/shots/${i}`,
           label: `Shot ${i + 1}`,
           value: shotText(s as Record<string, unknown>),
+          proof: { t: Number(s.t), len: Number(s.len) },
         })),
       );
       continue;

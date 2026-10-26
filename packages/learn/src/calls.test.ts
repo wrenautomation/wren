@@ -46,6 +46,7 @@ describe("fact calls", () => {
       path: "beats/1",
       label: "Beat 2",
       value: "[1:12] Proof",
+      proof: { t: 72 },
     });
     expect(rows.find((r) => r.path === "cta")?.value).toBe("comment-word: Comment PLAN.");
     expect(rows.find((r) => r.path === "facts/chars")?.label).toBe("Characters");

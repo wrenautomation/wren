@@ -8,6 +8,7 @@ export * from "./drive.js";
 export * from "./embed.js";
 export * from "./feeds.js";
 export * from "./film.js";
+export * from "./findings.js";
 export * from "./hunt.js";
 export * from "./items.js";
 export * from "./learnback.js";

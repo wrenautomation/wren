@@ -55,9 +55,9 @@ source; it needs no new NFA part.
 
 | Noun | Is | Store |
 |---|---|---|
-| instance | one subject on one line: state, trail, status, version | `journeys` renames to `instances`; `profile_id` gives way to `subject_kind` (`person`, `document`) and `subject_id`; one open instance per subject |
-| document | one read of one URL: text, transcript, file, duration, stats, `kind`, `owner` (`ours`, `competitor`, `neutral`), who it is about | research `documents`, gains Learn's read columns; `learn.items` keeps feed state and points at it |
-| finding | one answer to one question about one document, with proof and `by` (`model`, `code`, `hand`), on one line | research `findings`, gains `line`, `question`, `proof`, `by` |
+| instance | one subject on one line: state, trail, status, version | `journeys` renames to `instances`; `subject_kind` (`person`, `document`) with `profile_id` or `document_id`; one open journey per person, one open instance per document on each line |
+| document | one read of one URL: text, `kind` (`webpage`, `video`, `post`, `audio`, …), who it is about | research `documents`; `learn.items.document_id` points at it, and the item keeps feed state and its read (transcript, duration, stats) for now |
+| finding | one answer to one question about one document, with proof and `by` (`model`, `code`, `hand`) | research `findings`, kind `fact`, gains `question`, `proof`, `by` |
 | proof | `{quote}` on a page, `{t, len}` in a video, `{frame}`, or `{method}` for code | in the finding |
 | call | his keep, tune or drop with words, on a finding or a document | `decision_calls`, decide kinds `finding` (was `learn_fact`) and `document` (was `learn_worth`) |
 
@@ -101,7 +101,7 @@ Logged-in finds and reads (IG, LinkedIn, X) use the reach engine's shared reads
 
 | Case | Answer |
 |---|---|
-| One person on two lines | one open instance per subject; the second entry waits; reach-pass blocks for good |
+| One person on two lines | one open journey per person; the second entry waits; reach-pass blocks for good |
 | One post names a second person (a commenter) | that person enters at the source as a new instance; no edge changes a subject |
 | Our own piece | `owner = ours`; never in a competitor standard; measured by learn back |
 | A competitor who is also a lead | the person is the subject; the line decides the act, not the owner tag |
@@ -162,3 +162,12 @@ Logged-in finds and reads (IG, LinkedIn, X) use the reach engine's shared reads
   `journey:<id>`, events `journey.move` and `journey.stage`. The lake finds tables live, so it
   starts a new `instances` table; its old `journeys` table stops at the rename. Content lines
   save and lower but do not deploy until commit 4.
+- 2026-10-25: phase 1 commit 3a (documents and findings, no behavior change). `learn.items` gains
+  `document_id`; `documentOf` makes the row from what the feed gave the first time it is asked
+  (url plus a hash of the feed text; kind by medium: reel, film, video to `video`, post to `post`,
+  episode to `audio`, article to `webpage`). The read stays on the item: about 350 references read
+  it there, so a move now costs more than it gives; a document reader joins the item. `owner` and
+  `line` wait until a line other than Learn's needs them. Findings gain kind `fact`, `question`,
+  `proof` and `by`; a fact has no person or firm, only a document, and every lead reader filters
+  by person or firm, so none sees one. Each breakdown writes its facts as findings keyed
+  `doc:<document>/<path>`; `wren learn findings` writes the ones made before.
