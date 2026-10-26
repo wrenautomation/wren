@@ -8,10 +8,11 @@ import { checkSbaAnswer, SBA_SEARCH_URL, sbaSearch, sbaSearchBody } from "./sba.
 
 const spec = { name: "sba-demo", description: "demo", naics: ["561311", "561320"] };
 const today = () => new Date("2026-09-30T23:30:00Z");
+// The fetcher asks whatever `fetch` is global when it is called: each test stubs its own.
 const fetcher = new PoliteFetcher("t (t@example.com)", {
   minInterval: 0,
   sleep: async () => {},
-  fetch: (async () => new Response("unused", { status: 500 })) as unknown as typeof fetch,
+  fetch: (input, init) => globalThis.fetch(input, init),
 });
 
 afterEach(() => {
@@ -120,7 +121,7 @@ describe("sbaSearch", () => {
     expect(posted[0]?.url).toBe(SBA_SEARCH_URL);
     expect(posted[0]?.init?.method).toBe("POST");
     expect(JSON.parse(String(posted[0]?.init?.body))).toEqual(sbaSearchBody("561311"));
-    expect(posted[0]?.init?.headers).toMatchObject({ "User-Agent": fetcher.userAgent });
+    expect(new Headers(posted[0]?.init?.headers).get("user-agent")).toBe(fetcher.userAgent);
 
     // Already on disk: not asked again.
     expect(await download(fetcher, remote, dest)).toMatchObject({ downloaded: false });

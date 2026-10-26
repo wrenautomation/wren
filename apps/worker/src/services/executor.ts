@@ -53,12 +53,12 @@ import {
   scoreStep,
   type VideoReader,
 } from "@wren/learn";
-import { llmForKey, withPart } from "@wren/llm";
+import { gatewayGemini, llmForKey, withPart } from "@wren/llm";
 import { touchStep as reachTouchStep, sortStep } from "@wren/outreach";
 import { collectSteps } from "@wren/pipeline/collect";
 import { shapeWorkflowsOf, soundShapes } from "@wren/pipeline/journeys";
 import { journeySteps } from "@wren/pipeline/steps";
-import { gatewayGemini, youtubeByUrl } from "@wren/research/sops";
+import { youtubeByUrl } from "@wren/research/sops";
 import { CALL_NOW, callNowStep } from "@wren/voice/node";
 import { clientTriageStep, triageStep, mail as watchMail } from "@wren/watch";
 import { eq } from "drizzle-orm";

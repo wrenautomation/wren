@@ -116,10 +116,8 @@ export function pppLoans(spec: PppLoansSpec): Dataset {
     download: async (fetcher, remote, dest): Promise<DownloadResult> => {
       const have = await stat(dest).catch(() => null);
       if (have) return { path: dest, downloaded: false, size: have.size };
-      const resp = await fetch(remote.url, {
-        headers: { "User-Agent": fetcher.userAgent },
-        signal: AbortSignal.timeout(TIMEOUT_MS),
-      });
+      // Streamed and filtered as it lands, so the fetcher's `open`, not its `download`.
+      const resp = await fetcher.open(remote.url, { signal: AbortSignal.timeout(TIMEOUT_MS) });
       if (resp.status !== 200 || !resp.body)
         throw new FetchError(`${remote.url} answered HTTP ${resp.status}`, resp.status);
       await mkdir(dirname(dest), { recursive: true });

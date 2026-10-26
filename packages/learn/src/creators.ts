@@ -3,19 +3,16 @@
  * the worker through autobrowse (`meta GET /instagram/{username}`, Graph business discovery, and
  * `x GET /2/users/{handle}/tweets`, the signed-in page, both free and capped per day), so every
  * `CREATOR_EVERY_MS`. TikTok needs yt-dlp and a home IP, so the Mac's reader lists it
- * (`pullTikTok`). A creator's first read keeps what it had posted as seen, like a feed's.
+ * (`pullTikTok`, scribe's `flatPlaylist`). A creator's first read keeps what it had posted as seen, like a feed's.
  */
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
 import type { SiteClient } from "@wren/core/content";
 import type { Db } from "@wren/db";
 import { pgSafe } from "@wren/db/columns";
+import { flatPlaylist } from "@wrenautomation/scribe/video";
 import { and, asc, eq, inArray, isNull, lt, or, sql } from "drizzle-orm";
 import type { FeedItem, PullStats } from "./feeds.js";
 import { cleanUrl, typeOf } from "./links.js";
 import { type ItemKind, items, type PostStats, type SourceKind, sources } from "./schema.js";
-
-const run = promisify(execFile);
 
 export const CREATOR_KINDS = ["instagram", "x", "tiktok"] as const;
 export type CreatorKind = (typeof CREATOR_KINDS)[number];
@@ -235,49 +232,6 @@ async function xPosts(sites: SiteClient, handle: string): Promise<CreatorPost[]>
       thumbnail: t.photos?.[0] ?? null,
       duration: null,
     }));
-}
-
-/** One entry of yt-dlp's playlist view (`--flat-playlist`): a TikTok profile, a YouTube search. */
-export interface YtDlpEntry {
-  id?: string;
-  url?: string;
-  webpage_url?: string;
-  title?: string;
-  description?: string;
-  timestamp?: number;
-  duration?: number;
-  uploader?: string;
-  channel?: string;
-  thumbnails?: { url?: string }[];
-  view_count?: number;
-  like_count?: number;
-  comment_count?: number;
-}
-
-/**
- * yt-dlp's playlist view of `target` (a profile, a channel's videos, `ytsearchN:<words>`), no
- * downloads: the entries with an id, in yt-dlp's order. `range` is 1-based and inclusive. Mac only
- * (a home IP).
- */
-export async function flatPlaylist(
-  ytDlp: string,
-  target: string,
-  range?: { start: number; end: number },
-): Promise<YtDlpEntry[]> {
-  const [cmd, ...pre] = ytDlp.split(/\s+/) as [string, ...string[]];
-  const { stdout } = await run(
-    cmd,
-    [
-      ...pre,
-      ...["-J", "--flat-playlist", "--no-warnings"],
-      ...(range
-        ? ["--playlist-start", String(range.start), "--playlist-end", String(range.end)]
-        : []),
-      target,
-    ],
-    { maxBuffer: 64 * 1024 * 1024, timeout: 180_000 },
-  );
-  return ((JSON.parse(stdout) as { entries?: YtDlpEntry[] }).entries ?? []).filter((e) => e.id);
 }
 
 /**

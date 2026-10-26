@@ -7,26 +7,20 @@
  * video (Instagram reel, TikTok, X), Drive Doc or local file, with `priority` in its front matter,
  * and `points/*.md` is each source's generated list of points. `buildSop` asks one
  * model for the next SOP.md from all of it; iterating is editing notes.md, calling on
- * pieces, or editing SOP.md and building again. Nothing here touches a database.
+ * pieces, or editing SOP.md and building again. The videos and audio are read by scribe
+ * (`@wrenautomation/scribe/video`); this file only files what it read. Nothing here touches a
+ * database.
  */
-import { createHash } from "node:crypto";
-import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 import type { LlmClient } from "@wren/llm";
 import {
-  askGemini,
-  askShown,
-  clock,
-  renderWatched,
-  run,
-  runFor,
-  SHOWN,
-  TOOL_MS,
-  type VideoInfo,
-  type VideoMeta,
+  readAudio,
+  readVideo,
+  readYoutube,
+  readYoutubeByUrl,
+  type VideoRead,
   type WatchOptions,
-  watch,
 } from "@wrenautomation/scribe/video";
 import { expandCites, numberCites } from "./cites.js";
 
@@ -45,177 +39,44 @@ const frontMatter = (fields: Record<string, string | number>) =>
     .map(([k, v]) => `${k}: ${typeof v === "string" ? JSON.stringify(v) : v}`)
     .join("\n")}\n---\n\n`;
 
-/** YouTube's json3 caption track; only what we read. */
-interface Json3 {
-  events: { tStartMs: number; segs?: { utf8: string }[] }[];
+/**
+ * A scribe read filed as a source: the read's facts and the SOP's `priority` as front matter,
+ * then its title and sections. Named `<kind>-<id>.md`.
+ */
+export function toSource(read: VideoRead, priority = DEFAULT_PRIORITY): Source {
+  return {
+    name: `${read.kind}-${read.id}.md`,
+    md: `${frontMatter({
+      source: `${read.kind}:${read.id}`,
+      title: read.title,
+      url: read.url,
+      ...(read.channel ? { channel: read.channel } : {}),
+      ...(read.uploaded ? { uploaded: read.uploaded } : {}),
+      priority,
+      ...(read.duration ? { duration: read.duration } : {}),
+      ...(read.thumbnail ? { thumbnail: read.thumbnail } : {}),
+    })}# ${read.title}\n\n${read.body}`,
+  };
 }
-
-const MARK_EVERY_S = 60;
-
-/** Captions as markdown: a heading per chapter, a `[m:ss]` marker every minute so the SOP can cite a moment. */
-export function captionsMarkdown(
-  info: VideoInfo,
-  track: Json3,
-  priority = DEFAULT_PRIORITY,
-): string {
-  const chapters = info.chapters?.length
-    ? info.chapters
-    : [{ start_time: 0, end_time: info.duration ?? Number.POSITIVE_INFINITY, title: info.title }];
-  const words = track.events
-    .filter((e) => e.segs?.length)
-    .map((e) => ({
-      t: e.tStartMs / 1000,
-      text: (e.segs ?? [])
-        .map((s) => s.utf8)
-        .join("")
-        .replace(/\s+/g, " ")
-        .trim(),
-    }))
-    .filter((w) => w.text);
-  const body = chapters.map((c) => {
-    const lines: string[] = [];
-    let mark = Number.NEGATIVE_INFINITY;
-    for (const w of words) {
-      if (w.t < c.start_time || w.t >= c.end_time) continue;
-      if (w.t - mark >= MARK_EVERY_S) {
-        mark = w.t;
-        lines.push(`\n[${clock(w.t)}]`);
-      }
-      lines.push(w.text);
-    }
-    return `## [${clock(c.start_time)}] ${c.title}\n${lines.join(" ").trim()}\n`;
-  });
-  const uploaded = info.upload_date?.replace(/^(\d{4})(\d{2})(\d{2})$/, "$1-$2-$3");
-  return `${frontMatter({
-    source: `youtube:${info.id}`,
-    title: info.title,
-    url: info.webpage_url ?? `https://www.youtube.com/watch?v=${info.id}`,
-    ...(info.channel ? { channel: info.channel } : {}),
-    ...(uploaded ? { uploaded } : {}),
-    priority,
-    ...(info.duration ? { duration: Math.round(info.duration) } : {}),
-    ...(info.thumbnail ? { thumbnail: info.thumbnail } : {}),
-  })}# ${info.title}\n\n${body.join("\n")}`;
-}
-
-const captionTracks = (info: VideoInfo) =>
-  [info.subtitles?.en, info.automatic_captions?.en, info.automatic_captions?.["en-orig"]]
-    .flatMap((t) => t ?? [])
-    .filter((t) => t.ext === "json3");
-
-const CLIP_S = 600;
 
 /**
- * What the video shows on screen (documents, slides, tables, templates), read by Gemini straight
- * from the YouTube URL in `CLIP_S` clips. One markdown block per clip, timestamps absolute.
- * Empty when `keys` is empty.
+ * A YouTube video's captions and chapters through `yt-dlp` (`ytDlp` is the command, split on
+ * spaces: `uvx yt-dlp`), plus what it showed on screen when Gemini keys are given: scribe's
+ * `readYoutube`, filed with the SOP's priority.
  */
-async function screenText(
-  url: string,
-  durationS: number,
-  keys: readonly string[],
-  fetchFn: typeof fetch = fetch,
-): Promise<string> {
-  if (!keys.length) return "";
-  const clips = Array.from({ length: Math.ceil(durationS / CLIP_S) }, (_, i) => i * CLIP_S);
-  const read = async (start: number): Promise<string> => {
-    const end = Math.min(start + CLIP_S, durationS);
-    const body = (paraphrase: boolean) => ({
-      contents: [
-        {
-          parts: [
-            {
-              fileData: { fileUri: url },
-              videoMetadata: { startOffset: `${start}s`, endOffset: `${end}s`, fps: 0.5 },
-            },
-            {
-              text: `${SHOWN(start, paraphrase)} Markdown. If nothing is shown, reply with the single word none.`,
-            },
-          ],
-        },
-      ],
-      // Low resolution reads a shown document fine at a quarter of the tokens.
-      generationConfig: { mediaResolution: "MEDIA_RESOLUTION_LOW" },
-    });
-    const r = await askShown(body, keys, fetchFn, clock(start));
-    if ("text" in r) return r.text;
-    // One unread clip must not lose the other 23: leave a marker and carry on.
-    console.warn(`gemini ${clock(start)}: unread, last ${r.unread}`);
-    return `[${clock(start)}] (not read: ${r.unread})`;
-  };
-  const out: string[] = [];
-  // ponytail: 4 clips at a time; limits are per key, so go wider if it ever drags.
-  for (let i = 0; i < clips.length; i += 4) {
-    const texts = await Promise.all(clips.slice(i, i + 4).map(read));
-    out.push(...texts.filter((t) => t && t.toLowerCase() !== "none"));
-  }
-  return out.join("\n\n");
-}
-
-/** A YouTube video's captions and chapters, through `yt-dlp` (`ytDlp` is the command, split on spaces: `uvx yt-dlp`). */
-export async function youtubeSource(
+export const youtubeSource = async (
   url: string,
   ytDlp: string,
   priority = DEFAULT_PRIORITY,
   opts: { geminiKeys?: readonly string[]; fetchFn?: typeof fetch } = {},
-): Promise<Source> {
-  const fetchFn = opts.fetchFn ?? fetch;
-  const [cmd, ...pre] = ytDlp.split(/\s+/) as [string, ...string[]];
-  const { stdout } = await runFor(
-    cmd,
-    [...pre, "-J", "--no-warnings", "--no-playlist", url],
-    TOOL_MS,
-    { maxBuffer: 256 * 1024 * 1024 },
-  );
-  const info = JSON.parse(stdout) as VideoInfo;
-  const tracks = captionTracks(info);
-  if (!tracks.length) throw new Error(`${url}: no English captions (manual or auto) to read`);
-  // YouTube throttles single caption URLs (429); the same text sits behind several, so try each.
-  let json: Json3 | undefined;
-  let last = 0;
-  for (const t of tracks) {
-    const res = await fetchFn(t.url);
-    last = res.status;
-    if (!res.ok) continue;
-    json = (await res.json()) as Json3;
-    break;
-  }
-  if (!json) throw new Error(`${url}: captions fetch HTTP ${last} on all ${tracks.length} tracks`);
-  let md = captionsMarkdown(info, json, priority);
-  const screen = await screenText(url, info.duration ?? 0, opts.geminiKeys ?? [], fetchFn);
-  if (screen)
-    md += `\n## On screen\n\nWhat the video showed (documents, slides, tables, visuals), read from the frames; the transcript above has only the speech.\n\n${screen}\n`;
-  return { name: `youtube-${info.id}.md`, md };
-}
+): Promise<Source> => toSource(await readYoutube(url, { ytDlp, ...opts }), priority);
 
 /**
- * Gemini's own API through the LLM gateway, as `askGemini`'s fetch: the gateway holds the keys
- * and rotates them, so the caller passes any one placeholder key. `gateway` is its base URL
- * (`WREN_LLM_GATEWAY_URL`, the `/v1` OpenAI path is dropped).
+ * A YouTube video read from its URL alone, no download and no home IP (scribe's
+ * `readYoutubeByUrl`): what the worker reads with, through the gateway (`gatewayGemini` in
+ * `@wren/llm`); the Mac's `youtubeSource` uses the captions instead.
  */
-export function gatewayGemini(gateway: string, token: string, fetchFn: typeof fetch = fetch) {
-  const origin = new URL(gateway).origin;
-  const google = "https://generativelanguage.googleapis.com/";
-  return ((input: string | URL | Request, init?: RequestInit) => {
-    const url = String(input instanceof Request ? input.url : input);
-    if (!url.startsWith(google)) return fetchFn(input, init);
-    const headers = new Headers(init?.headers);
-    headers.delete("x-goog-api-key");
-    headers.set("authorization", `Bearer ${token}`);
-    return fetchFn(`${origin}/${url.slice(google.length)}`, { ...init, headers });
-  }) as typeof fetch;
-}
-
-const SPEECH =
-  "Transcribe the speech in this video: every word spoken, in paragraphs, each starting with its [m:ss] video time. Fix only obvious mishearings. Markdown, no heading. If nobody speaks, reply with the single word none.";
-
-/**
- * A YouTube video read from its URL alone, no download and no home IP: Gemini hears the speech
- * and reads the screen in `CLIP_S` clips (one clip when the length isn't known). The title,
- * channel and thumbnail come from YouTube's oEmbed. What the worker reads with; the Mac's
- * `youtubeSource` uses the captions instead.
- */
-export async function youtubeByUrl(
+export const youtubeByUrl = async (
   url: string,
   opts: {
     geminiKeys: readonly string[];
@@ -223,122 +84,24 @@ export async function youtubeByUrl(
     durationS?: number | null | undefined;
     priority?: number;
   },
-): Promise<Source> {
-  const fetchFn = opts.fetchFn ?? fetch;
-  const id = /(?:v=|youtu\.be\/|shorts\/|live\/)([\w-]{11})/.exec(url)?.[1];
-  if (!id) throw new Error(`${url}: not a YouTube video`);
-  const watch = `https://www.youtube.com/watch?v=${id}`;
-  const meta = (await fetchFn(
-    `https://www.youtube.com/oembed?format=json&url=${encodeURIComponent(watch)}`,
-  )
-    .then((r) => (r.ok ? r.json() : {}))
-    .catch(() => ({}))) as { title?: string; author_name?: string; thumbnail_url?: string };
-  const duration = opts.durationS ?? 0;
-  const starts = duration
-    ? Array.from({ length: Math.ceil(duration / CLIP_S) }, (_, i) => i * CLIP_S)
-    : [null];
-  const readClip = async (start: number | null) => {
-    const part = {
-      fileData: { fileUri: watch },
-      ...(start === null
-        ? {}
-        : {
-            videoMetadata: {
-              startOffset: `${start}s`,
-              endOffset: `${Math.min(start + CLIP_S, duration)}s`,
-            },
-          }),
-    };
-    const ask = (text: string) => ({
-      contents: [{ parts: [part, { text }] }],
-      generationConfig: { mediaResolution: "MEDIA_RESOLUTION_LOW" },
-    });
-    const label = `${id} ${clock(start ?? 0)}`;
-    const [said, screen] = await Promise.all([
-      askGemini(ask(SPEECH), opts.geminiKeys, fetchFn, `${label} speech`),
-      askShown(
-        (paraphrase) =>
-          ask(
-            `${SHOWN(start ?? 0, paraphrase)} Markdown. If nothing is shown, reply with the single word none.`,
-          ),
-        opts.geminiKeys,
-        fetchFn,
-        `${label} screen`,
-      ),
-    ]);
-    if ("unread" in said) throw new Error(`gemini ${label} speech: unread, last ${said.unread}`);
-    return { said: said.text, screen: "text" in screen ? screen.text : "" };
-  };
-  const clips: { said: string; screen: string }[] = [];
-  // 4 clips at a time, kept in order: the gateway spreads them over its keys.
-  for (let i = 0; i < starts.length; i += 4)
-    clips.push(...(await Promise.all(starts.slice(i, i + 4).map(readClip))));
-  const real = (s: string) => s && s.toLowerCase() !== "none";
-  const speech = clips.map((c) => c.said).filter(real);
-  const shown = clips.map((c) => c.screen).filter(real);
-  const title = meta.title?.trim() || watch;
-  return {
-    name: `youtube-${id}.md`,
-    md: `${frontMatter({
-      source: `youtube:${id}`,
-      title,
-      url: watch,
-      ...(meta.author_name ? { channel: meta.author_name } : {}),
-      priority: opts.priority ?? DEFAULT_PRIORITY,
-      ...(duration ? { duration: Math.round(duration) } : {}),
-      ...(meta.thumbnail_url ? { thumbnail: meta.thumbnail_url } : {}),
-    })}# ${title}\n\n## Speech\n\n${speech.join("\n\n") || "(no speech)"}\n${
-      shown.length ? `\n## On screen\n\n${shown.join("\n\n")}\n` : ""
-    }`,
-  };
-}
+): Promise<Source> => toSource(await readYoutubeByUrl(url, opts), opts.priority);
 
 /**
- * Any other video `yt-dlp` fetches (Instagram reel, TikTok, X). No captions there, so `watch`
- * hears the audio and reads the frames with Cohere (Gemini adds its read of the screen when a
- * key works); the source holds the caption, then its Speech, On screen and Cuts.
+ * Any other video `yt-dlp` fetches (Instagram reel, TikTok, X), watched (scribe's `readVideo`):
+ * the caption, then its Speech, On screen and Cuts.
  */
-export async function videoSource(
+export const videoSource = async (
   url: string,
   ytDlp: string,
   priority = DEFAULT_PRIORITY,
   opts: Omit<WatchOptions, "ytDlp">,
-): Promise<Source> {
-  const watched = await watch(url, { ...opts, ytDlp });
-  const info = watched.info as VideoMeta;
-  const kind = (info.extractor_key ?? "video").toLowerCase();
-  const caption = info.description?.trim() ?? "";
-  const title = caption.split("\n")[0]?.slice(0, 100) || info.title;
-  const uploaded = info.upload_date?.replace(/^(\d{4})(\d{2})(\d{2})$/, "$1-$2-$3");
-  const by = info.channel ?? info.uploader;
-  const duration = info.duration ?? watched.durationS;
-  return {
-    name: `${kind}-${info.id}.md`,
-    md: `${frontMatter({
-      source: `${kind}:${info.id}`,
-      title,
-      url: info.webpage_url ?? url,
-      ...(by ? { channel: by } : {}),
-      ...(uploaded ? { uploaded } : {}),
-      priority,
-      ...(duration ? { duration: Math.round(duration) } : {}),
-      ...(info.thumbnail ? { thumbnail: info.thumbnail } : {}),
-    })}# ${title}\n\n${caption ? `## Caption\n\n${caption}\n\n` : ""}${renderWatched(watched)}\n`,
-  };
-}
-
-const AUDIO_MAX = 600_000_000;
-
-const HEARD = (start: number) =>
-  `Transcribe the speech in this podcast audio: every word spoken, in paragraphs, each starting with its time in the episode as [m:ss], or [h:mm:ss] past the hour (this clip starts at ${clock(start)}), and the speaker's name in bold when it's known. Fix only obvious mishearings. Leave out ad reads. Markdown, no heading. If nobody speaks, reply with the single word none.`;
+): Promise<Source> => toSource(await readVideo(url, { ...opts, ytDlp }), priority);
 
 /**
- * A podcast episode heard from its audio file: downloaded, cut by ffmpeg into `CLIP_S` mono
- * clips small enough to send inline (about 2 MB each), and each transcribed by Gemini, 4 at a
- * time, times running on across clips. `url` is the episode's page; `title` and `creator` are
- * what its feed said.
+ * A podcast episode heard from its audio file (scribe's `readAudio`): cut by ffmpeg, each clip
+ * transcribed by Gemini. `url` is the episode's page; `title` and `creator` are what its feed said.
  */
-export async function audioSource(
+export const audioSource = async (
   audioUrl: string,
   opts: {
     url: string;
@@ -348,81 +111,8 @@ export async function audioSource(
     fetchFn?: typeof fetch;
     ffmpeg?: string;
     priority?: number;
-    /** Seconds per clip; `CLIP_S` unless a test cuts a short tone. */
-    clipS?: number;
   },
-): Promise<Source> {
-  if (!opts.geminiKeys.length) throw new Error(`${audioUrl}: needs GEMINI keys to transcribe`);
-  const clipS = opts.clipS ?? CLIP_S;
-  const fetchFn = opts.fetchFn ?? fetch;
-  const ffmpeg = opts.ffmpeg ?? "ffmpeg";
-  const dir = await mkdtemp(join(tmpdir(), "sop-audio-"));
-  try {
-    const res = await fetchFn(audioUrl, { signal: AbortSignal.timeout(600_000) });
-    if (!res.ok || !res.body) throw new Error(`${audioUrl}: HTTP ${res.status}`);
-    if (Number(res.headers.get("content-length") ?? 0) > AUDIO_MAX)
-      throw new Error(`${audioUrl}: over ${AUDIO_MAX / 1e6} MB`);
-    const whole = join(dir, "episode");
-    await writeFile(whole, Buffer.from(await res.arrayBuffer()));
-    await run(
-      ffmpeg,
-      [
-        ...["-hide_banner", "-loglevel", "error", "-i", whole, "-vn", "-ac", "1", "-ar", "16000"],
-        ...["-c:a", "libopus", "-b:a", "24k", "-f", "segment", "-segment_time", String(clipS)],
-        ...["-reset_timestamps", "1", join(dir, "clip%03d.ogg")],
-      ],
-      { maxBuffer: 16 * 1024 * 1024 },
-    );
-    const clips = (await readdir(dir)).filter((f) => f.startsWith("clip")).sort();
-    if (!clips.length) throw new Error(`${audioUrl}: ffmpeg cut no clips`);
-    const id = createHash("sha1").update(audioUrl).digest("hex").slice(0, 12);
-    const hear = async (file: string, i: number) => {
-      const data = (await readFile(join(dir, file))).toString("base64");
-      const said = await askGemini(
-        {
-          contents: [
-            {
-              parts: [{ inlineData: { mimeType: "audio/ogg", data } }, { text: HEARD(i * clipS) }],
-            },
-          ],
-        },
-        opts.geminiKeys,
-        fetchFn,
-        `${id} ${clock(i * clipS)} speech`,
-      );
-      if ("unread" in said)
-        throw new Error(`gemini ${id} ${clock(i * clipS)}: unread, last ${said.unread}`);
-      return said.text.toLowerCase() === "none" ? "" : said.text;
-    };
-    const speech: string[] = [];
-    for (let i = 0; i < clips.length; i += 4)
-      speech.push(...(await Promise.all(clips.slice(i, i + 4).map((f, j) => hear(f, i + j)))));
-    const { stdout } = await run(ffmpeg.replace(/ffmpeg$/, "ffprobe"), [
-      "-v",
-      "error",
-      "-show_entries",
-      "format=duration",
-      "-of",
-      "csv=p=0",
-      whole,
-    ]).catch(() => ({ stdout: "" }));
-    const duration = Math.round(Number(stdout.trim()) || 0);
-    const title = opts.title?.trim() || opts.url;
-    return {
-      name: `podcast-${id}.md`,
-      md: `${frontMatter({
-        source: `podcast:${id}`,
-        title,
-        url: opts.url,
-        ...(opts.creator ? { channel: opts.creator } : {}),
-        priority: opts.priority ?? DEFAULT_PRIORITY,
-        ...(duration ? { duration } : {}),
-      })}# ${title}\n\n## Speech\n\n${speech.filter(Boolean).join("\n\n") || "(no speech)"}\n`,
-    };
-  } finally {
-    await rm(dir, { recursive: true, force: true });
-  }
-}
+): Promise<Source> => toSource(await readAudio(audioUrl, opts), opts.priority);
 
 /** `GET /drive/v3/...` on autobrowse's `drive` site, as the CLI wires it. */
 export type DriveGet = (path: string, body: Record<string, unknown>) => Promise<unknown>;

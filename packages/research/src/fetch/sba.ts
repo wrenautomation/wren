@@ -88,9 +88,9 @@ export function sbaSearch(spec: SbaSearchSpec, today = () => new Date()): Datase
       const have = await stat(dest).catch(() => null);
       if (have) return { path: dest, downloaded: false, size: have.size };
       const code = remote.url.slice(remote.url.indexOf("#naics=") + 7);
-      const resp = await fetch(SBA_SEARCH_URL, {
+      const resp = await fetcher.open(SBA_SEARCH_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json", "User-Agent": fetcher.userAgent },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(sbaSearchBody(code)),
         signal: AbortSignal.timeout(TIMEOUT_MS),
       });

@@ -42,7 +42,7 @@
     "@wren/watch": "workspace:*",
     "@wren/worker": "workspace:*",
     "@wrenautomation/autobrowse": "0.5.0",
-    "@wrenautomation/scribe": "0.1.0",
+    "@wrenautomation/scribe": "0.2.0",
     "commander": "15.0.0",
     "drizzle-orm": "0.45.2",
     "playwright": "1.63.0",

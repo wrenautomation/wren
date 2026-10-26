@@ -1,56 +1,43 @@
-import { execFileSync } from "node:child_process";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { FakeLlm } from "@wren/llm";
-import { clock } from "@wrenautomation/scribe/video";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   addSource,
-  audioSource,
   buildSop,
-  captionsMarkdown,
   driveSources,
   expandCites,
-  gatewayGemini,
   numberCites,
   readSopDir,
   sopPrompt,
-  youtubeByUrl,
+  toSource,
 } from "./index.js";
 
 describe("sops", () => {
   let dir = "";
   afterEach(() => (dir ? rm(dir, { recursive: true, force: true }) : undefined));
 
-  it("renders captions per chapter with a marker a minute", () => {
-    const md = captionsMarkdown(
+  it("files a scribe read with its facts and the priority as front matter", () => {
+    const src = toSource(
       {
+        kind: "youtube",
         id: "v1",
         title: "T",
-        upload_date: "20260101",
-        chapters: [
-          { start_time: 0, end_time: 90, title: "Intro" },
-          { start_time: 90, end_time: 200, title: "Copy" },
-        ],
-      },
-      {
-        events: [
-          { tStartMs: 1000, segs: [{ utf8: "hello" }, { utf8: " there" }] },
-          { tStartMs: 70000, segs: [{ utf8: "later" }] },
-          { tStartMs: 95000 },
-          { tStartMs: 95000, segs: [{ utf8: "second" }] },
-          { tStartMs: 3700000, segs: [{ utf8: "past the end" }] },
-        ],
+        url: "https://www.youtube.com/watch?v=v1",
+        channel: "C",
+        uploaded: "2026-01-01",
+        duration: 200,
+        body: "## [0:00] Intro\n[0:01] hello\n",
       },
       9,
     );
-    expect(md).toContain('source: "youtube:v1"');
-    expect(md).toContain('uploaded: "2026-01-01"\npriority: 9');
-    expect(md).toContain("## [0:00] Intro\n[0:01] hello there \n[1:10] later");
-    expect(md).toContain("## [1:30] Copy\n[1:35] second");
-    expect(md).not.toContain("past the end");
-    expect(clock(3725)).toBe("1:02:05");
+    expect(src.name).toBe("youtube-v1.md");
+    expect(src.md).toBe(
+      '---\nsource: "youtube:v1"\ntitle: "T"\nurl: "https://www.youtube.com/watch?v=v1"\nchannel: "C"\nuploaded: "2026-01-01"\npriority: 9\nduration: 200\n---\n\n# T\n\n## [0:00] Intro\n[0:01] hello\n',
+    );
+    const bare = toSource({ kind: "podcast", id: "abc", title: "E", url: "u", body: "" });
+    expect(bare.md).toContain('url: "u"\npriority: 5\n---');
   });
 
   it("walks a Drive folder and exports only Docs and text", async () => {
@@ -166,101 +153,5 @@ describe("numbered citations", () => {
         `${short.split("\n## Sources")[0]}- C [file-g 0:01]\n${short.slice(short.indexOf("\n## Sources"))}`,
       ),
     ).toContain("- C [1 0:01]");
-  });
-});
-
-describe("youtube by URL", () => {
-  it("reads speech and screen through the gateway, clips in order", async () => {
-    const calls: { url: string; auth: string | null; goog: string | null; body: string }[] = [];
-    const base = (async (input: string | URL | Request, init?: RequestInit) => {
-      const url = String(input);
-      const h = new Headers(init?.headers);
-      calls.push({
-        url,
-        auth: h.get("authorization"),
-        goog: h.get("x-goog-api-key"),
-        body: String(init?.body ?? ""),
-      });
-      if (url.includes("oembed"))
-        return Response.json({ title: "Cold email in 2026", author_name: "Synth Channel" });
-      const body = JSON.parse(String(init?.body)) as {
-        contents: { parts: { videoMetadata?: { startOffset: string }; text?: string }[] }[];
-      };
-      const parts = body.contents[0]?.parts ?? [];
-      const start = parts[0]?.videoMetadata?.startOffset ?? "?";
-      const speech = parts[1]?.text?.startsWith("Transcribe the speech");
-      return Response.json({
-        candidates: [{ content: { parts: [{ text: speech ? `said ${start}` : "none" }] } }],
-      });
-    }) as unknown as typeof fetch;
-    const fetchFn = gatewayGemini("https://gw.example/v1", "tok", base);
-    const s = await youtubeByUrl("https://youtu.be/abcdefghijk", {
-      geminiKeys: ["gateway"],
-      fetchFn,
-      durationS: 900,
-    });
-    expect(s.name).toBe("youtube-abcdefghijk.md");
-    expect(s.md).toContain('title: "Cold email in 2026"');
-    expect(s.md).toContain('channel: "Synth Channel"');
-    expect(s.md.indexOf("said 0s")).toBeLessThan(s.md.indexOf("said 600s"));
-    expect(s.md).not.toContain("## On screen");
-    const gemini = calls.filter((c) => !c.url.includes("oembed"));
-    expect(gemini).toHaveLength(4);
-    expect(gemini[0]?.url).toMatch(
-      /^https:\/\/gw\.example\/v1beta\/models\/[\w.-]+:generateContent$/,
-    );
-    expect(gemini.every((c) => c.auth === "Bearer tok" && c.goog === null)).toBe(true);
-  });
-});
-
-const hasFfmpeg = (() => {
-  try {
-    execFileSync("ffmpeg", ["-version"], { stdio: "ignore" });
-    return true;
-  } catch {
-    return false;
-  }
-})();
-
-describe("audio source", () => {
-  it.skipIf(!hasFfmpeg)("cuts an episode into clips and keeps their order and times", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "sops-audio-test-"));
-    try {
-      const file = join(dir, "tone.ogg");
-      execFileSync("ffmpeg", [
-        ...["-hide_banner", "-loglevel", "error", "-f", "lavfi", "-i", "sine=f=440:d=3"],
-        ...["-ac", "1", "-c:a", "libopus", "-b:a", "8k", file],
-      ]);
-      const audio = await readFile(file);
-      const asks: string[] = [];
-      const fetchFn = (async (input: string | URL | Request, init?: RequestInit) => {
-        const url = String(input);
-        if (url === "https://cdn.example.com/ep1.mp3") return new Response(audio);
-        const body = JSON.parse(String(init?.body)) as {
-          contents: { parts: { inlineData?: { mimeType: string }; text?: string }[] }[];
-        };
-        const parts = body.contents[0]?.parts ?? [];
-        expect(parts[0]?.inlineData?.mimeType).toBe("audio/ogg");
-        const at = /clip starts at ([\d:]+)/.exec(parts[1]?.text ?? "")?.[1] ?? "?";
-        asks.push(at);
-        return Response.json({ candidates: [{ content: { parts: [{ text: `heard ${at}` }] } }] });
-      }) as unknown as typeof fetch;
-      const s = await audioSource("https://cdn.example.com/ep1.mp3", {
-        url: "https://show.example/ep1",
-        title: "Episode one",
-        creator: "Synth Show",
-        geminiKeys: ["k"],
-        fetchFn,
-        // Two-second clips of a three-second tone: a 700 s episode took minutes to encode and cut.
-        clipS: 2,
-      });
-      expect(asks.sort()).toEqual(["0:00", "0:02"]);
-      expect(s.name).toMatch(/^podcast-[0-9a-f]{12}\.md$/);
-      expect(s.md).toContain('channel: "Synth Show"');
-      expect(s.md).toContain("duration: 3");
-      expect(s.md.indexOf("heard 0:00")).toBeLessThan(s.md.indexOf("heard 0:02"));
-    } finally {
-      await rm(dir, { recursive: true, force: true });
-    }
   });
 });
