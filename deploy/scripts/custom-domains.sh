@@ -4,7 +4,7 @@
 #   node scripts/secrets.mjs run deploy/prod.env -- deploy/scripts/custom-domains.sh
 # Needs CLOUDFLARE_API_TOKEN (DNS + Workers Routes) and WREN_CLOUDFLARE_SAAS_TOKEN (SSL and
 # Certificates). wren-portal's `*/*` route lives in apps/portal/wrangler.toml; this keeps the
-# lander's apex, the desk and the iPad canvas (draw.) off it.
+# lander's apex, the desk, the iPad canvas (draw.) and the peers view (peers.) off it.
 set -euo pipefail
 zone="${WREN_CLOUDFLARE_ZONE_ID:?}"
 domain=wrenautomation.com
@@ -35,7 +35,7 @@ echo "fallback origin: $target"
 #    demo. and phone. are Worker custom domains and win; auth. also needs its own route (its
 #    wrangler.toml), since the portal's /assets/* skip its Worker; t. and www. have routes.
 routes="$(cf "$CLOUDFLARE_API_TOKEN" GET /workers/routes)"
-for pattern in "$domain/*" "desk.$domain/*" "draw.$domain/*"; do
+for pattern in "$domain/*" "desk.$domain/*" "draw.$domain/*" "peers.$domain/*"; do
   if printf '%s' "$routes" | P="$pattern" python3 -c 'import json,os,sys; sys.exit(0 if any(r["pattern"]==os.environ["P"] for r in json.load(sys.stdin)["result"]) else 1)'; then
     echo "route: $pattern there"
   else
