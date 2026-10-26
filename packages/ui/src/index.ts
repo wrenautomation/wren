@@ -34,7 +34,17 @@ export {
   folderTree,
 } from "./browser.js";
 export { Busy, BusyBox, type BusySize, Ring } from "./busy.js";
-export { BarsChart, type BarsRow, ColumnsChart, Sparkline, TrendChart } from "./charts/index.js";
+export {
+  BarsChart,
+  type BarsRow,
+  ColumnsChart,
+  HeatChart,
+  LinesChart,
+  RingChart,
+  type RingSlice,
+  Sparkline,
+  TrendChart,
+} from "./charts/index.js";
 export { Input } from "./components/ui/input.js";
 export { Textarea } from "./components/ui/textarea.js";
 export {
@@ -512,7 +522,7 @@ export {
   type TrailStep,
   useSourcePick,
 } from "./sources.js";
-export { SplitGhost, SplitPanel, type SplitRow } from "./split.js";
+export { SplitGhost, SplitPanel, type SplitRow, sliceColor } from "./split.js";
 export { HOLD, type JobStep, type StepCard, type StepState, Steps } from "./steps.js";
 export { Sweep } from "./sweep.js";
 export { RecordSwitch, type SwitchWait } from "./switch-bar.js";

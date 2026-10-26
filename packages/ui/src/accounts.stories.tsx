@@ -15,7 +15,10 @@ import {
 } from "./fixtures/accounts.js";
 import { fakePlace } from "./fixtures/place.js";
 
-export default { title: "Accounts" } satisfies Meta;
+export default {
+  title: "Forms/Accounts",
+  id: "accounts",
+} satisfies Meta;
 
 type Story = StoryObj;
 

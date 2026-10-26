@@ -15,7 +15,10 @@ import { WORST } from "./fixtures/worst.js";
 import type { KeepApi } from "./list-bar.js";
 import { type Facets, ListBar, SearchBox, useSavedViews, ViewTabs } from "./list-bar.js";
 
-export default { title: "List bar" } satisfies Meta;
+export default {
+  title: "Lists/List bar",
+  id: "list-bar",
+} satisfies Meta;
 
 type Story = StoryObj;
 

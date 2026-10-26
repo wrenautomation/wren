@@ -31,7 +31,10 @@ import { fails, pending } from "./fixtures/load.js";
 import { WORST } from "./fixtures/worst.js";
 import { writeForm } from "./save/journal.js";
 
-export default { title: "Edit form" } satisfies Meta;
+export default {
+  title: "Forms/Edit form",
+  id: "edit-form",
+} satisfies Meta;
 
 type Story = StoryObj;
 

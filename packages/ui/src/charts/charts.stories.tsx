@@ -5,13 +5,19 @@ import {
   GAPPED,
   NO_FIGURES,
   ONE_DAY,
+  SPEND_PARTS,
   TREND,
   WORST_FUNNEL,
   WORST_TREND,
 } from "../fixtures/charts.js";
+import { WORST } from "../fixtures/worst.js";
+import { SplitPanel, type SplitRow, sliceColor } from "../split.js";
 import { BarsChart, Sparkline, TrendChart } from "./index.js";
 
-export default { title: "Charts" } satisfies Meta;
+export default {
+  title: "Charts/Parts",
+  id: "charts",
+} satisfies Meta;
 
 type Story = StoryObj;
 
@@ -109,6 +115,67 @@ export const WorstCase: Story = {
       <div className={card}>
         <BarsChart rows={WORST_FUNNEL} label="People" />
       </div>
+    </div>
+  ),
+};
+
+const usd = (n: number) => `$${n.toLocaleString("en-US")}`;
+const spend = (parts: readonly { name: string; sum: number; vendors: string[] }[]): SplitRow[] =>
+  parts.map((a, i) => ({
+    key: a.name,
+    label: a.name,
+    note: a.vendors.join(", "),
+    weight: a.sum,
+    value: usd(a.sum),
+    color: sliceColor(i),
+    href: "#",
+  }));
+
+/** Money's month as a ring: five accounts each a slice, the last two one quiet slice. Hover a slice or a row; the other lights. */
+export const Ring: Story = {
+  render: () => (
+    <div className="grid max-w-2xl gap-10">
+      <SplitPanel
+        label="Spend this month"
+        total={usd(802)}
+        line="spent this month · 51% on AI models"
+        rows={spend(SPEND_PARTS)}
+        shape="ring"
+      />
+      <div className="max-w-sm">
+        <SplitPanel
+          label="Spend this month, narrow"
+          total={usd(600)}
+          line="spent this month, narrow: the ring goes over the rows"
+          rows={spend(SPEND_PARTS.slice(1, 3))}
+          shape="ring"
+        />
+      </div>
+    </div>
+  ),
+};
+
+/** One account, a long name, a part with nothing spent, and nothing at all. */
+export const RingWorstCase: Story = {
+  render: () => (
+    <div className="grid max-w-2xl gap-10">
+      <SplitPanel
+        label="Spend this month"
+        total={usd(WORST.hugeCount)}
+        line="one account takes it all"
+        rows={spend([
+          { name: WORST.longName, sum: WORST.hugeCount, vendors: [WORST.longName] },
+          { name: "Bank fees", sum: 0, vendors: [] },
+        ])}
+        shape="ring"
+      />
+      <SplitPanel
+        label="Nothing spent"
+        total={usd(0)}
+        line="Nothing spent this month yet"
+        rows={[]}
+        shape="ring"
+      />
     </div>
   ),
 };

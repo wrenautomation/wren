@@ -3,7 +3,11 @@ import { expect, within } from "storybook/test";
 import { fakeOverview, QUEUES, TILES } from "./fixtures/overview.js";
 import { RecordOverview } from "./overview.js";
 
-export default { title: "Overview", parameters: { layout: "fullscreen" } } satisfies Meta;
+export default {
+  title: "Pages/Overview",
+  id: "overview",
+  parameters: { layout: "fullscreen" },
+} satisfies Meta;
 
 type Story = StoryObj;
 

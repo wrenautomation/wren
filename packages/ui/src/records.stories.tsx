@@ -4,7 +4,11 @@ import type { FakeRecordsOptions } from "./fixtures/records.js";
 import { LEAD_META, LEAD_NEEDS, LEADS, useRecordsDemo, WORST_LEADS } from "./fixtures/records.js";
 import { Panel, RecordList, type Late as Watched } from "./records.js";
 
-export default { title: "Records", parameters: { layout: "fullscreen" } } satisfies Meta;
+export default {
+  title: "Lists/Records",
+  id: "records",
+  parameters: { layout: "fullscreen" },
+} satisfies Meta;
 
 type Story = StoryObj;
 

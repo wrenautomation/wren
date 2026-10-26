@@ -88,6 +88,11 @@ const MADE: Theme = {
   "good-tint": "color-mix(in srgb, var(--ui-good) 10%, transparent)",
   "bad-tint": "color-mix(in srgb, var(--ui-bad) 6%, transparent)",
   "warn-tint": "color-mix(in srgb, var(--ui-warn) 9%, transparent)",
+  "chart-1": "var(--ui-accent)",
+  "chart-2": "#d4592a",
+  "chart-3": "#14916a",
+  "chart-4": "#b98000",
+  "chart-5": "#d45f8c",
 };
 
 /** A look's colors resolved: BASE, then the look, then what CSS makes from them. */

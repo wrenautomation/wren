@@ -2,7 +2,10 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Diff } from "./diff.js";
 import { DIFF_A, DIFF_B, DIFF_SAME, WORST_A, WORST_B } from "./fixtures/diff.js";
 
-export default { title: "Diff" } satisfies Meta;
+export default {
+  title: "Parts/Diff",
+  id: "diff",
+} satisfies Meta;
 
 type Story = StoryObj;
 

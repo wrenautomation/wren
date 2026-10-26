@@ -4,7 +4,10 @@ import { Button, Tag } from "./controls.js";
 import { FRAME, GROUP_LABEL } from "./layout.js";
 import { Sweep } from "./sweep.js";
 
-export default { title: "Leaf and sweep" } satisfies Meta;
+export default {
+  title: "Parts/Leaf and sweep",
+  id: "leaf-and-sweep",
+} satisfies Meta;
 
 type Story = StoryObj;
 

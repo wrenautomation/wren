@@ -13,7 +13,10 @@ import {
 } from "./fixtures/day.js";
 import { fakePlace } from "./fixtures/place.js";
 
-export default { title: "Day" } satisfies Meta;
+export default {
+  title: "Pages/Day",
+  id: "day",
+} satisfies Meta;
 
 type Story = StoryObj;
 

@@ -15,7 +15,10 @@ import {
 } from "./controls.js";
 import { WORST } from "./fixtures/index.js";
 
-export default { title: "Controls" } satisfies Meta;
+export default {
+  title: "Parts/Controls",
+  id: "controls",
+} satisfies Meta;
 
 type Story = StoryObj;
 

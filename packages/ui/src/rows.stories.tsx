@@ -10,7 +10,11 @@ import { lineColor } from "./marks.js";
 import { RecordList } from "./records.js";
 import { Age, Rows, type RowsLine, type RowsWait } from "./rows.js";
 
-export default { title: "Rows", parameters: { layout: "fullscreen" } } satisfies Meta;
+export default {
+  title: "Lists/Rows",
+  id: "rows",
+  parameters: { layout: "fullscreen" },
+} satisfies Meta;
 
 type Story = StoryObj;
 

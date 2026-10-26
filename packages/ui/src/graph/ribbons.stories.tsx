@@ -4,7 +4,10 @@ import { LOOP_EDGES, RIBBON_EDGES, RIBBON_NODES, wideGraph } from "../fixtures/g
 import { PRESETS, themeVars } from "../theme.js";
 import { Graph } from "./index.js";
 
-export default { title: "Graph/Ribbons" } satisfies Meta;
+export default {
+  title: "Charts/Ribbons",
+  id: "graph-ribbons",
+} satisfies Meta;
 
 type Story = StoryObj;
 

@@ -7,7 +7,11 @@ import { QUERIES } from "./data/query.js";
 import { LEAD_META, LEAD_NEEDS, LEADS, useRecordsDemo } from "./fixtures/records.js";
 import { RecordList, type RowReplyBox } from "./records.js";
 
-export default { title: "Peek", parameters: { layout: "fullscreen" } } satisfies Meta;
+export default {
+  title: "Lists/Peek",
+  id: "peek",
+  parameters: { layout: "fullscreen" },
+} satisfies Meta;
 
 type Story = StoryObj;
 

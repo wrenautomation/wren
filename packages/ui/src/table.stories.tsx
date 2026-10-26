@@ -12,7 +12,10 @@ import {
 } from "./fixtures/table.js";
 import { DataTable, FactsTable } from "./table.js";
 
-export default { title: "Table" } satisfies Meta;
+export default {
+  title: "Lists/Table",
+  id: "table",
+} satisfies Meta;
 
 type Story = StoryObj;
 

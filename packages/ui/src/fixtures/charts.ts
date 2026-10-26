@@ -47,3 +47,14 @@ export const WORST_FUNNEL: BarsRow[] = [
   { label: WORST.empty, value: 1 },
   { label: WORST.shortName, value: WORST.negative },
 ];
+
+/** A month's spend by account, biggest first: seven parts, so the ring folds two into the rest. */
+export const SPEND_PARTS = [
+  { name: "AI models", sum: 412, vendors: ["Model vendor A", "Model vendor B"] },
+  { name: "Hosting", sum: 188, vendors: ["Cloud vendor"] },
+  { name: "Software", sum: 96, vendors: ["Editor", "Design tool", "Mail app"] },
+  { name: "Ads", sum: 60, vendors: ["Ad network"] },
+  { name: "Phone and SMS", sum: 31, vendors: ["Phone vendor"] },
+  { name: "Domains", sum: 12, vendors: ["Registrar"] },
+  { name: "Bank fees", sum: 3, vendors: ["Bank"] },
+];

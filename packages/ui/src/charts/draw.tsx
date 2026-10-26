@@ -10,6 +10,10 @@ import {
   CartesianGrid,
   Cell,
   LabelList,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
   XAxis,
   YAxis,
 } from "recharts";
@@ -20,7 +24,15 @@ import {
   ChartTooltipContent,
 } from "../components/ui/chart.js";
 import { ellipsize } from "../format.js";
-import type { BarsProps, ColumnsProps, SparkProps, TrendProps } from "./index.js";
+import {
+  type BarsProps,
+  type ColumnsProps,
+  type LinesProps,
+  RING_WIDTH,
+  type RingProps,
+  type SparkProps,
+  type TrendProps,
+} from "./index.js";
 
 const day = (at: unknown) =>
   typeof at === "string" && at
@@ -307,14 +319,138 @@ function Stacked({
           ))}
         </BarChart>
       </ChartContainer>
-      <ul className="m-0 flex list-none flex-wrap gap-x-4 gap-y-1 p-0 text-[13px]">
-        {parts.map((p) => (
-          <li key={p.label} className="flex items-center gap-1.5">
-            <span className="size-2.5 rounded-[1px_3px]" style={{ background: p.color }} />
-            {p.label}
-          </li>
-        ))}
-      </ul>
+      <Key parts={parts} />
     </div>
+  );
+}
+
+/** The key under a chart of two or more series: each one's colour and name. */
+function Key({ parts }: { parts: readonly { label: string; color: string }[] }) {
+  return (
+    <ul className="m-0 flex list-none flex-wrap gap-x-4 gap-y-1 p-0 text-[13px]">
+      {parts.map((p) => (
+        <li key={p.label} className="flex items-center gap-1.5">
+          <span className="size-2.5 rounded-[1px_3px]" style={{ background: p.color }} />
+          {p.label}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/**
+ * Several series by day on one axis, a 2px line each, hover for the day's figures. Never two
+ * scales: series of other units get their own chart.
+ */
+export function Lines({ rows, series, format = plain, height = 220 }: LinesProps) {
+  const config = Object.fromEntries(
+    series.map((s) => [s.key, { label: s.label, color: s.color }]),
+  ) satisfies ChartConfig;
+  const tick = (n: number) => (format === plain ? short(n) : format(n));
+  const top = Math.max(
+    0,
+    ...rows.flatMap((r) =>
+      series.map((s) => (typeof r[s.key] === "number" ? Number(r[s.key]) : 0)),
+    ),
+  );
+  const axis = Math.max(44, tick(top).length * 7 + 10);
+  return (
+    <div className="grid gap-3">
+      <ChartContainer config={config} className="aspect-auto w-full" style={{ height }}>
+        <LineChart data={[...rows]} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+          <CartesianGrid vertical={false} />
+          <XAxis
+            dataKey="at"
+            tickLine={false}
+            axisLine={false}
+            tickMargin={8}
+            minTickGap={28}
+            tickFormatter={day}
+          />
+          <YAxis
+            tickLine={false}
+            axisLine={false}
+            width={axis}
+            allowDecimals={false}
+            tickFormatter={tick}
+          />
+          <ChartTooltip
+            isAnimationActive={false}
+            content={(p) => (
+              <ChartTooltipContent
+                active={p.active}
+                payload={p.payload as never}
+                label={p.label}
+                config={config}
+                format={format}
+                title={day}
+              />
+            )}
+          />
+          {series.map((s) => (
+            <Line
+              key={s.key}
+              dataKey={s.key}
+              type="monotone"
+              stroke={s.color}
+              strokeWidth={2}
+              dot={false}
+              activeDot={{ r: 4, stroke: "var(--ui-paper)", strokeWidth: 2 }}
+              isAnimationActive={false}
+            />
+          ))}
+        </LineChart>
+      </ChartContainer>
+      {series.length > 1 ? <Key parts={series} /> : null}
+    </div>
+  );
+}
+
+/**
+ * A whole and its parts as a ring: each part a slice, a 2px paper gap between, clockwise from the
+ * top. The figures sit in the rows beside it, so the ring carries no labels; a slice under the
+ * pointer brings itself forward and tells the caller, which lights its row.
+ */
+export function Ring({ slices, hot, onHot, onPick, size = 176 }: RingProps) {
+  const outer = size / 2;
+  return (
+    // The rows beside it are the keyboard's way in; the ring takes no focus.
+    <PieChart
+      width={size}
+      height={size}
+      margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
+      accessibilityLayer={false}
+    >
+      <Pie
+        rootTabIndex={-1}
+        data={slices.map((s) => ({ name: s.key, value: s.value }))}
+        dataKey="value"
+        nameKey="name"
+        outerRadius={outer}
+        innerRadius={outer - size * RING_WIDTH}
+        startAngle={90}
+        endAngle={-270}
+        cornerRadius={3}
+        stroke="var(--ui-paper)"
+        strokeWidth={2}
+        isAnimationActive={false}
+        onMouseEnter={(_, i) => onHot?.(slices[i]?.key ?? null)}
+        onMouseLeave={() => onHot?.(null)}
+        onClick={(_, i) => {
+          const key = slices[i]?.key;
+          if (key) onPick?.(key);
+        }}
+        className={onPick ? "cursor-pointer" : ""}
+      >
+        {slices.map((s) => (
+          <Cell
+            key={s.key}
+            fill={s.color}
+            fillOpacity={hot && hot !== s.key ? 0.28 : 1}
+            className="transition-[fill-opacity] duration-200 outline-none motion-reduce:transition-none"
+          />
+        ))}
+      </Pie>
+    </PieChart>
   );
 }

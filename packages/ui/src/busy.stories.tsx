@@ -5,7 +5,10 @@ import { BusyBox, Ring } from "./busy.js";
 import { Button, Seg, Tag } from "./controls.js";
 import { Segmented } from "./phone.js";
 
-export default { title: "Busy" } satisfies Meta;
+export default {
+  title: "Parts/Busy",
+  id: "busy",
+} satisfies Meta;
 
 type Story = StoryObj;
 

@@ -191,6 +191,14 @@ export const NIGHT_LINES = {
   "line-out": "#7f89bd",
 } satisfies Theme;
 
+/** The chart series at night (chart-1 is the accent): the same hues, each 3:1 or more on the night paper. */
+export const NIGHT_CHARTS = {
+  "chart-2": "#d95926",
+  "chart-3": "#199e70",
+  "chart-4": "#c98500",
+  "chart-5": "#d55181",
+} satisfies Theme;
+
 /**
  * What a look gets when it wants capitals: the case and tracking Wren had before it went to
  * sentence case. A look that wants capitals spreads this first, then sets what differs.
@@ -225,6 +233,7 @@ export const PRESETS = {
     scrim: "rgb(0 0 0 / 0.5)",
     raise: "0 0 0 1px var(--ui-hair), 0 6px 18px -8px rgb(0 0 0 / 0.6)",
     ...NIGHT_LINES,
+    ...NIGHT_CHARTS,
   },
   soft: {
     canvas: "#eef1f6",

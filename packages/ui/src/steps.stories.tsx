@@ -2,7 +2,10 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useEffect, useState } from "react";
 import { type JobStep, Steps } from "./steps.js";
 
-export default { title: "Steps" } satisfies Meta;
+export default {
+  title: "Parts/Steps",
+  id: "steps",
+} satisfies Meta;
 
 type Story = StoryObj;
 

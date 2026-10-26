@@ -119,11 +119,13 @@
   --ui-scrim: color-mix(in srgb, var(--ui-shade) 16%, transparent);
   /* Under a graph's dot grid: paper with a little lavender, light or night alike. */
   --ui-graph: color-mix(in srgb, var(--ui-accent) 11%, var(--ui-paper));
-  --ui-chart-1: var(--ui-accent); /* the five chart series */
-  --ui-chart-2: var(--ui-ink-2);
-  --ui-chart-3: var(--ui-good);
-  --ui-chart-4: color-mix(in srgb, var(--ui-accent) 45%, var(--ui-paper));
-  --ui-chart-5: var(--ui-ink-3);
+  /* The five chart series, in this order. Each pair next to each other stays apart for colour-blind
+     eyes and reads at 3:1 on the paper (the dataviz palette check). No status tone, no gray. */
+  --ui-chart-1: var(--ui-accent);
+  --ui-chart-2: #d4592a;
+  --ui-chart-3: #14916a;
+  --ui-chart-4: #b98000;
+  --ui-chart-5: #d45f8c;
   /* Kinds of things (a campaign, a stage, a type): 8 muted hues, mid-light so a swatch reads on
      the paper by day and by night. Never red, green or amber: those are the status tones. */
   --ui-cue-1: #6b84b8;

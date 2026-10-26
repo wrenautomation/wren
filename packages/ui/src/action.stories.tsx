@@ -16,7 +16,10 @@ import {
   WORST_FIELDS,
 } from "./fixtures/action.js";
 
-export default { title: "Action" } satisfies Meta;
+export default {
+  title: "Parts/Action",
+  id: "action",
+} satisfies Meta;
 
 type Story = StoryObj;
 

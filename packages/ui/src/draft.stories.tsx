@@ -14,7 +14,8 @@ import {
 } from "./fixtures/draft.js";
 
 export default {
-  title: "Draft",
+  title: "Forms/Draft",
+  id: "draft",
 } satisfies Meta;
 
 type Story = StoryObj;

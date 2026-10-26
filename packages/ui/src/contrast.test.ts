@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { failingPairs, lookColors, NEED, pairsOf, ratioOf } from "./contrast.js";
 import { VARIANTS } from "./palette-brand.js";
-import { NIGHT_LINES, PRESETS, readTheme, SHOWCASE, type Theme } from "./theme.js";
+import { NIGHT_CHARTS, NIGHT_LINES, PRESETS, readTheme, SHOWCASE, type Theme } from "./theme.js";
 
 const said = (look: Theme) =>
   failingPairs(look).map((p) => `${p.text} on ${p.on} ${p.ratio.toFixed(2)}:1`);
@@ -86,5 +86,27 @@ describe("line tokens", () => {
     const c = lookColors({});
     const hex = LINES.map((l) => c(l).slice(0, 3).join(","));
     expect(new Set(hex).size).toBe(LINES.length);
+  });
+});
+
+// The chart series fill bars and ring slices: graphics, so 3:1, by day and by night.
+describe("chart tokens", () => {
+  const CHARTS = ["chart-1", "chart-2", "chart-3", "chart-4", "chart-5"] as const;
+
+  it.each([
+    ["day", {}],
+    ["night", PRESETS.night],
+  ] as const)("reads at 3:1 on the %s paper", (_name, look) => {
+    const c = lookColors(look);
+    for (const chart of CHARTS) {
+      const ratio = ratioOf(c(chart), c("paper"));
+      expect(ratio, `${chart} ${ratio.toFixed(2)}:1`).toBeGreaterThanOrEqual(3);
+    }
+  });
+
+  it("gives the night look its own set, the series apart from each other", () => {
+    expect(PRESETS.night["chart-3"]).toBe(NIGHT_CHARTS["chart-3"]);
+    const c = lookColors({});
+    expect(new Set(CHARTS.map((k) => c(k).join(","))).size).toBe(CHARTS.length);
   });
 });

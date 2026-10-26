@@ -15,6 +15,7 @@ import {
   SplitGhost,
   SplitPanel,
   type SplitRow,
+  sliceColor,
   TopRecords,
   useLoad,
   useNarrow,
@@ -27,7 +28,6 @@ const api = wrenRecords("money");
 const SPEND = "/money/spend?view=this_month";
 /** Bills land once a month, so a year of months shows a trend that days can't. */
 const MONTHS = 12;
-const LINES = 7;
 
 const amountOf = (c: unknown) =>
   c && typeof c === "object" && "amount" in c && typeof c.amount === "number"
@@ -136,14 +136,14 @@ export function MoneyOverview(_: PageProps) {
 }
 
 /**
- * Where this month's money goes: a share bar reads part of a whole, and the ranked rows say
- * which account takes most. Each row opens that account's lines.
+ * Where this month's money goes: a ring reads part of a whole, and the ranked rows say which
+ * account takes most. Each row opens that account's lines.
  */
 function MonthSplit() {
   const load = useLoad("money:month", readMonth, api);
   const label = "Spend this month";
   if (load.error && !load.data) return <LoadFailed error={load.error} onRetry={load.retry} />;
-  if (!load.data) return <SplitGhost label={label} lines={5} />;
+  if (!load.data) return <SplitGhost label={label} lines={5} shape="ring" />;
   const { accounts, total, currency } = load.data;
   const ai = accounts.find((a) => /AI models/i.test(a.name));
   const rows = accounts.map(
@@ -153,7 +153,7 @@ function MonthSplit() {
       note: a.vendors.join(", "),
       weight: a.sum,
       value: money(a.sum, currency),
-      color: `var(--ui-line-${(i % LINES) + 1})`,
+      color: sliceColor(i),
       href: `${SPEND}&${new URLSearchParams({ account: `~${a.name}` })}`,
     }),
   );
@@ -167,6 +167,7 @@ function MonthSplit() {
           : `spent this month${ai ? ` · ${Math.round((ai.sum / total) * 100)}% on AI models` : ""}`
       }
       rows={rows}
+      shape="ring"
     />
   );
 }
