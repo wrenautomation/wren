@@ -77,7 +77,7 @@ export function makeCommentProofs(deps: ProofsDeps) {
               ...(deps.linkedinAccount ? { linkedinAccount: deps.linkedinAccount } : {}),
             }).check(target);
           } catch (err) {
-            // The public read's daily cap is used: nothing read, nothing kept. A scheduled check
+            // The stranger's read cap is used: nothing read, nothing kept. A scheduled check
             // comes back once it resets; one by hand says when.
             const wait = capWaitMs(err);
             if (wait === null) throw err;
@@ -93,7 +93,7 @@ export function makeCommentProofs(deps: ProofsDeps) {
               checkedAt: at.toISOString(),
               url: target.url,
               shot: null,
-              note: `the public read cap is used; it resets in ${Math.ceil(wait / 3_600_000)}h`,
+              note: `the read cap is used; it resets in ${Math.ceil(wait / 3_600_000)}h`,
             };
           }
           const kept = await ctx.run("keep", () =>
