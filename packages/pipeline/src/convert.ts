@@ -10,6 +10,7 @@
 import {
   type Column,
   HUB,
+  isContentKind,
   kindOfAction,
   LOGIC_KINDS,
   type MetroBody,
@@ -19,15 +20,18 @@ import {
 } from "./metro.js";
 import {
   type Action,
+  type Advance,
   edgeIdOf,
-  type HoldNode,
   isSource,
+  type Job,
   type NodeKind,
   type OfferNode,
+  type PlanNode,
   type ShapeBody,
   type ShapeEdge,
   type ShapeNode,
   type SourceNode,
+  type StepNode,
 } from "./model.js";
 
 type MetroResult = { ok: true; body: MetroBody; notes: string[] } | { ok: false; errors: string[] };
@@ -53,10 +57,11 @@ const COLUMN_ORDER: readonly Column[] = ["marketing", "sales", "delivery", "mone
 
 /** The fields the graph model holds on each kind of node, and on an edge. Any other field is stray. */
 const NODE_FIELDS: Record<NodeKind, readonly string[]> = {
-  source: ["id", "kind", "name", "via", "channel", "campaign", "source", "group", "parked"],
+  source: ["id", "kind", "name", "via", "channel", "campaign", "source", "group", "sop", "parked"],
   step: ["id", "kind", "name", "action", "advance", "research", "idleDays"],
   offer: ["id", "kind", "name", "offer", "advance", "research", "idleDays"],
   plan: ["id", "kind", "name", "terms", "advance", "idleDays"],
+  job: ["id", "kind", "name", "job", "advance", "idleDays"],
 };
 const EDGE_FIELDS: readonly string[] = ["id", "from", "to", "kind", "label"];
 
@@ -180,6 +185,12 @@ export function metroOf(graph: ShapeBody): MetroResult {
       errors.push(`Edge "${e.id}" ends at source "${e.to}". Nothing enters a source.`);
     }
   }
+  // A content line is drawn on the map only; a graph body never held one.
+  for (const n of graph.nodes) {
+    if (n.kind === "job" || (n.kind === "source" && n.via === "found")) {
+      errors.push(`Node "${n.id}" is on a content line. Draw content lines on the map.`);
+    }
+  }
   const notes: string[] = strayFieldsOf(graph).map(strayNote);
   // A source holds nobody, so a loop edge from one is never crossed. Leave it out and say so.
   const edges: ShapeEdge[] = [];
@@ -192,7 +203,9 @@ export function metroOf(graph: ShapeBody): MetroResult {
   }
 
   const sources = graph.nodes.filter(isSource);
-  const held = graph.nodes.filter((n): n is HoldNode => !isSource(n));
+  const held = graph.nodes.filter(
+    (n): n is StepNode | OfferNode | PlanNode => !isSource(n) && n.kind !== "job",
+  );
   const offers = held.filter((n) => n.kind === "offer");
   const flows = edges.filter((e) => e.kind === "flow" && ids.has(e.from) && ids.has(e.to));
   const out = (id: string) => flows.filter((e) => e.from === id).map((e) => e.to);
@@ -394,12 +407,14 @@ export function metroOf(graph: ShapeBody): MetroResult {
  * Lower a metro body to the graph the runtime runs. The exact inverse of `metroOf`: out lines
  * become sources, entries on hub tracks become source edges `<source>_to_<target>`, deal stations
  * become offer nodes, cash stations become plan nodes, other att and time stations become steps,
- * and tracks become edges (a back track is a loop). What the graph has no place for drops: the
- * lines' tiers and colours, columns, groups, frames, who moves a track.
+ * and tracks become edges (a back track is a loop). On a content line the find station becomes a
+ * `found` source and each other station a job node, whose advance is the end of the job before it
+ * (`trigger.station`). What the graph has no place for drops: the lines' tiers and colours,
+ * columns, groups, frames, who moves a track.
  *
  * The output order is fixed, and a stored body must never change it: Restate replays `shape.v<n>`
- * and the workflow depends on the order of nodes and edges. Nodes: the sources in line order,
- * then the stations in body order. Edges: the tracks in body order. A hub track makes one source
+ * and the workflow depends on the order of nodes and edges. Nodes: the out sources in line order,
+ * the find stations in body order, then the other stations in body order. Edges: the tracks in body order. A hub track makes one source
  * edge per entry, in entry order (none: every out line, in line order). A track into the hub
  * makes nothing.
  *
@@ -426,10 +441,40 @@ export function graphOf(metro: MetroBody): ShapeBody {
   });
   const lowered = new Set<string>();
   for (const s of metro.stations) {
-    if (lineBy.get(s.line ?? "")?.tier === "out") continue;
+    if (s.kind !== "find") continue;
+    nodes.push({
+      id: s.id,
+      kind: "source",
+      name: s.label,
+      via: "found",
+      ...(s.sop !== undefined ? { sop: s.sop } : {}),
+    });
+    lowered.add(s.id);
+  }
+  const stationBy = new Map(metro.stations.map((s) => [s.id, s] as const));
+  for (const s of metro.stations) {
+    if (lineBy.get(s.line ?? "")?.tier === "out" || s.kind === "find") continue;
     const advance = structuredClone(s.advance ?? []);
     const idle = s.idleDays !== undefined ? { idleDays: s.idleDays } : {};
-    if (s.kind === "cash") {
+    if (isContentKind(s.kind)) {
+      // The job before it ends: the document moves on. A find before it opens the instance here.
+      const after = metro.tracks
+        .filter((t) => t.to === s.id && t.kind !== "back")
+        .map((t) => stationBy.get(t.from))
+        .filter((f) => f !== undefined && isContentKind(f.kind) && f.kind !== "find");
+      const ends: Advance[] = [...new Set(after.map((f) => f?.id ?? ""))].map((station) => ({
+        trigger: "trigger.station",
+        with: { station },
+      }));
+      nodes.push({
+        id: s.id,
+        kind: "job",
+        name: s.label,
+        job: s.kind as Job,
+        advance: ends,
+        ...idle,
+      });
+    } else if (s.kind === "cash") {
       nodes.push({ id: s.id, kind: "plan", name: s.label, terms: s.terms ?? "", advance, ...idle });
     } else if (s.kind === "att" || s.kind === "time") {
       const research = s.research !== undefined ? { research: s.research } : {};
@@ -511,6 +556,14 @@ export function lowerable(metro: MetroBody): string[] {
   for (const t of metro.tracks) {
     if (t.kind === "back" && (hub.has(t.from) || hub.has(t.to))) {
       why.push(`Track "${t.id}" is a back track at the hub. The graph has no hub to loop to.`);
+    }
+  }
+  const content = new Set(metro.stations.filter((s) => isContentKind(s.kind)).map((s) => s.id));
+  for (const t of metro.tracks) {
+    if (t.kind === "back" && (content.has(t.from) || content.has(t.to))) {
+      why.push(
+        `Track "${t.id}" is a back track on a content line. The runtime does not run it yet.`,
+      );
     }
   }
   for (const l of metro.lines) {

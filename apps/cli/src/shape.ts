@@ -131,7 +131,14 @@ function stateArg(v: string): DraftState | "all" {
 function detailOf(n: ShapeNode): string {
   switch (n.kind) {
     case "source":
-      return [`via ${n.via}`, n.channel, n.campaign, n.source, n.group && `group ${n.group}`]
+      return [
+        `via ${n.via}`,
+        n.channel,
+        n.campaign,
+        n.source,
+        n.group && `group ${n.group}`,
+        n.sop && `sop ${n.sop}`,
+      ]
         .filter(Boolean)
         .join(" ")
         .concat(n.parked ? " (parked)" : "");
@@ -141,6 +148,8 @@ function detailOf(n: ShapeNode): string {
       return `offer ${n.offer}`;
     case "plan":
       return `terms ${n.terms}`;
+    case "job":
+      return `job ${n.job}`;
   }
 }
 
@@ -205,7 +214,7 @@ export function metroLines(
   for (const s of stations) {
     const here = open.get(s.id);
     lines.push(
-      `  ${places[s.id] ?? 0}  ${s.id}  ${s.kind}  ${s.label}${s.line ? `  line ${s.line}` : ""}${s.action ? `  action ${s.action}` : ""}${here ? `  open ${here}` : ""}${attachMark(s)}`,
+      `  ${places[s.id] ?? 0}  ${s.id}  ${s.kind}  ${s.label}${s.line ? `  line ${s.line}` : ""}${s.action ? `  action ${s.action}` : ""}${s.sop ? `  sop ${s.sop}` : ""}${here ? `  open ${here}` : ""}${attachMark(s)}`,
     );
   }
   lines.push("", "tracks");

@@ -23,9 +23,11 @@ import {
   EDGE_ID_MAX,
   IDLE_DAYS_MAX,
   NODE_ID_MAX,
+  PEOPLE_VIAS,
   RESEARCH_LEVELS,
   type Research,
   type ShapeCheckContext,
+  SOP_NAME,
   STAGE_KEY,
   type Via,
 } from "./model.js";
@@ -33,7 +35,12 @@ import {
 /** The one hub station: every out line ends there, every front and core line starts there. */
 export const HUB = "hub";
 
-const TIERS = ["out", "front", "core"] as const;
+/**
+ * `out` lines bring people to the hub, `front` and `core` lines take them on from it. A `content`
+ * line is about documents, not people (designs/2026-10-25-ingestion-engine.md): it starts at its
+ * find station, never touches the hub, and holds only content stations.
+ */
+const TIERS = ["out", "front", "core", "content"] as const;
 type Tier = (typeof TIERS)[number];
 
 /** Left to right on the map. A track never goes left. */
@@ -53,8 +60,25 @@ export const STATION_KINDS = [
   "ab",
   "approval",
   "link",
+  "find",
+  "read",
+  "extract",
+  "call",
+  "measure",
 ] as const;
 export type StationKind = (typeof STATION_KINDS)[number];
+
+/** The stations of a content line: `find` opens instances, the rest are its jobs (`JOBS`). */
+export const CONTENT_KINDS = [
+  "find",
+  "read",
+  "extract",
+  "call",
+  "measure",
+] as const satisfies readonly StationKind[];
+export type ContentKind = (typeof CONTENT_KINDS)[number];
+export const isContentKind = (k: string): k is ContentKind =>
+  (CONTENT_KINDS as readonly string[]).includes(k);
 
 export const LOGIC_KINDS = [
   "condition",
@@ -147,6 +171,8 @@ export interface MetroStation {
   rule?: string;
   /** Link: the shared flow id. */
   flow?: string;
+  /** Find: the SOP whose finds enter the line (the tag the hunt and his saves give them). */
+  sop?: string;
   /** The retry chip: the cap, 1 to 10. */
   retries?: number;
   /**
@@ -319,6 +345,7 @@ export function checkMetro(body: MetroBody, ctx: ShapeCheckContext): string[] {
 
   checkHub(stations, errors);
   for (const l of lines) checkLine(l, ctx, errors);
+  checkContent(lines, stations, tracks, lineBy, stationBy, errors);
   checkStations(stations, lineBy, ctx, errors);
   checkTracks(tracks, stationBy, lineBy, errors);
   checkLogic(stations, tracks, errors);
@@ -496,9 +523,11 @@ function checkLine(l: MetroLine, ctx: ShapeCheckContext, errors: string[]): void
       return;
     }
     const { via, source, segment } = l.entry;
-    checkEntry(`Out line "${k}"`, { via, source, group: segment }, ctx, errors);
+    checkEntry(`Out line "${k}"`, { via, source, group: segment }, ctx, errors, PEOPLE_VIAS);
     return;
   }
+  if (l.tier === "content" && l.offer !== undefined)
+    errors.push(`Line "${k}" is a content line and cannot have an offer.`);
   if (l.entry !== undefined)
     errors.push(`Line "${k}" is not an out line and cannot have an entry.`);
   if (l.colour !== undefined && !isWhole(l.colour, 0, COLOUR_MAX)) {
@@ -593,6 +622,9 @@ function checkStations(
     if (s.rule !== undefined && s.kind !== "join") {
       errors.push(`Station "${k}" has a rule but is not a join.`);
     }
+    if (s.sop !== undefined && s.kind !== "find") {
+      errors.push(`Station "${k}" names an SOP but is not a find station.`);
+    }
     if (s.flow !== undefined && s.kind !== "link") {
       errors.push(`Station "${k}" names a flow but is not a link.`);
     }
@@ -620,6 +652,70 @@ function checkStations(
   for (const [line, ids] of dealsOn) {
     if (ids.length > 1) {
       errors.push(`Line "${line}" has more than one deal station: ${ids.join(", ")}.`);
+    }
+  }
+}
+
+/**
+ * A content line holds content stations only, and only a content line holds them. It has one find
+ * station, which names an SOP and which nothing enters. Its stations take no action, advance,
+ * research or deal: each job's end moves the document on. No track joins a content station to
+ * another kind: an edge never changes what an instance is about.
+ */
+function checkContent(
+  lines: readonly MetroLine[],
+  stations: readonly MetroStation[],
+  tracks: readonly MetroTrack[],
+  lineBy: ReadonlyMap<string, MetroLine>,
+  stationBy: ReadonlyMap<string, MetroStation>,
+  errors: string[],
+): void {
+  const onContent = (s: MetroStation | undefined) =>
+    !!s && s.line !== undefined && lineBy.get(s.line)?.tier === "content";
+  for (const s of stations) {
+    const k = s.id;
+    if (isContentKind(s.kind) !== onContent(s)) {
+      errors.push(
+        isContentKind(s.kind)
+          ? `Station "${k}" is a ${s.kind} station, so it must be on a content line.`
+          : `Station "${k}" is on content line "${s.line}", which holds only ${CONTENT_KINDS.join(", ")} stations.`,
+      );
+    }
+    if (!isContentKind(s.kind)) continue;
+    for (const [field, set] of [
+      ["action", s.action],
+      ["advance", s.advance],
+      ["research", s.research],
+      ["deal", s.deal],
+    ] as const) {
+      if (set !== undefined)
+        errors.push(`Station "${k}" is a ${s.kind} station and takes no ${field}.`);
+    }
+    if (s.kind === "find") {
+      if (!s.sop) errors.push(`Find station "${k}" names no SOP.`);
+      else if (!SOP_NAME.test(s.sop))
+        errors.push(
+          `Find station "${k}" names SOP "${s.sop}". Use lowercase letters, digits and dashes.`,
+        );
+    }
+  }
+  for (const l of lines) {
+    if (l.tier !== "content") continue;
+    const finds = stations.filter((s) => s.line === l.id && s.kind === "find");
+    if (finds.length !== 1) {
+      errors.push(`Content line "${l.id}" needs one find station, not ${finds.length}.`);
+    }
+  }
+  for (const t of tracks) {
+    const from = stationBy.get(t.from);
+    const to = stationBy.get(t.to);
+    if (!from || !to) continue;
+    if (to.kind === "find")
+      errors.push(`Track "${t.id}" enters find station "${to.id}". A find station only opens.`);
+    if (isContentKind(from.kind) !== isContentKind(to.kind)) {
+      errors.push(
+        `Track "${t.id}" joins a content station to another kind. An edge never changes what an instance is about.`,
+      );
     }
   }
 }

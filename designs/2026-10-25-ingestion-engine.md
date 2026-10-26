@@ -145,3 +145,10 @@ Logged-in finds and reads (IG, LinkedIn, X) use the reach engine's shared reads
   Journeys rename to instances; subject is a person or a document. Many-rider stations and
   transfers dropped: aggregates are readers over a line, and a line about people makes the
   person the subject from the start.
+- 2026-10-25: phase 1 commit 1 (map and lowering, no DB change). A content line is the metro tier
+  `content`: it holds only the stations `find`, `read`, `extract`, `call`, `measure`, has one find
+  that names an SOP, never meets the hub, and no track joins it to a people station. `graphOf`
+  lowers find to a source with via `found` and each other station to a `job` node, whose advance
+  is the end of the job before it. Two triggers: `trigger.found {sop}` opens an instance and
+  `trigger.station {station}` says a job ended. The event kind is `doc`, not `document`: that
+  word already means a contract sent to sign. Back tracks on a content line wait.

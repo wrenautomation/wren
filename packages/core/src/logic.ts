@@ -38,6 +38,7 @@ export const KINDS = [
   "deal",
   "document",
   "journey",
+  "doc",
 ] as const satisfies readonly EventKind[];
 
 /** One setting on a logic node: a line he types, a few lines, a number, or one of a few. */
@@ -192,6 +193,10 @@ export type TriggerFacts =
   | { trigger: "trigger.app"; app: string; change: AppChange }
   | { trigger: "trigger.segment"; segment: number; change: SegmentChange }
   | { trigger: "trigger.source"; source: string }
+  /** A content line found a document: the hunt or his save gave it the SOP's tag. */
+  | { trigger: "trigger.found"; sop: string }
+  /** A job ended at a content station: the document is ready for the next one. */
+  | { trigger: "trigger.station"; station: string }
   | { trigger: "trigger.trait"; key: string; value: string | null }
   | { trigger: "trigger.date"; key: string; offset: number; every: DateEvery };
 
@@ -211,6 +216,8 @@ const journeyNodeOf = (w: Record<string, unknown>): string => text(w.node) || te
 const JOURNEY_KEY = /^[a-z][a-z0-9_-]{0,39}$/;
 /** A sourced list's id: `import:<batch number>`. */
 export const SOURCE_ID = /^import:[1-9][0-9]{0,9}$/;
+/** An SOP's folder name, as `wren sop ls` prints it and the hunt tags its finds. */
+export const SOP_NAME = /^[a-z0-9][a-z0-9-]{0,63}$/;
 
 /**
  * What a touch trigger may name. Copies of `touches-schema`'s lists, kept here because this file
@@ -341,6 +348,8 @@ export function triggerHears(n: WorkflowNode, f: TriggerFacts): boolean {
     return Number(w.segment) === f.segment && (on === "any" || on === f.change);
   }
   if (f.trigger === "trigger.source") return text(w.source) === f.source;
+  if (f.trigger === "trigger.found") return text(w.sop) === f.sop;
+  if (f.trigger === "trigger.station") return text(w.station) === f.station;
   if (f.trigger === "trigger.trait") {
     const to = text(w.to);
     return text(w.trait) === f.key && (!to || to.toLowerCase() === (f.value ?? "").toLowerCase());
@@ -402,6 +411,8 @@ export const untilOfFacts = (f: TriggerFacts): Until | null =>
         f.trigger === "trigger.app" ||
         f.trigger === "trigger.segment" ||
         f.trigger === "trigger.source" ||
+        f.trigger === "trigger.found" ||
+        f.trigger === "trigger.station" ||
         f.trigger === "trigger.trait" ||
         f.trigger === "trigger.date"
       ? null
@@ -1045,6 +1056,24 @@ export const LOGIC: readonly LogicPart[] = [
     (w) => `Added to ${text(w.source) || "a list"}`,
   ),
   trigger(
+    "found",
+    "Found",
+    "Starts when a content line finds a document: the hunt or a save tags it with the line's SOP. Once per document and line.",
+    "search",
+    "doc",
+    [{ field: "sop", label: "SOP (its folder name)", type: "text", hint: "launch-films" }],
+    (w) => `Found for ${text(w.sop) || "an SOP"}`,
+  ),
+  trigger(
+    "station",
+    "Station done",
+    "Starts when the job at a content station ends for a document: read, extracted or called.",
+    "check",
+    "doc",
+    [{ field: "station", label: "Station (its id)", type: "text", hint: "extract" }],
+    (w) => `Done at ${text(w.station) || "a station"}`,
+  ),
+  trigger(
     "trait",
     "Trait changed",
     "Starts when a person's trait changes, or changes to one value. Once per person.",
@@ -1245,6 +1274,10 @@ export function logicProblems(at: string, n: WorkflowNode): string[] {
   }
   if (l.id === "trigger.source" && !SOURCE_ID.test(text(w.source)))
     out.push(`${at}: Source names a list's id, like import:12`);
+  if (l.id === "trigger.found" && !SOP_NAME.test(text(w.sop)))
+    out.push(`${at}: Found names an SOP's folder name, like launch-films`);
+  if (l.id === "trigger.station" && !JOURNEY_KEY.test(text(w.station)))
+    out.push(`${at}: Station done names a station id, like extract`);
   if ((l.id === "trigger.trait" || l.id === "trigger.date") && !TRAIT_KEY.test(text(w.trait)))
     out.push(`${at}: name a trait key, like renewal_date`);
   if (l.id === "trigger.date" && w.offset !== undefined && offsetOf(w.offset) !== Number(w.offset))

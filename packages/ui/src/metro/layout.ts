@@ -100,7 +100,12 @@ const KIND: Record<ViewKind, StationKind> = {
   link: "link",
 };
 
-const WEIGHT_OF: Record<ViewLine["tier"], Weight> = { out: "out", front: "front", core: "core" };
+const WEIGHT_OF: Record<ViewLine["tier"], Weight> = {
+  out: "out",
+  front: "front",
+  core: "core",
+  content: "front",
+};
 
 /** The key a scene uses for a line: "out" for any outreach line, the id for an offer. */
 const keyOf = (l: ViewLine) => (l.tier === "out" ? "out" : l.id);

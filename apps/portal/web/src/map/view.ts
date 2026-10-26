@@ -6,13 +6,16 @@
  * what was removed, so one map shows the whole diff.
  */
 
-import type {
-  MetroLine as BodyLine,
-  MetroStation as BodyStation,
-  MetroTrack as BodyTrack,
-  MetroBody,
+import {
+  type MetroLine as BodyLine,
+  type MetroStation as BodyStation,
+  type MetroTrack as BodyTrack,
+  type ContentKind,
+  isContentKind,
+  type MetroBody,
 } from "@wren/pipeline/metro";
 import type { MetroDiff } from "@wren/pipeline/metro-diff";
+import type { IconName } from "@wren/ui";
 import {
   ACTION_GLYPH,
   type MetroView,
@@ -32,13 +35,26 @@ interface ViewNumbers {
   stations: ReadonlyMap<string, NodeNumbers>;
 }
 
-/** The kind the drawing knows: the body's `condition` is `dec`, `approval` is `ok`, a plan is `plan`. */
+/**
+ * The kind the drawing knows: the body's `condition` is `dec`, `approval` is `ok`, a plan is `plan`,
+ * a content station a step (`att`) that wears its job's glyph (`JOB_GLYPH`).
+ */
 export function kindOf(s: Pick<BodyStation, "kind" | "planned">): ViewKind {
   if (s.planned) return "plan";
   if (s.kind === "condition") return "dec";
   if (s.kind === "approval") return "ok";
+  if (isContentKind(s.kind)) return "att";
   return s.kind;
 }
+
+/** The glyph of each content station's job. */
+const JOB_GLYPH: Record<ContentKind, IconName> = {
+  find: "search",
+  read: "doc",
+  extract: "sparkle",
+  call: "check",
+  measure: "chart",
+};
 
 /** "marketing" is "Marketing": the body names a column in lower case, the drawing in title case. */
 export const columnOf = (c: string): string => c.charAt(0).toUpperCase() + c.slice(1);
@@ -88,6 +104,7 @@ function stationOf(
     ...(s.flow ? { flow: s.flow } : {}),
     label: s.label,
     ...(s.action && ACTION_GLYPH[s.action] ? { icon: ACTION_GLYPH[s.action] } : {}),
+    ...(isContentKind(s.kind) ? { icon: JOB_GLYPH[s.kind] } : {}),
     ...(sub ? { sub } : {}),
     ...(x?.now != null && s.kind !== "hub" ? { now: x.now } : {}),
     ...(x?.arrived != null && s.kind !== "hub" ? { arrived: x.arrived } : {}),

@@ -37,6 +37,29 @@ describe("layoutView", () => {
     expect(JSON.stringify(COLD_OUTBOUND_VIEW)).toBe(before);
   });
 
+  it("draws a content line, which never meets the hub, apart from the people lines", async () => {
+    const v: MetroView = {
+      ...COLD_OUTBOUND_VIEW,
+      lines: [...COLD_OUTBOUND_VIEW.lines, { id: "films", tier: "content", colour: 3 }],
+      stations: [
+        ...COLD_OUTBOUND_VIEW.stations,
+        { id: "find", kind: "att", line: "films", column: "Marketing", icon: "search" },
+        { id: "read", kind: "att", line: "films", column: "Marketing", icon: "doc" },
+        { id: "call", kind: "att", line: "films", column: "Sales", icon: "check" },
+      ],
+      tracks: [
+        ...COLD_OUTBOUND_VIEW.tracks,
+        { from: "find", to: "read", by: "system" },
+        { from: "read", to: "call", by: "system" },
+      ],
+    };
+    const s = await layoutView(v);
+    for (const id of ["find", "read", "call"]) expect(at(s, id).x).toBeGreaterThanOrEqual(0);
+    expect(at(s, "read").x).toBeGreaterThan(at(s, "find").x);
+    expect(at(s, "call").x).toBeGreaterThan(at(s, "read").x);
+    expect(sceneClashes(s)).toEqual([]);
+  });
+
   it("draws every sample view", async () => {
     for (const v of SAMPLE_VIEWS) {
       const s = await layoutView(v);

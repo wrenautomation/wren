@@ -4,7 +4,7 @@
  * back as a new journey. Pure: the known triggers, groups and lists come in as arguments, so this
  * file imports nothing from the executor.
  */
-import { SOURCE_ID } from "@wren/core/logic";
+import { SOP_NAME, SOURCE_ID } from "@wren/core/logic";
 
 export interface Advance {
   /** A trigger component id: `trigger.booking`, `trigger.touch`, ... */
@@ -38,7 +38,11 @@ export const ACTIONS = [
 ] as const;
 export type Action = (typeof ACTIONS)[number];
 
-/** How a source finds people. Today's entry kinds, less `funnel` (an edge does that). */
+/**
+ * How a source finds its subjects. Today's entry kinds, less `funnel` (an edge does that). All
+ * but `found` find people; `found` finds documents for a content line (designs/2026-10-25-
+ * ingestion-engine.md).
+ */
 export const VIAS = [
   "organic",
   "outbound",
@@ -47,10 +51,23 @@ export const VIAS = [
   "sourced",
   "group",
   "manual",
+  "found",
 ] as const;
 export type Via = (typeof VIAS)[number];
+/** The vias that find people: every via but `found`. */
+export const PEOPLE_VIAS: readonly Via[] = VIAS.filter((v) => v !== "found");
 
-const NODE_KINDS = ["source", "step", "offer", "plan"] as const;
+/** What an instance is about: a person, or a document on a content line. */
+export const SUBJECT_KINDS = ["person", "document"] as const;
+export type SubjectKind = (typeof SUBJECT_KINDS)[number];
+
+/** What a job node does to a document on arrival. Each job, when done, moves it on. */
+export const JOBS = ["read", "extract", "call", "measure"] as const;
+export type Job = (typeof JOBS)[number];
+
+export { SOP_NAME };
+
+const NODE_KINDS = ["source", "step", "offer", "plan", "job"] as const;
 export type NodeKind = (typeof NODE_KINDS)[number];
 
 const EDGE_KINDS = ["flow", "loop"] as const;
@@ -74,6 +91,8 @@ export interface SourceNode extends NodeBase {
   source?: string;
   /** Via `group`: the saved query whose members enter (a segment id as text). */
   group?: string;
+  /** Via `found`: the SOP whose finds enter (the tag the hunt and his saves give a document). */
+  sop?: string;
   /** Opens nothing. Keeps the node and its numbers. */
   parked?: true;
 }
@@ -100,7 +119,7 @@ export interface OfferNode extends NodeBase {
 }
 
 /** Reaching a plan node signs the deal under the plan's terms. */
-interface PlanNode extends NodeBase {
+export interface PlanNode extends NodeBase {
   kind: "plan";
   /** A terms plan slug of the offer above this node. */
   terms: string;
@@ -108,9 +127,21 @@ interface PlanNode extends NodeBase {
   idleDays?: number;
 }
 
-export type ShapeNode = SourceNode | StepNode | OfferNode | PlanNode;
-/** A node that holds journeys (every kind but source). */
-export type HoldNode = StepNode | OfferNode | PlanNode;
+/**
+ * A content line's station: holds a document while its job runs (`read`, `extract`) or waits
+ * (`call`: his call on every finding; `measure`). The job's end is a `trigger.station` fire for
+ * this node, which `graphOf` makes the advance of the node after it.
+ */
+export interface JobNode extends NodeBase {
+  kind: "job";
+  job: Job;
+  advance: Advance[];
+  idleDays?: number;
+}
+
+export type ShapeNode = SourceNode | StepNode | OfferNode | PlanNode | JobNode;
+/** A node that holds instances (every kind but source). */
+export type HoldNode = StepNode | OfferNode | PlanNode | JobNode;
 
 export interface ShapeEdge {
   id: string;
@@ -164,6 +195,9 @@ export interface ShapeCheckContext {
 export const edgeIdOf = (from: string, to: string): string => `${from}_to_${to}`;
 
 export const isSource = (n: ShapeNode): n is SourceNode => n.kind === "source";
+/** What a node's instances are about: a job node and a `found` source hold documents. */
+export const subjectKindOf = (n: ShapeNode): SubjectKind =>
+  n.kind === "job" || (n.kind === "source" && n.via === "found") ? "document" : "person";
 export const holds = (n: ShapeNode): n is HoldNode => n.kind !== "source";
 
 export const nodeOf = (body: ShapeBody, id: string): ShapeNode | undefined =>
@@ -204,7 +238,7 @@ export function checkShape(next: ShapeBody, ctx: ShapeCheckContext): string[] {
       errors.push(`Node "${k}" needs a name.`);
     }
     if (!NODE_KINDS.includes(n.kind)) {
-      errors.push(`Node "${k}" has kind "${n.kind}". Use source, step, offer or plan.`);
+      errors.push(`Node "${k}" has kind "${n.kind}". Use ${NODE_KINDS.join(", ")}.`);
       continue;
     }
     checkNode(n, ctx, errors);
@@ -240,6 +274,14 @@ export function checkShape(next: ShapeBody, ctx: ShapeCheckContext): string[] {
     }
     if (kindOf.get(e.to) === "source") {
       errors.push(`Edge "${e.id}" ends at source "${e.to}". Nothing enters a source.`);
+    }
+    const a = nodeOf(next, e.from);
+    const b = nodeOf(next, e.to);
+    if (a && b && NODE_KINDS.includes(a.kind) && NODE_KINDS.includes(b.kind)) {
+      if (subjectKindOf(a) !== subjectKindOf(b))
+        errors.push(
+          `Edge "${e.id}" joins a ${subjectKindOf(a)} node to a ${subjectKindOf(b)} node. An edge never changes what an instance is about.`,
+        );
     }
   }
 
@@ -281,6 +323,7 @@ interface EntryFields {
   via: Via;
   source?: string | undefined;
   group?: string | undefined;
+  sop?: string | undefined;
 }
 
 /**
@@ -292,9 +335,10 @@ export function checkEntry(
   e: EntryFields,
   ctx: ShapeCheckContext,
   errors: string[],
+  vias: readonly Via[] = VIAS,
 ): void {
-  if (!VIAS.includes(e.via)) {
-    errors.push(`${who} has via "${e.via}". Use ${VIAS.join(", ")}.`);
+  if (!vias.includes(e.via)) {
+    errors.push(`${who} has via "${e.via}". Use ${vias.join(", ")}.`);
   }
   if (e.via === "sourced") {
     if (!e.source) errors.push(`${who} has via sourced but names no source.`);
@@ -302,6 +346,11 @@ export function checkEntry(
       errors.push(`${who} names source "${e.source}", which is not a list's id (import:12).`);
     else if (!ctx.source(e.source))
       errors.push(`${who} names source ${e.source}, which does not exist.`);
+  }
+  if (e.via === "found") {
+    if (!e.sop) errors.push(`${who} has via found but names no SOP.`);
+    else if (!SOP_NAME.test(e.sop))
+      errors.push(`${who} names SOP "${e.sop}". Use lowercase letters, digits and dashes.`);
   }
   if (e.via === "group") {
     if (!e.group) errors.push(`${who} has via group but names no group.`);
@@ -323,6 +372,9 @@ function checkNode(n: ShapeNode, ctx: ShapeCheckContext, errors: string[]): void
     return;
   }
 
+  if (n.kind === "job" && !JOBS.includes(n.job)) {
+    errors.push(`Job node "${k}" has job "${n.job}". Use ${JOBS.join(", ")}.`);
+  }
   if (n.kind === "step" && !ACTIONS.includes(n.action)) {
     errors.push(`Step "${k}" has action "${n.action}". Use ${ACTIONS.join(", ")}.`);
   }
@@ -332,7 +384,11 @@ function checkNode(n: ShapeNode, ctx: ShapeCheckContext, errors: string[]): void
   if (n.kind === "plan" && (typeof n.terms !== "string" || n.terms === "")) {
     errors.push(`Plan "${k}" names no terms plan.`);
   }
-  if (n.kind !== "plan" && n.research !== undefined && !RESEARCH_LEVELS.includes(n.research)) {
+  if (
+    (n.kind === "step" || n.kind === "offer") &&
+    n.research !== undefined &&
+    !RESEARCH_LEVELS.includes(n.research)
+  ) {
     errors.push(`Node "${k}" has research "${n.research}". Use none, light or full.`);
   }
   if (

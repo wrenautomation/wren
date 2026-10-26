@@ -4,6 +4,7 @@ import {
   ATTACH_KINDS,
   type Attach,
   checkMetro,
+  isContentKind,
   isMetro,
   kindOfAction,
   LOGIC_KINDS,
@@ -49,7 +50,10 @@ describe("metroShape()", () => {
 
   it("holds every station kind, track kind and logic kind", () => {
     const b = metroShape();
-    expect(new Set(b.stations.map((s) => s.kind))).toEqual(new Set(STATION_KINDS));
+    // Content stations sit on a content line alone; content-line.test.ts holds them.
+    expect(new Set(b.stations.map((s) => s.kind))).toEqual(
+      new Set(STATION_KINDS.filter((k) => !isContentKind(k))),
+    );
     expect(new Set(b.tracks.flatMap((t) => (t.kind ? [t.kind] : [])))).toEqual(
       new Set(TRACK_KINDS),
     );
@@ -236,7 +240,7 @@ describe("checkMetro: lines", () => {
       'Line "odd" needs a label.',
     ]);
     expect(says((b) => b.lines.push({ id: "odd", label: "Odd", tier: "mid" as "out" }))).toEqual([
-      'Line "odd" has tier "mid". Use out, front, core.',
+      'Line "odd" has tier "mid". Use out, front, core, content.',
     ]);
   });
 
@@ -308,7 +312,7 @@ describe("checkMetro: stations", () => {
       'Station "extra" needs a label.',
     ]);
     expect(says((b) => b.stations.push(extra({ kind: "box" as never })))).toContain(
-      'Station "extra" has kind "box". Use att, time, cash, exit, hub, condition, race, split, join, ab, approval, link.',
+      'Station "extra" has kind "box". Use att, time, cash, exit, hub, condition, race, split, join, ab, approval, link, find, read, extract, call, measure.',
     );
     expect(says((b) => b.stations.push(extra({ column: "left" as never })))).toEqual([
       'Station "extra" has column "left". Use marketing, sales, delivery, money.',

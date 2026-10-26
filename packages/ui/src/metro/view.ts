@@ -6,8 +6,11 @@
 import type { IconName } from "../icons.js";
 import type { Mark } from "./types.js";
 
-/** What a line is for: outreach (thin, `--ui-line-out`), a front end (medium), the core (thick). */
-export type LineTier = "out" | "front" | "core";
+/**
+ * What a line is for: outreach (thin, `--ui-line-out`), a front end (medium), the core (thick),
+ * or content: documents read for his calls, never people (medium, like a front end).
+ */
+export type LineTier = "out" | "front" | "core" | "content";
 
 export interface ViewLine {
   id: string;

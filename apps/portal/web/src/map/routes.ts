@@ -2,7 +2,8 @@
  * Where a Map node opens: the app that manages it, one table (designs/2026-10-19-business-map.md,
  * "Map page"). A source opens Marketing for its channel, Engage for an outbound DM source, Ads for
  * ads; a step and an offer open the Journeys list at that node; an offer also opens Offers; a plan
- * opens the money (Payments in a client's workspace, Deals at Wren). `routes.test.ts` checks each
+ * opens the money (Payments in a client's workspace, Deals at Wren). A content line's stations open
+ * Learn's items. `routes.test.ts` checks each
  * target is a real page of a real app.
  */
 import type { ShapeNode } from "@wren/pipeline/model";
@@ -53,11 +54,17 @@ export const ROUTES = {
     wren: [{ label: "Deals", app: "pipelines", page: "deals" }],
     client: [{ label: "Payments", app: "payments", page: "links" }],
   },
+  content: {
+    wren: [{ label: "Learn", app: "learn", page: "items" }],
+    client: [{ label: "Learn", app: "learn", page: "items" }],
+  },
 } as const satisfies Record<string, Record<Place, readonly Target[]>>;
 
 /** Which table row a node reads from. */
 export function rowOf(n: Pick<ShapeNode, "kind"> & { via?: string; channel?: string }) {
+  if (n.kind === "job") return "content";
   if (n.kind === "source") {
+    if (n.via === "found") return "content";
     if (n.via === "ads") return "ads";
     if (n.via === "outbound" && DM_CHANNELS.includes(n.channel ?? "")) return "dm";
     return "source";

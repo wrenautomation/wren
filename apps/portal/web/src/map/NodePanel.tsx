@@ -42,9 +42,19 @@ const STATION_WORD: Record<MetroStation["kind"], string> = {
   ab: "A/B test",
   approval: "Approval",
   link: "Link",
+  find: "Find",
+  read: "Read",
+  extract: "Extract",
+  call: "Your call",
+  measure: "Measure",
 };
 
-const TIER_WORD = { out: "Source line", front: "Front line", core: "Core line" } as const;
+const TIER_WORD = {
+  out: "Source line",
+  front: "Front line",
+  core: "Core line",
+  content: "Content line",
+} as const;
 
 const h3 = "mb-1.5 text-[13px] font-semibold text-(--ui-ink-2)";
 
