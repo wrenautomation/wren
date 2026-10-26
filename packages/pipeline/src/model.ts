@@ -58,7 +58,7 @@ export type Via = (typeof VIAS)[number];
 export const PEOPLE_VIAS: readonly Via[] = VIAS.filter((v) => v !== "found");
 
 /** What an instance is about: a person, or a document on a content line. */
-export const SUBJECT_KINDS = ["person", "document"] as const;
+const SUBJECT_KINDS = ["person", "document"] as const;
 export type SubjectKind = (typeof SUBJECT_KINDS)[number];
 
 /** What a job node does to a document on arrival. Each job, when done, moves it on. */

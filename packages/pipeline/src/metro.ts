@@ -69,7 +69,7 @@ export const STATION_KINDS = [
 export type StationKind = (typeof STATION_KINDS)[number];
 
 /** The stations of a content line: `find` opens instances, the rest are its jobs (`JOBS`). */
-export const CONTENT_KINDS = [
+const CONTENT_KINDS = [
   "find",
   "read",
   "extract",
