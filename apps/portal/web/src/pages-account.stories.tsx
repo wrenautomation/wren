@@ -9,7 +9,7 @@ import { freshStory, settled } from "./mocks/api.js";
 import { ACCOUNT_ANSWERS, ACCOUNT_CALLS, forgetAccount } from "./mocks/data/account.js";
 import { pageAt } from "./mocks/page.js";
 
-const meta: Meta = { title: "Pages/Account" };
+const meta: Meta = { title: "Revamp/Account", id: "pages-account" };
 export default meta;
 
 /** A page on the account answers; each story starts from the same lists. */
