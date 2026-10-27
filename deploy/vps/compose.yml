@@ -27,18 +27,18 @@ services:
     # A dated tag (hub.docker.com/r/searxng/searxng/tags); `latest` moves daily.
     image: docker.io/searxng/searxng:2026.10.27-ef7bae9dd
     profiles: [search]
+    # Compose interpolates every service, profile or not: no `:?` here, or a box
+    # without search cannot start. The deploy script sets these when it ships search.
     restart: unless-stopped
     # The box has 961 MB for everything: one worker, a hard cap, no Valkey.
     mem_limit: 350m
     environment:
-      SEARXNG_BASE_URL: https://${SEARCH_HOST:?}/
-      SEARXNG_SECRET: ${SEARXNG_SECRET:?}
+      SEARXNG_BASE_URL: https://${SEARCH_HOST:-}/
+      SEARXNG_SECRET: ${SEARXNG_SECRET:-}
       SEARXNG_LIMITER: "false"
       SEARXNG_IMAGE_PROXY: "false"
       GRANIAN_WORKERS: "1"
       GRANIAN_BLOCKING_THREADS: "4"
-      UWSGI_WORKERS: "1"
-      UWSGI_THREADS: "4"
     volumes:
       - ./searxng.yml:/etc/searxng/settings.yml:ro
   caddy:
