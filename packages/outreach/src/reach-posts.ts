@@ -1888,6 +1888,22 @@ export async function markPostCommented(
   });
 }
 
+/** A UWaterloo tie: the school by name, or Waterloo with a program or class year. */
+const WATERLOO =
+  /\b(uwaterloo|university of waterloo|uw ?(se|cs|eng|math)|(se|syde|cs|tron|mech|eng) ?'? ?(29|2029))\b|\bwaterloo\b[\s\S]{0,60}\b(student|software eng\w*|se|cs|'? ?29|2029|co-?op)\b|\b(student|software eng\w*|se|cs|'? ?29|2029|co-?op)\b[\s\S]{0,60}\bwaterloo\b/i;
+
+/**
+ * An author in his own circle on Meta: a UWaterloo student (his 2029 SE class most of all).
+ * Instagram and Threads get no follow or like from them, so his own feed and suggestions stay
+ * apart from Wren's (William, 10-26). X takes them.
+ */
+export function ownCircle(
+  p: Pick<ReachPost, "platform" | "handle" | "author" | "headline" | "text">,
+): boolean {
+  if (p.platform !== "instagram" && p.platform !== "threads") return false;
+  return WATERLOO.test([p.handle, p.author, p.headline, p.text].filter(Boolean).join("\n"));
+}
+
 /** A site call: site, method, path, body. */
 type SiteAct = readonly [string, "POST", string, Record<string, unknown>];
 
@@ -1933,8 +1949,9 @@ export function postActs(
   const ref = encodeURIComponent(p.ref);
   const h = p.handle;
   const company = p.platform === "linkedin" ? companyOf(p.authorUrl) : null;
-  const like = s.like && !p.likedAt;
-  const follow = s.follow && !p.followedAt && (h || company);
+  const kept = !ownCircle(p);
+  const like = kept && s.like && !p.likedAt;
+  const follow = kept && s.follow && !p.followedAt && (h || company);
   switch (p.platform) {
     case "linkedin":
       return {

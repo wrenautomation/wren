@@ -14,6 +14,7 @@ import {
   listPosts,
   markPostActed,
   markPostCommented,
+  ownCircle,
   type PostsStats,
   planPostAct,
   planPostComment,
@@ -187,9 +188,14 @@ export function postsHandlers(desk: DeskContext) {
         const acts = postActs(post, { like: req.act === "like", follow: req.act === "follow" }, "");
         const act = acts[req.act];
         if (!act)
-          throw new restate.TerminalError("that post's author has no handle to follow", {
-            errorCode: 409,
-          });
+          throw new restate.TerminalError(
+            ownCircle(post)
+              ? "a UWaterloo student: no follow or like on Instagram or Threads"
+              : "that post's author has no handle to follow",
+            {
+              errorCode: 409,
+            },
+          );
         const [site, method, path, input] = act;
         await deps.sitesFor(ctx).call(site, method, path, input, settings.account);
         await ctx.run(req.act, () => markPostActed(deps.db, post.id, req.act, now));

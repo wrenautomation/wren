@@ -14,8 +14,10 @@ import {
   isJobAd,
   jobPost,
   MIN_FIT,
+  ownCircle,
   phrase,
   planTopics,
+  postActs,
   postReader,
   proposeTopics,
   REST_AFTER,
@@ -475,5 +477,41 @@ describe("COMMENTS_SETTINGS account", () => {
   it("takes Threads as an Instagram login", () => {
     expect(ok("threads", "instagram")).toBe(true);
     expect(ok("threads", "threads")).toBe(false);
+  });
+});
+
+describe("ownCircle", () => {
+  const post = (platform: string, text: string, headline: string | null = null) => ({
+    platform: platform as "instagram",
+    handle: "someone",
+    author: "Someone",
+    headline,
+    text,
+  });
+
+  it("finds a UWaterloo student on Instagram and Threads", () => {
+    expect(ownCircle(post("instagram", "first week done", "SE '29 @ uwaterloo"))).toBe(true);
+    expect(ownCircle(post("threads", "co-op hunt at Waterloo is wild"))).toBe(true);
+    expect(ownCircle(post("instagram", "", "University of Waterloo"))).toBe(true);
+    expect(ownCircle(post("threads", "", "cs 2029"))).toBe(true);
+  });
+
+  it("leaves a Waterloo business owner, and X", () => {
+    expect(ownCircle(post("instagram", "Our Waterloo bakery hit 20 staff"))).toBe(false);
+    expect(ownCircle(post("x", "", "SE '29 @ uwaterloo"))).toBe(false);
+  });
+
+  it("drops the like and follow, keeps the comment", () => {
+    const p = {
+      ...post("instagram", "", "uwaterloo se 29"),
+      ref: "abc",
+      likedAt: null,
+      followedAt: null,
+      authorUrl: null,
+    } as unknown as Parameters<typeof postActs>[0];
+    const acts = postActs(p, { like: true, follow: true }, "hi");
+    expect(acts.like).toBeNull();
+    expect(acts.follow).toBeNull();
+    expect(acts.comment).not.toBeNull();
   });
 });
