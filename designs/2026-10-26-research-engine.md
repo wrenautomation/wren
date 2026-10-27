@@ -489,3 +489,17 @@ and SOPs against plan files (WA-908, after the first runs show what a plan file 
   (copied from autobrowse's store). Live run from the Mac, searxng + fetcher, Haiku: 3 rounds,
   66 hits, 9 documents, 65 findings; the resume after the cut answer asked for one document.
   Lambda's `SEARXNG_URL`/`SEARXNG_TOKEN` in `env-2` wait for step 3.
+- 2026-10-27, late: decisions with William, not built yet. (1) Model by slot: plan, review and
+  the per-round compaction of known on Sonnet 5.5; triage and extract on Haiku. Home: a `models`
+  block in the plan file per ask kind, `--model` the fallback. (2) No hard cutoffs on extraction:
+  falcon's 60/80-word gate goes; a cap stop continues from the last whole quote on the rest of
+  the page (calls linear in facts, not a tree: billing is linear per token, so splitting saves
+  nothing). Triage's 240-char snippet stays (a read-or-skip signal, the page is read after).
+  (3) Tokens shrink by restating less: a why on reads only; the extractor gets a Sonnet brief of
+  known, not the whole list (the one term that grows with rounds squared). (4) The engine's calls
+  stay single turn; chat lives in the agent above it (Claude Code now, the Ask page later). A
+  `steer` record (free text, `by: human`, per round) enters every prompt under "the person
+  says"; `run --pause` stops after each round. (5) No human-seam package: the ledger contract
+  (`by` and `from` on every record) is the decoupling; extract shared surface code on its second
+  or third use.
+
