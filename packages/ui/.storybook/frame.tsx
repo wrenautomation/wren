@@ -4,6 +4,7 @@ import { type ReactNode, useRef } from "react";
 import { QUERIES } from "../src/data/query.js";
 import { HintLayer } from "../src/hint-layer.js";
 import { PRESETS, usePageTheme } from "../src/theme.js";
+import { Feedback } from "./feedback.js";
 
 /**
  * The frame every story renders in, shared by each Storybook (`@wren/ui/storybook/frame`): the
@@ -43,6 +44,8 @@ function Frame({
         {children}
       </div>
       <HintLayer />
+      {/* Dev only: a build, a shot or a story test never draws it. */}
+      {import.meta.env.MODE === "development" ? <Feedback story={id} /> : null}
     </QueryClientProvider>
   );
 }

@@ -40,6 +40,10 @@ For a whole page, the shell, or how apps and pages are laid out. The real app ru
 
 Records pages get the server's own types (`virtual:record-types`, from `apps/worker/src/record-types.ts`). A column the server adds shows in the stories at the next start.
 
+## William's notes on a story
+
+Dev Storybook (both ports) draws Agentation at the bottom right and a session picker at the bottom left (`.storybook/feedback.tsx`). William marks parts, picks a session, presses Send. The note reaches that session's `draw watch` as `[page note <id>] on <story link>:` and the marks, each with its selector. Open the link, fix, and check the story again. Desktop browser only.
+
 ## Stories
 
 - A story file sits beside its part: `packages/ui/src/<stem>.stories.tsx`, in CSF (`Meta`, `StoryObj` from `@storybook/react-vite`). Id = `<stem>--<export>` in kebab case.
