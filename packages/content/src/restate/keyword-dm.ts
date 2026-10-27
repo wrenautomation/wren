@@ -5,6 +5,7 @@
  */
 import * as restate from "@restatedev/restate-sdk";
 import { byOf } from "@wren/core/ask";
+import { tagged } from "@wren/core/message-settings";
 import { errorText, PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { sendAcross } from "@wren/core/send-verdict";
 import type { Db } from "@wren/db";
@@ -133,13 +134,17 @@ export function makeKeywordDm(deps: KeywordDmDeps) {
             if (err instanceof restate.TerminalError) return failed(err.message);
             throw err;
           }
+          // Its links carry utm tags like every marketing DM (designs/2026-10-14-customerio-audit.md, B4).
+          const dm = await ctx.run("words", () =>
+            tagged(db, hit.dm, { source: req.client ?? "wren", medium: "dm", campaign: "keyword" }),
+          );
           let ref: string | null;
           try {
             ({ ref } = await sendAtMostOnce(ctx, db, {
               item: `private:${c.id}`,
               platform: c.platform,
               account: null,
-              words: hit.dm,
+              words: dm,
               target: c.ref,
               url: c.url,
               send: () =>
@@ -147,7 +152,7 @@ export function makeKeywordDm(deps: KeywordDmDeps) {
                   content.privateReply({
                     platform: c.platform,
                     commentId: c.ref,
-                    text: hit.dm,
+                    text: dm,
                     client: req.client,
                     ...k,
                   }),
@@ -160,7 +165,7 @@ export function makeKeywordDm(deps: KeywordDmDeps) {
             throw err;
           }
           await ctx.run("sent", async () => {
-            await privateReplied(db, c, { body: hit.dm, ref, now, by: "keyword", via: "wren" });
+            await privateReplied(db, c, { body: dm, ref, now, by: "keyword", via: "wren" });
             await settleHit(db, req.hit, { sent: true, ref, now });
           });
           const reply = hit.reply?.trim();

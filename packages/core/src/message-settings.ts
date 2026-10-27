@@ -292,9 +292,15 @@ export async function countMarketingSend(
   }
 }
 
-/** The workflow a follow-up's `ref` (`<workflow>/<node>`) names, as its campaign slug. */
-export const campaignOfRef = (ref: string | null | undefined): string | null =>
-  ref ? ref.split("/")[0] || null : null;
+/**
+ * The workflow a text's `ref` names, as its campaign slug: a follow-up's `<workflow>/<node>`, or
+ * a workflow Send message's `wf:<workflow>:<node>`.
+ */
+export const campaignOfRef = (ref: string | null | undefined): string | null => {
+  if (!ref) return null;
+  if (ref.startsWith("wf:")) return ref.split(":")[1] || null;
+  return ref.split("/")[0] || null;
+};
 
 // ---- Link parameters ----
 

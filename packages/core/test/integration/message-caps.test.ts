@@ -302,6 +302,7 @@ describe("the cross-channel cap", () => {
     expect(log).toHaveBeenCalledWith(expect.stringContaining("marketing send not counted"));
     log.mockRestore();
     expect(campaignOfRef("keep_warm/follow.text1")).toBe("keep_warm");
+    expect(campaignOfRef("wf:win_back:n3")).toBe("win_back");
     expect(campaignOfRef(null)).toBeNull();
     expect(campaignOfRef("/x")).toBeNull();
   });

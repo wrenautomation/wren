@@ -148,6 +148,18 @@ describe("Send message", () => {
     expect(mail.sent).toHaveLength(1);
   });
 
+  it("tags its links with the workflow's utm parameters", async () => {
+    await yes("sam@example.com");
+    await stepOf()(
+      "in",
+      lead("sam@example.com"),
+      at({ body: "Read https://example.com/guide first." }),
+    );
+    expect(mail.sent[0]?.text).toContain(
+      "https://example.com/guide?utm_source=wren&utm_medium=email&utm_campaign=made-welcome first.",
+    );
+  });
+
   it("skips without a yes", async () => {
     const step = stepOf();
     const none = await step("in", lead("pat@example.com"), at());

@@ -15,6 +15,7 @@ import { checkWords, factsOf, isUnset, type MailOf, renderFor } from "./broadcas
 import type { ExecutorEvent, Step, StepAt } from "./executor.js";
 import { dig } from "./logic.js";
 import { addressOf, mayMarket, recordMarketingSend } from "./marketing.js";
+import { tagged } from "./message-settings.js";
 import type { Notifier } from "./notify.js";
 import { PortalRefusal } from "./refusal.js";
 import { topics } from "./schema.js";
@@ -171,7 +172,11 @@ export function messageStep(
       await mail.send({
         to: address,
         subject: copy.subject ?? topic.publicName,
-        text: `${copy.body}${env.footer}`,
+        text: `${await tagged(db, copy.body, {
+          source: at.client ?? "wren",
+          medium: "email",
+          campaign: at.workflow,
+        })}${env.footer}`,
         headers: env.headers,
         messageId,
       });
