@@ -12,7 +12,7 @@ import { pageAt } from "./mocks/page.js";
 import type { ItemPage } from "./modules/learn/api.js";
 import { player } from "./player/index.js";
 
-const meta: Meta = { title: "Pages/Player" };
+const meta: Meta = { title: "Revamp/Player", id: "pages-player" };
 export default meta;
 
 const EPISODE: ItemPage = {
