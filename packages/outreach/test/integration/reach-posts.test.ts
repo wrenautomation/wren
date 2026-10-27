@@ -30,9 +30,7 @@ import {
   COMMENTS_COMPONENTS,
   COMMENTS_SETTINGS,
   type FeedPost,
-  isJobAd,
   MIN_FIT,
-  rankPost,
 } from "../../src/reach-posts.js";
 import {
   makeCommentProofs,
@@ -226,11 +224,24 @@ const sync = async () => {
   return (await w.sync()) as PassOutcome<WatchStats>;
 };
 const desk = () => ingress().serviceClient<ReachDeskService>({ name: "ReachDesk" });
+/** A one-trade audience (synthetic): each test owns its audience, never Wren's default buyers. */
+const AUDIENCE = [
+  "recruit",
+  "staffing",
+  "headhunt",
+  "talent acquisition",
+  "placement",
+  "executive search",
+  "search firm",
+  "candidate",
+  "rpo",
+  "agency owner",
+];
 const settings = (o: Record<string, unknown>, platform: ReachPostPlatform = "linkedin") =>
   setWrenSettings(
     db(),
     COMMENTS_COMPONENTS[platform],
-    COMMENTS_SETTINGS[platform].parse(o),
+    COMMENTS_SETTINGS[platform].parse({ audience: AUDIENCE, ...o }),
     "test",
   );
 const rows = () => db().select().from(reachPosts).orderBy(reachPosts.id);
@@ -259,79 +270,6 @@ const statsOf = (o: PassOutcome<WatchStats>) => {
   return o.stats;
 };
 
-describe("settings", () => {
-  it("off by default; never his own login or the research alt", () => {
-    expect(COMMENTS_SETTINGS.linkedin.parse({})).toMatchObject({
-      account: "",
-      perDay: 10,
-      minFit: MIN_FIT,
-    });
-    expect(MIN_FIT).toBe(70);
-    expect(COMMENTS_SETTINGS.linkedin.safeParse({ account: "linkedin" }).success).toBe(false);
-    expect(COMMENTS_SETTINGS.linkedin.safeParse({ account: "linkedin@alt" }).success).toBe(false);
-    expect(COMMENTS_SETTINGS.linkedin.safeParse({ account: "reddit@wren" }).success).toBe(false);
-  });
-
-  it("ranks topic, title, people we know above a bare match", () => {
-    const o = { topics: ["recruiting agency"], foundBy: "x", halfLifeHours: 36, now };
-    const plain = rankPost(post(1, { text: "Nothing to see here at all, a long enough line." }), {
-      ...o,
-      key: false,
-    });
-    const topic = rankPost(post(1), { ...o, key: false });
-    const founder = rankPost(post(1, { headline: "Founder, Acme Recruiting" }), {
-      ...o,
-      key: false,
-    });
-    const vp = rankPost(post(1, { headline: "Vice President, Recruiting" }), { ...o, key: false });
-    const known = rankPost(post(1), { ...o, key: true });
-    expect(topic.fit).toBeGreaterThan(plain.fit);
-    expect(founder.fit).toBeGreaterThan(vp.fit);
-    expect(vp.fit).toBeGreaterThan(topic.fit);
-    expect(known.fit).toBeGreaterThan(founder.fit);
-    expect(founder.why).toContain('On "recruiting agency".');
-  });
-
-  it("off target: job posts, and posts outside the audience's world", () => {
-    const o = { topics: ["client reactivation"], foundBy: "x", key: false, halfLifeHours: 36, now };
-    const ads = [
-      "#hiring Office Coordinator. Apply here: https://example.com/job. Job Title: Office Coordinator.",
-      "WE'RE HIRING: Business Development Officer. Location: Remote. Requirements: 3 years of experience, full-time.",
-      "A clinic is actively looking for a night nurse. Full-time, day shift or night shift, benefits include dental.",
-      "I am currently looking for a part-time, remote role as a recruiter. Open to work.",
-    ];
-    for (const text of ads) {
-      expect(isJobAd(text), text).toBe(true);
-      expect(rankPost(post(1, { text }), o).off).toMatch(/^a job (ad|seeker)$/);
-    }
-    const elsewhere = rankPost(
-      post(2, {
-        text: "Most contractors stop following up the day the job is done. The CRM holds the money.",
-      }),
-      o,
-    );
-    expect(elsewhere.off).toMatch(/^not about recruit/);
-    const ours = rankPost(post(3), o);
-    expect(ours.off).toBeNull();
-    expect(isJobAd(post(3).text)).toBe(false);
-  });
-
-  it("growing a recruiting firm ranks above a recruiter's day", () => {
-    const o = { topics: ["recruiting agency"], foundBy: "x", key: false, halfLifeHours: 36, now };
-    const growth = rankPost(
-      post(1, {
-        headline: "Founder, a search firm",
-        text: "Our recruiting agency lost two retainer clients last year. The pipeline was all referrals and no outreach. Revenue now comes from old clients we follow up with.",
-      }),
-      o,
-    );
-    const day = rankPost(post(2, { headline: "Recruiter" }), o);
-    expect(growth.fit).toBeGreaterThanOrEqual(MIN_FIT);
-    expect(day.fit).toBeLessThan(MIN_FIT);
-    expect(growth.why).toContain("Talks");
-  });
-});
-
 describe("the daily pass", () => {
   it("off: reads nothing", async () => {
     const out = await sync();
@@ -343,6 +281,7 @@ describe("the daily pass", () => {
     await settings({
       account: "linkedin@wren",
       perDay: 2,
+      maxAgeHours: 72,
       topics: ["recruiting agency"],
       pages: ["acme-staffing"],
       people: false,
@@ -497,8 +436,14 @@ const growthPost = (n: number) =>
   post(n, { headline: "Founder, a search firm", text: `${GROWTH_TEXT} (${n})` });
 
 describe("what gets a draft", () => {
+  // Drafts only: sending has its own tests.
   const on = () =>
-    settings({ account: "linkedin@wren", topics: ["recruiting agency"], people: false });
+    settings({
+      account: "linkedin@wren",
+      topics: ["recruiting agency"],
+      people: false,
+      autoSend: false,
+    });
 
   it("under the minimum fit, or off target: no draft", async () => {
     await on();

@@ -42,7 +42,18 @@ const post = (o: Partial<FeedPost> = {}): FeedPost => ({
   ...o,
 });
 /** A one-trade audience (synthetic): the rank's mechanism, not Wren's default buyers. */
-const TRADE = ["recruit", "staffing", "headhunt", "executive search", "agency owner"];
+const TRADE = [
+  "recruit",
+  "staffing",
+  "headhunt",
+  "talent acquisition",
+  "placement",
+  "executive search",
+  "search firm",
+  "candidate",
+  "rpo",
+  "agency owner",
+];
 const rank = (p: FeedPost, topics: string[] = []) =>
   rankPost(p, {
     topics,
@@ -174,6 +185,59 @@ describe("rankPost", () => {
     expect(topicCore(q)).toBe("recruiting agency");
     expect(topicCore("staffing agency")).toBe("staffing agency");
     expect(rank(post(), [q]).why).toContain(`On "${q}".`);
+  });
+
+  it("topic, title, people we know rank above a bare match", () => {
+    const o = {
+      topics: ["recruiting agency"],
+      audience: TRADE,
+      foundBy: "x",
+      halfLifeHours: 36,
+      now: NOW,
+    };
+    const plain = rankPost(post({ text: "Nothing to see here at all, a long enough line." }), {
+      ...o,
+      key: false,
+    });
+    const topic = rankPost(post({ headline: "Recruiter" }), { ...o, key: false });
+    const founder = rankPost(post({ headline: "Founder, Acme Recruiting" }), { ...o, key: false });
+    const vp = rankPost(post({ headline: "Vice President, Recruiting" }), { ...o, key: false });
+    const known = rankPost(post({ headline: "Recruiter" }), { ...o, key: true });
+    expect(topic.fit).toBeGreaterThan(plain.fit);
+    expect(founder.fit).toBeGreaterThan(vp.fit);
+    expect(vp.fit).toBeGreaterThan(topic.fit);
+    expect(known.fit).toBeGreaterThan(founder.fit);
+    expect(founder.why).toContain('On "recruiting agency".');
+  });
+
+  it("growing a recruiting firm ranks above a recruiter's day", () => {
+    const on = ["recruiting agency"];
+    const growth = rank(post({ headline: "Founder, a search firm", text: firmText }), on);
+    const day = rank(post({ headline: "Recruiter" }), on);
+    expect(growth.fit).toBeGreaterThanOrEqual(MIN_FIT);
+    expect(day.fit).toBeLessThan(MIN_FIT);
+    expect(growth.why).toContain("Talks");
+  });
+
+  it("job ads and seekers are off; so is a post outside the world", () => {
+    const ads = [
+      "#hiring Office Coordinator. Apply here: https://example.com/job. Job Title: Office Coordinator.",
+      "WE'RE HIRING: Business Development Officer. Location: Remote. Requirements: 3 years of experience, full-time.",
+      "A clinic is actively looking for a night nurse. Full-time, day shift or night shift, benefits include dental.",
+      "I am currently looking for a part-time, remote role as a recruiter. Open to work.",
+    ];
+    for (const text of ads) {
+      expect(isJobAd(text), text).toBe(true);
+      expect(rank(post({ text }), ["client reactivation"]).off).toMatch(/^a job (ad|seeker)$/);
+    }
+    const elsewhere = rank(
+      post({
+        text: "Most contractors stop following up the day the job is done. The CRM holds the money.",
+      }),
+    );
+    expect(elsewhere.off).toMatch(/^not about recruit/);
+    expect(rank(post()).off).toBeNull();
+    expect(isJobAd(post().text)).toBe(false);
   });
 
   it("job posts are off with their reason", () => {
@@ -469,6 +533,18 @@ describe("vanityOf", () => {
 describe("COMMENTS_SETTINGS account", () => {
   const ok = (p: keyof typeof COMMENTS_SETTINGS, account: string) =>
     COMMENTS_SETTINGS[p].safeParse({ account }).success;
+
+  it("off by default; never his own login or the research alt", () => {
+    expect(COMMENTS_SETTINGS.linkedin.parse({})).toMatchObject({
+      account: "",
+      perDay: 10,
+      minFit: MIN_FIT,
+    });
+    expect(MIN_FIT).toBe(70);
+    expect(ok("linkedin", "linkedin")).toBe(false);
+    expect(ok("linkedin", "linkedin@alt")).toBe(false);
+    expect(ok("linkedin", "reddit@wren")).toBe(false);
+  });
 
   it("takes YouTube as a Google login: its token is kept there", () => {
     expect(ok("youtube", "google@wren")).toBe(true);

@@ -57,6 +57,12 @@ import {
 import { makeContentPlanner, PLANNER_KEY, type PlannerStats } from "../../src/restate/planner.js";
 import { makeContentScheduler, type PublishStats } from "../../src/restate/scheduler.js";
 
+// The slot wiring on bare times; the epsilon has its own tests in core.
+vi.mock("@wren/core/epsilon", async (real) => ({
+  ...(await real<typeof import("@wren/core/epsilon")>()),
+  nudgeFixed: (at: Date) => at,
+}));
+
 const posted: { platform: Platform; post: Post }[] = [];
 /** Comments the scheduler left under posts (a LinkedIn video's funnel link). */
 const replied: { platform: Platform; commentId: string; text: string }[] = [];

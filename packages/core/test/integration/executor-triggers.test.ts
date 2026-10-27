@@ -11,7 +11,7 @@ import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontain
 import { ingressOf } from "@wren/config";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { eq, sql } from "drizzle-orm";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { clients as clientRows } from "../../src/clients/schema.js";
 import {
   clockKey,
@@ -27,6 +27,12 @@ import {
 import { workflowInstalls, workflowSaves } from "../../src/schema.js";
 import { startTestRestate } from "../../src/testing.js";
 import { defineWorkflow, type WorkflowEdits } from "../../src/workflows.js";
+
+// The trigger wiring on bare slot times; the epsilon has its own tests.
+vi.mock("../../src/epsilon.js", async (real) => ({
+  ...(await real<typeof import("../../src/epsilon.js")>()),
+  nudgeFixed: (at: Date) => at,
+}));
 
 const FLOW = defineWorkflow({
   id: "trig",
