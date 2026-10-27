@@ -43,6 +43,7 @@ import {
   webhookEventOfEmit,
   webhookEventsOfFired,
 } from "./webhook-events.js";
+import { type PostOptions, safePost } from "./webhooks.js";
 import {
   flowsWith,
   isMade,
@@ -214,18 +215,20 @@ function partAt(w: Walk, top: Workflow, at: string[]): string | null {
   return uses && w.parts.has(uses) ? uses : null;
 }
 
-/** A custom step at an https URL: POST `{port, event}`, answer `{out: [{port, event}]}`. */
-const httpStep =
-  (url: string): Step =>
+/**
+ * A custom step at an https URL: POST `{port, event}`, answer `{out: [{port, event}]}`. The URL is
+ * the client's, so it goes through `safePost`: public addresses only, no redirects.
+ */
+export const httpStep =
+  (url: string, o: PostOptions = {}): Step =>
   async (port, event) => {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ port, event }),
-      signal: AbortSignal.timeout(30_000),
-    });
-    if (!res.ok) throw new Error(`${url} answered ${res.status}`);
-    const body = (await res.json()) as { out?: unknown };
+    const res = await safePost(
+      { url, body: JSON.stringify({ port, event }) },
+      { timeoutMs: 30_000, maxBytes: 1_048_576, ...o },
+    );
+    if (res.status === null) throw new Error(`${url}: ${res.error ?? "no answer"}`);
+    if (res.status < 200 || res.status >= 300) throw new Error(`${url} answered ${res.status}`);
+    const body = JSON.parse(res.body) as { out?: unknown };
     return Array.isArray(body.out) ? (body.out as Awaited<ReturnType<Step>>) : [];
   };
 

@@ -12,6 +12,7 @@ import {
   heardAs,
   hearersOf,
   hookEvent,
+  httpStep,
   passOn,
   replyFired,
   resume,
@@ -681,5 +682,18 @@ describe("fired triggers", () => {
     expect(slotEvent("daily", new Date("2026-10-08T13:00:00Z")).subject).toBe(
       "item:schedule:daily@2026-10-08T13:00:00.000Z",
     );
+  });
+});
+
+describe("httpStep", () => {
+  it("refuses a host that resolves to a private address", async () => {
+    const step = httpStep("https://hooks.example.com/step", {
+      resolve: async () => [{ address: "10.0.0.5", family: 4 }],
+    });
+    await expect(step("in", {} as never)).rejects.toThrow(/private address/);
+  });
+
+  it("refuses a private IP literal before any lookup", async () => {
+    await expect(httpStep("https://127.0.0.1/step")("in", {} as never)).rejects.toThrow();
   });
 });
