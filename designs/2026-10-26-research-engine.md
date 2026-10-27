@@ -162,6 +162,9 @@ of this kind). Deleting the rule steps forward again. Not v1; the rows that make
   designer-site example runs end to end.
 - 3.7 **Ask**: a thin surface over the same records.
 - 4 **Port the old hardcoded workflows** to lines, onto the shared find station.
+- 5 **Learn onto the ledger**: breakdowns as finding records, his calls as call records;
+  `decision_calls` kind `finding` and the SOP branch of `linePass` go. Learn stays parked
+  until then.
 
 ## 3.5c weaver (agreed 2026-10-27)
 
@@ -257,6 +260,101 @@ Built (2026-10-27, weaver 0.2.0), what the build decided beyond the agreed shape
   ledger. The tune it asked for: falcon 0.4.1's claim prompt states the fact, never "the
   document says". Finding v1 held; the three signs did not show.
 
+## 3.5d wren (agreed 2026-10-27)
+
+Goal: the study runs on the engine inside wren. Every record lands in Postgres. The map's find
+stations read the ledger. One agent CLI runs over both ledgers. The pain line follows the study.
+Wren adds no engine code: it holds a ledger backend, a model adapter, source adapters and the
+surfaces. Everything else is weaver, raven and falcon as published.
+
+Pieces:
+- `PgLedger`: the four calls (`append`, `trace`, `scan`, `yield`) over one table. Every write
+  goes through `LedgerRecord.parse`, like the files backend.
+- A model adapter: raven's `Model` over wren's `LlmClient` (`ravenModel(llm)`). `ask` is
+  `completeAndParse`; `usage` comes back so the runner's `spend` row carries tokens and USD
+  (`model-prices`). Falcon's extractor takes the same adapter.
+- Sources on this host: searxng, exa, the fetcher, the ladder over wren's `SiteClient`,
+  youtube, paste, the ledger, and `reach-posts` (the pain line's find: posts at or over the
+  platform's `minFit` since the cursor, as hits; a post opens as a document).
+- Extractors: falcon's `claim` for the study; `pain` (a stated pain with its quote) for the
+  pain line, in falcon, kind `pain`.
+- The study: `studies` keeps `slug`, `question`, `angles`, `drafts` (the spec), `niche`, and
+  gains `run` (the engine run; a redo is a new run, resume is the same run). The angles become
+  human proposals (`from: human`, `by: william`) merged into round 1. Claims are finding
+  records; his calls are call records; `add-page` is the paste source. Drafts and the report
+  are the synthesis reader: falcon's `drafts` and `report` over the kept finding records, the
+  text kept in `study_drafts (study_id, kind, basis, text, at)`, redrawn when `basis` changes.
+- The find station: a `study: <slug>` find takes the document records of the study's runs.
+  Read ends on arrival (a document record is a read page). Extract ends when the round's
+  extract step has its `done` record. Call ends when every finding on the document has a
+  call, or the document has no finding.
+- The pain line: `PainFeed` drives the runner over the open pain run a bounded number of
+  steps per pass (`RunOptions.steps`, new in weaver 0.2.2). The `trigger.source` fire reads
+  the ledger's finding. `painPass` and the pain rows in `findings` go.
+- CLI: `wren research run|trace|keep|drop|yield|sources`, weaver's own commands with the
+  Postgres ledger, wren's sources and the model adapter injected (`addEngineCommands(program,
+  deps)`, new in 0.2.2). `wren study new|run|report|call|add-page|list` stays as the recipe
+  layer over them: `run` is `research run` with the study's ask and proposals; `call` is
+  `keep` or `drop` by report number, `tune` is `keep` with his words.
+- Import: each existing study becomes one run. Read pages become hit and document records,
+  claims finding records, his `decision_calls` on them call records, drafts rows. One script,
+  run once on prod, then `study_steps` goes. His calls are the labels; the ledger keeps them.
+
+Decisions, options weighed:
+- Record shape in Postgres. (A) One append-only table `research_ledger`: the envelope as
+  columns (`id`, `run`, `round`, `step`, `at`, `from`, `by`, `type`), the rest `body` jsonb, a
+  GIN index on `body` for `on` and `document`, `client` null for Wren. (B) One table per
+  record type, nine tables, typed columns and keys. (C) `documents` and `findings` for those
+  two grains, (A) for the rest. (A). The contract is four calls over records, the files
+  backend is one stream, DuckLake reads one table, and a files ledger from a personal repo
+  imports by copying rows. (C) fails on shape: `findings` has `fact_key`, `via`, `confidence`
+  and a three-value `by`; the envelope has a ULID, `run`, `round`, `step` and a free `by`.
+  Not named `ledger`: wren's ledger cluster is imports and runs.
+- Where a run executes. (A) The Mac, by the CLI, as the study runs today; the worker's
+  `LineFeed` reads the records. (B) A Restate object per run, one step per call, re-armed
+  until the run stops. (C) A worker loop that advances open runs a bounded number of steps
+  per pass. The study takes (A): a person asks, and the sources it needs (SearXNG in Docker,
+  yt-dlp, the browser) live on the Mac, not in Lambda. The pain line takes (C): its feed is a
+  worker loop already. (B) waits for a line that runs with nobody at a terminal and a source
+  set per host; the step bound makes it a small change then.
+- The old study rows. (A) Import into records. (B) Archive read only. (C) Drop. (A): his calls
+  are the labels, and the ledger is kept forever by its own rule.
+- Two call stores. Engine lines' calls are ledger records. SOP and learn calls stay in
+  `decision_calls` kind `finding`. Phase 5 deletes the second store; the SOP branch of
+  `linePass` goes with it.
+- Falcon `./study`. (A) The planner goes: `buildPlanPrompt`, `planQueries`, `QueryPlan`,
+  `pickReads`, `Hit`, `buildClaimsPrompt`, `gateClaims`, `ClaimProposals`; the `claim`
+  extractor in `./document` is the one extractor. `drafts`, `report`, `grounding` and
+  `evidence` stay as the synthesis reader over kept findings; `enrichment/opener.ts` keeps
+  its grounding imports. (B) Keep the planner unused. (A): dead code is a second way.
+  Falcon 0.5.0.
+- The portal ledger page. (A) Now, in the Research app. (B) At 3.6, whose deliverable is
+  the one call page. (B), for phase 2's reason: the CLI is enough while only William calls.
+  His call.
+- Launch-films: an SOP line in learn; parked with learn until phase 5. Out of 3.5d.
+
+Weaver 0.2.2 first (WA-905 plus two): `--model anthropic[:model]` on `@anthropic-ai/sdk`;
+`RunOptions.steps` (default 64, the loop's bound today); `addEngineCommands(program, deps?)`
+with the ledger, sources and model injectable, the files backend the default. Raven stays
+0.2.1; weaver re-exports the types wren needs, so wren pins no raven.
+
+The personal-project test comes before the wren build, not after: `weaver run` in a folder
+of William's project repo on the files backend, `--model anthropic`, SearXNG up, his asks.
+The open items of 3.5c (the Finding shape, the five prompts, AskKind, the yield grain) settle
+on real traces before Postgres and nine pins freeze them.
+
+Build order (one session, no subagents): 0. weaver 0.2.2 and falcon 0.5.0, published;
+1. William's runs on the files backend; prompts and plan files tuned from the traces;
+2. migration `research_ledger`, `PgLedger`, tests on the contract; 3. the model adapter, the
+source set, `wren research`; 4. the study on the records: `studies.run`, `study_drafts`,
+`wren study`, the loop in `studies/run.ts` deleted, the import script; 5. `linePass`'s study
+branch reads records; 6. the pain line: `reach-posts` source, `pain` extractor, `PainFeed`
+over the runner; 7. nine pins to weaver 0.2.2 and falcon 0.5.0; 8. map cards (research/study,
+a new research/ledger, platform/journey), the research skill, gate, push, the import on prod.
+
+Out of 3.5d: the portal page (3.6), launch-films (phase 5), the per-run Restate object, lines
+in client workspaces (main only, like `studies`).
+
 ## Out
 
 - A score column. Scores are learned from yield.
@@ -307,3 +405,9 @@ Built (2026-10-27, weaver 0.2.0), what the build decided beyond the agreed shape
   0.2.0 (`{value, usage}`) shipped for it; falcon 0.4.1 tuned the claim prompt after the first
   real run. "Built" under "3.5c weaver" holds what the build decided. Next: 3.5d, the study and
   wren's executor stations onto the engine, Postgres as the second ledger.
+- 2026-10-27, later: 3.5d agreed (WA-907), section "3.5d wren" above: one `research_ledger`
+  table, the study on the records with its old rows imported, the Mac runs the study and the
+  worker loop runs the pain line, falcon 0.5.0 drops its planner, weaver 0.2.2 first (Claude
+  direct, a step bound, injectable CLI deps), the personal-project test on the files backend
+  before the wren build. Portal page deferred to 3.6; learn and launch-films to a new phase 5.
+  Nothing of 3.5d built yet.
