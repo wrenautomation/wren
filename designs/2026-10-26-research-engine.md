@@ -120,6 +120,26 @@ never reaches back into fetch or read.
 Lines call the engine as their find station: launch-films, study, pain. Learn stays parked and
 later becomes one consumer of the ledger.
 
+## Actors and slots
+
+A slot (plan, a read, an extract, the call) is filled by a person, a model call or an agent. The
+rest of the system sees the same record with its `by`. Handing a slot over is a change of
+implementation, not of structure.
+
+Three actors on one axis of trust. Humans label (the call). Model calls propose and are measured
+against the labels. Agents are model calls with loops, allowed in a slot only when their inner
+steps write records too: a black box between two records is untraceable and unlearnable, and the
+ledger forbids hidden steps.
+
+v1: every slot is one typed call, input in, record out. No subagents inside the engine. A loop is
+an NFA edge with a reason and a new round with a new snapshot, never an inner loop nobody sees.
+The one agent is the terminal: Claude Code calls raven, weaver and falcon as tools, William makes
+the calls beside it, the ledger records both.
+
+Stepping back is measured, not felt: when William's calls stop changing the proposals for an ask
+kind, a call rule takes the slot (auto-keep when this proposer agreed with him on the last N calls
+of this kind). Deleting the rule steps forward again. Not v1; the rows that make it possible are.
+
 ## Phases
 
 - 3.5 **Query layer** (between ingestion phase 3 and 4; `2026-10-25-ingestion-engine.md`):
@@ -143,6 +163,7 @@ later becomes one consumer of the ledger.
 - A score column. Scores are learned from yield.
 - A strict loop with a stop rule. Budget is a guard rail; raven records why it stopped.
 - A rename of autobrowse: the name says the job.
+- Subagents inside the engine (v1). Call rules that auto-keep (after v1, from the ledger).
 - Read depth. Full ingestion by default.
 - A name for the call: it is wren.
 
@@ -153,4 +174,6 @@ later becomes one consumer of the ledger.
   Phases wait on William's greenlight.
 - 2026-10-26, later: scribe → falcon at 3.5a. Read depth rejected (full ingestion). Extension
   seams and the human seam written down: weaver adapters with a per-run allow-list, raven
-  proposers with `by`, falcon reader and extractor registries.
+  proposers with `by`, falcon reader and extractor registries. Actors and slots: one typed call
+  per slot in v1, no engine subagents, agents later only if they trace; hand-over measured from
+  the ledger.
