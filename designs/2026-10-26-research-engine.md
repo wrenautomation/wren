@@ -150,7 +150,8 @@ of this kind). Deleting the rule steps forward again. Not v1; the rows that make
      wiring (see the 10-27 log);
   c. weaver: source interface, registry with per-run allow-list, runner, dedupe, cost per call,
      ledger contract, files backend, CLI; sources autobrowse sites, SearXNG (Docker), Exa, paste,
-     the ledger itself;
+     the ledger itself; falcon's Document, Finding and Proof types; raven 0.2 (usage on `ask`).
+     Shape in "3.5c weaver" below;
   d. wren: ledger tables (query, hit, document, finding, call, snapshot, yield), the Postgres
      backend, the pain and study lines' find stations onto weaver, agent CLI (list, add, edit,
      answer a query; keep, drop a finding), portal ledger page. The study is rewritten as the
@@ -161,6 +162,61 @@ of this kind). Deleting the rule steps forward again. Not v1; the rows that make
   designer-site example runs end to end.
 - 3.7 **Ask**: a thin surface over the same records.
 - 4 **Port the old hardcoded workflows** to lines, onto the shared find station.
+
+## 3.5c weaver (agreed 2026-10-27)
+
+Goal: `weaver run "<ask>"` in any folder runs the whole line from a terminal, writes every record
+to a folder, and the same steps mount as stations in wren's executor at 3.5d. No wren.
+
+Pieces:
+- Ports, injected as one plain `deps` object, no container: `Source`, `Ledger`, `Model` (raven's),
+  `Reader` and `Extractor` (falcon's), `clock`, `ids`.
+- A source is one file: `{name, kind: search|open|both, cost: free|metered|browser,
+  search?(query) → HitView[], open?(hit) → Document}`, registered by name. The plan's allow-list
+  picks per run. Every call returns `{result, cost, error?}`; the runner writes one `call` record
+  per call, success or failure. First adapters: SearXNG, Exa, the polite fetcher, the ladder over
+  the site client, yt-dlp search and read, `paste` (human), the ledger itself.
+- Dedupe by canonical URL (host case, tracking params, trailing slash, YouTube id forms). A hit
+  keeps `sources[]`; two sources agreeing is a signal.
+- Runner: a small interpreter over a step table. Steps are typed calls (plan, fetch, triage, read,
+  extract, review), records in, records out. Raven's edge picks the next step; the runner checks
+  that `to` names a real step. State is the fold of the run's records, never held in memory, so
+  `--resume <run>` continues after the last complete step.
+- Ledger contract: `append(record)`, `trace(run)`, `scan(filter)`, `yield(filter)`. Records:
+  query, hit, document, finding, call, snapshot, edge. Append only. Each carries `id` (ULID made
+  by the writer), `run`, `round`, `step`, `at`, `from`, `by`. A correction is a new record that
+  points at the old one.
+- Files backend: `ledger/runs/<run>/<by>.jsonl`, one file per run per writer. Append is one line.
+  Trace is the union of the files sorted by `at`, so two sessions on one run never touch the
+  same file and git merges clean. DuckDB reads JSONL directly, so the lake sync is a query.
+  Postgres implements the same four calls in wren. Plan files beside it, `ledger/plans/<kind>.json`.
+- Falcon gets the `Document`, `Finding` and `Proof` types and a reader registry keyed by media
+  type. Finding v1: `{kind, text, proof: {url, quote | timestamp | frame}, from, by}`, with the
+  claim extractor as the one extractor. Watch for three signs it is too thin: a finding needs two
+  proofs, a proof needs a span inside a quote, a finding points at another finding.
+- Raven 0.2: `Model.ask` returns `{value, usage}` so the ledger gets cost per model call.
+- Autobrowse: weaver defines the `SiteClient` port (the ladder's `LadderClient` today).
+  Autobrowse ships `@wrenautomation/autobrowse/sites`, an HTTP client without the browser stack,
+  that implements it. Neither imports the other; the types meet by structure in wren. Weaver tests
+  use a fake client.
+- CLI, JSON out: `weaver run`, `weaver trace <run>`, `weaver keep|drop <finding> -r "..."`,
+  `weaver yield`, `weaver sources`. Claude Code is the agent: it runs the line, reads the trace,
+  makes calls.
+
+Decisions, options weighed:
+- Runner: a hand-rolled loop (order in code), steps only with the caller sequencing (the CLI
+  needs a loop anyway), or a step table plus an interpreter (order as data). The table: the loop
+  lives once and wren's executor mounts the same table.
+- Files backend: JSONL per run, one JSON per record (thousands of files), SQLite (native
+  dependency, binary in a repo). JSONL per run per writer.
+- Autobrowse: depend on the npm package (a browser stack in a planner), or an injected typed
+  client. The client; the dependency direction matters more than the import size.
+- CRDT for multiple agents and people: parked. The ledger is a grow-only set with writer ids,
+  which merges by union with no library. A CRDT (Yjs, Automerge) would matter only for text two
+  people edit live (a plan file, a report); that goes under that document type if the need shows.
+
+Priorities: traceable over fast; order as data; no dependency from a product back to wren;
+resume from the ledger.
 
 ## Out
 
