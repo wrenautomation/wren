@@ -25,7 +25,11 @@ export function parse(text) {
   const out = {};
   for (const line of t.split("\n")) {
     const m = line.match(/^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=(.*)$/);
-    if (m) out[m[1]] = m[2].trim().replace(/^(["'])(.*)\1$/, "$2");
+    if (!m) continue;
+    const raw = m[2].trim();
+    const quoted = raw.match(/^(["'])(.*)\1/);
+    // A bare value ends at whitespace: an inline `# account` note may follow it.
+    out[m[1]] = quoted ? quoted[2] : raw.replace(/\s+#.*$/, "").split(/\s/)[0];
   }
   return out;
 }
@@ -73,7 +77,10 @@ export function setLines(text, changes, env, day = new Date().toISOString().slic
     const m = drop ? [null, c.slice(1)] : c.match(/^([A-Za-z_]\w*)==?(.*)$/);
     if (!m) throw new Error(`not KEY=VAR, KEY==text or -KEY: ${c}`);
     const key = m[1];
-    const value = drop ? null : c.includes("==") ? m[2] : env[m[2]];
+    const given = drop ? null : c.includes("==") ? m[2] : env[m[2]];
+    // A value with a space or a `#` is quoted, or `parse` would read it as a note.
+    const value =
+      given !== null && given !== undefined && /[\s#]/.test(given) ? JSON.stringify(given) : given;
     if (value === undefined) throw new Error(`$${m[2]} is not set`);
     const line = new RegExp(`^${key}=.*$`, "m");
     const kept = (old) => `# before ${day}: ${old}${value === null ? "" : `\n${key}=${value}`}`;

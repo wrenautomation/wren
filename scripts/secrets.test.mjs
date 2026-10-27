@@ -1,7 +1,7 @@
 // node --test scripts/secrets.test.mjs
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { setLines } from "./secrets.mjs";
+import { parse, setLines } from "./secrets.mjs";
 
 test("set keeps the old line as a dated comment", () => {
   const t = "A=1\nB=2\n";
@@ -10,4 +10,18 @@ test("set keeps the old line as a dated comment", () => {
   assert.equal(setLines(t, ["-A", "C==z"], {}, "D"), "# before D: A=1\nB=2\nC=z\n");
   assert.throws(() => setLines(t, ["A=NOPE"], {}, "D"));
   assert.equal(setLines(t, ["!A"], {}, "D"), "B=2\n");
+});
+
+test("parse drops an inline note after a bare value and keeps a quoted one whole", () => {
+  assert.deepEqual(parse('A=abc-1 #me@x.example (note)\nB="two words # kept"\nC=plain\nD=x=y\n'), {
+    A: "abc-1",
+    B: "two words # kept",
+    C: "plain",
+    D: "x=y",
+  });
+});
+
+test("set quotes a value with a space or a hash", () => {
+  assert.equal(setLines("A=1\n", ["A==two words"], {}, "D"), '# before D: A=1\nA="two words"\n');
+  assert.deepEqual(parse(setLines("", ["A==k #note"], {}, "D")), { A: "k #note" });
 });
