@@ -277,7 +277,19 @@ Pieces:
   youtube, paste, the ledger, and `reach-posts` (the pain line's find: posts at or over the
   platform's `minFit` since the cursor, as hits; a post opens as a document).
 - Extractors: falcon's `claim` for the study; `pain` (a stated pain with its quote) for the
-  pain line, in falcon, kind `pain`.
+  pain line, in falcon, kind `pain`. Every extract also returns a verdict on the document:
+  `quality` (rich, thin, off, empty) and `gap`, one sentence on what the ask still lacks.
+  Weaver writes it as a `verdict` record on the document; raven's review reads the round's
+  verdicts and gaps before it picks the edge. Falcon is a filter with a report, never a
+  planner: it names no query.
+- The run object: `Research` virtual object in the worker, keyed by run id. One handler,
+  `step`, runs one weaver step (`steps: 1`) against the Postgres ledger and sends itself the
+  next. A step that throws a transient error (a source's 429 or 5xx, the network, the model's
+  overload) leaves no `done` record and is retried with backoff, 5 tries, then the object
+  writes `done ok: false` with the note "parked after 5 tries" and stops; `resume` restarts
+  it. A logical failure (the model refused, the edge named no step) writes `done ok: false`
+  at once. A wait (a source said "not before T") is `ctx.sleep` to T. `submit(ask)` creates
+  the run and the first step; `stop` ends it. The CLI submits and tails the trace.
 - The study: `studies` keeps `slug`, `question`, `angles`, `drafts` (the spec), `niche`, and
   gains `run` (the engine run; a redo is a new run, resume is the same run). The angles become
   human proposals (`from: human`, `by: william`) merged into round 1. Claims are finding
@@ -288,9 +300,10 @@ Pieces:
   Read ends on arrival (a document record is a read page). Extract ends when the round's
   extract step has its `done` record. Call ends when every finding on the document has a
   call, or the document has no finding.
-- The pain line: `PainFeed` drives the runner over the open pain run a bounded number of
-  steps per pass (`RunOptions.steps`, new in weaver 0.2.2). The `trigger.source` fire reads
-  the ledger's finding. `painPass` and the pain rows in `findings` go.
+- The pain line: one open run per platform, a `Research` object each. Its `reach-posts`
+  source answers "not before T" when the cursor has not moved, so the object sleeps 15
+  minutes between passes and never polls by the minute. The `trigger.source` fire reads
+  the ledger's finding. `PainFeed`, `painPass` and the pain rows in `findings` go.
 - CLI: `wren research run|trace|keep|drop|yield|sources`, weaver's own commands with the
   Postgres ledger, wren's sources and the model adapter injected (`addEngineCommands(program,
   deps)`, new in 0.2.2). `wren study new|run|report|call|add-page|list` stays as the recipe
@@ -313,10 +326,36 @@ Decisions, options weighed:
 - Where a run executes. (A) The Mac, by the CLI, as the study runs today; the worker's
   `LineFeed` reads the records. (B) A Restate object per run, one step per call, re-armed
   until the run stops. (C) A worker loop that advances open runs a bounded number of steps
-  per pass. The study takes (A): a person asks, and the sources it needs (SearXNG in Docker,
-  yt-dlp, the browser) live on the Mac, not in Lambda. The pain line takes (C): its feed is a
-  worker loop already. (B) waits for a line that runs with nobody at a terminal and a source
-  set per host; the step bound makes it a small change then.
+  per pass. (B), William's asks: retries mid-way, durability, branching over sources with
+  one failure isolated, waiting for a source. The ledger already holds state; what (B) adds
+  is progress with nobody at a terminal, bounded retries with backoff, sleeps, and one
+  object per run so runs never share a loop. (A) stays for one case: an ask that names
+  youtube runs on the Mac by the same runner against the Postgres ledger, because yt-dlp
+  needs a home IP. The desk `video` endpoint (below) deletes that case. (C) is (B) with a
+  shared loop and no reason.
+- Retries, two layers. Inside a step, weaver: the sources fan out in parallel; each call is
+  timed and isolated, a throw is one failed `spend` and the others keep their hits; a
+  transient error is retried 3 times with backoff inside the call; a source that gives a
+  retry-after writes it on the spend. A fetch is ok when one source answered; the failed
+  ones are notes to the review, which may say back to fetch. Between steps, the run object
+  (above). The rule that makes both safe: every step is a fold over its trace and skips what
+  the trace already has (a source whose spend in this round is ok is not called again), so
+  a retry and a resume redo only what failed. The spend record is the checkpoint.
+- Hosts. Lambda runs the object with exa, the fetcher, the ladder (autobrowse desk), paste,
+  the ledger, reach-posts and the model. SearXNG moves to the RackNerd VPS next to mailifier
+  (a datacenter IP draws captchas sooner than a home IP; SearXNG spreads over Bing,
+  DuckDuckGo and Brave, so it degrades, not dies; the first runs measure it, the Mac through
+  the desk is the fallback). yt-dlp stays on a Mac and reaches Lambda through the autobrowse
+  desk: a `video` endpoint beside `web GET /fetch` that runs weaver's youtube source and
+  returns the document. The video reader is already one door (weaver `./video` over a URL,
+  falcon `./video` over a file; learn, studio, the research SOPs and the engine's youtube
+  source all import it); what was missing is a network door, and the desk endpoint is it.
+  The youtube source takes a client port (local reader or desk), like the ladder.
+- Cost. Lambda stays under its free tier (1M requests, 400k GB-seconds a month, for ever): a
+  run is about 30 steps of 15 s at 1 GB, 450 GB-s, free; a pain object that woke every minute
+  would spend half the tier, so it sleeps 15 minutes. Concurrency cap stays 6. The box is the
+  $24 and does not change. A container on the box (4 GB, with Postgres, Chrome and Restate)
+  would fight Chrome for memory: no.
 - The old study rows. (A) Import into records. (B) Archive read only. (C) Drop. (A): his calls
   are the labels, and the ledger is kept forever by its own rule.
 - Two call stores. Engine lines' calls are ledger records. SOP and learn calls stay in
@@ -328,32 +367,39 @@ Decisions, options weighed:
   `evidence` stay as the synthesis reader over kept findings; `enrichment/opener.ts` keeps
   its grounding imports. (B) Keep the planner unused. (A): dead code is a second way.
   Falcon 0.5.0.
-- The portal ledger page. (A) Now, in the Research app. (B) At 3.6, whose deliverable is
-  the one call page. (B), for phase 2's reason: the CLI is enough while only William calls.
-  His call.
+- The portal ledger page. (A) Now, in the Research app. (B) At 3.6. (A), William's call:
+  runs, a run's trace by round and step, findings with keep and drop, spend, parked runs
+  with their note. CSS from the Design Language artifact per the match check.
 - Launch-films: an SOP line in learn; parked with learn until phase 5. Out of 3.5d.
 
-Weaver 0.2.2 first (WA-905 plus two): `--model anthropic[:model]` on `@anthropic-ai/sdk`;
+Weaver 0.2.2 first (WA-905 plus five): `--model anthropic[:model]` on `@anthropic-ai/sdk`;
 `RunOptions.steps` (default 64, the loop's bound today); `addEngineCommands(program, deps?)`
-with the ledger, sources and model injectable, the files backend the default. Raven stays
-0.2.1; weaver re-exports the types wren needs, so wren pins no raven.
+with the ledger, sources and model injectable, the files backend the default; parallel
+sources with per-call retry and `retryAfter` on the spend; `Transient` errors thrown past
+the runner (no `done` record) and steps idempotent over their trace; the `verdict` record.
+Falcon 0.5.0: the planner out, `Extracted.verdict` in. Raven 0.2.2: the review prompt takes
+verdicts and gaps. Weaver re-exports the types wren needs, so wren pins no raven.
 
 The personal-project test comes before the wren build, not after: `weaver run` in a folder
 of William's project repo on the files backend, `--model anthropic`, SearXNG up, his asks.
 The open items of 3.5c (the Finding shape, the five prompts, AskKind, the yield grain) settle
 on real traces before Postgres and nine pins freeze them.
 
-Build order (one session, no subagents): 0. weaver 0.2.2 and falcon 0.5.0, published;
-1. William's runs on the files backend; prompts and plan files tuned from the traces;
-2. migration `research_ledger`, `PgLedger`, tests on the contract; 3. the model adapter, the
-source set, `wren research`; 4. the study on the records: `studies.run`, `study_drafts`,
-`wren study`, the loop in `studies/run.ts` deleted, the import script; 5. `linePass`'s study
-branch reads records; 6. the pain line: `reach-posts` source, `pain` extractor, `PainFeed`
-over the runner; 7. nine pins to weaver 0.2.2 and falcon 0.5.0; 8. map cards (research/study,
-a new research/ledger, platform/journey), the research skill, gate, push, the import on prod.
+Build order (one session, no subagents): 0. falcon 0.5.0, raven 0.2.2, weaver 0.2.2,
+published; SearXNG on the VPS; 1. William's runs on the files backend; prompts and plan
+files tuned from the traces; 2. migration `research_ledger`, `PgLedger`, tests on the
+contract; 3. the model adapter, the source set, `wren research`; 4. the `Research` object
+in the worker, `submit`, `step`, `stop`, a test with a source that fails once; 5. the study
+on the records: `studies.run`, `study_drafts`, `wren study`, the loop in `studies/run.ts`
+deleted, the import script; 6. `linePass`'s study branch reads records; 7. the pain line:
+`reach-posts` source, `pain` extractor, one object per platform, `PainFeed` deleted;
+8. the portal ledger page; 9. nine pins to weaver 0.2.2 and falcon 0.5.0; 10. map cards
+(research/study, a new research/ledger, platform/journey), the research skill, gate, push,
+the import on prod. After: the desk `video` endpoint (autobrowse), then the Mac case goes.
 
-Out of 3.5d: the portal page (3.6), launch-films (phase 5), the per-run Restate object, lines
-in client workspaces (main only, like `studies`).
+Out of 3.5d: launch-films (phase 5), lines in client workspaces (main only, like `studies`),
+the desk `video` endpoint (autobrowse, right after), the inventory of old recipes, templates
+and SOPs against plan files (WA-908, after the first runs show what a plan file carries).
 
 ## Out
 
@@ -411,3 +457,11 @@ in client workspaces (main only, like `studies`).
   direct, a step bound, injectable CLI deps), the personal-project test on the files backend
   before the wren build. Portal page deferred to 3.6; learn and launch-films to a new phase 5.
   Nothing of 3.5d built yet.
+- 2026-10-27, later still: William's reading changed four picks, logged in place. The run
+  executes as a Restate object per run in the worker (his asks: retries, durability,
+  branching with isolation, waits), with two retry layers and the spend record as the
+  checkpoint; falcon is a filter with a verdict and a gap per document, raven keeps the edge;
+  the portal ledger page is in 3.5d; SearXNG moves to the VPS and yt-dlp reaches Lambda
+  through a desk `video` endpoint, the video reader itself already one door. Lambda stays
+  under its free tier; the box is the cost. Weaver 0.2.2 grows to six changes, raven 0.2.2
+  takes verdicts. WA-908 holds the old-recipes inventory.
