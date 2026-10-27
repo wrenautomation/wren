@@ -177,9 +177,12 @@ importers:
       '@wrenautomation/autobrowse':
         specifier: 0.5.0
         version: 0.5.0(@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.1))
-      '@wrenautomation/scribe':
-        specifier: 0.2.0
-        version: 0.2.0
+      '@wrenautomation/falcon':
+        specifier: 0.3.0
+        version: 0.3.0
+      '@wrenautomation/weaver':
+        specifier: 0.1.0
+        version: 0.1.0
       commander:
         specifier: 15.0.0
         version: 15.0.0
@@ -588,9 +591,12 @@ importers:
       '@wrenautomation/autobrowse':
         specifier: 0.5.0
         version: 0.5.0(@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.1))
-      '@wrenautomation/scribe':
-        specifier: 0.2.0
-        version: 0.2.0
+      '@wrenautomation/falcon':
+        specifier: 0.3.0
+        version: 0.3.0
+      '@wrenautomation/weaver':
+        specifier: 0.1.0
+        version: 0.1.0
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
@@ -662,9 +668,12 @@ importers:
       '@wren/llm':
         specifier: workspace:*
         version: link:../llm
-      '@wrenautomation/scribe':
-        specifier: 0.2.0
-        version: 0.2.0
+      '@wrenautomation/falcon':
+        specifier: 0.3.0
+        version: 0.3.0
+      '@wrenautomation/weaver':
+        specifier: 0.1.0
+        version: 0.1.0
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
@@ -754,9 +763,12 @@ importers:
       '@wrenautomation/autobrowse':
         specifier: 0.5.0
         version: 0.5.0(@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.1))
-      '@wrenautomation/scribe':
-        specifier: 0.2.0
-        version: 0.2.0
+      '@wrenautomation/falcon':
+        specifier: 0.3.0
+        version: 0.3.0
+      '@wrenautomation/weaver':
+        specifier: 0.1.0
+        version: 0.1.0
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
@@ -1335,9 +1347,12 @@ importers:
       '@wren/research':
         specifier: workspace:*
         version: link:../research
-      '@wrenautomation/scribe':
-        specifier: 0.2.0
-        version: 0.2.0
+      '@wrenautomation/falcon':
+        specifier: 0.3.0
+        version: 0.3.0
+      '@wrenautomation/weaver':
+        specifier: 0.1.0
+        version: 0.1.0
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
@@ -1394,9 +1409,12 @@ importers:
       '@wren/research':
         specifier: workspace:*
         version: link:../research
-      '@wrenautomation/scribe':
-        specifier: 0.2.0
-        version: 0.2.0
+      '@wrenautomation/falcon':
+        specifier: 0.3.0
+        version: 0.3.0
+      '@wrenautomation/weaver':
+        specifier: 0.1.0
+        version: 0.1.0
       fflate:
         specifier: 0.8.3
         version: 0.8.3
@@ -1633,9 +1651,12 @@ importers:
       '@wren/video':
         specifier: workspace:*
         version: link:../video
-      '@wrenautomation/scribe':
-        specifier: 0.2.0
-        version: 0.2.0
+      '@wrenautomation/falcon':
+        specifier: 0.3.0
+        version: 0.3.0
+      '@wrenautomation/weaver':
+        specifier: 0.1.0
+        version: 0.1.0
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
@@ -1682,9 +1703,12 @@ importers:
       '@wren/llm':
         specifier: workspace:*
         version: link:../llm
-      '@wrenautomation/scribe':
-        specifier: 0.2.0
-        version: 0.2.0
+      '@wrenautomation/falcon':
+        specifier: 0.3.0
+        version: 0.3.0
+      '@wrenautomation/weaver':
+        specifier: 0.1.0
+        version: 0.1.0
       csv-parse:
         specifier: 7.0.2
         version: 7.0.2
@@ -1780,9 +1804,12 @@ importers:
       '@wren/video':
         specifier: workspace:*
         version: link:../video
-      '@wrenautomation/scribe':
-        specifier: 0.2.0
-        version: 0.2.0
+      '@wrenautomation/falcon':
+        specifier: 0.3.0
+        version: 0.3.0
+      '@wrenautomation/weaver':
+        specifier: 0.1.0
+        version: 0.1.0
       diff:
         specifier: 8.0.4
         version: 8.0.4
@@ -5705,8 +5732,13 @@ packages:
     engines: {node: '>=24'}
     hasBin: true
 
-  '@wrenautomation/scribe@0.2.0':
-    resolution: {integrity: sha512-ctChNrgdgfwlaYrGnykteS5kXK06LyJCQWjQUQF2YXlsXUsr0Cv/k/2iTyA5NDgDQoQ8AM1Ii2xv1bOudoXkHA==}
+  '@wrenautomation/falcon@0.3.0':
+    resolution: {integrity: sha512-g+32v1MTGzgsRfwcpth85Jq00tHt7z/+EU2E6TGDVbgYMKiVjy+Iq2t2AAG8YV9S9PElOrahH6mBIJ+6sWC4sg==}
+    engines: {node: '>=24'}
+    hasBin: true
+
+  '@wrenautomation/weaver@0.1.0':
+    resolution: {integrity: sha512-8QKTdrGMwePuXa95yDajOXtPXvo77ZQbfes60y353JRpWm4ltNKZkfWWFPMbwsJnxofQOtBAiRoLCJbFQ6eHTg==}
     engines: {node: '>=24'}
     hasBin: true
 
@@ -13140,14 +13172,21 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  '@wrenautomation/scribe@0.2.0':
+  '@wrenautomation/falcon@0.3.0':
     dependencies:
       commander: 15.0.0
       entities: 8.1.0
       htmlparser2: 12.0.0
-      robots-parser: 3.0.1
       unpdf: 1.8.1
       zod: 4.6.5
+    transitivePeerDependencies:
+      - '@napi-rs/canvas'
+
+  '@wrenautomation/weaver@0.1.0':
+    dependencies:
+      '@wrenautomation/falcon': 0.3.0
+      commander: 15.0.0
+      robots-parser: 3.0.1
     transitivePeerDependencies:
       - '@napi-rs/canvas'
 

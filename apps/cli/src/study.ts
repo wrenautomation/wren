@@ -26,8 +26,8 @@ import {
   studyView,
   verticalStudy,
 } from "@wren/research/studies";
-import { studyReport } from "@wrenautomation/scribe/study";
-import { htmlText, pdfText } from "@wrenautomation/scribe/text";
+import { studyReport } from "@wrenautomation/falcon/study";
+import { htmlText, pdfText } from "@wrenautomation/falcon/text";
 import type { Command } from "commander";
 import { desc } from "drizzle-orm";
 import { collect } from "./args.js";

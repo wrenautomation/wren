@@ -16,7 +16,7 @@ import { cachedDb, clientDatabaseUrl, type Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { sharedPages } from "@wren/research/enrichment";
 import { documents } from "@wren/research/schema";
-import type { Fetcher } from "@wrenautomation/scribe/fetch";
+import type { Fetcher } from "@wrenautomation/weaver/fetch";
 import { isNull } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { emailConsoleApi } from "../../src/restate/console.js";

@@ -1,4 +1,4 @@
-import { FetchError, type Fetcher, type FetchResponse } from "@wrenautomation/scribe/fetch";
+import { FetchError, type Fetcher, type FetchResponse } from "@wrenautomation/weaver/fetch";
 import { describe, expect, it } from "vitest";
 import { politeHomepageFetcher } from "./homepage.js";
 

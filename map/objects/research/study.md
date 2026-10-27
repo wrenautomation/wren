@@ -24,7 +24,7 @@ A study is a content line (`designs/2026-10-25-ingestion-engine.md`): find (plan
 
 ## Behaviour
 
-- `runStudy` (`run.ts`): plan → search (+ `ask` with `--ask`) → read (`pickReads`) → claims per ok read page in id order (`pageEvidence` picks 12k chars of passages for every angle; `buildClaimsPrompt`, `gateClaims`: angle index, quote on the page, numbers in the quote; `keepClaims` writes the findings) → drafts once no angle is pending and every ok read has its claims (`studyClaims` minus his drops; redrawn when `basis` differs). The pure parts (query plan, evidence, claim gate, drafts, report) are `@wrenautomation/scribe/study`; `run.ts` keeps the search, the DB and the loop.
+- `runStudy` (`run.ts`): plan → search (+ `ask` with `--ask`) → read (`pickReads`) → claims per ok read page in id order (`pageEvidence` picks 12k chars of passages for every angle; `buildClaimsPrompt`, `gateClaims`: angle index, quote on the page, numbers in the quote; `keepClaims` writes the findings) → drafts once no angle is pending and every ok read has its claims (`studyClaims` minus his drops; redrawn when `basis` differs). The pure parts (query plan, evidence, claim gate, drafts, report) are `@wrenautomation/falcon/study`; `run.ts` keeps the search, the DB and the loop.
 - `--redo <step>` deletes that step and later ones, and (`dropUncalledClaims`) the study's claims with no call. `addStudyPage` adds a held page as a read; the next run claims from it and redraws the drafts.
 - `studyClaims` numbers every claim 1.. in report order (angle, page read order, finding id) with his newest call. `callStudyClaims` (`wren study call <slug> keep|tune|drop <n...> [--why]`) records one call per number; `tune` needs words. `studyView` + `studyReport` (`report.ts`): claims with `[n]` and his call, a dropped one struck, a stale draft marked, gate drops and pages waiting in the counts.
 - On a line (`packages/pipeline/src/lines.ts`): a read ok page is found; extract ends with the page's final `claims` row; call ends when every claim on the page has his call or he called the page (`doc:<id>`).
@@ -46,4 +46,4 @@ A study is a content line (`designs/2026-10-25-ingestion-engine.md`): find (plan
 | `wren study new|run|report|call|add-page|list` | writes, main database only |
 | `wren learn call` / the item page | the same `finding` calls, by key |
 
-Citations: `packages/research/src/schema.ts:701`, `packages/research/src/schema.ts:738`, `packages/research/src/studies/run.ts`, scribe `src/study/` (`claims.ts`, `evidence.ts`, `drafts.ts`, `report.ts`), `packages/pipeline/src/lines.ts`, `apps/cli/src/study.ts`
+Citations: `packages/research/src/schema.ts:701`, `packages/research/src/schema.ts:738`, `packages/research/src/studies/run.ts`, falcon `src/study/` (`claims.ts`, `evidence.ts`, `drafts.ts`, `report.ts`), `packages/pipeline/src/lines.ts`, `apps/cli/src/study.ts`

@@ -8,7 +8,7 @@ import { clientOfKey } from "@wren/core/restate";
 import { vendorKeys } from "@wren/core/vendor-keys";
 import type { Db, Queryable } from "@wren/db";
 import { type LlmClient, NULL_TRACER, type Tracer } from "@wren/llm";
-import type { Fetcher } from "@wrenautomation/scribe/fetch";
+import type { Fetcher } from "@wrenautomation/weaver/fetch";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { DEFAULT_EXTRACTION_SPEC, type ExtractionSpec } from "../enrichment/extraction.js";

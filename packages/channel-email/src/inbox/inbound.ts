@@ -28,7 +28,7 @@
  */
 
 import { getAddresses, type MimePart, parseAddr, parseDate, parseMessage } from "@wren/core/mail";
-import { readPage } from "@wrenautomation/scribe/fetch";
+import { readPage } from "@wrenautomation/falcon/text";
 
 const SNIPPET_MAX_CHARS = 300;
 /** The reply text kept on the event for the disposition classifier: long enough for any real answer, short enough that a pasted contract is not a prompt. */

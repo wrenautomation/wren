@@ -1,4 +1,4 @@
-import { type NumberedClaim, studyReport } from "@wrenautomation/scribe/study";
+import { type NumberedClaim, studyReport } from "@wrenautomation/falcon/study";
 import { describe, expect, it } from "vitest";
 import { verticalStudy } from "./recipes.js";
 import { claimKey, type StudyClaim, type StudyView } from "./run.js";

@@ -38,7 +38,7 @@ import {
   STUDY_VERSION,
   type StudyDraftSpec,
   terms,
-} from "@wrenautomation/scribe/study";
+} from "@wrenautomation/falcon/study";
 import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import type { ZodType } from "zod";
 import { keepDocument, keepingAnswers } from "../findings.js";

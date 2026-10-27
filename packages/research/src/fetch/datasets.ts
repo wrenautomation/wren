@@ -7,7 +7,7 @@
  * touching research.
  */
 import { join } from "node:path";
-import type { DownloadResult, PoliteFetcher } from "@wrenautomation/scribe/fetch";
+import type { DownloadResult, PoliteFetcher } from "@wrenautomation/weaver/fetch";
 
 export interface RemoteFile {
   dataset: string;

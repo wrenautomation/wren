@@ -6,7 +6,7 @@
 import { companies } from "@wren/core";
 import { SiteCallError, type SiteClient } from "@wren/core/content";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
-import type { Fetcher, FetchResponse } from "@wrenautomation/scribe/fetch";
+import type { Fetcher, FetchResponse } from "@wrenautomation/weaver/fetch";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { EMPTY_HASH, runCrawl } from "../../src/enrichment/crawler.js";

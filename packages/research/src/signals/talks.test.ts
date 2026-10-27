@@ -1,6 +1,6 @@
 /** The talks collector: synthetic people, canned iTunes answers, a fake YouTube. */
 
-import type { Fetcher } from "@wrenautomation/scribe/fetch";
+import type { Fetcher } from "@wrenautomation/weaver/fetch";
 import { describe, expect, it } from "vitest";
 import { YouTubeError, type YouTubeGet } from "../enrichment/youtube.js";
 import { signalRefusal } from "../findings.js";

@@ -177,3 +177,11 @@ of this kind). Deleting the rule steps forward again. Not v1; the rows that make
   proposers with `by`, falcon reader and extractor registries. Actors and slots: one typed call
   per slot in v1, no engine subagents, agents later only if they trace; hand-over measured from
   the ledger.
+- 2026-10-27: 3.5a built (WA-890). Sorting rule: code that takes a URL or spawns yt-dlp went to
+  weaver (`@wrenautomation/weaver` 0.1.0, repo `wrenautomation/weaver`: fetcher, robots, ladder,
+  `readYoutube`/`readYoutubeByUrl`/`readVideo`/`readAudio`, `watch` over a URL, `download`,
+  `flatPlaylist`, CLI `weaver fetch|read|list`); code that takes a file, bytes or text stayed and
+  scribe became falcon (`@wrenautomation/falcon` 0.3.x, repo `wrenautomation/falcon`: text,
+  `watch` over a file, `hearAudio`, `renderWatched`, `runFor`, study). weaver pins falcon exact.
+  wren pins both in nine packages; 81 imports moved; `layers-guard` names weaver. Both repos
+  publish on a `v*` tag by npm trusted publishing. Next: 3.5b raven.

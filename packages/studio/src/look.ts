@@ -17,8 +17,8 @@ import {
   cohereChat,
   cutsLine,
   onScreenLines,
-  watch,
-} from "@wrenautomation/scribe/video";
+} from "@wrenautomation/falcon/video";
+import { watch } from "@wrenautomation/weaver/video";
 import { z } from "zod";
 import { fromCutTime, type Span, toCutTime } from "./cuts.js";
 import type { Look, Word } from "./schema.js";

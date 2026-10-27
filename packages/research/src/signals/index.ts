@@ -10,7 +10,7 @@ import type { SiteClient } from "@wren/core/content";
 import type { Gate } from "@wren/core/vendors";
 import { atomic, type Queryable } from "@wren/db";
 import type { LlmClient } from "@wren/llm";
-import type { Fetcher } from "@wrenautomation/scribe/fetch";
+import type { Fetcher } from "@wrenautomation/weaver/fetch";
 import { and, desc, eq, gte, inArray, sql } from "drizzle-orm";
 import type { z } from "zod";
 import { googleLeft } from "../enrichment/profiles.js";

@@ -45,3 +45,7 @@ Reference proof run (by hand): `/private/tmp/claude-502/-Users-williamjin-Docume
 - 2026-10-26: `watch` and the readers over it live in scribe (`src/video/watch.ts`, `read.ts`;
   `@wrenautomation/scribe/video`, pinned exact). `videoSource` in wren is a one-line wrapper that files
   scribe's `readVideo` with the SOP's priority (WA-886).
+- 2026-10-27: scribe split (WA-890, `2026-10-26-research-engine.md` 3.5a). `watch` over a file,
+  `renderWatched`, `readWatchFacts` and the Cohere and Gemini asks are falcon's
+  (`@wrenautomation/falcon/video`); `watch` over a URL, `download`, `readVideo`, `readYoutube`,
+  `readYoutubeByUrl`, `readAudio` and `flatPlaylist` are weaver's (`@wrenautomation/weaver/video`).

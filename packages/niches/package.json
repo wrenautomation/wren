@@ -17,7 +17,8 @@
     "@wren/core": "workspace:*",
     "@wren/offers": "workspace:*",
     "@wren/research": "workspace:*",
-    "@wrenautomation/scribe": "0.2.0",
+    "@wrenautomation/falcon": "0.3.0",
+    "@wrenautomation/weaver": "0.1.0",
     "fflate": "0.8.3",
     "saxes": "6.0.0"
   },

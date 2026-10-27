@@ -9,7 +9,7 @@
  * his "To call" queue ranked by reach. Thin orchestration: no new reader.
  */
 import type { Db } from "@wren/db";
-import { flatPlaylist, type YtDlpEntry } from "@wrenautomation/scribe/video";
+import { flatPlaylist, type YtDlpEntry } from "@wrenautomation/weaver/video";
 import { and, desc, eq, gte, inArray, isNull, sql } from "drizzle-orm";
 import { type CatalogReader, readCatalog } from "./catalog.js";
 import { isCreatorKind, statsOf } from "./creators.js";

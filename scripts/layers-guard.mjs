@@ -55,8 +55,9 @@ const walk = (name, stack) => {
 };
 for (const name of deps.keys()) walk(name, []);
 
-// Reads of outside content are scribe's (the read layer, `@wrenautomation/scribe`): no package
-// spawns yt-dlp itself. Apps wire scribe's readers; they are not checked here.
+// Fetching outside content is weaver's (`@wrenautomation/weaver`) and reading it falcon's
+// (`@wrenautomation/falcon`): no package spawns yt-dlp itself. Apps wire weaver's readers; they
+// are not checked here.
 const YT_DLP = /--flat-playlist|--no-playlist|ytDlp\.split\(/;
 const sources = (dir) =>
   readdirSync(dir, { withFileTypes: true }).flatMap((d) =>
@@ -73,10 +74,10 @@ for (const dir of readdirSync("packages", { withFileTypes: true }).filter((d) =>
     ? sources(`packages/${dir.name}/src`)
     : [])
     if (YT_DLP.test(readFileSync(file, "utf8")))
-      bad.push(`${file}: runs yt-dlp itself; read through @wrenautomation/scribe/video`);
+      bad.push(`${file}: runs yt-dlp itself; read through @wrenautomation/weaver/video`);
 
 if (bad.length) {
   console.error(bad.join("\n"));
   process.exit(1);
 }
-console.log(`${deps.size} packages, no arrow up a layer, no cycle, no yt-dlp outside scribe`);
+console.log(`${deps.size} packages, no arrow up a layer, no cycle, no yt-dlp outside weaver`);

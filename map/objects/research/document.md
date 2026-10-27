@@ -27,7 +27,7 @@ A client's crawl reads and feeds main through `sharedPages` (`packages/research/
 
 - `company_id`, `url`, `final_url`, `kind` (webpage | pdf), `status_code`, `content_hash`, `title`, `text`, `html` (null once archived), `html_key`, `tel_hrefs`, `fetch_tier`, `is_shell`, `robots_disallowed`, `block_reason`, `fetch_steps` (`packages/research/src/schema.ts`)
 
-Citations: `packages/research/src/schema.ts:41`, `packages/research/src/enrichment/crawler.ts:214`, `packages/research/src/enrichment/render.ts:363`, scribe `src/fetch/ladder.ts` (`fetchLadder`)
+Citations: `packages/research/src/schema.ts:41`, `packages/research/src/enrichment/crawler.ts:214`, `packages/research/src/enrichment/render.ts:363`, weaver `src/fetch/ladder.ts` (`fetchLadder`)
 
 ## Connected to
 
@@ -40,7 +40,7 @@ Citations: `packages/research/src/schema.ts:41`, `packages/research/src/enrichme
 ## If you change this
 
 - **Hits:** crawler and renderer (`packages/research/src/enrichment/crawler.ts:214`, `render.ts:258`, `render.ts:363`); email scan (`packages/research/src/enrichment/email-scan.ts`); extraction (`packages/research/src/enrichment/extraction.ts`); contacts stage (`packages/research/src/enrichment/contacts.ts:265`); the archive (`packages/research/src/pages.ts`)
-- **Seam:** `Enrichment.render` calls autobrowse's `web GET /fetch` (`src/reach/ladder.ts`) through scribe's `fetchLadder` (`@wrenautomation/scribe/fetch`, `LadderClient`); tier and block names are its contract (`effects/CONTEXT.md`, outside the tree)
+- **Seam:** `Enrichment.render` calls autobrowse's `web GET /fetch` (`src/reach/ladder.ts`) through weaver's `fetchLadder` (`@wrenautomation/weaver/fetch`, `LadderClient`); tier and block names are its contract (`effects/CONTEXT.md`, outside the tree)
 - **Does not hit:** discovery (it decides the domain before any page is stored)
 
 ## Surfaces
@@ -54,5 +54,5 @@ Citations: `packages/research/src/schema.ts:41`, `packages/research/src/enrichme
 
 ## See
 
-- Source: `packages/research/src/enrichment/crawler.ts`, `packages/research/src/enrichment/render.ts`; the ladder call, `PoliteFetcher`, robots and `readPage` live in scribe (`../scribe/src/fetch/`)
+- Source: `packages/research/src/enrichment/crawler.ts`, `packages/research/src/enrichment/render.ts`; the ladder call, `PoliteFetcher` and robots live in weaver (`../weaver/src/fetch/`); `readPage` in falcon (`../falcon/src/text/`)
 - Why: `designs/2026-10-18-fetch-ladder.md`

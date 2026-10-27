@@ -7,7 +7,7 @@
  * hit with no date is never kept. Kinds are a parameter; the default is the 4 above.
  */
 import type { SiteClient } from "@wren/core/content";
-import { FetchError, type Fetcher } from "@wrenautomation/scribe/fetch";
+import { FetchError, type Fetcher } from "@wrenautomation/weaver/fetch";
 import type { CompanyFindingDraft, DocumentDraft } from "../findings.js";
 import { Capped, paced, realSleep, refusedBy, searchStopped } from "../pacing.js";
 import { bareCompanyName, type Firm, plain } from "../people/names.js";

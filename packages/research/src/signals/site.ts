@@ -9,13 +9,13 @@
  * First or later: a later read has an earlier check that answered (found, none) or read pages.
  */
 import { createHash } from "node:crypto";
+import { readPage } from "@wrenautomation/falcon/text";
 import {
   FetchError,
   type Fetcher,
   type FetchResponse,
   type RobotsCache,
-  readPage,
-} from "@wrenautomation/scribe/fetch";
+} from "@wrenautomation/weaver/fetch";
 import { sql } from "drizzle-orm";
 import { z } from "zod";
 import { HTTP_TIER, robotsDisallows, stripNul } from "../enrichment/crawler.js";

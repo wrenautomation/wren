@@ -57,7 +57,8 @@ import {
   writeClientAsked,
 } from "@wren/learn";
 import { ITEM_KINDS, type ItemKind, SHOT_INS, SHOT_MOVES, SHOT_TYPES } from "@wren/learn/schema";
-import { download, labelMatch, labelShots } from "@wrenautomation/scribe/video";
+import { labelMatch, labelShots } from "@wrenautomation/falcon/video";
+import { download } from "@wrenautomation/weaver/video";
 import { collect } from "./args.js";
 import { watchKeys } from "./video-watch.js";
 

@@ -12,7 +12,7 @@
  */
 import { mkdir, rename, stat, unlink } from "node:fs/promises";
 import { dirname } from "node:path";
-import { type DownloadResult, FetchError } from "@wrenautomation/scribe/fetch";
+import { type DownloadResult, FetchError } from "@wrenautomation/weaver/fetch";
 import type { Dataset, RemoteFile } from "./datasets.js";
 
 export const OVERTURE_BUCKET = "overturemaps-us-west-2";

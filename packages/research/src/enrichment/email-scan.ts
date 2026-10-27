@@ -11,7 +11,7 @@
 import { companies, emailDomain, emailSyntaxError, inPlay, normalizeEmail } from "@wren/core";
 import { atomic, type Queryable } from "@wren/db";
 import { wellFormed } from "@wren/llm";
-import { readPage } from "@wrenautomation/scribe/fetch";
+import { readPage } from "@wrenautomation/falcon/text";
 import { and, asc, eq, ne, notExists, sql } from "drizzle-orm";
 import { htmlOf, type PageStore } from "../pages.js";
 import { type Document, documents, enrichments } from "../schema.js";

@@ -1,6 +1,6 @@
 /** The site collector: synthetic firms, canned pages and CDX answers, no network. */
 
-import { FetchError, type Fetcher } from "@wrenautomation/scribe/fetch";
+import { FetchError, type Fetcher } from "@wrenautomation/weaver/fetch";
 import { describe, expect, it } from "vitest";
 import { signalRefusal } from "../findings.js";
 import type { SignalDeps } from "./index.js";

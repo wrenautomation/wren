@@ -8,7 +8,7 @@
 import type { SiteClient } from "@wren/core/content";
 import type { Db } from "@wren/db";
 import { pgSafe } from "@wren/db/columns";
-import { flatPlaylist } from "@wrenautomation/scribe/video";
+import { flatPlaylist } from "@wrenautomation/weaver/video";
 import { and, asc, eq, inArray, isNull, lt, or, sql } from "drizzle-orm";
 import type { FeedItem, PullStats } from "./feeds.js";
 import { cleanUrl, typeOf } from "./links.js";

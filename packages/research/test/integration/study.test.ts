@@ -7,7 +7,7 @@
 import { SiteCallError, type SiteClient } from "@wren/core/content";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { FakeLlm, LlmError } from "@wren/llm";
-import { studyReport } from "@wrenautomation/scribe/study";
+import { studyReport } from "@wrenautomation/falcon/study";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { documents, studySteps } from "../../src/schema.js";

@@ -5,14 +5,8 @@
  * a link), so a name the model made up never gets through.
  */
 import { completeAndParse, type LlmClient } from "@wren/llm";
-import {
-  canFetch,
-  decodeEntities,
-  FetchError,
-  type Fetcher,
-  type RobotsCache,
-  readPage,
-} from "@wrenautomation/scribe/fetch";
+import { decodeEntities, readPage } from "@wrenautomation/falcon/text";
+import { canFetch, FetchError, type Fetcher, type RobotsCache } from "@wrenautomation/weaver/fetch";
 import { z } from "zod";
 import { companyPhrase, isFirm, mentionsFirm, plain } from "../people/names.js";
 

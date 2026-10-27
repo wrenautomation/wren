@@ -7,21 +7,15 @@
  * video (Instagram reel, TikTok, X), Drive Doc or local file, with `priority` in its front matter,
  * and `points/*.md` is each source's generated list of points. `buildSop` asks one
  * model for the next SOP.md from all of it; iterating is editing notes.md, calling on
- * pieces, or editing SOP.md and building again. The videos and audio are read by scribe
- * (`@wrenautomation/scribe/video`); this file only files what it read. Nothing here touches a
+ * pieces, or editing SOP.md and building again. The videos and audio are read by weaver
+ * (`@wrenautomation/weaver/video`, over falcon); this file only files what it read. Nothing here touches a
  * database.
  */
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 import type { LlmClient } from "@wren/llm";
-import {
-  readAudio,
-  readVideo,
-  readYoutube,
-  readYoutubeByUrl,
-  type VideoRead,
-  type WatchOptions,
-} from "@wrenautomation/scribe/video";
+import type { VideoRead, WatchOptions } from "@wrenautomation/falcon/video";
+import { readAudio, readVideo, readYoutube, readYoutubeByUrl } from "@wrenautomation/weaver/video";
 import { expandCites, numberCites } from "./cites.js";
 
 export { expandCites, numberCites };
@@ -40,7 +34,7 @@ const frontMatter = (fields: Record<string, string | number>) =>
     .join("\n")}\n---\n\n`;
 
 /**
- * A scribe read filed as a source: the read's facts and the SOP's `priority` as front matter,
+ * A weaver read filed as a source: the read's facts and the SOP's `priority` as front matter,
  * then its title and sections. Named `<kind>-<id>.md`.
  */
 export function toSource(read: VideoRead, priority = DEFAULT_PRIORITY): Source {

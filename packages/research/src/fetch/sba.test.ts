@@ -2,7 +2,7 @@
 import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { FetchError, PoliteFetcher } from "@wrenautomation/scribe/fetch";
+import { FetchError, PoliteFetcher } from "@wrenautomation/weaver/fetch";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { checkSbaAnswer, SBA_SEARCH_URL, sbaSearch, sbaSearchBody } from "./sba.js";
 

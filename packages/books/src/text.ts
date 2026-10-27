@@ -1,5 +1,5 @@
 import type { MimePart } from "@wren/core/mail";
-import { htmlText, tidy } from "@wrenautomation/scribe/text";
+import { htmlText, tidy } from "@wrenautomation/falcon/text";
 
 /**
  * The body a person reads: the plain part when it carries the message, else

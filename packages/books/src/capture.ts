@@ -1,6 +1,6 @@
 import { type MimePart, parseAddr, parseDate, parseMessage } from "@wren/core/mail";
 import { type Db, serializable } from "@wren/db";
-import { pdfText, withoutNul } from "@wrenautomation/scribe/text";
+import { pdfText, withoutNul } from "@wrenautomation/falcon/text";
 import { and, eq, inArray } from "drizzle-orm";
 import { VENDORS, type VendorSpec } from "./chart.js";
 import { shiftDay } from "./day.js";

@@ -17,16 +17,15 @@ import { createHash } from "node:crypto";
 import { type Company, companies, inPlay } from "@wren/core";
 import type { SiteClient } from "@wren/core/content";
 import { atomic, type Queryable } from "@wren/db";
+import { looksLikeJsShell, readPage } from "@wrenautomation/falcon/text";
 import {
   type Fetcher,
   type FetchStep,
   fetchLadder,
   isLadderTier,
   LADDER_TIERS,
-  looksLikeJsShell,
   type RobotsCache,
-  readPage,
-} from "@wrenautomation/scribe/fetch";
+} from "@wrenautomation/weaver/fetch";
 import {
   and,
   asc,

@@ -1,4 +1,4 @@
-import { isLadderTier } from "@wrenautomation/scribe/fetch";
+import { isLadderTier } from "@wrenautomation/weaver/fetch";
 import { describe, expect, it } from "vitest";
 import { domainOf, FETCH_TIER_DAYS, shouldWrite } from "./tier-memory.js";
 

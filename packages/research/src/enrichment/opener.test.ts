@@ -1,5 +1,5 @@
 /** Opener grounding, evidence and prompt: pure, no DB, no LLM. */
-import { type EvidencePage, foldText } from "@wrenautomation/scribe/study";
+import { type EvidencePage, foldText } from "@wrenautomation/falcon/study";
 import { describe, expect, it } from "vitest";
 import {
   buildOpenerPrompt,

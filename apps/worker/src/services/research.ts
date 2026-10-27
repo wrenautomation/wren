@@ -34,7 +34,7 @@ import {
   makeProfileResearch,
 } from "@wren/research/restate";
 import { serviceAccountToken } from "@wrenautomation/autobrowse/google";
-import { PoliteFetcher } from "@wrenautomation/scribe/fetch";
+import { PoliteFetcher } from "@wrenautomation/weaver/fetch";
 import {
   type AnyService,
   BOOKS_DESK_TIMEOUT_MS,
