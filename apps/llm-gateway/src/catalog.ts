@@ -75,23 +75,15 @@ export interface Target {
   model: string;
 }
 
-/** Aliases: best first, then what is left when the best are spent for the day. */
+/**
+ * Aliases: best first, then what is left when the best are spent for the day. `free` is
+ * OpenRouter's free tier (2026-10-27: the Gemini chat keys are mostly suspended and rotating
+ * them gets caught; the gemini provider stays for embeddings and the native passthrough).
+ */
 export const ALIASES: Record<string, Target[]> = {
   free: [
-    { provider: "gemini", model: "gemini-3.8-flash" },
-    { provider: "gemini", model: "gemini-3.7-flash" },
-    { provider: "gemini", model: "gemini-3.6-flash" },
-    { provider: "gemini", model: "gemini-3.5-flash" },
-    { provider: "gemini", model: "gemini-3.1-flash-lite" },
-    { provider: "gemini", model: "gemma-4-31b-it" },
-    { provider: "openrouter", model: "google/gemma-4-31b-it:free" },
-    { provider: "openrouter", model: "nvidia/nemotron-3-super-120b-a12b:free" },
-  ],
-  // Volume over quality: Gemma's 14,400 a day per key first.
-  "free-bulk": [
-    { provider: "gemini", model: "gemma-4-31b-it" },
-    { provider: "gemini", model: "gemini-3.1-flash-lite" },
-    { provider: "gemini", model: "gemma-4-26b-a4b-it" },
+    { provider: "openrouter", model: "nvidia/nemotron-3.5-super-vl:free" },
+    { provider: "openrouter", model: "nvidia/nemotron-3.5-lightning:free" },
     { provider: "openrouter", model: "google/gemma-4-31b-it:free" },
     { provider: "openrouter", model: "google/gemma-4-26b-a4b-it:free" },
   ],

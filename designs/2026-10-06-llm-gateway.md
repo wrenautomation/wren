@@ -14,9 +14,9 @@ we hold: 89 Gemini, 31 OpenRouter, 1 Cohere. Source in `apps/llm-gateway`.
 ## How it routes
 
 - `model` is an alias or `<provider>/<model>`.
-  - `free`: Gemini flash 3.8 → 3.7 → 3.6 → 3.5, then flash-lite, then Gemma 4 31B, then
-    OpenRouter free models.
-  - `free-bulk`: Gemma first (14,400 a day per key), for volume.
+  - `free`: OpenRouter's free models, best first (Nemotron 3.5 super VL, Nemotron 3.5
+    lightning, Gemma 4 31B, Gemma 4 26B). Until 2026-10-27 it was Gemini flash 3.8 → 3.5,
+    flash-lite, Gemma, then OpenRouter; `free-bulk` (Gemma first) went the same day.
   - `cohere`: Command A, then Command R7B. Paid from Cohere credits (production key, 500 a
     minute, no daily cap), for bulk tests that would drain the free keys.
 - One Durable Object (`KeyLedger`) counts each key's requests per model this minute and this
@@ -136,20 +136,40 @@ Anthropic console already gives.
 
 ### Decision: D
 
-- Prod `WREN_LLM=anthropic:claude-haiku-5-5`. The watch stays on Sonnet 5.5, fills on Haiku
-  5.5. Haiku 5.5 is $0.10 in / $0.50 out per MTok; Sonnet 5.5 $2 / $10. At Haiku prices
-  $200 is about 400M input tokens a month.
+William chose D (2026-10-27) and left the SDK question to this session: "fold the SDK into
+the interface?" The check that decided it: `@ai-sdk/anthropic` 4.0.57 already exposes what
+Claude 5 needs (`effort`, adaptive `thinking`, `cacheControl`, `stop_reason: refusal`), so
+`makeLlm` stays the one door and gains them. A second interface on `@anthropic-ai/sdk` would
+be a second door for nothing. The `.d.ts` was read, not assumed.
+
+- `packages/llm` `makeLlm`: `anthropic` defaults to `claude-haiku-5-5`; `anthropic:haiku`,
+  `anthropic:sonnet`, `anthropic:opus` name the current Claude 5.5 models and a full id passes
+  through. `CompleteOptions.effort` (`low` … `max`) reaches Anthropic as a provider option; a
+  Claude 5 model thinks adaptively inside `maxTokens`. Smoke (a fill-shaped call, 2048
+  budget): 0 reasoning tokens at default and at `low`, about a second a call. The `gemini`
+  provider and its `AIza` key prefix go; groq, cerebras, mistral and openai stay for a
+  client's own key (`llmForKey`), which is theirs, not ours.
+- Prod `WREN_LLM=anthropic:haiku`. `WREN_WATCH_LLM` and `WREN_FILL_LLM` stay on their Claude
+  4.5 ids this pass; they move to `anthropic:sonnet` and `anthropic:haiku` when the watch's
+  usage line is checked after. Haiku 5.5 is $0.10 in / $0.50 out per MTok; Sonnet 5.5
+  $2 / $10. At Haiku prices $200 is about 400M input tokens a month.
 - William sets a $200 a month workspace spend limit in the Anthropic console and makes one
   API key per caller (prod, the Mac), so the console shows spend per caller. Money is his.
-- The Worker loses Gemini: the provider, the native `/v1beta` passthrough, `GEMINI_KEYS`.
-  `free` becomes the OpenRouter `:free` models that answer today, best first (Gemma 4 31B,
-  Nemotron 3.5 super VL, Inkling); `free-bulk` goes. `cohere` stays as is. The `/usage`
-  page is the judge of which free models stay.
-- `client.ts` drops the dead providers (groq, gemini, cerebras, mistral).
+- The Worker's `free` is the OpenRouter `:free` models that answer today, best first
+  (Nemotron 3.5 super VL: text, image, video, 1M context; Nemotron 3.5 lightning; Gemma 4 31B
+  and 26B, which are rate-limited upstream by Google AI Studio most of the day); `free-bulk`
+  goes. `cohere` stays as is. The `/usage` page is the judge of which free models stay.
+- The gemini provider, `GEMINI_KEYS` and the native `/v1beta` passthrough STAY in the Worker:
+  `learn`'s embeddings (`gatewayEmbed`, `gemini-embedding-001`) and the worker's YouTube
+  on-screen reads (`gatewayGemini` in `executor.ts`) still go through them, and answered
+  today (embeddings HTTP 200). They leave with the two migrations below, not before.
+- OpenRouter keys checked at `/auth/key`: 31 keys, every one free tier, all authenticate.
+  Gemma `:free` answers 429 "temporarily rate-limited upstream"; Nemotron 3.5 `:free`
+  answers.
 - Followed by, not in this pass:
   - Embeddings: a new model is a new space, so every stored vector is re-embedded. Cohere
     `embed-v5.0-pro` direct (it needs `input_type` and `output_dimension`, which the
     compatibility endpoint lacks), or Voyage. Own decision, own migration.
-  - YouTube "on screen" reads: lost with Gemini. The way back is falcon's frames path
+  - YouTube "on screen" reads: lost when Gemini goes. The way back is falcon's frames path
     (yt-dlp, ffmpeg frames) with Claude vision. Captions still read.
   - weaver `--model anthropic` for a Mac without Claude Code; `claude -p` covers it today.

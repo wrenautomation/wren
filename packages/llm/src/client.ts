@@ -31,8 +31,16 @@ export interface LlmResponse {
   latencyMs: number | null;
 }
 
+/** How hard a Claude model thinks: Anthropic's effort levels. Other vendors ignore it. */
+export type Effort = "low" | "medium" | "high" | "xhigh" | "max";
+
 export interface CompleteOptions {
   maxTokens?: number;
+  /**
+   * Anthropic only. A Claude 5 model thinks adaptively and counts that inside `maxTokens`; the
+   * model's default is medium. `low` for a fill or a triage, `high` for a long draft.
+   */
+  effort?: Effort;
   /** The system prompt: the standing instructions, apart from this call's input. */
   system?: string;
   /**
@@ -43,7 +51,7 @@ export interface CompleteOptions {
 }
 
 export interface LlmClient {
-  /** Recorded in enrichments.model ("groq:openai/gpt-oss-120b", "claude-haiku-4-5-20251001", "fake"). */
+  /** Recorded in enrichments.model ("groq:openai/gpt-oss-120b", "claude-haiku-5-5", "fake"). */
   readonly name: string;
   /** The vendor alone ("groq"), for per-vendor usage sums. */
   readonly provider: string;
@@ -164,6 +172,9 @@ export class AiSdkLlm implements LlmClient {
         model: this.model,
         ...this.input(prompt, opts.system),
         maxOutputTokens: Math.max(opts.maxTokens ?? 0, DEFAULT_MAX_TOKENS) + this.thinking,
+        ...(opts.effort && this.provider === "anthropic"
+          ? { providerOptions: { anthropic: { effort: opts.effort } } }
+          : {}),
         // Its retries included: a model that never answers would hold the caller's step.
         abortSignal: AbortSignal.timeout(LLM_LIMIT_MS),
       });
@@ -198,7 +209,8 @@ export class AiSdkLlm implements LlmClient {
       warnings: result.warnings ?? [],
     };
     if (!result.text) {
-      throw new LlmError(`no text content in response (stop_reason=${result.finishReason})`);
+      // Anthropic's "refusal" lands here: the raw reason says so, the unified one is "other".
+      throw new LlmError(`no text content in response (stop_reason=${raw.stop_reason})`);
     }
     return { text: result.text, raw, latencyMs };
   }
@@ -243,10 +255,6 @@ export class RotatingLlm implements LlmClient {
 /** OpenAI-compatible providers: base URL and the default model per vendor. */
 export const COMPATIBLE_PROVIDERS = {
   groq: { baseURL: "https://api.groq.com/openai/v1", defaultModel: "openai/gpt-oss-120b" },
-  gemini: {
-    baseURL: "https://generativelanguage.googleapis.com/v1beta/openai",
-    defaultModel: "gemini-2.5-flash",
-  },
   openrouter: {
     baseURL: "https://openrouter.ai/api/v1",
     defaultModel: "google/gemma-4-31b-it:free",
@@ -258,7 +266,16 @@ export const COMPATIBLE_PROVIDERS = {
 } as const;
 type CompatibleProvider = keyof typeof COMPATIBLE_PROVIDERS;
 
-const DEFAULT_ANTHROPIC_MODEL = "claude-haiku-4-5-20251001";
+/** Haiku 5.5: the cheapest Claude 5 model, with vision and adaptive thinking. */
+const DEFAULT_ANTHROPIC_MODEL = "claude-haiku-5-5";
+/** Short names for the current Claude models. A full id passes through untouched. */
+export const ANTHROPIC_MODELS: Readonly<Record<string, string>> = {
+  haiku: "claude-haiku-5-5",
+  sonnet: "claude-sonnet-5-5",
+  opus: "claude-opus-5-5",
+};
+/** `haiku` is `claude-haiku-5-5`; anything else is taken as a model id. */
+export const anthropicModelId = (name: string): string => ANTHROPIC_MODELS[name] ?? name;
 
 export type EnvMap = Readonly<Record<string, string | undefined>>;
 
@@ -281,7 +298,7 @@ export function fleetKeys(env: EnvMap, provider: string): string[] {
 }
 
 interface MakeLlmOptions {
-  /** Anthropic model id; falls back to WREN_LLM_MODEL, then DEFAULT_ANTHROPIC_MODEL. */
+  /** Anthropic model id or short name; falls back to WREN_LLM_MODEL, then DEFAULT_ANTHROPIC_MODEL. */
   anthropicModel?: string | null;
 }
 
@@ -289,12 +306,13 @@ interface MakeLlmOptions {
 const DEFAULT_GATEWAY_MODEL = "free";
 
 /**
- * "fake" | "claude-code[:model]" | "anthropic[:model-id]" | "gateway[:model]" |
+ * "fake" | "claude-code[:model]" | "anthropic[:haiku|sonnet|opus|model-id]" | "gateway[:model]" |
  * "<provider>[:model-id]" for provider in COMPATIBLE_PROVIDERS. The optional :model suffix
- * picks a specific model per run without touching config. claude-code needs no key: the
- * Claude Code login pays. gateway is llm.wrenautomation.com, which holds every free key and
- * shares one ledger across processes; its model is an alias ("free", "free-bulk") or
- * "<provider>/<model>".
+ * picks a specific model per run without touching config. anthropic is Wren's own key on the
+ * current Claude models (default Haiku 5.5): `anthropic:sonnet` for a draft, `anthropic` for a
+ * fill. claude-code needs no key: the Claude Code login pays. gateway is llm.wrenautomation.com,
+ * which holds every free key and shares one ledger across processes; its model is an alias
+ * ("free", "cohere") or "<provider>/<model>".
  */
 export function makeLlm(
   name: string,
@@ -307,9 +325,10 @@ export function makeLlm(
   if (name === "anthropic" || name.startsWith("anthropic:")) {
     const apiKey = env.WREN_ANTHROPIC_API_KEY ?? env.ANTHROPIC_API_KEY;
     if (!apiKey) throw new Error("anthropic needs WREN_ANTHROPIC_API_KEY in the environment");
-    const modelId =
+    const modelId = anthropicModelId(
       name.slice("anthropic:".length) ||
-      (opts.anthropicModel ?? env.WREN_LLM_MODEL ?? DEFAULT_ANTHROPIC_MODEL);
+        (opts.anthropicModel ?? env.WREN_LLM_MODEL ?? DEFAULT_ANTHROPIC_MODEL),
+    );
     return new AiSdkLlm("anthropic", modelId, createAnthropic({ apiKey })(modelId));
   }
   if (name === "gateway" || name.startsWith("gateway:")) {
@@ -369,7 +388,6 @@ const KEY_PREFIXES: readonly (readonly [string, KeyProvider])[] = [
   ["sk-or-", "openrouter"],
   ["gsk_", "groq"],
   ["csk-", "cerebras"],
-  ["AIza", "gemini"],
   ["sk-", "openai"],
 ];
 

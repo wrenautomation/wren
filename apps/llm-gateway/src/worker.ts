@@ -1,6 +1,6 @@
 /**
  * llm.wrenautomation.com: one OpenAI-compatible endpoint over every free LLM key we hold.
- * `POST /v1/chat/completions` takes an alias ("free", "free-bulk", "cohere") or
+ * `POST /v1/chat/completions` takes an alias ("free", "cohere") or
  * "<provider>/<model>", asks the ledger for a key with room, and on a 429 or a dead key
  * moves to the next key, then the next model. `GET /v1/models` lists what it routes;
  * `POST /v1beta/models/<model>:generateContent` (and `embedContent`, `batchEmbedContents`) is

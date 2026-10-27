@@ -77,8 +77,8 @@ export const settingsSchema = z.object({
   fetchContact: z.string().min(1).optional(),
   /** "fake" | "anthropic" | "<provider>[:model]". Never defaults to a paid provider. */
   llm: z.string().min(1).default("fake"),
-  /** Anthropic model id used when llm is "anthropic". */
-  llmModel: z.string().min(1).default("claude-haiku-4-5-20251001"),
+  /** Anthropic model (id or haiku|sonnet|opus) used when llm is "anthropic". */
+  llmModel: z.string().min(1).default("haiku"),
   /** Path of the key-fleet env file, relative to the project root. */
   llmEnvPath: z.string().min(1).default("llm.env"),
   /**

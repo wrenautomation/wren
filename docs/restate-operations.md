@@ -20,7 +20,7 @@ Checked 2026-10-03. Companion to `restate-durability.md` (why it survives crashe
 
 Secrets: one SSM SecureString `/wren/prod/env` (from `deploy/prod.env`) read at cold start;
 the roster is SSM `/wren/prod/senders_config` (from `senders_config.toml`). Model calls in
-prod use `WREN_LLM` (paid Cohere); `WREN_POOL_MODEL_STAGES=none` keeps the pool chain off it.
+prod use `WREN_LLM` (`anthropic:haiku`, Claude Haiku 5.5 on Wren's key); `WREN_POOL_MODEL_STAGES=none` keeps the pool chain off it.
 
 Prod from this laptop, from the repo root (nothing secret is printed):
 

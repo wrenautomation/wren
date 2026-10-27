@@ -86,7 +86,7 @@ describe("classify and resolve", () => {
   });
 
   it("takes aliases and provider/model, nothing else", () => {
-    expect(resolve(undefined)?.[0]?.provider).toBe("gemini");
+    expect(resolve(undefined)?.[0]?.provider).toBe("openrouter");
     expect(resolve("openrouter/google/gemma-4-31b-it:free")).toEqual([
       { provider: "openrouter", model: "google/gemma-4-31b-it:free" },
     ]);
@@ -100,18 +100,19 @@ describe("complete", () => {
   const env = {
     GATEWAY_TOKEN: "t",
     GEMINI_KEYS: "g0\ng1\n",
-    OPENROUTER_KEYS: "o0 # a note\n# a comment line",
+    OPENROUTER_KEYS: "o0 # a note\n# a comment line\no1",
   } as unknown as Env;
+  const SUPER: Target = { provider: "openrouter", model: "nvidia/nemotron-3.5-super-vl:free" };
 
   it("reads one key per line and drops notes", () => {
     expect(keysOf(env, "gemini")).toEqual(["g0", "g1"]);
-    expect(keysOf(env, "openrouter")).toEqual(["o0"]);
+    expect(keysOf(env, "openrouter")).toEqual(["o0", "o1"]);
   });
 
   it("moves to the next key on 429, the next model when a model is spent, and labels the winner", async () => {
     const l = new Ledger();
     const ledger = {
-      acquire: (t: Target) => l.acquire(t, t.provider === "gemini" ? 2 : 1, T0),
+      acquire: (t: Target) => l.acquire(t, 2, T0),
       report: (t: Target, i: number, o: never) => l.report(t, i, o, T0),
     };
     const calls: string[] = [];
@@ -119,20 +120,22 @@ describe("complete", () => {
       const model = JSON.parse(String(init.body)).model as string;
       const key = String((init.headers as Record<string, string>).authorization).slice(7);
       calls.push(`${model}@${key}`);
-      if (model === "gemini-3.8-flash") return new Response("per day", { status: 429 });
-      if (model === "gemini-3.7-flash" && key === "g0")
+      if (model === SUPER.model) return new Response("free-models-per-day", { status: 429 });
+      if (model === "nvidia/nemotron-3.5-lightning:free" && key === "o0")
         return new Response("slow down", { status: 429 });
       return new Response(JSON.stringify({ choices: [] }), { status: 200 });
     }) as unknown as typeof fetch;
     const res = await complete({ model: "free", messages: [] }, env, ledger, fetcher);
     expect(res.status).toBe(200);
-    expect(res.headers.get("x-gateway-model")).toBe("gemini/gemini-3.7-flash");
-    expect(res.headers.get("x-gateway-key")).toBe("gemini#1");
+    expect(res.headers.get("x-gateway-model")).toBe(
+      "openrouter/nvidia/nemotron-3.5-lightning:free",
+    );
+    expect(res.headers.get("x-gateway-key")).toBe("openrouter#1");
     expect(calls).toEqual([
-      "gemini-3.8-flash@g0",
-      "gemini-3.8-flash@g1",
-      "gemini-3.7-flash@g0",
-      "gemini-3.7-flash@g1",
+      `${SUPER.model}@o0`,
+      `${SUPER.model}@o1`,
+      "nvidia/nemotron-3.5-lightning:free@o0",
+      "nvidia/nemotron-3.5-lightning:free@o1",
     ]);
   });
 
@@ -144,13 +147,15 @@ describe("complete", () => {
     };
     const fetcher = (async (_url: string, init: RequestInit) => {
       const model = JSON.parse(String(init.body)).model as string;
-      if (model === "gemini-3.8-flash") throw new DOMException("aborted", "AbortError");
+      if (model === SUPER.model) throw new DOMException("aborted", "AbortError");
       return new Response(JSON.stringify({ choices: [] }), { status: 200 });
     }) as unknown as typeof fetch;
     const res = await complete({ model: "free", messages: [] }, env, ledger, fetcher);
-    expect(res.headers.get("x-gateway-model")).toBe("gemini/gemini-3.7-flash");
-    expect(l.acquire(FLASH, 2, T0 + 60_000)).toBeNull(); // still skipped
-    expect(l.acquire(FLASH, 2, T0 + 11 * 60_000)).not.toBeNull();
+    expect(res.headers.get("x-gateway-model")).toBe(
+      "openrouter/nvidia/nemotron-3.5-lightning:free",
+    );
+    expect(l.acquire(SUPER, 2, T0 + 60_000)).toBeNull(); // still skipped
+    expect(l.acquire(SUPER, 2, T0 + 11 * 60_000)).not.toBeNull();
   });
 
   it("returns the request's own error as is, and 429 when every key is spent", async () => {

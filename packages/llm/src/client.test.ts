@@ -116,6 +116,18 @@ describe("AiSdkLlm", () => {
     expect(new AiSdkLlm("anthropic", "claude-test", textModel("x")).name).toBe("claude-test");
   });
 
+  it("effort reaches Anthropic as a provider option and no one else", async () => {
+    const claude = textModel("x");
+    await new AiSdkLlm("anthropic", "claude-test", claude).complete("hi", { effort: "low" });
+    expect(claude.doGenerateCalls[0]?.providerOptions).toEqual({ anthropic: { effort: "low" } });
+    const plain = textModel("x");
+    await new AiSdkLlm("anthropic", "claude-test", plain).complete("hi");
+    expect(plain.doGenerateCalls[0]?.providerOptions).toBeUndefined();
+    const groq = textModel("x");
+    await new AiSdkLlm("groq", "m", groq).complete("hi", { effort: "low" });
+    expect(groq.doGenerateCalls[0]?.providerOptions).toBeUndefined();
+  });
+
   it("raises LlmError on empty content", async () => {
     const llm = new AiSdkLlm("groq", "m", textModel("", "length"));
     await expect(llm.complete("hi")).rejects.toBeInstanceOf(LlmError);
@@ -177,7 +189,8 @@ describe("makeLlm", () => {
     const env = { NUM_GROQ: "1", GROQ_API_KEY_1: "k1" };
     expect(makeLlm("groq", env).name).toBe("groq:openai/gpt-oss-120b");
     expect(makeLlm("groq:llama-3.3-70b-versatile", env).name).toBe("groq:llama-3.3-70b-versatile");
-    expect(() => makeLlm("gemini", env)).toThrow(/NUM_GEMINI/);
+    expect(() => makeLlm("mistral", env)).toThrow(/NUM_MISTRAL/);
+    expect(() => makeLlm("gemini", env)).toThrow(/unknown llm/);
   });
   it("rotates over a key fleet", () => {
     const env = { NUM_GROQ: "3", GROQ_API_KEY_1: "a", GROQ_API_KEY_3: "c" };
@@ -194,10 +207,8 @@ describe("makeLlm", () => {
     );
     expect(() => makeLlm("gateway", {})).toThrow(/WREN_LLM_GATEWAY_URL/);
   });
-  it("anthropic uses WREN_LLM_MODEL then the default", () => {
-    expect(makeLlm("anthropic", { WREN_ANTHROPIC_API_KEY: "k" }).name).toBe(
-      "claude-haiku-4-5-20251001",
-    );
+  it("anthropic uses WREN_LLM_MODEL then the default, Haiku 5.5", () => {
+    expect(makeLlm("anthropic", { WREN_ANTHROPIC_API_KEY: "k" }).name).toBe("claude-haiku-5-5");
     expect(
       makeLlm("anthropic", { WREN_ANTHROPIC_API_KEY: "k", WREN_LLM_MODEL: "claude-x" }).name,
     ).toBe("claude-x");
@@ -207,6 +218,16 @@ describe("makeLlm", () => {
     expect(makeLlm("anthropic:claude-y", env, { anthropicModel: "claude-z" }).name).toBe(
       "claude-y",
     );
+  });
+  it("anthropic:haiku|sonnet|opus name the current Claude models, wherever a model is given", () => {
+    const env = { WREN_ANTHROPIC_API_KEY: "k" };
+    expect(makeLlm("anthropic:haiku", env).name).toBe("claude-haiku-5-5");
+    expect(makeLlm("anthropic:sonnet", env).name).toBe("claude-sonnet-5-5");
+    expect(makeLlm("anthropic:opus", env).name).toBe("claude-opus-5-5");
+    expect(makeLlm("anthropic", { ...env, WREN_LLM_MODEL: "sonnet" }).name).toBe(
+      "claude-sonnet-5-5",
+    );
+    expect(makeLlm("anthropic", env, { anthropicModel: "opus" }).name).toBe("claude-opus-5-5");
   });
 });
 
@@ -227,7 +248,7 @@ describe("llmForKey: a client's own model key", () => {
     expect(keyProvider("sk-ant-api03-synthetic0000")?.provider).toBe("anthropic");
     expect(keyProvider("sk-or-v1-synthetic0000")?.provider).toBe("openrouter");
     expect(keyProvider("gsk_synthetic0000")?.provider).toBe("groq");
-    expect(keyProvider("AIzaSynthetic0000")?.provider).toBe("gemini");
+    expect(keyProvider("AIzaSynthetic0000")).toBeNull(); // Gemini keys: not a provider any more
     expect(keyProvider("sk-proj-synthetic0000")?.provider).toBe("openai");
     expect(keyProvider("cohere:synthetic0000")).toEqual({
       provider: "cohere",
