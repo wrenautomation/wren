@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
 # The axe color-contrast scan: every portal page in every look, all text at 4.5:1
 # (designs/2026-10-14-customerio-audit.md, B3 item 11). The preview runs on an empty migrated
-# database. Reports only, like integration.yml: deploy follows ci.yml.
+# database. Reports only: deploy follows ci.yml.
 concurrency: { group: "contrast-${{ github.ref }}", cancel-in-progress: true }
 jobs:
   contrast:

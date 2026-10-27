@@ -5,9 +5,9 @@ on:
 # Many sessions push to main: a newer push cancels the older run's checks, and deploy
 # follows the newest green one. The gates run side by side on turbo's remote cache, so a
 # package nobody touched is not retested. Deploy starts beside the gates: it builds while they
-# run and changes nothing live until all three pass (deploy.sh await_gates). Story tests and
-# integration (integration.yml) report on their own and never hold a deploy. The deploy job is
-# never cancelled: a newer run waits for it.
+# run and changes nothing live until lint, unit, schema and the integration shards pass
+# (deploy.sh await_gates). Story tests report on their own and never hold a deploy. The deploy
+# job is never cancelled: a newer run waits for it.
 jobs:
   gates:
     strategy:
@@ -28,6 +28,44 @@ jobs:
         env:
           TESTCONTAINERS_RYUK_DISABLED: "true"
           WREN_TEST_PG_IMAGE: mirror.gcr.io/library/postgres:17
+  # Every package's integration suite, in eight shards (gates.sh WREN_SHARD); one job ran 10 min
+  # cold (10-17). It holds the deploy (10-27): as a report only, it was red in 49 of 50 runs.
+  # The repo is public: runners cost nothing. The count is in two places: here and await_gates.
+  integration:
+    strategy:
+      fail-fast: false
+      matrix: { shard: [1, 2, 3, 4, 5, 6, 7, 8] }
+    name: integration (${{ matrix.shard }}/8)
+    runs-on: ubuntu-latest
+    concurrency: { group: "ci-${{ github.ref }}-integration-${{ matrix.shard }}", cancel-in-progress: true }
+    env:
+      TURBO_API: ${{ secrets.TURBO_API }}
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TEAM: wren
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/install
+      # The turbo cache is saved after every run, red or cancelled too: turbo writes only the
+      # tasks that passed. A save on green only made the run after a red one restore an older
+      # cache and retest 23 of 26 packages (91903b9b, 10-17).
+      - uses: actions/cache/restore@v4
+        with:
+          path: .turbo/cache
+          key: turbo-integration-${{ matrix.shard }}-${{ github.sha }}
+          restore-keys: turbo-integration-${{ matrix.shard }}-
+      - run: ./scripts/gates.sh integration
+        env:
+          TESTCONTAINERS_RYUK_DISABLED: "true"
+          WREN_TEST_PG_IMAGE: mirror.gcr.io/library/postgres:17
+          WREN_SHARD: ${{ matrix.shard }}/8
+      # Every run restores the last cache and adds to it: entries no run used for a week go.
+      - if: always()
+        run: find .turbo/cache -type f -atime +7 -delete 2>/dev/null || true
+      - if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: .turbo/cache
+          key: turbo-integration-${{ matrix.shard }}-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
   # Every @wren/ui story as a test: it renders, its play runs, axe checks it
   # (designs/2026-10-17-storybook-visual-tests.md). The image brings Chromium.
   stories:
