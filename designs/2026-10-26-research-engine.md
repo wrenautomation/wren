@@ -465,3 +465,15 @@ and SOPs against plan files (WA-908, after the first runs show what a plan file 
   through a desk `video` endpoint, the video reader itself already one door. Lambda stays
   under its free tier; the box is the cost. Weaver 0.2.2 grows to six changes, raven 0.2.2
   takes verdicts. WA-908 holds the old-recipes inventory.
+- 2026-10-27, evening: step 0 published. falcon 0.5.0 (planner gone, `Verdict` on the
+  extractor), raven 0.2.2 (`Round.verdicts` in the review prompt), weaver 0.2.2 (`--model
+  anthropic`, `Transient` with three tries per call and every attempt a spend, `verdict`
+  record as the extract checkpoint, fetch fans out per query and read/extract four at a
+  time with records in order, `RunOptions.steps`, `addEngineCommands(program, deps)`, raven's
+  host names re-exported). Smoke on the files backend with Claude Haiku direct over one
+  pasted RFC: one round, 11 proved findings, a `rich` verdict, tokens on every ask spend.
+  Known cost on a rare path: a non-Transient throw from one document's extract fails its
+  batch of four before any finding or verdict of that batch is written, so a resume asks the
+  model for all four again (the serial code kept the earlier ones). Wren's root-door imports
+  of falcon's planner names break only at step 4, when `studies/run.ts` goes. The Mac's own
+  Anthropic key: none in the model keys file yet; the smoke used prod's from `env-2`.
