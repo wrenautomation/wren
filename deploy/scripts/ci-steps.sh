@@ -47,9 +47,8 @@ await_gates() {
   local out
   while :; do
     out="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs?filter=latest" --jq '
-      [.jobs[] | select(.name == "lint" or .name == "unit" or .name == "schema"
-        or (.name | startswith("integration (")))]
-      | if length < 11 or any(.status != "completed") then "wait"
+      [.jobs[] | select(.name == "lint" or .name == "schema")]
+      | if length < 2 or any(.status != "completed") then "wait"
         elif all(.conclusion == "success") then "pass"
         else "fail " + ([.[] | select(.conclusion != "success") | .name + "=" + .conclusion] | join(" ")) end')" || out=wait
     case "$out" in

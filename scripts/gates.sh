@@ -147,18 +147,18 @@ schema() {
 }
 # The spam score is no gate: Wren ships no email copy (10-23), so the repo has no template to score.
 # `wren email spamcheck` scores the live copy against the database (designs/2026-10-05-deliverability-tests.md).
-# A builder's loop: Biome on the files changed since origin/main, then typecheck and unit tests
-# for the packages changed and what depends on them. The full gate runs once, at hand-off;
+# A builder's loop: Biome on the files changed since origin/main, then typecheck for the packages
+# changed and what depends on them. No tests during the redesign (WA-917): `vitest run <file>`. The full gate runs once, at hand-off;
 # unchanged packages are cache hits there.
 changed() {
   echo "==> biome, changed since origin/main" &&
     pnpm -s biome check --error-on-warnings --changed --since=origin/main --no-errors-on-unmatched &&
-    echo "==> typecheck + unit, changed since origin/main" &&
-    pnpm turbo run typecheck test:unit --filter="...[origin/main]" --output-logs=errors-only
+    echo "==> typecheck, changed since origin/main" &&
+    pnpm turbo run typecheck --filter="...[origin/main]" --output-logs=errors-only
 }
 # UI-only work: Biome on the files changed since origin/main (and not yet committed), typecheck of
-# @wren/ui and @wren/portal only, the portal's source guards, and the unit tests that import a
-# changed file (`vitest related`), and the story tests.
+# @wren/ui and @wren/portal only, the portal's source guards, and the artifact match. No tests
+# during the redesign (WA-917): `visual` and `look` run on their own when you want them.
 ui() {
   local files
   files=$({ git diff --name-only origin/main...HEAD && git diff --name-only HEAD && git ls-files --others --exclude-standard; } | sort -u | while read -r f; do [ -f "$f" ] && echo "$f"; done) &&
@@ -166,15 +166,7 @@ ui() {
     { [ -z "$files" ] || pnpm -s biome check --no-errors-on-unmatched --files-ignore-unknown=true $files; } &&
     echo "==> typecheck @wren/ui @wren/portal" &&
     pnpm turbo run typecheck --filter=@wren/ui --filter=@wren/portal --output-logs=errors-only &&
-    writes && edits && reads && libs &&
-    echo "==> unit tests related to the changed files" &&
-    related packages/ui "$files" && related apps/portal "$files" && visual && look && match
-}
-# `vitest related` in one package, on its changed .ts/.tsx files; none changed, nothing runs.
-related() {
-  local own
-  own=$(printf '%s\n' "$2" | sed -n "s|^$1/||p" | grep -E '\.tsx?$' || true)
-  [ -z "$own" ] || (cd "$1" && pnpm -s exec vitest related --run --passWithNoTests $own)
+    writes && edits && reads && libs && match
 }
 case "${1:-all}" in
   lint) lint ;;

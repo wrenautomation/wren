@@ -5,13 +5,15 @@ on:
 # Many sessions push to main: a newer push cancels the older run's checks, and deploy
 # follows the newest green one. The gates run side by side on turbo's remote cache, so a
 # package nobody touched is not retested. Deploy starts beside the gates: it builds while they
-# run and changes nothing live until lint, unit, schema and the integration shards pass
-# (deploy.sh await_gates). Story tests report on their own and never hold a deploy. The deploy
+# run and changes nothing live until lint and schema pass (deploy.sh await_gates). Unit,
+# integration and story tests report on their own and never hold a deploy: tests must not slow
+# the redesign (William, 10-27, WA-917). The deploy
 # job is never cancelled: a newer run waits for it.
 jobs:
   gates:
     strategy:
-      fail-fast: true
+      # No fail-fast: a red unit run must not cancel lint or schema, which hold the deploy.
+      fail-fast: false
       matrix: { gate: [lint, unit, schema] }
     name: ${{ matrix.gate }}
     runs-on: ubuntu-latest
@@ -29,8 +31,8 @@ jobs:
           TESTCONTAINERS_RYUK_DISABLED: "true"
           WREN_TEST_PG_IMAGE: mirror.gcr.io/library/postgres:17
   # Every package's integration suite, in eight shards (gates.sh WREN_SHARD); one job ran 10 min
-  # cold (10-17). It holds the deploy (10-27): as a report only, it was red in 49 of 50 runs.
-  # The repo is public: runners cost nothing. The count is in two places: here and await_gates.
+  # cold (10-17). Report only during the redesign (WA-917); as a report it was red in 49 of 50
+  # runs before 10-27, so expect it to rot until the redesign ends. Public repo: runners are free.
   integration:
     strategy:
       fail-fast: false

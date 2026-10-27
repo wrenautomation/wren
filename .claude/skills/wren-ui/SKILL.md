@@ -19,9 +19,8 @@ Reuse the running Storybook and stop it when done. Run heavy checks only through
 6. Screenshot what you changed, phone and desktop, both looks:
    `pnpm --filter @wren/ui stories:shot --width 390 --dark records--worst-case shell--default`
    It writes PNGs to `<tmp>/wren-ui-shots/` and exits 1 on a page error, a console error or a failed `play`. Read the PNGs.
-7. Test the file you changed: `cd packages/ui && pnpm exec vitest run src/<file>.test.tsx`.
-8. Check before commit: `./scripts/gates.sh ui`. Biome on changed files, typecheck of ui + portal, the portal's source guards, related tests, then the story tests (`visual`).
-9. Stop Storybook: Ctrl-C, or `pkill -f .storybook/serve.mjs`. Then `lsof -i :61000` shows nothing.
+7. Check before commit: `./scripts/gates.sh ui`. Biome on changed files, typecheck of ui + portal, the portal's source guards, the artifact match. No tests during the redesign (WA-917): a part's old test or story `play` that no longer fits is rewritten or deleted.
+8. Stop Storybook: Ctrl-C, or `pkill -f .storybook/serve.mjs`. Then `lsof -i :61000` shows nothing.
 
 Run the full gate (`./scripts/gates.sh all`) once, at hand-off. Not in the loop.
 
@@ -72,5 +71,5 @@ Dev Storybook (both ports) draws Agentation at the bottom right and a session pi
 ## Done
 
 - Screens shot at 390 and 1280, light and dark, read by you.
-- `gates.sh ui` passes, story tests included. `DESIGN.md` changes in the same commit when a token or a rule moves.
+- `gates.sh ui` passes. `DESIGN.md` changes in the same commit when a token or a rule moves.
 - Both Storybooks (61000, 61001) and any browser stopped.

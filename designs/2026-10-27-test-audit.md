@@ -24,3 +24,11 @@ Priorities, in order: a red test is seen and fixed by the session that broke it;
 ## Not done
 
 The 49 pure tests stay in their integration files. With integration holding the deploy they run before prod anyway; moving them across 38 files gains only an earlier local signal.
+
+## Reversed for the redesign (10-27, WA-917)
+
+William: tests must not slow the redesign; tests from scratch are fine. Only lint (biome, types, guards) and schema hold a deploy. Unit, integration and story tests run in CI and report. The local loops (`gates.sh changed`, `ui`) run no tests. A test of a redesigned part is rewritten or deleted.
+
+Kept on purpose: types, the guards (one write path, reads, isolation levels, layers) and schema with drift. They catch a broken prod for seconds of CI, and no test needs upkeep for them.
+
+Cost: integration rots, as it did before (red in 49 of 50 runs). To arm it again after the redesign: put `unit` and the 8 `integration (` shards back in `await_gates` and `push.sh`, then fix or delete what is red.

@@ -15,7 +15,7 @@ Shipping:
 - Build: `./scripts/gates.sh changed`. Turbo keeps one cache (`~/Library/Caches/wren_automation/turbo/wren`), so a package that passed once is a hit.
 - Commit with `git commit -- <paths>`: other sessions stage files here.
 - Push with `scripts/push.sh <commit>`. It merges origin/main if it moved, pushes, waits for CI's gates and the deploy, then syncs the folder copy. CI is the judge: no local rerun.
-- CI deploys `main` once lint, unit, schema and integration pass. Story tests report on their own.
+- CI deploys `main` once lint (biome, types, guards) and schema pass. Unit, integration and story tests report only during the redesign (WA-917): a test of a part you redesign is rewritten or deleted, never a reason to wait.
 - Env change: diff SSM first, then `deploy/scripts/push-secrets.sh` (it overwrites the whole parameter), then `gh workflow run deploy.yml --ref main`.
 
 Hard rules: repo is public (no lead data, amounts, client names, secrets; tests use synthetic data).
