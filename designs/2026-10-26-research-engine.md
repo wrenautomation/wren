@@ -218,6 +218,20 @@ Decisions, options weighed:
 Priorities: traceable over fast; order as data; no dependency from a product back to wren;
 resume from the ledger.
 
+Build order (WA-899, one session, no subagents): 1. ledger contract, record shapes, files backend;
+2. ports and the source registry with a fake source and a fake site client; 3. the step table
+and runner with resume; 4. adapters: SearXNG, Exa, fetcher, ladder, yt-dlp, paste, ledger;
+5. falcon release with Document, Finding, Proof and the reader registry (weaver pins it);
+6. raven 0.2: `ask` returns `{value, usage}`, `parseAnswer` finds the JSON object by brace
+balance not the first brace, the runner (not raven) checks `Edge.to`; 7. autobrowse `./sites`;
+8. CLI, JSON out; 9. one real run from a terminal, tune the prompts and the Finding shape from
+its trace; 10. publish by `v*` tag, same trusted-publisher recipe (first publish by hand only
+if the package is new; weaver is not).
+
+Open until the first real run: the Finding shape; the five raven prompts; whether AskKind stays
+a closed enum (reopen if a sixth plan file appears); the yield row grain (per source and `by`
+today, channel and ask kind when the rows exist).
+
 ## Out
 
 - A score column. Scores are learned from yield.
@@ -258,3 +272,6 @@ resume from the ledger.
   (`raven plans <kind>`). Decision (William, 10-27): no stepping stone onto the old study loop;
   the study moves onto the engine whole at 3.5d (phase text above). Rule: a stepping stone is
   allowed only if the doc names the phase that deletes it. Next: 3.5c weaver.
+- 2026-10-27, later: 3.5c agreed (WA-899), section "3.5c weaver" above holds the shape, the
+  options weighed, the build order and the open items. CRDT parked. Nothing of weaver's engine
+  built yet; weaver 0.1.0 holds fetch and the video readers from 3.5a.
