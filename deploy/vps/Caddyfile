@@ -1,3 +1,4 @@
 {$PROBE_HOST} {
 	reverse_proxy prober:2525
 }
+import /etc/caddy/sites/*.caddy

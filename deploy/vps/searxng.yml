@@ -1,0 +1,12 @@
+# SearXNG for the research engine (weaver's `searxng` source: GET /search?q=&format=json).
+# Everything else is SearXNG's default; the secret, base URL, limiter and image proxy
+# come from the environment (compose.yml).
+use_default_settings: true
+server:
+  bind_address: "0.0.0.0"
+  port: 8080
+search:
+  formats: [html, json]
+  safe_search: 0
+ui:
+  static_use_hash: true

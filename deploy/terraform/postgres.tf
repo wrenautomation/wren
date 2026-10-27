@@ -38,7 +38,7 @@ resource "aws_ssm_parameter" "browser_token" {
 }
 
 # The SMTP prober's bearer. The prober runs off AWS (outbound port 25 is shut here);
-# deploy/scripts/deploy-prober.sh reads the token from this parameter.
+# deploy/scripts/deploy-vps.sh reads the token from this parameter.
 resource "aws_ssm_parameter" "probe_token" {
   count = var.probe_token == "" ? 0 : 1
   name  = "${local.ssm_root}/probe_token"

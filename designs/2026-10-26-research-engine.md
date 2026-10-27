@@ -477,3 +477,15 @@ and SOPs against plan files (WA-908, after the first runs show what a plan file 
   model for all four again (the serial code kept the earlier ones). Wren's root-door imports
   of falcon's planner names break only at step 4, when `studies/run.ts` goes. The Mac's own
   Anthropic key: none in the model keys file yet; the smoke used prod's from `env-2`.
+- 2026-10-27, night: weaver 0.2.3 and 0.2.4. `--model anthropic` is the default (Claude Haiku
+  direct). Each extract batch's findings and verdict land as the batch settles, so a plain
+  throw from one document costs a resume only the documents without a verdict (the rare-path
+  cost above is gone; test in `engine.test.ts`). Claude's output cap is 8192 (an extract with
+  its quotes passed 4096 on a live run; a cut answer now says so instead of failing the parse).
+  SearXNG is live on VPS box 1 (`deploy/vps/`, profile `search`, 350 MB cap, 148 MB in use;
+  Caddy 401s without the bearer, SSM `/wren/prod/searxng_token`; A record by the Cloudflare
+  API, no browser needed). weaver's `searxng` source sends `SEARXNG_TOKEN` as a bearer. The
+  Mac's model keys file now holds `SEARXNG_URL`, `SEARXNG_TOKEN` and `ANTHROPIC_API_KEY`
+  (copied from autobrowse's store). Live run from the Mac, searxng + fetcher, Haiku: 3 rounds,
+  66 hits, 9 documents, 65 findings; the resume after the cut answer asked for one document.
+  Lambda's `SEARXNG_URL`/`SEARXNG_TOKEN` in `env-2` wait for step 3.

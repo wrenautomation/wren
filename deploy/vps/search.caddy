@@ -1,0 +1,11 @@
+# SearXNG behind a bearer (SSM /wren/prod/searxng_token); /healthz stays open for checks.
+{$SEARCH_HOST} {
+	handle /healthz {
+		reverse_proxy searxng:8080
+	}
+	handle {
+		@bad not header Authorization "Bearer {$SEARXNG_TOKEN}"
+		respond @bad 401
+		reverse_proxy searxng:8080
+	}
+}

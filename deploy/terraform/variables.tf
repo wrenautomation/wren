@@ -100,7 +100,7 @@ variable "browser_token" {
 }
 
 variable "probe_token" {
-  description = "Bearer for the SMTP prober (WREN_SMTP_PROBE_TOKEN on the worker side), kept in SSM for deploy-prober.sh. Generate like pg_password. Empty = no prober."
+  description = "Bearer for the SMTP prober (WREN_SMTP_PROBE_TOKEN on the worker side), kept in SSM for deploy-vps.sh. Generate like pg_password. Empty = no prober."
   type        = string
   sensitive   = true
   default     = ""

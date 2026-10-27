@@ -10,8 +10,8 @@ Checked 2026-10-03. Companion to `restate-durability.md` (why it survives crashe
 | Restate server on `wren-prod-pg` (`restate:1.7` in Docker, since 2026-10-06) | every loop's journal, timers, object state; the ingress `https://restate.wrenautomation.com` (Caddy checks the bearer; admin under `/admin`) | `deploy/scripts/box-restate.sh`; nightly backup to S3 08:30 | this file, `designs/2026-10-05-restate-self-host.md` |
 | Lambda `wren-prod-worker` (us-east-1, Node 22 arm64, 1 GB, 15 min max) | every service except the box's; one version per push | CI `deploy.yml` | `deploy/README.md` |
 | EC2 `wren-prod-pg` (`t4g.medium`) | Postgres 17, PgBouncer (6432, transaction mode), Valkey (6380, cache), browserless Chromium and the Restate server in Docker; the **box worker**: `BOX_SERVICES` (PoolScheduler, Discovery, Enrichment, Resolution, PageArchive, Books, Watch, SocialWatch) on 127.0.0.1:9080 or :9081, one slot per deploy so pinned calls finish on their build (`apps/worker/src/box-slot.ts`; `WREN_POOL_CHAIN_HOST=box`) | CI over SSM (`deploy/scripts/box-worker.sh`) | `deploy/README.md`, `apps/worker/src/box.ts` |
-| RackNerd VPS (192.255.226.241, Buffalo) | mailifier SMTP prober behind Caddy (`probe.wrenautomation.com`) | `deploy/scripts/deploy-prober.sh` | "Verifying addresses" below |
-| RackNerd VPS (198.44.104.204, Los Angeles) | second prober (`probe2.wrenautomation.com`); in `WREN_SMTP_PROBE_URL`, probes once its PTR resolves | `PROBE_HOST=probe2.wrenautomation.com deploy/scripts/deploy-prober.sh` | "Verifying addresses" below |
+| RackNerd VPS (192.255.226.241, Buffalo) | mailifier SMTP prober (`probe.wrenautomation.com`) and SearXNG for the research engine (`search.wrenautomation.com`, bearer SSM `/wren/prod/searxng_token`), both behind Caddy | `deploy/scripts/deploy-vps.sh` | "Verifying addresses" and "Search" below |
+| RackNerd VPS (198.44.104.204, Los Angeles) | second prober (`probe2.wrenautomation.com`); in `WREN_SMTP_PROBE_URL`, probes once its PTR resolves | `PROBE_HOST=probe2.wrenautomation.com deploy/scripts/deploy-vps.sh` | "Verifying addresses" below |
 | William's Mac | autobrowse desk worker under launchd: every `sites` call (browser, logins, Chrome profiles, home IP) | `../autobrowse/deploy/desk/install.sh` | `../autobrowse/deploy/README.md` |
 | Lambda `wren-prod-auth` + Cloudflare Workers | sign-in (`apps/auth`), phone (`apps/phone`), portal (`apps/portal`) | CI `deploy.yml` | `deploy/phone.md`, `deploy/portal.md` |
 | Cloudflare Worker + Durable Object | LLM gateway `llm.wrenautomation.com` (`apps/llm-gateway`): every free Gemini, OpenRouter, Cohere key behind one endpoint | CI `deploy.yml`; keys by `scripts/llm-gateway-keys.mjs` | `designs/2026-10-06-llm-gateway.md` |
@@ -300,12 +300,12 @@ closed from Lambda and AWS refused to open it on EC2, so the prober
 is that package's own server on a RackNerd VPS (192.255.226.241, Ubuntu 24.04,
 $21.99/yr, key-only SSH as root with `~/.ssh/wren_probe`, also in SSM
 `/wren/prod/probe_ssh_key`). Docker compose runs it behind Caddy, which holds the
-TLS for `https://probe.wrenautomation.com` (`deploy/prober/`). The worker reaches it
+TLS for `https://probe.wrenautomation.com` (`deploy/vps/`). The worker reaches it
 through `WREN_VERIFIER=smtp` + `WREN_SMTP_PROBE_URL` + `WREN_SMTP_PROBE_TOKEN`
 (`deploy/prod.env`; the same token is SSM `/wren/prod/probe_token`).
 
 ```sh
-deploy/scripts/deploy-prober.sh                      # pinned mailifier + compose + Caddyfile → VPS, restart
+deploy/scripts/deploy-vps.sh                      # pinned mailifier + SearXNG + compose + Caddy → VPS, restart
 deploy/scripts/push-secrets.sh                       # env with the prober URL + token
 gh workflow run deploy.yml --ref main                # worker re-reads env
 curl -s https://probe.wrenautomation.com/healthz     # {"ok":true,"port_25":true}
@@ -325,7 +325,7 @@ domain, `ProbeFleet` in `verification/mailifier.ts`), so a mail server sees one 
 at half the pace. When that box's IP is refused (`blocked`, `no_ptr`,
 `unreachable`) or the box is down, the other asks once; greylisting stays on its
 first box. Each verdict carries `raw.prober`. A second box deploys with
-`PROBE_HOST=probe2.wrenautomation.com deploy/scripts/deploy-prober.sh`. Only boxes
+`PROBE_HOST=probe2.wrenautomation.com deploy/scripts/deploy-vps.sh`. Only boxes
 whose PTR names them probe (checked hourly per Lambda instance); with none, the first
 listed probes alone. So a new box can join the list at once and starts on its own
 when its PTR lands. The morning digest checks
@@ -394,6 +394,25 @@ wren fetch list
 wren fetch get firm-feed                      # today's IA_FIRM_SEC_Feed → import --format sec-firm-feed
 wren fetch get adv-filing-data --months 2     # newest monthly zips → import-people --format adv-filing-data
 wren fetch get shopify-partner-profiles       # profiles for slugs under data/agencies/shopify; 3–8 s apart, stops on a challenge page
+```
+
+
+## Search (SearXNG on the VPS)
+
+The research engine's free web search is a SearXNG on box 1 (`deploy/vps/`, profile
+`search`, image pinned by date, 350 MB cap, no Valkey). Caddy serves it as
+`https://search.wrenautomation.com` and answers 401 without the bearer (SSM
+`/wren/prod/searxng_token`); `/healthz` is open. SearXNG's own cookie key is SSM
+`/wren/prod/searxng_secret`. The A record is Cloudflare, DNS only. On the Mac the model keys
+file at the org root holds `SEARXNG_URL` and `SEARXNG_TOKEN`; weaver's `searxng` source sends
+the bearer when the token is set. Box 2 runs the prober alone (`SEARCH_HOST=` empty).
+
+```sh
+deploy/scripts/deploy-vps.sh                                      # box 1: prober + search
+PROBE_HOST=probe2.wrenautomation.com deploy/scripts/deploy-vps.sh  # box 2: prober alone
+curl -s https://search.wrenautomation.com/healthz                 # OK
+node scripts/secrets.mjs run ../llm.env -- \
+  'curl -s -H "Authorization: Bearer $SEARXNG_TOKEN" "https://search.wrenautomation.com/search?q=test&format=json"'
 ```
 
 ## Checking the fleet

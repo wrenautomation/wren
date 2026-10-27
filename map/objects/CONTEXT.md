@@ -14,4 +14,4 @@ One card per noun: a table, a type, a file kind, or a service set. Clusters are 
 | `ui/` | kit, story (hub: `ui/CONTEXT.md`) |
 | `platform/` | settings, niche, offer, loop-object, restate-services, db-schema, worker, cli, phone-worker, notifier, llm-client |
 
-Not carded (read the file): the pure helpers `send/dates.ts`, `inbox/inbound.ts`, `send/lead-timezone.ts`; the research fetch stack `packages/research/src/fetch/`; `deploy/pixel`, `deploy/prober`, `apps/prober`.
+Not carded (read the file): the pure helpers `send/dates.ts`, `inbox/inbound.ts`, `send/lead-timezone.ts`; the research fetch stack `packages/research/src/fetch/`; `deploy/pixel`, `deploy/vps`, `apps/prober`.

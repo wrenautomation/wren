@@ -117,7 +117,7 @@ Nothing in this repo references these; they break silently.
 | cal.com webhook (Wren's account, beside the lander's) | `phone.wrenautomation.com/webhooks/calcom`, `CALCOM_WEBHOOK_SECRET` | [[email/call-booking]], [[platform/phone-worker]] |
 | GCP project of the service account: Pub/Sub topic `gmail-push` (Gmail's push account may publish), push subscription `gmail-push-phone` | `GmailClient.watch` (autobrowse `./google`; wren's subclass in `send/gmail.ts`) and `gmailPushTopic` name the topic from the key's project; the subscription posts to `phone.wrenautomation.com/webhooks/gmail?token=` | [[processes/inbox-sync]], [[platform/phone-worker]] |
 | Google Postmaster, Gmail domain-wide delegation | the service account in `WREN_GOOGLE_SERVICE_ACCOUNT` and `WREN_SEND_TRANSPORT`; token code in autobrowse `./google`, IMAP and Instantly reads in `./mail` (`@wrenautomation/autobrowse@0.5.0`) | [[email/transport]], [[email/postmaster-day]] |
-| mailifier VPS (`deploy/prober`) | `WREN_VERIFIER` + `WREN_SMTP_PROBE_URL` and token | [[research/verification]] |
+| mailifier VPS (`deploy/vps`) | `WREN_VERIFIER` + `WREN_SMTP_PROBE_URL` and token | [[research/verification]] |
 | `deploy/pixel` Cloudflare Worker | the open export read by `inbox/opens.ts` | [[email/open-event]] |
 | `~/.local/bin/wren` on William's Mac | `bin/wren` | [[platform/cli]] |
 | `walkthrough/demos/prod.sh` | CLI commands by name against prod | [[platform/cli]] |

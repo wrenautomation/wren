@@ -31,7 +31,7 @@ Citations: `apps/worker/src/lambda.ts:16`, `apps/worker/src/services.ts:80`
 ## If you change this
 
 - **Hits:** `deploy.yml:32`–`:55`, `deploy/terraform/lambda.tf`, `scripts/register-worker.sh`, `walkthrough/04-production.md`
-- **Does not hit:** `apps/phone`, `deploy/pixel`, `deploy/prober`
+- **Does not hit:** `apps/phone`, `deploy/pixel`, `deploy/vps`
 
 ## Surfaces
 
