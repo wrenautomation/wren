@@ -9,6 +9,7 @@ import { FakeLlm } from "@wren/llm";
 import { describe, expect, it } from "vitest";
 import {
   authorFit,
+  COMMENTS_SETTINGS,
   type FeedPost,
   isJobAd,
   jobPost,
@@ -458,5 +459,21 @@ describe("vanityOf", () => {
     expect(vanityOf("https://www.linkedin.com/in/50%-off")).toBe("50%-off");
     expect(vanityOf(`https://www.linkedin.com/in/${"a".repeat(121)}`)).toBeNull();
     expect(vanityOf(null)).toBeNull();
+  });
+});
+
+describe("COMMENTS_SETTINGS account", () => {
+  const ok = (p: keyof typeof COMMENTS_SETTINGS, account: string) =>
+    COMMENTS_SETTINGS[p].safeParse({ account }).success;
+
+  it("takes YouTube as a Google login: its token is kept there", () => {
+    expect(ok("youtube", "google@wren")).toBe(true);
+    expect(ok("youtube", "youtube")).toBe(false);
+    expect(ok("youtube", "youtube@wren")).toBe(false);
+  });
+
+  it("takes Threads as an Instagram login", () => {
+    expect(ok("threads", "instagram")).toBe(true);
+    expect(ok("threads", "threads")).toBe(false);
   });
 });

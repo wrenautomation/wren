@@ -64,14 +64,15 @@ const NAME: Readonly<Record<ReachPostPlatform, string>> = {
   threads: "Threads",
 };
 /**
- * The autobrowse site each platform's login is on: Threads signs in through Instagram, so its
- * reads and acts run on the instagram site as an Instagram login.
+ * The credential each platform's login is under: Threads signs in through Instagram, so its
+ * reads and acts run on the instagram site as an Instagram login. YouTube signs in with Google:
+ * its token is kept for the Google login (`google@wren`); a plain `youtube` holds none.
  */
 const LOGIN_SITE: Readonly<Record<ReachPostPlatform, string>> = {
   linkedin: "linkedin",
   x: "x",
   instagram: "instagram",
-  youtube: "youtube",
+  youtube: "google",
   tiktok: "tiktok",
   threads: "instagram",
 };
@@ -182,8 +183,8 @@ function commentsSettingsSchemaFor(platform: ReachPostPlatform) {
           (a) =>
             !a ||
             a.startsWith(`${LOGIN_SITE[platform]}@`) ||
-            (platform !== "linkedin" && a === LOGIN_SITE[platform]),
-          `a ${NAME[LOGIN_SITE[platform] as ReachPostPlatform]} login: ${LOGIN_SITE[platform]}@<label>`,
+            (platform !== "linkedin" && platform !== "youtube" && a === LOGIN_SITE[platform]),
+          `a ${LOGIN_SITE[platform]} login: ${LOGIN_SITE[platform]}@<label>`,
         ),
       /** Comments drafted a day, at most; autobrowse's comment cap bounds the sends. */
       perDay: z.number().int().min(0).max(40).default(10),
