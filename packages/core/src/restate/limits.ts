@@ -104,6 +104,21 @@ export async function within<T>(ctx: restate.Context, p: Waitable<T>, o: WithinO
   }
 }
 
+/**
+ * Whether a service answers at all: one quick ask before a pass leans on it. When the Mac is off,
+ * each desk call would wait out its whole limit; a pass that asks first skips them and comes back.
+ * Any answer, a refusal too, counts as up.
+ */
+export async function answers(ctx: restate.Context, p: Waitable<unknown>, call: string) {
+  try {
+    await within(ctx, p, { ms: LIMITS.quick, call });
+    return true;
+  } catch (err) {
+    if (err instanceof CallTimeout) return false;
+    return true;
+  }
+}
+
 const RUN_TIMEOUT = "no answer within ";
 
 interface LimitedRunOpts {

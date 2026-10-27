@@ -315,8 +315,8 @@ export const OUTREACH_COMPONENTS = [
         },
         {
           is: "change",
-          says: "How many a day, and how fresh.",
-          built: "settings.perDay, maxAgeHours",
+          says: "How many a day; how fast a post's window fades, and the oldest it may be.",
+          built: "settings.perDay, halfLifeHours, maxAgeHours",
         },
         { is: "needs", says: "autobrowse's post reads on linkedin@wren, 40 a day.", built: null },
         { is: "fixed", says: "Never his personal login or the research alt." },
@@ -370,8 +370,8 @@ export const OUTREACH_COMPONENTS = [
           },
           {
             is: "change",
-            says: "How many a day, and how fresh.",
-            built: "settings.perDay, maxAgeHours",
+            says: "How many a day; how fast a post's window fades, and the oldest it may be.",
+            built: "settings.perDay, halfLifeHours, maxAgeHours",
           },
           {
             is: "change",

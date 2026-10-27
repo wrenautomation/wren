@@ -137,6 +137,8 @@ const sites: SiteClient = {
 
 let pg: TestPostgres;
 let env: RestateTestEnvironment;
+/** Whether the fake desk answers its status ask. */
+let deskUp = true;
 const executor = executorRecorder();
 beforeAll(async () => {
   pg = await startTestPostgres();
@@ -155,6 +157,7 @@ beforeAll(async () => {
         heldNiches: [],
         clock: () => now,
         sitesFor: (ctx) => journaledSites(ctx, sites, dbSendJournal(pg.db)),
+        deskUp: async () => deskUp,
       }),
     ],
     alwaysReplay: true,
@@ -182,6 +185,16 @@ const emitted = () =>
   executor.emitted.filter((e) => e.workflow === COMMENTS_FLOW).flatMap((e) => e.events);
 
 describe("a whole ReachWatch pass over a thread", () => {
+  it("with the desk off: no reads, none marked read, asked again in 10 minutes", async () => {
+    deskUp = false;
+    const out = await pass();
+    deskUp = true;
+    expect(out.stats?.deskOffline).toBe(true);
+    expect(out.delayMs).toBe(10 * 60_000);
+    expect(paths).toEqual([]);
+    expect(await rows()).toEqual([]);
+  });
+
   it("keeps the inbox reply and the follow-ups it never lists, folded per person", async () => {
     const out = await pass();
     expect(out.error).toBeNull();

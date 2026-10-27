@@ -14,6 +14,7 @@ import {
   isJobAd,
   jobPost,
   MIN_FIT,
+  momentum,
   ownCircle,
   phrase,
   planTopics,
@@ -48,7 +49,7 @@ const rank = (p: FeedPost, topics: string[] = []) =>
     audience: TRADE,
     key: false,
     foundBy: "topic: x",
-    maxAgeHours: 72,
+    halfLifeHours: 36,
     now: NOW,
   });
 
@@ -117,7 +118,7 @@ describe("rankPost", () => {
         headline: "Founder, Northwind Logistics",
         text: "Our company lost two big clients this year. Our pipeline was all referrals, so we started outreach and follow-ups to grow revenue again.",
       }),
-      { topics: [], key: false, foundBy: "topic: x", maxAgeHours: 72, now: NOW },
+      { topics: [], key: false, foundBy: "topic: x", halfLifeHours: 36, now: NOW },
     );
     expect(r.off).toBeNull();
     expect(r.fit).toBeGreaterThanOrEqual(MIN_FIT);
@@ -162,7 +163,7 @@ describe("rankPost", () => {
       topics: [],
       key: true,
       foundBy: "person: x",
-      maxAgeHours: 72,
+      halfLifeHours: 36,
       now: NOW,
     });
     expect(known.off).toBeNull();
@@ -536,5 +537,30 @@ describe("ytPostOf", () => {
     const p = ytPostOf(video({ categoryId: "26", defaultAudioLanguage: "en-US" }));
     expect(p?.off).toBeUndefined();
     expect(p?.handle).toBe("UCx");
+  });
+});
+
+describe("momentum", () => {
+  const at = (h: number) => new Date(NOW.getTime() - h * 3_600_000).toISOString();
+  it("a viral post two days on outranks a quiet new one (LinkedIn's 36 h half-life)", () => {
+    const viral = rank(post({ at: at(48), reactions: 400, comments: 80 }));
+    const quiet = rank(post({ at: at(2), reactions: 2, comments: 0 }));
+    expect(viral.fit).toBeGreaterThan(quiet.fit);
+  });
+  it("fades on the half-life, never past its most", () => {
+    const busy = { reactions: 400, comments: 80 };
+    expect(momentum(busy, 1, 36)).toBeLessThanOrEqual(14);
+    expect(momentum(busy, 48, 36)).toBeGreaterThan(momentum(busy, 240, 36));
+    // The same age is young on YouTube's month and old on X's eight hours.
+    expect(momentum(busy, 48, 720)).toBeGreaterThan(momentum(busy, 48, 8));
+  });
+  it("reads an unknown age as one half-life", () => {
+    const p = { reactions: 10, comments: 2 };
+    expect(momentum(p, null, 36)).toBe(momentum(p, 36, 36));
+  });
+  it("a crowded thread costs points: a new comment there is buried", () => {
+    expect(momentum({ reactions: 400, comments: 600 }, 6, 36)).toBeLessThan(
+      momentum({ reactions: 2200, comments: 0 }, 6, 36),
+    );
   });
 });

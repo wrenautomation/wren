@@ -74,6 +74,8 @@ export interface ReachDeps {
   heldNiches: readonly string[];
   /** The desk's sites client for this context (journaled calls to the Mac). */
   sitesFor: (ctx: restate.Context) => SiteClient;
+  /** Whether the desk answers now (`answers`); a watch pass asks once first. Unset: always up. */
+  deskUp?: (ctx: restate.Context) => Promise<boolean>;
   notifier?: Notifier;
   clock?: () => Date;
   /** When Wren last posted on `platform` (content's channel): a post warms that site's accounts. */

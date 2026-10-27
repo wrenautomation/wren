@@ -507,7 +507,8 @@ export function registerReach(program: Command, withDb: WithDb, settings: Settin
     .option("--author-title <words>", "LinkedIn search: authors whose title has these words")
     .option("--like <on|off>", "like each fit post, with no yes")
     .option("--follow <on|off>", "follow each fit post's author, with no yes")
-    .option("--max-age-hours <n>", "posts older than this are left")
+    .option("--half-life-hours <n>", "hours a post's timing points take to halve")
+    .option("--max-age-hours <n>", "the guard: posts older than this are left")
     .option("--min-fit <n>", "the rank (0 to 100) a post needs for a draft")
     .option("--audience <list>", "comma separated word starts a post must have (recruit,staffing)")
     .option("--about <text>", "who the buyers are; the model writes new search words from it")
@@ -524,6 +525,7 @@ export function registerReach(program: Command, withDb: WithDb, settings: Settin
         authorTitle?: string;
         like?: string;
         follow?: string;
+        halfLifeHours?: string;
         maxAgeHours?: string;
         minFit?: string;
         audience?: string;
@@ -548,6 +550,7 @@ export function registerReach(program: Command, withDb: WithDb, settings: Settin
           ...(o.authorTitle !== undefined && { authorTitle: o.authorTitle }),
           ...(o.like !== undefined && { like: o.like === "on" }),
           ...(o.follow !== undefined && { follow: o.follow === "on" }),
+          ...(o.halfLifeHours !== undefined && { halfLifeHours: Number(o.halfLifeHours) }),
           ...(o.maxAgeHours !== undefined && { maxAgeHours: Number(o.maxAgeHours) }),
           ...(o.minFit !== undefined && { minFit: Number(o.minFit) }),
           ...(o.audience !== undefined && { audience: list(o.audience) }),

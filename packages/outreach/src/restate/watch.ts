@@ -104,6 +104,8 @@ const POSTS = "posts";
 const postsKey = (p: ReachPostPlatform) => (p === "linkedin" ? POSTS : `${POSTS}:${p}`);
 
 const POSTS_EVERY_MS = 6 * 60 * 60 * 1000;
+/** With the desk off, the watch asks again this often: one quick ask, no reads. */
+const DESK_AGAIN_MS = 10 * 60 * 1000;
 /** Likes and follows whose day's cap is used, till it resets (`<platform> <act>`). */
 const ACT_HOLDS = "actHolds";
 
@@ -130,6 +132,8 @@ export interface WatchStats {
   stopped: string | null;
   /** Reads left out: held after timing out pass after pass, or their platform slow this pass. */
   skipped?: number;
+  /** The desk gave no answer: no reads this pass, none marked read, back in `DESK_AGAIN_MS`. */
+  deskOffline?: true;
 }
 
 /** The invites account (settings) when it's an active LinkedIn row, else null. */
@@ -471,6 +475,32 @@ async function watchPass(
   now: Date,
   scope: WatchScope,
 ): Promise<PassOutcome<WatchStats>> {
+  // The Mac off: every read would wait out its limit. None runs and none is marked read, so each
+  // reads when the desk is back. A missed read merges: an inbox's unread, a thread's whole read,
+  // a post search back to its guard.
+  if (deps.deskUp && !(await deps.deskUp(ctx))) {
+    const drafts = scope.drafts ? await draftsPass(deps, ctx, now) : { written: 0, errors: [] };
+    const none = { kept: 0, errors: [] };
+    const outcome: PassOutcome<WatchStats> = {
+      stats: {
+        replies: { checked: 0, received: 0, optedOut: 0, errors: [] },
+        comments: none,
+        threads: { probed: 0, read: 0, ...none, answered: 0 },
+        health: { checked: 0, frozen: [], errors: [] },
+        invites: null,
+        drafts,
+        posts: [],
+        stopped: null,
+        deskOffline: true,
+      },
+      error: null,
+      failures: 0,
+      delayMs: DESK_AGAIN_MS,
+      now: now.toISOString(),
+    };
+    await setLastPass(ctx, outcome);
+    return outcome;
+  }
   const channelFor = channelsFor(deps, ctx);
   // Every desk read waits at most `LIMITS.desk` (`sitesFor`); a read that times out pass after
   // pass is held, and a platform whose reads time out twice is left for the next pass.

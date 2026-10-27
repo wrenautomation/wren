@@ -273,7 +273,7 @@ describe("settings", () => {
   });
 
   it("ranks topic, title, people we know above a bare match", () => {
-    const o = { topics: ["recruiting agency"], foundBy: "x", maxAgeHours: 72, now };
+    const o = { topics: ["recruiting agency"], foundBy: "x", halfLifeHours: 36, now };
     const plain = rankPost(post(1, { text: "Nothing to see here at all, a long enough line." }), {
       ...o,
       key: false,
@@ -293,7 +293,7 @@ describe("settings", () => {
   });
 
   it("off target: job posts, and posts outside the audience's world", () => {
-    const o = { topics: ["client reactivation"], foundBy: "x", key: false, maxAgeHours: 72, now };
+    const o = { topics: ["client reactivation"], foundBy: "x", key: false, halfLifeHours: 36, now };
     const ads = [
       "#hiring Office Coordinator. Apply here: https://example.com/job. Job Title: Office Coordinator.",
       "WE'RE HIRING: Business Development Officer. Location: Remote. Requirements: 3 years of experience, full-time.",
@@ -317,7 +317,7 @@ describe("settings", () => {
   });
 
   it("growing a recruiting firm ranks above a recruiter's day", () => {
-    const o = { topics: ["recruiting agency"], foundBy: "x", key: false, maxAgeHours: 72, now };
+    const o = { topics: ["recruiting agency"], foundBy: "x", key: false, halfLifeHours: 36, now };
     const growth = rankPost(
       post(1, {
         headline: "Founder, a search firm",

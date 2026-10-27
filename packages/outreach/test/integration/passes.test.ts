@@ -91,6 +91,7 @@ const POSTS = {
   account: "linkedin@wren",
   topics: ["recruiting"],
   ours: [],
+  halfLifeHours: 36,
   maxAgeHours: 48,
   now: NOW,
 };

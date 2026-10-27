@@ -166,6 +166,39 @@ const NEVER: Readonly<Record<ReachPostPlatform, readonly string[]>> = {
   threads: [],
 };
 
+/** How fast a post's comment window fades, by platform: a feed's pace, not a fixed cutoff. */
+const HALF_LIFE_HOURS: Readonly<Record<ReachPostPlatform, number>> = {
+  x: 8,
+  threads: 12,
+  instagram: 24,
+  linkedin: 36,
+  tiktok: 168,
+  youtube: 720,
+};
+
+/** The most points `momentum` gives: as many as the fixed freshness and engagement gave. */
+const MOMENTUM_MAX = 14;
+
+/**
+ * Timing points, 0 to `MOMENTUM_MAX`: how fresh (5) and how fast it gathers (9), both fading on
+ * the half-life. The pace is engagement per half-life so far, padded by a quarter half-life so a
+ * new post's first likes do not read as a surge. An unknown age reads as one half-life. A
+ * crowded thread costs a point or two: a new comment there is buried.
+ */
+export function momentum(
+  p: Pick<FeedPost, "reactions" | "comments">,
+  ageH: number | null,
+  halfLifeHours: number,
+): number {
+  const h = halfLifeHours;
+  const age = ageH ?? h;
+  const decay = 0.5 ** (age / h);
+  const pace = ((p.reactions + 3 * p.comments) / (age + h / 4)) * h;
+  const crowd = p.comments >= 500 ? 2 : p.comments >= 150 ? 1 : 0;
+  const pts = 5 * decay + Math.min(9, 3 * Math.log10(1 + pace * decay));
+  return Math.max(0, Math.min(MOMENTUM_MAX, Math.round(pts)) - crowd);
+}
+
 /** One platform's settings; all three share the shape. */
 function commentsSettingsSchemaFor(platform: ReachPostPlatform) {
   return z
@@ -207,8 +240,18 @@ function commentsSettingsSchemaFor(platform: ReachPostPlatform) {
       /** A fit post is liked and its author followed with no yes, and again with his Comment. */
       like: z.boolean().default(true),
       follow: z.boolean().default(true),
-      /** Posts older than this are left. TikTok's search runs by fit, not time: give it weeks. */
-      maxAgeHours: z.number().int().min(6).max(720).default(72),
+      /**
+       * Hours a post's timing points take to halve (`momentum`). A late comment on a post still
+       * gathering is worth more than an early one on a dead post: X fades in hours, YouTube in months.
+       */
+      halfLifeHours: z.number().int().min(1).max(4380).default(HALF_LIFE_HOURS[platform]),
+      /** The guard: posts older than this are left whatever their pace. Four half-lives by default. */
+      maxAgeHours: z
+        .number()
+        .int()
+        .min(6)
+        .max(8760)
+        .default(4 * HALF_LIFE_HOURS[platform]),
       /** Code's rank (0 to 100) a post needs before a comment is drafted for it. */
       minFit: z.number().int().min(0).max(100).default(MIN_FIT),
       /**
@@ -989,7 +1032,7 @@ export function rankPost(
     audience?: readonly string[];
     key: boolean;
     foundBy: string;
-    maxAgeHours: number;
+    halfLifeHours: number;
     now: Date;
   },
 ): { fit: number; why: string; off: string | null } {
@@ -1013,8 +1056,7 @@ export function rankPost(
   const pitch = PITCH.test(p.text);
   const at = p.at ? Date.parse(p.at) : Number.NaN;
   const ageH = Number.isNaN(at) ? null : Math.max(0, (o.now.getTime() - at) / HOUR);
-  const fresh = ageH === null ? 3 : Math.round(6 * Math.max(0, 1 - ageH / o.maxAgeHours));
-  const buzz = Math.min(8, Math.round(3 * Math.log10(1 + p.reactions + 3 * p.comments)));
+  const timing = momentum(p, ageH, o.halfLifeHours);
   const fit = Math.max(
     0,
     Math.min(
@@ -1025,8 +1067,7 @@ export function rankPost(
         author.points +
         Math.min(2, hits.length) * 4 +
         (o.key ? 20 : 0) +
-        buzz +
-        fresh -
+        timing -
         (pitch ? 8 : 0),
     ),
   );
@@ -1076,6 +1117,7 @@ export async function keepPosts(
     key?: boolean;
     /** Our own handles on the platform, lowercased. */
     ours: readonly string[];
+    halfLifeHours: number;
     maxAgeHours: number;
     now: Date;
   },
@@ -1172,34 +1214,64 @@ async function queuedToday(db: Queryable, platform: ReachPostPlatform, now: Date
 }
 
 /**
- * The best found posts still fresh and at the minimum fit, one per author, none by an author we
- * queued or commented on this week. A post under the minimum stays found: a lower minimum later
- * can still pick it.
+ * The best found posts inside the guard and at the minimum fit now, one per author, none by an
+ * author we queued or commented on this week. A post's fit was ranked when found: its timing
+ * points are counted again at its age now, so a post that went quiet sinks. A post under the
+ * minimum stays found: a lower minimum later can still pick it.
  */
 async function postsToDraft(
   db: Queryable,
   limit: number,
-  o: { platform: ReachPostPlatform; maxAgeHours: number; minFit: number; now: Date },
+  o: {
+    platform: ReachPostPlatform;
+    halfLifeHours: number;
+    maxAgeHours: number;
+    minFit: number;
+    now: Date;
+  },
 ): Promise<number[]> {
   if (limit <= 0) return [];
   const since = new Date(o.now.getTime() - o.maxAgeHours * HOUR).toISOString();
   const week = new Date(o.now.getTime() - AUTHOR_GAP_MS).toISOString();
   const rows = (await db.execute(sql`
-    SELECT id FROM (
-      SELECT DISTINCT ON (coalesce(p.handle, p.author_url, p.author)) p.id, p.fit
-      FROM reach_posts p
-      WHERE p.platform = ${o.platform}
-        AND p.state = 'found'
-        AND p.fit >= ${o.minFit}
-        AND coalesce(p.posted_at, p.created_at) >= ${since}
-        AND NOT EXISTS (SELECT 1 FROM reach_posts q
-          WHERE q.platform = p.platform
-            AND coalesce(q.handle, q.author_url, q.author) = coalesce(p.handle, p.author_url, p.author)
-            AND q.state IN ('queued', 'commented')
-            AND coalesce(q.commented_at, q.queued_at) >= ${week})
-      ORDER BY coalesce(p.handle, p.author_url, p.author), p.fit DESC NULLS LAST, p.id
-    ) best ORDER BY fit DESC NULLS LAST, id LIMIT ${limit}`)) as unknown as Array<{ id: number }>;
-  return rows.map((r) => r.id);
+    SELECT p.id, p.fit, p.posted_at, p.created_at, p.reactions, p.comments,
+      coalesce(p.handle, p.author_url, p.author) AS who
+    FROM reach_posts p
+    WHERE p.platform = ${o.platform}
+      AND p.state = 'found'
+      AND p.fit >= ${o.minFit - MOMENTUM_MAX}
+      AND coalesce(p.posted_at, p.created_at) >= ${since}
+      AND NOT EXISTS (SELECT 1 FROM reach_posts q
+        WHERE q.platform = p.platform
+          AND coalesce(q.handle, q.author_url, q.author) = coalesce(p.handle, p.author_url, p.author)
+          AND q.state IN ('queued', 'commented')
+          AND coalesce(q.commented_at, q.queued_at) >= ${week})`)) as unknown as Array<{
+    id: number;
+    fit: number;
+    posted_at: string | Date | null;
+    created_at: string | Date;
+    reactions: number;
+    comments: number;
+    who: string;
+  }>;
+  const ms = (d: string | Date) => new Date(d).getTime();
+  const best = new Map<string, { id: number; fit: number }>();
+  for (const r of rows) {
+    const posted = r.posted_at === null ? null : ms(r.posted_at);
+    const ageAt = (t: number) => (posted === null ? null : Math.max(0, (t - posted) / HOUR));
+    const fit =
+      r.fit -
+      momentum(r, ageAt(ms(r.created_at)), o.halfLifeHours) +
+      momentum(r, ageAt(o.now.getTime()), o.halfLifeHours);
+    if (fit < o.minFit) continue;
+    const had = best.get(r.who);
+    if (!had || fit > had.fit || (fit === had.fit && r.id < had.id))
+      best.set(r.who, { id: r.id, fit });
+  }
+  return [...best.values()]
+    .sort((a, b) => b.fit - a.fit || a.id - b.id)
+    .slice(0, limit)
+    .map((r) => r.id);
 }
 
 const DRAFT = z.object({ comment: z.string() });
@@ -1390,7 +1462,7 @@ export async function redraftPosts(
         key: p.foundBy.startsWith("person:"),
         foundBy: p.foundBy,
         // Ranked as at read time: age is not why a queued draft goes.
-        maxAgeHours: s.maxAgeHours,
+        halfLifeHours: s.halfLifeHours,
         now: p.createdAt,
       },
     );
@@ -1721,7 +1793,9 @@ export async function postsPass(
           )) as unknown as Array<{ handle: string }>
         ).map((a) => a.handle),
   );
-  const since = s.maxAgeHours <= 24 ? "past-24h" : "past-week";
+  // The search reaches as far back as the guard, in the widest window a site's search takes.
+  const since: Since =
+    s.maxAgeHours <= 24 ? "past-24h" : s.maxAgeHours <= 7 * 24 ? "past-week" : "past-month";
   // Search words: his own by yield, less the rested; then the model's, from `about` and yields.
   const yields = await o.step("topic yields", () =>
     topicYields(db, { platform, minFit: s.minFit, now: o.now }),
@@ -1809,6 +1883,7 @@ export async function postsPass(
           audience: s.audience,
           key: r.key ?? false,
           ours,
+          halfLifeHours: s.halfLifeHours,
           maxAgeHours: s.maxAgeHours,
           now: o.now,
         }),
@@ -1830,6 +1905,7 @@ export async function postsPass(
   const ids = await o.step("to draft", () =>
     postsToDraft(db, need, {
       platform,
+      halfLifeHours: s.halfLifeHours,
       maxAgeHours: s.maxAgeHours,
       minFit: s.minFit,
       now: o.now,

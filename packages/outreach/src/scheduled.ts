@@ -142,8 +142,13 @@ export async function schedulePosts(
     taken: lane.map((r) => new Date(r.at)),
     pace: postPace(s.perDay),
     rand: o.rand,
-    // A comment lands while the post is still read: twice the age a post is read at.
-    latest: (p) => (p.postedAt ?? p.createdAt).getTime() + 2 * s.maxAgeHours * HOUR,
+    // A comment lands while the post is still read: inside the guard, or one half-life after we
+    // found it when it was found near the guard.
+    latest: (p) =>
+      Math.max(
+        (p.postedAt ?? p.createdAt).getTime() + s.maxAgeHours * HOUR,
+        p.createdAt.getTime() + s.halfLifeHours * HOUR,
+      ),
   });
   for (const { item, at } of slots)
     await db

@@ -90,7 +90,7 @@ import { CalcomCalendar } from "@wren/core/calendar";
 import { findClient, settingsFor } from "@wren/core/clients";
 import { sitesHost } from "@wren/core/content/box";
 import { ingressSites } from "@wren/core/content/ingress";
-import { DESK, restateSites } from "@wren/core/content/restate";
+import { DESK, restateSites, type SitesService } from "@wren/core/content/restate";
 import { executorFire, type FireTriggers } from "@wren/core/executor";
 import { wrenFacts } from "@wren/core/facts";
 import { siteEdge } from "@wren/core/flag-store";
@@ -101,7 +101,7 @@ import { readMessageSettings } from "@wren/core/message-settings";
 import { meteredModel } from "@wren/core/metered";
 import { namedFor } from "@wren/core/notify";
 import { PortalRefusal } from "@wren/core/portal";
-import { clientKey, LIMITS, within } from "@wren/core/restate";
+import { answers, clientKey, LIMITS, within } from "@wren/core/restate";
 import { dnsChecks } from "@wren/core/setup";
 import { vendorKeys } from "@wren/core/vendor-keys";
 import { meterTokens } from "@wren/core/vendors";
@@ -723,6 +723,13 @@ export async function buildDeps(
     // Each desk call waits at most `LIMITS.desk`: a paused one never holds a reach loop's key.
     sitesFor: (ctx: Context) =>
       restateSites(ctx, { caller: "wren:reach", service: DESK, limitMs: LIMITS.desk }),
+    // One quick ask of the desk before a watch pass: a status read, off the Mac's own registry.
+    deskUp: (ctx: Context) =>
+      answers(
+        ctx,
+        ctx.serviceClient<SitesService>(DESK).status({ site: "linkedin" }),
+        "desk/status",
+      ),
     // Pushes and tab watchers on our logins (designs/2026-10-12-push-everywhere.md).
     pushes: (ctx: ObjectContext) =>
       within(ctx, ctx.objectClient<SocialPushed>({ name: "SocialPushed" }, SOCIAL_KEY).reach(), {
