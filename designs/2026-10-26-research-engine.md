@@ -146,13 +146,17 @@ of this kind). Deleting the rule steps forward again. Not v1; the rows that make
   a. the dependency cut and the rename: fetch, playlist and yt-dlp out of scribe into weaver;
      readers over a local file; scribe becomes falcon;
   b. raven: query type with `from` and `by`, proposals merged into a plan, planner over a plan
-     file, read-or-skip on hits, loop edges;
+     file, read-or-skip on hits, loop edges. Raven alone, proven by its CLI and tests; no wren
+     wiring (see the 10-27 log);
   c. weaver: source interface, registry with per-run allow-list, runner, dedupe, cost per call,
      ledger contract, files backend, CLI; sources autobrowse sites, SearXNG (Docker), Exa, paste,
      the ledger itself;
   d. wren: ledger tables (query, hit, document, finding, call, snapshot, yield), the Postgres
      backend, the pain and study lines' find stations onto weaver, agent CLI (list, add, edit,
-     answer a query; keep, drop a finding), portal ledger page.
+     answer a query; keep, drop a finding), portal ledger page. The study is rewritten as the
+     first line on the engine in one move: its rows become ledger records, its loop
+     (`studies/run.ts`) and falcon's planner (`study/claims.ts` PLAN) are deleted, the CLI is
+     reshaped around the records (`wren study` a thin ask over them).
 - 3.6 **Extract and call as one shape** across lines: one call command, one call page, so the
   designer-site example runs end to end.
 - 3.7 **Ask**: a thin surface over the same records.
@@ -185,3 +189,16 @@ of this kind). Deleting the rule steps forward again. Not v1; the rows that make
   `watch` over a file, `hearAudio`, `renderWatched`, `runFor`, study). weaver pins falcon exact.
   wren pins both in nine packages; 81 imports moved; `layers-guard` names weaver. Both repos
   publish on a `v*` tag by npm trusted publishing. Next: 3.5b raven.
+- 2026-10-27, later: 3.5b built (WA-897). `@wrenautomation/raven` 0.1.x, repo
+  `wrenautomation/raven`, depends on nothing of Wren's (zod, commander). Shapes: `Ask`, `Query`
+  (`kind`, `terms`, `site?`, `why`, `from`, `by`), `Proposal`, `PlanFile` (per ask kind: `propose`,
+  `triage`, `review` prompts, `sources`, `budget`), `Plan` with a `Snapshot` (known, plan file
+  version, model id), `HitView` (what a source shows for free; raven owns it because weaver
+  depends on raven), `Triage`, `Round`, `Edge`. Calls: `plan` (proposals merged, human first and
+  never capped, sources narrowed never widened), `triage` (read or skip per hit under the read
+  budget; an unnamed hit is a written skip), `review` (round budget stops without a model call,
+  else the model's edge with why). Model seam: an injected `Model {id, ask(prompt, shape)}`;
+  the CLI makes any command the model, `claude -p` by default. Five default plan files
+  (`raven plans <kind>`). Decision (William, 10-27): no stepping stone onto the old study loop;
+  the study moves onto the engine whole at 3.5d (phase text above). Rule: a stepping stone is
+  allowed only if the doc names the phase that deletes it. Next: 3.5c weaver.
