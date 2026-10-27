@@ -523,3 +523,21 @@ and SOPs against plan files (WA-908, after the first runs show what a plan file 
   (13 thin, 1 off): the ask, not the engine. Live CLI smoke `pause-smoke`: `run --pause` stopped after round 1, `weaver steer` wrote the
   record, `--resume --pause` ran round 2 with the line in the snapshot ask and in the review's
   own words. Ledgers and `compare.py`: private tasks repo, `docs/10-27/engine-runs/`.
+- 2026-10-27, night: `@wrenautomation/models` 0.1.0 (repo `wrenautomation/models`, public). The
+  one door to every model call in every repo: wren, autobrowse, raven, falcon, weaver. Home
+  options weighed: (A) falcon owns the model seam (it already held `Cut`); (B) a new package
+  that depends on nothing of Wren's; (C) wren's `@wren/llm` made public. William's pick, B:
+  falcon decides, it does not dial vendors, and a model door inside falcon would make raven and
+  autobrowse depend on a reader. No CI guard: this entry and the models README name the rule.
+  Substrate options: each vendor's own SDK (four call shapes, four usage formats), plain
+  `fetch` (every wire by hand), the AI SDK 7 (one call shape, media parts, token details per
+  vendor). Pick: the AI SDK, SDK retries off. Models adds only what the SDK leaves out: errors
+  sorted by what to do next (`Transient`, `Refused`, `InputRejected`, `Unsupported`, `Cut`,
+  `NoAnswer`), key rings that move past a refused or busy key at once, one price table (replaces
+  wren `core/model-prices.ts` and weaver `prices.ts`; free rings record `usd: 0` with
+  `listUsd`), the zod parse with one repair, speech ears (Groq, Cohere, any
+  `/audio/transcriptions` server), `commandModel` and `claudeCode`, spec strings. Mistral and
+  Cerebras count as paid: no free ring is proven there. Next: move each caller onto it (raven,
+  falcon, weaver, then wren's `@wren/llm` as a thin adapter, studio's look and TwelveLabs, the
+  voice transcriber, the decide backends, autobrowse's Llm seam), pins bumped in their own
+  commits.
