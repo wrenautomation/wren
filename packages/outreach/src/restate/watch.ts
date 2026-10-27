@@ -696,7 +696,8 @@ async function watchPass(
   const notifier = deps.notifier;
   const accepted = invites?.sweep.accepted.length ?? 0;
   const drift = invites?.sweep.errors.find((e) => e.startsWith(DRIFT_ERROR)) ?? null;
-  const toComment = posts.reduce((n, p) => n + p.queued, 0);
+  // Only drafts that wait on him: with `autoSend`, a draft given a slot goes out with no yes.
+  const toComment = posts.reduce((n, p) => n + Math.max(0, p.queued - (p.scheduled ?? 0)), 0);
   if (
     notifier &&
     (replies.received > 0 ||
