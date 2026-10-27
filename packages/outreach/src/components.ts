@@ -329,8 +329,14 @@ export const OUTREACH_COMPONENTS = [
       ],
     },
   }),
-  ...(["x", "instagram", "youtube"] as const).map((p) => {
-    const name = { x: "X", instagram: "Instagram", youtube: "YouTube" }[p];
+  ...(["x", "instagram", "youtube", "tiktok", "threads"] as const).map((p) => {
+    const name = {
+      x: "X",
+      instagram: "Instagram",
+      youtube: "YouTube",
+      tiktok: "TikTok",
+      threads: "Threads",
+    }[p];
     return defineComponent({
       id: `${p}.comments`,
       stage: "reach",
@@ -342,7 +348,11 @@ export const OUTREACH_COMPONENTS = [
       ready: true,
       settings: COMMENTS_SETTINGS[p],
       wrenSettings: true,
-      requires: { components: ["reach.outreach", "content.social"], accounts: [p] },
+      // Threads signs in through Instagram.
+      requires: {
+        components: ["reach.outreach", "content.social"],
+        accounts: [p === "threads" ? "instagram" : p],
+      },
       provides: {},
       effects: ["sends"],
       hypothesis: {
@@ -370,10 +380,15 @@ export const OUTREACH_COMPONENTS = [
           },
           {
             is: "needs",
-            says:
-              p === "x"
-                ? "autobrowse's X search and reply, metered per account."
-                : "autobrowse's Instagram search, post reads and comments, metered per account.",
+            says: {
+              x: "autobrowse's X search and reply, metered per account.",
+              instagram:
+                "autobrowse's Instagram search, post reads and comments, metered per account.",
+              youtube: "The YouTube Data API's search, comments, likes and subscriptions.",
+              tiktok: "autobrowse's TikTok search, comment, like and follow by browser.",
+              threads:
+                "autobrowse's Threads search, reply, like and follow by browser, on the Instagram login.",
+            }[p],
             built: null,
           },
           { is: "fixed", says: "No comment posts without your yes in To approve." },

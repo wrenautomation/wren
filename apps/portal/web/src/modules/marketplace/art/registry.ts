@@ -41,6 +41,8 @@ const ART: Record<string, Spec> = {
   "x.comments": { scene: "comments", on: "x" },
   "instagram.comments": { scene: "comments", on: "instagram" },
   "youtube.comments": { scene: "comments", on: "youtube" },
+  "tiktok.comments": { scene: "comments", on: "tiktok" },
+  "threads.comments": { scene: "comments", on: "threads" },
   "comments.read": { scene: "comments", on: "reddit" },
   "comments.sort": { scene: "comments", v: "sort", on: "reddit" },
   "reach.comments": { scene: "comments", v: "find", on: "reddit" },

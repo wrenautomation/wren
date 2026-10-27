@@ -1,7 +1,7 @@
 /**
- * Comments on others' posts on LinkedIn, X and Instagram (designs/2026-10-07-posting-flow.md, item
- * 4; designs/2026-10-07-reach-targeting.md). Each platform has its own settings block
- * (`linkedin.comments`, `x.comments`, `instagram.comments`, `youtube.comments`); an empty account is off. Each six
+ * Comments on others' posts on LinkedIn, X, Instagram, YouTube, TikTok and Threads
+ * (designs/2026-10-07-posting-flow.md, item 4; designs/2026-10-07-reach-targeting.md). Each
+ * platform has its own settings block (`<platform>.comments`); an empty account is off. Each six
  * hours, until the day's comments wait, the watch reads recent posts as that account (never his personal LinkedIn or the research alt):
  * topic searches, pages' posts, key people's posts. Code ranks them, the model drafts a comment
  * for the best few, and each waits in To approve (`queued`). Only his Comment posts it, then a
@@ -52,12 +52,28 @@ export const COMMENTS_COMPONENTS: Readonly<Record<ReachPostPlatform, string>> = 
   x: "x.comments",
   instagram: "instagram.comments",
   youtube: "youtube.comments",
+  tiktok: "tiktok.comments",
+  threads: "threads.comments",
 };
 const NAME: Readonly<Record<ReachPostPlatform, string>> = {
   linkedin: "LinkedIn",
   x: "X",
   instagram: "Instagram",
   youtube: "YouTube",
+  tiktok: "TikTok",
+  threads: "Threads",
+};
+/**
+ * The autobrowse site each platform's login is on: Threads signs in through Instagram, so its
+ * reads and acts run on the instagram site as an Instagram login.
+ */
+const LOGIN_SITE: Readonly<Record<ReachPostPlatform, string>> = {
+  linkedin: "linkedin",
+  x: "x",
+  instagram: "instagram",
+  youtube: "youtube",
+  tiktok: "tiktok",
+  threads: "instagram",
 };
 /** The longest comment each platform takes (X: a reply from a Basic account). */
 export const COMMENT_MAX: Readonly<Record<ReachPostPlatform, number>> = {
@@ -65,6 +81,8 @@ export const COMMENT_MAX: Readonly<Record<ReachPostPlatform, number>> = {
   x: 280,
   instagram: 2200,
   youtube: 1000,
+  tiktok: 150,
+  threads: 500,
 };
 /** How long the model may write, in its words. */
 const LENGTH: Readonly<Record<ReachPostPlatform, string>> = {
@@ -72,24 +90,36 @@ const LENGTH: Readonly<Record<ReachPostPlatform, string>> = {
   x: "One or two sentences, under 250 characters.",
   instagram: "One or two sentences, under 300 characters.",
   youtube: "One or two sentences, under 300 characters.",
+  tiktok: "One sentence, under 140 characters.",
+  threads: "One or two sentences, under 300 characters.",
 };
 /**
  * Reads a pass, at most, under autobrowse's caps; a pass runs every six hours until the day's
  * comments wait (`watch.ts`). LinkedIn meters `posts` at 40 a day for linkedin@wren; X searches
  * 50; an Instagram search is one read plus a page per post, 10 searches a day. A YouTube search
- * costs 100 of the channel's 10,000 quota units a day, which uploads share (1,600 each).
+ * costs 100 of the channel's 10,000 quota units a day, which uploads share (1,600 each). TikTok
+ * and Threads search by page load: 20 and 10 a day.
  */
 const READS_PER_PASS: Readonly<Record<ReachPostPlatform, number>> = {
   linkedin: 10,
   x: 10,
   instagram: 1,
   youtube: 3,
+  tiktok: 2,
+  threads: 2,
 };
 /**
  * Results one search scrolls to, the flow's most. A platform counts searches and page loads, not
  * results, so one deep search beats several short ones (William 10-25: most data per action).
  */
-const SEARCH_MAX = { linkedin: 50, x: 100, instagram: 30, youtube: 50 } as const;
+const SEARCH_MAX = {
+  linkedin: 50,
+  x: 100,
+  instagram: 30,
+  youtube: 50,
+  tiktok: 30,
+  threads: 30,
+} as const;
 /** Instagram accounts read a pass through Graph's business discovery: an API call, no page load. */
 const IG_GRAPH_PER_PASS = 8;
 /** Words a search leaves out (LinkedIn `NOT`, X `-`): job ads drown the owners' own posts. */
@@ -131,6 +161,8 @@ const NEVER: Readonly<Record<ReachPostPlatform, readonly string[]>> = {
   x: [],
   instagram: [],
   youtube: [],
+  tiktok: [],
+  threads: [],
 };
 
 /** One platform's settings; all three share the shape. */
@@ -147,8 +179,11 @@ function commentsSettingsSchemaFor(platform: ReachPostPlatform) {
           "never his personal LinkedIn or the research alt",
         )
         .refine(
-          (a) => !a || a.startsWith(`${platform}@`) || (platform !== "linkedin" && a === platform),
-          `a ${NAME[platform]} login: ${platform}@<label>`,
+          (a) =>
+            !a ||
+            a.startsWith(`${LOGIN_SITE[platform]}@`) ||
+            (platform !== "linkedin" && a === LOGIN_SITE[platform]),
+          `a ${NAME[LOGIN_SITE[platform] as ReachPostPlatform]} login: ${LOGIN_SITE[platform]}@<label>`,
         ),
       /** Comments drafted a day, at most; autobrowse's comment cap bounds the sends. */
       perDay: z.number().int().min(0).max(40).default(10),
@@ -171,8 +206,8 @@ function commentsSettingsSchemaFor(platform: ReachPostPlatform) {
       /** A fit post is liked and its author followed with no yes, and again with his Comment. */
       like: z.boolean().default(true),
       follow: z.boolean().default(true),
-      /** Posts older than this are left. */
-      maxAgeHours: z.number().int().min(6).max(336).default(72),
+      /** Posts older than this are left. TikTok's search runs by fit, not time: give it weeks. */
+      maxAgeHours: z.number().int().min(6).max(720).default(72),
       /** Code's rank (0 to 100) a post needs before a comment is drafted for it. */
       minFit: z.number().int().min(0).max(100).default(MIN_FIT),
       /**
@@ -327,6 +362,57 @@ const ytPostOf = (v: YtVideo): FeedPost | null => {
     raw: v,
   };
 };
+
+/** autobrowse's TikTok search row (`tiktok GET /web/search`). */
+interface TtVideo {
+  id: string;
+  url: string;
+  username: string;
+  name: string | null;
+  bio: string | null;
+  text: string;
+  at: string;
+  likes: number | null;
+  comments: number | null;
+}
+
+const ttPostOf = (v: TtVideo): FeedPost => ({
+  ref: v.id,
+  author: v.name || v.username,
+  authorUrl: `https://www.tiktok.com/@${v.username}`,
+  handle: v.username.toLowerCase(),
+  ...(v.bio ? { headline: v.bio } : {}),
+  text: v.text,
+  ...(v.at ? { at: v.at } : {}),
+  reactions: v.likes ?? 0,
+  comments: v.comments ?? 0,
+  url: v.url,
+  raw: v,
+});
+
+/** autobrowse's Threads search row (`instagram GET /web/threads/search`). */
+interface ThPost {
+  code: string;
+  url: string;
+  username: string;
+  text: string;
+  at: string;
+  likes: number | null;
+  replies: number | null;
+}
+
+const thPostOf = (p: ThPost): FeedPost => ({
+  ref: p.code,
+  author: p.username,
+  authorUrl: `https://www.threads.com/@${p.username}`,
+  handle: p.username.toLowerCase(),
+  text: p.text,
+  ...(p.at ? { at: p.at } : {}),
+  reactions: p.likes ?? 0,
+  comments: p.replies ?? 0,
+  url: p.url,
+  raw: p,
+});
 
 /** autobrowse's `GET /rest/posts/{urn}`: the API's post, or its page in that shape until granted. */
 interface RestPost {
@@ -612,6 +698,43 @@ export function postReader(
       person: (k) => page(k.handle),
       one: async (id) => (await videos([id]))[0] ?? null,
       // Subscriptions have no cheap feed read: a search a channel would spend the day's quota.
+      feed: async () => [],
+    };
+  }
+  if (platform === "tiktok" || platform === "threads") {
+    // Search only, by page load: no account page or feed read is built, and one post is found
+    // by its search again, never alone.
+    const search =
+      platform === "tiktok"
+        ? async (keywords: string) =>
+            (
+              (
+                await sites.call<{ data?: TtVideo[] }>(
+                  "tiktok",
+                  "GET",
+                  "/web/search",
+                  { q: keywords, max: SEARCH_MAX.tiktok },
+                  account,
+                )
+              ).data ?? []
+            ).map(ttPostOf)
+        : async (keywords: string) =>
+            (
+              (
+                await sites.call<{ data?: ThPost[] }>(
+                  "instagram",
+                  "GET",
+                  "/web/threads/search",
+                  { q: keywords, max: SEARCH_MAX.threads },
+                  account,
+                )
+              ).data ?? []
+            ).map(thPostOf);
+    return {
+      search,
+      page: async () => [],
+      person: async () => [],
+      one: async () => null,
       feed: async () => [],
     };
   }
@@ -1789,6 +1912,10 @@ export function followAct(
         "/youtube/v3/subscriptions",
         { snippet: { resourceId: { channelId: h } } },
       ];
+    case "tiktok":
+      return ["tiktok", "POST", `/web/${h}/follow`, { username: h }];
+    case "threads":
+      return ["instagram", "POST", `/web/threads/${h}/follow`, { username: h }];
   }
 }
 
@@ -1839,6 +1966,25 @@ export function postActs(
         like: like ? ["youtube", "POST", "/youtube/v3/videos/rate", { id: p.ref }] : null,
         follow: follow && h ? followAct("youtube", { handle: h }) : null,
       };
+    case "tiktok": {
+      const video = { videoId: p.ref, ...(h ? { username: h } : {}) };
+      return {
+        comment: ["tiktok", "POST", `/web/videos/${ref}/comments`, { ...video, text: body }],
+        like: like ? ["tiktok", "POST", `/web/videos/${ref}/like`, video] : null,
+        follow: follow && h ? followAct("tiktok", { handle: h }) : null,
+      };
+    }
+    case "threads": {
+      // A Threads post's page sits under its author: no handle, no act.
+      if (!h) return { comment: null, like: null, follow: null };
+      const post = { username: h, code: p.ref };
+      const at = `/web/threads/${encodeURIComponent(h)}/post/${ref}`;
+      return {
+        comment: ["instagram", "POST", `${at}/reply`, { ...post, text: body }],
+        like: like ? ["instagram", "POST", `${at}/like`, post] : null,
+        follow: follow ? followAct("threads", { handle: h }) : null,
+      };
+    }
   }
 }
 

@@ -26,6 +26,8 @@ const NAME: Readonly<Record<ReachPostPlatform, string>> = {
   x: "X",
   instagram: "Instagram",
   youtube: "YouTube",
+  tiktok: "TikTok",
+  threads: "Threads",
 };
 /** First path parts that are the site's own pages, not an account. */
 const X_PAGES = new Set([
@@ -118,6 +120,8 @@ export function postUrlOf(platform: ReachPostPlatform, ref: string): string {
   if (platform === "linkedin") return `https://www.linkedin.com/feed/update/${ref}/`;
   if (platform === "x") return `https://x.com/i/status/${ref}`;
   if (platform === "youtube") return `https://www.youtube.com/watch?v=${ref}`;
+  if (platform === "tiktok") return `https://www.tiktok.com/@_/video/${ref}`;
+  if (platform === "threads") return `https://www.threads.com/t/${ref}`;
   return `https://www.instagram.com/p/${ref}/`;
 }
 
@@ -313,11 +317,13 @@ export async function pickedUrl(
   if (p.platform === "linkedin" && p.authorUrl) return p.authorUrl;
   const handle = p.handle?.replace(/^@/, "");
   if (handle && p.platform !== "linkedin")
-    return p.platform === "x"
-      ? `https://x.com/${handle}`
-      : p.platform === "youtube"
-        ? `https://www.youtube.com/channel/${handle}`
-        : `https://www.instagram.com/${handle}/`;
+    return {
+      x: `https://x.com/${handle}`,
+      youtube: `https://www.youtube.com/channel/${handle}`,
+      tiktok: `https://www.tiktok.com/@${handle}`,
+      threads: `https://www.threads.com/@${handle}`,
+      instagram: `https://www.instagram.com/${handle}/`,
+    }[p.platform];
   if (p.authorUrl) return p.authorUrl;
   throw new ReachRefusal("its author has no address to follow");
 }
