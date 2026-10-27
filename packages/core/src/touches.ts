@@ -279,9 +279,9 @@ async function findLinks(db: Queryable, ref: HandleRef): Promise<Links> {
     const [cp] = await rowsOf(
       db,
       ref.platform === "linkedin"
-        ? sql`select person_id from contact_points where kind = ${kind} and person_id is not null
+        ? sql`select person_id from own_contact_points where kind = ${kind} and person_id is not null
             and lower(substring(value from 'linkedin\\.com/in/([^/?#]+)')) = ${h} limit 1`
-        : sql`select person_id from contact_points where kind = ${kind} and person_id is not null
+        : sql`select person_id from own_contact_points where kind = ${kind} and person_id is not null
             and lower(value) = ${ref.url.toLowerCase()} limit 1`,
     );
     personId = idOf(cp, "person_id");

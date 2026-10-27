@@ -290,6 +290,35 @@ describe("backfill, timeline and records", () => {
 });
 
 describe("writers", () => {
+  it("links a handle by a firm's own contact point, never by one shared across many firms", async () => {
+    const url = (n: string) => `https://x.com/${n}`;
+    for (let i = 0; i < 7; i++) {
+      const c = await one(
+        sql`insert into companies (domain) values (${`f${i}.example.test`}) returning id`,
+      );
+      const p = await one(
+        sql`insert into people (company_id, full_name, is_compliance, origin, origin_ref, raw)
+          values (${c.id as number}, ${`P${i}`}, false, 'website', 'test', '{}') returning id`,
+      );
+      // f0 alone publishes its own; all seven carry a shared builder's footer link.
+      for (const v of i === 0 ? [url("own_firm"), url("site_builder")] : [url("site_builder")])
+        await run(sql`insert into contact_points (company_id, person_id, kind, value, source, source_url)
+          values (${c.id as number}, ${p.id as number}, 'x', ${v}, 'link', ${`https://f${i}.example.test/`})`);
+    }
+    const own = await resolveHandle(pg.db, {
+      platform: "x",
+      handle: "own_firm",
+      url: url("own_firm"),
+    });
+    const shared = await resolveHandle(pg.db, {
+      platform: "x",
+      handle: "site_builder",
+      url: url("site_builder"),
+    });
+    expect(own.personId).not.toBeNull();
+    expect(shared.personId).toBeNull();
+  });
+
   it("a new text contact and a new handle each join a profile", async () => {
     const c = await one(sql`insert into sms_contacts (e164, source_kind, basis, email, name)
       values ('+15550100107', 'manual', 'opt_in', 'gus@example.test', 'Gus') returning id`);
