@@ -94,3 +94,62 @@ already hold.
 - 2026-10-06: Worker + DO, not a container on the box or the Mac (memory). $0.
 - 2026-10-06: prod `WREN_LLM` flipped from `cohere:command-a-03-2025` to `gateway` (William).
   `WREN_FILL_LLM` stays on Cohere direct.
+
+## 2026-10-27: the keys we have left
+
+What the ledger and a real run show today:
+
+- Gemini: 88 keys, 53 suspended (403), the rest 503 "high demand" or timeouts. A weaver run
+  through `free` got 51 hits, 6 reads and 14 findings, then died in extract: every Gemini key
+  spent or cooling, OpenRouter Gemma 429 upstream, Nemotron 3 super 404 (gone). Rotation gets
+  caught: William drops Gemini keys.
+- Cerebras and Groq keys: dead (never in the gateway). Cohere: 1 production key on credits,
+  0 calls today. Anthropic: $200 a month of credits; prod already calls it direct for the
+  watch and fills.
+- Anthropic's Messages API takes images (url or base64), so vision needs no Cohere. Anthropic
+  has no embeddings and cannot read a YouTube URL. Its OpenAI-compatible endpoint takes
+  `image_url`, ignores `response_format` and prompt caching, and Anthropic calls it "not a
+  long-term or production-ready solution".
+- Gemini also carried two things no other provider does: `learn`'s embeddings
+  (`gemini-embedding-001`, 256-dim unit vectors stored per item) and weaver's "on screen" read
+  of a YouTube video straight from its URL.
+
+### The goal
+
+Every production call lands. The $200 a month is the budget and we cap it in dollars. One
+interface per repo. No shim between us and Claude. The least custom code.
+
+### Options
+
+| | A. Worker + Anthropic through its OpenAI-compatible endpoint | B. Worker + a native Messages translator | C. A framework gateway on the VPS (Bifrost, Go, ~120 MB; or LiteLLM, Python, ~400 MB) | D. Claude direct through the SDK; the Worker keeps only free and Cohere |
+|---|---|---|---|---|
+| Code | one provider entry; a dollar ledger in the guard | ~200 lines of request and SSE translation, plus the dollar ledger | none of ours; a service to install, keep and watch | delete Gemini and the native passthrough; prod `WREN_LLM=anthropic:…` |
+| Every call lands | one more hop; a layer Anthropic does not stand behind | one more hop; our translator is the risk | one more hop on a VPS without Cloudflare's uptime; the VPS down = prod LLM down | the SDK's own retries, no hop |
+| Spend cap | ours, per caller, once the guard counts dollars per model | same | per virtual key, in dollars, built in | Anthropic workspace limit ($200) plus one API key per caller in the console |
+| Claude features | no caching, no structured outputs, thinking not returned | all, if the translator is right | all (Bifrost and LiteLLM speak Messages natively) | all |
+| One door | yes | yes | yes, and an Anthropic-format door too | two: `anthropic` and `gateway`, both names `client.ts` already takes |
+
+Priorities, ranked: every production call lands; spend capped in dollars; least custom
+code; full Claude features. A and B fail the first or the third. C is the ideal shape, but a
+VPS service is a new thing to keep up and a new way for prod to go down, for a cap the
+Anthropic console already gives.
+
+### Decision: D
+
+- Prod `WREN_LLM=anthropic:claude-haiku-5-5`. The watch stays on Sonnet 5.5, fills on Haiku
+  5.5. Haiku 5.5 is $0.10 in / $0.50 out per MTok; Sonnet 5.5 $2 / $10. At Haiku prices
+  $200 is about 400M input tokens a month.
+- William sets a $200 a month workspace spend limit in the Anthropic console and makes one
+  API key per caller (prod, the Mac), so the console shows spend per caller. Money is his.
+- The Worker loses Gemini: the provider, the native `/v1beta` passthrough, `GEMINI_KEYS`.
+  `free` becomes the OpenRouter `:free` models that answer today, best first (Gemma 4 31B,
+  Nemotron 3.5 super VL, Inkling); `free-bulk` goes. `cohere` stays as is. The `/usage`
+  page is the judge of which free models stay.
+- `client.ts` drops the dead providers (groq, gemini, cerebras, mistral).
+- Followed by, not in this pass:
+  - Embeddings: a new model is a new space, so every stored vector is re-embedded. Cohere
+    `embed-v5.0-pro` direct (it needs `input_type` and `output_dimension`, which the
+    compatibility endpoint lacks), or Voyage. Own decision, own migration.
+  - YouTube "on screen" reads: lost with Gemini. The way back is falcon's frames path
+    (yt-dlp, ffmpeg frames) with Claude vision. Captions still read.
+  - weaver `--model anthropic` for a Mac without Claude Code; `claude -p` covers it today.
