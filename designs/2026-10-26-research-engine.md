@@ -520,4 +520,6 @@ and SOPs against plan files (WA-908, after the first runs show what a plan file 
   tokens over all steps 93k → 142k, output 34k → 44k; the extract step alone per document:
   input 8.0k → 8.4k (the known list grew with the findings), output 2.8k → 2.5k, triage output per hit 111 → 82 tokens, triage `why`
   text 5.1k → 3.0k chars. No answer hit the cap, so no continuation ran. Verdicts still thin
-  (13 thin, 1 off): the ask, not the engine. Ledgers and `compare.py`: private tasks repo, `docs/10-27/engine-runs/`.
+  (13 thin, 1 off): the ask, not the engine. Live CLI smoke `pause-smoke`: `run --pause` stopped after round 1, `weaver steer` wrote the
+  record, `--resume --pause` ran round 2 with the line in the snapshot ask and in the review's
+  own words. Ledgers and `compare.py`: private tasks repo, `docs/10-27/engine-runs/`.
