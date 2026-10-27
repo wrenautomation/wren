@@ -267,6 +267,8 @@ export interface FeedPost {
   reactions: number;
   comments: number;
   url: string;
+  /** Off target as the reader sees it (a gaming video, not in English): kept as dropped with this. */
+  off?: string;
   raw?: unknown;
 }
 
@@ -333,7 +335,7 @@ interface IgMedia {
 }
 
 /** A YouTube Data API video (`videos?part=snippet,statistics`). */
-interface YtVideo {
+export interface YtVideo {
   id: string;
   snippet?: {
     title?: string;
@@ -341,16 +343,37 @@ interface YtVideo {
     channelId?: string;
     channelTitle?: string;
     publishedAt?: string;
+    categoryId?: string;
+    defaultAudioLanguage?: string;
   };
   /** `commentCount` is absent when the video takes no comments. */
   statistics?: { likeCount?: string; commentCount?: string };
 }
 
+/** YouTube categories no owner talks shop in: their "founder" is a news story, a game, a show. */
+const YT_OFF_CATEGORY: Record<string, string> = {
+  "1": "a film",
+  "2": "a car video",
+  "10": "a music video",
+  "15": "a pet video",
+  "17": "a sports video",
+  "19": "a travel video",
+  "20": "a gaming video",
+  "23": "a comedy video",
+  "24": "an entertainment video",
+  "25": "a news video",
+};
+
 /** A video as a post; the channel id is its handle, case kept (an id lowercased is another). */
-const ytPostOf = (v: YtVideo): FeedPost | null => {
+export const ytPostOf = (v: YtVideo): FeedPost | null => {
   const sn = v.snippet;
   if (!sn?.channelId || v.statistics?.commentCount === undefined) return null;
+  const lang = sn.defaultAudioLanguage;
+  const off =
+    (sn.categoryId && YT_OFF_CATEGORY[sn.categoryId]) ||
+    (lang && !/^en\b/i.test(lang) ? "not in English" : undefined);
   return {
+    ...(off ? { off } : {}),
     ref: v.id,
     author: sn.channelTitle || sn.channelId,
     authorUrl: `https://www.youtube.com/channel/${sn.channelId}`,
@@ -1100,7 +1123,7 @@ export async function keepPosts(
               ? "you passed on them"
               : p.text.trim().length < 40
                 ? "too short to answer"
-                : off;
+                : (p.off ?? off);
       const [row] = await tx
         .insert(reachPosts)
         .values({

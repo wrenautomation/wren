@@ -25,6 +25,7 @@ import {
   shortcodeAt,
   topicCore,
   vanityOf,
+  ytPostOf,
 } from "./reach-posts.js";
 
 const NOW = new Date("2026-10-07T15:00:00Z");
@@ -513,5 +514,27 @@ describe("ownCircle", () => {
     expect(acts.like).toBeNull();
     expect(acts.follow).toBeNull();
     expect(acts.comment).not.toBeNull();
+  });
+});
+
+describe("ytPostOf", () => {
+  const video = (snippet: Record<string, string>) => ({
+    id: "v1",
+    snippet: { title: "How a founder grew sales", channelId: "UCx", ...snippet },
+    statistics: { likeCount: "3", commentCount: "1" },
+  });
+
+  it("drops gaming and news videos and ones not in English", () => {
+    expect(ytPostOf(video({ categoryId: "20" }))?.off).toBe("a gaming video");
+    expect(ytPostOf(video({ categoryId: "25" }))?.off).toBe("a news video");
+    expect(ytPostOf(video({ categoryId: "27", defaultAudioLanguage: "tr" }))?.off).toBe(
+      "not in English",
+    );
+  });
+
+  it("keeps a how-to video in English", () => {
+    const p = ytPostOf(video({ categoryId: "26", defaultAudioLanguage: "en-US" }));
+    expect(p?.off).toBeUndefined();
+    expect(p?.handle).toBe("UCx");
   });
 });
