@@ -690,10 +690,12 @@ describe("httpStep", () => {
     const step = httpStep("https://hooks.example.com/step", {
       resolve: async () => [{ address: "10.0.0.5", family: 4 }],
     });
-    await expect(step("in", {} as never)).rejects.toThrow(/private address/);
+    await expect(step("in", {} as never, {} as never)).rejects.toThrow(/private address/);
   });
 
   it("refuses a private IP literal before any lookup", async () => {
-    await expect(httpStep("https://127.0.0.1/step")("in", {} as never)).rejects.toThrow();
+    await expect(
+      httpStep("https://127.0.0.1/step")("in", {} as never, {} as never),
+    ).rejects.toThrow();
   });
 });
