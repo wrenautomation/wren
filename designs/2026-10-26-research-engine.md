@@ -503,3 +503,21 @@ and SOPs against plan files (WA-908, after the first runs show what a plan file 
   (`by` and `from` on every record) is the decoupling; extract shared surface code on its second
   or third use.
 
+- 2026-10-27, evening: (1), (2) and (5) built; falcon 0.6.0, raven 0.3.0, weaver 0.3.0 on npm
+  (wren still pins the old three until step 2). Item (3) and the known-list compaction are not
+  built, by William's call: the full known list stays. Falcon: the claim prompt caps nothing; an
+  adapter throws `Cut` (text so far, tokens) on an output cap stop, the extractor keeps the
+  whole findings before the cut, gates them, and asks again from the last kept quote with those
+  findings known (`Extracted.continued`). Weaver writes that spend as one that worked, with its
+  tokens. Raven: `Ask.steer` rendered first in every prompt ("The person says:"), plan files
+  version 3, triage `why` on a read only. Weaver: `steer` record (`from: human`, no step),
+  `weaver steer <run> <text>`, `run --steer`, `run --pause` (the loop stops after a review that
+  says again; no exit code; `--resume` goes on). Decision: a paused run's `rounds` is the
+  pointer, one ahead of the reviews done; the CLI note counts edges. Comparison, same ask
+  ("how do staffing firms win repeat clients", Haiku, searxng + fetcher, 3/6/3) on 0.2.4 then
+  0.3.0: documents read 9 → 14 (every read landed; the old run lost one extract to a malformed
+  answer, the new run lost none), findings 65 → 90 (7.2 → 6.4 per document), model input
+  tokens 93k → 142k (per document 8.0k → 8.4k: the known list grew with the findings), output
+  34k → 44k (per document 2.8k → 2.5k), triage output per hit 111 → 82 tokens, triage `why`
+  text 5.1k → 3.0k chars. No answer hit the cap, so no continuation ran. Verdicts still thin
+  (13 thin, 1 off): the ask, not the engine. Ledgers in the session scratchpad.
