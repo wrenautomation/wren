@@ -910,7 +910,8 @@ export function Rows<T>(p: RowsProps<T>) {
                     )}
                   >
                     {r.going ? (
-                      <span className="absolute inset-y-0 right-2 z-1 flex items-center">
+                      // w-max: the end cell can be narrow (beside a peek); the word stays on one line.
+                      <span className="absolute inset-y-0 right-2 z-1 flex w-max items-center">
                         <Tag tone="accent" busy>
                           {r.going}
                         </Tag>
