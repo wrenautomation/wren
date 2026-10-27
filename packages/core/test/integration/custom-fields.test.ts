@@ -7,6 +7,7 @@ import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
+  businessFactLines,
   customFacts,
   customFieldsOf,
   orderCustomFields,
@@ -268,6 +269,7 @@ describe("copy and workflows", () => {
         "biz.phone": "(416) 555-0199",
         "field.pipe_size": "3/4",
       });
+      expect(await businessFactLines(pg.db, "acme")).toEqual(["Phone: (416) 555-0199"]);
     } finally {
       await theirs.stop();
     }

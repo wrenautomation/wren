@@ -7,6 +7,7 @@
 import * as restate from "@restatedev/restate-sdk";
 import { can, type Who, WREN } from "@wren/core/access";
 import { type Client, findClient } from "@wren/core/clients";
+import { businessFactLines } from "@wren/core/custom-fields";
 import type { KeyStore } from "@wren/core/keys";
 import { meteredModel } from "@wren/core/metered";
 import { isDemo, type Viewer, whoIs } from "@wren/core/portal";
@@ -595,7 +596,11 @@ export function makeInboxDesk(deps: InboxDeskDeps) {
                       }
                     : {}),
                   sender,
-                  ...(!client && deps.facts ? { facts: deps.facts } : {}),
+                  ...(client
+                    ? { facts: () => businessFactLines(deps.db, client) }
+                    : deps.facts
+                      ? { facts: deps.facts }
+                      : {}),
                 },
                 { thread: req.thread, channel: req.channel, target: req.target, now },
               );

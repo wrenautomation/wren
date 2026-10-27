@@ -445,6 +445,11 @@ export function businessFacts(main: Queryable, owner: string | null): Promise<Cu
     .orderBy(asc(customValues.key));
 }
 
+/** A business's facts as prompt lines (`label: value`), for drafts written as that business. */
+export async function businessFactLines(main: Queryable, owner: string | null): Promise<string[]> {
+  return (await businessFacts(main, owner)).map((b) => `${b.label}: ${b.value}`);
+}
+
 /** Add or change one business fact; an empty value removes it. */
 export async function saveBusinessFact(
   main: Queryable,

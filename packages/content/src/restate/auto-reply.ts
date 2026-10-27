@@ -6,6 +6,7 @@
  */
 import * as restate from "@restatedev/restate-sdk";
 import { findClient } from "@wren/core/clients";
+import { businessFactLines } from "@wren/core/custom-fields";
 import type { Fired, FireTriggers } from "@wren/core/executor";
 import type { KeyStore } from "@wren/core/keys";
 import { meteredModel } from "@wren/core/metered";
@@ -139,7 +140,11 @@ export function makeAutoReply(deps: AutoReplyDeps) {
                       }
                     : {}),
                   sender,
-                  ...(!client && deps.facts ? { facts: deps.facts } : {}),
+                  ...(client
+                    ? { facts: () => businessFactLines(deps.db, client) }
+                    : deps.facts
+                      ? { facts: deps.facts }
+                      : {}),
                 },
                 { thread, channel: at.option.channel, target: at.option.target, now },
               );
