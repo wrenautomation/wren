@@ -22,6 +22,7 @@ Layout and organization changes need the shell, the router and the reads togethe
 - Fake server: `web/src/mocks/api.ts`: one table, key = path (`console/call:<Service>.<handler>` for named handlers), value = body or a function of the call's body; `serve<Api>(service, {...})` types the answers with the server's API object; `pulse` fans out to the same table
 - Unmocked call: a 404 and `unmocked: <key>` in the console; the story's `play` (`settled()`) waits for the server to go quiet and fails on it
 - Answers: `web/src/mocks/data/`: `shell.ts` (account, bells, badges), `records.ts` (every records page: the server's types from `virtual:record-types`, rows by field kind), `apps.ts` (each app's own first read), `marketing.ts`, `me.ts`. Synthetic only
+- Sidebar groups: Revamp (no artifact draws the page), Ready to build (an artifact draws it, the page doesn't follow it yet), Done. A file split by group keeps its old meta `id`, so story ids don't move (`pages-wren-done`, `-port`, `pages-wren-tabs-done`, `-port`).
 - Stories: `web/src/pages-client.stories.tsx` (each client app, a record open, `Loading`, `Failed`), `pages-wren.stories.tsx` (each of Wren's apps), `pages-wren-tabs.stories.tsx` (one story per tab of Content, Engage, Outbound, Ads, Analytics and Pipelines, the sidebar's areas, the phone dock; id `pages-wren-apps--<app>-<tab>`)
 - Checks: `stories:build` in `gates.sh stories` (not in lint since 10-22); `test:stories` (`wren-stories`) in `gates.sh visual` and CI `test:stories`
 

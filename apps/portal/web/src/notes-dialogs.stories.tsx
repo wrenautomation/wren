@@ -10,7 +10,7 @@ import { CLIENT } from "./mocks/data/me.js";
 import type { NoteOpen, NoteShare } from "./modules/notes/api.js";
 import { ShareDialog } from "./modules/notes/share.js";
 
-const meta: Meta = { title: "Pages/Notes dialogs" };
+const meta: Meta = { title: "Revamp/Notes dialogs", id: "pages-notes-dialogs" };
 export default meta;
 
 const START: NoteShare[] = [
