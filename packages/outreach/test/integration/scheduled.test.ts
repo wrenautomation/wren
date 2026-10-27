@@ -97,4 +97,24 @@ describe("schedulePosts", () => {
     expect(await sendFailed(db(), "post", String(id), "HTTP 426")).toBe("skipped");
     expect(await read()).toMatchObject({ state: "skipped", stateReason: "send failed: HTTP 426" });
   });
+
+  it("with autoSend, a draft whose post went cold is skipped, not left for a click", async () => {
+    const old = new Date(now.getTime() - 30 * 86_400_000);
+    await db()
+      .insert(reachPosts)
+      .values([row(1, { postedAt: old, createdAt: old }), row(2)]);
+    const slots = await schedulePosts(db(), "linkedin", settings, { now, rand: () => 0 });
+    expect(slots).toHaveLength(1);
+    const kept = await db().select().from(reachPosts);
+    expect(kept.find((r) => r.ref === "urn:li:activity:1")).toMatchObject({
+      state: "skipped",
+      stateReason: "post went cold before a slot",
+    });
+    // Without autoSend it waits for his click.
+    await db().update(reachPosts).set({ state: "queued" });
+    const manual = { ...settings, autoSend: false };
+    await schedulePosts(db(), "linkedin", manual, { now, rand: () => 0 });
+    const after = await db().select().from(reachPosts);
+    expect(after.find((r) => r.ref === "urn:li:activity:1")?.state).toBe("queued");
+  });
 });

@@ -2,7 +2,9 @@
  * Approved comments on a schedule: each drafted, queued comment gets a slot on its account's lane
  * (`pacing.ts`), kept in `send_at`. Comments on others' posts share one lane per platform (the
  * settings' account); Reddit threads one per account, under its warm-up cap, within two weeks of
- * the thread (a drafted comment never goes stale once slotted). What can't fit stays waiting for his click.
+ * the thread (a drafted comment never goes stale once slotted). With `autoSend`, a post comment that
+ * can no longer fit before its post goes cold is skipped: no one waits to click it (William, 10-27).
+ * Without it, what can't fit stays waiting for his click.
  *
  * Reddit threads go out every day, 8:00 to 22:00 fleet time: people read Reddit in the evening and
  * on weekends (designs/2026-10-18-reddit-karma.md). A karma place's thread takes the first slots,
@@ -137,19 +139,29 @@ export async function schedulePosts(
       ),
     )
     .orderBy(desc(reachPosts.fit), reachPosts.id);
-  const slots = fill(items, {
-    now: o.now,
-    taken: lane.map((r) => new Date(r.at)),
-    pace: postPace(s.perDay),
-    rand: o.rand,
-    // A comment lands while the post is still read: inside the guard, or one half-life after we
-    // found it when it was found near the guard.
-    latest: (p) =>
-      Math.max(
-        (p.postedAt ?? p.createdAt).getTime() + s.maxAgeHours * HOUR,
-        p.createdAt.getTime() + s.halfLifeHours * HOUR,
-      ),
-  });
+  // A comment lands while the post is still read: inside the guard, or one half-life after we
+  // found it when it was found near the guard.
+  const latest = (p: (typeof items)[number]) =>
+    Math.max(
+      (p.postedAt ?? p.createdAt).getTime() + s.maxAgeHours * HOUR,
+      p.createdAt.getTime() + s.halfLifeHours * HOUR,
+    );
+  const cold = s.autoSend ? items.filter((p) => latest(p) < o.now.getTime()).map((p) => p.id) : [];
+  if (cold.length)
+    await db
+      .update(reachPosts)
+      .set({ state: "skipped", stateReason: "post went cold before a slot" })
+      .where(and(inArray(reachPosts.id, cold), eq(reachPosts.state, "queued")));
+  const slots = fill(
+    items.filter((p) => !cold.includes(p.id)),
+    {
+      now: o.now,
+      taken: lane.map((r) => new Date(r.at)),
+      pace: postPace(s.perDay),
+      rand: o.rand,
+      latest,
+    },
+  );
   for (const { item, at } of slots)
     await db
       .update(reachPosts)
