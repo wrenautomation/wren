@@ -26,6 +26,7 @@ import { writeFlagDays } from "@wren/core/experiment-store";
 import { type EdgePush, pushEdge } from "@wren/core/flag-store";
 import type { Notifier } from "@wren/core/notify";
 import {
+  CallTimeout,
   clientOfKey,
   errorText,
   makeLoopObject,
@@ -373,9 +374,17 @@ export function makeSearchWeek(deps: SearchWeekDeps) {
                 if (a.cited) e.cited++;
                 misses = 0;
               } catch (err) {
-                // A site's refusal, or a page shape the reader didn't know: this keyword is skipped.
-                // Anything else (the desk not up yet) is Restate's to retry, and the week waits.
-                if (!(err instanceof SiteCallError || err instanceof TypeError)) throw err;
+                // A site's refusal, a page shape the reader didn't know, or an ask past its limit:
+                // this keyword is skipped. Anything else (the desk not up yet) is Restate's to
+                // retry, and the week waits.
+                if (
+                  !(
+                    err instanceof SiteCallError ||
+                    err instanceof TypeError ||
+                    err instanceof CallTimeout
+                  )
+                )
+                  throw err;
                 e.failed = errorText(err);
                 if (++misses >= ENGINE_MISSES) break;
               }

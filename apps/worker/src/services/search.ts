@@ -4,6 +4,7 @@
 import { searchConsoleClient } from "@wren/channel-search";
 import { makeSearchWatch, makeSearchWeek } from "@wren/channel-search/restate";
 import { DESK, restateSites } from "@wren/core/content/restate";
+import { LIMITS } from "@wren/core/restate";
 import { type AnyService, type Deps, googleKey } from "./deps.js";
 
 /** The search domain's services, in the order they were served from `services.ts`. */
@@ -33,7 +34,8 @@ export function searchServices(deps: Deps): AnyService[] {
       makeSearchWeek({
         ...search,
         llm,
-        desk: (ctx) => restateSites(ctx, { caller: "wren:search-week", service: DESK }),
+        desk: (ctx) =>
+          restateSites(ctx, { caller: "wren:search-week", service: DESK, limitMs: LIMITS.desk }),
       }),
     );
   } else log.info("WREN_SEARCH_SITE/WREN_SEARCH_ORIGIN unset: no search loop");
