@@ -1,7 +1,9 @@
 /**
  * A list's numbered pages, as Google draws them: first, last, a few around the one you are on,
  * and a gap where the rest hide. The address holds the page (`pg`, from 1); the server skips
- * `offset` rows. No React.
+ * `offset` rows. A page reached by Next also holds the cursor of the row before it (`pg=3.<cursor>`),
+ * so rows that left the list since don't make it skip any. One value: whatever resets `pg` drops
+ * the cursor with it. No React.
  */
 
 /** Rows a list page asks for; the server's own default. */
@@ -25,9 +27,19 @@ export const pagesOf = (total: number, size = PAGE_SIZE): number =>
 
 /** The page an address names: a whole number from 1, else 1. */
 export function pageAt(raw: string | null): number {
-  const n = Number(raw);
+  const n = Number(raw?.split(".")[0]);
   return Number.isSafeInteger(n) && n > 1 ? n : 1;
 }
+
+/** The cursor a page reached by Next carries, if any. */
+export function cursorAt(raw: string | null): string | undefined {
+  const c = raw?.split(".")[1];
+  return c && /^[\w-]+$/.test(c) && pageAt(raw) > 1 ? c : undefined;
+}
+
+/** The `pg` value for page `n`, seen from `page`: the next one carries `next`, the row before it. */
+export const pgOf = (n: number, page: number, next: string | null): string | null =>
+  n <= 1 ? null : n === page + 1 && next ? `${n}.${next}` : String(n);
 
 /** Rows to skip to start page `page`. */
 export const offsetOf = (page: number, size = PAGE_SIZE): number => (page - 1) * size;

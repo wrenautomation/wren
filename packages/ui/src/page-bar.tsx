@@ -7,7 +7,7 @@
 import { cn } from "cn";
 import { num } from "./format.js";
 import { Icon } from "./icons.js";
-import { type Slot, slotsOf, spanOf } from "./pager.js";
+import { pgOf, type Slot, slotsOf, spanOf } from "./pager.js";
 import type { Place } from "./records.js";
 
 /** The artifact's `.pg b`; a finger gets a 44 px cell. */
@@ -23,6 +23,7 @@ export function PageBar({
   total,
   shown,
   size,
+  next = null,
   narrow,
 }: {
   place: Place;
@@ -33,10 +34,12 @@ export function PageBar({
   /** Rows on this page. */
   shown: number;
   size: number;
+  /** This page's last-row cursor: the next page starts after it. */
+  next?: string | null;
   narrow: boolean;
 }) {
   if (pages <= 1) return null;
-  const to = (n: number) => place.link({ pg: n <= 1 ? null : String(n) });
+  const to = (n: number) => place.link({ pg: pgOf(n, page, next) });
   const [from, upto] = spanOf(page, shown, size);
   const arrow = (dir: -1 | 1) => {
     const n = page + dir;

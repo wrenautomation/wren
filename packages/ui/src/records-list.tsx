@@ -43,7 +43,7 @@ import { Icon } from "./icons.js";
 import { PageTitle } from "./layout.js";
 import { filtersOf, ListBar, useLastUsed, useNarrow, useSavedViews, ViewTabs } from "./list-bar.js";
 import { PageBar } from "./page-bar.js";
-import { offsetOf, pageAt, pagesOf, sizeOf } from "./pager.js";
+import { cursorAt, offsetOf, pageAt, pagesOf, sizeOf } from "./pager.js";
 import { useScope } from "./palette-scope.js";
 import {
   columnsOf,
@@ -212,9 +212,12 @@ export function askOf(meta: RecordMeta, params: URLSearchParams): ListAsk {
 
 /** The page of rows an address asks for: its filters, sort and group, `pg`'s slice. */
 export function pageAskOf(meta: RecordMeta, params: URLSearchParams): ListAsk {
-  const at = pageAt(params.get("pg"));
+  const pg = params.get("pg");
+  const at = pageAt(pg);
   const size = sizeOf(params);
-  return { ...askOf(meta, params), limit: size, ...(at > 1 ? { offset: offsetOf(at, size) } : {}) };
+  const cursor = cursorAt(pg);
+  const from = cursor ? { cursor } : at > 1 ? { offset: offsetOf(at, size) } : {};
+  return { ...askOf(meta, params), limit: size, ...from };
 }
 
 /**
@@ -1061,6 +1064,7 @@ function List({
         total={page.data?.total ?? 0}
         shown={rows.length}
         size={size}
+        next={page.data?.next ?? null}
         narrow={narrow}
       />
 

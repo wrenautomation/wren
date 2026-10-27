@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { offsetOf, pageAt, pagesOf, type Slot, slotsOf, spanOf } from "./pager.js";
+import { cursorAt, offsetOf, pageAt, pagesOf, pgOf, type Slot, slotsOf, spanOf } from "./pager.js";
 
 describe("pagesOf", () => {
   it("counts whole pages and keeps one for an empty list", () => {
@@ -17,7 +17,7 @@ describe("pageAt", () => {
     expect(pageAt("")).toBe(1);
     expect(pageAt("0")).toBe(1);
     expect(pageAt("-3")).toBe(1);
-    expect(pageAt("2.5")).toBe(1);
+    expect(pageAt("2.5")).toBe(2);
     expect(pageAt("abc")).toBe(1);
     expect(pageAt("7")).toBe(7);
   });
@@ -89,5 +89,23 @@ describe("slotsOf", () => {
   it("clamps a page out of range", () => {
     expect(show(slotsOf(99, 12, 1))).toBe("1 … 8 9 10 11 12");
     expect(show(slotsOf(0, 12, 1))).toBe("1 2 3 4 5 … 12");
+  });
+});
+
+describe("cursorAt and pgOf", () => {
+  it("the next page carries the cursor; other pages don't", () => {
+    expect(pgOf(4, 3, "abc")).toBe("4.abc");
+    expect(pgOf(5, 3, "abc")).toBe("5");
+    expect(pgOf(2, 3, "abc")).toBe("2");
+    expect(pgOf(1, 0, "abc")).toBe(null);
+    expect(pgOf(4, 3, null)).toBe("4");
+  });
+
+  it("reads the cursor back, and refuses one on page 1 or with odd marks", () => {
+    expect(cursorAt("4.abc_-9")).toBe("abc_-9");
+    expect(cursorAt("4")).toBeUndefined();
+    expect(cursorAt("1.abc")).toBeUndefined();
+    expect(cursorAt("4.a/b")).toBeUndefined();
+    expect(cursorAt(null)).toBeUndefined();
   });
 });
