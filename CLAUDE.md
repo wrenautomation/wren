@@ -7,14 +7,16 @@ New session: read in this order, stop when you have enough.
 3. `map/CLAUDE.md` before editing code: what each table, type and loop is, and what a change hits.
 4. `designs/` for why (dated, with decision logs). `deploy/README.md` to rebuild infra.
 
-Prod from here: `node scripts/prod-sql.mjs "<sql>"` (read only), `node scripts/ingress.mjs <Service/key/handler> [json]`,
+Prod: `node scripts/prod-sql.mjs "<sql>"` (read only), `node scripts/ingress.mjs <Service/key/handler> [json]`,
 `node scripts/prod-wren.mjs <cmd>`. Never print `deploy/prod.env`, the database URL or tokens; never source an env file.
 Secrets: `node scripts/secrets.mjs keys <file|/ssm/name>` (names only) or `run <source> -- <cmd>` (output masked).
 
-Shipping: `./scripts/gates.sh changed` while building, commit with `git commit -- <paths>` (other sessions stage files
-here), then `scripts/push.sh <commit>`: pushes (one push at a time; merges origin/main in if it moved), waits for CI's gates and the deploy (no local rerun: CI is the judge),
-then brings the folder copy up to origin/main. CI builds beside the gates and deploys `main` once lint, unit and schema pass; story tests and integration report on their own. An env change: `deploy/scripts/push-secrets.sh` (diff SSM first, it overwrites the whole parameter),
-then `gh workflow run deploy.yml --ref main`.
+Shipping:
+- Build: `./scripts/gates.sh changed`. Turbo keeps one cache (`~/Library/Caches/wren_automation/turbo/wren`), so a package that passed once is a hit.
+- Commit with `git commit -- <paths>`: other sessions stage files here.
+- Push with `scripts/push.sh <commit>`. It merges origin/main if it moved, pushes, waits for CI's gates and the deploy, then syncs the folder copy. CI is the judge: no local rerun.
+- CI deploys `main` once lint, unit and schema pass. Story tests and integration report on their own.
+- Env change: diff SSM first, then `deploy/scripts/push-secrets.sh` (it overwrites the whole parameter), then `gh workflow run deploy.yml --ref main`.
 
 Hard rules: repo is public (no lead data, amounts, client names, secrets; tests use synthetic data).
 Never `tofu apply -target` the Lambda. Never call `Resolution/default/resolve` by hand; queue it.
