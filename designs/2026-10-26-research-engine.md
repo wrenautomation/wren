@@ -515,9 +515,9 @@ and SOPs against plan files (WA-908, after the first runs show what a plan file 
   says again; no exit code; `--resume` goes on). Decision: a paused run's `rounds` is the
   pointer, one ahead of the reviews done; the CLI note counts edges. Comparison, same ask
   ("how do staffing firms win repeat clients", Haiku, searxng + fetcher, 3/6/3) on 0.2.4 then
-  0.3.0: documents read 9 → 14 (every read landed; the old run lost one extract to a malformed
-  answer, the new run lost none), findings 65 → 90 (7.2 → 6.4 per document), model input
-  tokens 93k → 142k (per document 8.0k → 8.4k: the known list grew with the findings), output
-  34k → 44k (per document 2.8k → 2.5k), triage output per hit 111 → 82 tokens, triage `why`
+  0.3.0: documents read 9 → 14 (reads that landed 9 of 14 → 14 of 16; the old run lost one extract
+  to a malformed answer, the new run lost none), findings 65 → 90 (7.2 → 6.4 per document), model input
+  tokens over all steps 93k → 142k, output 34k → 44k; the extract step alone per document:
+  input 8.0k → 8.4k (the known list grew with the findings), output 2.8k → 2.5k, triage output per hit 111 → 82 tokens, triage `why`
   text 5.1k → 3.0k chars. No answer hit the cap, so no continuation ran. Verdicts still thin
-  (13 thin, 1 off): the ask, not the engine. Ledgers in the session scratchpad.
+  (13 thin, 1 off): the ask, not the engine. Ledgers and `compare.py`: private tasks repo, `docs/10-27/engine-runs/`.
