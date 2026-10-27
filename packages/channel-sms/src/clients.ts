@@ -6,6 +6,7 @@
  * campaign to watch.
  */
 import { type Client, findClient, sendsOn } from "@wren/core/clients";
+import { businessFacts } from "@wren/core/custom-fields";
 import type { Db } from "@wren/db";
 import { z } from "zod";
 
@@ -61,7 +62,10 @@ export async function clientSms(main: Db, id: string): Promise<ClientSms> {
     profile,
     senderName: texts.data.senderName,
     campaignId: texts.data.campaignId,
-    bookingLink: texts.data.bookingLink,
+    // A business fact `booking_link` wins over the texts setting (designs/2026-10-09-custom-fields.md).
+    bookingLink:
+      (await businessFacts(main, id)).find((b) => b.key === "booking_link")?.value ||
+      texts.data.bookingLink,
     calcom:
       products[REMINDERS] !== undefined && client.accounts.calcom ? client.accounts.calcom : null,
     calendar:
