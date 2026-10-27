@@ -43,7 +43,8 @@ const sent = (path: string) => ACCOUNT_CALLS.filter((c) => c.path === path);
 
 /** An action behind a row's ⋯: open it, press the item. */
 async function fromMenu(row: ReturnType<typeof within>, title: string | RegExp, item: string) {
-  await userEvent.click(row.getByRole("button", { name: title }));
+  // The row menu comes back once the row's last write ends ("Checking" holds it).
+  await userEvent.click(await row.findByRole("button", { name: title }, { timeout: 5_000 }));
   await userEvent.click(await within(document.body).findByRole("button", { name: item }));
 }
 
