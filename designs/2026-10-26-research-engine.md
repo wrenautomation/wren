@@ -232,6 +232,31 @@ Open until the first real run: the Finding shape; the five raven prompts; whethe
 a closed enum (reopen if a sixth plan file appears); the yield row grain (per source and `by`
 today, channel and ask kind when the rows exist).
 
+Built (2026-10-27, weaver 0.2.0), what the build decided beyond the agreed shape:
+- Records carry a `type` discriminator; `LedgerRecord.parse` at every write, so a bad line
+  never lands. Two records were added: `spend` (one per source or model call, `on` the record
+  it served, `ok`, `cost`, `ms`, `usd?`) replaces the "call result" of the agreed text, and
+  `done` closes a run with its note. `call` is the verdict (`keep`|`drop`, `on` a finding, `why`).
+  `From` gained `tool`: a source or the runner, neither a model nor a person.
+- A finding is kept unless its latest `call` is a drop. The run is finished when the last edge
+  is `stop`. Resume folds the run's records per step, so a run continues from the step it
+  stopped on, and a `--no-model` run stops at extract with its reason in the ledger.
+- The allow-list goes in as the plan file's `sources` (raven narrows to the plan file, never
+  widens), and the runner adds every opener here unless `--sources` was given by hand. The
+  fetcher yields a YouTube URL to the youtube source. A `Source` may carry `by`: a paste's
+  records are by the person, not by "paste".
+- The model: `claude -p --output-format json` by default (Claude Code headless, as agreed), or
+  `--model gateway[:alias]` for Wren's LLM gateway (`WREN_LLM_GATEWAY_URL`, `_TOKEN`, OpenAI
+  chat completions, raven's `parseAnswer`), or any command. The first real run went through the
+  gateway: `claude -p` inside a Claude Code session has not answered yet (open).
+- Autobrowse: no `./sites` subpath was needed. The wire is one URL shape
+  (`/api/sites/<site><path>`, a bearer, GET input in the query), so weaver carries a 30-line
+  `httpLadderClient` behind its own `LadderClient` port; autobrowse exports one if the wire grows.
+- First real run (two pasted pages, the gateway `free` alias): plan, fetch, triage, read,
+  extract, review, stop, 3 findings with their quotes, 2 minutes, all metered calls in the
+  ledger. The tune it asked for: falcon 0.4.1's claim prompt states the fact, never "the
+  document says". Finding v1 held; the three signs did not show.
+
 ## Out
 
 - A score column. Scores are learned from yield.
@@ -275,3 +300,10 @@ today, channel and ask kind when the rows exist).
 - 2026-10-27, later: 3.5c agreed (WA-899), section "3.5c weaver" above holds the shape, the
   options weighed, the build order and the open items. CRDT parked. Nothing of weaver's engine
   built yet; weaver 0.1.0 holds fetch and the video readers from 3.5a.
+- 2026-10-27, later: 3.5c built (WA-899). weaver 0.2.0: doors `./engine` (ports, registry,
+  step table, runner, fold), `./sources` (searxng, exa, youtube, fetcher, ladder, paste, ledger),
+  `./ledger` (records, `FilesLedger`, `MemoryLedger`, yield); CLI `weaver
+  run|trace|keep|drop|yield|sources`, JSON out. falcon 0.4.0 (the `./document` door) and raven
+  0.2.0 (`{value, usage}`) shipped for it; falcon 0.4.1 tuned the claim prompt after the first
+  real run. "Built" under "3.5c weaver" holds what the build decided. Next: 3.5d, the study and
+  wren's executor stations onto the engine, Postgres as the second ledger.
