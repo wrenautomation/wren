@@ -475,7 +475,7 @@ export function registerReach(program: Command, withDb: WithDb, settings: Settin
   posts
     .command("status", { isDefault: true })
     .description("One platform's settings, posts by state, and each search word's yield lately")
-    .option("--platform <p>", "linkedin, x or instagram", "linkedin")
+    .option("--platform <p>", "linkedin, x, instagram, youtube, tiktok or threads", "linkedin")
     .action(async (o: { platform?: string }) => {
       const platform = postPlatformOf(o.platform);
       json(
@@ -495,7 +495,7 @@ export function registerReach(program: Command, withDb: WithDb, settings: Settin
   posts
     .command("set")
     .description("Change one platform's settings; a field left out keeps its value")
-    .option("--platform <p>", "linkedin, x or instagram", "linkedin")
+    .option("--platform <p>", "linkedin, x, instagram, youtube, tiktok or threads", "linkedin")
     .option(
       "--account <key>",
       "the autobrowse login that reads (linkedin@wren, x@wren); empty = off",
