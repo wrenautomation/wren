@@ -1,5 +1,6 @@
 {
   "name": "@wren/phone",
+  "description": "Webhooks in: Telnyx calls and texts, Linq, Cal.com bookings.",
   "version": "0.0.0",
   "private": true,
   "type": "module",

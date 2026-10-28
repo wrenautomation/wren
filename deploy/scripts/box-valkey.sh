@@ -1,4 +1,5 @@
 #!/bin/bash
+# @unit valkey: The shared cache; holds the Restate admin reads for 5 minutes.
 # Runs ON the Postgres box (CI sends it over SSM): Valkey on 6380, the shared cache
 # (designs/2026-10-11-cache.md). TLS on the box's self-signed certificate; the client pins its
 # fingerprint, printed last. One login, allowed GET, SET, DEL and PING on wren:* keys only.

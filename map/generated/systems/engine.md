@@ -1,3 +1,3 @@
 # engine: system
 
-models, raven, falcon, weaver on npm; wren pins exact
+The research engine: models, raven, falcon and weaver, one npm package each.

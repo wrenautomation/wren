@@ -1,5 +1,6 @@
 {
   "name": "@wren/portal",
+  "description": "The client portal and operator app.",
   "version": "0.0.0",
   "private": true,
   "type": "module",

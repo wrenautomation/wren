@@ -1,5 +1,6 @@
 {
   "name": "@wren/worker",
+  "description": "Every Restate service, served from Lambda and the box.",
   "version": "0.0.0",
   "private": true,
   "type": "module",

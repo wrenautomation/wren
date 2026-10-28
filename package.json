@@ -1,5 +1,6 @@
 {
   "name": "wren",
+  "description": "Wren Automation: campaigns, channels and client products.",
   "private": true,
   "packageManager": "pnpm@9.15.0",
   "engines": {

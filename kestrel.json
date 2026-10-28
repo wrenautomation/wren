@@ -8,22 +8,104 @@
       "migrateUrlEnv": "WREN_DATABASE_URL",
       "migrations": "packages/db/drizzle"
     },
-    "systems": {},
+    "systems": {
+      "wrangler": [
+        "apps/*/wrangler.toml",
+        "deploy/*/wrangler.toml"
+      ],
+      "terraform": [
+        "deploy/terraform/*.tf"
+      ],
+      "compose": [
+        "deploy/*/compose.yml"
+      ],
+      "tags": [
+        "deploy/**/*.sh",
+        "deploy/**/*.service",
+        "deploy/vps/compose.yml"
+      ],
+      "hosts": {
+        "deploy/scripts/box-*.sh": "host:pg",
+        "deploy/terraform/user-data.sh": "host:pg",
+        "deploy/voice/*.service": "host:pg",
+        "deploy/vps/*.yml": "host:vps"
+      },
+      "entries": {
+        "lambda:worker": "apps/worker/src/lambda.ts",
+        "container:worker": "apps/worker/src/box.ts",
+        "lambda:auth": "apps/auth/lambda/index.ts",
+        "process:voice": "packages/voice/src/box/main.ts"
+      },
+      "repos": {
+        "autobrowse": "../autobrowse",
+        "engine": "../engine",
+        "credvault": "../credvault",
+        "mailifier": "../mailifier"
+      },
+      "vendors": {
+        "restate": {
+          "title": "Restate Cloud",
+          "description": "Durable execution: journals every service call and invokes the worker."
+        },
+        "ssm": {
+          "title": "AWS SSM",
+          "description": "Parameter Store: every secret and env set."
+        },
+        "stripe": {
+          "title": "Stripe",
+          "description": "Payments and invoices."
+        }
+      },
+      "env": {
+        "WREN_DATABASE_URL": "container:postgres",
+        "WREN_DATABASE_POOL_PORT": "container:pgbouncer",
+        "WREN_RESTATE_INGRESS_URL": "restate",
+        "WREN_RESTATE_ADMIN_URL": "restate",
+        "WREN_CACHE_URL": "container:valkey",
+        "WREN_SMTP_PROBE_URL": "container:vps-prober",
+        "WREN_CDP_URL": "container:browser",
+        "WREN_MEDIA_BUCKET": "s3:media",
+        "WREN_FILES_BUCKET": "s3:files",
+        "WREN_PAGES_BUCKET": "s3:pages",
+        "WREN_VIDEOS_BUCKET": "s3:videos",
+        "WREN_LAKE_PATH": "s3:lake",
+        "WREN_LISTMONK_URL": "container:listmonk",
+        "WREN_DOCUMENSO_URL": "container:documenso-app",
+        "WREN_PIXEL_BASE_URL": "worker:pixel",
+        "RESTATE_INGRESS_URL": "restate",
+        "LAMBDA_URL": "lambda:auth"
+      },
+      "imports": {
+        "@aws-sdk/client-ssm": "ssm",
+        "stripe": "stripe",
+        "@restatedev/restate-sdk-clients": "restate"
+      },
+      "settings": {
+        "file": "packages/config/src/index.ts",
+        "pattern": "(\\w+): \"([A-Z][A-Z0-9_]+)\""
+      },
+      "restate": "restate",
+      "describe": {
+        "worker:pixel": "Open-tracking pixel on t.wrenautomation.com; off by default."
+      }
+    },
     "ui": {
       "dump": "pnpm -s --filter @wren/portal kestrel:screens"
     }
   },
   "cards": {
-    "require": ["package"]
+    "require": [
+      "package"
+    ]
   },
   "cost": {
     "dump": "node scripts/prod-wren.mjs books cost --json",
     "parts": "(?:withPart\\([^,]+,\\s*|\\bpart:\\s*)\"([a-z][a-z0-9._-]*)\"",
     "owners": {
-      "aws:Amazon Elastic Compute Cloud - Compute": "system:wren",
-      "aws:EC2 - Other": "system:wren",
+      "aws:Amazon Elastic Compute Cloud - Compute": "system:wren.host:pg",
+      "aws:EC2 - Other": "system:wren.host:pg",
       "aws:Amazon Virtual Private Cloud": "system:wren",
-      "aws:AWS Lambda": "system:wren.worker",
+      "aws:AWS Lambda": "system:wren.lambda:worker",
       "aws:AWS Cost Explorer": "@wren/books",
       "aws:AWS Systems Manager": "system:ssm"
     }

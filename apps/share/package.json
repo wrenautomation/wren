@@ -1,5 +1,6 @@
 {
   "name": "@wren/share",
+  "description": "share.wrenautomation.com: the shared library's ingest.",
   "version": "0.0.0",
   "private": true,
   "type": "module",

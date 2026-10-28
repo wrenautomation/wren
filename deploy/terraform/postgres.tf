@@ -145,6 +145,7 @@ resource "aws_security_group" "pg" {
   }
 }
 
+# Nightly Postgres and Restate backups, and worker bundles.
 resource "aws_s3_bucket" "backups" {
   bucket_prefix = "${local.prefix}-pg-backups-"
 }
@@ -317,6 +318,7 @@ resource "aws_ebs_volume" "pg_data" {
   tags              = { Name = "${local.prefix}-pg-data" }
 }
 
+# The box: Postgres and the long-running containers beside it.
 resource "aws_instance" "pg" {
   ami                         = data.aws_ssm_parameter.al2023_arm.value
   instance_type               = var.pg_instance_type

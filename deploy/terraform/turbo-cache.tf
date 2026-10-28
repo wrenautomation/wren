@@ -8,6 +8,7 @@ locals {
   turbo_cache_zip = "${path.module}/../turbo-cache/dist/lambda.zip"
 }
 
+# Turborepo cache artifacts, kept 30 days.
 resource "aws_s3_bucket" "turbo_cache" {
   bucket = "${local.prefix}-turbo-cache"
 }
@@ -98,6 +99,7 @@ data "aws_ssm_parameter" "env_2" {
   with_decryption = true
 }
 
+# Turborepo remote cache for the gates and CI.
 resource "aws_lambda_function" "turbo_cache" {
   function_name    = "${local.prefix}-turbo-cache"
   role             = aws_iam_role.turbo_cache.arn

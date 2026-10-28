@@ -1,4 +1,5 @@
 #!/bin/bash
+# @unit pgbouncer: Pools the worker's Postgres connections on 6432.
 # Runs ON the Postgres box (CI sends it over SSM): PgBouncer in transaction mode on 6432, in
 # front of Postgres on 5432. The worker (Lambda and box) connects here when
 # WREN_DATABASE_POOL_PORT is set; the CLI and migrations stay on 5432, since they set session

@@ -1,3 +1,3 @@
 # mailifier: system
 
-SMTP address prober on the RackNerd VPSs
+Ask a mail server whether an address exists, over SMTP, without sending anything.

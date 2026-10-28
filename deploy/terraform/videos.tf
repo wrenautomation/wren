@@ -43,6 +43,7 @@ data "aws_cloudfront_cache_policy" "optimized" {
   name = "Managed-CachingOptimized"
 }
 
+# Serves demo videos under v/ from the private bucket.
 resource "aws_cloudfront_distribution" "videos" {
   enabled         = true
   comment         = "${local.prefix} videos"

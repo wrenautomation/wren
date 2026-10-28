@@ -1,3 +1,4 @@
+# @unit process:voice: The voice agent's call loop. Not installed yet.
 # The voice agent's call loop on the box (designs/2026-10-06-voice-agent.md): a long-lived
 # process holding each call's media socket, which Lambda can't. NOT INSTALLED: setup copies it to
 # /etc/systemd/system/ once William says yes, with a bundle of packages/voice/src/box/main.ts at

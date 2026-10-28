@@ -7,6 +7,7 @@ compatibility_date = "2026-09-27"
 
 routes = [{ pattern = "share.wrenautomation.com", custom_domain = true }]
 
+# The shared library's uploads.
 [[r2_buckets]]
 binding = "SHARE"
 bucket_name = "autobrowse-share"

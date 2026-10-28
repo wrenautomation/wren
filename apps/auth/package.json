@@ -1,5 +1,6 @@
 {
   "name": "@wren/auth-app",
+  "description": "Edge Worker for sign-in: forwards /api/auth to the auth Lambda.",
   "version": "0.0.0",
   "private": true,
   "type": "module",

@@ -1,4 +1,5 @@
 #!/bin/bash
+# @unit listmonk: Newsletter lists and campaigns; posts each message to Restate.
 # Runs ON the Postgres box (CI sends it over SSM): Listmonk on 127.0.0.1:9000, the newsletter's lists,
 # subscribers and campaigns (designs/2026-10-21-esign-and-newsletter.md). It keeps its own database
 # and login on the box Postgres. It never sends mail: its postback messenger posts each message to

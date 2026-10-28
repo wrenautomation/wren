@@ -1,7 +1,3 @@
 # credvault: system
 
-Credentials at rest, shared via SSM, every use audited
-
-## Calls
-
-- credvault → ssm (calls): sealed credentials at rest
+Keep the credentials an automation signs in with: sealed at rest, shared through SSM, every use audited, expiries watched.

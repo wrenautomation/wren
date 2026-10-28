@@ -1,4 +1,7 @@
 #!/bin/bash
+# @unit restate: The box's own Restate server, for the pool chain.
+# @unit box-caddy: TLS in front of the Restate ingress, Listmonk and the box browser.
+# @unit desk-hop: The hop to the desk's Cloudflare Tunnel.
 # Runs ON the Postgres box (first boot, CI over SSM, or by hand over SSM): the Restate
 # server, Caddy in front of its ingress and the box's browser (/cdp), the hop to the desk's
 # Cloudflare Tunnel, and the nightly Restate backup. Idempotent: a container restarts only

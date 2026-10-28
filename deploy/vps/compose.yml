@@ -1,3 +1,4 @@
+# @unit host:vps: The RackNerd VPS: SMTP prober and SearXNG.
 # The RackNerd VPS: the SMTP prober (AWS will not open outbound port 25) and, on box 1
 # alone (`--profile search`), a SearXNG metasearch for the research engine. Caddy holds the
 # only public ports and terminates TLS for each name, so a bearer token never crosses the
@@ -8,6 +9,7 @@
 # and SEARXNG_SECRET (SSM /wren/prod/searxng_secret, the instance's own cookie key).
 name: wren-vps
 services:
+  # SMTP prober: checks an address over port 25, which AWS keeps closed.
   prober:
     image: public.ecr.aws/docker/library/node:22-alpine
     command: ["node", "/app/prober.mjs"]
@@ -23,6 +25,7 @@ services:
       PROBE_BIG_HOST_LANES: "3"
     volumes:
       - ./prober.mjs:/app/prober.mjs:ro
+  # SearXNG metasearch for the research engine (box 1 only).
   searxng:
     # A dated tag (hub.docker.com/r/searxng/searxng/tags); `latest` moves daily.
     image: docker.io/searxng/searxng:2026.10.27-ef7bae9dd
@@ -41,6 +44,7 @@ services:
       GRANIAN_BLOCKING_THREADS: "4"
     volumes:
       - ./searxng.yml:/etc/searxng/settings.yml:ro
+  # TLS for each name; holds the only public ports.
   caddy:
     image: public.ecr.aws/docker/library/caddy:2-alpine
     restart: unless-stopped

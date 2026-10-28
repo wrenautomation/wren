@@ -50,6 +50,7 @@ resource "aws_iam_role_policy" "auth" {
   policy = data.aws_iam_policy_document.auth.json
 }
 
+# Sign-in: Better Auth over the main database, behind the auth Worker.
 resource "aws_lambda_function" "auth" {
   function_name    = "${local.prefix}-auth"
   role             = aws_iam_role.auth.arn

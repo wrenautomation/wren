@@ -166,6 +166,7 @@ resource "aws_iam_role_policy" "worker" {
   policy = data.aws_iam_policy_document.worker.json
 }
 
+# The worker: every Restate service, invoked by Restate Cloud.
 resource "aws_lambda_function" "worker" {
   function_name    = "${local.prefix}-worker"
   role             = aws_iam_role.worker.arn

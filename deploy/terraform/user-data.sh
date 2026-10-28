@@ -1,4 +1,6 @@
 #!/bin/bash
+# @unit postgres: The main database.
+# @unit browser: Headless Chromium for page renders.
 # First boot of the Postgres box (Amazon Linux 2023, ARM). Idempotent: a reboot
 # re-runs nothing here (cloud-init runs user-data once), a rebuilt instance
 # finds the data volume already initialised and mounts it as is.

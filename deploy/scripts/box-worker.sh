@@ -1,4 +1,5 @@
 #!/bin/bash
+# @unit worker: The pool chain's waiting-heavy services, on the box.
 # Runs ON the Postgres box (CI sends it over SSM): install a worker bundle and
 # (re)start the pool chain's worker. Usage: box-worker.sh <bucket> <key>
 # The container registers itself with the box's Restate server (loopback only), or dials

@@ -1,11 +1,8 @@
 # autobrowse: system
 
-Browser and account automation; the desk worker on the Mac
+Browser and account automation: recorded flows where no API exists, official API shapes where one does, a person in the loop for money, accounts and consent.
 
-## Calls
+## Links
 
-- autobrowse → platforms (calls): post and read
-- autobrowse → ssm (calls): tokens and credentials
-- autobrowse → credvault (uses): the credentials library on npm: sealed store, audit, expiries
-  - here: `../autobrowse/src/owner.ts`
-  - there: `../credvault/src/env-store.ts`
+- autobrowse uses credvault: npm `credvault`
+  - in `../autobrowse/package.json`
