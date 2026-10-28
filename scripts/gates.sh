@@ -28,7 +28,7 @@ fi
 WIDE=${CI:+--concurrency=100%}
 lint() {
   echo "==> biome check" && pnpm biome check --error-on-warnings . && echo "==> typecheck" && pnpm turbo run typecheck $WIDE &&
-    cli && offers && map && layers && isolation && writes && edits && reads && libs && drift && exports && size
+    cli && offers && map && layers && isolation && writes && sends && edits && reads && libs && drift && exports && size
 }
 # File size (designs/2026-10-24-code-quality-handoff.md): no source file over 1200 lines, a tripwire for
 # a file an agent can no longer take in at once. scripts/big-files.txt lists the ones still over it,
@@ -92,6 +92,8 @@ writes() {
       ':!apps/portal/web/src/api.ts' ':!apps/portal/web/src/dictation/server.ts' ':!*.test.ts' ':!*.test.tsx' &&
     ! git grep --untracked -nE "acts\.call\(|deps\.call\(" -- 'packages/ui/src' ':!*.test.ts' ':!*.test.tsx'
 }
+# Every handler the portal calls whose form says `effect: "sends"` is accept-then-track (SEND_HANDLERS).
+sends() { echo "==> portal sends" && node scripts/sends-guard.mjs; }
 # Every text box keeps its unsaved words in the one edits store (useEdit, useSaved, useKeptForm),
 # or says why not with `edit-ok: <reason>`.
 edits() { echo "==> unsaved edits" && node scripts/edits-guard.mjs; }
@@ -166,7 +168,7 @@ ui() {
     { [ -z "$files" ] || pnpm -s biome check --no-errors-on-unmatched --files-ignore-unknown=true $files; } &&
     echo "==> typecheck @wren/ui @wren/portal" &&
     pnpm turbo run typecheck --filter=@wren/ui --filter=@wren/portal --output-logs=errors-only &&
-    writes && edits && reads && libs && match
+    writes && sends && edits && reads && libs && match
 }
 case "${1:-all}" in
   lint) lint ;;

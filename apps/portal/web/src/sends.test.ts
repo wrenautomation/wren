@@ -185,10 +185,13 @@ const runnerFor = (callIt: (h: string, i: Record<string, unknown>) => Promise<un
     toast: { success: () => undefined, error: () => undefined },
   });
 const SURFACES: Record<string, Surface> = {
-  // A head or bulk button: its dialog, then submit (an undo action runs on the press).
+  // A head or bulk button: its dialog, then submit (an undo action runs on the press). A set-aside
+  // (Withdraw) is held for its undo; the page leaving sends it now.
   dialog: async (a, run) => {
     const r = runnerFor(run);
-    if (r.run(a, ["1"]) === "asked") await r.submit(inputOf(a, "1", "dialog"));
+    const got = r.run(a, ["1"]);
+    if (got === "asked") await r.submit(inputOf(a, "1", "dialog"));
+    else if (got === "held") WRITES.gone();
   },
   // A row's own box (a list row's reply), no dialog.
   box: async (a, run) => {

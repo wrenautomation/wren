@@ -4,6 +4,7 @@
  * a fresh page, and the runner. Local only.
  */
 import { type Browser, chromium, type Page, type Route } from "playwright-core";
+import { SEND_HANDLERS } from "../src/services.js";
 
 export const T = Number(process.env.E2E_TIMEOUT ?? 10_000);
 
@@ -18,13 +19,8 @@ if (!/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(url)) {
 export const CHROME =
   process.env.CHROME_PATH ?? "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 
-const SENDS = new Set([
-  "ReachDesk/commentPost",
-  "InboxDesk/reply",
-  "ReachDesk/reply",
-  "ReachDesk/answerComment",
-  "ReachDesk/dmComment",
-]);
+// The Worker's own list: a handler it accepts and tracks is one the fake answers 202.
+const SENDS = SEND_HANDLERS;
 
 export interface Run {
   id: string;

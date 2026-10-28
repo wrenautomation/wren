@@ -288,7 +288,8 @@ export function isWrite(path: string): boolean {
  * Sends: writes that reach a person on another platform (a reply, a DM, an answer under a
  * comment). They are accept-then-track: the Worker gives them to Restate and answers at once
  * that it has them; the tab reads the outcome from `writes/status`, never from a held request.
- * A route, or a public handler the console calls by name (`console/call`).
+ * A route, or a public handler the console calls by name (`console/call`). Every handler the
+ * portal calls whose form says `effect: "sends"` is here (scripts/sends-guard.mjs).
  */
 export const SENDS: ReadonlySet<string> = new Set([
   "marketing/inboxReply",
@@ -304,6 +305,18 @@ export const SEND_HANDLERS: ReadonlySet<string> = new Set([
   "ReachDesk/dmComment",
   // Mark posted or Send again on a send that may have gone out.
   "ReachDesk/settleSend",
+  // A yes on an asked reply sends it.
+  "InboxDesk/approve",
+  // Comments, DMs, invites, likes and follows from Wren's own accounts.
+  "ReachDesk/commentThread",
+  "ReachDesk/commentPost",
+  "ReachDesk/actOnPost",
+  "ReachDesk/messagePerson",
+  "ReachDesk/messageFrom",
+  "ReachDesk/followPerson",
+  "ReachDesk/invitePerson",
+  "ReachDesk/approveInvites",
+  "ReachDesk/withdrawInvite",
 ]);
 
 /** Whether this call is a send: by its route, or for `console/call` by the handler it names. */
