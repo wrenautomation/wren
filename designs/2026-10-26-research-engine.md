@@ -579,3 +579,16 @@ and SOPs against plan files (WA-908, after the first runs show what a plan file 
   the B list: `studies/plan.ts` (the planner falcon 0.5 dropped, until `wren study` runs on
   raven and weaver), the llm-gateway catalog, decide's backends, TwelveLabs in studio.
   autobrowse's Llm seam stays: it needs none of the new parts (asked 10-27, deferred).
+- 2026-10-28: William's canvas notes (project "Birdwatch system"). Birdwatch is the name of the
+  whole system; the packages keep theirs. How agentic: (A) typed steps and a runner, today;
+  (B) three agents that send English messages to each other; (C) A, plus records as messages:
+  each record may carry an English `note`, and any step may write a `gap`; (D) one agent with the
+  three parts as tools. Ranked by: no step hidden between two records; runs on the files backend
+  without wren; flexible; cost. B fails the first two. Pick, C, as an experiment, run against A
+  on one ask; William works through D (Claude Code) above it. The runner still routes and the
+  round budget still caps it. Peek: no partial read; full reads stay (the 10-26 rejection
+  holds). The check is a sample: falcon takes a sample of a run's findings and checks each one
+  against its stored document, never a fetch of the whole source again. Age: the hit and the
+  document already carry `date` when the source gives one; a finding takes its document's date,
+  and the plan file per ask kind says how much age counts (prices and tools: much; principles:
+  little). Never a hard cutoff. Not built yet.
