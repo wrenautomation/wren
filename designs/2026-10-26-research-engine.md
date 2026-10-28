@@ -778,3 +778,9 @@ loses each child's budget, stop and resume.
 Falcon's place: raven decides, weaver does and remembers, falcon reads and checks (bytes to
 text, the quote gate, the draft gate). Falcon is called by weaver, never in the loop control.
 It stays apart: wren's books, studio and learn use it with no web.
+Built as 0.18.0. Settled shapes: the caps live in the plan file (`runs: {depth, children}`,
+absent = 2 and 6; `learn` moves them). The parent link is on every snapshot of the child, with
+the parent's round at the start. A child's budget is per field the smaller of its plan file's
+and its parent's; past the tree's reads, a warning, not a stop. Dead ends reach the parent as
+known lines ("dead end, skip it"), not open ones: raven reads open as "pursue". The agent's plan
+and the runner's share one `planAsk`, so a runner-driven parent reads its children too.
