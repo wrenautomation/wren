@@ -756,3 +756,25 @@ cites nothing kept, or has a number no cited quote has. One item per gate call, 
 8-item cap does not apply. A draft record is never the final.
 Open, as options to William: a source class with counts per class on patterns (point 2), and a
 run tree for the niche, then per niche, loop (point 4). Neither is built until he picks.
+
+### 10-28 night: William picks; source classes, engine 0.17.0
+
+Point 2, site counts are weak evidence. William picked B: a class on the document, which its
+findings take; a class on one finding overrides it (a vendor page that quotes a survey). A
+(class per finding) was slow and uneven for the agent. C (a model classifies at open) took the
+call from the agent and cost a model call per page. The class is a `class` record, latest per
+target wins, from a closed set (primary_data, survey, practitioner, vendor, forum, news,
+other): counts add up only if every agent spells them the same. Growing the set is additive.
+Patterns show distinct sites per class. The runner writes no class.
+Point 4, the loop shape. William picked A, a tree of runs, and asked for care with depth. The
+back-and-forth he wants (find niches, test each, edit the plan, refine queries, drop dead ends)
+is rounds inside a run plus the tree across runs. A child links to its parent; when it stops,
+its patterns and dead ends reach the parent's next plan. Caps: depth 2 by default, set in the
+plan file; a cap on children per round; a child's budget comes out of the parent's, never
+fresh; each child carries a why. `plan --parent` runs recall over the siblings, so a child sees
+what they found before it plans. A facet thin after its tries gets a `dead` mark with why, so
+later plans skip it. A shared board for raven and weaver (one state, no tree) was rejected: it
+loses each child's budget, stop and resume.
+Falcon's place: raven decides, weaver does and remembers, falcon reads and checks (bytes to
+text, the quote gate, the draft gate). Falcon is called by weaver, never in the loop control.
+It stays apart: wren's books, studio and learn use it with no web.
