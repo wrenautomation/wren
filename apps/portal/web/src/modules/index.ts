@@ -21,6 +21,7 @@ import { engage } from "./outreach/index.js";
 import { payments } from "./payments/index.js";
 import { clientPeople, people } from "./people/index.js";
 import { reactivation } from "./reactivation/index.js";
+import { research } from "./research/index.js";
 import { clientSettings, settings } from "./settings/index.js";
 import { clientSites, sites } from "./sites/index.js";
 import { texts } from "./texts/index.js";
@@ -54,6 +55,7 @@ export const MODULES: Module[] = [
   ads,
   analytics,
   ...WREN_APPS,
+  research,
   // One address, two apps, as Sites.
   clientLearn,
   learn,
