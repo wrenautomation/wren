@@ -872,18 +872,18 @@ const replyItem = (r: InboxReply) => ({
   at: r.state === "queued" ? (r.decidedAt ?? r.askedAt) : r.askedAt,
   due: r.state === "queued" ? (r.sendAt ?? r.askedAt) : r.askedAt,
   // Our email thread they never answered has no Inbox row to open.
-  url: r.thread.startsWith("outbound:") ? null : `/inbox/waiting/${encodeURIComponent(r.thread)}`,
+  url: r.thread.startsWith("outbound:") ? null : `/engage/inbox/${encodeURIComponent(r.thread)}`,
 });
 
 /**
- * Where an outbound item lives in Outreach (designs/2026-10-16-outreach-app.md): a comment to
+ * Where an outbound item lives in Engage (designs/2026-10-16-outreach-app.md): a comment to
  * write in Engage, an invite in Invites; null for the rest.
  */
 function outreachOf(id: string): string | null {
   const [type, rest] = typed(id);
-  if (type === "thread" || type === "onpost") return `/outreach/engage/${encodeURIComponent(id)}`;
+  if (type === "thread" || type === "onpost") return `/engage/engage/${encodeURIComponent(id)}`;
   if (type === "invite" || type === "connect")
-    return `/outreach/invites/${encodeURIComponent(rest)}`;
+    return `/engage/invites/${encodeURIComponent(rest)}`;
   return null;
 }
 

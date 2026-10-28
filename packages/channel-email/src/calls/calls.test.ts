@@ -128,7 +128,7 @@ describe("booking on the executor", () => {
       from: "in.calls",
     });
     expect(bookingEmit({ id: 7, state: "cancelled", start: null })).toBeNull();
-    expect(briefPath(null, 7)).toBe("/inbox/calls/7");
+    expect(briefPath(null, 7)).toBe("/pipelines/calls/7");
     expect(briefPath("acme", 7)).toBe("/calls/calls/7");
   });
 });

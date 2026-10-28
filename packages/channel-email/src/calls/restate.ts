@@ -176,9 +176,9 @@ const SEND = BUILD.extend({
   start: z.string().describe("The call time the send was queued for"),
 });
 
-/** The call's page: Wren's Inbox, or the client's Calls app. */
+/** The call's page: Wren's Pipelines, or the client's Calls app. */
 export const briefPath = (client: string | null, id: number) =>
-  client ? `/calls/calls/${id}` : `/inbox/calls/${id}`;
+  client ? `/calls/calls/${id}` : `/pipelines/calls/${id}`;
 
 export function makeCallBriefs(deps: CallBriefsDeps) {
   /** Build the brief again now and keep it; null when the call is gone. */

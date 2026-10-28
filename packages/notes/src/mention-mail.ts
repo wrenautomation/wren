@@ -93,7 +93,7 @@ export async function mailMentions(db: Queryable, o: MailMentionsOpts): Promise<
           "",
           clip((r.inboxBody ?? "").trim()),
           "",
-          `Open it: ${origin}/inbox/waiting/${encodeURIComponent(r.thread)}${q ? `?${q}` : ""}`,
+          `Open it: ${origin}/engage/inbox/${encodeURIComponent(r.thread)}${q ? `?${q}` : ""}`,
         ].join("\n"),
       };
     } else continue;
