@@ -12,7 +12,6 @@ packages/core/src/schema.ts
 packages/core/src/segments.ts
 packages/core/src/executor.ts
 packages/delivery/src/watch.ts
-packages/outreach/src/reach-posts.ts
 packages/studio/remotion/index.tsx
 packages/ui/src/list-bar.tsx
 packages/ui/src/metro/data.ts

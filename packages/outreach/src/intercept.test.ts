@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { pastedOf, postUrlOf } from "./intercept.js";
-import { nameOfVanity } from "./reach-posts.js";
+import { nameOfVanity } from "./reach-posts/read.js";
 
 describe("pastedOf", () => {
   it("Reddit: a subreddit, a thread, a short link", () => {

@@ -18,7 +18,9 @@ import type { Post } from "../../src/discovery/reads.js";
 import { keepThreads, threadsToDraft } from "../../src/discovery/threads.js";
 import { itemPerson } from "../../src/from-people.js";
 import { liftPass, listPasses, passOn } from "../../src/passes.js";
-import { draftPost, type FeedPost, keepPosts } from "../../src/reach-posts.js";
+import { draftPost } from "../../src/reach-posts/draft.js";
+import { keepPosts } from "../../src/reach-posts/pass.js";
+import type { FeedPost } from "../../src/reach-posts/read.js";
 import { clearReplyDrafts } from "../../src/reply-drafts.js";
 import { comments, reachPasses, reachPosts, redditThreads } from "../../src/schema.js";
 

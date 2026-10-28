@@ -8,21 +8,18 @@ import { z } from "zod";
 import { pickedAccount } from "../draft-accounts.js";
 import { liftPass, listPasses, passOn } from "../passes.js";
 import {
-  allCommentsSettings,
-  COMMENT_MAX,
-  commentsSettings,
   listPosts,
   markPostActed,
   markPostCommented,
   ownCircle,
-  type PostsStats,
   planPostAct,
   planPostComment,
   postActs,
-  type RedraftResult,
-  redraftPosts,
   skipPost,
-} from "../reach-posts.js";
+} from "../reach-posts/acts.js";
+import { type RedraftResult, redraftPosts } from "../reach-posts/draft.js";
+import type { PostsStats } from "../reach-posts/pass.js";
+import { allCommentsSettings, COMMENT_MAX, commentsSettings } from "../reach-posts/settings.js";
 import { sendFailed, sendHeld, stillDue, unschedule } from "../scheduled.js";
 import { REACH_POST_PLATFORMS } from "../schema.js";
 import type { ContentReply } from "./deps.js";

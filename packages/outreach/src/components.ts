@@ -5,7 +5,7 @@ import { defineWorkflow } from "@wren/core/workflows";
 import { discoverySettingsSchema } from "./discovery/places.js";
 import { commentsReadSettingsSchema } from "./follow-ups.js";
 import { invitesSettingsSchema } from "./invites.js";
-import { COMMENTS_SETTINGS } from "./reach-posts.js";
+import { COMMENTS_SETTINGS } from "./reach-posts/settings.js";
 
 /** A client's loop units: `ReachWatch/<client>/daily`, `ReachSender/<client>/fleet`, `RedditReads/<client>/daily`. */
 const WATCH_UNIT = "daily";

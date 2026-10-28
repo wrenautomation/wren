@@ -10,7 +10,7 @@ import type { Queryable } from "@wren/db";
 import { and, eq, gt, inArray, isNull, or, sql } from "drizzle-orm";
 import { dropComment } from "./comments.js";
 import { skipThread } from "./discovery/threads.js";
-import { skipPost } from "./reach-posts.js";
+import { skipPost } from "./reach-posts/acts.js";
 import { comments, reachContacts, reachPasses, reachPosts, redditThreads } from "./schema.js";
 
 const DAY = 86_400_000;

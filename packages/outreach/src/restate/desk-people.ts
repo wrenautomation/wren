@@ -12,7 +12,8 @@ import {
   personContact,
   personFollow,
 } from "../from-people.js";
-import { commentsSettings, followAct } from "../reach-posts.js";
+import { followAct } from "../reach-posts/acts.js";
+import { commentsSettings } from "../reach-posts/settings.js";
 import { reachContacts } from "../schema.js";
 import type { DeskContext } from "./desk-context.js";
 

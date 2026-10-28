@@ -9,7 +9,7 @@ import { and, eq } from "drizzle-orm";
 import { commentById, dropComment, markAnswered, privateReplied } from "./comments.js";
 import { setContactState } from "./contacts.js";
 import { markCommented, skipThread } from "./discovery/threads.js";
-import { markPostCommented, planPostComment, skipPost } from "./reach-posts.js";
+import { markPostCommented, planPostComment, skipPost } from "./reach-posts/acts.js";
 import { ReachRefusal } from "./refusal.js";
 import { reachAccounts, reachContacts, reachMessages } from "./schema.js";
 import { forgetUnsure, sendAttempt, settleSent } from "./send-attempts.js";

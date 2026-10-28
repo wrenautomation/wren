@@ -19,7 +19,7 @@ import { and, desc, eq, gte, inArray, isNotNull, isNull, or, sql } from "drizzle
 import { applyGates, holdsThread } from "./discovery/requirements.js";
 import { inKarmaPlace, KARMA_FRESH_MS, SLOT_WITHIN_MS } from "./discovery/threads.js";
 import { type Pace, sendSlots, ZONE } from "./pacing.js";
-import type { CommentsSettings } from "./reach-posts.js";
+import type { CommentsSettings } from "./reach-posts/settings.js";
 import {
   type ReachPostPlatform,
   reachAccounts,

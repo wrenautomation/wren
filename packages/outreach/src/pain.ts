@@ -27,7 +27,7 @@ import { findings, keepDocument } from "@wren/research";
 import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { passedOn } from "./passes.js";
-import { allCommentsSettings } from "./reach-posts.js";
+import { allCommentsSettings } from "./reach-posts/settings.js";
 import { type ReachPost, type ReachPostPlatform, reachPosts } from "./schema.js";
 
 /** The list's `imports` row. */

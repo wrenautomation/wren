@@ -6,7 +6,7 @@
 import { resolveObjects } from "@wren/core/objects";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { COMMENTS_SETTINGS } from "../../src/reach-posts.js";
+import { COMMENTS_SETTINGS } from "../../src/reach-posts/settings.js";
 import { POST_PACE, schedulePosts, sendFailed, stillDue, unschedule } from "../../src/scheduled.js";
 import { reachPosts } from "../../src/schema.js";
 

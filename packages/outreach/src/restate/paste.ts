@@ -20,7 +20,9 @@ import {
   postUrlOf,
   queuePastedThread,
 } from "../intercept.js";
-import { allCommentsSettings, draftPost, postReader } from "../reach-posts.js";
+import { draftPost } from "../reach-posts/draft.js";
+import { postReader } from "../reach-posts/read.js";
+import { allCommentsSettings } from "../reach-posts/settings.js";
 import { ReachRefusal } from "../refusal.js";
 import { READS_KEY } from "./discovery.js";
 import type { ReachDeps } from "./index.js";

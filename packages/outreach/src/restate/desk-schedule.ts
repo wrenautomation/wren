@@ -2,7 +2,7 @@
 import type * as restate from "@restatedev/restate-sdk";
 import { serviceHandler } from "@wren/core/restate";
 import { z } from "zod";
-import { allCommentsSettings } from "../reach-posts.js";
+import { allCommentsSettings } from "../reach-posts/settings.js";
 import { type Slotted, schedulePosts, scheduleThreads, unschedule } from "../scheduled.js";
 import { REACH_POST_PLATFORMS } from "../schema.js";
 import type { DeskContext } from "./desk-context.js";

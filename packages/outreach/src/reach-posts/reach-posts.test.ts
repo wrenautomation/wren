@@ -7,27 +7,11 @@
 import { SiteCallError, type SiteClient } from "@wren/core/content";
 import { FakeLlm } from "@wren/llm";
 import { describe, expect, it } from "vitest";
-import {
-  authorFit,
-  COMMENTS_SETTINGS,
-  type FeedPost,
-  isJobAd,
-  jobPost,
-  MIN_FIT,
-  momentum,
-  ownCircle,
-  phrase,
-  planTopics,
-  postActs,
-  postReader,
-  proposeTopics,
-  REST_AFTER,
-  rankPost,
-  shortcodeAt,
-  topicCore,
-  vanityOf,
-  ytPostOf,
-} from "./reach-posts.js";
+import { ownCircle, postActs } from "./acts.js";
+import { authorFit, isJobAd, jobPost, momentum, rankPost, topicCore } from "./rank.js";
+import { type FeedPost, phrase, postReader, shortcodeAt, vanityOf, ytPostOf } from "./read.js";
+import { COMMENTS_SETTINGS, MIN_FIT } from "./settings.js";
+import { planTopics, proposeTopics, REST_AFTER } from "./topics.js";
 
 const NOW = new Date("2026-10-07T15:00:00Z");
 const post = (o: Partial<FeedPost> = {}): FeedPost => ({

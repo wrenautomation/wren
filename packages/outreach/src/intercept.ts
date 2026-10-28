@@ -10,7 +10,8 @@ import { atomic, type Queryable } from "@wren/db";
 import { eq, inArray, sql } from "drizzle-orm";
 import { accountFor, addPlaces, placeBySub } from "./discovery/places.js";
 import type { ThreadRead } from "./discovery/threads.js";
-import { COMMENTS_COMPONENTS, COMMENTS_SETTINGS, type FeedPost, vanityOf } from "./reach-posts.js";
+import { type FeedPost, vanityOf } from "./reach-posts/read.js";
+import { COMMENTS_COMPONENTS, COMMENTS_SETTINGS } from "./reach-posts/settings.js";
 import { ReachRefusal } from "./refusal.js";
 import { type ReachPostPlatform, reachPosts, redditThreads } from "./schema.js";
 

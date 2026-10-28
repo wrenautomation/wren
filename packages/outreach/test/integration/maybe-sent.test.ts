@@ -36,7 +36,7 @@ import { addContact } from "../../src/contacts.js";
 import { enroll } from "../../src/enroll.js";
 import { addPlaces, keepPlace, keepThreads, watchPlace } from "../../src/index.js";
 import { DEFAULT_POLICY } from "../../src/policy.js";
-import { COMMENTS_SETTINGS } from "../../src/reach-posts.js";
+import { COMMENTS_SETTINGS } from "../../src/reach-posts/settings.js";
 import { discoveryHandlers } from "../../src/restate/discovery.js";
 import type { ReachDeps } from "../../src/restate/index.js";
 import {

@@ -8,6 +8,7 @@ import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontain
 import { ingressOf } from "@wren/config";
 import { runs } from "@wren/core";
 import { addClient, addOperator } from "@wren/core/clients";
+import { saveBusinessFact } from "@wren/core/custom-fields";
 import type { PassOutcome } from "@wren/core/restate";
 import { startTestRestate } from "@wren/core/testing";
 import { cachedDb, clientDatabaseUrl, type Db } from "@wren/db";
@@ -114,6 +115,15 @@ describe("texts per client", () => {
       profile: "profile-acme",
       senderName: "Ann",
       calcom: "acme-cal",
+    });
+    await saveBusinessFact(
+      pg.db,
+      "acme",
+      { key: "booking_link", label: "Booking link", value: "https://cal.example.test/acme" },
+      "test",
+    );
+    expect(await clientSms(pg.db, "acme")).toMatchObject({
+      bookingLink: "https://cal.example.test/acme",
     });
     expect(await clientSms(pg.db, "beta")).toEqual({
       kind: "gone",

@@ -24,14 +24,9 @@ import { FakeLlm } from "@wren/llm";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { DEFAULT_POLICY } from "../../src/policy.js";
-import {
-  ACTS_PER_PASS,
-  autoActs,
-  COMMENTS_COMPONENTS,
-  COMMENTS_SETTINGS,
-  type FeedPost,
-  MIN_FIT,
-} from "../../src/reach-posts.js";
+import { ACTS_PER_PASS, autoActs } from "../../src/reach-posts/acts.js";
+import type { FeedPost } from "../../src/reach-posts/read.js";
+import { COMMENTS_COMPONENTS, COMMENTS_SETTINGS, MIN_FIT } from "../../src/reach-posts/settings.js";
 import {
   makeCommentProofs,
   makeReachDesk,

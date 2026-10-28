@@ -25,7 +25,7 @@ const conn = (handle: string) => ({
   connectedOn: null,
 });
 
-import { markPostCommented } from "../../src/reach-posts.js";
+import { markPostCommented } from "../../src/reach-posts/acts.js";
 import { personRecord } from "../../src/records.js";
 import {
   type ReachAccount,

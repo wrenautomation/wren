@@ -58,14 +58,10 @@ import {
   topUp,
 } from "../invites.js";
 import { followsLeft } from "../limits.js";
-import {
-  allCommentsSettings,
-  autoActs,
-  type CommentsSettings,
-  type PostsStats,
-  postReader,
-  postsPass,
-} from "../reach-posts.js";
+import { autoActs } from "../reach-posts/acts.js";
+import { type PostsStats, postsPass } from "../reach-posts/pass.js";
+import { postReader } from "../reach-posts/read.js";
+import { allCommentsSettings, type CommentsSettings } from "../reach-posts/settings.js";
 import { pullReplies, type RepliesStats } from "../replies.js";
 import { schedulePosts } from "../scheduled.js";
 import { REACH_POST_PLATFORMS, type ReachAccount, type ReachPostPlatform } from "../schema.js";
