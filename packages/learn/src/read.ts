@@ -11,8 +11,8 @@ import type { Step } from "@wren/core/executor";
 import { gate, meter } from "@wren/core/vendors";
 import type { Db } from "@wren/db";
 import { pgSafe } from "@wren/db/columns";
+import { type Fetcher, PoliteFetcher } from "@wrenautomation/weaver/fetch";
 import { and, asc, desc, eq, isNotNull, isNull, sql } from "drizzle-orm";
-import type { FetchFn } from "./feeds.js";
 import { decode, ogImageOf, plain, secondsOf } from "./feeds.js";
 import { needsMac, youtubeId } from "./links.js";
 import { type ItemKind, items } from "./schema.js";
@@ -122,13 +122,17 @@ export function frontField(md: string, key: string): string | null {
 
 type ReadResult = "read" | "mac" | "failed" | null;
 
+/** The page reader for saved links: weaver's door, under learn's own UA, with one retry. */
+export const pageFetcher = (): Fetcher =>
+  new PoliteFetcher("wren-learn/1.0 (+https://wrenautomation.com)", { timeout: 30, retries: 2 });
+
 /**
  * Read one item on the worker. A video or reel is marked for the Mac; an article keeps its feed
  * text when that's the whole post, else its page is fetched. Null for no such item or one read.
  */
 export async function readItem(
   db: Db,
-  fetchFn: FetchFn,
+  pages: Fetcher,
   id: number,
   video: VideoReader | null = null,
 ): Promise<ReadResult> {
@@ -151,12 +155,9 @@ export async function readItem(
   const social = item.type === "instagram" || item.type === "x" || item.type === "tiktok";
   if (text.length < WHOLE_POST && !social) {
     try {
-      const res = await fetchFn(item.url, {
-        headers: { "user-agent": "wren-learn/1.0 (+https://wrenautomation.com)" },
-        signal: AbortSignal.timeout(30_000),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const page = pageText(await res.text());
+      const res = await pages.get(item.url);
+      if (res.status >= 400) throw new Error(`HTTP ${res.status}`);
+      const page = pageText(res.text);
       if (page.text.length > text.length) text = page.text;
       if (page.title && (title === item.url || title === "(untitled)")) title = page.title;
       creator ??= page.creator;
@@ -186,11 +187,9 @@ export async function readItem(
 
 /** `learn.read` on the executor: a read item leaves by `read`; one for the Mac stops here. */
 export const readStep =
-  (db: Db, fetchFn: FetchFn, video: VideoReader | null = null): Step =>
+  (db: Db, pages: Fetcher, video: VideoReader | null = null): Step =>
   async (_port, e) =>
-    (await readItem(db, fetchFn, itemIdOf(e), video)) === "read"
-      ? [{ port: "read", event: e }]
-      : [];
+    (await readItem(db, pages, itemIdOf(e), video)) === "read" ? [{ port: "read", event: e }] : [];
 
 /** A video or audio reader: a transcript as markdown and its SOP source file name. */
 export type VideoReader = (item: {

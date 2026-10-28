@@ -15,6 +15,7 @@ import type { Notifier } from "@wren/core/notify";
 import type { PortalRequest } from "@wren/core/portal";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { type Embed, FakeLlm } from "@wren/llm";
+import { PoliteFetcher } from "@wrenautomation/weaver/fetch";
 import { asc, eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { LEARN_COMPONENTS, LEARN_WORKFLOWS } from "../../src/components.js";
@@ -114,6 +115,9 @@ function web(state: { entries: string[]; down?: boolean }): FetchFn {
   };
 }
 
+/** The page door over the synthetic web, one try (no backoff waits). */
+const pages = (f: FetchFn) => new PoliteFetcher("test", { fetch: f as typeof fetch, retries: 1 });
+
 const practices = async () => [practiceOf("email-infra", "Domains and warmup.\n## Warmup")];
 /** Wren's judge on this model, against the synthetic SOP. */
 const judge = (llm: FakeLlm | null) => judges({ db: pg.db, llm, wrenPractices: practices });
@@ -143,7 +147,7 @@ const walker = (llm: FakeLlm | null, fetchFn: FetchFn): Walk => ({
     ].map((c) => [c.id, c]),
   ),
   steps: {
-    "learn.read": readStep(pg.db, fetchFn),
+    "learn.read": readStep(pg.db, pages(fetchFn)),
     "learn.score": scoreStep(pg.db, judge(llm)),
   },
   store: pgExecutorStore(pg.db),
@@ -327,12 +331,12 @@ describe("Learn", () => {
       seen.push([url, kind, duration]);
       return { file: "youtube-synthVid02a.md", md };
     };
-    expect(await readItem(pg.db, web({ entries: [] }), Number(ok.id), reader)).toBe("read");
+    expect(await readItem(pg.db, pages(web({ entries: [] })), Number(ok.id), reader)).toBe("read");
     expect(seen).toEqual([["https://youtube.com/watch?v=synthVid02a", "video", null]]);
 
     const bad = await api.save({ ...viewer, url: "https://youtu.be/synthVid03b" });
     const fail = async () => Promise.reject(new Error("keys spent"));
-    expect(await readItem(pg.db, web({ entries: [] }), Number(bad.id), fail)).toBe("mac");
+    expect(await readItem(pg.db, pages(web({ entries: [] })), Number(bad.id), fail)).toBe("mac");
     expect((await waitingForMac(pg.db)).map((w) => w.id)).toEqual([Number(bad.id)]);
   });
 
@@ -406,7 +410,7 @@ describe("Learn", () => {
     const never: FetchFn = async () => {
       throw new Error("fetched");
     };
-    for (const g of got) expect(await readItem(pg.db, never, g.id)).toBe("read");
+    for (const g of got) expect(await readItem(pg.db, pages(never), g.id)).toBe("read");
     // TikTok waits for the Mac's reader; the worker's never lists it.
     await api.follow({ ...viewer, url: "https://www.tiktok.com/@synthtok" });
     const none = await pullCreators(pg.db, sitesReader(sites), t0, { kinds: ["tiktok"] });

@@ -34,6 +34,7 @@ import {
   mark,
   moveItems,
   needsMac,
+  pageFetcher,
   pullCreators,
   readCatalog,
   readItem,
@@ -257,7 +258,7 @@ export function registerLearn(
                 if (!saved.unread || !o.read) return saved;
                 const r = needsMac(saved.kind)
                   ? await readVideo(db, reader(), saved.id)
-                  : await readItem(db, fetch, saved.id);
+                  : await readItem(db, pageFetcher(), saved.id);
                 const verdict =
                   r === "read" ? await scoreItem(db, judgeFor(db, o.model), saved.id) : null;
                 return { ...saved, read: r, verdict };

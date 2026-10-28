@@ -49,6 +49,7 @@ import {
   judges as learnJudges,
   readStep as learnRead,
   type Practice,
+  pageFetcher,
   practiceOf,
   scoreStep,
   type VideoReader,
@@ -307,7 +308,7 @@ export function executorServices(deps: Deps): AnyService[] {
           };
         }),
         // Learn: an article and a YouTube video read here, other videos marked for the Mac; then scored.
-        "learn.read": learnRead(db, fetch, youtubeReader(process.env)),
+        "learn.read": learnRead(db, pageFetcher(), youtubeReader(process.env)),
         // Each item by its own workspace: a client's on its models allowance, against its own SOPs,
         // and an SOP it asked for written into its Notes once read.
         "learn.score": scoreStep(
