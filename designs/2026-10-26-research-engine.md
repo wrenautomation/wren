@@ -741,3 +741,18 @@ custom scorer. Dropped findings stay out. One quote on one page from several run
 newest, with `alsoIn`. `--also` reads more ledger folders (one per day).
 Same release: a quote under 5 words is `quote_short`, no longer `no_quote`. A site-scoped query
 skips a searcher that cannot keep the site (`Source.keeps`; YouTube keeps only YouTube).
+
+### 10-28 night: premises and rough drafts, engine 0.16.0
+
+William, from the blind restart: an anchored ask (a named buyer, offer or price) biases the plan.
+Known lines with no source were the way in. Now `--known` takes a URL or a ledger id. A line
+without one moves to `premises` (also `--premise`). Raven's prompts show premises apart, to
+test. The tree gets a `premise` facet that stays uncovered until a query serves it. Code moves
+the line; the agent judges what the ask text itself takes as given. Kept findings reach the
+next round's known with their URL, so they count as sourced.
+William: rough synthesis can be automated; the final write stays his. `add draft` takes items
+that cite kept findings or patterns. Falcon's draft gate (`gateDrafts`) drops an item that
+cites nothing kept, or has a number no cited quote has. One item per gate call, so the gate's
+8-item cap does not apply. A draft record is never the final.
+Open, as options to William: a source class with counts per class on patterns (point 2), and a
+run tree for the niche, then per niche, loop (point 4). Neither is built until he picks.
