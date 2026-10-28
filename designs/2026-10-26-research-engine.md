@@ -592,3 +592,24 @@ and SOPs against plan files (WA-908, after the first runs show what a plan file 
   document already carry `date` when the source gives one; a finding takes its document's date,
   and the plan file per ask kind says how much age counts (prices and tools: much; principles:
   little). Never a hard cutoff. Not built yet.
+- 2026-10-28, later: C built (WA-921), engine 0.8.0. Weaver: `gap` records (fetch: a query no
+  searcher gave a new hit; read: a kept hit no source could open; `weaver gap` for a person),
+  a `check` step between extract and review, `check` records, a finding's `date` from its
+  document, `weaver back <run> <step> -r` (a person's edge). Raven: plan files version 4 with
+  `budget.checks` (3) and an `age` sentence per kind; `Ask.open` (the last review's why on
+  again, plus that round's gaps) rendered before "Known"; the review sees dated found lines,
+  gaps and checks. Falcon: `checkFinding` (3000 characters each side of the quote). Decision:
+  a failed check writes a drop call, so a bad sentence leaves found and known; a person's keep
+  reverses it. No `note` on every record: gap, why and steer already carry the English.
+  Experiment, same ask as 10-27 (Haiku, searxng + fetcher, 3/6/3), one run each, A = 0.7.1:
+  documents 8 → 13, findings 64 → 88, tokens in 87k → 169k, out 29k → 43k, $0.023 → $0.039
+  (the check step $0.0034 of it; 9 checks, 1 failed: the quote spoke of programs, the sentence
+  of buyers). The main effect: C's plans took the review's why. A's round 3 queries repeat
+  round 2's ("benchmark survey 2026", "American Staffing Association", "reddit"), and the why
+  it ignored asked for churn reasons; C's rounds 2 and 3 searched what the why named (rehire
+  reasons, MSP/VMS supplier criteria, supplier-side retention). A lost 5 opens with no record;
+  C wrote 4 read gaps, all on one trade site that blocks the fetcher (the ladder's job). No
+  fetch gap: every query found new hits. Search noise makes counts weak; the query shift is the
+  signal. Verdicts stay thin in both: the ask. Ledgers: tasks repo `docs/10-28/engine-runs/`.
+  Open: gaps of the last round reach no model (the budget stop is fixed), only the person;
+  stored plan files on disk keep their old prompts until refreshed (`raven plans <kind>`).
