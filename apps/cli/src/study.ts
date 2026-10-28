@@ -28,6 +28,7 @@ import {
 } from "@wren/research/studies";
 import { studyReport } from "@wrenautomation/falcon/study";
 import { htmlText, pdfText } from "@wrenautomation/falcon/text";
+import { PoliteFetcher, userAgent } from "@wrenautomation/weaver/fetch";
 import type { Command } from "commander";
 import { desc } from "drizzle-orm";
 import { collect } from "./args.js";
@@ -155,7 +156,11 @@ export function registerStudy(
         const isUrl = /^https?:\/\//i.test(from);
         let bytes: Uint8Array;
         if (isUrl) {
-          const res = await fetch(from);
+          // The declared UA, a timeout and retries: a bare fetch hangs or reads as a bot.
+          const res = await new PoliteFetcher(userAgent(settings.fetchContact), {
+            timeout: 30,
+            retries: 1,
+          }).open(from);
           if (!res.ok) throw new Error(`${from}: HTTP ${res.status}`);
           bytes = new Uint8Array(await res.arrayBuffer());
         } else bytes = readFileSync(resolve(from));
