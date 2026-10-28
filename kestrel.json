@@ -2,7 +2,12 @@
   "layers": {
     "imports": {},
     "api": {},
-    "routes": {}
+    "routes": {},
+    "schema": {
+      "migrate": "pnpm -s db:migrate",
+      "migrateUrlEnv": "WREN_DATABASE_URL",
+      "migrations": "packages/db/drizzle"
+    }
   },
   "cards": {
     "require": [
