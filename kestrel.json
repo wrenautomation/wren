@@ -9,9 +9,23 @@
       "migrations": "packages/db/drizzle"
     },
     "systems": {},
-    "ui": { "dump": "pnpm -s --filter @wren/portal kestrel:screens" }
+    "ui": {
+      "dump": "pnpm -s --filter @wren/portal kestrel:screens"
+    }
   },
   "cards": {
     "require": ["package"]
+  },
+  "cost": {
+    "dump": "node scripts/prod-wren.mjs books cost --json",
+    "parts": "(?:withPart\\([^,]+,\\s*|\\bpart:\\s*)\"([a-z][a-z0-9._-]*)\"",
+    "owners": {
+      "aws:Amazon Elastic Compute Cloud - Compute": "system:wren",
+      "aws:EC2 - Other": "system:wren",
+      "aws:Amazon Virtual Private Cloud": "system:wren",
+      "aws:AWS Lambda": "system:wren.worker",
+      "aws:AWS Cost Explorer": "@wren/books",
+      "aws:AWS Systems Manager": "system:ssm"
+    }
   }
 }

@@ -712,6 +712,29 @@ export async function usageSince(
 }
 
 /**
+ * Wren's own spend per vendor and part since `since`: what Wren costs to run. Client rows are left
+ * out (their own key or their quota). Kestrel's cost report.
+ */
+export async function usageByPart(
+  main: Queryable,
+  o: { since: Date },
+): Promise<{ vendor: string; part: string | null; micros: number; calls: number }[]> {
+  const rows = await main
+    .select({
+      vendor: vendorUsage.vendor,
+      part: vendorUsage.part,
+      micros: sql<string>`sum(${vendorUsage.micros})`,
+      calls: sql<string>`count(*)`,
+    })
+    .from(vendorUsage)
+    .where(and(isNull(vendorUsage.client), gte(vendorUsage.at, o.since)))
+    .groupBy(vendorUsage.vendor, vendorUsage.part);
+  return rows
+    .map((r) => ({ ...r, micros: Number(r.micros), calls: Number(r.calls) }))
+    .sort((a, b) => b.micros - a.micros);
+}
+
+/**
  * What each key spent since `since`, by key id: micro-dollars, units and calls. Rows with no key id
  * (a path holds the key) are left out. The Accounts page's "spend this month".
  */

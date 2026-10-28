@@ -147,6 +147,28 @@ interface UsageMonth {
   before: number;
 }
 
+/** Metered spend per service for `[from, to)`, most first: kestrel's cost report. */
+export async function usageByService(
+  db: Db,
+  provider: UsageProvider,
+  from: string,
+  to: string,
+): Promise<{ service: string; currency: string; amount: number }[]> {
+  const rows = await db
+    .select({
+      service: usage.service,
+      currency: usage.currency,
+      amount: sql<string>`sum(${usage.amount})`,
+    })
+    .from(usage)
+    .where(and(eq(usage.provider, provider), gte(usage.on, from), lt(usage.on, to)))
+    .groupBy(usage.service, usage.currency);
+  return rows
+    .map((r) => ({ ...r, amount: Number(r.amount) }))
+    .filter((r) => r.amount > 0)
+    .sort((a, b) => b.amount - a.amount);
+}
+
 /** Spend per service this month so far, beside the same days of last month. */
 export async function usageMonth(
   db: Db,

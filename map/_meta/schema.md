@@ -24,6 +24,7 @@ Five card types, closed. When practice and this file disagree, fix one the same 
 | `entity` | objects: the owning file, `path:line` of the table, type or module |
 | `consumes` / `produces` | processes: wikilinks to object cards, `[[email/message]]` form |
 | `covers` | node ids from `map/generated` (`@wren/pkg/src/file.ts`, `@wren/pkg#name`). A file brings its exports. Object cards cover their `entity`'s file without it |
+| `trigger` | decisions only: `{metric, node?, over}`, the measure that makes the choice due again. `metric` is `cost` (USD per 30 days of `node`, from `kestrel cost`), `cycles`, `duplicates`, `unused` or `inferred` (from `kestrel health`). `kestrel check` lists a crossed trigger |
 | `stamp` | written by `kestrel stamp <card>` after a person reads the card against the approved map; never by hand. A changed covered node makes the card stale in `kestrel check` |
 
 ## Rules

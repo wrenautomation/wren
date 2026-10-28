@@ -43,12 +43,14 @@ import {
   sortCard,
   today,
   unsortedCard,
+  usageByService,
   usageMonth,
 } from "@wren/books";
 import { BOOKS_KEY, type Books } from "@wren/books/restate";
 import { GmailClient } from "@wren/channel-email";
 import { ingressOf, type Settings } from "@wren/config";
 import { recordedRun } from "@wren/core";
+import { usageByPart } from "@wren/core/vendors";
 import type { Db } from "@wren/db";
 import { loadLlmEnv, makeLlm } from "@wren/llm";
 import { expandHome } from "@wrenautomation/autobrowse/google";
@@ -571,6 +573,43 @@ export function registerBooks(
       );
       if (!rows.length)
         console.log("no spend kept yet: the daily pass takes it in (WREN_BOOKS_AWS_USAGE)");
+    });
+
+  books
+    .command("cost")
+    .description("What Wren cost to run over the last days: AWS per service, vendors per part")
+    .option("--days <n>", "how many days back (default 30)", (v) => Number.parseInt(v, 10))
+    .option("--json", "print JSON (kestrel's cost dump)")
+    .action(async (opts: { days?: number; json?: boolean }) => {
+      const days = opts.days ?? 30;
+      const to = today();
+      const from = new Date(Date.parse(to) - days * 86_400_000).toISOString().slice(0, 10);
+      const [aws, parts] = await withDb((db) =>
+        Promise.all([
+          usageByService(db, "aws", from, to),
+          usageByPart(db, { since: new Date(from) }),
+        ]),
+      );
+      const lines = [
+        ...aws.map((r) => ({ source: "aws", key: r.service, usd: r.amount })),
+        ...parts.map((r) => ({
+          source: r.vendor,
+          key: r.part ?? "",
+          usd: r.micros / 1e6,
+          calls: r.calls,
+        })),
+      ];
+      if (opts.json) return json({ from, to, days, lines });
+      for (const l of lines)
+        console.log(
+          `${`${l.source} ${l.key}`.slice(0, 52).padEnd(52)} ${l.usd.toFixed(2).padStart(10)}`,
+        );
+      console.log(
+        `${"total (USD)".padEnd(52)} ${lines
+          .reduce((n, l) => n + l.usd, 0)
+          .toFixed(2)
+          .padStart(10)}`,
+      );
     });
 
   const loop = () =>
