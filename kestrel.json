@@ -9,21 +9,10 @@
       "migrations": "packages/db/drizzle"
     },
     "systems": {
-      "wrangler": [
-        "apps/*/wrangler.toml",
-        "deploy/*/wrangler.toml"
-      ],
-      "terraform": [
-        "deploy/terraform/*.tf"
-      ],
-      "compose": [
-        "deploy/*/compose.yml"
-      ],
-      "tags": [
-        "deploy/**/*.sh",
-        "deploy/**/*.service",
-        "deploy/vps/compose.yml"
-      ],
+      "wrangler": ["apps/*/wrangler.toml", "deploy/*/wrangler.toml"],
+      "terraform": ["deploy/terraform/*.tf"],
+      "compose": ["deploy/*/compose.yml"],
+      "tags": ["deploy/**/*.sh", "deploy/**/*.service", "deploy/vps/compose.yml"],
       "hosts": {
         "deploy/scripts/box-*.sh": "host:pg",
         "deploy/terraform/user-data.sh": "host:pg",
@@ -94,9 +83,7 @@
     }
   },
   "cards": {
-    "require": [
-      "package"
-    ]
+    "require": ["package"]
   },
   "cost": {
     "dump": "node scripts/prod-wren.mjs books cost --json",
