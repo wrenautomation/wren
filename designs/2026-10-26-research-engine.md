@@ -675,3 +675,22 @@ and SOPs against plan files (WA-908, after the first runs show what a plan file 
   kept findings with quote and link, what is open, cost. Until then the report built from the
   ledger is what a client reads. Next: the `birdwatch` skill, falcon's `pattern` record, the
   person commands become the agent's, the 0.8.2 forced stop reverts, plan files learn.
+- 2026-10-28, night (WA-931, engine 0.11.0): the dogfood on Wren's own asks (one customer
+  profile, one channel, one offer) with William at every step. Two changes from it. (1) Raven
+  gives the round's search a shape: a query tree. Facets are the sides a researcher covers (the
+  plan file's `tree` guide names five: a number, a how, a who, a counter-view, a primary source);
+  each facet has tries in order, each try a list of queries. Weaver runs every first try in one
+  fetch, then the next try of each facet still thin (under the guide's `thin`, 3 new hits), until
+  each facet has enough or runs out. A page a second query brings back is a `found` record on the
+  first hit (a new ledger type, append-only, one row per re-find; chosen over a correction record
+  that restates `hit.queries`: smaller rows, one hit row stays one), and the brief ranks hits by
+  the facets that found them. A facet whose every try wrote nothing is a gap; a single thin try
+  is not. The agent writes the tree, shows it to the person, and `learn --thin|--tree` tunes the
+  guide. Flat queries still work. Taken from Perplexity and Gemini Deep Research: a plan the
+  person edits before it runs, breadth then depth, follow-ups from what is thin. (2) The headed
+  agent reads for itself: `show <run> <document>` prints the stored text, `add finding` writes
+  what it read behind the quote gate, `add check` its own check (a fail drops). This overrides
+  the 10-28 rule for extract and check on a small run: William's reason is that the agent's
+  reading is the better judge and runs on his Claude Code usage, not API spend, and he can
+  discuss each finding. The model paths (`extract`, `check`) stay for bulk and the runner; both
+  paths write the same records.
