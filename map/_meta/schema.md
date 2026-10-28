@@ -1,6 +1,6 @@
 # Schema: the card types of this map
 
-Two card types, closed. When practice and this file disagree, fix one the same day.
+Five card types, closed. When practice and this file disagree, fix one the same day.
 
 ## Types
 
@@ -8,18 +8,23 @@ Two card types, closed. When practice and this file disagree, fix one the same d
 |---|---|---|
 | object | `objects/<cluster>/<slug>.md` | one sentence, why this shape, shape with citations, connected to, if you change this, surfaces, see |
 | process | `processes/<slug>.md` | input → movement → output, why, numbered steps with citations, hits / does not hit, surfaces, see |
+| pattern | `patterns/<slug>.md` | one design pattern: why, shape, uses, rule (kestrel) |
+| requirement | `requirements/<slug>.md` | one ask in William's words, dated: why, met by |
+| decision | `decisions/<YYYY-MM-DD>-<slug>.md` | one hard-to-change choice: why, options, switch when |
 
 ## Frontmatter
 
 | Key | Values |
 |---|---|
-| `type` | `object` \| `process` |
+| `type` | `object` \| `process` \| `pattern` \| `requirement` \| `decision` |
 | `cluster` | objects only: `leads` `ledger` `research` `email` `content` `ads` `sms` `clients` `reactivation` `books` `watch` `calendar` `platform` `ui` |
 | `universe` | `live` \| `leftover` \| `ghost` (see `../CONTEXT.md`) |
 | `status` | `stub` (no body yet) \| `verified` (needs `verified:`) \| `stale` (known drift, say where) |
 | `verified` | `YYYY-MM-DD @ <commit>`; required when status is verified |
 | `entity` | objects: the owning file, `path:line` of the table, type or module |
 | `consumes` / `produces` | processes: wikilinks to object cards, `[[email/message]]` form |
+| `covers` | node ids from `map/generated` (`@wren/pkg/src/file.ts`, `@wren/pkg#name`). A file brings its exports. Object cards cover their `entity`'s file without it |
+| `stamp` | written by `kestrel stamp <card>` after a person reads the card against the approved map; never by hand. A changed covered node makes the card stale in `kestrel check` |
 
 ## Rules
 

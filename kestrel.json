@@ -1,1 +1,12 @@
-{ "layers": { "imports": {}, "api": {}, "routes": {} } }
+{
+  "layers": {
+    "imports": {},
+    "api": {},
+    "routes": {}
+  },
+  "cards": {
+    "require": [
+      "package"
+    ]
+  }
+}
