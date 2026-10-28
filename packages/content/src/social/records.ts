@@ -882,8 +882,7 @@ const replyItem = (r: InboxReply) => ({
 function outreachOf(id: string): string | null {
   const [type, rest] = typed(id);
   if (type === "thread" || type === "onpost") return `/engage/engage/${encodeURIComponent(id)}`;
-  if (type === "invite" || type === "connect")
-    return `/engage/invites/${encodeURIComponent(rest)}`;
+  if (type === "invite" || type === "connect") return `/engage/invites/${encodeURIComponent(rest)}`;
   return null;
 }
 
