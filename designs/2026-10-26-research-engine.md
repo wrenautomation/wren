@@ -713,3 +713,16 @@ and SOPs against plan files (WA-908, after the first runs show what a plan file 
   JSON 302s to login, www and api 403, the www HTML is a JS shell) and a browser user agent on the
   fetcher (an identity choice, William's). Reddit goes through the ladder's render tier; the ICF
   PDF stays a gap, with both reasons.
+
+**2026-10-28 night: signed-in reads and captchas.** William: captchas never block, read signed in
+with Wren's accounts, the account configurable. Options and the pick in autobrowse
+`designs/2026-10-28-signed-in-reads.md`. In short: the render rung solves captchas with the flows'
+solver; weaver gets one reader per site over the site's own read route on the desk (a Reddit thread through
+`reddit-public` signed out, then signed in only on a miss; Facebook group posts through fb-public,
+always signed out); the caller names the account (`WEAVER_ACCOUNTS`, suggested
+`reddit=reddit@alt` so reads never risk the posting account);
+readers that claim one site go before general openers. Rejected: cookies out to weaver (secrets
+leave the vault, ban risk), a signed-in render for now, a Chrome user agent on the fetcher (the
+ladder has one). This supersedes the 0.13.0 entry's "Rejected: a Reddit reader". That reader would
+have fetched the page; autobrowse's `reddit-public` now reads a thread from its RSS feed when
+`.json` is 403, so a reader over the route gets clean text signed out. Shipped in 0.14.0.
