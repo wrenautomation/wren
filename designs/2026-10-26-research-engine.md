@@ -869,3 +869,29 @@ over any ledger); the portal module reads it on this Mac now and a synced ledger
 the same seam. The seam carries its own JSON shape, so the portal imports no weaver (wren pins
 0.8.2). v1 is read only: the CLI stays the one writer. Google results render as our own list
 of hits; posts and videos use each platform's embed beside the ledger's stored copy.
+
+### 10-28 evening: follow, people, Google, a worth trial, engine 0.22.0
+
+William: search like a person. After a good video, look through the channel and for videos like
+it; good posts cluster in people; a good author's blog, Substack and X are worth a look; Google
+with its AI Overview. Options for the follow: (a) the agent searches by hand, (b) a follow
+query routed to sources that can list a page's neighbours, (c) an automatic expansion of every
+kept page. Ranked by: the agent decides, then cost stays bounded, then one path for hits.
+(a) loses the edge from the page to its neighbours; (c) decides for the agent and spends on
+every page. Picked (b), William's yes: `weaver follow --as posts|similar` writes a query with
+`follow: {url, as, document?}`; the fetch step sends it to sources with `follows`; up to 30
+hits go through triage, reads and the tree cap like a search's. posts: yt-dlp (a channel's
+uploads from a video or the channel, a TikTok profile), reddit (a user's top posts and
+comments, one of the 240 reads a day). similar: Exa findSimilar off the page's own site.
+A `person` record (profiles, names) ties one author across sites; the brief counts kept
+findings per person and lists kept pages no follow and no person covers. Finding a person's
+other profiles stays the agent's job (search, read, `add person`): a fixed tool would guess.
+Google: `web GET /google` on the desk; each result a hit; the AI Overview one hit, a claim,
+never a proof, and each page it cites a hit. Instagram reels need a login in yt-dlp: skipped.
+Bug found by the test: a source let in by `--with` ran every earlier query. A query now runs
+only on the allow-list as it stood when it was written.
+Jev: William trusts the call. Jev takes sorting and routing, never a final call. A trial: Jev
+answers a page's `worth` (would a careful researcher cite it for the ask) when it is read.
+`brief.judge.worth` gives its AUC against "a finding on it was kept" and what a gate at a half
+would skip. Nothing gates on it. If the AUC holds high over several runs, it can order the
+extract; if not, it stays a hint.
