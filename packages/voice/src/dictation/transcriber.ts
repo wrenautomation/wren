@@ -3,6 +3,7 @@
  * own model, our server and a GPU box later all fit it; `TranscriberEars` turns any of them into
  * ears with partial and final words. Isomorphic.
  */
+import { compatibleEar } from "@wrenautomation/models/hear";
 import type { Frame } from "../types.js";
 
 /** Every transcriber hears 16 kHz mono. */
@@ -150,29 +151,25 @@ export function openAiTranscriber(o: {
   fetch?: typeof fetch;
   language?: string;
 }): Transcriber {
-  const go = o.fetch ?? fetch;
+  const ear = compatibleEar({
+    url: o.url,
+    model: o.model,
+    ...(o.key ? { key: o.key } : {}),
+    ...(o.fetch ? { fetch: o.fetch } : {}),
+  });
   return {
     name: "server",
     model: o.model,
     async transcribe(audio, { signal }) {
-      const form = new FormData();
-      form.append(
-        "file",
-        new Blob([wavOf(audio) as Uint8Array<ArrayBuffer>], { type: "audio/wav" }),
-        "a.wav",
+      const heard = await ear.hear(
+        { data: wavOf(audio), mediaType: "audio/wav", filename: "a.wav" },
+        {
+          language: o.language ?? "en",
+          seconds: audio.length / DICTATION_RATE,
+          ...(signal ? { signal } : {}),
+        },
       );
-      form.append("model", o.model);
-      form.append("response_format", "json");
-      form.append("language", o.language ?? "en");
-      const res = await go(o.url, {
-        method: "POST",
-        headers: o.key ? { authorization: `Bearer ${o.key}` } : {},
-        body: form,
-        ...(signal ? { signal } : {}),
-      });
-      if (!res.ok) throw new Error(`The speech server answered ${res.status}.`);
-      const body = (await res.json()) as { text?: unknown };
-      return typeof body.text === "string" ? body.text.trim() : "";
+      return heard.text;
     },
   };
 }
