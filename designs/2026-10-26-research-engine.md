@@ -679,9 +679,14 @@ and SOPs against plan files (WA-908, after the first runs show what a plan file 
   profile, one channel, one offer) with William at every step. Two changes from it. (1) Raven
   gives the round's search a shape: a query tree. Facets are the sides a researcher covers (the
   plan file's `tree` guide names five: a number, a how, a who, a counter-view, a primary source);
-  each facet has tries in order, each try a list of queries. Weaver runs every first try in one
-  fetch, then the next try of each facet still thin (under the guide's `thin`, 3 new hits), until
-  each facet has enough or runs out. A page a second query brings back is a `found` record on the
+  each facet has tries in order, each try a list of queries. Weaver runs one tier per `search`:
+  every first try in one fetch, then, after triage, the next try of each facet still thin (under
+  the guide's `thin`, 3 kept hits), until each facet has enough or runs out (0.12.0; 0.11.0
+  measured thin on new hits, and with three searchers each returning a page no facet was ever
+  thin: the first dogfood run showed it, 6 of 13 queries ran. Yield is what the agent kept; a
+  searcher's count is noise. `--all` runs every next try regardless, the agent's escape hatch.
+  Rejected: thin relative to the source's page size, a heuristic that moves with each source).
+  A page a second query brings back is a `found` record on the
   first hit (a new ledger type, append-only, one row per re-find; chosen over a correction record
   that restates `hit.queries`: smaller rows, one hit row stays one), and the brief ranks hits by
   the facets that found them. A facet whose every try wrote nothing is a gap; a single thin try
@@ -694,3 +699,17 @@ and SOPs against plan files (WA-908, after the first runs show what a plan file 
   reading is the better judge and runs on his Claude Code usage, not API spend, and he can
   discuss each finding. The model paths (`extract`, `check`) stay for bulk and the runner; both
   paths write the same records.
+- 10-28, evening, engine 0.13.0 (from the first dogfood run's reads). Three defects, three fixes.
+  (1) An open source claims the URLs it opens (`opens`): the read step asks before a call, so
+  `youtube` writes no spend on a plain page (0.12.0 wrote one `ok: true` per hit per opener).
+  A fetched page with nothing usable (a 4xx, a block, a PDF through the ladder, no reader) throws
+  instead of returning null: the spend is `ok: false` with the reason, the next opener tries, the
+  gap lists every reason. Rejected: a `{doc|miss}` return shape, which would need every caller to
+  branch; the runner already turns a throw into an `ok: false` spend. (2) Exa returns one
+  three-sentence highlight per result as the snippet, so triage has words; billed per result on
+  top of the search. (3) The ladder reaches the desk worker through the Restate ingress
+  (`POST /desk/call`, `RESTATE_INGRESS_URL`, `RESTATE_AUTH_TOKEN`), the same door wren's CLI uses;
+  the HTTP face it spoke before is not running on the Mac. Rejected: a Reddit reader (old.reddit
+  JSON 302s to login, www and api 403, the www HTML is a JS shell) and a browser user agent on the
+  fetcher (an identity choice, William's). Reddit goes through the ladder's render tier; the ICF
+  PDF stays a gap, with both reasons.
