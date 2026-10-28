@@ -726,3 +726,18 @@ leave the vault, ban risk), a signed-in render for now, a Chrome user agent on t
 ladder has one). This supersedes the 0.13.0 entry's "Rejected: a Reddit reader". That reader would
 have fetched the page; autobrowse's `reddit-public` now reads a thread from its RSS feed when
 `.json` is 403, so a reader over the route gets clean text signed out. Shipped in 0.14.0.
+
+### 10-28 night: findings across runs (WA-934), engine 0.15.0
+
+A new run read pages an earlier run had already proved. Options:
+A. `weaver recall <terms>`: read every run's findings at plan time, ranked, each with quote, URL,
+source date and run. The agent judges what still holds.
+B. A shared fact store with a time to live, filled at the gate.
+C. Hits only: skip a URL an earlier run opened.
+Ranked on: the agent decides (the 10-28 rule), no second store to drift, age shown not guessed.
+Picked A. B puts a staleness rule in code that only the agent can judge. C skips pages but keeps
+no facts. Recall ranks with MiniSearch (BM25, prefix, light fuzz) over text and quote, not a
+custom scorer. Dropped findings stay out. One quote on one page from several runs shows once,
+newest, with `alsoIn`. `--also` reads more ledger folders (one per day).
+Same release: a quote under 5 words is `quote_short`, no longer `no_quote`. A site-scoped query
+skips a searcher that cannot keep the site (`Source.keeps`; YouTube keeps only YouTube).
