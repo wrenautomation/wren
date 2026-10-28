@@ -657,3 +657,21 @@ and SOPs against plan files (WA-908, after the first runs show what a plan file 
   long term. Target: high-ticket, long-term projects for businesses making the AI jump. The
   engine's license goes from PolyForm Shield to PolyForm Strict with the next release (the
   versions on npm to 0.8.3 stay Shield); a client's use needs a license from Wren, in the deal.
+  Built the same night (WA-928, engine 0.9.0, the first release under Strict): weaver's agent
+  commands `plan`, `search`, `open`, `extract`, `check`, `add query|finding|call|edge|steer|gap`
+  and `brief`, each one step over the same functions the runner loops (`readHits`,
+  `extractDocuments`, `checkSample`), the same ledger, so `run --resume` takes over a run an
+  agent started and `brief` reads one the runner made. `plan` writes the snapshot (ask, known =
+  findings so far, every steer, what the last round left open, allow-list, budget) and no
+  queries: the agent's come through `search`, never capped. The budget is a guard rail: `brief`
+  shows it, an edge `again` past `budget.rounds` warns. `add finding` runs the quote gate. A
+  `--human [name]` record is the person's word through the agent. Every record names the agent
+  (`--by` or `WEAVER_AGENT`). Test: a scripted run step by step, then the runner with nothing to
+  do. UI, William's question the same night (Colton Dean's social media brain as the reference):
+  not now. His view, which is the design's: a person must be able to step in at any step at any
+  time, so the chat is the control plane and a UI only shows. The ledger is already that view's
+  data (every record typed, with its round, who, why). When the first client is in a deal, a
+  read-only run page in the portal (Reports), from the design-language artifact: ask, rounds,
+  kept findings with quote and link, what is open, cost. Until then the report built from the
+  ledger is what a client reads. Next: the `birdwatch` skill, falcon's `pattern` record, the
+  person commands become the agent's, the 0.8.2 forced stop reverts, plan files learn.
