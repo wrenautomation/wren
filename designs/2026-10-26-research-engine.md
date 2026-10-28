@@ -895,3 +895,27 @@ answers a page's `worth` (would a careful researcher cite it for the ask) when i
 `brief.judge.worth` gives its AUC against "a finding on it was kept" and what a gate at a half
 would skip. Nothing gates on it. If the AUC holds high over several runs, it can order the
 extract; if not, it stays a hint.
+
+### 10-28 evening: weaver serve and the Research page, engine 0.23.0 (WA-938)
+
+What shipped: `weaver serve` (Hono on 127.0.0.1:4747) gives `/runs`, `/runs/:run` (RunView v1),
+`/runs/:run/documents/:doc` and `/events`. The portal's Research module (team only, read only)
+shows the runs, and per run three tabs: the tree (the @wren/ui Graph), the back and forth
+(every decision with its why and who) and the sources (each hit with its link).
+Decisions, ranked by live demo, checking accuracy, then least plumbing:
+- Live stream: SSE over WebSocket and over polling. One way is enough (the CLI is the one
+  writer); EventSource reconnects by itself. Polling costs a full view (3.1 MB on the big run).
+  serve watches runs/ (recursive `fs.watch`, 150 ms debounce) and drops a run's cached view.
+- Drawing: the kit's Graph (React Flow, elk) with two zooms, not a new canvas. Pages read is
+  the default; Every hit draws all of them (807 on the big run: elk takes seconds). Hits fold
+  into each query's numbers. A follow hangs off the page it started from.
+- Reach: the browser fetches 127.0.0.1 straight, not through a tunnel or a relay. Chrome's
+  Local Network Access asks once (tested: refused without the grant, read with it); CSP
+  connect-src names the port. Limit: v1 works only on this Mac, not on the iPad. A synced
+  ledger later uses the same seam.
+- Shape: serve sends a UI-shaped RunView, versioned (`v: 1`); the portal copies its types and
+  refuses another `v`. The portal imports no weaver. Gap: `brief` is still the agent's shape;
+  a later weaver flattens what the page reads (people) into the view.
+- Design: the design language has no research section. The page composes Graph, RowsPanel,
+  Seg and the Learn player's embeds (moved to `src/embeds.ts`). Reddit, Facebook and Google
+  hits stay links: frame-src has no Reddit, and Google gives no embed.
