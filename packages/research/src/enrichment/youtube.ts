@@ -12,6 +12,7 @@
  * designs/2026-10-07-vendor-keys.md), else on Wren's, gated and metered on its share.
  */
 
+import { timedFetch } from "@wren/core/fetch-limit";
 import type { VendorKeys } from "@wren/core/vendor-keys";
 import { isVendorStop } from "@wren/core/vendor-stop";
 import { ownRoom } from "@wren/core/vendors";
@@ -76,10 +77,14 @@ export function youtubeKeyApi(
   return dataApi(async () => ({ "x-goog-api-key": key }), fetch);
 }
 
+/** A Data API call that never answers would hold its step until Lambda cuts it at 900 s. */
+const DATA_API_LIMIT_MS = 30_000;
+
 function dataApi(
   headers: () => Promise<Record<string, string>>,
-  fetch: typeof globalThis.fetch,
+  given: typeof globalThis.fetch,
 ): YouTubeGet {
+  const fetch = timedFetch(DATA_API_LIMIT_MS, given);
   return async (resource, query) => {
     const r = await fetch(`${API}/${resource}?${new URLSearchParams(query)}`, {
       headers: await headers(),
