@@ -853,3 +853,19 @@ say why deeper beats a sibling; the children per round still stop; `runs.reads` 
 reads × rounds × (children + 1)) pins as `treeReads` on the root's snapshot, and `open` stops
 or cuts its hits there. `brief.lineage` and `brief.treeRoom`. A facet retried needs no child:
 a try in `tree.json` or the next round.
+
+### 10-28 evening: a UI for runs, one read seam
+
+William wants a view of runs for a demo video and for people who check: the full tree, the back
+and forth, every source (at least its link), posts and videos where they live. Fact that
+decides it: the ledger is JSONL on this Mac, written live by the CLI; the portal deploys to
+Cloudflare. Options: (1) a portal module over a ledger synced to prod, (2) a viewer inside the
+engine (`weaver view`), (3) one UI in the portal over one read seam, (4) Evidence or Observable
+Framework over DuckDB. Ranked by: checking accuracy (the quote beside the live source), demo
+quality (live, motion, the artifact bar), one source of truth, least plumbing. (1) has no live
+view; (2) is a second UI codebase and puts the design language in a public repo; (4) misses the
+artifact bar and reels. Picked (3), William's yes: weaver gains `serve` (JSON and a live stream
+over any ledger); the portal module reads it on this Mac now and a synced ledger later through
+the same seam. The seam carries its own JSON shape, so the portal imports no weaver (wren pins
+0.8.2). v1 is read only: the CLI stays the one writer. Google results render as our own list
+of hits; posts and videos use each platform's embed beside the ledger's stored copy.
