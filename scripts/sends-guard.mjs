@@ -29,13 +29,17 @@ const files = grep(["-l", 'effect: "sends"', "--", "packages", "apps", ":!*.test
 const sends = new Set();
 for (const f of files) {
   const lines = readFileSync(f, "utf8").split("\n");
-  lines.forEach((line, i) => {
-    if (!line.includes('effect: "sends"')) return;
+  for (const [i, line] of lines.entries()) {
+    if (!line.includes('effect: "sends"')) continue;
+    // The handler's name sits on its own line or up to three above.
     for (let j = i; j >= Math.max(0, i - 3); j--) {
       const m = /(\w+): (?:service|exclusive|shared)Handler\(/.exec(lines[j]);
-      if (m) return void sends.add(m[1]);
+      if (m) {
+        sends.add(m[1]);
+        break;
+      }
     }
-  });
+  }
 }
 
 if (!sends.size) {
