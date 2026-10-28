@@ -651,3 +651,9 @@ and SOPs against plan files (WA-908, after the first runs show what a plan file 
   design. Business: sold by outcome stages (scoping, research, playbook), not by package;
   done-for-you first, standing watches second, self-serve on the API only when asked. First
   real ask: ATS resume optimization, in a parallel session.
+  Later that evening, William: sell 1 (done-for-you playbooks) and 5 (a run inside every Wren
+  engagement) around 4 (domain packs as the asset, not a product); not 2 (standing watches:
+  full automation may not work yet, a person at the seams is what makes it work); 3 (self-serve)
+  long term. Target: high-ticket, long-term projects for businesses making the AI jump. The
+  engine's license goes from PolyForm Shield to PolyForm Strict with the next release (the
+  versions on npm to 0.8.3 stay Shield); a client's use needs a license from Wren, in the deal.
