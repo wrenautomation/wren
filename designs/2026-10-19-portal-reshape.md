@@ -87,7 +87,7 @@ Decision: nothing is deleted in this phase. Dormant apps park. The only deletion
 ## Shared helpers (never per page)
 
 - `useWaiting()`: the one source for Today's Move, sidebar badges, dock counts.
-- `moved.ts`: every old URL in one table, `/old/page` → `/new/page`, query kept.
+- `moved.ts`: every old URL in one table, `/old/page` → `/new/page`, query kept. It keeps old mail, pins and saved views working; code names the new address. `scripts/moved-guard.mjs` (lint and ui gates) reads the table and fails on a link to a moved address. An app a client also holds (`CLIENT_HELD`: marketing, sites) moves only at Wren, so its old address stays right for a client and is not checked.
 - `parked` on `Module`: one flag, honoured by sidebar, dock, ⌘K.
 - Stories: every new or moved tab has a story (render, play, axe) per `2026-10-18-portal-page-stories.md`. `./scripts/gates.sh ui`.
 

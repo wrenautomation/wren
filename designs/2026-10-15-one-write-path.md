@@ -30,7 +30,7 @@ Two bugs:
 
 ## Sends: accept, then track
 
-Sends are writes that reach a person on another platform: Inbox reply, Engage DM reply, comment answer, comment DM, SMS reply (`SENDS`, `SEND_HANDLERS` in `apps/portal/src/services.ts`).
+Sends are writes that reach a person on another platform: Inbox reply, Engage DM reply, comment answer, comment DM, SMS reply, an asked reply approved, a comment on a thread or post, a like, a follow, a DM, an invite, invites approved or withdrawn (`SENDS`, `SEND_HANDLERS` in `apps/portal/src/services.ts`). A handler whose form says `effect: "sends"` is one; `scripts/sends-guard.mjs` keeps the list whole (10-27: 10 had been left out and ran as held-open requests).
 
 - The Worker gives a send to Restate's `/send` under its idempotency key and answers `202 { accepted, state: "queued", requestId }` at once. A send without a request id is refused.
 - The outcome is Restate's own record of that invocation. `POST /api/writes/status {path, requestId}` reads `/restate/invocation/<svc>/<handler>/<key>/output` and answers sending, sent (with the answer), failed (with the reason) or unknown. That record is durable and is kept a day.
@@ -103,6 +103,8 @@ One mark in the shell, `WritesIndicator`: offline, and how many writes wait for 
 ## Guard
 
 `./scripts/gates.sh lint` runs `writes()`. It fails on a raw `fetch` to `/api/` in the portal web or `packages/ui`, except `api.ts` and dictation's audio post. It also fails on a record action calling `acts.call`/`deps.call` around `callOnce`.
+
+It also runs `sends()` (`scripts/sends-guard.mjs`). It fails when the portal calls a handler tagged `effect: "sends"` by name and `SEND_HANDLERS` lacks it.
 
 It also runs `edits()` (`scripts/edits-guard.mjs`). Every text box in the portal web and `packages/ui` that takes a `value` keeps its words (`data-edit`, set by `useEdit`, `useSaved` or `useKeptForm`), or says why not in an `edit-ok: <reason>` comment. Today's exemptions are search, filter and find boxes, type-to-confirm boxes, and dev-only scratch inputs.
 

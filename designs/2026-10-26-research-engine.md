@@ -565,3 +565,18 @@ and SOPs against plan files (WA-908, after the first runs show what a plan file 
   whole video on generateContent). Risks: the route is beta; a recitation stop there shows as a
   failed run, so callers branch on `isFiltered`, never on the stop string. Cohere reads images
   only: falcon samples frames for a model whose `takes` lacks video; models never drops a part.
+- 2026-10-27, night: the Gemini clip route reversed. Interactions dropped: on free keys its
+  flash quota is spent at the first call (429). A clipped video part goes to generateContent,
+  and `withClips` sets the `videoMetadata` offsets on the wire (option B above). Verified live
+  on 3.5-flash. A file too big to send inline uploads once through `geminiFile` (the Files API),
+  pinned to the key that took it.
+- 2026-10-27, night: wren's `@wren/llm` onto models. Options: (A) `LlmClient` stays and wraps a
+  models `Model` (a thin adapter); (B) every caller takes a `Model` and `LlmClient` goes;
+  (C) A now, then B caller by caller. Ranked by: one door for keys, retries and prices now; no
+  wide diff while the portal is redesigned (WA-917); each later move small and on its own. Pick,
+  C. `modelLlm` adapts a `Model` to `LlmClient`; `makeLlm` and `llmForKey` build models' specs;
+  `AiSdkLlm`, `RotatingLlm` and `ClaudeCodeLlm` are gone, and one AI SDK is in the bundle. Each
+  call keeps three tries (2 s, 4 s), the 2048-token default and a cut answer's text. Still on
+  the B list: `studies/plan.ts` (the planner falcon 0.5 dropped, until `wren study` runs on
+  raven and weaver), the llm-gateway catalog, decide's backends, TwelveLabs in studio.
+  autobrowse's Llm seam stays: it needs none of the new parts (William, 10-27).
