@@ -1,6 +1,6 @@
 # @wren/core: interface
 
-Exports: 2339. Files: 224.
+Exports: 2340. Files: 224.
 
 ## packages/core/src/access-records.ts
 
@@ -2880,6 +2880,7 @@ Exports: 2339. Files: 224.
 - **meter** (function) `(main: Db, o: { client: string | null; vendor: string; units: number; micros?: number; part?: string | null; runId?: string | null; keyId?: string | null; at?: Date; }): Promise<{ mode: VendorMode; bucket: string; micros: number }>`
 - **meterTokens** (function) `(main: Db, o: { model: string; usage: TokenUsage; part: string; runId?: string | null; warn?: (line: string) => void; at?: Date; }): Promise<{ units: number; micros: number }>`
 - **usageSince** (function) `(main: Queryable, client: string | null, from: Date): Promise<UsageSum[]>`
+- **usageByPart** (function) `(main: Queryable, o: { since: Date }): Promise<{ vendor: string; part: string | null; micros: number; calls: number }[]>`
 - **usageByKey** (function) `(main: Queryable, o: { since: Date }): Promise<Map<string, { micros: number; units: number; calls: number }>>`
 - **Vendor** (interface) `interface Vendor { id: string; name: string; unit: string; micros: number | null; url: string | null; asOf: string; quota: Bucket | null; own: "key" | "login" | null; keyName: string | null; publicKeyName?: string; managedDev?: true; wrenOnly?: true; budgetMicros?: number; }`
 - **VENDORS** (const) `readonly Vendor[]`

@@ -1,6 +1,6 @@
 # @wren/books: interface
 
-Exports: 180. Files: 27.
+Exports: 181. Files: 27.
 
 ## packages/books/src/alerts.ts
 
@@ -250,6 +250,7 @@ Exports: 180. Files: 27.
 - **awsCostExplorer** (function) `(client: CostExplorerClient = new CostExplorerClient({ region: "us-east-1" })): UsageFeed`
 - **ingestUsage** (function) `(db: Db, provider: UsageProvider, feed: UsageFeed, opts: { since: string; on: string }): Promise<UsageIngest>`
 - **usageSpikes** (function) `(db: Db, provider: UsageProvider, on: string): Promise<Spike[]>`
+- **usageByService** (function) `(db: Db, provider: UsageProvider, from: string, to: string): Promise<{ service: string; currency: string; amount: number }[]>`
 - **usageMonth** (function) `(db: Db, provider: UsageProvider, on: string): Promise<UsageMonth[]>`
 - **shiftMonth** (function) `(day: string, n: number): string`
 - **UsageDay** (interface) `interface UsageDay { on: string; service: string; currency: string; amount: string; }`
