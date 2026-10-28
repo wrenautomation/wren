@@ -617,3 +617,13 @@ and SOPs against plan files (WA-908, after the first runs show what a plan file 
   review, so `weaver gap` and `weaver back` stamped the wrong round: the next plan missed the
   gap, and back pointed at a round with no plan. `personRound`: between rounds, the round the
   review closed; mid-round, the current one.
+- 2026-10-28, later: engine 0.8.2, the gaps after C. The last round of the budget is reviewed on
+  the model too (about $0.0005): the edge stays stop, and its why says what the ask still lacks.
+  A person's keep or drop with its why reaches the round's review and the next plan; that is the
+  "note on any record" idea, with no new record type. A page the ladder could not pass is a miss
+  with a gap, like the fetcher's 403; before, it stopped the read step. Stored plan files older
+  than the stock already print a warning (`engine-cli.ts`). wren pins 0.8.2 (readers unchanged).
+  Open: a terminal run has no ladder with a browser rung. The CLI's `site call web GET /fetch`
+  stops at impersonate (403, cloudflare on the trade site of the 10-28 runs); only the desk has
+  `render`, and it serves Restate only. Options: a Restate-ingress `LadderClient` in weaver, or
+  an HTTP face on the desk. Browser time is William's call.
