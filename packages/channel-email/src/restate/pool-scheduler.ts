@@ -53,6 +53,7 @@
 import * as restate from "@restatedev/restate-sdk";
 import { finishRun, openRun } from "@wren/core";
 import { findClient } from "@wren/core/clients";
+import { bucketOf } from "@wren/core/limits";
 import {
   CallTimeout,
   clientOfKey,
@@ -81,6 +82,7 @@ import {
   YOUTUBE_MIN_BATCH,
   youtubeReadRoom,
 } from "@wren/research/enrichment";
+import { INSTAGRAM_LIMIT, YOUTUBE_LIMIT } from "@wren/research/limits";
 import type { Discovery, Enrichment } from "@wren/research/restate";
 import {
   anyCollectorBuilt,
@@ -589,8 +591,9 @@ export function makePoolScheduler(deps: PoolSchedulerDeps) {
         // here instead of a whole Enrichment call while it does.
         const n = limits.youtube;
         // A client on its own key has its key's quota; everyone else shares Wren's bucket.
-        const { room } = await ctx.run("youtube room", () =>
-          youtubeReadRoom(db, deps.db, client, now),
+        // The bucket Enrichment checks: one limit, so a tuned cap moves both.
+        const { room } = await ctx.run("youtube room", async () =>
+          youtubeReadRoom(db, deps.db, client, now, await bucketOf(deps.db, null, YOUTUBE_LIMIT)),
         );
         if (room < Math.min(n, YOUTUBE_MIN_BATCH)) return { read: 0, missing: 0, room };
         return limited("youtube", enrichment.youtube({ limit: n }));
@@ -598,8 +601,8 @@ export function makePoolScheduler(deps: PoolSchedulerDeps) {
       instagram: async () => {
         // As youtube: skip the Enrichment call while the bucket is low.
         const n = limits.instagram;
-        const { room } = await ctx.run("instagram room", () =>
-          instagramRoom(db, now, undefined, also),
+        const { room } = await ctx.run("instagram room", async () =>
+          instagramRoom(db, now, await bucketOf(deps.db, null, INSTAGRAM_LIMIT), also),
         );
         if (room < Math.min(n, INSTAGRAM_MIN_BATCH)) return { read: 0, missing: 0, room };
         return limited("instagram", enrichment.instagram({ limit: n }));

@@ -3,6 +3,7 @@ import * as restate from "@restatedev/restate-sdk";
 import { runScreen } from "@wren/core";
 import { bucketOf } from "@wren/core/limits";
 import { clientOfKey, exclusiveHandler } from "@wren/core/restate";
+import { meter } from "@wren/core/vendors";
 import {
   AD_LIBRARY_COMMAND,
   type AdLibraryStats,
@@ -140,6 +141,17 @@ export function searchHandlers(enrich: EnrichmentContext) {
             stats.stopped = r.reason;
             break;
           }
+          // A search that reached Exa costs a unit: its own step, so a failed meter never buys it twice.
+          if (r.value.outcome === "read")
+            await ctx.run(`meter exa ${q}`, () =>
+              meter(deps.db, {
+                client: null,
+                vendor: "exa",
+                units: 1,
+                part: "research.exa-search",
+                runId,
+              }),
+            );
           stats.stopped = countExaSearchUnit(stats, r.value);
           if (stats.stopped) break;
         }

@@ -51,6 +51,7 @@ import {
   formCountriesFrom,
   healthFrom,
   keyedProvider,
+  meteredProvider,
   NoProvider,
   policyFrom,
   providerFrom,
@@ -336,10 +337,12 @@ export async function buildDeps(
     log.warn("WREN_SMS_PROVIDER=fake pretends to send: local dry runs only");
   else if (!settings.smsLive)
     log.info("WREN_SMS_LIVE off: the sms sender queues but sends nothing");
+  // Wren's own texts on Wren's key, metered; a client's go through `keyedProvider` below.
+  const wrenSms = smsProvider.name === "telnyx" ? meteredProvider(smsProvider, db) : smsProvider;
   // A text to William's phone, once the registered campaign is live.
   const operatorText =
     settings.operatorPhone && settings.smsLive && smsProvider.name === "telnyx"
-      ? new SmsNotifier(db, smsProvider, settings.operatorPhone)
+      ? new SmsNotifier(db, wrenSms, settings.operatorPhone)
       : null;
   // The send loop: console prints until cutover flips WREN_SEND_TRANSPORT=gmail.
   // The roster names the live fleet; without one nothing may send, so a missing
@@ -629,7 +632,7 @@ export async function buildDeps(
   const mediaBucket = settings.mediaBucket;
   const sms = {
     db,
-    provider: smsProvider,
+    provider: wrenSms,
     policy: policyFrom(settings),
     health: healthFrom(settings),
     live: settings.smsLive,

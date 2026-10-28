@@ -10,6 +10,8 @@
  */
 import type { VendorKey, VendorKeys } from "@wren/core/vendor-keys";
 import { scrubKey } from "@wren/core/vendor-keys";
+import { meter } from "@wren/core/vendors";
+import type { Db } from "@wren/db";
 import type {
   KeywordReplies,
   LookupResult,
@@ -110,6 +112,36 @@ export function keyedProvider(o: KeyedOptions): SmsProvider {
     parseEvent: (body: unknown): SmsEvent => o.managed.parseEvent(body),
     ...(registration ? { registration } : {}),
     ...(keywordReplies ? { keywordReplies } : {}),
+  };
+}
+
+/**
+ * Wren's own texts (client zero) on Wren's key: the provider as is, each accepted text metered
+ * in parts and dollars. A failed meter logs and the answer stands: a throw means "maybe sent".
+ */
+export function meteredProvider(p: SmsProvider, main: Db, part = "sms.send"): SmsProvider {
+  return {
+    name: p.name,
+    async send(req: SendRequest): Promise<SendResult> {
+      const r = await p.send(req);
+      if (r.ok)
+        await meter(main, {
+          client: null,
+          vendor: "telnyx",
+          units: r.parts ?? 1,
+          ...(r.costUsd !== null ? { micros: Math.round(r.costUsd * 1e6) } : {}),
+          part,
+        }).catch((err: unknown) => {
+          console.error(`meter ${part}:`, err instanceof Error ? err.message : err);
+        });
+      return r;
+    },
+    lookup: (e164) => p.lookup(e164),
+    listNumbers: () => p.listNumbers(),
+    balance: () => p.balance(),
+    parseEvent: (body) => p.parseEvent(body),
+    ...(p.registration ? { registration: p.registration } : {}),
+    ...(p.keywordReplies ? { keywordReplies: p.keywordReplies } : {}),
   };
 }
 

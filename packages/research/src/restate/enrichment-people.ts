@@ -228,6 +228,17 @@ export function peopleHandlers(enrich: EnrichmentContext) {
             stats.stopped = r.reason;
             break;
           }
+          // A search that reached Exa's people index costs a unit, metered in its own step.
+          if (r.value.state === "matched" || r.value.state === "unresolved")
+            await ctx.run(`meter team ${id}`, () =>
+              meter(deps.db, {
+                client: null,
+                vendor: "exa",
+                units: 1,
+                part: "research.team",
+                runId,
+              }),
+            );
           stats.stopped = countTeamUnit(stats, r.value, streak);
           if (stats.stopped) break;
         }
