@@ -7,10 +7,10 @@ import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { parseEnv } from "node:util";
+import { parse } from "./secrets.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const prod = parseEnv(readFileSync(join(root, "deploy/prod.env"), "utf8"));
+const prod = parse(readFileSync(join(root, "deploy/prod.env"), "utf8"));
 const KEYS = ["WREN_DATABASE_URL", "WREN_SEARCH_SITE", "WREN_SEARCH_ORIGIN"];
 const missing = KEYS.filter((k) => !prod[k]);
 if (missing.length) {

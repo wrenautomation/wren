@@ -122,9 +122,12 @@ export function frontField(md: string, key: string): string | null {
 
 type ReadResult = "read" | "mac" | "failed" | null;
 
-/** The page reader for saved links: weaver's door, under learn's own UA, with one retry. */
+/**
+ * The page reader for saved links: weaver's door, under learn's own UA. One try: the walk reads
+ * items one by one in a Lambda, and a failed read is tried again on a later pass.
+ */
 export const pageFetcher = (): Fetcher =>
-  new PoliteFetcher("wren-learn/1.0 (+https://wrenautomation.com)", { timeout: 30, retries: 2 });
+  new PoliteFetcher("wren-learn/1.0 (+https://wrenautomation.com)", { timeout: 30, retries: 1 });
 
 /**
  * Read one item on the worker. A video or reel is marked for the Mac; an article keeps its feed
