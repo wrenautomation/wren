@@ -541,3 +541,27 @@ and SOPs against plan files (WA-908, after the first runs show what a plan file 
   falcon, weaver, then wren's `@wren/llm` as a thin adapter, studio's look and TwelveLabs, the
   voice transcriber, the decide backends, autobrowse's Llm seam), pins bumped in their own
   commits.
+- 2026-10-27, late: one repo for the engine, `wrenautomation/engine`: models, raven, falcon and
+  weaver as pnpm workspaces, each still its own npm package. Options weighed: (A) a repo per
+  package, the shape so far: a models fix costs up to four publishes and a wren bump, which is
+  why wren pinned old raven, falcon and weaver; (B) one engine repo; (C) services behind HTTP;
+  (D/E) the packages inside wren, published from there. Ranked by: one commit lands everywhere,
+  tests block a publish, each package usable alone, migration cost. Pick, B: E removes even the
+  wren bump, but wren's CI does not hold on tests during the redesign (WA-917) and every push to
+  its main deploys prod. C stays for state shared across processes only (keys, rate limits,
+  spend), which the LLM gateway already holds. One version for all four; a `v*` tag publishes
+  each with npm trusted publishing. Between them a package pins `workspace:*`, which the pack
+  turns into the exact version. No changesets: with one shared version, its notes would be
+  ceremony, and the publish needs its own `pnpm pack` + `npm publish` step for trusted
+  publishing anyway. History kept by `git subtree`; the four old repos archived with a pointer.
+  The direction holds by exports: models depends on nothing of ours, raven on models, falcon on
+  models, weaver on all three. Products (config, UI, billing, a client) stay in wren's app layer.
+- 2026-10-27, late: Gemini reads a clip of a video (start, end, fps) through the AI SDK's
+  `google.interactions` route, store off; every other request stays on generateContent.
+  Options: (A) the Interactions route for clipped parts only; (B) generateContent with a fetch
+  wrapper that patches `videoMetadata` in; (C) a raw Gemini REST adapter in models; (D) falcon
+  keeps its own `askGemini` beside models. Pick, A: framework code only, and live it carried the
+  offsets (a 7 s YouTube clip at fps 0.5, low resolution: 365 video tokens against 1676 for the
+  whole video on generateContent). Risks: the route is beta; a recitation stop there shows as a
+  failed run, so callers branch on `isFiltered`, never on the stop string. Cohere reads images
+  only: falcon samples frames for a model whose `takes` lacks video; models never drops a part.
