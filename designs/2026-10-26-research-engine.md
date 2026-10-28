@@ -809,3 +809,29 @@ Open: Jev (TypeSafe, labels and probabilities, no text, $0.042 per 1M input) for
 choice and rank steps: first pass of the check, a triage sort, a class guess. Not built until
 William picks. A check fail drops the finding; most fails are overstated, not false: a repair
 step (narrow the sentence to the quote, gate again) is his call.
+
+### 10-28 evening: Jev as a hint and a router, a check's fix, engine 0.20.0
+
+William: "Cheap models making decisions is a nono", but use Jev heavily for yes or no, picks and
+ranks. Options for its role: (a) a decider on cheap steps (triage, class, check pass), (b) a
+shadow that logs answers next to the agent's for a later switch, (c) a hint and a router that
+never writes a call or a check. Ranked by: no cheap final call, then coverage, then cost. (a)
+breaks the first rule. (b) pays for answers nobody uses. Picked (c).
+The judge lives in `@wrenautomation/models/judge` (William: one door for every model call):
+`Judge`, `jevJudge` on TypeSafe's SDK 0.6.0 (pinned like wren), `fakeJudge`, `judgeFromSpec`;
+a row in the price table, input only. weaver asks it of each new hit (serves the ask, whose
+side, class), each page (class) and each kept finding with a quote (backs the sentence,
+credits another source); each answer a `judge` record, each call a spend. Uses: the brief sorts
+uncalled hits by facets then serves and shows the answers; `documents.unclassed[].guess`; a
+facet with `needs` counts the guessed class before a read, so `enough` waits while every kept
+hit is the wrong class (no class known: the old rule); `patterns[].cites` and the vendor echo
+warning name findings that credit a source. The check reads its sample plus every finding the
+judge backs under 0.8; a judge's yes never shortens the sample. `accept` writes calls or classes
+in bulk at the agent's own bar, the judge's number in each why: the agent decides, the record
+is the agent's. `brief.judge` counts calls, cost and agreement with the agent and the check,
+which is the trial data a shadow would have given. The key is `TYPESAFE_API_KEY`; it is in
+prod's env only, so no live run yet.
+Repair (William's yes): a check that says no can give a fix, a narrower sentence the same quote
+backs. weaver gates it like any finding, checks it again with Claude, and writes it as a new
+finding with `fixes` naming the old one. Still open: a live Jev trial on a runs-session ledger
+(agreement per question), then the DOUBT bar.
