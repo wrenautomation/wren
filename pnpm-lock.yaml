@@ -178,14 +178,14 @@ importers:
         specifier: 0.5.0
         version: 0.5.0(@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.1))
       '@wrenautomation/falcon':
-        specifier: 0.7.1
-        version: 0.7.1
+        specifier: 0.8.2
+        version: 0.8.2
       '@wrenautomation/models':
-        specifier: 0.7.1
-        version: 0.7.1
+        specifier: 0.8.2
+        version: 0.8.2
       '@wrenautomation/weaver':
-        specifier: 0.7.1
-        version: 0.7.1
+        specifier: 0.8.2
+        version: 0.8.2
       commander:
         specifier: 15.0.0
         version: 15.0.0
@@ -595,11 +595,11 @@ importers:
         specifier: 0.5.0
         version: 0.5.0(@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.1))
       '@wrenautomation/falcon':
-        specifier: 0.7.1
-        version: 0.7.1
+        specifier: 0.8.2
+        version: 0.8.2
       '@wrenautomation/weaver':
-        specifier: 0.7.1
-        version: 0.7.1
+        specifier: 0.8.2
+        version: 0.8.2
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
@@ -672,11 +672,11 @@ importers:
         specifier: workspace:*
         version: link:../llm
       '@wrenautomation/falcon':
-        specifier: 0.7.1
-        version: 0.7.1
+        specifier: 0.8.2
+        version: 0.8.2
       '@wrenautomation/weaver':
-        specifier: 0.7.1
-        version: 0.7.1
+        specifier: 0.8.2
+        version: 0.8.2
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
@@ -767,11 +767,11 @@ importers:
         specifier: 0.5.0
         version: 0.5.0(@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.1))
       '@wrenautomation/falcon':
-        specifier: 0.7.1
-        version: 0.7.1
+        specifier: 0.8.2
+        version: 0.8.2
       '@wrenautomation/weaver':
-        specifier: 0.7.1
-        version: 0.7.1
+        specifier: 0.8.2
+        version: 0.8.2
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
@@ -1166,8 +1166,8 @@ importers:
         specifier: workspace:*
         version: link:../db
       '@wrenautomation/models':
-        specifier: 0.7.1
-        version: 0.7.1
+        specifier: 0.8.2
+        version: 0.8.2
       csv-parse:
         specifier: 7.0.2
         version: 7.0.2
@@ -1354,11 +1354,11 @@ importers:
         specifier: workspace:*
         version: link:../research
       '@wrenautomation/falcon':
-        specifier: 0.7.1
-        version: 0.7.1
+        specifier: 0.8.2
+        version: 0.8.2
       '@wrenautomation/weaver':
-        specifier: 0.7.1
-        version: 0.7.1
+        specifier: 0.8.2
+        version: 0.8.2
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
@@ -1379,8 +1379,8 @@ importers:
   packages/llm:
     dependencies:
       '@wrenautomation/models':
-        specifier: 0.7.1
-        version: 0.7.1
+        specifier: 0.8.2
+        version: 0.8.2
       zod:
         specifier: 4.6.5
         version: 4.6.5
@@ -1410,11 +1410,11 @@ importers:
         specifier: workspace:*
         version: link:../research
       '@wrenautomation/falcon':
-        specifier: 0.7.1
-        version: 0.7.1
+        specifier: 0.8.2
+        version: 0.8.2
       '@wrenautomation/weaver':
-        specifier: 0.7.1
-        version: 0.7.1
+        specifier: 0.8.2
+        version: 0.8.2
       fflate:
         specifier: 0.8.3
         version: 0.8.3
@@ -1652,11 +1652,11 @@ importers:
         specifier: workspace:*
         version: link:../video
       '@wrenautomation/falcon':
-        specifier: 0.7.1
-        version: 0.7.1
+        specifier: 0.8.2
+        version: 0.8.2
       '@wrenautomation/weaver':
-        specifier: 0.7.1
-        version: 0.7.1
+        specifier: 0.8.2
+        version: 0.8.2
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
@@ -1704,14 +1704,14 @@ importers:
         specifier: workspace:*
         version: link:../llm
       '@wrenautomation/falcon':
-        specifier: 0.7.1
-        version: 0.7.1
+        specifier: 0.8.2
+        version: 0.8.2
       '@wrenautomation/models':
-        specifier: 0.7.1
-        version: 0.7.1
+        specifier: 0.8.2
+        version: 0.8.2
       '@wrenautomation/weaver':
-        specifier: 0.7.1
-        version: 0.7.1
+        specifier: 0.8.2
+        version: 0.8.2
       csv-parse:
         specifier: 7.0.2
         version: 7.0.2
@@ -1808,14 +1808,14 @@ importers:
         specifier: workspace:*
         version: link:../video
       '@wrenautomation/falcon':
-        specifier: 0.7.1
-        version: 0.7.1
+        specifier: 0.8.2
+        version: 0.8.2
       '@wrenautomation/models':
-        specifier: 0.7.1
-        version: 0.7.1
+        specifier: 0.8.2
+        version: 0.8.2
       '@wrenautomation/weaver':
-        specifier: 0.7.1
-        version: 0.7.1
+        specifier: 0.8.2
+        version: 0.8.2
       diff:
         specifier: 8.0.4
         version: 8.0.4
@@ -2030,8 +2030,8 @@ importers:
         specifier: workspace:*
         version: link:../llm
       '@wrenautomation/models':
-        specifier: 0.7.1
-        version: 0.7.1
+        specifier: 0.8.2
+        version: 0.8.2
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
@@ -5750,22 +5750,22 @@ packages:
     engines: {node: '>=24'}
     hasBin: true
 
-  '@wrenautomation/falcon@0.7.1':
-    resolution: {integrity: sha512-bECWBY5zNBS4ZNr3QFPMqjeianai6k7JgSRM+Ecqxbg1vDpmRvkgN2+3R8F2yFe9ffV20QEopzMbMwCmG/v5Hw==}
+  '@wrenautomation/falcon@0.8.2':
+    resolution: {integrity: sha512-ylcihBjQHot/kKaymlvIUK69L4Idx6+zIZlOU0jsOgiV2597yhv5jfuOY4e1yFF3SMhtMUwqfb5A9AklJvEzxg==}
     engines: {node: '>=24'}
     hasBin: true
 
-  '@wrenautomation/models@0.7.1':
-    resolution: {integrity: sha512-Z7HTOI/JW3VYVAwK+gon0u7rNSScGHiNPRN79ogTJk3UD+HUqm8FruVJQwzvgjIyrbTzX01Nf0wHeg+r4f0DWg==}
+  '@wrenautomation/models@0.8.2':
+    resolution: {integrity: sha512-QuoDAYsey32p3cKxKAcbAIP2owQ+0Oq5j1Nugh+rkF13IilJFVWnOll5Nk8nfyEevSFSUnmVYKBluCPLNsNQcg==}
     engines: {node: '>=24'}
 
-  '@wrenautomation/raven@0.7.1':
-    resolution: {integrity: sha512-gbUJgjIqqYv8C5K5RQnziZ6kZa+lH4NT3MpvDTq7HMjZXu5bAWnw4HLlxkkDUzlLYO10DvX6P9832bUqujxqjA==}
+  '@wrenautomation/raven@0.8.2':
+    resolution: {integrity: sha512-kl96knhPeQ9j/CSxuf+tml+Gf8dSOcbnRqaJxzorqaWgLhv5KZIazrVQF19G9hkl24AOlBpgyptR+F+MSPHJqg==}
     engines: {node: '>=24'}
     hasBin: true
 
-  '@wrenautomation/weaver@0.7.1':
-    resolution: {integrity: sha512-ByjG/B3ct13gdN01uWQJuCV+LY+/P/ciwWmjcudFJqphzONkkp7eHH1e9NWnjLojAm6r6+iNpt3E7jqcSZC52g==}
+  '@wrenautomation/weaver@0.8.2':
+    resolution: {integrity: sha512-SjFdSzCkr7fwsN2WKKMbwAV6EuoTKCiJZP9256227nhzGtoV3dteFtl1iJlarMZH7yFWy7n28c+mOBrXpHujVQ==}
     engines: {node: '>=24'}
     hasBin: true
 
@@ -11543,14 +11543,14 @@ snapshots:
       '@remotion/timeline-utils': 4.0.533(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@rspack/core': 1.7.11(@swc/helpers@0.5.23)
       '@rspack/plugin-react-refresh': 1.6.1(react-refresh@0.18.0)
-      css-loader: 7.1.4(@rspack/core@1.7.11(@swc/helpers@0.5.23))(webpack@5.105.0(esbuild@0.28.2)(postcss@8.5.28))
+      css-loader: 7.1.4(@rspack/core@1.7.11(@swc/helpers@0.5.23))(webpack@5.105.0(esbuild@0.28.1)(postcss@8.5.28))
       esbuild: 0.28.1
       react: 19.3.0
       react-dom: 19.3.0(react@19.3.0)
       react-refresh: 0.18.0
       remotion: 4.0.533(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      style-loader: 4.0.0(webpack@5.105.0(esbuild@0.28.2)(postcss@8.5.28))
-      webpack: 5.105.0(esbuild@0.28.1)(postcss@8.5.28)
+      style-loader: 4.0.0(webpack@5.105.0(esbuild@0.28.1)(postcss@8.5.28))
+      webpack: 5.105.0(esbuild@0.28.2)(postcss@8.5.28)
     transitivePeerDependencies:
       - '@minify-html/node'
       - '@remotion/video-matting'
@@ -13217,9 +13217,9 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  '@wrenautomation/falcon@0.7.1':
+  '@wrenautomation/falcon@0.8.2':
     dependencies:
-      '@wrenautomation/models': 0.7.1
+      '@wrenautomation/models': 0.8.2
       commander: 15.0.0
       entities: 8.1.0
       htmlparser2: 12.0.0
@@ -13228,7 +13228,7 @@ snapshots:
     transitivePeerDependencies:
       - '@napi-rs/canvas'
 
-  '@wrenautomation/models@0.7.1':
+  '@wrenautomation/models@0.8.2':
     dependencies:
       '@ai-sdk/anthropic': 4.0.90(zod@4.6.5)
       '@ai-sdk/cohere': 4.0.71(zod@4.6.5)
@@ -13237,17 +13237,17 @@ snapshots:
       ai: 7.0.155(zod@4.6.5)
       zod: 4.6.5
 
-  '@wrenautomation/raven@0.7.1':
+  '@wrenautomation/raven@0.8.2':
     dependencies:
-      '@wrenautomation/models': 0.7.1
+      '@wrenautomation/models': 0.8.2
       commander: 15.0.0
       zod: 4.6.5
 
-  '@wrenautomation/weaver@0.7.1':
+  '@wrenautomation/weaver@0.8.2':
     dependencies:
-      '@wrenautomation/falcon': 0.7.1
-      '@wrenautomation/models': 0.7.1
-      '@wrenautomation/raven': 0.7.1
+      '@wrenautomation/falcon': 0.8.2
+      '@wrenautomation/models': 0.8.2
+      '@wrenautomation/raven': 0.8.2
       commander: 15.0.0
       robots-parser: 3.0.1
       ulid: 3.0.2
@@ -13820,7 +13820,7 @@ snapshots:
 
   crypto-js@4.2.0: {}
 
-  css-loader@7.1.4(@rspack/core@1.7.11(@swc/helpers@0.5.23))(webpack@5.105.0(esbuild@0.28.2)(postcss@8.5.28)):
+  css-loader@7.1.4(@rspack/core@1.7.11(@swc/helpers@0.5.23))(webpack@5.105.0(esbuild@0.28.1)(postcss@8.5.28)):
     dependencies:
       icss-utils: 5.1.0(postcss@8.5.28)
       postcss: 8.5.28
@@ -16388,7 +16388,7 @@ snapshots:
     optionalDependencies:
       '@types/node': 26.6.4
 
-  style-loader@4.0.0(webpack@5.105.0(esbuild@0.28.2)(postcss@8.5.28)):
+  style-loader@4.0.0(webpack@5.105.0(esbuild@0.28.1)(postcss@8.5.28)):
     dependencies:
       webpack: 5.105.0(esbuild@0.28.2)(postcss@8.5.28)
 
@@ -16464,7 +16464,7 @@ snapshots:
       - bare-abort-controller
       - react-native-b4a
 
-  terser-webpack-plugin@5.6.1(esbuild@0.28.1)(postcss@8.5.28)(webpack@5.105.0(esbuild@0.28.2)(postcss@8.5.28)):
+  terser-webpack-plugin@5.6.1(esbuild@0.28.1)(postcss@8.5.28)(webpack@5.105.0(esbuild@0.28.1)(postcss@8.5.28)):
     dependencies:
       '@jridgewell/trace-mapping': 0.3.31
       jest-worker: 27.5.1
@@ -16473,17 +16473,6 @@ snapshots:
       webpack: 5.105.0(esbuild@0.28.2)(postcss@8.5.28)
     optionalDependencies:
       esbuild: 0.28.1
-      postcss: 8.5.28
-
-  terser-webpack-plugin@5.6.1(esbuild@0.28.2)(postcss@8.5.28)(webpack@5.105.0(esbuild@0.28.2)(postcss@8.5.28)):
-    dependencies:
-      '@jridgewell/trace-mapping': 0.3.31
-      jest-worker: 27.5.1
-      schema-utils: 4.5.0
-      terser: 5.51.2
-      webpack: 5.105.0(esbuild@0.28.2)(postcss@8.5.28)
-    optionalDependencies:
-      esbuild: 0.28.2
       postcss: 8.5.28
 
   terser@5.51.2:
@@ -16791,47 +16780,6 @@ snapshots:
 
   webpack-sources@3.6.0: {}
 
-  webpack@5.105.0(esbuild@0.28.1)(postcss@8.5.28):
-    dependencies:
-      '@types/eslint-scope': 3.7.7
-      '@types/estree': 1.0.9
-      '@types/json-schema': 7.0.15
-      '@webassemblyjs/ast': 1.14.1
-      '@webassemblyjs/wasm-edit': 1.14.1
-      '@webassemblyjs/wasm-parser': 1.14.1
-      acorn: 8.19.0
-      acorn-import-phases: 1.0.4(acorn@8.19.0)
-      browserslist: 4.29.3
-      chrome-trace-event: 1.0.4
-      enhanced-resolve: 5.26.0
-      es-module-lexer: 2.3.2
-      eslint-scope: 5.1.1
-      events: 3.3.0
-      glob-to-regexp: 0.4.1
-      graceful-fs: 4.2.11
-      json-parse-even-better-errors: 2.3.1
-      loader-runner: 4.3.2
-      mime-types: 2.1.35
-      neo-async: 2.6.2
-      schema-utils: 4.5.0
-      tapable: 2.3.3
-      terser-webpack-plugin: 5.6.1(esbuild@0.28.1)(postcss@8.5.28)(webpack@5.105.0(esbuild@0.28.2)(postcss@8.5.28))
-      watchpack: 2.5.2
-      webpack-sources: 3.6.0
-    transitivePeerDependencies:
-      - '@minify-html/node'
-      - '@swc/core'
-      - '@swc/css'
-      - '@swc/html'
-      - clean-css
-      - cssnano
-      - csso
-      - esbuild
-      - html-minifier-terser
-      - lightningcss
-      - postcss
-      - uglify-js
-
   webpack@5.105.0(esbuild@0.28.2)(postcss@8.5.28):
     dependencies:
       '@types/eslint-scope': 3.7.7
@@ -16856,7 +16804,7 @@ snapshots:
       neo-async: 2.6.2
       schema-utils: 4.5.0
       tapable: 2.3.3
-      terser-webpack-plugin: 5.6.1(esbuild@0.28.2)(postcss@8.5.28)(webpack@5.105.0(esbuild@0.28.2)(postcss@8.5.28))
+      terser-webpack-plugin: 5.6.1(esbuild@0.28.1)(postcss@8.5.28)(webpack@5.105.0(esbuild@0.28.1)(postcss@8.5.28))
       watchpack: 2.5.2
       webpack-sources: 3.6.0
     transitivePeerDependencies:

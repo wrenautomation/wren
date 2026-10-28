@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@wrenautomation/models": "0.7.1",
+    "@wrenautomation/models": "0.8.2",
     "zod": "4.6.5"
   },
   "devDependencies": {
