@@ -627,3 +627,27 @@ and SOPs against plan files (WA-908, after the first runs show what a plan file 
   stops at impersonate (403, cloudflare on the trade site of the 10-28 runs); only the desk has
   `render`, and it serves Restate only. Options: a Restate-ingress `LadderClient` in weaver, or
   an HTTP face on the desk. Browser time is William's call.
+- 2026-10-28, evening: evaluation against the 10-26 goals, with William. Drift: the runner
+  became the main path and every step grew a model call; no human call on a finding in any
+  ledger (all calls are triage's); the budget is the stop rule (0.8.2 fixed it harder); no run
+  ever wrote a plan file; no wren line on the engine; no synthesis step (patterns across
+  sources, the SOP). Rule adopted for this space: a step that decides what comes next or judges
+  the whole (plan, triage, stop, patterns, the SOP) is the agent's; a step with a fixed,
+  checkable output that runs many times (extract with the quote gate, transcribe, watch) is a
+  code → model tool. The engine manages no agent cost: Claude Code, Codex or a custom agent
+  slots in, in a chat or headless. Options: (A) engine drives, today; (B) agent only, runner
+  deleted; (C) agent drives, the runner stays as a thin second driver over the same step
+  functions for experiments; (D) MCP server, against the no-MCP rule and less portable than
+  CLI + JSON + a markdown skill. Ranked by: steered by chat; every decision a record with a
+  why and the agent's id; any agent can drive; runs alone (headless Claude Code); spend
+  visible. Pick, C. Redesign: raven shrinks to types, merge rules and `brief` (its model calls
+  serve the runner only); weaver exposes each step as a command (`search`, `open`, `extract`,
+  `check`, `add`, `brief`) and the runner loops over them; falcon unchanged plus a `pattern`
+  record (sentence, finding ids, source count computed by code); a `birdwatch` skill in the
+  engine repo, agent-agnostic; plan files learn at the end of a run that worked (`writePlan`
+  gets its caller); the forced stop of 0.8.2 reverts, the budget is a guard rail again; the
+  person commands become agent tools, William's involvement is chat. Wren's Postgres ledger and
+  the study port move after this, justified by client demand (a self-serve surface), not by
+  design. Business: sold by outcome stages (scoping, research, playbook), not by package;
+  done-for-you first, standing watches second, self-serve on the API only when asked. First
+  real ask: ATS resume optimization, in a parallel session.
