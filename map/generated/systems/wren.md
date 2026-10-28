@@ -8,7 +8,7 @@ Campaigns, channels and client products
 - **Lambda worker** (app, Node 22 arm64, Lambda wren-prod-worker): Every service except the box ones
 - **Box worker** (app, Node on EC2 wren-prod-pg): PoolScheduler, Discovery, Enrichment, Resolution, PageArchive, Books, Watch, SocialWatch
 - **Postgres 17** (store, EC2 wren-prod-pg, PgBouncer 6432)
-- **Valkey cache** (store, EC2 wren-prod-pg, 6380)
+- **Valkey cache** (store, EC2 wren-prod-pg, 6380): Saves a slow read for every Lambda: today only the Restate admin reads, 5 minutes
 - **browserless Chromium** (app, Docker on EC2 wren-prod-pg)
 - **Sign-in** (app, Lambda wren-prod-auth)
 - **Portal** (app, Cloudflare Worker)

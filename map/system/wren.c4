@@ -35,6 +35,8 @@ model {
     }
     valkey = store 'Valkey cache' {
       technology 'EC2 wren-prod-pg, 6380'
+      description 'Saves a slow read for every Lambda: today only the Restate admin reads, 5 minutes'
+      metadata { code 'packages/core/src/cache.ts' }
     }
     browserless = app 'browserless Chromium' {
       technology 'Docker on EC2 wren-prod-pg'
@@ -109,6 +111,13 @@ model {
     }
   }
   autobrowse -> ssm 'tokens and credentials'
+  autobrowse -[uses]-> credvault 'the credentials library on npm: sealed store, audit, expiries' {
+    metadata {
+      here '../autobrowse/src/owner.ts'
+      there '../credvault/src/env-store.ts'
+    }
+  }
+  credvault -> ssm 'sealed credentials at rest'
   wren -> lander 'offers snapshot' {
     metadata {
       here 'packages/offers'
