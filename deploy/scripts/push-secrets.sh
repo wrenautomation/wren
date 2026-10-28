@@ -22,19 +22,17 @@ umask 077
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
-python3 - "$ENV_FILE" "$PARTS" "$tmp" <<'PY'
+# The file is read by scripts/secrets.mjs's parse (node's rules, as the runtime reads it), never a
+# second parser here: one that kept an inline `# note` pushed it into a value.
+node -e 'import(require("node:url").pathToFileURL(process.argv[1])).then(({ parse }) => {
+  const env = parse(require("node:fs").readFileSync(process.argv[2], "utf8"));
+  for (const k of Object.keys(env)) if (env[k] === "") delete env[k];
+  require("node:fs").writeFileSync(process.argv[3], JSON.stringify(env));
+})' ../scripts/secrets.mjs "$ENV_FILE" "$tmp/file.json"
+
+python3 - "$tmp/file.json" "$PARTS" "$tmp" <<'PY'
 import json, os, sys
-env = {}
-for line in open(sys.argv[1]):
-    line = line.strip()
-    if not line or line.startswith("#") or "=" not in line:
-        continue
-    k, v = line.split("=", 1)
-    v = v.strip()
-    if len(v) >= 2 and v[0] == v[-1] and v[0] in "\"'":
-        v = v[1:-1]
-    if v and not v.startswith("#"):
-        env[k.strip()] = v
+env = json.load(open(sys.argv[1]))
 sa = env.get("WREN_GOOGLE_SERVICE_ACCOUNT")
 if sa and not sa.lstrip().startswith("{"):
     env["WREN_GOOGLE_SERVICE_ACCOUNT"] = open(os.path.expanduser(sa)).read()

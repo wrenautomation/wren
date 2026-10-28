@@ -13,11 +13,14 @@ test("set keeps the old line as a dated comment", () => {
 });
 
 test("parse drops an inline note after a bare value and keeps a quoted one whole", () => {
-  assert.deepEqual(parse('A=abc-1 #me@x.example (note)\nB="two words # kept"\nC=plain\nD=x=y\n'), {
+  const t = 'A=abc-1 #me@x.example (note)\nB="two words # kept"\nC=plain\nD=x=y\nE=a b, c\nF={"k":"v w"}\n';
+  assert.deepEqual(parse(t), {
     A: "abc-1",
     B: "two words # kept",
     C: "plain",
     D: "x=y",
+    E: "a b, c",
+    F: '{"k":"v w"}',
   });
 });
 

@@ -12,6 +12,7 @@
 // The agent's Bash guard (~/.claude/hooks/no-secret-print.py) sends raw reads here.
 import { execFileSync, spawn } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
+import { parseEnv } from "node:util";
 
 /** The source's keys and values, whatever its shape. */
 export function parse(text) {
@@ -22,16 +23,9 @@ export function parse(text) {
       Object.entries(o).map(([k, v]) => [k, typeof v === "string" ? v : JSON.stringify(v)]),
     );
   }
-  const out = {};
-  for (const line of t.split("\n")) {
-    const m = line.match(/^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=(.*)$/);
-    if (!m) continue;
-    const raw = m[2].trim();
-    const quoted = raw.match(/^(["'])(.*)\1/);
-    // A bare value ends at whitespace: an inline `# account` note may follow it.
-    out[m[1]] = quoted ? quoted[2] : raw.replace(/\s+#.*$/, "").split(/\s/)[0];
-  }
-  return out;
+  // Node's own rules, the ones `process.loadEnvFile` reads with at runtime: a bare value keeps
+  // its inner spaces and ends at an inline `# note`.
+  return { ...parseEnv(t) };
 }
 
 /** `text` with every value of 6+ characters replaced by its key's name, longest first. */
