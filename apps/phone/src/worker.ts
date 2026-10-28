@@ -94,6 +94,10 @@ export const DESK_HANDLERS: ReadonlySet<string> = new Set([
   "unsubscribe",
 ]);
 
+/** Desk calls that text someone: the app's per-text key rides to Restate, so a resend sends once. */
+const DESK_SENDS: ReadonlySet<string> = new Set(["reply", "start"]);
+const KEY_RE = /^[A-Za-z0-9-]{8,64}$/;
+
 const MARKETING_HANDLERS: ReadonlySet<string> = new Set(["signUp", "confirm", "prefs", "set"]);
 
 const CALENDAR_HANDLERS: ReadonlySet<string> = new Set([
@@ -546,11 +550,16 @@ async function desk(req: Request, env: Env, handler: string): Promise<Response> 
       return json({ error: "bad json" }, 400);
     }
   }
+  const key = req.headers.get("idempotency-key");
+  const keyed =
+    DESK_SENDS.has(handler) && key && KEY_RE.test(key)
+      ? { "idempotency-key": `phone-${handler}-${key}` }
+      : {};
   let res: Response;
   try {
     res = await fetch(ingress(env, `SmsDesk/${handler}`), {
       method: "POST",
-      headers: restateHeaders(env),
+      headers: restateHeaders(env, keyed),
       body: body || "{}",
     });
   } catch {

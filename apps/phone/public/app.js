@@ -83,20 +83,21 @@ async function token() {
   return t;
 }
 
-async function post(path, body = {}, retried = false) {
+async function post(path, body = {}, retried = false, key = null) {
   const t = await token();
   const res = await fetch(path, {
     method: "POST",
     headers: {
       "content-type": "application/json",
       ...(t ? { authorization: `Bearer ${t}` } : {}),
+      ...(key ? { "idempotency-key": key } : {}),
     },
     body: JSON.stringify(body),
   });
   // A token the Worker refused (keys rotated, clock skew): one fresh one, then sign in.
   if (res.status === 401) {
     held = null;
-    if (!retried) return post(path, body, true);
+    if (!retried) return post(path, body, true, key);
     throw new SignedOut();
   }
   const text = await res.text();
@@ -110,7 +111,7 @@ async function post(path, body = {}, retried = false) {
   return data;
 }
 
-const api = (handler, body) => post(`/api/${handler}`, body);
+const api = (handler, body, key) => post(`/api/${handler}`, body, false, key);
 
 function signInScreen(message) {
   stopPoll();
@@ -197,20 +198,23 @@ function newText() {
   });
   const body = h("textarea", { class: "tpl", rows: 4, placeholder: "Text", "aria-label": "Text" });
   const send = h("button", { class: "primary", disabled: true }, "Send");
+  // One key per text as typed: a resend after a lost answer sends it once; an edit is a new text.
+  let key = crypto.randomUUID();
   const ready = () => {
+    key = crypto.randomUUID();
     send.disabled = !phone.value.trim() || !body.value.trim();
   };
   for (const el of [phone, why, body]) el.addEventListener("input", ready);
   send.addEventListener("click", async () => {
     send.disabled = true;
     try {
-      const got = await api("start", { phone: phone.value, why: why.value, body: body.value });
+      const got = await api("start", { phone: phone.value, why: why.value, body: body.value }, key);
       body.value = "";
       location.hash = `#/thread/${got.contactId}`;
     } catch (e) {
       if (e instanceof SignedOut) return signInScreen();
       alert(e.message);
-      ready();
+      send.disabled = false;
     }
   });
   screen(
@@ -305,7 +309,10 @@ function composer(c) {
   const box = h("textarea", { rows: 1, placeholder: "Text", "aria-label": "Message" });
   const count = h("span", { class: "count" });
   const send = h("button", { class: "send", disabled: true }, "Send");
+  // One key per text as typed: a resend after a lost answer sends it once; an edit is a new text.
+  let key = crypto.randomUUID();
   box.addEventListener("input", () => {
+    key = crypto.randomUUID();
     box.style.height = "auto";
     box.style.height = `${box.scrollHeight}px`;
     count.textContent = box.value.length > 120 ? String(box.value.length) : "";
@@ -314,7 +321,7 @@ function composer(c) {
   send.addEventListener("click", async () => {
     send.disabled = true;
     try {
-      await api("reply", { contactId: c.id, body: box.value });
+      await api("reply", { contactId: c.id, body: box.value }, key);
       box.value = "";
       route();
     } catch (e) {

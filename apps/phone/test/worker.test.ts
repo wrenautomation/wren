@@ -568,6 +568,25 @@ describe("the desk", () => {
     expect(JSON.parse(restateCalls[0]?.body as string)).toEqual({ contactId: 3, body: "hi" });
   });
 
+  it("a text's key rides to Restate, so a resend sends once; other calls and bad keys carry none", async () => {
+    const key = { "idempotency-key": "0b9f6c1e-1d2a-4c3b-9e8f-7a6b5c4d3e2f" };
+    await post("/api/reply", { contactId: 3, body: "hi" }, { ...(await as()), ...key });
+    await post("/api/markRead", { contactId: 3 }, { ...(await as()), ...key });
+    await post(
+      "/api/start",
+      { phone: "+15550100", why: "w", body: "b" },
+      {
+        ...(await as()),
+        "idempotency-key": "bad key!",
+      },
+    );
+    expect(restateCalls.map((c) => c.headers.get("idempotency-key"))).toEqual([
+      "phone-reply-0b9f6c1e-1d2a-4c3b-9e8f-7a6b5c4d3e2f",
+      null,
+      null,
+    ]);
+  });
+
   it("a client's token is turned away; a forged, expired or foreign one is not a sign-in", async () => {
     expect((await post("/api/threads", {}, await as({ operator: false }))).status).toBe(403);
     const stranger = (await crypto.subtle.generateKey({ name: "Ed25519" }, true, [
