@@ -15,6 +15,7 @@ import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 import type { LlmClient } from "@wren/llm";
 import type { VideoRead, WatchOptions } from "@wrenautomation/falcon/video";
+import type { Model } from "@wrenautomation/models";
 import { readAudio, readVideo, readYoutube, readYoutubeByUrl } from "@wrenautomation/weaver/video";
 import { expandCites, numberCites } from "./cites.js";
 
@@ -55,25 +56,26 @@ export function toSource(read: VideoRead, priority = DEFAULT_PRIORITY): Source {
 
 /**
  * A YouTube video's captions and chapters through `yt-dlp` (`ytDlp` is the command, split on
- * spaces: `uvx yt-dlp`), plus what it showed on screen when Gemini keys are given: scribe's
- * `readYoutube`, filed with the SOP's priority.
+ * spaces: `uvx yt-dlp`), plus what it showed on screen when a video model is given (`geminiVideo`):
+ * weaver's `readYoutube`, filed with the SOP's priority.
  */
 export const youtubeSource = async (
   url: string,
   ytDlp: string,
   priority = DEFAULT_PRIORITY,
-  opts: { geminiKeys?: readonly string[]; fetchFn?: typeof fetch } = {},
+  opts: { video?: Model | null; fetchFn?: typeof fetch } = {},
 ): Promise<Source> => toSource(await readYoutube(url, { ytDlp, ...opts }), priority);
 
 /**
- * A YouTube video read from its URL alone, no download and no home IP (scribe's
- * `readYoutubeByUrl`): what the worker reads with, through the gateway (`gatewayGemini` in
- * `@wren/llm`); the Mac's `youtubeSource` uses the captions instead.
+ * A YouTube video read from its URL alone, no download and no home IP (weaver's
+ * `readYoutubeByUrl`): what the worker reads with, through the gateway (`geminiReader` over
+ * `gatewayGemini` in `@wren/llm`); the Mac's `youtubeSource` uses the captions instead.
  */
 export const youtubeByUrl = async (
   url: string,
   opts: {
-    geminiKeys: readonly string[];
+    /** Takes a YouTube URL as video (`geminiVideo`, or `geminiReader` behind a proxy). */
+    model: Model;
     fetchFn?: typeof fetch;
     durationS?: number | null | undefined;
     priority?: number;
@@ -81,7 +83,7 @@ export const youtubeByUrl = async (
 ): Promise<Source> => toSource(await readYoutubeByUrl(url, opts), opts.priority);
 
 /**
- * Any other video `yt-dlp` fetches (Instagram reel, TikTok, X), watched (scribe's `readVideo`):
+ * Any other video `yt-dlp` fetches (Instagram reel, TikTok, X), watched (weaver's `readVideo`):
  * the caption, then its Speech, On screen and Cuts.
  */
 export const videoSource = async (
@@ -92,8 +94,9 @@ export const videoSource = async (
 ): Promise<Source> => toSource(await readVideo(url, { ...opts, ytDlp }), priority);
 
 /**
- * A podcast episode heard from its audio file (scribe's `readAudio`): cut by ffmpeg, each clip
- * transcribed by Gemini. `url` is the episode's page; `title` and `creator` are what its feed said.
+ * A podcast episode heard from its audio file (weaver's `readAudio`): cut by ffmpeg, each clip
+ * transcribed by a model that takes audio (`geminiVideo`). `url` is the episode's page; `title`
+ * and `creator` are what its feed said.
  */
 export const audioSource = async (
   audioUrl: string,
@@ -101,7 +104,7 @@ export const audioSource = async (
     url: string;
     title?: string | null;
     creator?: string | null;
-    geminiKeys: readonly string[];
+    model: Model;
     fetchFn?: typeof fetch;
     ffmpeg?: string;
     priority?: number;

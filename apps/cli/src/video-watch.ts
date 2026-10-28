@@ -2,27 +2,52 @@
  * `wren video watch <url|file>`: read a video with the shared core (`watch` in
  * @wren/research/sops): ffmpeg's cuts and frames, Cohere's speech and on-screen text, Gemini's
  * screen read when a key still works. Prints the Speech, On screen and Cuts sections, or `--json`.
- * `sop add`, `learn` and `video look --with cohere` use the same core through `watchKeys`.
+ * `sop add` and `learn` use the same core through `watchModels`.
  * The command itself is registered in ./studio.ts: bare `wren video watch` was already the
  * recordings loop the desk runs every minute, so one command does both (an input picks this).
  */
 import type { Settings } from "@wren/config";
 import { fleetKeys, loadLlmEnv } from "@wren/llm";
-import { frameCounts, renderWatched, type WatchOptions } from "@wrenautomation/falcon/video";
+import {
+  cohereEye,
+  cohereSpeech,
+  frameCounts,
+  geminiVideo,
+  renderWatched,
+  type WatchOptions,
+} from "@wrenautomation/falcon/video";
+import type { Model } from "@wrenautomation/models";
 import { watch } from "@wrenautomation/weaver/video";
 import type { Command } from "commander";
 
-/** Keys from llm.env (never logged) and the ffmpeg path: what every caller of the core passes. */
-export function watchKeys(
+/** Cohere's eye and ear on llm.env's keys (never logged), and the ffmpeg path. */
+export function watchEyes(
   settings: Settings,
   rootDir: string,
-): Pick<WatchOptions, "cohereKeys" | "geminiKeys" | "ffmpeg"> {
+): Pick<WatchOptions, "eye" | "ear" | "ffmpeg"> {
   loadLlmEnv(settings.llmEnvPath, rootDir);
-  return {
-    cohereKeys: fleetKeys(process.env, "cohere"),
-    geminiKeys: fleetKeys(process.env, "gemini"),
-    ffmpeg: settings.ffmpeg,
-  };
+  const keys = fleetKeys(process.env, "cohere");
+  return { eye: cohereEye(keys), ear: cohereSpeech(keys), ffmpeg: settings.ffmpeg };
+}
+
+/** A Gemini model that reads video on llm.env's keys; null when no key works. */
+export function geminiModel(settings: Settings, rootDir: string): Promise<Model | null> {
+  loadLlmEnv(settings.llmEnvPath, rootDir);
+  return geminiVideo(fleetKeys(process.env, "gemini"));
+}
+
+/** The model, or a throw: for a caller with no other reader. */
+export function needGemini(m: Model | null): Model {
+  if (!m) throw new Error("no working GEMINI key in llm.env");
+  return m;
+}
+
+/** What every caller of the core passes: the eye, the ear, Gemini's screen read and ffmpeg. */
+export async function watchModels(
+  settings: Settings,
+  rootDir: string,
+): Promise<Pick<WatchOptions, "eye" | "ear" | "video" | "ffmpeg">> {
+  return { ...watchEyes(settings, rootDir), video: await geminiModel(settings, rootDir) };
 }
 
 /** The flags `wren video watch <input>` takes; the command (./studio.ts) adds them beside the recordings loop's own. */
@@ -49,7 +74,7 @@ export async function watchVideo(
   rootDir: string,
 ): Promise<void> {
   const watched = await watch(input, {
-    ...watchKeys(settings, rootDir),
+    ...(await watchModels(settings, rootDir)),
     ytDlp: settings.ytDlp,
     speech: o.speech,
     language: o.language,

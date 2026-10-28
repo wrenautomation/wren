@@ -131,7 +131,13 @@ import { desc, sql } from "drizzle-orm";
 import { readText } from "./content.js";
 import { autobrowseDrive } from "./sop.js";
 import { registerVideoAsk } from "./video-ask.js";
-import { type WatchFlags, watchVideo, withWatchOptions } from "./video-watch.js";
+import {
+  geminiModel,
+  needGemini,
+  type WatchFlags,
+  watchVideo,
+  withWatchOptions,
+} from "./video-watch.js";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
 
@@ -346,7 +352,7 @@ export function registerStudio(
   const CHECKED = /^(long|vertical|square|portrait|short-\d+)$/;
   /** Check each rendered output against the bar, a `video check` run each; how many failed. */
   async function checkOutputs(db: Db, e: VideoEdit, outputs: readonly string[], by: string) {
-    loadLlmEnv(settings.llmEnvPath, rootDir);
+    const model = await geminiModel(settings, rootDir);
     let failed = 0;
     for (const output of outputs) {
       const short = /^short-(\d+)$/.exec(output);
@@ -361,7 +367,8 @@ export function registerStudio(
             format: short ? "short" : "long",
             durationS: props.durationInFrames / FPS,
             words: props.words,
-            geminiKeys: fleetKeys(process.env, "gemini"),
+            // Throws inside the run with no working key: it shows failed, never a pass.
+            model: needGemini(model),
             ffmpeg: settings.ffmpeg,
           })),
         }),

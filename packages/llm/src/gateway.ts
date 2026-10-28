@@ -1,6 +1,6 @@
 /**
- * Gemini's own API through the LLM gateway, as a reader's `fetchFn` (scribe's `readYoutubeByUrl`
- * and `askGemini`): the gateway holds the keys and rotates them, so the caller passes any one
+ * Gemini's own API through the LLM gateway, as the `fetch` of a Gemini model (falcon's
+ * `geminiReader`): the gateway holds the keys and rotates them, so the caller passes any one
  * placeholder key. `gateway` is its base URL (`WREN_LLM_GATEWAY_URL`; the `/v1` OpenAI path is
  * dropped).
  */

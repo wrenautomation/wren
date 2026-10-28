@@ -17,11 +17,12 @@ import {
   tiktokPage,
   type VideoReader,
 } from "@wren/learn";
-import { fleetKeys, type LlmClient, loadLlmEnv, makeLlm } from "@wren/llm";
+import { type LlmClient, loadLlmEnv, makeLlm } from "@wren/llm";
 import { audioSource, videoSource, youtubeSource } from "@wren/research/sops";
+import type { Model } from "@wrenautomation/models";
 import { desc } from "drizzle-orm";
 import { ingressSites } from "./sites.js";
-import { watchKeys } from "./video-watch.js";
+import { geminiModel, needGemini, watchEyes } from "./video-watch.js";
 
 /** A desk page read waits this long: a Graph discovery read takes seconds, the desk's queue minutes. */
 const PAGE_MS = 120_000;
@@ -41,9 +42,13 @@ export async function practicesOf(db: Db): Promise<Practice[]> {
 export function learnReaders(settings: Settings, rootDir: string) {
   /** The video reader: YouTube by captions plus the screen, other video by Cohere, audio cut by ffmpeg. */
   const reader = (): VideoReader => {
-    // Gemini keys come from llm.env; never logged.
-    loadLlmEnv(settings.llmEnvPath, rootDir);
-    const geminiKeys = fleetKeys(process.env, "gemini");
+    // One key check per batch, not per video.
+    let probe: Promise<Model | null> | undefined;
+    const gemini = () => {
+      probe ??= geminiModel(settings, rootDir);
+      return probe;
+    };
+    const watching = async () => ({ ...watchEyes(settings, rootDir), video: await gemini() });
     return async ({ url, kind, title, creator, mediaUrl }) => {
       const youtube = /^https:\/\/youtube\.com\//.test(url);
       // A film is watched, never read from its captions: its cuts are the point (`filmFacts`).
@@ -53,19 +58,20 @@ export function learnReaders(settings: Settings, rootDir: string) {
               url,
               title,
               creator,
-              geminiKeys,
+              // An episode has no other reader: no working key fails it.
+              model: needGemini(await gemini()),
               ffmpeg: settings.ffmpeg,
             })
           : kind === "film"
             ? await videoSource(url, settings.ytDlp, undefined, {
-                ...watchKeys(settings, rootDir),
+                ...(await watching()),
                 sceneDetect: settings.sceneDetect,
               })
             : youtube
               ? await youtubeSource(url, settings.ytDlp, undefined, {
-                  geminiKeys,
+                  video: await gemini(),
                 })
-              : await videoSource(url, settings.ytDlp, undefined, watchKeys(settings, rootDir));
+              : await videoSource(url, settings.ytDlp, undefined, await watching());
       return { file: s.name, md: s.md };
     };
   };

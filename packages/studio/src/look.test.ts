@@ -74,6 +74,13 @@ describe("cohereLooker", () => {
           ...["-map", "[v]", "-c:v", "libx264", file],
         ]);
         const calls: { path: string; body: string }[] = [];
+        // Cohere's v2 chat reply, as the AI SDK parses it.
+        const chat = (text: string) =>
+          Response.json({
+            message: { role: "assistant", content: [{ type: "text", text }] },
+            finish_reason: "COMPLETE",
+            usage: { tokens: { input_tokens: 1, output_tokens: 1 } },
+          });
         const fake = (async (url: string, init: RequestInit) => {
           const path = new URL(url).pathname;
           const body = String(init.body);
@@ -85,20 +92,11 @@ describe("cohereLooker", () => {
           if (Array.isArray(content)) {
             const text = content.find((p) => p.type === "text")?.text ?? "";
             const times = (/Their times: ([^.]+)\./.exec(text)?.[1] ?? "").split(", ");
-            return Response.json({
-              message: {
-                content: [
-                  { type: "text", text: times.map((t) => `[${t}] title card ${t}`).join("\n") },
-                ],
-              },
-            });
+            return chat(times.map((t) => `[${t}] title card ${t}`).join("\n"));
           }
-          return Response.json({ message: { content: [{ type: "text", text: answer }] } });
+          return chat(answer);
         }) as unknown as typeof fetch;
-        const look = await cohereLooker(["k"], { fetchFn: fake, pause: async () => {} })(
-          file,
-          "the words of the edit",
-        );
+        const look = await cohereLooker(["k"], { fetchFn: fake })(file, "the words of the edit");
         expect(look.summary).toBe("a test");
         // One vision call, then one text ask; no transcription.
         expect(calls).toHaveLength(2);

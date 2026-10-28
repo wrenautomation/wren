@@ -1,8 +1,8 @@
 /**
  * Looking at the picture (designs/2026-10-06-video-editor.md): a model watches the cut file and
  * writes moments, Shorts ideas, chapters and thumbnail frames onto the edit. Nothing applies them;
- * Claude Code reads them like the transcript. Gemini reads a 360p copy through the Files API with
- * the SOP reader's fleet keys and model order. Cohere reads no video: the SOP reader's `watch`
+ * Claude Code reads them like the transcript. Gemini reads a 360p copy through the Files API
+ * (`geminiFile`) with the SOP reader's model order. Cohere reads no video: the SOP reader's `watch`
  * hands it the scene cuts and a vision model's line per frame, and a text model answers from those
  * and the transcript. TwelveLabs indexes the same copy once in
  * `wren-videos` (Marengo, for `wren video find`) and asks Pegasus; its free plan is 600 minutes
@@ -11,13 +11,14 @@
 import { readFile } from "node:fs/promises";
 import { basename } from "node:path";
 import {
-  askGemini,
   COHERE_TEXT_MODEL,
   clock,
-  cohereChat,
+  cohereEye,
   cutsLine,
+  geminiReader,
   onScreenLines,
 } from "@wrenautomation/falcon/video";
+import { cohere, geminiFile } from "@wrenautomation/models";
 import { watch } from "@wrenautomation/weaver/video";
 import { z } from "zod";
 import { fromCutTime, type Span, toCutTime } from "./cuts.js";
@@ -66,93 +67,27 @@ const lookSchema = z.object({
 });
 
 /** A model's answer as a look; some wrap the object in a one-item list. */
-const parseLook = (text: string) => {
-  const v: unknown = JSON.parse(text);
-  return lookSchema.parse(Array.isArray(v) ? v[0] : v);
-};
-
-const API = "https://generativelanguage.googleapis.com";
-
-/** A file in Gemini's Files API lives in one key's project, so the upload picks the key. */
-async function uploadFile(
-  file: string,
-  keys: readonly string[],
-  fetchFn: typeof fetch,
-): Promise<{ key: string; name: string; uri: string }> {
-  const bytes = await readFile(file);
-  let last = "";
-  for (const key of keys) {
-    const start = await fetchFn(`${API}/upload/v1beta/files`, {
-      method: "POST",
-      headers: {
-        "x-goog-api-key": key,
-        "x-goog-upload-protocol": "resumable",
-        "x-goog-upload-command": "start",
-        "x-goog-upload-header-content-length": String(bytes.length),
-        "x-goog-upload-header-content-type": "video/mp4",
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({ file: { display_name: basename(file) } }),
-    });
-    const url = start.headers.get("x-goog-upload-url");
-    if (!start.ok || !url) {
-      last = `HTTP ${start.status}`;
-      continue;
-    }
-    const up = await fetchFn(url, {
-      method: "POST",
-      headers: { "x-goog-upload-offset": "0", "x-goog-upload-command": "upload, finalize" },
-      body: bytes,
-    });
-    const json = (await up.json()) as { file?: { name: string; uri: string; state: string } };
-    if (!up.ok || !json.file) {
-      last = `upload HTTP ${up.status}`;
-      continue;
-    }
-    let f = json.file;
-    // Video is processed before it can be read: poll until ACTIVE.
-    for (let i = 0; f.state === "PROCESSING" && i < 120; i++) {
-      await new Promise((r) => setTimeout(r, 2000));
-      const res = await fetchFn(`${API}/v1beta/${f.name}`, { headers: { "x-goog-api-key": key } });
-      f = (await res.json()) as typeof f;
-    }
-    if (f.state !== "ACTIVE") throw new Error(`gemini file ${f.name}: ${f.state}`);
-    return { key, name: f.name, uri: f.uri };
-  }
-  throw new Error(`gemini upload: every key refused, last ${last}`);
-}
+const lookAnswer = z.preprocess((v) => (Array.isArray(v) ? v[0] : v), lookSchema);
 
 export function geminiLooker(keys: readonly string[], fetchFn: typeof fetch = fetch): Looker {
   if (!keys.length) throw new Error("no GEMINI keys in llm.env");
   return async (file, transcript) => {
-    const up = await uploadFile(file, keys, fetchFn);
+    // The file lives in one key's project, so the read uses that key alone.
+    const up = await geminiFile(await readFile(file), {
+      key: keys,
+      mediaType: "video/mp4",
+      displayName: basename(file),
+      fetch: fetchFn,
+    });
     try {
-      const r = await askGemini(
-        {
-          contents: [
-            {
-              parts: [
-                { fileData: { fileUri: up.uri, mimeType: "video/mp4" } },
-                { text: ASK(transcript) },
-              ],
-            },
-          ],
-          generationConfig: {
-            responseMimeType: "application/json",
-            mediaResolution: "MEDIA_RESOLUTION_LOW",
-          },
-        },
-        [up.key],
-        fetchFn,
-        "video look",
+      const a = await geminiReader([up.key], { fetch: fetchFn }).ask(
+        [up.part, { type: "text", text: ASK(transcript) }],
+        lookAnswer,
+        { resolution: "low", purpose: "video look" },
       );
-      if ("unread" in r) throw new Error(`gemini look: unread, last ${r.unread}`);
-      return parseLook(r.text.replace(/^```(json)?|```$/g, ""));
+      return a.value;
     } finally {
-      await fetchFn(`${API}/v1beta/${up.name}`, {
-        method: "DELETE",
-        headers: { "x-goog-api-key": up.key },
-      }).catch(() => {});
+      await up.drop();
     }
   };
 }
@@ -164,28 +99,26 @@ export function geminiLooker(keys: readonly string[], fetchFn: typeof fetch = fe
  */
 export function cohereLooker(
   keys: readonly string[],
-  o: { ffmpeg?: string; fetchFn?: typeof fetch; pause?: (ms: number) => Promise<void> } = {},
+  o: { ffmpeg?: string; fetchFn?: typeof fetch } = {},
 ): Looker {
   if (!keys.length) throw new Error("no COHERE keys");
+  const wire = o.fetchFn ? { fetch: o.fetchFn } : {};
   return async (file, transcript) => {
-    const seen = await watch(file, { cohereKeys: keys, speech: false, ...o });
+    const seen = await watch(file, {
+      eye: cohereEye(keys, wire),
+      speech: false,
+      ...(o.ffmpeg ? { ffmpeg: o.ffmpeg } : {}),
+    });
     const prompt = ASK_SEEN(
       transcript,
       `Scene cuts: ${cutsLine(seen)}\nOn screen:\n${onScreenLines(seen).join("\n") || "(no text read)"}`,
     );
-    const text = await cohereChat(
-      keys,
-      {
-        model: COHERE_TEXT_MODEL,
-        messages: [{ role: "user", content: prompt }],
-        response_format: { type: "json_object" },
-        temperature: 0.2,
-        max_tokens: 4096,
-      },
-      { ...o, label: "look" },
+    const a = await cohere({ key: keys, model: COHERE_TEXT_MODEL, ...wire }).ask(
+      prompt,
+      lookAnswer,
+      { maxTokens: 4096, purpose: "look" },
     );
-    if (!text) throw new Error("cohere look: no answer");
-    return parseLook(text.replace(/^```(json)?|```$/g, ""));
+    return a.value;
   };
 }
 
@@ -303,7 +236,7 @@ export function twelvelabsLooker(
     if (r.finish_reason !== "stop" || !r.data)
       throw new Error(`twelvelabs analyze: ${r.finish_reason ?? "no answer"}`);
     return {
-      ...parseLook(r.data),
+      ...lookAnswer.parse(JSON.parse(r.data)),
       media: { ...media, minutes: media.minutes + minutes },
     };
   };

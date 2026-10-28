@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { geminiReader } from "@wrenautomation/falcon/video";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { barLines } from "./bar.js";
 import { checkPrompt, checkRender, parseCheck, sheetGrid } from "./video-check.js";
@@ -83,7 +84,12 @@ describe("video check", () => {
         const answer = { pass: false, issues: [{ at: 3, rule: "pace", says: "Blue for 3 s." }] };
         return new Response(
           JSON.stringify({
-            candidates: [{ content: { parts: [{ text: JSON.stringify(answer) }] } }],
+            candidates: [
+              {
+                content: { role: "model", parts: [{ text: JSON.stringify(answer) }] },
+                finishReason: "STOP",
+              },
+            ],
           }),
         );
       }) as unknown as typeof fetch;
@@ -91,9 +97,8 @@ describe("video check", () => {
         format: "short",
         durationS: 6,
         words: [{ w: "hi", s: 0.5 }],
-        geminiKeys: ["k"],
+        model: geminiReader(["k"], { fetch: fetchFn }),
         ffmpeg: "ffmpeg",
-        fetchFn,
       });
       expect(r).toEqual({ pass: false, issues: [{ at: 3, rule: "pace", says: "Blue for 3 s." }] });
       expect(sent).toHaveLength(1);

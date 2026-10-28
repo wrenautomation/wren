@@ -1,13 +1,15 @@
 /**
  * The self-check (designs/2026-10-24-video-film-file.md, Decision 2): a rendered file against the
  * bar (`bar.ts`), before he Approves. ffmpeg makes a contact sheet (one frame every 2 s or more,
- * in time order) and 3 full frames, and finds the scene cuts; one Gemini ask reads them with
- * the captions' words. Gemini, not Cohere: Cohere's vision refuses frames with a person.
+ * in time order) and 3 full frames, and finds the scene cuts; one ask of a model that takes images
+ * reads them with the captions' words. Gemini, not Cohere: Cohere's vision refuses frames with a
+ * person.
  */
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { askGemini, runFor, sceneCuts, TOOL_MS } from "@wrenautomation/falcon/video";
+import { runFor, sceneCuts, TOOL_MS } from "@wrenautomation/falcon/video";
+import type { Model } from "@wrenautomation/models";
 import { z } from "zod";
 import { BAR_IDS, type BarFormat, barLines, VIDEO_CHECK } from "./bar.js";
 
@@ -41,13 +43,17 @@ const ANSWER = z.object({
     .max(20),
 });
 
-/** The model's JSON as a result; a rule not on the bar reads as `best`, an issue means no pass. */
+/** The model's JSON as a result. */
 export function parseCheck(text: string): CheckResult {
   const raw = text
     .trim()
     .replace(/^```(json)?|```$/g, "")
     .trim();
-  const a = ANSWER.parse(JSON.parse(raw));
+  return verdict(ANSWER.parse(JSON.parse(raw)));
+}
+
+/** A rule not on the bar reads as `best`; an issue means no pass. */
+function verdict(a: z.infer<typeof ANSWER>): CheckResult {
   const issues = a.issues.map((i) => ({
     at: Math.round(i.at * 10) / 10,
     rule: BAR_IDS.includes(i.rule) ? i.rule : "best",
@@ -112,7 +118,8 @@ async function sheet(file: string, dir: string, durationS: number, ffmpeg: strin
 
 /**
  * Check one rendered file. `words`: what is said in it, on its own clock (the captions' words).
- * Throws when every Gemini key refused, so the run shows failed, never a pass.
+ * `model` takes images (`geminiVideo`). Throws when it cannot answer, so the run shows failed,
+ * never a pass.
  */
 export async function checkRender(
   file: string,
@@ -120,12 +127,10 @@ export async function checkRender(
     format: BarFormat;
     durationS: number;
     words: readonly { w: string; s: number }[];
-    geminiKeys: readonly string[];
+    model: Model;
     ffmpeg: string;
-    fetchFn?: typeof fetch;
   },
 ): Promise<CheckResult> {
-  if (!o.geminiKeys.length) throw new Error("no GEMINI keys in llm.env");
   const dir = await mkdtemp(join(tmpdir(), "video-check-"));
   try {
     const [{ grid, images }, cuts] = await Promise.all([
@@ -134,26 +139,15 @@ export async function checkRender(
     ]);
     const words = o.words.map((w) => `${w.s.toFixed(1)} ${w.w}`).join("\n");
     const prompt = checkPrompt(o.format, { durationS: o.durationS, ...grid, cuts, words });
-    const r = await askGemini(
-      {
-        contents: [
-          {
-            parts: [
-              ...images.map((b) => ({
-                inlineData: { mimeType: "image/jpeg", data: b.toString("base64") },
-              })),
-              { text: prompt },
-            ],
-          },
-        ],
-        generationConfig: { responseMimeType: "application/json" },
-      },
-      o.geminiKeys,
-      o.fetchFn ?? fetch,
-      VIDEO_CHECK,
+    const a = await o.model.ask(
+      [
+        ...images.map((b) => ({ type: "image" as const, data: b, mediaType: "image/jpeg" })),
+        { type: "text" as const, text: prompt },
+      ],
+      ANSWER,
+      { purpose: VIDEO_CHECK },
     );
-    if ("unread" in r) throw new Error(`gemini check: unread, last ${r.unread}`);
-    return parseCheck(r.text);
+    return verdict(a.value);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

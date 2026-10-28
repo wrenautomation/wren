@@ -27,7 +27,7 @@ import {
   writeSopFiles,
   youtubeSearch,
 } from "@wren/learn";
-import { ClaudeCodeLlm, fleetKeys, loadLlmEnv } from "@wren/llm";
+import { ClaudeCodeLlm } from "@wren/llm";
 import {
   addSource,
   buildSop,
@@ -47,7 +47,7 @@ import {
 import type { Command } from "commander";
 import { inArray } from "drizzle-orm";
 import { learnReaders } from "./learn-readers.js";
-import { watchKeys } from "./video-watch.js";
+import { geminiModel, watchModels } from "./video-watch.js";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
 
@@ -96,16 +96,17 @@ export function registerSop(
         const priority = opts.priority ?? DEFAULT_PRIORITY;
         let sources: Source[];
         if (YOUTUBE.test(what)) {
-          // Gemini keys (the llm.env fleet) read what the video shows on screen; never logged.
-          if (opts.screen !== false) loadLlmEnv(settings.llmEnvPath, rootDir);
-          const geminiKeys = opts.screen === false ? [] : fleetKeys(process.env, "gemini");
-          if (opts.screen !== false && !geminiKeys.length)
-            console.warn("no GEMINI keys in llm.env: captions only, on-screen content skipped");
-          sources = [await youtubeSource(what, settings.ytDlp, priority, { geminiKeys })];
+          // Gemini (the llm.env fleet) reads what the video shows on screen.
+          const video = opts.screen === false ? null : await geminiModel(settings, rootDir);
+          if (opts.screen !== false && !video)
+            console.warn(
+              "no working GEMINI key in llm.env: captions only, on-screen content skipped",
+            );
+          sources = [await youtubeSource(what, settings.ytDlp, priority, { video })];
         } else if (/^https?:\/\//.test(what)) {
           // Reels, TikTok, X: no captions, so the watch core hears and reads the download.
           sources = [
-            await videoSource(what, settings.ytDlp, priority, watchKeys(settings, rootDir)),
+            await videoSource(what, settings.ytDlp, priority, await watchModels(settings, rootDir)),
           ];
         } else if (what.startsWith("drive:")) {
           if (!opts.account) throw new Error("drive: needs --account <address>");

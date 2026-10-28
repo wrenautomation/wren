@@ -60,7 +60,7 @@ import { ITEM_KINDS, type ItemKind, SHOT_INS, SHOT_MOVES, SHOT_TYPES } from "@wr
 import { labelMatch, labelShots } from "@wrenautomation/falcon/video";
 import { download } from "@wrenautomation/weaver/video";
 import { collect } from "./args.js";
-import { watchKeys } from "./video-watch.js";
+import { watchEyes } from "./video-watch.js";
 
 const itemKindOf = (raw: string): ItemKind => {
   if ((ITEM_KINDS as readonly string[]).includes(raw)) return raw as ItemKind;
@@ -331,7 +331,7 @@ export function registerLearn(
     .option("--out <file>", "write the per-shot answers and the scores as JSON")
     .action(async (file: string, o: { bright: boolean; out?: string }) => {
       const { films } = seedStudySchema.parse(JSON.parse(await readFile(resolve(file), "utf8")));
-      const keys = watchKeys(settings, rootDir);
+      const { eye } = watchEyes(settings, rootDir);
       const sets = { type: SHOT_TYPES, move: SHOT_MOVES, in: SHOT_INS };
       const rows: { slug: string; t: number; hand: object; machine: object }[] = [];
       for (const f of films.filter((x) => x.labels === "hand")) {
@@ -347,7 +347,7 @@ export function registerLearn(
             });
           if (!video) continue;
           const got = await labelShots(video, f.shots, sets, {
-            cohereKeys: keys.cohereKeys,
+            eye,
             ffmpeg: settings.ffmpeg,
             bright: o.bright,
           });

@@ -61,6 +61,7 @@ import { journeySteps } from "@wren/pipeline/steps";
 import { youtubeByUrl } from "@wren/research/sops";
 import { CALL_NOW, callNowStep } from "@wren/voice/node";
 import { clientTriageStep, triageStep, mail as watchMail } from "@wren/watch";
+import { geminiReader } from "@wrenautomation/falcon/video";
 import { eq } from "drizzle-orm";
 import { COMPONENTS } from "../components.js";
 import { journeyResearcher } from "../journey-research.js";
@@ -73,11 +74,12 @@ function youtubeReader(env: NodeJS.ProcessEnv): VideoReader | null {
   const gateway = env.WREN_LLM_GATEWAY_URL;
   const token = env.WREN_LLM_GATEWAY_TOKEN;
   if (!gateway || !token) return null;
-  const fetchFn = gatewayGemini(gateway, token);
+  // The gateway passes generate calls only, so the reader skips the key check.
+  const model = geminiReader(["gateway"], { fetch: gatewayGemini(gateway, token) });
   return async ({ url, duration }) => {
     // Longer reads outrun a step: the Mac reads those from the captions.
     if (duration && duration > 2400) throw new Error("over 40 minutes: read on the Mac");
-    const s = await youtubeByUrl(url, { geminiKeys: ["gateway"], fetchFn, durationS: duration });
+    const s = await youtubeByUrl(url, { model, durationS: duration });
     return { file: s.name, md: s.md };
   };
 }
