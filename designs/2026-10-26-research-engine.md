@@ -784,3 +784,28 @@ the parent's round at the start. A child's budget is per field the smaller of it
 and its parent's; past the tree's reads, a warning, not a stop. Dead ends reach the parent as
 known lines ("dead end, skip it"), not open ones: raven reads open as "pursue". The agent's plan
 and the runner's share one `planAsk`, so a runner-driven parent reads its children too.
+
+### 10-28 late: failed checks, forum threads, vendor echo, engine 0.19.0
+
+The first blind niche round: 1460 model checks, 269 failed (18%), all on Haiku's findings; the
+agent's own 15 findings failed none. So the extract, not the checker, was the lever. The fails
+fell in five kinds: one voice written as many ("owners say"), a hedge dropped ("probably" to
+"most"), advice or a pitch written as a report, a speaker's role the page never gave, and a
+sentence with more than its quote. Each is now a rule in falcon's extract prompt. Trial, same 20
+pages, same checker: 14.5% to 1.6%, $0.08.
+William's picks on the runs session's points: forum pages count per thread (each document), not
+per site, so 31 threads are 31 sources. Vendor echo is a warning and an `echo` flag, not a
+block: vendors can agree for real; the agent finds the source they cite or calls it a claim.
+Checks: William has $200 a month of Claude API credits; spend them on quality. The check reads
+the budget's `checks` or a tenth of the kept findings, whichever is more, and `check
+--patterns` reads every finding a pattern rests on (patterns come after the check step, so a
+default sample cannot cover them). Brief recounts a pattern's sources over kept findings: the
+stored count goes stale when a check drops one. Verdicts per facet: wait.
+From the runs session: a facet names the classes that can prove it (`needs`); brief flags
+`lacks` when its read pages have none, and a facet whose every try pins one site is flagged.
+`enough` still counts kept hits at triage: counting per class would need a class before the read
+(a host guess or Jev), which changes the loop. Open for William.
+Open: Jev (TypeSafe, labels and probabilities, no text, $0.042 per 1M input) for yes/no,
+choice and rank steps: first pass of the check, a triage sort, a class guess. Not built until
+William picks. A check fail drops the finding; most fails are overstated, not false: a repair
+step (narrow the sentence to the quote, gate again) is his call.
