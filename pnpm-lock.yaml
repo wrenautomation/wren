@@ -1165,6 +1165,9 @@ importers:
       '@wren/db':
         specifier: workspace:*
         version: link:../db
+      '@wrenautomation/models':
+        specifier: 0.7.1
+        version: 0.7.1
       csv-parse:
         specifier: 7.0.2
         version: 7.0.2

@@ -42,10 +42,10 @@ describe("tokenCost", () => {
   });
 
   it("prices cache reads far under input", () => {
-    // Sonnet: 1M read at 0.10.
+    // Sonnet: 1M read at 0.20 (0.1x input).
     expect(
       tokenCost("claude-sonnet-5-5", { input: 1_000_000, output: 0, cacheRead: 1_000_000 }),
-    ).toBe(100_000);
+    ).toBe(200_000);
   });
 
   it("prices 5 minute and 1 hour cache writes apart", () => {
