@@ -1,0 +1,390 @@
+{
+ "layer": "imports",
+ "nodes": [
+  {
+   "id": "@wren/watch",
+   "role": "package",
+   "parent": "repo:wren",
+   "group": "@wren/watch",
+   "attrs": {
+    "dir": "packages/watch/"
+   }
+  },
+  {
+   "id": "@wren/watch/src/clients.ts",
+   "role": "file",
+   "parent": "@wren/watch",
+   "group": "@wren/watch"
+  },
+  {
+   "id": "@wren/watch/src/components.ts",
+   "role": "file",
+   "parent": "@wren/watch",
+   "group": "@wren/watch"
+  },
+  {
+   "id": "@wren/watch/src/console-routes.ts",
+   "role": "file",
+   "parent": "@wren/watch",
+   "group": "@wren/watch"
+  },
+  {
+   "id": "@wren/watch/src/console.ts",
+   "role": "file",
+   "parent": "@wren/watch",
+   "group": "@wren/watch"
+  },
+  {
+   "id": "@wren/watch/src/index.ts",
+   "role": "file",
+   "parent": "@wren/watch",
+   "group": "@wren/watch"
+  },
+  {
+   "id": "@wren/watch/src/links.ts",
+   "role": "file",
+   "parent": "@wren/watch",
+   "group": "@wren/watch"
+  },
+  {
+   "id": "@wren/watch/src/read.ts",
+   "role": "file",
+   "parent": "@wren/watch",
+   "group": "@wren/watch"
+  },
+  {
+   "id": "@wren/watch/src/records.ts",
+   "role": "file",
+   "parent": "@wren/watch",
+   "group": "@wren/watch"
+  },
+  {
+   "id": "@wren/watch/src/restate.ts",
+   "role": "file",
+   "parent": "@wren/watch",
+   "group": "@wren/watch"
+  },
+  {
+   "id": "@wren/watch/src/schema.ts",
+   "role": "file",
+   "parent": "@wren/watch",
+   "group": "@wren/watch"
+  },
+  {
+   "id": "@wren/watch/src/triage.ts",
+   "role": "file",
+   "parent": "@wren/watch",
+   "group": "@wren/watch"
+  },
+  {
+   "id": "@wren/watch/vitest.config.ts",
+   "role": "file",
+   "parent": "@wren/watch",
+   "group": "@wren/watch"
+  }
+ ],
+ "edges": [
+  {
+   "from": "@wren/watch",
+   "to": "@wren/core",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/watch",
+   "to": "@wren/db",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/watch",
+   "to": "@wren/learn",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/watch",
+   "to": "@wren/llm",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/watch/src/clients.ts",
+   "to": "@wren/core/src/executor.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/watch/src/clients.ts",
+   "to": "@wren/core/src/mailbox.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/watch/src/clients.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/watch/src/clients.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/watch/src/clients.ts",
+   "to": "@wren/watch/src/read.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/watch/src/clients.ts",
+   "to": "@wren/watch/src/triage.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/watch/src/components.ts",
+   "to": "@wren/core/src/components.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/watch/src/components.ts",
+   "to": "@wren/core/src/workflows.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/watch/src/console-routes.ts",
+   "to": "@wren/core/src/access.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/watch/src/console.ts",
+   "to": "@wren/core/src/portal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/watch/src/console.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/watch/src/console.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/watch/src/console.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/watch/src/console.ts",
+   "to": "@wren/watch/src/console-routes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/watch/src/console.ts",
+   "to": "@wren/watch/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/watch/src/console.ts",
+   "to": "@wren/watch/src/triage.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/watch/src/index.ts",
+   "to": "@wren/watch/src/read.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/watch/src/index.ts",
+   "to": "@wren/watch/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/watch/src/index.ts",
+   "to": "@wren/watch/src/triage.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/watch/src/links.ts",
+   "to": "@wren/core/src/html.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/watch/src/links.ts",
+   "to": "@wren/core/src/mail.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/watch/src/read.ts",
+   "to": "@wren/core/src/mail.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/watch/src/read.ts",
+   "to": "@wren/core/src/mailbox.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/watch/src/read.ts",
+   "to": "@wren/db/src/columns.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/watch/src/read.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/watch/src/read.ts",
+   "to": "@wren/watch/src/links.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/watch/src/read.ts",
+   "to": "@wren/watch/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/watch/src/records.ts",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/watch/src/restate.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/watch/src/restate.ts",
+   "to": "@wren/core/src/executor.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/watch/src/restate.ts",
+   "to": "@wren/core/src/mailbox.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/watch/src/restate.ts",
+   "to": "@wren/core/src/notify.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/watch/src/restate.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/watch/src/restate.ts",
+   "to": "@wren/core/src/time.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/watch/src/restate.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/watch/src/restate.ts",
+   "to": "@wren/learn/src/console.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/watch/src/restate.ts",
+   "to": "@wren/learn/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/watch/src/restate.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/watch/src/restate.ts",
+   "to": "@wren/watch/src/console.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/watch/src/restate.ts",
+   "to": "@wren/watch/src/read.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/watch/src/restate.ts",
+   "to": "@wren/watch/src/triage.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/watch/src/schema.ts",
+   "to": "@wren/db/src/columns.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/watch/src/triage.ts",
+   "to": "@wren/core/src/executor.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/watch/src/triage.ts",
+   "to": "@wren/core/src/mailbox.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/watch/src/triage.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/watch/src/triage.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/watch/src/triage.ts",
+   "to": "@wren/watch/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/watch/vitest.config.ts",
+   "to": "@wren/db/src/testing-vitest.ts",
+   "kind": "imports"
+  }
+ ]
+}

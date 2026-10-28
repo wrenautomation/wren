@@ -1,0 +1,38 @@
+{
+ "layer": "routes",
+ "nodes": [
+  {
+   "id": "route:Payments/send",
+   "role": "route",
+   "parent": "service:Payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "input": "{ id: string }",
+    "output": "{ sent: boolean; why?: never; } | { sent: boolean; why: string; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Payments/stripe",
+   "role": "route",
+   "parent": "service:Payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "input": "{ client: string; raw: string; signature?: string | null }",
+    "output": "HookAnswer",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "service:Payments",
+   "role": "service",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "file": "packages/payments/src/service.ts",
+    "kind": "service"
+   }
+  }
+ ],
+ "edges": []
+}

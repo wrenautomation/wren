@@ -1,0 +1,54 @@
+{
+ "layer": "imports",
+ "nodes": [
+  {
+   "id": "@wren/channel-youtube",
+   "role": "package",
+   "parent": "repo:wren",
+   "group": "@wren/channel-youtube",
+   "attrs": {
+    "dir": "packages/channel-youtube/"
+   }
+  },
+  {
+   "id": "@wren/channel-youtube/src/content.ts",
+   "role": "file",
+   "parent": "@wren/channel-youtube",
+   "group": "@wren/channel-youtube"
+  },
+  {
+   "id": "@wren/channel-youtube/src/index.ts",
+   "role": "file",
+   "parent": "@wren/channel-youtube",
+   "group": "@wren/channel-youtube"
+  },
+  {
+   "id": "@wren/channel-youtube/vitest.config.ts",
+   "role": "file",
+   "parent": "@wren/channel-youtube",
+   "group": "@wren/channel-youtube"
+  }
+ ],
+ "edges": [
+  {
+   "from": "@wren/channel-youtube",
+   "to": "@wren/core",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-youtube/src/content.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-youtube/src/content.ts",
+   "to": "@wren/core/src/content/shapes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-youtube/src/index.ts",
+   "to": "@wren/channel-youtube/src/content.ts",
+   "kind": "imports"
+  }
+ ]
+}

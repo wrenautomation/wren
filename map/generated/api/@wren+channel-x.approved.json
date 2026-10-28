@@ -1,0 +1,20 @@
+{
+ "layer": "api",
+ "nodes": [
+  {
+   "id": "@wren/channel-x#xContent",
+   "role": "export",
+   "parent": "@wren/channel-x",
+   "group": "@wren/channel-x",
+   "attrs": {
+    "entries": [
+     "@wren/channel-x"
+    ],
+    "file": "packages/channel-x/src/content.ts",
+    "kind": "function",
+    "sig": "(sites: SiteClient, o: XContentOptions = {}): ContentChannel"
+   }
+  }
+ ],
+ "edges": []
+}

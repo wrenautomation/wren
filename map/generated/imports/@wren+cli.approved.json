@@ -1,0 +1,2975 @@
+{
+ "layer": "imports",
+ "nodes": [
+  {
+   "id": "@wren/cli",
+   "role": "package",
+   "parent": "repo:wren",
+   "group": "@wren/cli",
+   "attrs": {
+    "dir": "apps/cli/",
+    "npm": [
+     "node:child_process",
+     "node:crypto",
+     "node:fs",
+     "node:os",
+     "node:path",
+     "node:url",
+     "node:util"
+    ]
+   }
+  },
+  {
+   "id": "@wren/cli/scripts/build.mjs",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/accounts.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/ads.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/answers.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/app-reviews.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/args.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/books.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/calendar.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/calls.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/client-scope.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/clients.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/content.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/crm.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/decide.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/deliverability.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/delivery.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/dlq.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/dossier.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/drafts.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/email.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/enrich.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/fetch.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/groups.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/health.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/hooks.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/keys.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/lake-sync.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/lake-track.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/lake.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/learn-readers.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/learn.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/limits.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/listmonk.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/loops.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/main.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/newsletter.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/notes.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/objects.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/pages.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/people.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/pipeline.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/poll.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/products.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/reach.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/review.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/search.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/shape.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/site-pages.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/sites.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/sms.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/social.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/sop.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/studio.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/study.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/tasks.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/template-prune.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/templates.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/touches.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/train.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/video-ask.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/video-watch.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/video.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/watch.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/webhooks.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/workflows.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/src/write.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  },
+  {
+   "id": "@wren/cli/vitest.config.ts",
+   "role": "file",
+   "parent": "@wren/cli",
+   "group": "@wren/cli"
+  }
+ ],
+ "edges": [
+  {
+   "from": "@wren/cli",
+   "to": "@wren/books",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli",
+   "to": "@wren/calendar",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli",
+   "to": "@wren/channel-email",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli",
+   "to": "@wren/channel-meta",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli",
+   "to": "@wren/channel-search",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli",
+   "to": "@wren/channel-sms",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli",
+   "to": "@wren/config",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli",
+   "to": "@wren/content",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli",
+   "to": "@wren/core",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli",
+   "to": "@wren/db",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli",
+   "to": "@wren/delivery",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli",
+   "to": "@wren/learn",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli",
+   "to": "@wren/llm",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli",
+   "to": "@wren/niches",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli",
+   "to": "@wren/notes",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli",
+   "to": "@wren/offers",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli",
+   "to": "@wren/outreach",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli",
+   "to": "@wren/pipeline",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli",
+   "to": "@wren/reactivation",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli",
+   "to": "@wren/research",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli",
+   "to": "@wren/sites",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli",
+   "to": "@wren/studio",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli",
+   "to": "@wren/video",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli",
+   "to": "@wren/watch",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli",
+   "to": "@wren/worker",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/accounts.ts",
+   "to": "@wren/config/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/accounts.ts",
+   "to": "@wren/core/src/vault-keys.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/accounts.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/accounts.ts",
+   "to": "@wren/outreach/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/accounts.ts",
+   "to": "@wren/outreach/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/ads.ts",
+   "to": "@wren/channel-meta/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/ads.ts",
+   "to": "@wren/channel-meta/src/restate.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/ads.ts",
+   "to": "@wren/config/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/ads.ts",
+   "to": "@wren/content/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/ads.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/ads.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/answers.ts",
+   "to": "@wren/channel-email/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/answers.ts",
+   "to": "@wren/channel-email/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/answers.ts",
+   "to": "@wren/config/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/answers.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/answers.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/app-reviews.ts",
+   "to": "@wren/config/src/ssm.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/app-reviews.ts",
+   "to": "@wren/content/src/connect/app-reviews.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/app-reviews.ts",
+   "to": "@wren/content/src/connect/review-log.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/app-reviews.ts",
+   "to": "@wren/content/src/connect/reviews-schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/app-reviews.ts",
+   "to": "@wren/core/src/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/app-reviews.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/books.ts",
+   "to": "@wren/books/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/books.ts",
+   "to": "@wren/books/src/restate.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/books.ts",
+   "to": "@wren/channel-email/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/books.ts",
+   "to": "@wren/cli/src/sites.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/books.ts",
+   "to": "@wren/config/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/books.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/books.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/books.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/calendar.ts",
+   "to": "@wren/calendar/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/calendar.ts",
+   "to": "@wren/calendar/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/calendar.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/calendar.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/calls.ts",
+   "to": "@wren/channel-email/src/calls/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/calls.ts",
+   "to": "@wren/channel-email/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/calls.ts",
+   "to": "@wren/config/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/calls.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/calls.ts",
+   "to": "@wren/delivery/src/files.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/calls.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/calls.ts",
+   "to": "@wren/studio/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/clients.ts",
+   "to": "@wren/cli/src/args.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/clients.ts",
+   "to": "@wren/cli/src/products.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/clients.ts",
+   "to": "@wren/config/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/clients.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/clients.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/clients.ts",
+   "to": "@wren/worker/src/components.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/content.ts",
+   "to": "@wren/config/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/content.ts",
+   "to": "@wren/content/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/content.ts",
+   "to": "@wren/content/src/restate/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/content.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/content.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/content.ts",
+   "to": "@wren/core/src/content/shapes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/content.ts",
+   "to": "@wren/core/src/draft-record.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/content.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/crm.ts",
+   "to": "@wren/channel-email/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/crm.ts",
+   "to": "@wren/channel-email/src/restate/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/crm.ts",
+   "to": "@wren/cli/src/sites.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/crm.ts",
+   "to": "@wren/config/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/crm.ts",
+   "to": "@wren/core/src/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/crm.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/crm.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/crm.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/crm.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/crm.ts",
+   "to": "@wren/reactivation/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/crm.ts",
+   "to": "@wren/reactivation/src/restate.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/decide.ts",
+   "to": "@wren/core/src/decide/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/decide.ts",
+   "to": "@wren/core/src/train.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/decide.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/decide.ts",
+   "to": "@wren/learn/src/decide.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/decide.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/decide.ts",
+   "to": "@wren/offers/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/decide.ts",
+   "to": "@wren/outreach/src/decide.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/deliverability.ts",
+   "to": "@wren/channel-email/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/deliverability.ts",
+   "to": "@wren/channel-email/src/spam/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/deliverability.ts",
+   "to": "@wren/config/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/deliverability.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/deliverability.ts",
+   "to": "@wren/niches/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/delivery.ts",
+   "to": "@wren/channel-email/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/delivery.ts",
+   "to": "@wren/config/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/delivery.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/delivery.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/delivery.ts",
+   "to": "@wren/delivery/src/billing/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/delivery.ts",
+   "to": "@wren/delivery/src/files.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/delivery.ts",
+   "to": "@wren/delivery/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/delivery.ts",
+   "to": "@wren/delivery/src/sample.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/delivery.ts",
+   "to": "@wren/delivery/src/service.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/dlq.ts",
+   "to": "@wren/config/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/dlq.ts",
+   "to": "@wren/core/src/console.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/dlq.ts",
+   "to": "@wren/core/src/dead-letters.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/dlq.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/dossier.ts",
+   "to": "@wren/channel-email/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/dossier.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/dossier.ts",
+   "to": "@wren/research/src/dossier.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/drafts.ts",
+   "to": "@wren/cli/src/content.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/drafts.ts",
+   "to": "@wren/content/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/drafts.ts",
+   "to": "@wren/core/src/ask.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/drafts.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/drafts.ts",
+   "to": "@wren/core/src/draft-models.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/drafts.ts",
+   "to": "@wren/core/src/draft-record.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/drafts.ts",
+   "to": "@wren/core/src/edits.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/drafts.ts",
+   "to": "@wren/core/src/facts-list.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/drafts.ts",
+   "to": "@wren/core/src/facts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/drafts.ts",
+   "to": "@wren/core/src/reply-drafts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/drafts.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/drafts.ts",
+   "to": "@wren/outreach/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/email.ts",
+   "to": "@wren/channel-email/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/email.ts",
+   "to": "@wren/channel-email/src/restate/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/email.ts",
+   "to": "@wren/channel-sms/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/email.ts",
+   "to": "@wren/cli/src/answers.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/email.ts",
+   "to": "@wren/cli/src/deliverability.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/email.ts",
+   "to": "@wren/config/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/email.ts",
+   "to": "@wren/core/src/console.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/email.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/email.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/email.ts",
+   "to": "@wren/niches/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/email.ts",
+   "to": "@wren/research/src/companies/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/enrich.ts",
+   "to": "@wren/channel-email/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/enrich.ts",
+   "to": "@wren/channel-email/src/outreach/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/enrich.ts",
+   "to": "@wren/cli/src/sites.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/enrich.ts",
+   "to": "@wren/config/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/enrich.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/enrich.ts",
+   "to": "@wren/core/src/vendors.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/enrich.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/enrich.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/enrich.ts",
+   "to": "@wren/niches/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/enrich.ts",
+   "to": "@wren/research/src/enrichment/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/enrich.ts",
+   "to": "@wren/research/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/enrich.ts",
+   "to": "@wren/research/src/limits.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/enrich.ts",
+   "to": "@wren/research/src/linkedin-reads.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/enrich.ts",
+   "to": "@wren/research/src/signals/collectors.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/fetch.ts",
+   "to": "@wren/config/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/fetch.ts",
+   "to": "@wren/niches/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/fetch.ts",
+   "to": "@wren/research/src/fetch/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/groups.ts",
+   "to": "@wren/core/src/channel-stats-schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/groups.ts",
+   "to": "@wren/core/src/channel-stats.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/groups.ts",
+   "to": "@wren/core/src/profiles.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/groups.ts",
+   "to": "@wren/core/src/segments-schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/groups.ts",
+   "to": "@wren/core/src/segments-text.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/groups.ts",
+   "to": "@wren/core/src/segments.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/groups.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/health.ts",
+   "to": "@wren/cli/src/delivery.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/health.ts",
+   "to": "@wren/config/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/health.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/health.ts",
+   "to": "@wren/delivery/src/health/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/hooks.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/hooks.ts",
+   "to": "@wren/core/src/door.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/hooks.ts",
+   "to": "@wren/core/src/executor.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/hooks.ts",
+   "to": "@wren/core/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/hooks.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/keys.ts",
+   "to": "@wren/core/src/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/keys.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/keys.ts",
+   "to": "@wren/core/src/keys-schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/keys.ts",
+   "to": "@wren/core/src/keys.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/keys.ts",
+   "to": "@wren/core/src/vendors.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/keys.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/lake-sync.ts",
+   "to": "@wren/cli/src/lake-track.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/lake.ts",
+   "to": "@wren/cli/src/lake-sync.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/lake.ts",
+   "to": "@wren/config/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/lake.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/lake.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/learn-readers.ts",
+   "to": "@wren/cli/src/sites.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/learn-readers.ts",
+   "to": "@wren/cli/src/video-watch.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/learn-readers.ts",
+   "to": "@wren/config/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/learn-readers.ts",
+   "to": "@wren/content/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/learn-readers.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/learn-readers.ts",
+   "to": "@wren/learn/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/learn-readers.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/learn-readers.ts",
+   "to": "@wren/research/src/sops/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/learn.ts",
+   "to": "@wren/cli/src/args.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/learn.ts",
+   "to": "@wren/cli/src/learn-readers.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/learn.ts",
+   "to": "@wren/cli/src/video-watch.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/learn.ts",
+   "to": "@wren/config/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/learn.ts",
+   "to": "@wren/core/src/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/learn.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/learn.ts",
+   "to": "@wren/learn/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/learn.ts",
+   "to": "@wren/learn/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/learn.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/learn.ts",
+   "to": "@wren/research/src/sops/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/limits.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/limits.ts",
+   "to": "@wren/core/src/limits.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/limits.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/limits.ts",
+   "to": "@wren/outreach/src/limits.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/listmonk.ts",
+   "to": "@wren/channel-email/src/listmonk/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/listmonk.ts",
+   "to": "@wren/channel-email/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/listmonk.ts",
+   "to": "@wren/config/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/listmonk.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/loops.ts",
+   "to": "@wren/config/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/loops.ts",
+   "to": "@wren/core/src/console.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/loops.ts",
+   "to": "@wren/core/src/loop-watch.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/channel-email/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/cli/src/accounts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/cli/src/ads.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/cli/src/app-reviews.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/cli/src/books.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/cli/src/calendar.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/cli/src/calls.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/cli/src/client-scope.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/cli/src/clients.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/cli/src/content.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/cli/src/crm.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/cli/src/decide.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/cli/src/delivery.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/cli/src/dlq.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/cli/src/dossier.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/cli/src/drafts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/cli/src/email.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/cli/src/enrich.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/cli/src/fetch.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/cli/src/groups.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/cli/src/health.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/cli/src/hooks.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/cli/src/keys.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/cli/src/lake.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/cli/src/learn.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/cli/src/limits.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/cli/src/listmonk.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/cli/src/loops.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/cli/src/newsletter.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/cli/src/notes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/cli/src/objects.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/cli/src/pages.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/cli/src/people.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/cli/src/pipeline.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/cli/src/reach.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/cli/src/review.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/cli/src/search.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/cli/src/shape.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/cli/src/site-pages.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/cli/src/sms.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/cli/src/social.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/cli/src/sop.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/cli/src/study.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/cli/src/tasks.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/cli/src/templates.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/cli/src/touches.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/cli/src/train.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/cli/src/video.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/cli/src/watch.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/cli/src/webhooks.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/cli/src/workflows.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/cli/src/write.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/config/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/content/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/core/src/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/core/src/audit.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/core/src/content/renewal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/core/src/github.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/core/src/leads.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/pipeline/src/mirror.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/main.ts",
+   "to": "@wren/pipeline/src/restate.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/newsletter.ts",
+   "to": "@wren/channel-email/src/listmonk/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/newsletter.ts",
+   "to": "@wren/channel-email/src/restate/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/newsletter.ts",
+   "to": "@wren/config/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/newsletter.ts",
+   "to": "@wren/core/src/marketing.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/newsletter.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/notes.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/notes.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/notes.ts",
+   "to": "@wren/notes/src/docx.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/notes.ts",
+   "to": "@wren/notes/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/objects.ts",
+   "to": "@wren/core/src/objects/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/objects.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/pages.ts",
+   "to": "@wren/config/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/pages.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/pages.ts",
+   "to": "@wren/research/src/pages.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/pages.ts",
+   "to": "@wren/research/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/people.ts",
+   "to": "@wren/config/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/people.ts",
+   "to": "@wren/core/src/people-map-pass.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/people.ts",
+   "to": "@wren/core/src/people-map-schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/people.ts",
+   "to": "@wren/core/src/people-map.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/people.ts",
+   "to": "@wren/core/src/profile-findings.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/people.ts",
+   "to": "@wren/core/src/profiles-backfill.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/people.ts",
+   "to": "@wren/core/src/profiles-bulk.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/people.ts",
+   "to": "@wren/core/src/profiles-link.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/people.ts",
+   "to": "@wren/core/src/profiles.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/people.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/people.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/pipeline.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/pipeline.ts",
+   "to": "@wren/offers/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/pipeline.ts",
+   "to": "@wren/pipeline/src/moves.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/pipeline.ts",
+   "to": "@wren/pipeline/src/numbers.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/pipeline.ts",
+   "to": "@wren/pipeline/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/pipeline.ts",
+   "to": "@wren/pipeline/src/restate.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/pipeline.ts",
+   "to": "@wren/pipeline/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/products.ts",
+   "to": "@wren/reactivation/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/reach.ts",
+   "to": "@wren/cli/src/accounts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/reach.ts",
+   "to": "@wren/cli/src/poll.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/reach.ts",
+   "to": "@wren/config/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/reach.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/reach.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/reach.ts",
+   "to": "@wren/core/src/pass-reasons.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/reach.ts",
+   "to": "@wren/core/src/reject-reasons.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/reach.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/reach.ts",
+   "to": "@wren/outreach/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/reach.ts",
+   "to": "@wren/outreach/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/review.ts",
+   "to": "@wren/channel-email/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/review.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/review.ts",
+   "to": "@wren/niches/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/search.ts",
+   "to": "@wren/channel-search/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/search.ts",
+   "to": "@wren/channel-search/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/search.ts",
+   "to": "@wren/cli/src/sites.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/search.ts",
+   "to": "@wren/config/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/search.ts",
+   "to": "@wren/core/src/content/restate.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/search.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/search.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/search.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/shape.ts",
+   "to": "@wren/cli/src/args.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/shape.ts",
+   "to": "@wren/cli/src/pipeline.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/shape.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/shape.ts",
+   "to": "@wren/core/src/logic.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/shape.ts",
+   "to": "@wren/core/src/saved-views.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/shape.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/shape.ts",
+   "to": "@wren/pipeline/src/convert-shape.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/shape.ts",
+   "to": "@wren/pipeline/src/diff.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/shape.ts",
+   "to": "@wren/pipeline/src/drafts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/shape.ts",
+   "to": "@wren/pipeline/src/edit.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/shape.ts",
+   "to": "@wren/pipeline/src/history.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/shape.ts",
+   "to": "@wren/pipeline/src/metro-parts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/shape.ts",
+   "to": "@wren/pipeline/src/metro.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/shape.ts",
+   "to": "@wren/pipeline/src/mirror.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/shape.ts",
+   "to": "@wren/pipeline/src/model.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/shape.ts",
+   "to": "@wren/pipeline/src/numbers.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/shape.ts",
+   "to": "@wren/pipeline/src/shape-file.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/shape.ts",
+   "to": "@wren/pipeline/src/starter.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/shape.ts",
+   "to": "@wren/pipeline/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/shape.ts",
+   "to": "@wren/pipeline/src/stored.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/shape.ts",
+   "to": "@wren/pipeline/src/tags.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/shape.ts",
+   "to": "@wren/pipeline/src/undo.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/site-pages.ts",
+   "to": "@wren/config/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/site-pages.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/site-pages.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/site-pages.ts",
+   "to": "@wren/sites/src/console.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/site-pages.ts",
+   "to": "@wren/sites/src/model.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/site-pages.ts",
+   "to": "@wren/sites/src/scan.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/site-pages.ts",
+   "to": "@wren/sites/src/templates/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/sites.ts",
+   "to": "@wren/config/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/sites.ts",
+   "to": "@wren/core/src/content/box.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/sites.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/sites.ts",
+   "to": "@wren/core/src/content/ingress.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/sites.ts",
+   "to": "@wren/core/src/content/restate.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/sms.ts",
+   "to": "@wren/channel-sms/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/sms.ts",
+   "to": "@wren/channel-sms/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/sms.ts",
+   "to": "@wren/config/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/sms.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/sms.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/sms.ts",
+   "to": "@wren/niches/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/social.ts",
+   "to": "@wren/cli/src/sites.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/social.ts",
+   "to": "@wren/config/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/social.ts",
+   "to": "@wren/content/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/sop.ts",
+   "to": "@wren/cli/src/learn-readers.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/sop.ts",
+   "to": "@wren/cli/src/video-watch.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/sop.ts",
+   "to": "@wren/config/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/sop.ts",
+   "to": "@wren/content/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/sop.ts",
+   "to": "@wren/core/src/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/sop.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/sop.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/sop.ts",
+   "to": "@wren/learn/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/sop.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/sop.ts",
+   "to": "@wren/research/src/sops/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/studio.ts",
+   "to": "@wren/cli/src/content.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/studio.ts",
+   "to": "@wren/cli/src/sop.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/studio.ts",
+   "to": "@wren/cli/src/video-ask.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/studio.ts",
+   "to": "@wren/cli/src/video-watch.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/studio.ts",
+   "to": "@wren/config/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/studio.ts",
+   "to": "@wren/content/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/studio.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/studio.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/studio.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/studio.ts",
+   "to": "@wren/studio/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/studio.ts",
+   "to": "@wren/video/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/study.ts",
+   "to": "@wren/cli/src/args.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/study.ts",
+   "to": "@wren/cli/src/sites.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/study.ts",
+   "to": "@wren/config/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/study.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/study.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/study.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/study.ts",
+   "to": "@wren/research/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/study.ts",
+   "to": "@wren/research/src/studies/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/tasks.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/tasks.ts",
+   "to": "@wren/notes/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/tasks.ts",
+   "to": "@wren/notes/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/template-prune.ts",
+   "to": "@wren/core/src/templates.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/template-prune.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/templates.ts",
+   "to": "@wren/cli/src/template-prune.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/templates.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/templates.ts",
+   "to": "@wren/core/src/line-diff.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/templates.ts",
+   "to": "@wren/core/src/slots/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/templates.ts",
+   "to": "@wren/core/src/template-defaults.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/templates.ts",
+   "to": "@wren/core/src/template-edits.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/templates.ts",
+   "to": "@wren/core/src/templates.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/templates.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/templates.ts",
+   "to": "@wren/niches/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/templates.ts",
+   "to": "@wren/worker/src/components.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/touches.ts",
+   "to": "@wren/content/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/touches.ts",
+   "to": "@wren/core/src/touches.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/touches.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/train.ts",
+   "to": "@wren/content/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/train.ts",
+   "to": "@wren/core/src/draft-record.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/train.ts",
+   "to": "@wren/core/src/train.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/train.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/train.ts",
+   "to": "@wren/notes/src/train.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/video-ask.ts",
+   "to": "@wren/content/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/video-ask.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/video-ask.ts",
+   "to": "@wren/studio/src/change.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/video-ask.ts",
+   "to": "@wren/studio/src/edit.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/video-ask.ts",
+   "to": "@wren/studio/src/storyboard.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/video-watch.ts",
+   "to": "@wren/config/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/video-watch.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/video.ts",
+   "to": "@wren/cli/src/studio.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/video.ts",
+   "to": "@wren/config/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/video.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/video.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/video.ts",
+   "to": "@wren/reactivation/src/video/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/video.ts",
+   "to": "@wren/research/src/dossier.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/video.ts",
+   "to": "@wren/research/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/watch.ts",
+   "to": "@wren/config/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/watch.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/watch.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/watch.ts",
+   "to": "@wren/watch/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/watch.ts",
+   "to": "@wren/watch/src/restate.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/webhooks.ts",
+   "to": "@wren/config/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/webhooks.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/webhooks.ts",
+   "to": "@wren/core/src/webhook-events.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/webhooks.ts",
+   "to": "@wren/core/src/webhooks.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/webhooks.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/workflows.ts",
+   "to": "@wren/config/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/workflows.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/workflows.ts",
+   "to": "@wren/core/src/template-install.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/workflows.ts",
+   "to": "@wren/core/src/workflow-templates.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/workflows.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/workflows.ts",
+   "to": "@wren/worker/src/components.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/workflows.ts",
+   "to": "@wren/worker/src/setups.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/workflows.ts",
+   "to": "@wren/worker/src/workflows.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/write.ts",
+   "to": "@wren/cli/src/content.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/write.ts",
+   "to": "@wren/config/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/src/write.ts",
+   "to": "@wren/content/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/write.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/write.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/cli/vitest.config.ts",
+   "to": "@wren/db/src/testing-vitest.ts",
+   "kind": "imports"
+  }
+ ]
+}

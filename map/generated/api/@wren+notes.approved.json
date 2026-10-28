@@ -1,0 +1,3455 @@
+{
+ "layer": "api",
+ "nodes": [
+  {
+   "id": "@wren/notes#AGENT",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/types"
+    ],
+    "file": "packages/notes/src/types.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"agent:\""
+   }
+  },
+  {
+   "id": "@wren/notes#Board",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/schema"
+    ],
+    "file": "packages/notes/src/schema.ts",
+    "kind": "type",
+    "sig": "type Board = typeof boards.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/notes#BoardColumn",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/types"
+    ],
+    "file": "packages/notes/src/types.ts",
+    "kind": "interface",
+    "sig": "interface BoardColumn { id: string; name: string; done: boolean; }"
+   }
+  },
+  {
+   "id": "@wren/notes#CARD_LABEL",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/chips"
+    ],
+    "file": "packages/notes/src/chips.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"Card: \""
+   }
+  },
+  {
+   "id": "@wren/notes#CHIPS_PER_READ",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/chips"
+    ],
+    "file": "packages/notes/src/chips.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "100"
+   }
+  },
+  {
+   "id": "@wren/notes#COMMENT_MAX",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/types"
+    ],
+    "file": "packages/notes/src/types.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "10000"
+   }
+  },
+  {
+   "id": "@wren/notes#CardChip",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/chips"
+    ],
+    "file": "packages/notes/src/chips.ts",
+    "kind": "interface",
+    "sig": "interface CardChip { id: string; column: string; closed: boolean; }"
+   }
+  },
+  {
+   "id": "@wren/notes#Changed",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/store.ts",
+    "kind": "interface",
+    "sig": "interface Changed { note: Note; update: Uint8Array | null; version: number; }"
+   }
+  },
+  {
+   "id": "@wren/notes#Chips",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/chips"
+    ],
+    "file": "packages/notes/src/chips.ts",
+    "kind": "interface",
+    "sig": "interface Chips { get(id: string): CardChip | undefined; ask(ids: Iterable<string>): void; refresh(): void; watch(fn: () => void): () => void; }"
+   }
+  },
+  {
+   "id": "@wren/notes#CommentAnchor",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/types"
+    ],
+    "file": "packages/notes/src/types.ts",
+    "kind": "interface",
+    "sig": "interface CommentAnchor { from: unknown; to: unknown; }"
+   }
+  },
+  {
+   "id": "@wren/notes#DEFAULT_BOARD",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/types"
+    ],
+    "file": "packages/notes/src/types.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"Work\""
+   }
+  },
+  {
+   "id": "@wren/notes#DEFAULT_COLUMNS",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/types"
+    ],
+    "file": "packages/notes/src/types.ts",
+    "kind": "const",
+    "sig": "readonly BoardColumn[]"
+   }
+  },
+  {
+   "id": "@wren/notes#DRIVE_MAX",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/drive"
+    ],
+    "file": "packages/notes/src/drive.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "number"
+   }
+  },
+  {
+   "id": "@wren/notes#DRIVE_READ_SCOPE",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/drive"
+    ],
+    "file": "packages/notes/src/drive.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"https://www.googleapis.com/auth/drive.readonly\""
+   }
+  },
+  {
+   "id": "@wren/notes#DocxImage",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/docx"
+    ],
+    "file": "packages/notes/src/docx.ts",
+    "kind": "interface",
+    "sig": "interface DocxImage { data: Uint8Array; type: \"png\" | \"jpg\" | \"gif\" | \"bmp\"; width: number; height: number; }"
+   }
+  },
+  {
+   "id": "@wren/notes#DriveFile",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/drive"
+    ],
+    "file": "packages/notes/src/drive.ts",
+    "kind": "interface",
+    "sig": "interface DriveFile { name: string; bytes: Uint8Array; }"
+   }
+  },
+  {
+   "id": "@wren/notes#DriveRefusal",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/drive"
+    ],
+    "file": "packages/notes/src/drive.ts",
+    "kind": "class",
+    "sig": ""
+   }
+  },
+  {
+   "id": "@wren/notes#EMPTY",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/types"
+    ],
+    "file": "packages/notes/src/types.ts",
+    "kind": "const",
+    "sig": "NoteJson"
+   }
+  },
+  {
+   "id": "@wren/notes#FILE_SRC",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/console"
+    ],
+    "file": "packages/notes/src/console-writes.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"wren-file:\""
+   }
+  },
+  {
+   "id": "@wren/notes#FLUSH_AFTER",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/room"
+    ],
+    "file": "packages/notes/src/room.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "1500"
+   }
+  },
+  {
+   "id": "@wren/notes#FRAME_MAX",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/room"
+    ],
+    "file": "packages/notes/src/room.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "number"
+   }
+  },
+  {
+   "id": "@wren/notes#FileLink",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/sheet"
+    ],
+    "file": "packages/notes/src/sheet.ts",
+    "kind": "type",
+    "sig": "type FileLink = { kind: \"doc\" | \"sheet\" | \"slides\" | \"drive\" | \"dropbox\" | \"onedrive\"; label: string; };"
+   }
+  },
+  {
+   "id": "@wren/notes#GENERAL",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/types"
+    ],
+    "file": "packages/notes/src/types.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"private\", \"workspace\"]"
+   }
+  },
+  {
+   "id": "@wren/notes#General",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/types"
+    ],
+    "file": "packages/notes/src/types.ts",
+    "kind": "type",
+    "sig": "type General = (typeof GENERAL)[number];"
+   }
+  },
+  {
+   "id": "@wren/notes#IMAGE_MAX",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/console"
+    ],
+    "file": "packages/notes/src/console-writes.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "number"
+   }
+  },
+  {
+   "id": "@wren/notes#IMAGE_TYPES",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/console"
+    ],
+    "file": "packages/notes/src/console-writes.ts",
+    "kind": "const",
+    "sig": "Readonly<Record<string, string>>"
+   }
+  },
+  {
+   "id": "@wren/notes#InboxNote",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/schema"
+    ],
+    "file": "packages/notes/src/schema.ts",
+    "kind": "type",
+    "sig": "type InboxNote = typeof inboxNotes.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/notes#KINDS",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/types"
+    ],
+    "file": "packages/notes/src/types.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"note\", \"dump\", \"task\"]"
+   }
+  },
+  {
+   "id": "@wren/notes#LABELS_MAX",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/tasks.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "12"
+   }
+  },
+  {
+   "id": "@wren/notes#LABEL_MAX",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/tasks.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "30"
+   }
+  },
+  {
+   "id": "@wren/notes#LIVE_PREFIX",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/room"
+    ],
+    "file": "packages/notes/src/room.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"/api/notes/live/\""
+   }
+  },
+  {
+   "id": "@wren/notes#Link",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/doc"
+    ],
+    "file": "packages/notes/src/doc.ts",
+    "kind": "interface",
+    "sig": "interface Link { target: string; label: string; }"
+   }
+  },
+  {
+   "id": "@wren/notes#ListOpts",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/store.ts",
+    "kind": "interface",
+    "sig": "interface ListOpts { view: ListView; q?: string | null; limit?: number; sharedTo?: readonly string[]; everything?: boolean; parentId?: string | null; tasks?: boolean; }"
+   }
+  },
+  {
+   "id": "@wren/notes#ListView",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/store.ts",
+    "kind": "type",
+    "sig": "type ListView = \"recent\" | \"mine\" | \"shared\" | \"starred\" | \"archived\" | \"all\";"
+   }
+  },
+  {
+   "id": "@wren/notes#MENTION",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/records"
+    ],
+    "file": "packages/notes/src/records.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"notes.mention\""
+   }
+  },
+  {
+   "id": "@wren/notes#MOVE_KINDS",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/types"
+    ],
+    "file": "packages/notes/src/types.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"create\", \"move\", \"assign\", \"close\", \"reopen\"]"
+   }
+  },
+  {
+   "id": "@wren/notes#MentionMail",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/mention-mail"
+    ],
+    "file": "packages/notes/src/mention-mail.ts",
+    "kind": "interface",
+    "sig": "interface MentionMail { to: string; subject: string; text: string; }"
+   }
+  },
+  {
+   "id": "@wren/notes#MoveKind",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/types"
+    ],
+    "file": "packages/notes/src/types.ts",
+    "kind": "type",
+    "sig": "type MoveKind = (typeof MOVE_KINDS)[number];"
+   }
+  },
+  {
+   "id": "@wren/notes#Moved",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/tasks.ts",
+    "kind": "interface",
+    "sig": "interface Moved { task: TaskRow; moved: boolean; redirected: BoardColumn | null; }"
+   }
+  },
+  {
+   "id": "@wren/notes#NOTES_CONSOLE_APPS",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/console-routes"
+    ],
+    "file": "packages/notes/src/console-routes.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly \"*\": \"notes\"; readonly toDraft: \"marketing\"; readonly toSop: \"learn\"; }"
+   }
+  },
+  {
+   "id": "@wren/notes#NOTES_CONSOLE_ROUTES",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/console-routes"
+    ],
+    "file": "packages/notes/src/console-routes.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly home: \"read\"; readonly open: \"read\"; readonly sync: \"read\"; readonly versions: \"read\"; readonly version: \"read\"; readonly compare: \"read\"; readonly backlinks: \"read\"; readonly people: \"read\"; readonly file: \"read\"; readonly settings: \"read\"; readonly comments: \"read\"; readonly mentions: \"…"
+   }
+  },
+  {
+   "id": "@wren/notes#NOTES_CONSOLE_WRITES",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/console-routes"
+    ],
+    "file": "packages/notes/src/console-routes.ts",
+    "kind": "const",
+    "sig": "readonly (keyof typeof NOTES_CONSOLE_ROUTES)[]"
+   }
+  },
+  {
+   "id": "@wren/notes#NOTES_RECORDS",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/records"
+    ],
+    "file": "packages/notes/src/records.ts",
+    "kind": "const",
+    "sig": "readonly RecordType[]"
+   }
+  },
+  {
+   "id": "@wren/notes#NewBoard",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/boards.ts",
+    "kind": "interface",
+    "sig": "interface NewBoard { name: string; columns?: unknown; owner: string; general?: General; generalRole?: ShareRole; }"
+   }
+  },
+  {
+   "id": "@wren/notes#NotASuggestion",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/store.ts",
+    "kind": "class",
+    "sig": "constructor()"
+   }
+  },
+  {
+   "id": "@wren/notes#Note",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/schema"
+    ],
+    "file": "packages/notes/src/schema.ts",
+    "kind": "type",
+    "sig": "type Note = typeof notes.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/notes#NoteComment",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/schema"
+    ],
+    "file": "packages/notes/src/schema.ts",
+    "kind": "type",
+    "sig": "type NoteComment = typeof noteComments.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/notes#NoteDrive",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/drive"
+    ],
+    "file": "packages/notes/src/drive.ts",
+    "kind": "interface",
+    "sig": "interface NoteDrive { who: () => string | null; get: (id: string) => Promise<DriveFile>; title: (id: string) => Promise<string | null>; }"
+   }
+  },
+  {
+   "id": "@wren/notes#NoteFiles",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/console"
+    ],
+    "file": "packages/notes/src/console-context.ts",
+    "kind": "interface",
+    "sig": "interface NoteFiles { putUrl(key: string, type: string, size: number): Promise<string>; getUrl(key: string): Promise<string>; }"
+   }
+  },
+  {
+   "id": "@wren/notes#NoteJson",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/types"
+    ],
+    "file": "packages/notes/src/types.ts",
+    "kind": "interface",
+    "sig": "interface NoteJson { type: string; attrs?: Record<string, unknown>; content?: NoteJson[]; text?: string; marks?: { type: string; attrs?: Record<string, unknown> }[]; }"
+   }
+  },
+  {
+   "id": "@wren/notes#NoteKind",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/types"
+    ],
+    "file": "packages/notes/src/types.ts",
+    "kind": "type",
+    "sig": "type NoteKind = (typeof KINDS)[number];"
+   }
+  },
+  {
+   "id": "@wren/notes#NoteLine",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/train"
+    ],
+    "file": "packages/notes/src/train.ts",
+    "kind": "interface",
+    "sig": "interface NoteLine { schema: \"wren.note/1\"; workspace: string; id: string; title: string; text: string; via: \"person\" | \"agent\"; createdAt: string; updatedAt: string; versions: { number: number; kind: string; name: string | null; at: string; authors: string[]; text: string; }[]; }"
+   }
+  },
+  {
+   "id": "@wren/notes#NoteMention",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/schema"
+    ],
+    "file": "packages/notes/src/schema.ts",
+    "kind": "type",
+    "sig": "type NoteMention = typeof noteMentions.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/notes#NoteRow",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/store.ts",
+    "kind": "interface",
+    "sig": "interface NoteRow { id: string; title: string; kind: NoteKind; owner: string; via: Via; general: General; generalRole: ShareRole; parentId: string | null; createdAt: Date; updatedAt: Date; editedBy: string | null; archivedAt: Date | null; starred: boolean; seenAt: Date | null; excerpt: string; text: string; rank: number; }"
+   }
+  },
+  {
+   "id": "@wren/notes#NoteTurns",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/console"
+    ],
+    "file": "packages/notes/src/console-context.ts",
+    "kind": "interface",
+    "sig": "interface NoteTurns { draft( ctx: restate.Context, o: { client: string | null; text: string; by: string }, ): Promise<void>; sop(o: { client: string; db: Db; noteId: string; sop: string; title: string; text: string; by: string; }): Promise<{ sop: string; state: \"asked\" | \"added\"; note: string | null }>; }"
+   }
+  },
+  {
+   "id": "@wren/notes#NoteVersion",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/schema"
+    ],
+    "file": "packages/notes/src/schema.ts",
+    "kind": "type",
+    "sig": "type NoteVersion = typeof noteVersions.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/notes#NotesApi",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/console"
+    ],
+    "file": "packages/notes/src/console.ts",
+    "kind": "type",
+    "sig": "type NotesApi = ReturnType<typeof notesApi>;"
+   }
+  },
+  {
+   "id": "@wren/notes#NotesDeps",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/console"
+    ],
+    "file": "packages/notes/src/console-context.ts",
+    "kind": "interface",
+    "sig": "interface NotesDeps { main: Db; open: (client: Client) => Db; files?: NoteFiles | undefined; zone?: string; drive?: NoteDrive | undefined; mail?: { send: SendMention; portal: string } | undefined; turns?: NoteTurns | undefined; write?: ((prompt: string) => Promise<string>) | null | undefined; }"
+   }
+  },
+  {
+   "id": "@wren/notes#Op",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/diff"
+    ],
+    "file": "packages/notes/src/diff.ts",
+    "kind": "type",
+    "sig": "type Op = \"same\" | \"ins\" | \"del\";"
+   }
+  },
+  {
+   "id": "@wren/notes#POLL_EVERY",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/room"
+    ],
+    "file": "packages/notes/src/room.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "15000"
+   }
+  },
+  {
+   "id": "@wren/notes#PROTOCOL",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/room"
+    ],
+    "file": "packages/notes/src/room.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"wren-notes\""
+   }
+  },
+  {
+   "id": "@wren/notes#Piece",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/diff"
+    ],
+    "file": "packages/notes/src/diff.ts",
+    "kind": "interface",
+    "sig": "interface Piece { op: Op; text: string; by: number | null; }"
+   }
+  },
+  {
+   "id": "@wren/notes#QUOTE_MAX",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/types"
+    ],
+    "file": "packages/notes/src/types.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "500"
+   }
+  },
+  {
+   "id": "@wren/notes#ROLES",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/types"
+    ],
+    "file": "packages/notes/src/types.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"view\", \"comment\", \"edit\"]"
+   }
+  },
+  {
+   "id": "@wren/notes#Reader",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/access.ts",
+    "kind": "interface",
+    "sig": "interface Reader { email: string; team: boolean; inWorkspace: boolean; client: string | null; cap: ShareRole | null; }"
+   }
+  },
+  {
+   "id": "@wren/notes#Role",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/types"
+    ],
+    "file": "packages/notes/src/types.ts",
+    "kind": "type",
+    "sig": "type Role = ShareRole | \"owner\";"
+   }
+  },
+  {
+   "id": "@wren/notes#Room",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/room"
+    ],
+    "file": "packages/notes/src/room.ts",
+    "inferred": true,
+    "kind": "class",
+    "sig": "readonly doc; readonly awareness; constructor(readonly id: string, private readonly deps: RoomDeps); get size(); get closed(); join(socket: Socket, seat: Seat): Promise<Peer>; message(p: Peer, raw: string): void; leave(p: Peer): void; close(): void; flush(): Promise<void>; poll(): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/notes#RoomRefusal",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/room"
+    ],
+    "file": "packages/notes/src/room.ts",
+    "kind": "class",
+    "sig": "constructor(message: string, readonly status: number)"
+   }
+  },
+  {
+   "id": "@wren/notes#SHEET_FIELDS",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/sheet"
+    ],
+    "file": "packages/notes/src/sheet.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"title\", \"column\", \"owner\", \"due\", \"labels\", \"blocked by\", \"link\"]"
+   }
+  },
+  {
+   "id": "@wren/notes#SUGGEST_ADD",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/types"
+    ],
+    "file": "packages/notes/src/types.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"suggestAdd\""
+   }
+  },
+  {
+   "id": "@wren/notes#SUGGEST_DEL",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/types"
+    ],
+    "file": "packages/notes/src/types.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"suggestDel\""
+   }
+  },
+  {
+   "id": "@wren/notes#Seat",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/room"
+    ],
+    "file": "packages/notes/src/room.ts",
+    "kind": "interface",
+    "sig": "interface Seat { email: string; as: Record<string, unknown>; }"
+   }
+  },
+  {
+   "id": "@wren/notes#SendMention",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/mention-mail"
+    ],
+    "file": "packages/notes/src/mention-mail.ts",
+    "kind": "type",
+    "sig": "type SendMention = (m: MentionMail) => Promise<void>;"
+   }
+  },
+  {
+   "id": "@wren/notes#ShareRole",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/types"
+    ],
+    "file": "packages/notes/src/types.ts",
+    "kind": "type",
+    "sig": "type ShareRole = (typeof ROLES)[number];"
+   }
+  },
+  {
+   "id": "@wren/notes#SheetField",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/sheet"
+    ],
+    "file": "packages/notes/src/sheet.ts",
+    "kind": "type",
+    "sig": "type SheetField = (typeof SHEET_FIELDS)[number];"
+   }
+  },
+  {
+   "id": "@wren/notes#Socket",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/room"
+    ],
+    "file": "packages/notes/src/room.ts",
+    "kind": "interface",
+    "sig": "interface Socket { send(frame: string): void; close(code: number, reason: string): void; }"
+   }
+  },
+  {
+   "id": "@wren/notes#SyncAnswer",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/room"
+    ],
+    "file": "packages/notes/src/room.ts",
+    "kind": "type",
+    "sig": "type SyncAnswer = | { ok: true; update: string; sv: string; version: number; name: string; updatedAt: string | null; editedBy: string | null; role: Role; } | { ok: false; status: number; message: string };"
+   }
+  },
+  {
+   "id": "@wren/notes#TEAM",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/access.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"team\""
+   }
+  },
+  {
+   "id": "@wren/notes#TaskMove",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/schema"
+    ],
+    "file": "packages/notes/src/schema.ts",
+    "kind": "type",
+    "sig": "type TaskMove = typeof taskMoves.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/notes#TaskRef",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/tasks.ts",
+    "kind": "interface",
+    "sig": "interface TaskRef { id: string; title: string; text: string; columnId: string | null; boardId: string | null; closedAt: Date | null; }"
+   }
+  },
+  {
+   "id": "@wren/notes#TaskRefusal",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/boards.ts",
+    "kind": "class",
+    "sig": "constructor(message: string, readonly status = 400)"
+   }
+  },
+  {
+   "id": "@wren/notes#TaskRow",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/tasks.ts",
+    "kind": "interface",
+    "sig": "interface TaskRow { id: string; title: string; text: string; boardId: string; columnId: string; position: string; owner: string; via: Via; assignee: string | null; due: string | null; closedAt: Date | null; archivedAt: Date | null; createdAt: Date; updatedAt: Date; labels: string[]; blocked: number; blocks: number; comments: number; clients: { id: string; name: string }[]; version: number; }"
+   }
+  },
+  {
+   "id": "@wren/notes#UPDATE_MAX",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/types"
+    ],
+    "file": "packages/notes/src/types.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "number"
+   }
+  },
+  {
+   "id": "@wren/notes#VERSION_KINDS",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/types"
+    ],
+    "file": "packages/notes/src/types.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"auto\", \"named\", \"restore\", \"import\"]"
+   }
+  },
+  {
+   "id": "@wren/notes#VIA",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/types"
+    ],
+    "file": "packages/notes/src/types.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"person\", \"agent\"]"
+   }
+  },
+  {
+   "id": "@wren/notes#VersionKind",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/types"
+    ],
+    "file": "packages/notes/src/types.ts",
+    "kind": "type",
+    "sig": "type VersionKind = (typeof VERSION_KINDS)[number];"
+   }
+  },
+  {
+   "id": "@wren/notes#Via",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/types"
+    ],
+    "file": "packages/notes/src/types.ts",
+    "kind": "type",
+    "sig": "type Via = (typeof VIA)[number];"
+   }
+  },
+  {
+   "id": "@wren/notes#Y_BODY",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/types"
+    ],
+    "file": "packages/notes/src/types.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"default\""
+   }
+  },
+  {
+   "id": "@wren/notes#Y_TITLE",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/types"
+    ],
+    "file": "packages/notes/src/types.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"title\""
+   }
+  },
+  {
+   "id": "@wren/notes#addComment",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/store.ts",
+    "kind": "function",
+    "sig": "(db: Db, c: NewComment): Promise<NoteComment>"
+   }
+  },
+  {
+   "id": "@wren/notes#addInboxNote",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/inbox"
+    ],
+    "file": "packages/notes/src/inbox.ts",
+    "kind": "function",
+    "sig": "(db: Db, o: { thread: string; personId: number | null; body: string; by: string; team: readonly string[]; now?: Date; }): Promise<{ note: InboxNote; mentioned: string[] }>"
+   }
+  },
+  {
+   "id": "@wren/notes#appendBody",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/doc"
+    ],
+    "file": "packages/notes/src/doc.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(doc: Y.Doc, json: NoteJson): void"
+   }
+  },
+  {
+   "id": "@wren/notes#appendNote",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/store.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Db, id: string, by: string, body: NoteJson): Promise<Changed>"
+   }
+  },
+  {
+   "id": "@wren/notes#assignTask",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/tasks.ts",
+    "kind": "function",
+    "sig": "(db: Db, id: string, who: unknown, o: { by: string; why?: string | null }): Promise<TaskRow>"
+   }
+  },
+  {
+   "id": "@wren/notes#assigneeOf",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/tasks.ts",
+    "kind": "function",
+    "sig": "(raw: unknown): string | null"
+   }
+  },
+  {
+   "id": "@wren/notes#atEmails",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/inbox"
+    ],
+    "file": "packages/notes/src/inbox.ts",
+    "kind": "function",
+    "sig": "(body: string): string[]"
+   }
+  },
+  {
+   "id": "@wren/notes#atLeast",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/access.ts",
+    "kind": "function",
+    "sig": "(r: Role | null, need: Role): boolean"
+   }
+  },
+  {
+   "id": "@wren/notes#backlinks",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/store.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, r: Omit<Reader, \"cap\">, target: string): Omit<import(\"drizzle-orm/pg-core\").PgSelectBase<\"note_links\", { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"notes\"; dataType: \"string\"; columnType: \"PgUUID\"; data: string; driverParam: string; notNull: true; hasDefault: true; isPrimaryKey: false; isAutoincrement: false; hasR…"
+   }
+  },
+  {
+   "id": "@wren/notes#bestRole",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/access.ts",
+    "kind": "function",
+    "sig": "(a: Role | null, b: Role | null): Role | null"
+   }
+  },
+  {
+   "id": "@wren/notes#blame",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/diff"
+    ],
+    "file": "packages/notes/src/diff.ts",
+    "kind": "function",
+    "sig": "(base: string, steps: readonly { number: number; text: string }[]): Piece[]"
+   }
+  },
+  {
+   "id": "@wren/notes#blockTask",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/tasks.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, id: string, blockedBy: string, by: string): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/notes#blockersOf",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/tasks.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, id: string): Promise<TaskRef[]>"
+   }
+  },
+  {
+   "id": "@wren/notes#blockingOf",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/tasks.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, id: string): Promise<TaskRef[]>"
+   }
+  },
+  {
+   "id": "@wren/notes#boardById",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/boards.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, id: string): Promise<Board | null>"
+   }
+  },
+  {
+   "id": "@wren/notes#boardRoleOn",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/boards.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, board: Board, r: Omit<Reader, \"cap\">): Promise<Role | null>"
+   }
+  },
+  {
+   "id": "@wren/notes#boardShares",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/schema"
+    ],
+    "file": "packages/notes/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"board_shares\"; schema: undefined; columns: { boardId: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"board_id\"; tableName: \"board_shares\"; dataType: \"string\"; columnType: \"PgUUID\"; data: string; driverParam: string; notNull: true; hasDefault…"
+   }
+  },
+  {
+   "id": "@wren/notes#boardSharesOf",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/boards.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, id: string): Omit<import(\"drizzle-orm/pg-core\").PgSelectBase<\"board_shares\", { boardId: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"board_id\"; tableName: \"board_shares\"; dataType: \"string\"; columnType: \"PgUUID\"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey: false; isAutoi…"
+   }
+  },
+  {
+   "id": "@wren/notes#boardVisible",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/boards.ts",
+    "kind": "function",
+    "sig": "(r: Omit<Reader, \"cap\">, alias = \"boards\"): SQL"
+   }
+  },
+  {
+   "id": "@wren/notes#boards",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/schema"
+    ],
+    "file": "packages/notes/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"boards\"; schema: undefined; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"boards\"; dataType: \"string\"; columnType: \"PgUUID\"; data: string; driverParam: string; notNull: true; hasDefault: true; isPrimaryKey: f…"
+   }
+  },
+  {
+   "id": "@wren/notes#captureBlock",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/doc"
+    ],
+    "file": "packages/notes/src/doc.ts",
+    "kind": "function",
+    "sig": "(words: string, at: Date, zone = \"America/New_York\"): NoteJson"
+   }
+  },
+  {
+   "id": "@wren/notes#cardIdIn",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/sheet"
+    ],
+    "file": "packages/notes/src/sheet.ts",
+    "kind": "function",
+    "sig": "(link: string | undefined): string | null"
+   }
+  },
+  {
+   "id": "@wren/notes#cellOf",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/sheet"
+    ],
+    "file": "packages/notes/src/sheet.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(v: string | undefined): string"
+   }
+  },
+  {
+   "id": "@wren/notes#changeNote",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/store.ts",
+    "kind": "function",
+    "sig": "(db: Db, id: string, by: string, fn: (doc: Y.Doc) => void, opts: ChangeOpts = {}): Promise<Changed>"
+   }
+  },
+  {
+   "id": "@wren/notes#childrenOf",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/store.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, r: Omit<Reader, \"cap\">, id: string): Omit<import(\"drizzle-orm/pg-core\").PgSelectBase<\"notes\", { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"notes\"; dataType: \"string\"; columnType: \"PgUUID\"; data: string; driverParam: string; notNull: true; hasDefault: true; isPrimaryKey: false; isAutoincrement: false; hasRuntim…"
+   }
+  },
+  {
+   "id": "@wren/notes#chipCardId",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/chips"
+    ],
+    "file": "packages/notes/src/chips.ts",
+    "kind": "function",
+    "sig": "(m: { id?: unknown; label?: unknown }): string | null"
+   }
+  },
+  {
+   "id": "@wren/notes#chipWords",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/chips"
+    ],
+    "file": "packages/notes/src/chips.ts",
+    "kind": "function",
+    "sig": "(saved: string, now: CardChip | undefined): string"
+   }
+  },
+  {
+   "id": "@wren/notes#cleanBody",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/doc"
+    ],
+    "file": "packages/notes/src/doc.ts",
+    "kind": "function",
+    "sig": "(json: unknown): NoteJson | null"
+   }
+  },
+  {
+   "id": "@wren/notes#clientWho",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/access.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(id: string): string"
+   }
+  },
+  {
+   "id": "@wren/notes#closeTask",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/tasks.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Db, id: string, o: { by: string; why?: string | null }): Promise<Moved>"
+   }
+  },
+  {
+   "id": "@wren/notes#columnOf",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/tasks.ts",
+    "kind": "function",
+    "sig": "(board: Pick<Board, \"columns\">, ref: string): BoardColumn | null"
+   }
+  },
+  {
+   "id": "@wren/notes#commentById",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/store.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, noteId: string, id: string): Promise<NoteComment | null>"
+   }
+  },
+  {
+   "id": "@wren/notes#commentsOf",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/store.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, id: string): Omit<import(\"drizzle-orm/pg-core\").PgSelectBase<\"note_comments\", { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"note_comments\"; dataType: \"string\"; columnType: \"PgUUID\"; data: string; driverParam: string; notNull: true; hasDefault: true; isPrimaryKey: false; isAutoincrement: …"
+   }
+  },
+  {
+   "id": "@wren/notes#counts",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/diff"
+    ],
+    "file": "packages/notes/src/diff.ts",
+    "kind": "function",
+    "sig": "(pieces: readonly Piece[]): { added: number; removed: number }"
+   }
+  },
+  {
+   "id": "@wren/notes#createBoard",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/boards.ts",
+    "kind": "function",
+    "sig": "(db: Db, o: NewBoard): Promise<Board>"
+   }
+  },
+  {
+   "id": "@wren/notes#createNote",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/store.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, o: NewNote): Promise<Note>"
+   }
+  },
+  {
+   "id": "@wren/notes#createTask",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/tasks.ts",
+    "kind": "function",
+    "sig": "(db: Db, o: NewTask): Promise<Note>"
+   }
+  },
+  {
+   "id": "@wren/notes#defaultBoard",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/boards.ts",
+    "kind": "function",
+    "sig": "(db: Db, by: string): Promise<Board>"
+   }
+  },
+  {
+   "id": "@wren/notes#deleteComment",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/store.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, id: string): Omit<import(\"drizzle-orm/pg-core\").PgDeleteBase<import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"note_comments\"; schema: undefined; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"note_comments\"; dataType: \"string\"; columnType: \"PgUUID\"; data: string; driverP…"
+   }
+  },
+  {
+   "id": "@wren/notes#diffTokens",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/diff"
+    ],
+    "file": "packages/notes/src/diff.ts",
+    "kind": "function",
+    "sig": "(a: readonly string[], b: readonly string[], maxD = 4000): Op[]"
+   }
+  },
+  {
+   "id": "@wren/notes#docOf",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/doc"
+    ],
+    "file": "packages/notes/src/doc.ts",
+    "kind": "function",
+    "sig": "(json: NoteJson, title = \"\"): Y.Doc"
+   }
+  },
+  {
+   "id": "@wren/notes#driveIdOf",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/drive"
+    ],
+    "file": "packages/notes/src/drive.ts",
+    "kind": "function",
+    "sig": "(link: string): string | null"
+   }
+  },
+  {
+   "id": "@wren/notes#dueOf",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/tasks.ts",
+    "kind": "function",
+    "sig": "(raw: unknown): string | null"
+   }
+  },
+  {
+   "id": "@wren/notes#dumpOf",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/store.ts",
+    "kind": "function",
+    "sig": "(db: Db, email: string): Promise<Note>"
+   }
+  },
+  {
+   "id": "@wren/notes#editComment",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/store.ts",
+    "kind": "function",
+    "sig": "(db: Db, c: NoteComment, body: string, mentions: readonly string[]): Promise<NoteComment>"
+   }
+  },
+  {
+   "id": "@wren/notes#effectiveRole",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/access.ts",
+    "kind": "function",
+    "sig": "(own: Role | null, cap: ShareRole | null): Role | null"
+   }
+  },
+  {
+   "id": "@wren/notes#fileLinkOf",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/sheet"
+    ],
+    "file": "packages/notes/src/sheet.ts",
+    "kind": "function",
+    "sig": "(href: string): FileLink | null"
+   }
+  },
+  {
+   "id": "@wren/notes#fromB64",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/doc"
+    ],
+    "file": "packages/notes/src/doc.ts",
+    "kind": "function",
+    "sig": "(s: string): Uint8Array"
+   }
+  },
+  {
+   "id": "@wren/notes#fromMarkdown",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/doc"
+    ],
+    "file": "packages/notes/src/doc.ts",
+    "kind": "function",
+    "sig": "(md: string): NoteJson"
+   }
+  },
+  {
+   "id": "@wren/notes#googleDrive",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/drive"
+    ],
+    "file": "packages/notes/src/drive.ts",
+    "kind": "function",
+    "sig": "(o: { token?: (() => Promise<string>) | undefined; who?: (() => string | null) | undefined; fetch?: Fetch; }): NoteDrive"
+   }
+  },
+  {
+   "id": "@wren/notes#guessMap",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/sheet"
+    ],
+    "file": "packages/notes/src/sheet.ts",
+    "kind": "function",
+    "sig": "(headers: readonly string[]): (SheetField | null)[]"
+   }
+  },
+  {
+   "id": "@wren/notes#inboxMentionsOf",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/inbox"
+    ],
+    "file": "packages/notes/src/inbox.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, email: string, limit = 50): Omit<import(\"drizzle-orm/pg-core\").PgSelectBase<\"note_mentions\", { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"note_mentions\"; dataType: \"string\"; columnType: \"PgUUID\"; data: string; driverParam: string; notNull: true; hasDefault: true; isPrimaryKey: false; isAutoincrement: …"
+   }
+  },
+  {
+   "id": "@wren/notes#inboxNotes",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/schema"
+    ],
+    "file": "packages/notes/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"inbox_notes\"; schema: undefined; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"inbox_notes\"; dataType: \"string\"; columnType: \"PgUUID\"; data: string; driverParam: string; notNull: true; hasDefault: true; isPri…"
+   }
+  },
+  {
+   "id": "@wren/notes#inboxNotesOf",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/inbox"
+    ],
+    "file": "packages/notes/src/inbox.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, o: { threads: readonly string[]; personId: number | null }): Promise<InboxNote[]>"
+   }
+  },
+  {
+   "id": "@wren/notes#isAgent",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/types"
+    ],
+    "file": "packages/notes/src/types.ts",
+    "kind": "function",
+    "sig": "(who: string | null | undefined): boolean"
+   }
+  },
+  {
+   "id": "@wren/notes#isBoardId",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/boards.ts",
+    "kind": "function",
+    "sig": "(s: unknown): s is string"
+   }
+  },
+  {
+   "id": "@wren/notes#isNoteId",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/store.ts",
+    "kind": "function",
+    "sig": "(s: unknown): s is string"
+   }
+  },
+  {
+   "id": "@wren/notes#isShareRole",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/access.ts",
+    "kind": "function",
+    "sig": "(r: unknown): r is ShareRole"
+   }
+  },
+  {
+   "id": "@wren/notes#labelsOf",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/tasks.ts",
+    "kind": "function",
+    "sig": "(raw: unknown): string[]"
+   }
+  },
+  {
+   "id": "@wren/notes#linksOf",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/doc"
+    ],
+    "file": "packages/notes/src/doc.ts",
+    "kind": "function",
+    "sig": "(json: NoteJson): Link[]"
+   }
+  },
+  {
+   "id": "@wren/notes#listBoards",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/boards.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, r: Omit<Reader, \"cap\">, o: BoardListOpts = {}): Omit<import(\"drizzle-orm/pg-core\").PgSelectBase<\"boards\", { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"boards\"; dataType: \"string\"; columnType: \"PgUUID\"; data: string; driverParam: string; notNull: true; hasDefault: true; isPrimaryKey: false; isAutoincrement: false; hasRunt…"
+   }
+  },
+  {
+   "id": "@wren/notes#listNotes",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/store.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, r: Omit<Reader, \"cap\">, o: ListOpts): Promise<NoteRow[]>"
+   }
+  },
+  {
+   "id": "@wren/notes#listTasks",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/tasks.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, f: TaskFilter = {}): Promise<TaskRow[]>"
+   }
+  },
+  {
+   "id": "@wren/notes#mailMentions",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/mention-mail"
+    ],
+    "file": "packages/notes/src/mention-mail.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, o: MailMentionsOpts): Promise<number>"
+   }
+  },
+  {
+   "id": "@wren/notes#makeChips",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/chips"
+    ],
+    "file": "packages/notes/src/chips.ts",
+    "kind": "function",
+    "sig": "(read: (ids: string[]) => Promise<CardChip[]>, o: { wait?: number; after?: (fn: () => void, ms: number) => unknown; } = {}): Chips"
+   }
+  },
+  {
+   "id": "@wren/notes#makeNotesConsole",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/console"
+    ],
+    "file": "packages/notes/src/console.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(deps: NotesDeps): restate.ServiceDefinition<\"NotesConsole\", { home: (_: restate.Context, req: import(\"./console-context.js\").Req<{ view?: unknown; q?: unknown; limit?: unknown; parentId?: unknown; }>) => Promise<unknown>; open: (_: restate.Context, req: import(\"./console-context.js\").Req<{ id?: unknown; }>) => Promis…"
+   }
+  },
+  {
+   "id": "@wren/notes#mapRows",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/sheet"
+    ],
+    "file": "packages/notes/src/sheet.ts",
+    "kind": "function",
+    "sig": "(table: readonly (readonly string[])[], map: readonly (SheetField | null)[], header = true): SheetRow[]"
+   }
+  },
+  {
+   "id": "@wren/notes#mentionRecord",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/records"
+    ],
+    "file": "packages/notes/src/records.ts",
+    "kind": "const",
+    "sig": "RecordType"
+   }
+  },
+  {
+   "id": "@wren/notes#mentionsOf",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/store.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, r: Omit<Reader, \"cap\">, limit = 50): Omit<import(\"drizzle-orm/pg-core\").PgSelectBase<\"note_mentions\", { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"note_mentions\"; dataType: \"string\"; columnType: \"PgUUID\"; data: string; driverParam: string; notNull: true; hasDefault: true; isPrimaryKey: false; isAutoincrement: …"
+   }
+  },
+  {
+   "id": "@wren/notes#move",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/store.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Db, id: string, parentId: string | null): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/notes#moveTask",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/tasks.ts",
+    "kind": "function",
+    "sig": "(db: Db, id: string, o: MoveOpts): Promise<Moved>"
+   }
+  },
+  {
+   "id": "@wren/notes#moveToBoard",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/tasks.ts",
+    "kind": "function",
+    "sig": "(db: Db, id: string, boardId: string, o: { by: string; column?: string }): Promise<TaskRow>"
+   }
+  },
+  {
+   "id": "@wren/notes#moveWords",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/types"
+    ],
+    "file": "packages/notes/src/types.ts",
+    "kind": "function",
+    "sig": "(m: { kind: MoveKind; to: string | null; assignee: string | null; why: string | null }, nameOfPerson: (who: string) => string = (w) => w): string"
+   }
+  },
+  {
+   "id": "@wren/notes#movesOf",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/tasks.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, id: string): Omit<import(\"drizzle-orm/pg-core\").PgSelectBase<\"task_moves\", { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"task_moves\"; dataType: \"number\"; columnType: \"PgBigSerial53\"; data: number; driverParam: number; notNull: true; hasDefault: true; isPrimaryKey: false; isAutoincrement:…"
+   }
+  },
+  {
+   "id": "@wren/notes#nameOf",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/doc"
+    ],
+    "file": "packages/notes/src/doc.ts",
+    "kind": "function",
+    "sig": "(title: string, text: string): string"
+   }
+  },
+  {
+   "id": "@wren/notes#nameVersion",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/store.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Db, id: string, number: number, name: string | null): Promise<{ id: number; noteId: string; number: number; kind: \"auto\" | \"restore\" | \"import\" | \"named\"; name: string | null; title: string; body: NoteJson; text: string; authors: string[]; startedAt: Date; at: Date; restoredFrom: number | null; }>"
+   }
+  },
+  {
+   "id": "@wren/notes#needsYou",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/tasks.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, email: string, today: string): Promise<number>"
+   }
+  },
+  {
+   "id": "@wren/notes#noteById",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/store.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, id: string): Promise<Note | null>"
+   }
+  },
+  {
+   "id": "@wren/notes#noteComments",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/schema"
+    ],
+    "file": "packages/notes/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"note_comments\"; schema: undefined; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"note_comments\"; dataType: \"string\"; columnType: \"PgUUID\"; data: string; driverParam: string; notNull: true; hasDefault: true; i…"
+   }
+  },
+  {
+   "id": "@wren/notes#noteLines",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/train"
+    ],
+    "file": "packages/notes/src/train.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, workspace: string, people = false): Promise<NoteLine[]>"
+   }
+  },
+  {
+   "id": "@wren/notes#noteLinks",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/schema"
+    ],
+    "file": "packages/notes/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"note_links\"; schema: undefined; columns: { noteId: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"note_id\"; tableName: \"note_links\"; dataType: \"string\"; columnType: \"PgUUID\"; data: string; driverParam: string; notNull: true; hasDefault: fals…"
+   }
+  },
+  {
+   "id": "@wren/notes#noteMentions",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/schema"
+    ],
+    "file": "packages/notes/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"note_mentions\"; schema: undefined; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"note_mentions\"; dataType: \"string\"; columnType: \"PgUUID\"; data: string; driverParam: string; notNull: true; hasDefault: true; i…"
+   }
+  },
+  {
+   "id": "@wren/notes#noteOut",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/console"
+    ],
+    "file": "packages/notes/src/console-pages.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(n: Note): { id: string; name: string; title: string; kind: \"note\" | \"dump\" | \"task\"; owner: string; createdBy: string; via: \"person\" | \"agent\"; general: \"private\" | \"workspace\"; generalRole: \"comment\" | \"view\" | \"edit\"; train: boolean; archived: boolean; parentId: string | null; createdAt: string; updatedAt: …"
+   }
+  },
+  {
+   "id": "@wren/notes#noteRole",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/access.ts",
+    "kind": "function",
+    "sig": "(note: NoteAccess, shares: readonly { who: string; role: ShareRole }[], r: Omit<Reader, \"cap\">): Role | null"
+   }
+  },
+  {
+   "id": "@wren/notes#noteSeen",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/schema"
+    ],
+    "file": "packages/notes/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"note_seen\"; schema: undefined; columns: { noteId: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"note_id\"; tableName: \"note_seen\"; dataType: \"string\"; columnType: \"PgUUID\"; data: string; driverParam: string; notNull: true; hasDefault: false;…"
+   }
+  },
+  {
+   "id": "@wren/notes#noteShares",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/schema"
+    ],
+    "file": "packages/notes/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"note_shares\"; schema: undefined; columns: { noteId: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"note_id\"; tableName: \"note_shares\"; dataType: \"string\"; columnType: \"PgUUID\"; data: string; driverParam: string; notNull: true; hasDefault: fa…"
+   }
+  },
+  {
+   "id": "@wren/notes#noteStars",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/schema"
+    ],
+    "file": "packages/notes/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"note_stars\"; schema: undefined; columns: { noteId: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"note_id\"; tableName: \"note_stars\"; dataType: \"string\"; columnType: \"PgUUID\"; data: string; driverParam: string; notNull: true; hasDefault: fals…"
+   }
+  },
+  {
+   "id": "@wren/notes#noteUpdates",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/schema"
+    ],
+    "file": "packages/notes/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"note_updates\"; schema: undefined; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"note_updates\"; dataType: \"number\"; columnType: \"PgSerial\"; data: number; driverParam: number; notNull: true; hasDefault: true; i…"
+   }
+  },
+  {
+   "id": "@wren/notes#noteVersions",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/schema"
+    ],
+    "file": "packages/notes/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"note_versions\"; schema: undefined; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"note_versions\"; dataType: \"number\"; columnType: \"PgSerial\"; data: number; driverParam: number; notNull: true; hasDefault: true;…"
+   }
+  },
+  {
+   "id": "@wren/notes#notes",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/schema"
+    ],
+    "file": "packages/notes/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"notes\"; schema: undefined; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"notes\"; dataType: \"string\"; columnType: \"PgUUID\"; data: string; driverParam: string; notNull: true; hasDefault: true; isPrimaryKey: fal…"
+   }
+  },
+  {
+   "id": "@wren/notes#notesApi",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/console"
+    ],
+    "file": "packages/notes/src/console.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(deps: NotesDeps): { train(req: import(\"./console-context.js\").Req<{ id?: unknown; on?: unknown; }>): Promise<{ train: boolean; }>; drafting(req: import(\"./console-context.js\").Req<{ id?: unknown; text?: unknown; }>): Promise<{ client: string | null; text: string; by: string; }>; toSop(req: import(\"./console-context.j…"
+   }
+  },
+  {
+   "id": "@wren/notes#notesContext",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/console"
+    ],
+    "file": "packages/notes/src/console.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(deps: NotesDeps, req: PortalRequest, q: string, limit = 5): Promise<string>"
+   }
+  },
+  {
+   "id": "@wren/notes#notesSettings",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/schema"
+    ],
+    "file": "packages/notes/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"notes_settings\"; schema: undefined; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"notes_settings\"; dataType: \"number\"; columnType: \"PgInteger\"; data: number; driverParam: string | number; notNull: true; hasDe…"
+   }
+  },
+  {
+   "id": "@wren/notes#onlySuggests",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/suggest"
+    ],
+    "file": "packages/notes/src/suggest.ts",
+    "kind": "function",
+    "sig": "(before: NoteJson, after: NoteJson, by: string): boolean"
+   }
+  },
+  {
+   "id": "@wren/notes#ownerName",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/types"
+    ],
+    "file": "packages/notes/src/types.ts",
+    "kind": "function",
+    "sig": "(who: string | null | undefined, first = false): string"
+   }
+  },
+  {
+   "id": "@wren/notes#parseTable",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/sheet"
+    ],
+    "file": "packages/notes/src/sheet.ts",
+    "kind": "function",
+    "sig": "(text: string): string[][]"
+   }
+  },
+  {
+   "id": "@wren/notes#peopleIn",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/doc"
+    ],
+    "file": "packages/notes/src/doc.ts",
+    "kind": "function",
+    "sig": "(json: NoteJson): string[]"
+   }
+  },
+  {
+   "id": "@wren/notes#positionBetween",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/position.ts",
+    "kind": "function",
+    "sig": "(before: string | null, after: string | null): string"
+   }
+  },
+  {
+   "id": "@wren/notes#readBody",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/doc"
+    ],
+    "file": "packages/notes/src/doc.ts",
+    "kind": "function",
+    "sig": "(doc: Y.Doc): NoteJson"
+   }
+  },
+  {
+   "id": "@wren/notes#readMentions",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/store.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, ids: readonly string[], email: string, read = true): Promise<string[]>"
+   }
+  },
+  {
+   "id": "@wren/notes#readTitle",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/doc"
+    ],
+    "file": "packages/notes/src/doc.ts",
+    "kind": "function",
+    "sig": "(doc: Y.Doc): string"
+   }
+  },
+  {
+   "id": "@wren/notes#readyTasks",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/tasks.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, me: string, o: { board?: string; limit?: number } = {}): Promise<TaskRow[]>"
+   }
+  },
+  {
+   "id": "@wren/notes#renameNote",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/store.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Db, id: string, by: string, title: string): Promise<Changed>"
+   }
+  },
+  {
+   "id": "@wren/notes#reopenTask",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/tasks.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Db, id: string, o: { by: string; why?: string | null; column?: string }): Promise<Moved>"
+   }
+  },
+  {
+   "id": "@wren/notes#resolveComment",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/store.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, id: string, by: string | null): Omit<import(\"drizzle-orm/pg-core\").PgUpdateBase<import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"note_comments\"; schema: undefined; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"note_comments\"; dataType: \"string\"; columnType: \"PgUUID\"; data: string; driverP…"
+   }
+  },
+  {
+   "id": "@wren/notes#restoreVersion",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/store.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Db, id: string, number: number, by: string): Promise<Changed>"
+   }
+  },
+  {
+   "id": "@wren/notes#roleOn",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/store.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, note: Note, r: Omit<Reader, \"cap\">): Promise<Role | null>"
+   }
+  },
+  {
+   "id": "@wren/notes#saveBoard",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/boards.ts",
+    "kind": "function",
+    "sig": "(db: Db, id: string, o: { name?: unknown; columns?: unknown; expect?: number }): Promise<Board>"
+   }
+  },
+  {
+   "id": "@wren/notes#seen",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/store.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, id: string, email: string): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/notes#setArchived",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/store.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, id: string, on: boolean): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/notes#setBoardArchived",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/boards.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, id: string, on: boolean): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/notes#setBoardGeneral",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/boards.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, id: string, general: General, role: ShareRole): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/notes#setDue",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/tasks.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, id: string, due: unknown): Promise<TaskRow>"
+   }
+  },
+  {
+   "id": "@wren/notes#setGeneral",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/store.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, id: string, general: General, role: ShareRole): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/notes#setLabels",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/tasks.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, id: string, raw: unknown): Promise<TaskRow>"
+   }
+  },
+  {
+   "id": "@wren/notes#setTrain",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/store.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, id: string, on: boolean): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/notes#setWorkspaceTrain",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/store.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, on: boolean, by: string): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/notes#settingsOf",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/store.ts",
+    "kind": "function",
+    "sig": "(db: Queryable): Promise<{ train: boolean }>"
+   }
+  },
+  {
+   "id": "@wren/notes#share",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/store.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, id: string, who: string, role: ShareRole | null, by: string): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/notes#shareBoard",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/boards.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, id: string, who: string, role: ShareRole | null, by: string): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/notes#sharesOf",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/store.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, id: string): Omit<import(\"drizzle-orm/pg-core\").PgSelectBase<\"note_shares\", { noteId: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"note_id\"; tableName: \"note_shares\"; dataType: \"string\"; columnType: \"PgUUID\"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey: false; isAutoincre…"
+   }
+  },
+  {
+   "id": "@wren/notes#star",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/store.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, id: string, email: string, on: boolean): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/notes#syncNote",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/store.ts",
+    "kind": "function",
+    "sig": "(db: Db, id: string, by: string, update: Uint8Array | null, sv: Uint8Array | null, o: { suggestOnly?: boolean } = {}): Promise<{ note: Note; missing: Uint8Array; sv: Uint8Array; version: number; changed: boolean; }>"
+   }
+  },
+  {
+   "id": "@wren/notes#taskBlocks",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/schema"
+    ],
+    "file": "packages/notes/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"task_blocks\"; schema: undefined; columns: { taskId: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"task_id\"; tableName: \"task_blocks\"; dataType: \"string\"; columnType: \"PgUUID\"; data: string; driverParam: string; notNull: true; hasDefault: fa…"
+   }
+  },
+  {
+   "id": "@wren/notes#taskById",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/tasks.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, id: string): Promise<TaskRow | null>"
+   }
+  },
+  {
+   "id": "@wren/notes#taskMoves",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/schema"
+    ],
+    "file": "packages/notes/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"task_moves\"; schema: undefined; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"task_moves\"; dataType: \"number\"; columnType: \"PgBigSerial53\"; data: number; driverParam: number; notNull: true; hasDefault: true; …"
+   }
+  },
+  {
+   "id": "@wren/notes#taskRecord",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/task-records.ts",
+    "kind": "const",
+    "sig": "RecordType"
+   }
+  },
+  {
+   "id": "@wren/notes#taskRecordFor",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/task-records.ts",
+    "kind": "function",
+    "sig": "(client: string | null): RecordType"
+   }
+  },
+  {
+   "id": "@wren/notes#teamEmails",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/inbox"
+    ],
+    "file": "packages/notes/src/inbox.ts",
+    "kind": "function",
+    "sig": "(main: Queryable, client: string | null = null): Promise<string[]>"
+   }
+  },
+  {
+   "id": "@wren/notes#textOf",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/doc"
+    ],
+    "file": "packages/notes/src/doc.ts",
+    "kind": "function",
+    "sig": "(json: NoteJson): string"
+   }
+  },
+  {
+   "id": "@wren/notes#toB64",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/doc"
+    ],
+    "file": "packages/notes/src/doc.ts",
+    "kind": "function",
+    "sig": "(u: Uint8Array): string"
+   }
+  },
+  {
+   "id": "@wren/notes#toCsv",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/sheet"
+    ],
+    "file": "packages/notes/src/sheet.ts",
+    "kind": "function",
+    "sig": "(rows: readonly (readonly string[])[]): string"
+   }
+  },
+  {
+   "id": "@wren/notes#toDocx",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/docx"
+    ],
+    "file": "packages/notes/src/docx.ts",
+    "kind": "function",
+    "sig": "(json: NoteJson, o: DocxOptions = {}): Promise<Uint8Array>"
+   }
+  },
+  {
+   "id": "@wren/notes#toMarkdown",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/doc"
+    ],
+    "file": "packages/notes/src/doc.ts",
+    "kind": "function",
+    "sig": "(json: NoteJson): string"
+   }
+  },
+  {
+   "id": "@wren/notes#tokens",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/diff"
+    ],
+    "file": "packages/notes/src/diff.ts",
+    "kind": "function",
+    "sig": "(s: string): string[]"
+   }
+  },
+  {
+   "id": "@wren/notes#trainingNotes",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/store.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable): Promise<{ note: { id: string; parentId: string | null; kind: \"note\" | \"dump\" | \"task\"; title: string; body: NoteJson; text: string; search: string | null; yState: Uint8Array<ArrayBufferLike> | null; owner: string; createdBy: string; via: \"person\" | \"agent\"; general: \"private\" | \"workspace\"; generalR…"
+   }
+  },
+  {
+   "id": "@wren/notes#transfer",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/store.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Db, id: string, to: string, by: string): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/notes#unblockTask",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/tasks.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, id: string, blockedBy: string): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/notes#unseenInboxMentions",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes/inbox"
+    ],
+    "file": "packages/notes/src/inbox.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, email: string): Promise<number>"
+   }
+  },
+  {
+   "id": "@wren/notes#unseenMentions",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/store.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, r: Omit<Reader, \"cap\">): Promise<number>"
+   }
+  },
+  {
+   "id": "@wren/notes#versionRange",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/store.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, id: string, from: number, to: number): Omit<import(\"drizzle-orm/pg-core\").PgSelectBase<\"note_versions\", { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"note_versions\"; dataType: \"number\"; columnType: \"PgSerial\"; data: number; driverParam: number; notNull: true; hasDefault: true; isPrimaryKey: false; isAutoincrement…"
+   }
+  },
+  {
+   "id": "@wren/notes#versionsOf",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/store.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, id: string): Omit<import(\"drizzle-orm/pg-core\").PgSelectBase<\"note_versions\", { number: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"number\"; tableName: \"note_versions\"; dataType: \"number\"; columnType: \"PgInteger\"; data: number; driverParam: string | number; notNull: true; hasDefault: false; isPrimaryKey: fal…"
+   }
+  },
+  {
+   "id": "@wren/notes#visible",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes"
+    ],
+    "file": "packages/notes/src/store.ts",
+    "kind": "function",
+    "sig": "(r: Omit<Reader, \"cap\">): SQL"
+   }
+  },
+  {
+   "id": "@wren/notes#withoutSuggestionsBy",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/suggest"
+    ],
+    "file": "packages/notes/src/suggest.ts",
+    "kind": "function",
+    "sig": "(json: NoteJson, by: string): NoteJson"
+   }
+  },
+  {
+   "id": "@wren/notes#writeBody",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/doc"
+    ],
+    "file": "packages/notes/src/doc.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(doc: Y.Doc, json: NoteJson): void"
+   }
+  },
+  {
+   "id": "@wren/notes#writeTitle",
+   "role": "export",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "entries": [
+     "@wren/notes",
+     "@wren/notes/doc"
+    ],
+    "file": "packages/notes/src/doc.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(doc: Y.Doc, title: string): void"
+   }
+  }
+ ],
+ "edges": []
+}

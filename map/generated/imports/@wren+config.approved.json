@@ -1,0 +1,43 @@
+{
+ "layer": "imports",
+ "nodes": [
+  {
+   "id": "@wren/config",
+   "role": "package",
+   "parent": "repo:wren",
+   "group": "@wren/config",
+   "attrs": {
+    "dir": "packages/config/",
+    "npm": [
+     "node:fs",
+     "node:path"
+    ]
+   }
+  },
+  {
+   "id": "@wren/config/src/env-file.ts",
+   "role": "file",
+   "parent": "@wren/config",
+   "group": "@wren/config"
+  },
+  {
+   "id": "@wren/config/src/index.ts",
+   "role": "file",
+   "parent": "@wren/config",
+   "group": "@wren/config"
+  },
+  {
+   "id": "@wren/config/src/ssm.ts",
+   "role": "file",
+   "parent": "@wren/config",
+   "group": "@wren/config"
+  }
+ ],
+ "edges": [
+  {
+   "from": "@wren/config/src/index.ts",
+   "to": "@wren/config/src/env-file.ts",
+   "kind": "imports"
+  }
+ ]
+}

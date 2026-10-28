@@ -1,0 +1,196 @@
+{
+ "layer": "imports",
+ "nodes": [
+  {
+   "id": "@wren/llm",
+   "role": "package",
+   "parent": "repo:wren",
+   "group": "@wren/llm",
+   "attrs": {
+    "dir": "packages/llm/",
+    "npm": [
+     "node:fs",
+     "node:path"
+    ]
+   }
+  },
+  {
+   "id": "@wren/llm/src/audit.ts",
+   "role": "file",
+   "parent": "@wren/llm",
+   "group": "@wren/llm"
+  },
+  {
+   "id": "@wren/llm/src/client.ts",
+   "role": "file",
+   "parent": "@wren/llm",
+   "group": "@wren/llm"
+  },
+  {
+   "id": "@wren/llm/src/embed.ts",
+   "role": "file",
+   "parent": "@wren/llm",
+   "group": "@wren/llm"
+  },
+  {
+   "id": "@wren/llm/src/env.ts",
+   "role": "file",
+   "parent": "@wren/llm",
+   "group": "@wren/llm"
+  },
+  {
+   "id": "@wren/llm/src/gateway.ts",
+   "role": "file",
+   "parent": "@wren/llm",
+   "group": "@wren/llm"
+  },
+  {
+   "id": "@wren/llm/src/index.ts",
+   "role": "file",
+   "parent": "@wren/llm",
+   "group": "@wren/llm"
+  },
+  {
+   "id": "@wren/llm/src/parsing.ts",
+   "role": "file",
+   "parent": "@wren/llm",
+   "group": "@wren/llm"
+  },
+  {
+   "id": "@wren/llm/src/stage.ts",
+   "role": "file",
+   "parent": "@wren/llm",
+   "group": "@wren/llm"
+  },
+  {
+   "id": "@wren/llm/src/tracing.ts",
+   "role": "file",
+   "parent": "@wren/llm",
+   "group": "@wren/llm"
+  },
+  {
+   "id": "@wren/llm/src/usage.ts",
+   "role": "file",
+   "parent": "@wren/llm",
+   "group": "@wren/llm"
+  },
+  {
+   "id": "@wren/llm/vitest.config.ts",
+   "role": "file",
+   "parent": "@wren/llm",
+   "group": "@wren/llm"
+  }
+ ],
+ "edges": [
+  {
+   "from": "@wren/llm/src/audit.ts",
+   "to": "@wren/llm/src/client.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/llm/src/embed.ts",
+   "to": "@wren/llm/src/client.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/llm/src/index.ts",
+   "to": "@wren/llm/src/audit.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/llm/src/index.ts",
+   "to": "@wren/llm/src/client.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/llm/src/index.ts",
+   "to": "@wren/llm/src/embed.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/llm/src/index.ts",
+   "to": "@wren/llm/src/env.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/llm/src/index.ts",
+   "to": "@wren/llm/src/gateway.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/llm/src/index.ts",
+   "to": "@wren/llm/src/parsing.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/llm/src/index.ts",
+   "to": "@wren/llm/src/stage.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/llm/src/index.ts",
+   "to": "@wren/llm/src/tracing.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/llm/src/index.ts",
+   "to": "@wren/llm/src/usage.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/llm/src/stage.ts",
+   "to": "@wren/llm/src/audit.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/llm/src/stage.ts",
+   "to": "@wren/llm/src/client.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/llm/src/stage.ts",
+   "to": "@wren/llm/src/parsing.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/llm/src/stage.ts",
+   "to": "@wren/llm/src/tracing.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/llm/src/tracing.ts",
+   "to": "@wren/llm/src/client.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/llm/src/tracing.ts",
+   "to": "@wren/llm/src/stage.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/llm/src/usage.ts",
+   "to": "@wren/llm/src/audit.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/llm/src/usage.ts",
+   "to": "@wren/llm/src/client.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  }
+ ]
+}

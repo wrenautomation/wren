@@ -1,0 +1,5631 @@
+{
+ "layer": "imports",
+ "nodes": [
+  {
+   "id": "@wren/ui",
+   "role": "package",
+   "parent": "repo:wren",
+   "group": "@wren/ui",
+   "attrs": {
+    "dir": "packages/ui/",
+    "npm": [
+     "node:child_process",
+     "node:fs",
+     "node:http",
+     "node:os",
+     "node:path",
+     "node:url",
+     "node:util"
+    ]
+   }
+  },
+  {
+   "id": "@wren/ui/.engine/entry.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/.engine/vite.config.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/.storybook/feedback.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/.storybook/frame.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/.storybook/look.mjs",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/.storybook/look.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/.storybook/looks.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/.storybook/main.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/.storybook/match.mjs",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/.storybook/preview.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/.storybook/run.mjs",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/.storybook/serve.mjs",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/.storybook/shot.mjs",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/.storybook/static.mjs",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/.storybook/story-tests.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/.storybook/vitest.config.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/.storybook/vitest.setup.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/match/parts.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/access.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/accounts.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/action.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/browser.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/busy.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/charts/draw.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/charts/heat.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/charts/index.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/components/ui/badge.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/components/ui/button.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/components/ui/chart.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/components/ui/command.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/components/ui/dialog.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/components/ui/input-group.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/components/ui/input.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/components/ui/popover.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/components/ui/sheet.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/components/ui/skeleton.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/components/ui/sonner.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/components/ui/textarea.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/contrast.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/controls.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/copy.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/customize.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/data.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/data/delta.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/data/edits.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/data/index.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/data/local.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/data/query.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/data/status.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/data/use-edit.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/day.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/dictate-text.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/dictate.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/diff.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/display.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/draft-save.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/draft.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/edit-form.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/edits.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/feedback.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/fields.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/fixtures/accounts.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/fixtures/action.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/fixtures/charts.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/fixtures/dashboard.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/fixtures/day.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/fixtures/diff.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/fixtures/draft.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/fixtures/edit-form.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/fixtures/graph.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/fixtures/index.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/fixtures/list-bar.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/fixtures/load.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/fixtures/overview.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/fixtures/place.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/fixtures/records.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/fixtures/shell.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/fixtures/table.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/fixtures/worst.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/flow-map-graph.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/flow-map.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/flow.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/fold.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/form.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/format.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/frame.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/graph/canvas.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/graph/frame.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/graph/index.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/graph/journey.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/graph/lanes.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/graph/layout.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/graph/look.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/graph/model.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/graph/palette.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/handler.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/hint-layer.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/hint.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/hover-pop.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/icons.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/index.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/item-link.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/launcher.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/layout.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/lineage-graph.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/lineage.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/list-bar.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/list-search.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/look.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/marks.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/metro/data.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/metro/draw.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/metro/focus.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/metro/fold.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/metro/geometry.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/metro/glide.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/metro/index.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/metro/lab/cases.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/metro/lab/engines.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/metro/lab/generate.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/metro/lab/score.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/metro/lab/to-view.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/metro/layout.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/metro/map.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/metro/marks.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/metro/metro.css",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/metro/money-models.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/metro/place.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/metro/samples.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/metro/skeleton.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/metro/tree.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/metro/types.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/metro/view.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/motion.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/overview-queues.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/overview.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/page-bar.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/pager.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/palette-brand.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/palette-scope.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/palette.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/peek.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/phone-nav.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/phone-shell.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/phone.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/preview.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/queue.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/rail.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/read-aloud.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/record-access.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/record-head.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/record-patch.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/records-columns.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/records-list.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/records-local.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/records-page.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/records-panel.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/records-swipes.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/records-types.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/records.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/row-acts.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/rows.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/run-graph.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/run.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/safe-triangle.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/save/clock.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/save/engine.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/save/env.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/save/index.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/save/journal.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/save/latest.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/save/lock.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/save/once.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/save/page.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/save/react.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/save/test-kit.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/save/writes.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/settings.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/shell.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/shop.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/snippets.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/sources.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/split.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/steps.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/sweep.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/switch-bar.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/tab-bar.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/table.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/tailwind.css",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/theme.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/timeline-axis.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/timeline.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/toast.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/vendor-marks.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/view-says.ts",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  },
+  {
+   "id": "@wren/ui/src/work.tsx",
+   "role": "file",
+   "parent": "@wren/ui",
+   "group": "@wren/ui"
+  }
+ ],
+ "edges": [
+  {
+   "from": "@wren/ui",
+   "to": "@wren/core",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/.engine/entry.ts",
+   "to": "@wren/ui/src/busy.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/.engine/entry.ts",
+   "to": "@wren/ui/src/components/ui/badge.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/.engine/entry.ts",
+   "to": "@wren/ui/src/components/ui/button.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/.engine/entry.ts",
+   "to": "@wren/ui/src/components/ui/input.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/.engine/entry.ts",
+   "to": "@wren/ui/src/controls.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/.engine/entry.ts",
+   "to": "@wren/ui/src/display.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/.engine/entry.ts",
+   "to": "@wren/ui/src/fold.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/.engine/entry.ts",
+   "to": "@wren/ui/src/format.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/.engine/entry.ts",
+   "to": "@wren/ui/src/layout.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/.engine/entry.ts",
+   "to": "@wren/ui/src/marks.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/.engine/entry.ts",
+   "to": "@wren/ui/src/metro/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/.engine/entry.ts",
+   "to": "@wren/ui/src/metro/samples.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/.engine/entry.ts",
+   "to": "@wren/ui/src/steps.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/.engine/entry.ts",
+   "to": "@wren/ui/src/sweep.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/.engine/entry.ts",
+   "to": "@wren/ui/src/switch-bar.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/.engine/entry.ts",
+   "to": "@wren/ui/src/tab-bar.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/.engine/entry.ts",
+   "to": "@wren/ui/src/tailwind.css",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/.engine/entry.ts",
+   "to": "@wren/ui/src/theme.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/.engine/entry.ts",
+   "to": "@wren/ui/src/timeline.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/.storybook/frame.tsx",
+   "to": "@wren/ui/.storybook/feedback.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/.storybook/frame.tsx",
+   "to": "@wren/ui/src/data/query.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/.storybook/frame.tsx",
+   "to": "@wren/ui/src/hint-layer.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/.storybook/frame.tsx",
+   "to": "@wren/ui/src/theme.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/.storybook/look.mjs",
+   "to": "@wren/ui/.storybook/look.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/.storybook/look.mjs",
+   "to": "@wren/ui/.storybook/static.mjs",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/.storybook/match.mjs",
+   "to": "@wren/ui/.storybook/static.mjs",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/.storybook/match.mjs",
+   "to": "@wren/ui/match/parts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/.storybook/preview.tsx",
+   "to": "@wren/ui/.storybook/frame.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/.storybook/preview.tsx",
+   "to": "@wren/ui/src/tailwind.css",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/.storybook/run.mjs",
+   "to": "@wren/ui/.storybook/looks.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/.storybook/story-tests.ts",
+   "to": "@wren/ui/.storybook/looks.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/.storybook/vitest.config.ts",
+   "to": "@wren/ui/.storybook/story-tests.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/access.ts",
+   "to": "@wren/core/src/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/accounts.tsx",
+   "to": "@wren/core/src/record-accounts.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/accounts.tsx",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/accounts.tsx",
+   "to": "@wren/ui/src/components/ui/popover.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/accounts.tsx",
+   "to": "@wren/ui/src/hint.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/accounts.tsx",
+   "to": "@wren/ui/src/hover-pop.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/accounts.tsx",
+   "to": "@wren/ui/src/icons.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/accounts.tsx",
+   "to": "@wren/ui/src/marks.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/accounts.tsx",
+   "to": "@wren/ui/src/records.tsx",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/action.tsx",
+   "to": "@wren/ui/src/access.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/action.tsx",
+   "to": "@wren/ui/src/components/ui/dialog.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/action.tsx",
+   "to": "@wren/ui/src/components/ui/input.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/action.tsx",
+   "to": "@wren/ui/src/components/ui/sonner.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/action.tsx",
+   "to": "@wren/ui/src/components/ui/textarea.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/action.tsx",
+   "to": "@wren/ui/src/controls.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/action.tsx",
+   "to": "@wren/ui/src/data/local.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/action.tsx",
+   "to": "@wren/ui/src/data/query.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/action.tsx",
+   "to": "@wren/ui/src/data/use-edit.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/action.tsx",
+   "to": "@wren/ui/src/dictate.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/action.tsx",
+   "to": "@wren/ui/src/edit-form.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/action.tsx",
+   "to": "@wren/ui/src/icons.tsx",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/action.tsx",
+   "to": "@wren/ui/src/preview.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/action.tsx",
+   "to": "@wren/ui/src/save/writes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/action.tsx",
+   "to": "@wren/ui/src/snippets.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/action.tsx",
+   "to": "@wren/ui/src/toast.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/browser.tsx",
+   "to": "@wren/ui/src/format.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/browser.tsx",
+   "to": "@wren/ui/src/icons.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/charts/draw.tsx",
+   "to": "@wren/ui/src/charts/index.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/charts/draw.tsx",
+   "to": "@wren/ui/src/components/ui/chart.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/charts/draw.tsx",
+   "to": "@wren/ui/src/format.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/charts/index.tsx",
+   "to": "@wren/ui/src/charts/draw.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/charts/index.tsx",
+   "to": "@wren/ui/src/charts/heat.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/components/ui/command.tsx",
+   "to": "@wren/ui/src/busy.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/components/ui/command.tsx",
+   "to": "@wren/ui/src/components/ui/dialog.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/components/ui/command.tsx",
+   "to": "@wren/ui/src/components/ui/input-group.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/components/ui/command.tsx",
+   "to": "@wren/ui/src/icons.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/components/ui/dialog.tsx",
+   "to": "@wren/ui/src/components/ui/button.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/components/ui/dialog.tsx",
+   "to": "@wren/ui/src/icons.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/components/ui/dialog.tsx",
+   "to": "@wren/ui/src/sweep.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/components/ui/input-group.tsx",
+   "to": "@wren/ui/src/components/ui/button.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/components/ui/input-group.tsx",
+   "to": "@wren/ui/src/components/ui/input.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/components/ui/input-group.tsx",
+   "to": "@wren/ui/src/components/ui/textarea.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/components/ui/sheet.tsx",
+   "to": "@wren/ui/src/components/ui/button.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/components/ui/sheet.tsx",
+   "to": "@wren/ui/src/icons.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/components/ui/sonner.tsx",
+   "to": "@wren/ui/src/busy.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/contrast.ts",
+   "to": "@wren/ui/src/theme.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/controls.tsx",
+   "to": "@wren/ui/src/busy.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/controls.tsx",
+   "to": "@wren/ui/src/components/ui/badge.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/controls.tsx",
+   "to": "@wren/ui/src/components/ui/button.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/controls.tsx",
+   "to": "@wren/ui/src/hint.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/controls.tsx",
+   "to": "@wren/ui/src/icons.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/controls.tsx",
+   "to": "@wren/ui/src/motion.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/copy.tsx",
+   "to": "@wren/ui/src/controls.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/copy.tsx",
+   "to": "@wren/ui/src/toast.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/customize.tsx",
+   "to": "@wren/ui/src/components/ui/popover.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/customize.tsx",
+   "to": "@wren/ui/src/format.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/customize.tsx",
+   "to": "@wren/ui/src/hint.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/customize.tsx",
+   "to": "@wren/ui/src/icons.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/customize.tsx",
+   "to": "@wren/ui/src/layout.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/customize.tsx",
+   "to": "@wren/ui/src/list-bar.tsx",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/customize.tsx",
+   "to": "@wren/ui/src/save/latest.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/data.tsx",
+   "to": "@wren/ui/src/format.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/data.tsx",
+   "to": "@wren/ui/src/settings.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/data/delta.ts",
+   "to": "@wren/core/src/records-delta.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/data/delta.ts",
+   "to": "@wren/core/src/records-serve.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/data/edits.ts",
+   "to": "@wren/ui/src/data/local.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/data/edits.ts",
+   "to": "@wren/ui/src/save/env.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/data/index.ts",
+   "to": "@wren/ui/src/data/delta.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/data/index.ts",
+   "to": "@wren/ui/src/data/edits.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/data/index.ts",
+   "to": "@wren/ui/src/data/local.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/data/index.ts",
+   "to": "@wren/ui/src/data/query.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/data/index.ts",
+   "to": "@wren/ui/src/data/status.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/data/index.ts",
+   "to": "@wren/ui/src/data/use-edit.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/data/local.ts",
+   "to": "@wren/ui/src/data/edits.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/data/local.ts",
+   "to": "@wren/ui/src/data/query.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/data/query.ts",
+   "to": "@wren/ui/src/save/clock.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/data/status.tsx",
+   "to": "@wren/ui/src/save/writes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/data/use-edit.tsx",
+   "to": "@wren/ui/src/controls.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/data/use-edit.tsx",
+   "to": "@wren/ui/src/data/edits.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/day.tsx",
+   "to": "@wren/core/src/records-serve.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/day.tsx",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/day.tsx",
+   "to": "@wren/ui/src/action.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/day.tsx",
+   "to": "@wren/ui/src/controls.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/day.tsx",
+   "to": "@wren/ui/src/feedback.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/day.tsx",
+   "to": "@wren/ui/src/fields.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/day.tsx",
+   "to": "@wren/ui/src/format.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/day.tsx",
+   "to": "@wren/ui/src/icons.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/day.tsx",
+   "to": "@wren/ui/src/layout.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/day.tsx",
+   "to": "@wren/ui/src/records.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/day.tsx",
+   "to": "@wren/ui/src/switch-bar.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/dictate.tsx",
+   "to": "@wren/ui/src/dictate-text.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/dictate.tsx",
+   "to": "@wren/ui/src/hint.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/diff.tsx",
+   "to": "@wren/core/src/line-diff.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/diff.tsx",
+   "to": "@wren/ui/src/format.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/draft-save.ts",
+   "to": "@wren/ui/src/action.tsx",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/draft-save.ts",
+   "to": "@wren/ui/src/draft.tsx",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/draft-save.ts",
+   "to": "@wren/ui/src/save/engine.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/draft.tsx",
+   "to": "@wren/core/src/record-accounts.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/draft.tsx",
+   "to": "@wren/ui/src/accounts.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/draft.tsx",
+   "to": "@wren/ui/src/action.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/draft.tsx",
+   "to": "@wren/ui/src/components/ui/input.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/draft.tsx",
+   "to": "@wren/ui/src/components/ui/textarea.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/draft.tsx",
+   "to": "@wren/ui/src/controls.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/draft.tsx",
+   "to": "@wren/ui/src/data/status.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/draft.tsx",
+   "to": "@wren/ui/src/data/use-edit.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/draft.tsx",
+   "to": "@wren/ui/src/dictate.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/draft.tsx",
+   "to": "@wren/ui/src/draft-save.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/draft.tsx",
+   "to": "@wren/ui/src/preview.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/draft.tsx",
+   "to": "@wren/ui/src/save/journal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/draft.tsx",
+   "to": "@wren/ui/src/save/react.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/draft.tsx",
+   "to": "@wren/ui/src/snippets.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/draft.tsx",
+   "to": "@wren/ui/src/toast.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/edit-form.tsx",
+   "to": "@wren/core/src/record-accounts.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/edit-form.tsx",
+   "to": "@wren/ui/src/accounts.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/edit-form.tsx",
+   "to": "@wren/ui/src/components/ui/input.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/edit-form.tsx",
+   "to": "@wren/ui/src/components/ui/textarea.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/edit-form.tsx",
+   "to": "@wren/ui/src/data/use-edit.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/edit-form.tsx",
+   "to": "@wren/ui/src/save/env.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/edit-form.tsx",
+   "to": "@wren/ui/src/save/journal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/edit-form.tsx",
+   "to": "@wren/ui/src/save/writes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/edits.tsx",
+   "to": "@wren/core/src/edits.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/edits.tsx",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/edits.tsx",
+   "to": "@wren/ui/src/action.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/edits.tsx",
+   "to": "@wren/ui/src/components/ui/input.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/edits.tsx",
+   "to": "@wren/ui/src/components/ui/textarea.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/edits.tsx",
+   "to": "@wren/ui/src/controls.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/edits.tsx",
+   "to": "@wren/ui/src/data/use-edit.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/edits.tsx",
+   "to": "@wren/ui/src/dictate.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/edits.tsx",
+   "to": "@wren/ui/src/icons.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/edits.tsx",
+   "to": "@wren/ui/src/layout.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/edits.tsx",
+   "to": "@wren/ui/src/save/engine.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/edits.tsx",
+   "to": "@wren/ui/src/save/react.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/edits.tsx",
+   "to": "@wren/ui/src/snippets.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/edits.tsx",
+   "to": "@wren/ui/src/toast.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/feedback.tsx",
+   "to": "@wren/ui/src/components/ui/skeleton.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/feedback.tsx",
+   "to": "@wren/ui/src/controls.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/feedback.tsx",
+   "to": "@wren/ui/src/format.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/fields.tsx",
+   "to": "@wren/core/src/model-labels.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/fields.tsx",
+   "to": "@wren/core/src/records-serve.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/fields.tsx",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/fields.tsx",
+   "to": "@wren/core/src/template-labels.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/fields.tsx",
+   "to": "@wren/ui/src/accounts.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/fields.tsx",
+   "to": "@wren/ui/src/format.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/fields.tsx",
+   "to": "@wren/ui/src/hint.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/fields.tsx",
+   "to": "@wren/ui/src/icons.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/fields.tsx",
+   "to": "@wren/ui/src/marks.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/fields.tsx",
+   "to": "@wren/ui/src/sources.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/fixtures/accounts.ts",
+   "to": "@wren/core/src/record-accounts.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/fixtures/accounts.ts",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/fixtures/accounts.ts",
+   "to": "@wren/ui/src/fixtures/worst.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/fixtures/action.ts",
+   "to": "@wren/ui/src/action.tsx",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/fixtures/action.ts",
+   "to": "@wren/ui/src/fixtures/load.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/fixtures/action.ts",
+   "to": "@wren/ui/src/fixtures/worst.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/fixtures/charts.ts",
+   "to": "@wren/ui/src/charts/index.tsx",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/fixtures/charts.ts",
+   "to": "@wren/ui/src/fixtures/worst.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/fixtures/day.ts",
+   "to": "@wren/core/src/records-serve.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/fixtures/day.ts",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/fixtures/day.ts",
+   "to": "@wren/ui/src/action.tsx",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/fixtures/day.ts",
+   "to": "@wren/ui/src/day.tsx",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/fixtures/day.ts",
+   "to": "@wren/ui/src/fixtures/load.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/fixtures/day.ts",
+   "to": "@wren/ui/src/fixtures/worst.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/fixtures/day.ts",
+   "to": "@wren/ui/src/records.tsx",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/fixtures/diff.ts",
+   "to": "@wren/ui/src/fixtures/worst.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/fixtures/draft.ts",
+   "to": "@wren/ui/src/action.tsx",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/fixtures/draft.ts",
+   "to": "@wren/ui/src/data/edits.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/fixtures/draft.ts",
+   "to": "@wren/ui/src/draft.tsx",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/fixtures/draft.ts",
+   "to": "@wren/ui/src/fixtures/load.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/fixtures/draft.ts",
+   "to": "@wren/ui/src/fixtures/worst.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/fixtures/draft.ts",
+   "to": "@wren/ui/src/save/journal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/fixtures/edit-form.ts",
+   "to": "@wren/core/src/record-accounts.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/fixtures/edit-form.ts",
+   "to": "@wren/ui/src/fixtures/worst.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/fixtures/graph.ts",
+   "to": "@wren/ui/src/fixtures/worst.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/fixtures/graph.ts",
+   "to": "@wren/ui/src/graph/index.tsx",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/fixtures/index.ts",
+   "to": "@wren/ui/src/fixtures/graph.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/fixtures/index.ts",
+   "to": "@wren/ui/src/fixtures/load.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/fixtures/index.ts",
+   "to": "@wren/ui/src/fixtures/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/fixtures/index.ts",
+   "to": "@wren/ui/src/fixtures/worst.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/fixtures/list-bar.ts",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/fixtures/list-bar.ts",
+   "to": "@wren/ui/src/fixtures/load.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/fixtures/list-bar.ts",
+   "to": "@wren/ui/src/fixtures/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/fixtures/list-bar.ts",
+   "to": "@wren/ui/src/fixtures/worst.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/fixtures/list-bar.ts",
+   "to": "@wren/ui/src/list-bar.tsx",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/fixtures/overview.ts",
+   "to": "@wren/core/src/records-serve.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/fixtures/overview.ts",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/fixtures/overview.ts",
+   "to": "@wren/ui/src/fixtures/load.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/fixtures/overview.ts",
+   "to": "@wren/ui/src/overview-queues.tsx",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/fixtures/overview.ts",
+   "to": "@wren/ui/src/overview.tsx",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/fixtures/overview.ts",
+   "to": "@wren/ui/src/records.tsx",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/fixtures/place.ts",
+   "to": "@wren/ui/src/records.tsx",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/fixtures/records.ts",
+   "to": "@wren/core/src/records-serve.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/fixtures/records.ts",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/fixtures/records.ts",
+   "to": "@wren/ui/src/action.tsx",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/fixtures/records.ts",
+   "to": "@wren/ui/src/fixtures/load.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/fixtures/records.ts",
+   "to": "@wren/ui/src/fixtures/place.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/fixtures/records.ts",
+   "to": "@wren/ui/src/fixtures/worst.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/fixtures/records.ts",
+   "to": "@wren/ui/src/records-local.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/fixtures/records.ts",
+   "to": "@wren/ui/src/records.tsx",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/fixtures/shell.ts",
+   "to": "@wren/ui/src/customize.tsx",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/fixtures/shell.ts",
+   "to": "@wren/ui/src/fixtures/worst.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/fixtures/shell.ts",
+   "to": "@wren/ui/src/shell.tsx",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/fixtures/table.tsx",
+   "to": "@wren/ui/src/components/ui/skeleton.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/fixtures/table.tsx",
+   "to": "@wren/ui/src/controls.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/fixtures/table.tsx",
+   "to": "@wren/ui/src/fixtures/worst.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/fixtures/table.tsx",
+   "to": "@wren/ui/src/table.tsx",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/flow-map-graph.tsx",
+   "to": "@wren/ui/src/flow-map.tsx",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/flow-map-graph.tsx",
+   "to": "@wren/ui/src/graph/canvas.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/flow-map-graph.tsx",
+   "to": "@wren/ui/src/graph/model.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/flow-map.tsx",
+   "to": "@wren/ui/src/flow-map-graph.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/fold.tsx",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/fold.tsx",
+   "to": "@wren/ui/src/fields.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/fold.tsx",
+   "to": "@wren/ui/src/sources.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/form.tsx",
+   "to": "@wren/ui/src/action.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/form.tsx",
+   "to": "@wren/ui/src/controls.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/form.tsx",
+   "to": "@wren/ui/src/feedback.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/form.tsx",
+   "to": "@wren/ui/src/fields.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/form.tsx",
+   "to": "@wren/ui/src/layout.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/form.tsx",
+   "to": "@wren/ui/src/records.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/frame.tsx",
+   "to": "@wren/ui/src/components/ui/dialog.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/frame.tsx",
+   "to": "@wren/ui/src/components/ui/popover.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/frame.tsx",
+   "to": "@wren/ui/src/controls.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/frame.tsx",
+   "to": "@wren/ui/src/customize.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/frame.tsx",
+   "to": "@wren/ui/src/display.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/frame.tsx",
+   "to": "@wren/ui/src/format.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/frame.tsx",
+   "to": "@wren/ui/src/hint.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/frame.tsx",
+   "to": "@wren/ui/src/icons.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/frame.tsx",
+   "to": "@wren/ui/src/layout.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/frame.tsx",
+   "to": "@wren/ui/src/list-bar.tsx",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/graph/canvas.tsx",
+   "to": "@wren/ui/src/components/ui/input.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/graph/canvas.tsx",
+   "to": "@wren/ui/src/graph/frame.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/graph/canvas.tsx",
+   "to": "@wren/ui/src/graph/lanes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/graph/canvas.tsx",
+   "to": "@wren/ui/src/graph/layout.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/graph/canvas.tsx",
+   "to": "@wren/ui/src/graph/look.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/graph/canvas.tsx",
+   "to": "@wren/ui/src/graph/model.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/graph/canvas.tsx",
+   "to": "@wren/ui/src/hint.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/graph/canvas.tsx",
+   "to": "@wren/ui/src/icons.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/graph/frame.tsx",
+   "to": "@wren/ui/src/hint.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/graph/frame.tsx",
+   "to": "@wren/ui/src/icons.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/graph/index.tsx",
+   "to": "@wren/ui/src/graph/canvas.tsx",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/graph/index.tsx",
+   "to": "@wren/ui/src/graph/journey.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/graph/index.tsx",
+   "to": "@wren/ui/src/graph/model.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/graph/journey.ts",
+   "to": "@wren/ui/src/graph/model.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/graph/lanes.ts",
+   "to": "@wren/ui/src/graph/layout.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/graph/lanes.ts",
+   "to": "@wren/ui/src/graph/model.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/graph/layout.ts",
+   "to": "@wren/ui/src/graph/model.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/graph/model.ts",
+   "to": "@wren/ui/src/graph/look.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/graph/palette.tsx",
+   "to": "@wren/ui/src/components/ui/input.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/graph/palette.tsx",
+   "to": "@wren/ui/src/controls.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/graph/palette.tsx",
+   "to": "@wren/ui/src/format.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/graph/palette.tsx",
+   "to": "@wren/ui/src/graph/model.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/graph/palette.tsx",
+   "to": "@wren/ui/src/hint.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/graph/palette.tsx",
+   "to": "@wren/ui/src/icons.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/handler.tsx",
+   "to": "@wren/ui/src/action.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/handler.tsx",
+   "to": "@wren/ui/src/components/ui/dialog.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/handler.tsx",
+   "to": "@wren/ui/src/controls.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/handler.tsx",
+   "to": "@wren/ui/src/data.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/handler.tsx",
+   "to": "@wren/ui/src/edit-form.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/handler.tsx",
+   "to": "@wren/ui/src/feedback.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/handler.tsx",
+   "to": "@wren/ui/src/layout.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/handler.tsx",
+   "to": "@wren/ui/src/toast.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/hint-layer.tsx",
+   "to": "@wren/ui/src/hint.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/icons.tsx",
+   "to": "@wren/ui/src/format.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/accounts.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/action.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/browser.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/busy.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/charts/index.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/components/ui/input.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/components/ui/textarea.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/controls.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/copy.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/customize.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/data.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/data/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/day.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/dictate-text.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/dictate.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/diff.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/display.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/draft-save.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/draft.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/edit-form.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/feedback.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/fields.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/flow-map.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/flow.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/fold.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/form.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/format.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/frame.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/graph/index.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/graph/palette.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/handler.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/hint-layer.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/hint.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/hover-pop.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/icons.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/launcher.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/layout.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/lineage.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/list-bar.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/list-search.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/look.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/marks.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/motion.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/overview.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/palette-brand.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/palette-scope.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/palette.tsx",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/peek.tsx",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/phone-nav.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/phone-shell.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/phone.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/preview.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/queue.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/rail.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/read-aloud.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/record-access.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/record-patch.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/records-local.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/records.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/row-acts.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/rows.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/run.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/save/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/settings.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/shell.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/shop.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/snippets.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/sources.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/split.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/steps.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/sweep.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/switch-bar.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/tab-bar.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/table.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/theme.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/timeline.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/view-says.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/index.ts",
+   "to": "@wren/ui/src/work.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/item-link.tsx",
+   "to": "@wren/ui/src/hint.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/item-link.tsx",
+   "to": "@wren/ui/src/icons.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/launcher.tsx",
+   "to": "@wren/ui/src/components/ui/skeleton.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/launcher.tsx",
+   "to": "@wren/ui/src/format.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/launcher.tsx",
+   "to": "@wren/ui/src/icons.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/launcher.tsx",
+   "to": "@wren/ui/src/layout.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/layout.tsx",
+   "to": "@wren/ui/src/format.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/lineage-graph.tsx",
+   "to": "@wren/ui/src/graph/canvas.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/lineage-graph.tsx",
+   "to": "@wren/ui/src/graph/model.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/lineage-graph.tsx",
+   "to": "@wren/ui/src/lineage.tsx",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/lineage.tsx",
+   "to": "@wren/ui/src/lineage-graph.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/list-bar.tsx",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/list-bar.tsx",
+   "to": "@wren/core/src/saved-views.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/list-bar.tsx",
+   "to": "@wren/ui/src/accounts.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/list-bar.tsx",
+   "to": "@wren/ui/src/components/ui/popover.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/list-bar.tsx",
+   "to": "@wren/ui/src/components/ui/sheet.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/list-bar.tsx",
+   "to": "@wren/ui/src/controls.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/list-bar.tsx",
+   "to": "@wren/ui/src/data/query.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/list-bar.tsx",
+   "to": "@wren/ui/src/data/use-edit.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/list-bar.tsx",
+   "to": "@wren/ui/src/edit-form.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/list-bar.tsx",
+   "to": "@wren/ui/src/fields.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/list-bar.tsx",
+   "to": "@wren/ui/src/format.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/list-bar.tsx",
+   "to": "@wren/ui/src/hint.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/list-bar.tsx",
+   "to": "@wren/ui/src/hover-pop.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/list-bar.tsx",
+   "to": "@wren/ui/src/icons.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/list-bar.tsx",
+   "to": "@wren/ui/src/list-search.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/list-bar.tsx",
+   "to": "@wren/ui/src/motion.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/list-bar.tsx",
+   "to": "@wren/ui/src/phone.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/list-bar.tsx",
+   "to": "@wren/ui/src/records.tsx",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/list-bar.tsx",
+   "to": "@wren/ui/src/tab-bar.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/list-bar.tsx",
+   "to": "@wren/ui/src/view-says.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/list-search.ts",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/list-search.ts",
+   "to": "@wren/ui/src/pager.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/look.tsx",
+   "to": "@wren/ui/src/components/ui/input.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/look.tsx",
+   "to": "@wren/ui/src/controls.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/look.tsx",
+   "to": "@wren/ui/src/data/use-edit.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/look.tsx",
+   "to": "@wren/ui/src/palette-brand.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/look.tsx",
+   "to": "@wren/ui/src/theme.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/look.tsx",
+   "to": "@wren/ui/src/toast.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/marks.tsx",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/data.ts",
+   "to": "@wren/ui/src/metro/types.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/metro/draw.tsx",
+   "to": "@wren/ui/src/format.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/draw.tsx",
+   "to": "@wren/ui/src/metro/geometry.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/draw.tsx",
+   "to": "@wren/ui/src/metro/marks.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/draw.tsx",
+   "to": "@wren/ui/src/metro/types.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/focus.ts",
+   "to": "@wren/ui/src/metro/geometry.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/focus.ts",
+   "to": "@wren/ui/src/metro/types.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/fold.ts",
+   "to": "@wren/ui/src/metro/geometry.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/fold.ts",
+   "to": "@wren/ui/src/metro/place.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/fold.ts",
+   "to": "@wren/ui/src/metro/tree.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/fold.ts",
+   "to": "@wren/ui/src/metro/types.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/fold.ts",
+   "to": "@wren/ui/src/metro/view.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/geometry.ts",
+   "to": "@wren/ui/src/icons.tsx",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/metro/geometry.ts",
+   "to": "@wren/ui/src/metro/types.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/glide.ts",
+   "to": "@wren/ui/src/metro/types.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/metro/index.ts",
+   "to": "@wren/ui/src/graph/layout.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/index.ts",
+   "to": "@wren/ui/src/metro/draw.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/index.ts",
+   "to": "@wren/ui/src/metro/focus.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/index.ts",
+   "to": "@wren/ui/src/metro/fold.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/index.ts",
+   "to": "@wren/ui/src/metro/geometry.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/index.ts",
+   "to": "@wren/ui/src/metro/layout.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/index.ts",
+   "to": "@wren/ui/src/metro/map.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/index.ts",
+   "to": "@wren/ui/src/metro/marks.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/index.ts",
+   "to": "@wren/ui/src/metro/place.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/index.ts",
+   "to": "@wren/ui/src/metro/skeleton.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/index.ts",
+   "to": "@wren/ui/src/metro/tree.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/index.ts",
+   "to": "@wren/ui/src/metro/types.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/index.ts",
+   "to": "@wren/ui/src/metro/view.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/lab/cases.ts",
+   "to": "@wren/ui/src/metro/data.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/lab/cases.ts",
+   "to": "@wren/ui/src/metro/lab/generate.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/lab/cases.ts",
+   "to": "@wren/ui/src/metro/lab/to-view.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/lab/cases.ts",
+   "to": "@wren/ui/src/metro/samples.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/lab/cases.ts",
+   "to": "@wren/ui/src/metro/types.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/metro/lab/cases.ts",
+   "to": "@wren/ui/src/metro/view.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/metro/lab/engines.ts",
+   "to": "@wren/ui/src/metro/place.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/lab/engines.ts",
+   "to": "@wren/ui/src/metro/types.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/metro/lab/engines.ts",
+   "to": "@wren/ui/src/metro/view.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/metro/lab/generate.ts",
+   "to": "@wren/ui/src/metro/view.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/lab/score.ts",
+   "to": "@wren/ui/src/metro/geometry.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/lab/score.ts",
+   "to": "@wren/ui/src/metro/types.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/lab/to-view.ts",
+   "to": "@wren/ui/src/metro/types.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/lab/to-view.ts",
+   "to": "@wren/ui/src/metro/view.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/layout.ts",
+   "to": "@wren/ui/src/metro/geometry.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/layout.ts",
+   "to": "@wren/ui/src/metro/types.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/layout.ts",
+   "to": "@wren/ui/src/metro/view.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/map.tsx",
+   "to": "@wren/ui/src/controls.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/map.tsx",
+   "to": "@wren/ui/src/format.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/map.tsx",
+   "to": "@wren/ui/src/metro/draw.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/map.tsx",
+   "to": "@wren/ui/src/metro/focus.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/map.tsx",
+   "to": "@wren/ui/src/metro/fold.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/map.tsx",
+   "to": "@wren/ui/src/metro/glide.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/map.tsx",
+   "to": "@wren/ui/src/metro/marks.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/map.tsx",
+   "to": "@wren/ui/src/metro/metro.css",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/map.tsx",
+   "to": "@wren/ui/src/metro/skeleton.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/map.tsx",
+   "to": "@wren/ui/src/metro/tree.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/map.tsx",
+   "to": "@wren/ui/src/metro/types.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/metro/map.tsx",
+   "to": "@wren/ui/src/metro/view.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/metro/marks.tsx",
+   "to": "@wren/ui/src/format.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/marks.tsx",
+   "to": "@wren/ui/src/icons.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/marks.tsx",
+   "to": "@wren/ui/src/metro/geometry.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/marks.tsx",
+   "to": "@wren/ui/src/metro/types.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/money-models.ts",
+   "to": "@wren/ui/src/metro/view.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/metro/place.ts",
+   "to": "@wren/ui/src/graph/layout.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/place.ts",
+   "to": "@wren/ui/src/metro/geometry.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/place.ts",
+   "to": "@wren/ui/src/metro/layout.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/place.ts",
+   "to": "@wren/ui/src/metro/types.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/metro/place.ts",
+   "to": "@wren/ui/src/metro/view.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/samples.ts",
+   "to": "@wren/ui/src/metro/data.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/samples.ts",
+   "to": "@wren/ui/src/metro/fold.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/samples.ts",
+   "to": "@wren/ui/src/metro/money-models.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/samples.ts",
+   "to": "@wren/ui/src/metro/types.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/metro/samples.ts",
+   "to": "@wren/ui/src/metro/view.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/metro/skeleton.tsx",
+   "to": "@wren/ui/src/format.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/skeleton.tsx",
+   "to": "@wren/ui/src/metro/metro.css",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/metro/types.ts",
+   "to": "@wren/ui/src/icons.tsx",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/metro/view.ts",
+   "to": "@wren/ui/src/icons.tsx",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/metro/view.ts",
+   "to": "@wren/ui/src/metro/types.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/motion.tsx",
+   "to": "@wren/ui/src/busy.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/overview-queues.tsx",
+   "to": "@wren/core/src/promise.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/overview-queues.tsx",
+   "to": "@wren/ui/src/data/query.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/overview-queues.tsx",
+   "to": "@wren/ui/src/feedback.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/overview-queues.tsx",
+   "to": "@wren/ui/src/format.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/overview-queues.tsx",
+   "to": "@wren/ui/src/icons.tsx",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/overview-queues.tsx",
+   "to": "@wren/ui/src/records.tsx",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/overview-queues.tsx",
+   "to": "@wren/ui/src/split.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/overview.tsx",
+   "to": "@wren/core/src/records-serve.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/overview.tsx",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/overview.tsx",
+   "to": "@wren/ui/src/charts/index.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/overview.tsx",
+   "to": "@wren/ui/src/customize.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/overview.tsx",
+   "to": "@wren/ui/src/feedback.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/overview.tsx",
+   "to": "@wren/ui/src/fields.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/overview.tsx",
+   "to": "@wren/ui/src/format.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/overview.tsx",
+   "to": "@wren/ui/src/hint.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/overview.tsx",
+   "to": "@wren/ui/src/layout.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/overview.tsx",
+   "to": "@wren/ui/src/list-bar.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/overview.tsx",
+   "to": "@wren/ui/src/overview-queues.tsx",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/overview.tsx",
+   "to": "@wren/ui/src/records.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/page-bar.tsx",
+   "to": "@wren/ui/src/format.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/page-bar.tsx",
+   "to": "@wren/ui/src/icons.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/page-bar.tsx",
+   "to": "@wren/ui/src/pager.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/page-bar.tsx",
+   "to": "@wren/ui/src/records.tsx",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/palette-brand.ts",
+   "to": "@wren/ui/src/contrast.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/palette-brand.ts",
+   "to": "@wren/ui/src/theme.tsx",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/palette-scope.ts",
+   "to": "@wren/ui/src/icons.tsx",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/palette.tsx",
+   "to": "@wren/ui/src/components/ui/command.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/palette.tsx",
+   "to": "@wren/ui/src/dictate.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/palette.tsx",
+   "to": "@wren/ui/src/icons.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/palette.tsx",
+   "to": "@wren/ui/src/palette-scope.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/palette.tsx",
+   "to": "@wren/ui/src/toast.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/peek.tsx",
+   "to": "@wren/ui/src/feedback.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/peek.tsx",
+   "to": "@wren/ui/src/fields.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/peek.tsx",
+   "to": "@wren/ui/src/rows.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/phone-nav.ts",
+   "to": "@wren/ui/src/icons.tsx",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/phone-shell.tsx",
+   "to": "@wren/ui/src/customize.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/phone-shell.tsx",
+   "to": "@wren/ui/src/format.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/phone-shell.tsx",
+   "to": "@wren/ui/src/icons.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/phone-shell.tsx",
+   "to": "@wren/ui/src/phone-nav.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/phone-shell.tsx",
+   "to": "@wren/ui/src/phone.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/phone-shell.tsx",
+   "to": "@wren/ui/src/shell.tsx",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/phone.tsx",
+   "to": "@wren/ui/src/busy.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/phone.tsx",
+   "to": "@wren/ui/src/data/query.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/phone.tsx",
+   "to": "@wren/ui/src/format.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/phone.tsx",
+   "to": "@wren/ui/src/hint.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/phone.tsx",
+   "to": "@wren/ui/src/motion.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/phone.tsx",
+   "to": "@wren/ui/src/phone-nav.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/preview.tsx",
+   "to": "@wren/ui/src/read-aloud.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/queue.tsx",
+   "to": "@wren/core/src/records-serve.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/queue.tsx",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/queue.tsx",
+   "to": "@wren/ui/src/action.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/queue.tsx",
+   "to": "@wren/ui/src/controls.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/queue.tsx",
+   "to": "@wren/ui/src/data/delta.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/queue.tsx",
+   "to": "@wren/ui/src/feedback.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/queue.tsx",
+   "to": "@wren/ui/src/fields.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/queue.tsx",
+   "to": "@wren/ui/src/format.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/queue.tsx",
+   "to": "@wren/ui/src/frame.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/queue.tsx",
+   "to": "@wren/ui/src/hint-layer.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/queue.tsx",
+   "to": "@wren/ui/src/hint.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/queue.tsx",
+   "to": "@wren/ui/src/icons.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/queue.tsx",
+   "to": "@wren/ui/src/layout.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/queue.tsx",
+   "to": "@wren/ui/src/list-bar.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/queue.tsx",
+   "to": "@wren/ui/src/records.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/rail.tsx",
+   "to": "@wren/ui/src/icons.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/rail.tsx",
+   "to": "@wren/ui/src/layout.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/read-aloud.tsx",
+   "to": "@wren/ui/src/hint.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/record-access.tsx",
+   "to": "@wren/core/src/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/record-access.tsx",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/record-access.tsx",
+   "to": "@wren/ui/src/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/record-access.tsx",
+   "to": "@wren/ui/src/components/ui/textarea.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/record-access.tsx",
+   "to": "@wren/ui/src/controls.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/record-access.tsx",
+   "to": "@wren/ui/src/data/use-edit.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/record-access.tsx",
+   "to": "@wren/ui/src/layout.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/record-access.tsx",
+   "to": "@wren/ui/src/toast.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/record-head.ts",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/record-patch.ts",
+   "to": "@wren/ui/src/data/query.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-columns.tsx",
+   "to": "@wren/core/src/records-serve.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/records-columns.tsx",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/records-columns.tsx",
+   "to": "@wren/ui/src/components/ui/popover.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-columns.tsx",
+   "to": "@wren/ui/src/fields.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-columns.tsx",
+   "to": "@wren/ui/src/format.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-columns.tsx",
+   "to": "@wren/ui/src/frame.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-columns.tsx",
+   "to": "@wren/ui/src/hint.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-columns.tsx",
+   "to": "@wren/ui/src/hover-pop.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-columns.tsx",
+   "to": "@wren/ui/src/icons.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-columns.tsx",
+   "to": "@wren/ui/src/list-bar.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-columns.tsx",
+   "to": "@wren/ui/src/pager.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-columns.tsx",
+   "to": "@wren/ui/src/records-types.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-list.tsx",
+   "to": "@wren/core/src/records-serve.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/records-list.tsx",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/records-list.tsx",
+   "to": "@wren/ui/src/action.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-list.tsx",
+   "to": "@wren/ui/src/components/ui/popover.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-list.tsx",
+   "to": "@wren/ui/src/controls.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-list.tsx",
+   "to": "@wren/ui/src/data/delta.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-list.tsx",
+   "to": "@wren/ui/src/data/query.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-list.tsx",
+   "to": "@wren/ui/src/feedback.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-list.tsx",
+   "to": "@wren/ui/src/fields.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-list.tsx",
+   "to": "@wren/ui/src/fold.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-list.tsx",
+   "to": "@wren/ui/src/format.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-list.tsx",
+   "to": "@wren/ui/src/frame.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-list.tsx",
+   "to": "@wren/ui/src/hint.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-list.tsx",
+   "to": "@wren/ui/src/icons.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-list.tsx",
+   "to": "@wren/ui/src/layout.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-list.tsx",
+   "to": "@wren/ui/src/list-bar.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-list.tsx",
+   "to": "@wren/ui/src/page-bar.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-list.tsx",
+   "to": "@wren/ui/src/pager.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-list.tsx",
+   "to": "@wren/ui/src/palette-scope.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-list.tsx",
+   "to": "@wren/ui/src/records-columns.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-list.tsx",
+   "to": "@wren/ui/src/records-panel.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-list.tsx",
+   "to": "@wren/ui/src/records-swipes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-list.tsx",
+   "to": "@wren/ui/src/records-types.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-list.tsx",
+   "to": "@wren/ui/src/row-acts.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-list.tsx",
+   "to": "@wren/ui/src/rows.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-list.tsx",
+   "to": "@wren/ui/src/table.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-list.tsx",
+   "to": "@wren/ui/src/view-says.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-local.ts",
+   "to": "@wren/core/src/records-serve.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/records-local.ts",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/records-local.ts",
+   "to": "@wren/ui/src/action.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-local.ts",
+   "to": "@wren/ui/src/records.tsx",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/records-page.tsx",
+   "to": "@wren/core/src/access.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/records-page.tsx",
+   "to": "@wren/core/src/edits.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/records-page.tsx",
+   "to": "@wren/core/src/records-serve.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/records-page.tsx",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-page.tsx",
+   "to": "@wren/ui/src/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-page.tsx",
+   "to": "@wren/ui/src/action.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-page.tsx",
+   "to": "@wren/ui/src/controls.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-page.tsx",
+   "to": "@wren/ui/src/data/delta.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-page.tsx",
+   "to": "@wren/ui/src/data/query.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-page.tsx",
+   "to": "@wren/ui/src/draft-save.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-page.tsx",
+   "to": "@wren/ui/src/draft.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-page.tsx",
+   "to": "@wren/ui/src/edits.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-page.tsx",
+   "to": "@wren/ui/src/feedback.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-page.tsx",
+   "to": "@wren/ui/src/fields.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-page.tsx",
+   "to": "@wren/ui/src/fold.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-page.tsx",
+   "to": "@wren/ui/src/format.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-page.tsx",
+   "to": "@wren/ui/src/hint-layer.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-page.tsx",
+   "to": "@wren/ui/src/item-link.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-page.tsx",
+   "to": "@wren/ui/src/layout.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-page.tsx",
+   "to": "@wren/ui/src/list-bar.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-page.tsx",
+   "to": "@wren/ui/src/palette-scope.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-page.tsx",
+   "to": "@wren/ui/src/record-access.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-page.tsx",
+   "to": "@wren/ui/src/record-head.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-page.tsx",
+   "to": "@wren/ui/src/record-patch.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-page.tsx",
+   "to": "@wren/ui/src/records-columns.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-page.tsx",
+   "to": "@wren/ui/src/records-types.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-page.tsx",
+   "to": "@wren/ui/src/save/react.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-page.tsx",
+   "to": "@wren/ui/src/save/writes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-page.tsx",
+   "to": "@wren/ui/src/sources.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-page.tsx",
+   "to": "@wren/ui/src/tab-bar.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-page.tsx",
+   "to": "@wren/ui/src/table.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-panel.tsx",
+   "to": "@wren/core/src/records-serve.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/records-panel.tsx",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/records-panel.tsx",
+   "to": "@wren/ui/src/action.tsx",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/records-panel.tsx",
+   "to": "@wren/ui/src/data/query.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-panel.tsx",
+   "to": "@wren/ui/src/feedback.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-panel.tsx",
+   "to": "@wren/ui/src/fields.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-panel.tsx",
+   "to": "@wren/ui/src/format.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-panel.tsx",
+   "to": "@wren/ui/src/hint.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-panel.tsx",
+   "to": "@wren/ui/src/icons.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-panel.tsx",
+   "to": "@wren/ui/src/peek.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-panel.tsx",
+   "to": "@wren/ui/src/phone-shell.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-panel.tsx",
+   "to": "@wren/ui/src/phone.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-panel.tsx",
+   "to": "@wren/ui/src/records-columns.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-panel.tsx",
+   "to": "@wren/ui/src/records-page.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-panel.tsx",
+   "to": "@wren/ui/src/records-types.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-panel.tsx",
+   "to": "@wren/ui/src/row-acts.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-panel.tsx",
+   "to": "@wren/ui/src/rows.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-panel.tsx",
+   "to": "@wren/ui/src/sweep.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-swipes.ts",
+   "to": "@wren/core/src/records-serve.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/records-swipes.ts",
+   "to": "@wren/ui/src/action.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-swipes.ts",
+   "to": "@wren/ui/src/phone.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-types.ts",
+   "to": "@wren/core/src/access.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/records-types.ts",
+   "to": "@wren/core/src/edits.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/records-types.ts",
+   "to": "@wren/core/src/records-serve.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/records-types.ts",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/records-types.ts",
+   "to": "@wren/ui/src/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-types.ts",
+   "to": "@wren/ui/src/action.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-types.ts",
+   "to": "@wren/ui/src/data/query.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-types.ts",
+   "to": "@wren/ui/src/draft.tsx",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/records-types.ts",
+   "to": "@wren/ui/src/fields.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-types.ts",
+   "to": "@wren/ui/src/frame.tsx",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/records-types.ts",
+   "to": "@wren/ui/src/list-bar.tsx",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/records-types.ts",
+   "to": "@wren/ui/src/peek.tsx",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/records-types.ts",
+   "to": "@wren/ui/src/record-access.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-types.ts",
+   "to": "@wren/ui/src/save/writes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records-types.ts",
+   "to": "@wren/ui/src/sources.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records.tsx",
+   "to": "@wren/ui/src/data/query.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/records.tsx",
+   "to": "@wren/ui/src/list-bar.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records.tsx",
+   "to": "@wren/ui/src/records-columns.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records.tsx",
+   "to": "@wren/ui/src/records-list.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records.tsx",
+   "to": "@wren/ui/src/records-page.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records.tsx",
+   "to": "@wren/ui/src/records-panel.tsx",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/records.tsx",
+   "to": "@wren/ui/src/records-swipes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/records.tsx",
+   "to": "@wren/ui/src/records-types.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/row-acts.tsx",
+   "to": "@wren/ui/src/action.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/row-acts.tsx",
+   "to": "@wren/ui/src/components/ui/popover.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/row-acts.tsx",
+   "to": "@wren/ui/src/controls.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/row-acts.tsx",
+   "to": "@wren/ui/src/edit-form.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/row-acts.tsx",
+   "to": "@wren/ui/src/hint.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/row-acts.tsx",
+   "to": "@wren/ui/src/icons.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/rows.tsx",
+   "to": "@wren/core/src/promise.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/rows.tsx",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/rows.tsx",
+   "to": "@wren/ui/src/controls.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/rows.tsx",
+   "to": "@wren/ui/src/format.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/rows.tsx",
+   "to": "@wren/ui/src/icons.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/rows.tsx",
+   "to": "@wren/ui/src/marks.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/rows.tsx",
+   "to": "@wren/ui/src/phone.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/rows.tsx",
+   "to": "@wren/ui/src/row-acts.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/rows.tsx",
+   "to": "@wren/ui/src/table.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/run-graph.tsx",
+   "to": "@wren/ui/src/flow.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/run-graph.tsx",
+   "to": "@wren/ui/src/format.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/run-graph.tsx",
+   "to": "@wren/ui/src/graph/frame.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/run-graph.tsx",
+   "to": "@wren/ui/src/icons.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/run-graph.tsx",
+   "to": "@wren/ui/src/run.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/run.tsx",
+   "to": "@wren/ui/src/flow.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/run.tsx",
+   "to": "@wren/ui/src/format.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/run.tsx",
+   "to": "@wren/ui/src/hint.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/run.tsx",
+   "to": "@wren/ui/src/icons.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/run.tsx",
+   "to": "@wren/ui/src/run-graph.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/run.tsx",
+   "to": "@wren/ui/src/work.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/save/engine.ts",
+   "to": "@wren/ui/src/save/clock.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/save/engine.ts",
+   "to": "@wren/ui/src/save/env.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/save/engine.ts",
+   "to": "@wren/ui/src/save/journal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/save/engine.ts",
+   "to": "@wren/ui/src/save/lock.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/save/env.ts",
+   "to": "@wren/ui/src/data/edits.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/save/index.ts",
+   "to": "@wren/ui/src/data/query.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/save/index.ts",
+   "to": "@wren/ui/src/save/clock.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/save/index.ts",
+   "to": "@wren/ui/src/save/engine.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/save/index.ts",
+   "to": "@wren/ui/src/save/env.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/save/index.ts",
+   "to": "@wren/ui/src/save/latest.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/save/index.ts",
+   "to": "@wren/ui/src/save/once.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/save/index.ts",
+   "to": "@wren/ui/src/save/page.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/save/index.ts",
+   "to": "@wren/ui/src/save/react.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/save/index.ts",
+   "to": "@wren/ui/src/save/writes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/save/journal.ts",
+   "to": "@wren/ui/src/save/env.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/save/lock.ts",
+   "to": "@wren/ui/src/save/env.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/save/once.ts",
+   "to": "@wren/ui/src/save/writes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/save/react.tsx",
+   "to": "@wren/ui/src/controls.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/save/react.tsx",
+   "to": "@wren/ui/src/save/engine.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/save/react.tsx",
+   "to": "@wren/ui/src/save/page.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/save/test-kit.ts",
+   "to": "@wren/ui/src/save/env.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/save/test-kit.ts",
+   "to": "@wren/ui/src/save/writes.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/save/writes.ts",
+   "to": "@wren/ui/src/save/engine.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/save/writes.ts",
+   "to": "@wren/ui/src/save/env.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/shell.tsx",
+   "to": "@wren/ui/src/components/ui/popover.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/shell.tsx",
+   "to": "@wren/ui/src/components/ui/skeleton.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/shell.tsx",
+   "to": "@wren/ui/src/customize.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/shell.tsx",
+   "to": "@wren/ui/src/data/status.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/shell.tsx",
+   "to": "@wren/ui/src/display.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/shell.tsx",
+   "to": "@wren/ui/src/format.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/shell.tsx",
+   "to": "@wren/ui/src/frame.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/shell.tsx",
+   "to": "@wren/ui/src/hint.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/shell.tsx",
+   "to": "@wren/ui/src/icons.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/shell.tsx",
+   "to": "@wren/ui/src/layout.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/shell.tsx",
+   "to": "@wren/ui/src/phone-nav.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/shell.tsx",
+   "to": "@wren/ui/src/phone-shell.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/shell.tsx",
+   "to": "@wren/ui/src/safe-triangle.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/shell.tsx",
+   "to": "@wren/ui/src/theme.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/shop.tsx",
+   "to": "@wren/core/src/records-serve.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/shop.tsx",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/shop.tsx",
+   "to": "@wren/ui/src/controls.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/shop.tsx",
+   "to": "@wren/ui/src/data/delta.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/shop.tsx",
+   "to": "@wren/ui/src/feedback.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/shop.tsx",
+   "to": "@wren/ui/src/fields.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/shop.tsx",
+   "to": "@wren/ui/src/format.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/shop.tsx",
+   "to": "@wren/ui/src/icons.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/shop.tsx",
+   "to": "@wren/ui/src/layout.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/shop.tsx",
+   "to": "@wren/ui/src/records.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/snippets.tsx",
+   "to": "@wren/ui/src/components/ui/popover.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/snippets.tsx",
+   "to": "@wren/ui/src/data/query.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/snippets.tsx",
+   "to": "@wren/ui/src/hint.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/sources.tsx",
+   "to": "@wren/ui/src/icons.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/sources.tsx",
+   "to": "@wren/ui/src/layout.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/split.tsx",
+   "to": "@wren/ui/src/charts/index.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/split.tsx",
+   "to": "@wren/ui/src/components/ui/skeleton.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/split.tsx",
+   "to": "@wren/ui/src/feedback.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/split.tsx",
+   "to": "@wren/ui/src/icons.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/steps.tsx",
+   "to": "@wren/ui/src/busy.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/steps.tsx",
+   "to": "@wren/ui/src/format.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/steps.tsx",
+   "to": "@wren/ui/src/layout.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/steps.tsx",
+   "to": "@wren/ui/src/marks.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/switch-bar.tsx",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/switch-bar.tsx",
+   "to": "@wren/ui/src/feedback.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/switch-bar.tsx",
+   "to": "@wren/ui/src/fields.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/switch-bar.tsx",
+   "to": "@wren/ui/src/format.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/switch-bar.tsx",
+   "to": "@wren/ui/src/hint.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/switch-bar.tsx",
+   "to": "@wren/ui/src/marks.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/switch-bar.tsx",
+   "to": "@wren/ui/src/records.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/tab-bar.tsx",
+   "to": "@wren/ui/src/motion.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/table.tsx",
+   "to": "@wren/core/src/records-serve.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/table.tsx",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/theme.tsx",
+   "to": "@wren/ui/src/palette-brand.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/timeline.tsx",
+   "to": "@wren/core/src/records-serve.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/timeline.tsx",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/timeline.tsx",
+   "to": "@wren/ui/src/controls.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/timeline.tsx",
+   "to": "@wren/ui/src/data/delta.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/timeline.tsx",
+   "to": "@wren/ui/src/feedback.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/timeline.tsx",
+   "to": "@wren/ui/src/fields.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/timeline.tsx",
+   "to": "@wren/ui/src/format.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/timeline.tsx",
+   "to": "@wren/ui/src/hint.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/timeline.tsx",
+   "to": "@wren/ui/src/icons.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/timeline.tsx",
+   "to": "@wren/ui/src/item-link.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/timeline.tsx",
+   "to": "@wren/ui/src/layout.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/timeline.tsx",
+   "to": "@wren/ui/src/list-bar.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/timeline.tsx",
+   "to": "@wren/ui/src/marks.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/timeline.tsx",
+   "to": "@wren/ui/src/records.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/timeline.tsx",
+   "to": "@wren/ui/src/timeline-axis.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/vendor-marks.tsx",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/vendor-marks.tsx",
+   "to": "@wren/ui/src/marks.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/view-says.ts",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/ui/src/view-says.ts",
+   "to": "@wren/ui/src/fields.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/view-says.ts",
+   "to": "@wren/ui/src/format.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/work.tsx",
+   "to": "@wren/ui/src/format.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/work.tsx",
+   "to": "@wren/ui/src/icons.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/work.tsx",
+   "to": "@wren/ui/src/layout.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/work.tsx",
+   "to": "@wren/ui/src/marks.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/ui/src/work.tsx",
+   "to": "@wren/ui/src/sources.tsx",
+   "kind": "imports"
+  }
+ ]
+}

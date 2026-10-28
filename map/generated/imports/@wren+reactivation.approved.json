@@ -1,0 +1,2370 @@
+{
+ "layer": "imports",
+ "nodes": [
+  {
+   "id": "@wren/reactivation",
+   "role": "package",
+   "parent": "repo:wren",
+   "group": "@wren/reactivation",
+   "attrs": {
+    "dir": "packages/reactivation/",
+    "npm": [
+     "node:crypto",
+     "node:fs",
+     "node:path"
+    ]
+   }
+  },
+  {
+   "id": "@wren/reactivation/src/approve.ts",
+   "role": "file",
+   "parent": "@wren/reactivation",
+   "group": "@wren/reactivation"
+  },
+  {
+   "id": "@wren/reactivation/src/brief.ts",
+   "role": "file",
+   "parent": "@wren/reactivation",
+   "group": "@wren/reactivation"
+  },
+  {
+   "id": "@wren/reactivation/src/components.ts",
+   "role": "file",
+   "parent": "@wren/reactivation",
+   "group": "@wren/reactivation"
+  },
+  {
+   "id": "@wren/reactivation/src/compose.ts",
+   "role": "file",
+   "parent": "@wren/reactivation",
+   "group": "@wren/reactivation"
+  },
+  {
+   "id": "@wren/reactivation/src/crm-run.ts",
+   "role": "file",
+   "parent": "@wren/reactivation",
+   "group": "@wren/reactivation"
+  },
+  {
+   "id": "@wren/reactivation/src/crm/dates.ts",
+   "role": "file",
+   "parent": "@wren/reactivation",
+   "group": "@wren/reactivation"
+  },
+  {
+   "id": "@wren/reactivation/src/crm/formats.ts",
+   "role": "file",
+   "parent": "@wren/reactivation",
+   "group": "@wren/reactivation"
+  },
+  {
+   "id": "@wren/reactivation/src/crm/health.ts",
+   "role": "file",
+   "parent": "@wren/reactivation",
+   "group": "@wren/reactivation"
+  },
+  {
+   "id": "@wren/reactivation/src/crm/import.ts",
+   "role": "file",
+   "parent": "@wren/reactivation",
+   "group": "@wren/reactivation"
+  },
+  {
+   "id": "@wren/reactivation/src/crm/job-orders.ts",
+   "role": "file",
+   "parent": "@wren/reactivation",
+   "group": "@wren/reactivation"
+  },
+  {
+   "id": "@wren/reactivation/src/crm/landing.ts",
+   "role": "file",
+   "parent": "@wren/reactivation",
+   "group": "@wren/reactivation"
+  },
+  {
+   "id": "@wren/reactivation/src/crm/source.ts",
+   "role": "file",
+   "parent": "@wren/reactivation",
+   "group": "@wren/reactivation"
+  },
+  {
+   "id": "@wren/reactivation/src/crm/verify.ts",
+   "role": "file",
+   "parent": "@wren/reactivation",
+   "group": "@wren/reactivation"
+  },
+  {
+   "id": "@wren/reactivation/src/delivery.ts",
+   "role": "file",
+   "parent": "@wren/reactivation",
+   "group": "@wren/reactivation"
+  },
+  {
+   "id": "@wren/reactivation/src/demo/history.ts",
+   "role": "file",
+   "parent": "@wren/reactivation",
+   "group": "@wren/reactivation"
+  },
+  {
+   "id": "@wren/reactivation/src/demo/seed.ts",
+   "role": "file",
+   "parent": "@wren/reactivation",
+   "group": "@wren/reactivation"
+  },
+  {
+   "id": "@wren/reactivation/src/events.ts",
+   "role": "file",
+   "parent": "@wren/reactivation",
+   "group": "@wren/reactivation"
+  },
+  {
+   "id": "@wren/reactivation/src/family.ts",
+   "role": "file",
+   "parent": "@wren/reactivation",
+   "group": "@wren/reactivation"
+  },
+  {
+   "id": "@wren/reactivation/src/feed.ts",
+   "role": "file",
+   "parent": "@wren/reactivation",
+   "group": "@wren/reactivation"
+  },
+  {
+   "id": "@wren/reactivation/src/forward.ts",
+   "role": "file",
+   "parent": "@wren/reactivation",
+   "group": "@wren/reactivation"
+  },
+  {
+   "id": "@wren/reactivation/src/handoff.ts",
+   "role": "file",
+   "parent": "@wren/reactivation",
+   "group": "@wren/reactivation"
+  },
+  {
+   "id": "@wren/reactivation/src/index.ts",
+   "role": "file",
+   "parent": "@wren/reactivation",
+   "group": "@wren/reactivation"
+  },
+  {
+   "id": "@wren/reactivation/src/keep.ts",
+   "role": "file",
+   "parent": "@wren/reactivation",
+   "group": "@wren/reactivation"
+  },
+  {
+   "id": "@wren/reactivation/src/lookup.ts",
+   "role": "file",
+   "parent": "@wren/reactivation",
+   "group": "@wren/reactivation"
+  },
+  {
+   "id": "@wren/reactivation/src/loop.ts",
+   "role": "file",
+   "parent": "@wren/reactivation",
+   "group": "@wren/reactivation"
+  },
+  {
+   "id": "@wren/reactivation/src/movers.ts",
+   "role": "file",
+   "parent": "@wren/reactivation",
+   "group": "@wren/reactivation"
+  },
+  {
+   "id": "@wren/reactivation/src/portal/import-log.ts",
+   "role": "file",
+   "parent": "@wren/reactivation",
+   "group": "@wren/reactivation"
+  },
+  {
+   "id": "@wren/reactivation/src/portal/import.ts",
+   "role": "file",
+   "parent": "@wren/reactivation",
+   "group": "@wren/reactivation"
+  },
+  {
+   "id": "@wren/reactivation/src/portal/journey.ts",
+   "role": "file",
+   "parent": "@wren/reactivation",
+   "group": "@wren/reactivation"
+  },
+  {
+   "id": "@wren/reactivation/src/portal/mask.ts",
+   "role": "file",
+   "parent": "@wren/reactivation",
+   "group": "@wren/reactivation"
+  },
+  {
+   "id": "@wren/reactivation/src/portal/outbox.ts",
+   "role": "file",
+   "parent": "@wren/reactivation",
+   "group": "@wren/reactivation"
+  },
+  {
+   "id": "@wren/reactivation/src/portal/pipeline.ts",
+   "role": "file",
+   "parent": "@wren/reactivation",
+   "group": "@wren/reactivation"
+  },
+  {
+   "id": "@wren/reactivation/src/portal/record-views.ts",
+   "role": "file",
+   "parent": "@wren/reactivation",
+   "group": "@wren/reactivation"
+  },
+  {
+   "id": "@wren/reactivation/src/portal/records.ts",
+   "role": "file",
+   "parent": "@wren/reactivation",
+   "group": "@wren/reactivation"
+  },
+  {
+   "id": "@wren/reactivation/src/portal/routes.ts",
+   "role": "file",
+   "parent": "@wren/reactivation",
+   "group": "@wren/reactivation"
+  },
+  {
+   "id": "@wren/reactivation/src/portal/run.ts",
+   "role": "file",
+   "parent": "@wren/reactivation",
+   "group": "@wren/reactivation"
+  },
+  {
+   "id": "@wren/reactivation/src/portal/service.ts",
+   "role": "file",
+   "parent": "@wren/reactivation",
+   "group": "@wren/reactivation"
+  },
+  {
+   "id": "@wren/reactivation/src/portal/setup.ts",
+   "role": "file",
+   "parent": "@wren/reactivation",
+   "group": "@wren/reactivation"
+  },
+  {
+   "id": "@wren/reactivation/src/portal/story.ts",
+   "role": "file",
+   "parent": "@wren/reactivation",
+   "group": "@wren/reactivation"
+  },
+  {
+   "id": "@wren/reactivation/src/portal/views.ts",
+   "role": "file",
+   "parent": "@wren/reactivation",
+   "group": "@wren/reactivation"
+  },
+  {
+   "id": "@wren/reactivation/src/portal/work.ts",
+   "role": "file",
+   "parent": "@wren/reactivation",
+   "group": "@wren/reactivation"
+  },
+  {
+   "id": "@wren/reactivation/src/profile.ts",
+   "role": "file",
+   "parent": "@wren/reactivation",
+   "group": "@wren/reactivation"
+  },
+  {
+   "id": "@wren/reactivation/src/ranked.ts",
+   "role": "file",
+   "parent": "@wren/reactivation",
+   "group": "@wren/reactivation"
+  },
+  {
+   "id": "@wren/reactivation/src/restate.ts",
+   "role": "file",
+   "parent": "@wren/reactivation",
+   "group": "@wren/reactivation"
+  },
+  {
+   "id": "@wren/reactivation/src/run.ts",
+   "role": "file",
+   "parent": "@wren/reactivation",
+   "group": "@wren/reactivation"
+  },
+  {
+   "id": "@wren/reactivation/src/schema.ts",
+   "role": "file",
+   "parent": "@wren/reactivation",
+   "group": "@wren/reactivation"
+  },
+  {
+   "id": "@wren/reactivation/src/score.ts",
+   "role": "file",
+   "parent": "@wren/reactivation",
+   "group": "@wren/reactivation"
+  },
+  {
+   "id": "@wren/reactivation/src/sending.ts",
+   "role": "file",
+   "parent": "@wren/reactivation",
+   "group": "@wren/reactivation"
+  },
+  {
+   "id": "@wren/reactivation/src/settings.ts",
+   "role": "file",
+   "parent": "@wren/reactivation",
+   "group": "@wren/reactivation"
+  },
+  {
+   "id": "@wren/reactivation/src/signals.ts",
+   "role": "file",
+   "parent": "@wren/reactivation",
+   "group": "@wren/reactivation"
+  },
+  {
+   "id": "@wren/reactivation/src/status.ts",
+   "role": "file",
+   "parent": "@wren/reactivation",
+   "group": "@wren/reactivation"
+  },
+  {
+   "id": "@wren/reactivation/src/video/brief.ts",
+   "role": "file",
+   "parent": "@wren/reactivation",
+   "group": "@wren/reactivation"
+  },
+  {
+   "id": "@wren/reactivation/src/video/index.ts",
+   "role": "file",
+   "parent": "@wren/reactivation",
+   "group": "@wren/reactivation"
+  },
+  {
+   "id": "@wren/reactivation/src/video/lead.ts",
+   "role": "file",
+   "parent": "@wren/reactivation",
+   "group": "@wren/reactivation"
+  },
+  {
+   "id": "@wren/reactivation/src/video/walk.ts",
+   "role": "file",
+   "parent": "@wren/reactivation",
+   "group": "@wren/reactivation"
+  },
+  {
+   "id": "@wren/reactivation/test/integration/demo-fixture.ts",
+   "role": "file",
+   "parent": "@wren/reactivation",
+   "group": "@wren/reactivation"
+  },
+  {
+   "id": "@wren/reactivation/vitest.config.ts",
+   "role": "file",
+   "parent": "@wren/reactivation",
+   "group": "@wren/reactivation"
+  }
+ ],
+ "edges": [
+  {
+   "from": "@wren/reactivation",
+   "to": "@wren/channel-email",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation",
+   "to": "@wren/connectors",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation",
+   "to": "@wren/core",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation",
+   "to": "@wren/db",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation",
+   "to": "@wren/delivery",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation",
+   "to": "@wren/llm",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation",
+   "to": "@wren/offers",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation",
+   "to": "@wren/research",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation",
+   "to": "@wren/video",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/approve.ts",
+   "to": "@wren/channel-email/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/approve.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/approve.ts",
+   "to": "@wren/reactivation/src/compose.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/brief.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/brief.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/brief.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/brief.ts",
+   "to": "@wren/reactivation/src/feed.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/brief.ts",
+   "to": "@wren/reactivation/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/brief.ts",
+   "to": "@wren/reactivation/src/score.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/components.ts",
+   "to": "@wren/core/src/components.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/components.ts",
+   "to": "@wren/reactivation/src/settings.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/compose.ts",
+   "to": "@wren/channel-email/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/compose.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/compose.ts",
+   "to": "@wren/core/src/profiles.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/compose.ts",
+   "to": "@wren/core/src/slots/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/compose.ts",
+   "to": "@wren/core/src/template-defaults.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/compose.ts",
+   "to": "@wren/core/src/templates.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/compose.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/compose.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/compose.ts",
+   "to": "@wren/reactivation/src/brief.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/compose.ts",
+   "to": "@wren/reactivation/src/crm/health.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/compose.ts",
+   "to": "@wren/reactivation/src/feed.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/compose.ts",
+   "to": "@wren/reactivation/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/compose.ts",
+   "to": "@wren/reactivation/src/score.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/compose.ts",
+   "to": "@wren/reactivation/src/settings.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/crm-run.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/crm-run.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/crm-run.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/crm-run.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/crm-run.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/crm-run.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/crm-run.ts",
+   "to": "@wren/reactivation/src/compose.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/crm-run.ts",
+   "to": "@wren/reactivation/src/family.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/crm-run.ts",
+   "to": "@wren/reactivation/src/lookup.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/crm-run.ts",
+   "to": "@wren/reactivation/src/profile.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/crm-run.ts",
+   "to": "@wren/reactivation/src/run.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/crm-run.ts",
+   "to": "@wren/reactivation/src/settings.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/crm-run.ts",
+   "to": "@wren/reactivation/src/status.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/crm-run.ts",
+   "to": "@wren/research/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/crm-run.ts",
+   "to": "@wren/research/src/limits.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/crm/health.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/crm/health.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/crm/health.ts",
+   "to": "@wren/reactivation/src/crm/formats.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/crm/import.ts",
+   "to": "@wren/channel-email/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/crm/import.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/crm/import.ts",
+   "to": "@wren/core/src/profiles-backfill.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/crm/import.ts",
+   "to": "@wren/core/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/crm/import.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/crm/import.ts",
+   "to": "@wren/reactivation/src/crm/source.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/crm/import.ts",
+   "to": "@wren/reactivation/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/crm/job-orders.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/crm/job-orders.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/crm/job-orders.ts",
+   "to": "@wren/reactivation/src/crm/dates.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/crm/job-orders.ts",
+   "to": "@wren/reactivation/src/crm/formats.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/crm/job-orders.ts",
+   "to": "@wren/reactivation/src/crm/source.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/crm/job-orders.ts",
+   "to": "@wren/reactivation/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/crm/landing.ts",
+   "to": "@wren/connectors/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/crm/landing.ts",
+   "to": "@wren/reactivation/src/crm/formats.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/crm/landing.ts",
+   "to": "@wren/reactivation/src/crm/import.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/crm/landing.ts",
+   "to": "@wren/reactivation/src/crm/source.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/crm/landing.ts",
+   "to": "@wren/reactivation/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/crm/source.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/crm/source.ts",
+   "to": "@wren/reactivation/src/crm/dates.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/crm/source.ts",
+   "to": "@wren/reactivation/src/crm/formats.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/crm/verify.ts",
+   "to": "@wren/channel-email/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/crm/verify.ts",
+   "to": "@wren/core/src/checks.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/crm/verify.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/crm/verify.ts",
+   "to": "@wren/reactivation/src/score.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/delivery.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/delivery.ts",
+   "to": "@wren/delivery/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/delivery.ts",
+   "to": "@wren/reactivation/src/compose.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/delivery.ts",
+   "to": "@wren/reactivation/src/handoff.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/delivery.ts",
+   "to": "@wren/reactivation/src/settings.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/demo/seed.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/demo/seed.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/demo/seed.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/demo/seed.ts",
+   "to": "@wren/reactivation/src/crm/formats.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/demo/seed.ts",
+   "to": "@wren/reactivation/src/crm/import.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/demo/seed.ts",
+   "to": "@wren/reactivation/src/crm/source.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/demo/seed.ts",
+   "to": "@wren/reactivation/src/demo/history.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/demo/seed.ts",
+   "to": "@wren/research/src/companies/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/demo/seed.ts",
+   "to": "@wren/research/src/discovery/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/demo/seed.ts",
+   "to": "@wren/research/src/people/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/events.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/events.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/events.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/events.ts",
+   "to": "@wren/reactivation/src/feed.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/events.ts",
+   "to": "@wren/research/src/companies/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/events.ts",
+   "to": "@wren/research/src/enrichment/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/family.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/family.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/family.ts",
+   "to": "@wren/reactivation/src/score.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/family.ts",
+   "to": "@wren/research/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/family.ts",
+   "to": "@wren/research/src/people/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/feed.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/feed.ts",
+   "to": "@wren/reactivation/src/run.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/feed.ts",
+   "to": "@wren/reactivation/src/status.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/feed.ts",
+   "to": "@wren/research/src/companies/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/feed.ts",
+   "to": "@wren/research/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/feed.ts",
+   "to": "@wren/research/src/people/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/forward.ts",
+   "to": "@wren/channel-email/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/forward.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/forward.ts",
+   "to": "@wren/reactivation/src/compose.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/forward.ts",
+   "to": "@wren/reactivation/src/handoff.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/forward.ts",
+   "to": "@wren/reactivation/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/forward.ts",
+   "to": "@wren/reactivation/src/settings.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/handoff.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/handoff.ts",
+   "to": "@wren/reactivation/src/compose.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/handoff.ts",
+   "to": "@wren/reactivation/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/index.ts",
+   "to": "@wren/reactivation/src/approve.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/index.ts",
+   "to": "@wren/reactivation/src/brief.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/index.ts",
+   "to": "@wren/reactivation/src/compose.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/index.ts",
+   "to": "@wren/reactivation/src/crm/dates.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/index.ts",
+   "to": "@wren/reactivation/src/crm/formats.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/index.ts",
+   "to": "@wren/reactivation/src/crm/health.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/index.ts",
+   "to": "@wren/reactivation/src/crm/import.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/index.ts",
+   "to": "@wren/reactivation/src/crm/job-orders.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/index.ts",
+   "to": "@wren/reactivation/src/crm/landing.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/index.ts",
+   "to": "@wren/reactivation/src/crm/source.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/index.ts",
+   "to": "@wren/reactivation/src/crm/verify.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/index.ts",
+   "to": "@wren/reactivation/src/delivery.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/index.ts",
+   "to": "@wren/reactivation/src/demo/seed.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/index.ts",
+   "to": "@wren/reactivation/src/family.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/index.ts",
+   "to": "@wren/reactivation/src/forward.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/index.ts",
+   "to": "@wren/reactivation/src/handoff.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/index.ts",
+   "to": "@wren/reactivation/src/keep.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/index.ts",
+   "to": "@wren/reactivation/src/lookup.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/index.ts",
+   "to": "@wren/reactivation/src/portal/outbox.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/index.ts",
+   "to": "@wren/reactivation/src/profile.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/index.ts",
+   "to": "@wren/reactivation/src/ranked.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/index.ts",
+   "to": "@wren/reactivation/src/run.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/index.ts",
+   "to": "@wren/reactivation/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/index.ts",
+   "to": "@wren/reactivation/src/score.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/index.ts",
+   "to": "@wren/reactivation/src/sending.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/index.ts",
+   "to": "@wren/reactivation/src/settings.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/index.ts",
+   "to": "@wren/reactivation/src/signals.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/index.ts",
+   "to": "@wren/reactivation/src/status.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/keep.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/keep.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/keep.ts",
+   "to": "@wren/reactivation/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/lookup.ts",
+   "to": "@wren/channel-email/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/lookup.ts",
+   "to": "@wren/core/src/checks.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/lookup.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/lookup.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/lookup.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/lookup.ts",
+   "to": "@wren/reactivation/src/family.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/lookup.ts",
+   "to": "@wren/reactivation/src/feed.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/lookup.ts",
+   "to": "@wren/reactivation/src/score.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/lookup.ts",
+   "to": "@wren/research/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/lookup.ts",
+   "to": "@wren/research/src/pacing.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/lookup.ts",
+   "to": "@wren/research/src/people/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/loop.ts",
+   "to": "@wren/channel-email/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/loop.ts",
+   "to": "@wren/channel-email/src/restate/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/loop.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/loop.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/loop.ts",
+   "to": "@wren/core/src/notify.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/loop.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/loop.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/loop.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/loop.ts",
+   "to": "@wren/reactivation/src/delivery.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/loop.ts",
+   "to": "@wren/reactivation/src/forward.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/loop.ts",
+   "to": "@wren/reactivation/src/keep.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/loop.ts",
+   "to": "@wren/reactivation/src/profile.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/loop.ts",
+   "to": "@wren/reactivation/src/run.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/loop.ts",
+   "to": "@wren/reactivation/src/sending.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/loop.ts",
+   "to": "@wren/reactivation/src/settings.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/loop.ts",
+   "to": "@wren/reactivation/src/status.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/movers.ts",
+   "to": "@wren/channel-email/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/movers.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/movers.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/movers.ts",
+   "to": "@wren/reactivation/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/movers.ts",
+   "to": "@wren/reactivation/src/score.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/movers.ts",
+   "to": "@wren/research/src/discovery/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/portal/import-log.ts",
+   "to": "@wren/connectors/src/apps.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/portal/import-log.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/portal/import-log.ts",
+   "to": "@wren/reactivation/src/crm/formats.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/portal/import.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/portal/import.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/portal/import.ts",
+   "to": "@wren/core/src/portal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/portal/import.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/portal/import.ts",
+   "to": "@wren/reactivation/src/crm/formats.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/portal/import.ts",
+   "to": "@wren/reactivation/src/crm/import.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/portal/import.ts",
+   "to": "@wren/reactivation/src/crm/source.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/portal/import.ts",
+   "to": "@wren/reactivation/src/portal/import-log.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/portal/import.ts",
+   "to": "@wren/reactivation/src/portal/routes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/portal/journey.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/portal/outbox.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/portal/outbox.ts",
+   "to": "@wren/reactivation/src/brief.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/portal/outbox.ts",
+   "to": "@wren/reactivation/src/compose.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/portal/outbox.ts",
+   "to": "@wren/reactivation/src/portal/views.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/portal/pipeline.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/portal/pipeline.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/portal/pipeline.ts",
+   "to": "@wren/reactivation/src/compose.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/portal/pipeline.ts",
+   "to": "@wren/reactivation/src/profile.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/portal/pipeline.ts",
+   "to": "@wren/reactivation/src/settings.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/portal/pipeline.ts",
+   "to": "@wren/reactivation/src/status.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/portal/record-views.ts",
+   "to": "@wren/reactivation/src/score.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/portal/records.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/portal/records.ts",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/portal/records.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/portal/records.ts",
+   "to": "@wren/reactivation/src/portal/import-log.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/portal/records.ts",
+   "to": "@wren/reactivation/src/portal/journey.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/portal/records.ts",
+   "to": "@wren/reactivation/src/portal/outbox.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/portal/records.ts",
+   "to": "@wren/reactivation/src/portal/setup.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/portal/records.ts",
+   "to": "@wren/reactivation/src/portal/views.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/portal/records.ts",
+   "to": "@wren/reactivation/src/score.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/portal/routes.ts",
+   "to": "@wren/core/src/access.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/portal/run.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/portal/run.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/portal/run.ts",
+   "to": "@wren/reactivation/src/portal/story.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/portal/run.ts",
+   "to": "@wren/reactivation/src/portal/views.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/portal/service.ts",
+   "to": "@wren/core/src/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/portal/service.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/portal/service.ts",
+   "to": "@wren/core/src/portal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/portal/service.ts",
+   "to": "@wren/core/src/records-serve.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/portal/service.ts",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/portal/service.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/portal/service.ts",
+   "to": "@wren/reactivation/src/approve.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/portal/service.ts",
+   "to": "@wren/reactivation/src/compose.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/portal/service.ts",
+   "to": "@wren/reactivation/src/delivery.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/portal/service.ts",
+   "to": "@wren/reactivation/src/handoff.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/portal/service.ts",
+   "to": "@wren/reactivation/src/portal/import.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/portal/service.ts",
+   "to": "@wren/reactivation/src/portal/mask.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/portal/service.ts",
+   "to": "@wren/reactivation/src/portal/outbox.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/portal/service.ts",
+   "to": "@wren/reactivation/src/portal/pipeline.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/portal/service.ts",
+   "to": "@wren/reactivation/src/portal/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/portal/service.ts",
+   "to": "@wren/reactivation/src/portal/routes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/portal/service.ts",
+   "to": "@wren/reactivation/src/portal/run.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/portal/service.ts",
+   "to": "@wren/reactivation/src/portal/story.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/portal/service.ts",
+   "to": "@wren/reactivation/src/portal/views.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/portal/service.ts",
+   "to": "@wren/reactivation/src/portal/work.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/portal/service.ts",
+   "to": "@wren/reactivation/src/profile.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/portal/service.ts",
+   "to": "@wren/reactivation/src/ranked.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/portal/service.ts",
+   "to": "@wren/reactivation/src/score.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/portal/service.ts",
+   "to": "@wren/reactivation/src/settings.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/portal/setup.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/portal/setup.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/portal/setup.ts",
+   "to": "@wren/reactivation/src/portal/views.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/portal/setup.ts",
+   "to": "@wren/reactivation/src/profile.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/portal/setup.ts",
+   "to": "@wren/reactivation/src/settings.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/portal/story.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/portal/story.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/portal/story.ts",
+   "to": "@wren/reactivation/src/brief.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/portal/story.ts",
+   "to": "@wren/reactivation/src/feed.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/portal/story.ts",
+   "to": "@wren/reactivation/src/portal/outbox.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/portal/story.ts",
+   "to": "@wren/reactivation/src/portal/views.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/portal/story.ts",
+   "to": "@wren/reactivation/src/status.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/portal/views.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/portal/views.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/portal/views.ts",
+   "to": "@wren/reactivation/src/portal/pipeline.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/portal/views.ts",
+   "to": "@wren/reactivation/src/ranked.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/portal/views.ts",
+   "to": "@wren/reactivation/src/score.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/portal/work.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/portal/work.ts",
+   "to": "@wren/reactivation/src/feed.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/portal/work.ts",
+   "to": "@wren/reactivation/src/portal/views.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/portal/work.ts",
+   "to": "@wren/reactivation/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/portal/work.ts",
+   "to": "@wren/reactivation/src/score.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/portal/work.ts",
+   "to": "@wren/research/src/companies/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/profile.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/profile.ts",
+   "to": "@wren/reactivation/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/ranked.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/ranked.ts",
+   "to": "@wren/reactivation/src/score.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/restate.ts",
+   "to": "@wren/reactivation/src/crm-run.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/restate.ts",
+   "to": "@wren/reactivation/src/loop.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/restate.ts",
+   "to": "@wren/reactivation/src/portal/service.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/run.ts",
+   "to": "@wren/channel-email/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/run.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/run.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/run.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/run.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/run.ts",
+   "to": "@wren/reactivation/src/brief.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/run.ts",
+   "to": "@wren/reactivation/src/compose.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/run.ts",
+   "to": "@wren/reactivation/src/crm/verify.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/run.ts",
+   "to": "@wren/reactivation/src/events.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/run.ts",
+   "to": "@wren/reactivation/src/family.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/run.ts",
+   "to": "@wren/reactivation/src/feed.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/run.ts",
+   "to": "@wren/reactivation/src/lookup.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/run.ts",
+   "to": "@wren/reactivation/src/movers.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/run.ts",
+   "to": "@wren/reactivation/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/run.ts",
+   "to": "@wren/reactivation/src/score.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/run.ts",
+   "to": "@wren/reactivation/src/settings.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/run.ts",
+   "to": "@wren/reactivation/src/signals.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/run.ts",
+   "to": "@wren/reactivation/src/status.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/run.ts",
+   "to": "@wren/research/src/discovery/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/run.ts",
+   "to": "@wren/research/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/schema.ts",
+   "to": "@wren/channel-email/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/schema.ts",
+   "to": "@wren/core/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/schema.ts",
+   "to": "@wren/db/src/columns.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/schema.ts",
+   "to": "@wren/research/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/score.ts",
+   "to": "@wren/core/src/checks.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/score.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/score.ts",
+   "to": "@wren/reactivation/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/sending.ts",
+   "to": "@wren/channel-email/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/sending.ts",
+   "to": "@wren/channel-email/src/restate/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/sending.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/sending.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/sending.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/sending.ts",
+   "to": "@wren/reactivation/src/settings.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/settings.ts",
+   "to": "@wren/channel-email/src/sequences-settings.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/signals.ts",
+   "to": "@wren/channel-email/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/signals.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/signals.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/signals.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/signals.ts",
+   "to": "@wren/reactivation/src/feed.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/signals.ts",
+   "to": "@wren/reactivation/src/score.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/signals.ts",
+   "to": "@wren/research/src/companies/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/signals.ts",
+   "to": "@wren/research/src/pacing.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/status.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/status.ts",
+   "to": "@wren/reactivation/src/brief.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/status.ts",
+   "to": "@wren/reactivation/src/compose.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/status.ts",
+   "to": "@wren/reactivation/src/crm/health.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/status.ts",
+   "to": "@wren/reactivation/src/events.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/status.ts",
+   "to": "@wren/reactivation/src/lookup.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/status.ts",
+   "to": "@wren/reactivation/src/movers.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/status.ts",
+   "to": "@wren/reactivation/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/status.ts",
+   "to": "@wren/reactivation/src/score.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/status.ts",
+   "to": "@wren/reactivation/src/settings.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/status.ts",
+   "to": "@wren/reactivation/src/signals.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/video/brief.ts",
+   "to": "@wren/research/src/dossier.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/video/index.ts",
+   "to": "@wren/reactivation/src/video/brief.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/video/index.ts",
+   "to": "@wren/reactivation/src/video/lead.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/video/index.ts",
+   "to": "@wren/reactivation/src/video/walk.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/video/lead.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/video/lead.ts",
+   "to": "@wren/reactivation/src/video/brief.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/video/lead.ts",
+   "to": "@wren/reactivation/src/video/walk.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/video/lead.ts",
+   "to": "@wren/research/src/dossier.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/video/lead.ts",
+   "to": "@wren/research/src/enrichment/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/video/lead.ts",
+   "to": "@wren/research/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/video/lead.ts",
+   "to": "@wren/video/src/publish.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/video/walk.ts",
+   "to": "@wren/offers/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/video/walk.ts",
+   "to": "@wren/reactivation/src/portal/service.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/video/walk.ts",
+   "to": "@wren/reactivation/src/video/brief.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/video/walk.ts",
+   "to": "@wren/video/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/test/integration/demo-fixture.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/test/integration/demo-fixture.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/vitest.config.ts",
+   "to": "@wren/db/src/testing-vitest.ts",
+   "kind": "imports"
+  }
+ ]
+}

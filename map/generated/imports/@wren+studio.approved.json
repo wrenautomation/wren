@@ -1,0 +1,1197 @@
+{
+ "layer": "imports",
+ "nodes": [
+  {
+   "id": "@wren/studio",
+   "role": "package",
+   "parent": "repo:wren",
+   "group": "@wren/studio",
+   "attrs": {
+    "dir": "packages/studio/",
+    "npm": [
+     "node:child_process",
+     "node:crypto",
+     "node:fs",
+     "node:module",
+     "node:os",
+     "node:path",
+     "node:stream",
+     "node:url",
+     "node:util"
+    ]
+   }
+  },
+  {
+   "id": "@wren/studio/remotion/index.tsx",
+   "role": "file",
+   "parent": "@wren/studio",
+   "group": "@wren/studio"
+  },
+  {
+   "id": "@wren/studio/sfx/make.mjs",
+   "role": "file",
+   "parent": "@wren/studio",
+   "group": "@wren/studio"
+  },
+  {
+   "id": "@wren/studio/src/align.ts",
+   "role": "file",
+   "parent": "@wren/studio",
+   "group": "@wren/studio"
+  },
+  {
+   "id": "@wren/studio/src/bar.ts",
+   "role": "file",
+   "parent": "@wren/studio",
+   "group": "@wren/studio"
+  },
+  {
+   "id": "@wren/studio/src/camera.ts",
+   "role": "file",
+   "parent": "@wren/studio",
+   "group": "@wren/studio"
+  },
+  {
+   "id": "@wren/studio/src/cap.ts",
+   "role": "file",
+   "parent": "@wren/studio",
+   "group": "@wren/studio"
+  },
+  {
+   "id": "@wren/studio/src/caption-styles.ts",
+   "role": "file",
+   "parent": "@wren/studio",
+   "group": "@wren/studio"
+  },
+  {
+   "id": "@wren/studio/src/captions.ts",
+   "role": "file",
+   "parent": "@wren/studio",
+   "group": "@wren/studio"
+  },
+  {
+   "id": "@wren/studio/src/change.ts",
+   "role": "file",
+   "parent": "@wren/studio",
+   "group": "@wren/studio"
+  },
+  {
+   "id": "@wren/studio/src/cursor.ts",
+   "role": "file",
+   "parent": "@wren/studio",
+   "group": "@wren/studio"
+  },
+  {
+   "id": "@wren/studio/src/cuts.ts",
+   "role": "file",
+   "parent": "@wren/studio",
+   "group": "@wren/studio"
+  },
+  {
+   "id": "@wren/studio/src/duck.ts",
+   "role": "file",
+   "parent": "@wren/studio",
+   "group": "@wren/studio"
+  },
+  {
+   "id": "@wren/studio/src/edit.ts",
+   "role": "file",
+   "parent": "@wren/studio",
+   "group": "@wren/studio"
+  },
+  {
+   "id": "@wren/studio/src/film.ts",
+   "role": "file",
+   "parent": "@wren/studio",
+   "group": "@wren/studio"
+  },
+  {
+   "id": "@wren/studio/src/finish-look.ts",
+   "role": "file",
+   "parent": "@wren/studio",
+   "group": "@wren/studio"
+  },
+  {
+   "id": "@wren/studio/src/finish.ts",
+   "role": "file",
+   "parent": "@wren/studio",
+   "group": "@wren/studio"
+  },
+  {
+   "id": "@wren/studio/src/fx.ts",
+   "role": "file",
+   "parent": "@wren/studio",
+   "group": "@wren/studio"
+  },
+  {
+   "id": "@wren/studio/src/index.ts",
+   "role": "file",
+   "parent": "@wren/studio",
+   "group": "@wren/studio"
+  },
+  {
+   "id": "@wren/studio/src/kit.ts",
+   "role": "file",
+   "parent": "@wren/studio",
+   "group": "@wren/studio"
+  },
+  {
+   "id": "@wren/studio/src/locks.ts",
+   "role": "file",
+   "parent": "@wren/studio",
+   "group": "@wren/studio"
+  },
+  {
+   "id": "@wren/studio/src/look.ts",
+   "role": "file",
+   "parent": "@wren/studio",
+   "group": "@wren/studio"
+  },
+  {
+   "id": "@wren/studio/src/loudness.ts",
+   "role": "file",
+   "parent": "@wren/studio",
+   "group": "@wren/studio"
+  },
+  {
+   "id": "@wren/studio/src/matte.ts",
+   "role": "file",
+   "parent": "@wren/studio",
+   "group": "@wren/studio"
+  },
+  {
+   "id": "@wren/studio/src/media.ts",
+   "role": "file",
+   "parent": "@wren/studio",
+   "group": "@wren/studio"
+  },
+  {
+   "id": "@wren/studio/src/obs.ts",
+   "role": "file",
+   "parent": "@wren/studio",
+   "group": "@wren/studio"
+  },
+  {
+   "id": "@wren/studio/src/promo-clock.ts",
+   "role": "file",
+   "parent": "@wren/studio",
+   "group": "@wren/studio"
+  },
+  {
+   "id": "@wren/studio/src/promo.ts",
+   "role": "file",
+   "parent": "@wren/studio",
+   "group": "@wren/studio"
+  },
+  {
+   "id": "@wren/studio/src/props.ts",
+   "role": "file",
+   "parent": "@wren/studio",
+   "group": "@wren/studio"
+  },
+  {
+   "id": "@wren/studio/src/punctuate.ts",
+   "role": "file",
+   "parent": "@wren/studio",
+   "group": "@wren/studio"
+  },
+  {
+   "id": "@wren/studio/src/remotion.ts",
+   "role": "file",
+   "parent": "@wren/studio",
+   "group": "@wren/studio"
+  },
+  {
+   "id": "@wren/studio/src/render-hash.ts",
+   "role": "file",
+   "parent": "@wren/studio",
+   "group": "@wren/studio"
+  },
+  {
+   "id": "@wren/studio/src/safe-zones.ts",
+   "role": "file",
+   "parent": "@wren/studio",
+   "group": "@wren/studio"
+  },
+  {
+   "id": "@wren/studio/src/schema.ts",
+   "role": "file",
+   "parent": "@wren/studio",
+   "group": "@wren/studio"
+  },
+  {
+   "id": "@wren/studio/src/sentences.ts",
+   "role": "file",
+   "parent": "@wren/studio",
+   "group": "@wren/studio"
+  },
+  {
+   "id": "@wren/studio/src/sounds.ts",
+   "role": "file",
+   "parent": "@wren/studio",
+   "group": "@wren/studio"
+  },
+  {
+   "id": "@wren/studio/src/storyboard.ts",
+   "role": "file",
+   "parent": "@wren/studio",
+   "group": "@wren/studio"
+  },
+  {
+   "id": "@wren/studio/src/stress.ts",
+   "role": "file",
+   "parent": "@wren/studio",
+   "group": "@wren/studio"
+  },
+  {
+   "id": "@wren/studio/src/take.ts",
+   "role": "file",
+   "parent": "@wren/studio",
+   "group": "@wren/studio"
+  },
+  {
+   "id": "@wren/studio/src/video-check.ts",
+   "role": "file",
+   "parent": "@wren/studio",
+   "group": "@wren/studio"
+  },
+  {
+   "id": "@wren/studio/src/whisper.ts",
+   "role": "file",
+   "parent": "@wren/studio",
+   "group": "@wren/studio"
+  },
+  {
+   "id": "@wren/studio/src/words.ts",
+   "role": "file",
+   "parent": "@wren/studio",
+   "group": "@wren/studio"
+  },
+  {
+   "id": "@wren/studio/vitest.config.ts",
+   "role": "file",
+   "parent": "@wren/studio",
+   "group": "@wren/studio"
+  }
+ ],
+ "edges": [
+  {
+   "from": "@wren/studio",
+   "to": "@wren/core",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio",
+   "to": "@wren/db",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio",
+   "to": "@wren/video",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/remotion/index.tsx",
+   "to": "@wren/studio/src/caption-styles.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/remotion/index.tsx",
+   "to": "@wren/studio/src/captions.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/remotion/index.tsx",
+   "to": "@wren/studio/src/cursor.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/remotion/index.tsx",
+   "to": "@wren/studio/src/duck.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/remotion/index.tsx",
+   "to": "@wren/studio/src/finish-look.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/remotion/index.tsx",
+   "to": "@wren/studio/src/promo-clock.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/remotion/index.tsx",
+   "to": "@wren/studio/src/promo.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/studio/remotion/index.tsx",
+   "to": "@wren/studio/src/props.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/studio/remotion/index.tsx",
+   "to": "@wren/studio/src/safe-zones.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/remotion/index.tsx",
+   "to": "@wren/studio/src/sounds.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/studio/remotion/index.tsx",
+   "to": "@wren/video/src/overlay.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/align.ts",
+   "to": "@wren/studio/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/studio/src/camera.ts",
+   "to": "@wren/studio/src/promo-clock.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/camera.ts",
+   "to": "@wren/studio/src/take.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/studio/src/cap.ts",
+   "to": "@wren/studio/src/media.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/cap.ts",
+   "to": "@wren/studio/src/sounds.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/studio/src/captions.ts",
+   "to": "@wren/studio/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/studio/src/change.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/change.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/studio/src/change.ts",
+   "to": "@wren/studio/src/caption-styles.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/change.ts",
+   "to": "@wren/studio/src/cuts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/change.ts",
+   "to": "@wren/studio/src/edit.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/change.ts",
+   "to": "@wren/studio/src/finish-look.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/change.ts",
+   "to": "@wren/studio/src/props.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/change.ts",
+   "to": "@wren/studio/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/change.ts",
+   "to": "@wren/studio/src/sentences.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/studio/src/change.ts",
+   "to": "@wren/studio/src/sounds.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/change.ts",
+   "to": "@wren/studio/src/storyboard.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/change.ts",
+   "to": "@wren/studio/src/stress.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/studio/src/cuts.ts",
+   "to": "@wren/studio/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/studio/src/edit.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/edit.ts",
+   "to": "@wren/core/src/draft-record.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/edit.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/edit.ts",
+   "to": "@wren/core/src/refusal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/edit.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/edit.ts",
+   "to": "@wren/studio/src/cap.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/edit.ts",
+   "to": "@wren/studio/src/caption-styles.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/edit.ts",
+   "to": "@wren/studio/src/cuts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/edit.ts",
+   "to": "@wren/studio/src/finish.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/edit.ts",
+   "to": "@wren/studio/src/locks.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/edit.ts",
+   "to": "@wren/studio/src/media.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/edit.ts",
+   "to": "@wren/studio/src/props.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/edit.ts",
+   "to": "@wren/studio/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/edit.ts",
+   "to": "@wren/studio/src/sentences.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/edit.ts",
+   "to": "@wren/studio/src/sounds.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/edit.ts",
+   "to": "@wren/studio/src/stress.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/edit.ts",
+   "to": "@wren/studio/src/whisper.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/edit.ts",
+   "to": "@wren/studio/src/words.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/film.ts",
+   "to": "@wren/studio/src/cuts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/film.ts",
+   "to": "@wren/studio/src/finish-look.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/film.ts",
+   "to": "@wren/studio/src/finish.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/film.ts",
+   "to": "@wren/studio/src/media.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/film.ts",
+   "to": "@wren/studio/src/props.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/film.ts",
+   "to": "@wren/studio/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/studio/src/film.ts",
+   "to": "@wren/studio/src/sounds.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/finish-look.ts",
+   "to": "@wren/studio/src/caption-styles.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/studio/src/finish.ts",
+   "to": "@wren/studio/src/caption-styles.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/finish.ts",
+   "to": "@wren/studio/src/captions.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/finish.ts",
+   "to": "@wren/studio/src/cuts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/finish.ts",
+   "to": "@wren/studio/src/finish-look.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/finish.ts",
+   "to": "@wren/studio/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/studio/src/index.ts",
+   "to": "@wren/studio/src/bar.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/index.ts",
+   "to": "@wren/studio/src/cap.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/index.ts",
+   "to": "@wren/studio/src/caption-styles.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/index.ts",
+   "to": "@wren/studio/src/captions.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/index.ts",
+   "to": "@wren/studio/src/cuts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/index.ts",
+   "to": "@wren/studio/src/edit.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/index.ts",
+   "to": "@wren/studio/src/film.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/index.ts",
+   "to": "@wren/studio/src/finish.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/index.ts",
+   "to": "@wren/studio/src/fx.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/index.ts",
+   "to": "@wren/studio/src/kit.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/index.ts",
+   "to": "@wren/studio/src/locks.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/index.ts",
+   "to": "@wren/studio/src/look.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/index.ts",
+   "to": "@wren/studio/src/loudness.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/index.ts",
+   "to": "@wren/studio/src/matte.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/index.ts",
+   "to": "@wren/studio/src/media.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/index.ts",
+   "to": "@wren/studio/src/obs.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/index.ts",
+   "to": "@wren/studio/src/promo.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/index.ts",
+   "to": "@wren/studio/src/props.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/index.ts",
+   "to": "@wren/studio/src/punctuate.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/index.ts",
+   "to": "@wren/studio/src/remotion.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/index.ts",
+   "to": "@wren/studio/src/render-hash.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/index.ts",
+   "to": "@wren/studio/src/safe-zones.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/index.ts",
+   "to": "@wren/studio/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/index.ts",
+   "to": "@wren/studio/src/sentences.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/index.ts",
+   "to": "@wren/studio/src/sounds.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/index.ts",
+   "to": "@wren/studio/src/stress.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/index.ts",
+   "to": "@wren/studio/src/take.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/index.ts",
+   "to": "@wren/studio/src/video-check.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/index.ts",
+   "to": "@wren/studio/src/whisper.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/index.ts",
+   "to": "@wren/studio/src/words.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/kit.ts",
+   "to": "@wren/studio/src/fx.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/kit.ts",
+   "to": "@wren/studio/src/sounds.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/look.ts",
+   "to": "@wren/studio/src/cuts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/look.ts",
+   "to": "@wren/studio/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/studio/src/matte.ts",
+   "to": "@wren/studio/src/cuts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/matte.ts",
+   "to": "@wren/studio/src/media.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/matte.ts",
+   "to": "@wren/studio/src/props.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/studio/src/matte.ts",
+   "to": "@wren/studio/src/safe-zones.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/matte.ts",
+   "to": "@wren/studio/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/studio/src/matte.ts",
+   "to": "@wren/studio/src/stress.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/media.ts",
+   "to": "@wren/studio/src/cuts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/media.ts",
+   "to": "@wren/studio/src/finish.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/media.ts",
+   "to": "@wren/studio/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/studio/src/obs.ts",
+   "to": "@wren/studio/src/edit.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/promo.ts",
+   "to": "@wren/studio/src/camera.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/promo.ts",
+   "to": "@wren/studio/src/cursor.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/promo.ts",
+   "to": "@wren/studio/src/loudness.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/promo.ts",
+   "to": "@wren/studio/src/promo-clock.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/promo.ts",
+   "to": "@wren/studio/src/sounds.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/promo.ts",
+   "to": "@wren/studio/src/take.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/promo.ts",
+   "to": "@wren/video/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/props.ts",
+   "to": "@wren/studio/src/caption-styles.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/studio/src/props.ts",
+   "to": "@wren/studio/src/captions.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/props.ts",
+   "to": "@wren/studio/src/cuts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/props.ts",
+   "to": "@wren/studio/src/finish-look.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/props.ts",
+   "to": "@wren/studio/src/finish.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/props.ts",
+   "to": "@wren/studio/src/matte.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/studio/src/props.ts",
+   "to": "@wren/studio/src/media.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/props.ts",
+   "to": "@wren/studio/src/safe-zones.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/props.ts",
+   "to": "@wren/studio/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/studio/src/props.ts",
+   "to": "@wren/studio/src/sounds.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/props.ts",
+   "to": "@wren/studio/src/stress.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/props.ts",
+   "to": "@wren/video/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/punctuate.ts",
+   "to": "@wren/studio/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/studio/src/punctuate.ts",
+   "to": "@wren/studio/src/stress.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/studio/src/remotion.ts",
+   "to": "@wren/studio/src/finish.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/studio/src/remotion.ts",
+   "to": "@wren/studio/src/kit.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/remotion.ts",
+   "to": "@wren/studio/src/loudness.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/remotion.ts",
+   "to": "@wren/studio/src/promo.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/studio/src/remotion.ts",
+   "to": "@wren/studio/src/props.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/studio/src/render-hash.ts",
+   "to": "@wren/studio/src/caption-styles.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/render-hash.ts",
+   "to": "@wren/studio/src/cuts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/render-hash.ts",
+   "to": "@wren/studio/src/finish.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/render-hash.ts",
+   "to": "@wren/studio/src/props.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/render-hash.ts",
+   "to": "@wren/studio/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/studio/src/schema.ts",
+   "to": "@wren/db/src/columns.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/schema.ts",
+   "to": "@wren/studio/src/caption-styles.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/studio/src/schema.ts",
+   "to": "@wren/studio/src/finish.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/studio/src/schema.ts",
+   "to": "@wren/studio/src/sounds.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/studio/src/sentences.ts",
+   "to": "@wren/studio/src/cuts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/sentences.ts",
+   "to": "@wren/studio/src/media.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/sentences.ts",
+   "to": "@wren/studio/src/props.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/sentences.ts",
+   "to": "@wren/studio/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/studio/src/sounds.ts",
+   "to": "@wren/studio/src/duck.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/sounds.ts",
+   "to": "@wren/studio/src/fx.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/sounds.ts",
+   "to": "@wren/studio/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/studio/src/storyboard.ts",
+   "to": "@wren/studio/src/cuts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/storyboard.ts",
+   "to": "@wren/studio/src/finish.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/storyboard.ts",
+   "to": "@wren/studio/src/props.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/storyboard.ts",
+   "to": "@wren/studio/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/studio/src/storyboard.ts",
+   "to": "@wren/studio/src/sentences.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/stress.ts",
+   "to": "@wren/studio/src/captions.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/stress.ts",
+   "to": "@wren/studio/src/cuts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/stress.ts",
+   "to": "@wren/studio/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/studio/src/video-check.ts",
+   "to": "@wren/studio/src/bar.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/whisper.ts",
+   "to": "@wren/studio/src/align.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/studio/src/whisper.ts",
+   "to": "@wren/studio/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/studio/src/words.ts",
+   "to": "@wren/studio/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  }
+ ]
+}

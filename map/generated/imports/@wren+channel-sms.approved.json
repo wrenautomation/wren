@@ -1,0 +1,2350 @@
+{
+ "layer": "imports",
+ "nodes": [
+  {
+   "id": "@wren/channel-sms",
+   "role": "package",
+   "parent": "repo:wren",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "dir": "packages/channel-sms/",
+    "npm": [
+     "node:crypto"
+    ]
+   }
+  },
+  {
+   "id": "@wren/channel-sms/src/bookings.ts",
+   "role": "file",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms"
+  },
+  {
+   "id": "@wren/channel-sms/src/classify.ts",
+   "role": "file",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms"
+  },
+  {
+   "id": "@wren/channel-sms/src/clients.ts",
+   "role": "file",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms"
+  },
+  {
+   "id": "@wren/channel-sms/src/components.ts",
+   "role": "file",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms"
+  },
+  {
+   "id": "@wren/channel-sms/src/console-routes.ts",
+   "role": "file",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms"
+  },
+  {
+   "id": "@wren/channel-sms/src/contacts.ts",
+   "role": "file",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms"
+  },
+  {
+   "id": "@wren/channel-sms/src/deliver.ts",
+   "role": "file",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms"
+  },
+  {
+   "id": "@wren/channel-sms/src/enroll.ts",
+   "role": "file",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms"
+  },
+  {
+   "id": "@wren/channel-sms/src/events.ts",
+   "role": "file",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms"
+  },
+  {
+   "id": "@wren/channel-sms/src/follow.ts",
+   "role": "file",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms"
+  },
+  {
+   "id": "@wren/channel-sms/src/form-after.ts",
+   "role": "file",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms"
+  },
+  {
+   "id": "@wren/channel-sms/src/form.ts",
+   "role": "file",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms"
+  },
+  {
+   "id": "@wren/channel-sms/src/health.ts",
+   "role": "file",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms"
+  },
+  {
+   "id": "@wren/channel-sms/src/index.ts",
+   "role": "file",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms"
+  },
+  {
+   "id": "@wren/channel-sms/src/keyed.ts",
+   "role": "file",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms"
+  },
+  {
+   "id": "@wren/channel-sms/src/lift.ts",
+   "role": "file",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms"
+  },
+  {
+   "id": "@wren/channel-sms/src/linq.ts",
+   "role": "file",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms"
+  },
+  {
+   "id": "@wren/channel-sms/src/missed.ts",
+   "role": "file",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms"
+  },
+  {
+   "id": "@wren/channel-sms/src/operator.ts",
+   "role": "file",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms"
+  },
+  {
+   "id": "@wren/channel-sms/src/phone.ts",
+   "role": "file",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms"
+  },
+  {
+   "id": "@wren/channel-sms/src/policy.ts",
+   "role": "file",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms"
+  },
+  {
+   "id": "@wren/channel-sms/src/pool.ts",
+   "role": "file",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms"
+  },
+  {
+   "id": "@wren/channel-sms/src/provider.ts",
+   "role": "file",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms"
+  },
+  {
+   "id": "@wren/channel-sms/src/push.ts",
+   "role": "file",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms"
+  },
+  {
+   "id": "@wren/channel-sms/src/records.ts",
+   "role": "file",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms"
+  },
+  {
+   "id": "@wren/channel-sms/src/refusal.ts",
+   "role": "file",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms"
+  },
+  {
+   "id": "@wren/channel-sms/src/registration.ts",
+   "role": "file",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms"
+  },
+  {
+   "id": "@wren/channel-sms/src/reminders.ts",
+   "role": "file",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms"
+  },
+  {
+   "id": "@wren/channel-sms/src/restate/answers.ts",
+   "role": "file",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms"
+  },
+  {
+   "id": "@wren/channel-sms/src/restate/console.ts",
+   "role": "file",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms"
+  },
+  {
+   "id": "@wren/channel-sms/src/restate/forms.ts",
+   "role": "file",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms"
+  },
+  {
+   "id": "@wren/channel-sms/src/restate/index.ts",
+   "role": "file",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms"
+  },
+  {
+   "id": "@wren/channel-sms/src/reviews.ts",
+   "role": "file",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms"
+  },
+  {
+   "id": "@wren/channel-sms/src/schema.ts",
+   "role": "file",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms"
+  },
+  {
+   "id": "@wren/channel-sms/src/settings.ts",
+   "role": "file",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms"
+  },
+  {
+   "id": "@wren/channel-sms/src/setups.ts",
+   "role": "file",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms"
+  },
+  {
+   "id": "@wren/channel-sms/src/signer.ts",
+   "role": "file",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms"
+  },
+  {
+   "id": "@wren/channel-sms/src/speed.ts",
+   "role": "file",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms"
+  },
+  {
+   "id": "@wren/channel-sms/src/stats.ts",
+   "role": "file",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms"
+  },
+  {
+   "id": "@wren/channel-sms/src/telnyx.ts",
+   "role": "file",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms"
+  },
+  {
+   "id": "@wren/channel-sms/src/template-store.ts",
+   "role": "file",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms"
+  },
+  {
+   "id": "@wren/channel-sms/src/templates.ts",
+   "role": "file",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms"
+  },
+  {
+   "id": "@wren/channel-sms/src/threads.ts",
+   "role": "file",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms"
+  },
+  {
+   "id": "@wren/channel-sms/src/webhook.ts",
+   "role": "file",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms"
+  },
+  {
+   "id": "@wren/channel-sms/test/integration/fixtures.ts",
+   "role": "file",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms"
+  },
+  {
+   "id": "@wren/channel-sms/vitest.config.ts",
+   "role": "file",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms"
+  }
+ ],
+ "edges": [
+  {
+   "from": "@wren/channel-sms",
+   "to": "@wren/config",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms",
+   "to": "@wren/core",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms",
+   "to": "@wren/db",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms",
+   "to": "@wren/llm",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms",
+   "to": "@wren/research",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/classify.ts",
+   "to": "@wren/channel-sms/src/deliver.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/classify.ts",
+   "to": "@wren/channel-sms/src/refusal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/classify.ts",
+   "to": "@wren/channel-sms/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/classify.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/classify.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/classify.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/clients.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/clients.ts",
+   "to": "@wren/core/src/custom-fields.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/clients.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/components.ts",
+   "to": "@wren/channel-sms/src/clients.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/components.ts",
+   "to": "@wren/core/src/components.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/components.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/components.ts",
+   "to": "@wren/core/src/workflows.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/console-routes.ts",
+   "to": "@wren/core/src/access.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/contacts.ts",
+   "to": "@wren/channel-sms/src/deliver.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/contacts.ts",
+   "to": "@wren/channel-sms/src/phone.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/contacts.ts",
+   "to": "@wren/channel-sms/src/policy.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/contacts.ts",
+   "to": "@wren/channel-sms/src/pool.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/contacts.ts",
+   "to": "@wren/channel-sms/src/refusal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/contacts.ts",
+   "to": "@wren/channel-sms/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/contacts.ts",
+   "to": "@wren/core/src/profiles-backfill.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/contacts.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/deliver.ts",
+   "to": "@wren/channel-sms/src/policy.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/deliver.ts",
+   "to": "@wren/channel-sms/src/pool.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/deliver.ts",
+   "to": "@wren/channel-sms/src/provider.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/deliver.ts",
+   "to": "@wren/channel-sms/src/refusal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/deliver.ts",
+   "to": "@wren/channel-sms/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/deliver.ts",
+   "to": "@wren/channel-sms/src/template-store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/deliver.ts",
+   "to": "@wren/channel-sms/src/templates.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/deliver.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/deliver.ts",
+   "to": "@wren/core/src/message-settings.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/deliver.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/enroll.ts",
+   "to": "@wren/channel-sms/src/phone.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/enroll.ts",
+   "to": "@wren/channel-sms/src/policy.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/enroll.ts",
+   "to": "@wren/channel-sms/src/pool.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/enroll.ts",
+   "to": "@wren/channel-sms/src/provider.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/enroll.ts",
+   "to": "@wren/channel-sms/src/refusal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/enroll.ts",
+   "to": "@wren/channel-sms/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/enroll.ts",
+   "to": "@wren/channel-sms/src/template-store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/enroll.ts",
+   "to": "@wren/channel-sms/src/templates.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/enroll.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/enroll.ts",
+   "to": "@wren/core/src/leads.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/enroll.ts",
+   "to": "@wren/core/src/slots/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/enroll.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/events.ts",
+   "to": "@wren/channel-sms/src/deliver.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/events.ts",
+   "to": "@wren/channel-sms/src/phone.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/events.ts",
+   "to": "@wren/channel-sms/src/pool.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/events.ts",
+   "to": "@wren/channel-sms/src/provider.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/events.ts",
+   "to": "@wren/channel-sms/src/push.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/events.ts",
+   "to": "@wren/channel-sms/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/events.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/events.ts",
+   "to": "@wren/core/src/marketing.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/events.ts",
+   "to": "@wren/core/src/notify.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/events.ts",
+   "to": "@wren/core/src/profiles-backfill.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/events.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/follow.ts",
+   "to": "@wren/channel-sms/src/bookings.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/follow.ts",
+   "to": "@wren/channel-sms/src/components.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/follow.ts",
+   "to": "@wren/channel-sms/src/deliver.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/follow.ts",
+   "to": "@wren/channel-sms/src/policy.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/follow.ts",
+   "to": "@wren/channel-sms/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/follow.ts",
+   "to": "@wren/channel-sms/src/template-store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/follow.ts",
+   "to": "@wren/channel-sms/src/templates.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/follow.ts",
+   "to": "@wren/core/src/custom-fields.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/follow.ts",
+   "to": "@wren/core/src/executor.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/follow.ts",
+   "to": "@wren/core/src/follow.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/follow.ts",
+   "to": "@wren/core/src/leads.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/follow.ts",
+   "to": "@wren/core/src/template-defaults.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/follow.ts",
+   "to": "@wren/core/src/template-labels.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/follow.ts",
+   "to": "@wren/core/src/templates.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/follow.ts",
+   "to": "@wren/core/src/workflows.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/follow.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/form-after.ts",
+   "to": "@wren/channel-sms/src/bookings.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/form-after.ts",
+   "to": "@wren/channel-sms/src/form.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/form-after.ts",
+   "to": "@wren/channel-sms/src/phone.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/form-after.ts",
+   "to": "@wren/channel-sms/src/policy.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/form-after.ts",
+   "to": "@wren/channel-sms/src/reviews.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/form-after.ts",
+   "to": "@wren/channel-sms/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/form-after.ts",
+   "to": "@wren/channel-sms/src/templates.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/form-after.ts",
+   "to": "@wren/core/src/notify.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/form-after.ts",
+   "to": "@wren/core/src/slots/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/form-after.ts",
+   "to": "@wren/core/src/template-defaults.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/form-after.ts",
+   "to": "@wren/core/src/templates.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/form-after.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/form.ts",
+   "to": "@wren/channel-sms/src/bookings.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/form.ts",
+   "to": "@wren/channel-sms/src/enroll.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/form.ts",
+   "to": "@wren/channel-sms/src/follow.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/form.ts",
+   "to": "@wren/channel-sms/src/phone.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/form.ts",
+   "to": "@wren/channel-sms/src/policy.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/form.ts",
+   "to": "@wren/channel-sms/src/provider.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/form.ts",
+   "to": "@wren/channel-sms/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/form.ts",
+   "to": "@wren/channel-sms/src/template-store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/form.ts",
+   "to": "@wren/channel-sms/src/templates.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/form.ts",
+   "to": "@wren/core/src/leads.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/form.ts",
+   "to": "@wren/core/src/profiles-backfill.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/form.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/health.ts",
+   "to": "@wren/channel-sms/src/phone.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/health.ts",
+   "to": "@wren/channel-sms/src/pool.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/health.ts",
+   "to": "@wren/channel-sms/src/provider.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/health.ts",
+   "to": "@wren/channel-sms/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/health.ts",
+   "to": "@wren/core/src/notify.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/health.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/index.ts",
+   "to": "@wren/channel-sms/src/bookings.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/index.ts",
+   "to": "@wren/channel-sms/src/classify.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/index.ts",
+   "to": "@wren/channel-sms/src/clients.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/index.ts",
+   "to": "@wren/channel-sms/src/contacts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/index.ts",
+   "to": "@wren/channel-sms/src/deliver.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/index.ts",
+   "to": "@wren/channel-sms/src/enroll.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/index.ts",
+   "to": "@wren/channel-sms/src/events.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/index.ts",
+   "to": "@wren/channel-sms/src/follow.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/index.ts",
+   "to": "@wren/channel-sms/src/form-after.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/index.ts",
+   "to": "@wren/channel-sms/src/form.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/index.ts",
+   "to": "@wren/channel-sms/src/health.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/index.ts",
+   "to": "@wren/channel-sms/src/keyed.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/index.ts",
+   "to": "@wren/channel-sms/src/lift.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/index.ts",
+   "to": "@wren/channel-sms/src/missed.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/index.ts",
+   "to": "@wren/channel-sms/src/operator.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/index.ts",
+   "to": "@wren/channel-sms/src/phone.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/index.ts",
+   "to": "@wren/channel-sms/src/policy.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/index.ts",
+   "to": "@wren/channel-sms/src/pool.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/index.ts",
+   "to": "@wren/channel-sms/src/provider.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/index.ts",
+   "to": "@wren/channel-sms/src/push.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/index.ts",
+   "to": "@wren/channel-sms/src/refusal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/index.ts",
+   "to": "@wren/channel-sms/src/registration.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/index.ts",
+   "to": "@wren/channel-sms/src/reminders.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/index.ts",
+   "to": "@wren/channel-sms/src/reviews.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/index.ts",
+   "to": "@wren/channel-sms/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/index.ts",
+   "to": "@wren/channel-sms/src/settings.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/index.ts",
+   "to": "@wren/channel-sms/src/setups.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/index.ts",
+   "to": "@wren/channel-sms/src/speed.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/index.ts",
+   "to": "@wren/channel-sms/src/stats.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/index.ts",
+   "to": "@wren/channel-sms/src/telnyx.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/index.ts",
+   "to": "@wren/channel-sms/src/template-store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/index.ts",
+   "to": "@wren/channel-sms/src/templates.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/index.ts",
+   "to": "@wren/channel-sms/src/threads.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/index.ts",
+   "to": "@wren/channel-sms/src/webhook.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/keyed.ts",
+   "to": "@wren/channel-sms/src/provider.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/keyed.ts",
+   "to": "@wren/core/src/vendor-keys.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/keyed.ts",
+   "to": "@wren/core/src/vendors.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/keyed.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/lift.ts",
+   "to": "@wren/channel-sms/src/phone.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/lift.ts",
+   "to": "@wren/channel-sms/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/lift.ts",
+   "to": "@wren/core/src/profiles-backfill.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/lift.ts",
+   "to": "@wren/core/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/lift.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/lift.ts",
+   "to": "@wren/research/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/linq.ts",
+   "to": "@wren/channel-sms/src/provider.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/linq.ts",
+   "to": "@wren/channel-sms/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/linq.ts",
+   "to": "@wren/channel-sms/src/telnyx.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/missed.ts",
+   "to": "@wren/channel-sms/src/phone.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/missed.ts",
+   "to": "@wren/channel-sms/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/missed.ts",
+   "to": "@wren/channel-sms/src/template-store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/missed.ts",
+   "to": "@wren/channel-sms/src/templates.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/missed.ts",
+   "to": "@wren/core/src/executor.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/missed.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/missed.ts",
+   "to": "@wren/core/src/leads.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/missed.ts",
+   "to": "@wren/core/src/profiles-backfill.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/missed.ts",
+   "to": "@wren/core/src/template-defaults.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/missed.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/operator.ts",
+   "to": "@wren/channel-sms/src/phone.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/operator.ts",
+   "to": "@wren/channel-sms/src/provider.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/operator.ts",
+   "to": "@wren/channel-sms/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/operator.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/operator.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/phone.ts",
+   "to": "@wren/channel-sms/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/phone.ts",
+   "to": "@wren/research/src/phones.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/policy.ts",
+   "to": "@wren/channel-sms/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/policy.ts",
+   "to": "@wren/core/src/time.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/pool.ts",
+   "to": "@wren/channel-sms/src/phone.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/pool.ts",
+   "to": "@wren/channel-sms/src/policy.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/pool.ts",
+   "to": "@wren/channel-sms/src/provider.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/pool.ts",
+   "to": "@wren/channel-sms/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/pool.ts",
+   "to": "@wren/core/src/time.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/pool.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/provider.ts",
+   "to": "@wren/channel-sms/src/refusal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/provider.ts",
+   "to": "@wren/channel-sms/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/provider.ts",
+   "to": "@wren/channel-sms/src/templates.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/push.ts",
+   "to": "@wren/channel-sms/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/push.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/records.ts",
+   "to": "@wren/channel-sms/src/phone.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/records.ts",
+   "to": "@wren/channel-sms/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/records.ts",
+   "to": "@wren/channel-sms/src/template-store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/records.ts",
+   "to": "@wren/channel-sms/src/templates.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/records.ts",
+   "to": "@wren/channel-sms/src/threads.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/records.ts",
+   "to": "@wren/core/src/calls.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/records.ts",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/records.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/registration.ts",
+   "to": "@wren/channel-sms/src/policy.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/registration.ts",
+   "to": "@wren/channel-sms/src/provider.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/registration.ts",
+   "to": "@wren/channel-sms/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/registration.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/reminders.ts",
+   "to": "@wren/channel-sms/src/bookings.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/reminders.ts",
+   "to": "@wren/channel-sms/src/deliver.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/reminders.ts",
+   "to": "@wren/channel-sms/src/phone.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/reminders.ts",
+   "to": "@wren/channel-sms/src/policy.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/reminders.ts",
+   "to": "@wren/channel-sms/src/pool.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/reminders.ts",
+   "to": "@wren/channel-sms/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/reminders.ts",
+   "to": "@wren/channel-sms/src/template-store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/reminders.ts",
+   "to": "@wren/channel-sms/src/templates.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/reminders.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/reminders.ts",
+   "to": "@wren/core/src/time.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/reminders.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/answers.ts",
+   "to": "@wren/channel-sms/src/missed.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/answers.ts",
+   "to": "@wren/channel-sms/src/reviews.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/answers.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/answers.ts",
+   "to": "@wren/core/src/executor.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/answers.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/answers.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/console.ts",
+   "to": "@wren/channel-sms/src/clients.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/console.ts",
+   "to": "@wren/channel-sms/src/console-routes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/console.ts",
+   "to": "@wren/channel-sms/src/phone.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/console.ts",
+   "to": "@wren/channel-sms/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/console.ts",
+   "to": "@wren/channel-sms/src/restate/answers.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/console.ts",
+   "to": "@wren/channel-sms/src/restate/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/console.ts",
+   "to": "@wren/channel-sms/src/reviews.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/console.ts",
+   "to": "@wren/channel-sms/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/console.ts",
+   "to": "@wren/core/src/calls.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/console.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/console.ts",
+   "to": "@wren/core/src/executor.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/console.ts",
+   "to": "@wren/core/src/portal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/console.ts",
+   "to": "@wren/core/src/records-serve.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/console.ts",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/console.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/console.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/forms.ts",
+   "to": "@wren/channel-sms/src/form-after.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/forms.ts",
+   "to": "@wren/channel-sms/src/form.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/forms.ts",
+   "to": "@wren/channel-sms/src/restate/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/forms.ts",
+   "to": "@wren/channel-sms/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/forms.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/index.ts",
+   "to": "@wren/channel-sms/src/bookings.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/index.ts",
+   "to": "@wren/channel-sms/src/classify.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/index.ts",
+   "to": "@wren/channel-sms/src/clients.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/index.ts",
+   "to": "@wren/channel-sms/src/contacts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/index.ts",
+   "to": "@wren/channel-sms/src/deliver.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/index.ts",
+   "to": "@wren/channel-sms/src/enroll.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/index.ts",
+   "to": "@wren/channel-sms/src/events.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/index.ts",
+   "to": "@wren/channel-sms/src/follow.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/index.ts",
+   "to": "@wren/channel-sms/src/form-after.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/index.ts",
+   "to": "@wren/channel-sms/src/form.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/index.ts",
+   "to": "@wren/channel-sms/src/health.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/index.ts",
+   "to": "@wren/channel-sms/src/lift.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/index.ts",
+   "to": "@wren/channel-sms/src/phone.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/index.ts",
+   "to": "@wren/channel-sms/src/policy.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/index.ts",
+   "to": "@wren/channel-sms/src/pool.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/index.ts",
+   "to": "@wren/channel-sms/src/provider.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/index.ts",
+   "to": "@wren/channel-sms/src/push.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/index.ts",
+   "to": "@wren/channel-sms/src/refusal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/index.ts",
+   "to": "@wren/channel-sms/src/registration.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/index.ts",
+   "to": "@wren/channel-sms/src/reminders.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/index.ts",
+   "to": "@wren/channel-sms/src/restate/answers.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/index.ts",
+   "to": "@wren/channel-sms/src/restate/console.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/index.ts",
+   "to": "@wren/channel-sms/src/restate/forms.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/index.ts",
+   "to": "@wren/channel-sms/src/reviews.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/index.ts",
+   "to": "@wren/channel-sms/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/index.ts",
+   "to": "@wren/channel-sms/src/signer.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/index.ts",
+   "to": "@wren/channel-sms/src/stats.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/index.ts",
+   "to": "@wren/channel-sms/src/template-store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/index.ts",
+   "to": "@wren/channel-sms/src/templates.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/index.ts",
+   "to": "@wren/channel-sms/src/threads.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/index.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/index.ts",
+   "to": "@wren/core/src/executor.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/index.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/index.ts",
+   "to": "@wren/core/src/keys.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/index.ts",
+   "to": "@wren/core/src/notify.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/index.ts",
+   "to": "@wren/core/src/reply-who.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/index.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/index.ts",
+   "to": "@wren/core/src/workflows.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/index.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/index.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/reviews.ts",
+   "to": "@wren/channel-sms/src/phone.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/reviews.ts",
+   "to": "@wren/channel-sms/src/pool.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/reviews.ts",
+   "to": "@wren/channel-sms/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/reviews.ts",
+   "to": "@wren/channel-sms/src/setups.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/reviews.ts",
+   "to": "@wren/channel-sms/src/template-store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/reviews.ts",
+   "to": "@wren/channel-sms/src/templates.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/reviews.ts",
+   "to": "@wren/core/src/door.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/reviews.ts",
+   "to": "@wren/core/src/executor.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/reviews.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/reviews.ts",
+   "to": "@wren/core/src/leads.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/reviews.ts",
+   "to": "@wren/core/src/profiles-backfill.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/reviews.ts",
+   "to": "@wren/core/src/setup-schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/reviews.ts",
+   "to": "@wren/core/src/slots/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/reviews.ts",
+   "to": "@wren/core/src/template-defaults.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/reviews.ts",
+   "to": "@wren/core/src/templates.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/reviews.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/schema.ts",
+   "to": "@wren/core/src/calls.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/schema.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/schema.ts",
+   "to": "@wren/core/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/schema.ts",
+   "to": "@wren/db/src/columns.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/schema.ts",
+   "to": "@wren/research/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/settings.ts",
+   "to": "@wren/channel-sms/src/health.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/settings.ts",
+   "to": "@wren/channel-sms/src/linq.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/settings.ts",
+   "to": "@wren/channel-sms/src/phone.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/settings.ts",
+   "to": "@wren/channel-sms/src/policy.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/settings.ts",
+   "to": "@wren/channel-sms/src/provider.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/settings.ts",
+   "to": "@wren/channel-sms/src/push.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/settings.ts",
+   "to": "@wren/channel-sms/src/telnyx.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/settings.ts",
+   "to": "@wren/config/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/setups.ts",
+   "to": "@wren/channel-sms/src/clients.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/setups.ts",
+   "to": "@wren/channel-sms/src/provider.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/setups.ts",
+   "to": "@wren/channel-sms/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/setups.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/setups.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/setups.ts",
+   "to": "@wren/core/src/setup.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/setups.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/signer.ts",
+   "to": "@wren/channel-sms/src/clients.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/signer.ts",
+   "to": "@wren/channel-sms/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/signer.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/signer.ts",
+   "to": "@wren/core/src/keys.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/signer.ts",
+   "to": "@wren/core/src/vendor-keys.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/signer.ts",
+   "to": "@wren/core/src/vendors.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/signer.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/speed.ts",
+   "to": "@wren/channel-sms/src/components.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/speed.ts",
+   "to": "@wren/channel-sms/src/enroll.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/speed.ts",
+   "to": "@wren/channel-sms/src/form.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/speed.ts",
+   "to": "@wren/channel-sms/src/phone.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/speed.ts",
+   "to": "@wren/channel-sms/src/policy.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/speed.ts",
+   "to": "@wren/channel-sms/src/provider.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/speed.ts",
+   "to": "@wren/channel-sms/src/refusal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/speed.ts",
+   "to": "@wren/channel-sms/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/speed.ts",
+   "to": "@wren/channel-sms/src/template-store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/speed.ts",
+   "to": "@wren/channel-sms/src/templates.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/speed.ts",
+   "to": "@wren/core/src/door.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/speed.ts",
+   "to": "@wren/core/src/executor.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/speed.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/speed.ts",
+   "to": "@wren/core/src/leads.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/speed.ts",
+   "to": "@wren/core/src/profiles-backfill.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/speed.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/stats.ts",
+   "to": "@wren/channel-sms/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/stats.ts",
+   "to": "@wren/core/src/stats.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/stats.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/telnyx.ts",
+   "to": "@wren/channel-sms/src/provider.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/telnyx.ts",
+   "to": "@wren/channel-sms/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/template-store.ts",
+   "to": "@wren/channel-sms/src/provider.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/template-store.ts",
+   "to": "@wren/channel-sms/src/refusal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/template-store.ts",
+   "to": "@wren/channel-sms/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/template-store.ts",
+   "to": "@wren/channel-sms/src/templates.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/template-store.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/template-store.ts",
+   "to": "@wren/core/src/slots/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/template-store.ts",
+   "to": "@wren/core/src/templates.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/template-store.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/templates.ts",
+   "to": "@wren/core/src/slots/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/threads.ts",
+   "to": "@wren/channel-sms/src/deliver.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/threads.ts",
+   "to": "@wren/channel-sms/src/phone.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/threads.ts",
+   "to": "@wren/channel-sms/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/threads.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/threads.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/test/integration/fixtures.ts",
+   "to": "@wren/channel-sms/src/lift.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/test/integration/fixtures.ts",
+   "to": "@wren/channel-sms/src/phone.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/test/integration/fixtures.ts",
+   "to": "@wren/channel-sms/src/policy.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/test/integration/fixtures.ts",
+   "to": "@wren/channel-sms/src/provider.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/test/integration/fixtures.ts",
+   "to": "@wren/channel-sms/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/test/integration/fixtures.ts",
+   "to": "@wren/channel-sms/src/template-store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/test/integration/fixtures.ts",
+   "to": "@wren/channel-sms/src/templates.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/test/integration/fixtures.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/test/integration/fixtures.ts",
+   "to": "@wren/core/src/notify.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/test/integration/fixtures.ts",
+   "to": "@wren/core/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/test/integration/fixtures.ts",
+   "to": "@wren/core/src/templates.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/test/integration/fixtures.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/test/integration/fixtures.ts",
+   "to": "@wren/research/src/enrichment/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/test/integration/fixtures.ts",
+   "to": "@wren/research/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/vitest.config.ts",
+   "to": "@wren/db/src/testing-vitest.ts",
+   "kind": "imports"
+  }
+ ]
+}

@@ -1,0 +1,34 @@
+{
+ "layer": "api",
+ "nodes": [
+  {
+   "id": "@wren/channel-tiktok#tiktokContent",
+   "role": "export",
+   "parent": "@wren/channel-tiktok",
+   "group": "@wren/channel-tiktok",
+   "attrs": {
+    "entries": [
+     "@wren/channel-tiktok"
+    ],
+    "file": "packages/channel-tiktok/src/content.ts",
+    "kind": "function",
+    "sig": "(sites: SiteClient, o: TikTokContentOptions = {}): ContentChannel"
+   }
+  },
+  {
+   "id": "@wren/channel-tiktok#tiktokCreator",
+   "role": "export",
+   "parent": "@wren/channel-tiktok",
+   "group": "@wren/channel-tiktok",
+   "attrs": {
+    "entries": [
+     "@wren/channel-tiktok"
+    ],
+    "file": "packages/channel-tiktok/src/content.ts",
+    "kind": "function",
+    "sig": "(sites: SiteClient): Promise<TikTokCreator>"
+   }
+  }
+ ],
+ "edges": []
+}

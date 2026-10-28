@@ -1,0 +1,398 @@
+{
+ "layer": "routes",
+ "nodes": [
+  {
+   "id": "route:Reviews/click",
+   "role": "route",
+   "parent": "service:Reviews",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "input": "z.infer<typeof CLICK>",
+    "output": "{ to: string | null }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Reviews/feedback",
+   "role": "route",
+   "parent": "service:Reviews",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "input": "z.infer<typeof FEEDBACK>",
+    "output": "{ ok: boolean }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Reviews/stop",
+   "role": "route",
+   "parent": "service:Reviews",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "input": "z.infer<typeof CLICK>",
+    "output": "{ ok: boolean }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SmsDesk/addContact",
+   "role": "route",
+   "parent": "service:SmsDesk",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "input": "{ phone: string; basis: ContactBasis; why: string; niche?: string } & ForClient",
+    "output": "{ contactId: number; e164: string; created: boolean }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SmsDesk/enroll",
+   "role": "route",
+   "parent": "service:SmsDesk",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "input": "{ sequence: string; niche?: string; limit: number } & ForClient",
+    "output": "EnrollStats",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SmsDesk/forms",
+   "role": "route",
+   "parent": "service:SmsDesk",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "input": "void",
+    "output": "FormStats",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SmsDesk/label",
+   "role": "route",
+   "parent": "service:SmsDesk",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "input": "{ messageId: number; disposition: Disposition } & ForClient",
+    "output": "void",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SmsDesk/lift",
+   "role": "route",
+   "parent": "service:SmsDesk",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "input": "{ niche?: string; limit?: number } & ForClient",
+    "output": "LiftStats",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SmsDesk/markRead",
+   "role": "route",
+   "parent": "service:SmsDesk",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "input": "{ contactId: number } & ForClient",
+    "output": "void",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SmsDesk/numbers",
+   "role": "route",
+   "parent": "service:SmsDesk",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "input": "void",
+    "output": "NumbersView",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SmsDesk/pause",
+   "role": "route",
+   "parent": "service:SmsDesk",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "input": "{ e164: string; reason?: string }",
+    "output": "boolean",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SmsDesk/pushKey",
+   "role": "route",
+   "parent": "service:SmsDesk",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "input": "void",
+    "output": "{ publicKey: string | null }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SmsDesk/register",
+   "role": "route",
+   "parent": "service:SmsDesk",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "input": "void",
+    "output": "RegistrationStats",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SmsDesk/reminders",
+   "role": "route",
+   "parent": "service:SmsDesk",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "input": "{ client?: string | null }",
+    "output": "ReminderStats",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SmsDesk/reply",
+   "role": "route",
+   "parent": "service:SmsDesk",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "input": "{ contactId: number; body: string; kind?: \"manual\" | \"pay\" | \"doc\" } & ForClient",
+    "output": "{ messageId: number }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SmsDesk/resume",
+   "role": "route",
+   "parent": "service:SmsDesk",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "input": "{ e164: string }",
+    "output": "boolean",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SmsDesk/setTemplate",
+   "role": "route",
+   "parent": "service:SmsDesk",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "input": "Omit<SetTemplate, \"by\"> & { by?: string | null; viewer?: { email?: string }; client?: string | null; }",
+    "output": "SlotView",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SmsDesk/start",
+   "role": "route",
+   "parent": "service:SmsDesk",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "input": "{ phone: string; why: string; body: string }",
+    "output": "{ contactId: number; messageId: number }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SmsDesk/stats",
+   "role": "route",
+   "parent": "service:SmsDesk",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "input": "{ days?: number; niche?: string } & ForClient",
+    "output": "SmsStats",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SmsDesk/subscribe",
+   "role": "route",
+   "parent": "service:SmsDesk",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "input": "{ subscription: PushSubscriptionInput; by: string }",
+    "output": "{ pushed: boolean; error: string | null }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SmsDesk/syncNumbers",
+   "role": "route",
+   "parent": "service:SmsDesk",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "input": "void",
+    "output": "SyncStats",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SmsDesk/templates",
+   "role": "route",
+   "parent": "service:SmsDesk",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "input": "{ client?: string | null }",
+    "output": "SlotView[]",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SmsDesk/thread",
+   "role": "route",
+   "parent": "service:SmsDesk",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "input": "{ contactId: number } & ForClient",
+    "output": "Thread | null",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SmsDesk/threads",
+   "role": "route",
+   "parent": "service:SmsDesk",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "input": "{ filter?: ThreadFilter; limit?: number; offset?: number } & ForClient",
+    "output": "ThreadSummary[]",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SmsDesk/unsubscribe",
+   "role": "route",
+   "parent": "service:SmsDesk",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "input": "{ endpoint: string }",
+    "output": "{ removed: boolean }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SmsEvents/ingest",
+   "role": "route",
+   "parent": "service:SmsEvents",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "input": "unknown",
+    "output": "{ duplicate: boolean; outcome: string }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:SmsEvents/ingestFor",
+   "role": "route",
+   "parent": "service:SmsEvents",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "input": "{ client: string; body: unknown }",
+    "output": "{ duplicate: boolean; outcome: string }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:SmsEvents/signer",
+   "role": "route",
+   "parent": "service:SmsEvents",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "input": "{ number?: string | null; client?: string | null }",
+    "output": "Signer",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SmsForms/applied",
+   "role": "route",
+   "parent": "service:SmsForms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "input": "{ application: number }",
+    "output": "Stepped | null",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SmsForms/check",
+   "role": "route",
+   "parent": "service:SmsForms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "input": "RunRequest",
+    "output": "string",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SmsForms/email",
+   "role": "route",
+   "parent": "service:SmsForms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "input": "RunRequest",
+    "output": "EmailOutcome",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SmsForms/first",
+   "role": "route",
+   "parent": "service:SmsForms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "input": "FirstRequest",
+    "output": "Stepped",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "service:Reviews",
+   "role": "service",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "file": "packages/channel-sms/src/restate/answers.ts",
+    "kind": "service"
+   }
+  },
+  {
+   "id": "service:SmsDesk",
+   "role": "service",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "file": "packages/channel-sms/src/restate/index.ts",
+    "kind": "service"
+   }
+  },
+  {
+   "id": "service:SmsEvents",
+   "role": "service",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "file": "packages/channel-sms/src/restate/index.ts",
+    "kind": "service"
+   }
+  },
+  {
+   "id": "service:SmsForms",
+   "role": "service",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "file": "packages/channel-sms/src/restate/forms.ts",
+    "kind": "service"
+   }
+  }
+ ],
+ "edges": []
+}

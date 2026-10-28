@@ -1,0 +1,668 @@
+{
+ "layer": "api",
+ "nodes": [
+  {
+   "id": "@wren/watch#IDS",
+   "role": "export",
+   "parent": "@wren/watch",
+   "group": "@wren/watch",
+   "attrs": {
+    "entries": [
+     "@wren/watch/restate"
+    ],
+    "file": "packages/watch/src/console.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ ids: z.ZodArray<z.ZodUnion<readonly [z.ZodString, z.ZodNumber]>>; viewer: z.ZodOptional<z.ZodObject<{}, z.core.$loose>>; client: z.ZodOptional<z.ZodString>; asClient: z.ZodOptional<z.ZodBoolean>; }"
+   }
+  },
+  {
+   "id": "@wren/watch#IdsRequest",
+   "role": "export",
+   "parent": "@wren/watch",
+   "group": "@wren/watch",
+   "attrs": {
+    "entries": [
+     "@wren/watch/restate"
+    ],
+    "file": "packages/watch/src/console.ts",
+    "kind": "interface",
+    "sig": "interface IdsRequest extends PortalRequest { ids: (string | number)[]; }"
+   }
+  },
+  {
+   "id": "@wren/watch#MAIL_COMPONENTS",
+   "role": "export",
+   "parent": "@wren/watch",
+   "group": "@wren/watch",
+   "attrs": {
+    "entries": [
+     "@wren/watch/components"
+    ],
+    "file": "packages/watch/src/components.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"@wren/core/components\").Component[]"
+   }
+  },
+  {
+   "id": "@wren/watch#MAIL_FLOW",
+   "role": "export",
+   "parent": "@wren/watch",
+   "group": "@wren/watch",
+   "attrs": {
+    "entries": [
+     "@wren/watch/clients"
+    ],
+    "file": "packages/watch/src/clients.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"mail\""
+   }
+  },
+  {
+   "id": "@wren/watch#MAIL_FROM",
+   "role": "export",
+   "parent": "@wren/watch",
+   "group": "@wren/watch",
+   "attrs": {
+    "entries": [
+     "@wren/watch/clients"
+    ],
+    "file": "packages/watch/src/clients.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"read.mail\""
+   }
+  },
+  {
+   "id": "@wren/watch#MAIL_SENT_STATES",
+   "role": "export",
+   "parent": "@wren/watch",
+   "group": "@wren/watch",
+   "attrs": {
+    "entries": [
+     "@wren/watch",
+     "@wren/watch/schema"
+    ],
+    "file": "packages/watch/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"sending\", \"sent\", \"failed\"]"
+   }
+  },
+  {
+   "id": "@wren/watch#MailSentState",
+   "role": "export",
+   "parent": "@wren/watch",
+   "group": "@wren/watch",
+   "attrs": {
+    "entries": [
+     "@wren/watch",
+     "@wren/watch/schema"
+    ],
+    "file": "packages/watch/src/schema.ts",
+    "kind": "type",
+    "sig": "type MailSentState = (typeof MAIL_SENT_STATES)[number];"
+   }
+  },
+  {
+   "id": "@wren/watch#READERS",
+   "role": "export",
+   "parent": "@wren/watch",
+   "group": "@wren/watch",
+   "attrs": {
+    "entries": [
+     "@wren/watch",
+     "@wren/watch/schema"
+    ],
+    "file": "packages/watch/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"monitor\", \"mail\"]"
+   }
+  },
+  {
+   "id": "@wren/watch#ReadStats",
+   "role": "export",
+   "parent": "@wren/watch",
+   "group": "@wren/watch",
+   "attrs": {
+    "entries": [
+     "@wren/watch"
+    ],
+    "file": "packages/watch/src/read.ts",
+    "kind": "interface",
+    "sig": "interface ReadStats { kept: number[]; failed: Array<{ mailbox: string; error: string }>; }"
+   }
+  },
+  {
+   "id": "@wren/watch#Reader",
+   "role": "export",
+   "parent": "@wren/watch",
+   "group": "@wren/watch",
+   "attrs": {
+    "entries": [
+     "@wren/watch",
+     "@wren/watch/schema"
+    ],
+    "file": "packages/watch/src/schema.ts",
+    "kind": "type",
+    "sig": "type Reader = (typeof READERS)[number];"
+   }
+  },
+  {
+   "id": "@wren/watch#Rule",
+   "role": "export",
+   "parent": "@wren/watch",
+   "group": "@wren/watch",
+   "attrs": {
+    "entries": [
+     "@wren/watch",
+     "@wren/watch/triage"
+    ],
+    "file": "packages/watch/src/triage.ts",
+    "kind": "type",
+    "sig": "type Rule = typeof rules.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/watch#VERDICTS",
+   "role": "export",
+   "parent": "@wren/watch",
+   "group": "@wren/watch",
+   "attrs": {
+    "entries": [
+     "@wren/watch",
+     "@wren/watch/schema"
+    ],
+    "file": "packages/watch/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"show\", \"hold\", \"drop\"]"
+   }
+  },
+  {
+   "id": "@wren/watch#Verdict",
+   "role": "export",
+   "parent": "@wren/watch",
+   "group": "@wren/watch",
+   "attrs": {
+    "entries": [
+     "@wren/watch",
+     "@wren/watch/schema"
+    ],
+    "file": "packages/watch/src/schema.ts",
+    "kind": "type",
+    "sig": "type Verdict = (typeof VERDICTS)[number];"
+   }
+  },
+  {
+   "id": "@wren/watch#WATCH_COMPONENTS",
+   "role": "export",
+   "parent": "@wren/watch",
+   "group": "@wren/watch",
+   "attrs": {
+    "entries": [
+     "@wren/watch/components"
+    ],
+    "file": "packages/watch/src/components.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"@wren/core/components\").Component[]"
+   }
+  },
+  {
+   "id": "@wren/watch#WATCH_CONSOLE_APPS",
+   "role": "export",
+   "parent": "@wren/watch",
+   "group": "@wren/watch",
+   "attrs": {
+    "entries": [
+     "@wren/watch/console-routes"
+    ],
+    "file": "packages/watch/src/console-routes.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly \"*\": \"inbox\"; }"
+   }
+  },
+  {
+   "id": "@wren/watch#WATCH_CONSOLE_ROUTES",
+   "role": "export",
+   "parent": "@wren/watch",
+   "group": "@wren/watch",
+   "attrs": {
+    "entries": [
+     "@wren/watch/console-routes"
+    ],
+    "file": "packages/watch/src/console-routes.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly done: \"wren:team\"; readonly undone: \"wren:team\"; readonly hide: \"wren:team\"; readonly show: \"wren:team\"; readonly sort: \"wren:team\"; readonly addRule: \"wren:team\"; readonly removeRule: \"wren:team\"; }"
+   }
+  },
+  {
+   "id": "@wren/watch#WATCH_CONSOLE_WRITES",
+   "role": "export",
+   "parent": "@wren/watch",
+   "group": "@wren/watch",
+   "attrs": {
+    "entries": [
+     "@wren/watch/console-routes"
+    ],
+    "file": "packages/watch/src/console-routes.ts",
+    "kind": "const",
+    "sig": "readonly (keyof typeof WATCH_CONSOLE_ROUTES)[]"
+   }
+  },
+  {
+   "id": "@wren/watch#WATCH_EVERY_MS",
+   "role": "export",
+   "parent": "@wren/watch",
+   "group": "@wren/watch",
+   "attrs": {
+    "entries": [
+     "@wren/watch/restate"
+    ],
+    "file": "packages/watch/src/restate.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "number"
+   }
+  },
+  {
+   "id": "@wren/watch#WATCH_KEY",
+   "role": "export",
+   "parent": "@wren/watch",
+   "group": "@wren/watch",
+   "attrs": {
+    "entries": [
+     "@wren/watch/restate"
+    ],
+    "file": "packages/watch/src/restate.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"all\""
+   }
+  },
+  {
+   "id": "@wren/watch#WATCH_RECORDS",
+   "role": "export",
+   "parent": "@wren/watch",
+   "group": "@wren/watch",
+   "attrs": {
+    "entries": [
+     "@wren/watch/records"
+    ],
+    "file": "packages/watch/src/records.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"@wren/core/records\").RecordType[]"
+   }
+  },
+  {
+   "id": "@wren/watch#WATCH_WORKFLOWS",
+   "role": "export",
+   "parent": "@wren/watch",
+   "group": "@wren/watch",
+   "attrs": {
+    "entries": [
+     "@wren/watch/components"
+    ],
+    "file": "packages/watch/src/components.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"@wren/core/workflows\").Workflow[]"
+   }
+  },
+  {
+   "id": "@wren/watch#Watch",
+   "role": "export",
+   "parent": "@wren/watch",
+   "group": "@wren/watch",
+   "attrs": {
+    "entries": [
+     "@wren/watch/restate"
+    ],
+    "file": "packages/watch/src/restate.ts",
+    "kind": "type",
+    "sig": "type Watch = ReturnType<typeof makeWatch>;"
+   }
+  },
+  {
+   "id": "@wren/watch#WatchDeps",
+   "role": "export",
+   "parent": "@wren/watch",
+   "group": "@wren/watch",
+   "attrs": {
+    "entries": [
+     "@wren/watch/restate"
+    ],
+    "file": "packages/watch/src/restate.ts",
+    "kind": "interface",
+    "sig": "interface WatchDeps { db: Db; mailboxes: readonly Mailbox[]; fetch?: FetchFn; notifier?: Notifier; zone?: string; portal?: string | null; send?: ((m: DigestMail) => Promise<void>) | null; watch?: (address: string) => Promise<number | null>; embed?: Embed | null; sites?: SiteClient | null; pictures?: PictureStore | null; }"
+   }
+  },
+  {
+   "id": "@wren/watch#clientSystem",
+   "role": "export",
+   "parent": "@wren/watch",
+   "group": "@wren/watch",
+   "attrs": {
+    "entries": [
+     "@wren/watch",
+     "@wren/watch/triage"
+    ],
+    "file": "packages/watch/src/triage.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(business: string): string"
+   }
+  },
+  {
+   "id": "@wren/watch#clientTriageStep",
+   "role": "export",
+   "parent": "@wren/watch",
+   "group": "@wren/watch",
+   "attrs": {
+    "entries": [
+     "@wren/watch",
+     "@wren/watch/triage"
+    ],
+    "file": "packages/watch/src/triage.ts",
+    "kind": "function",
+    "sig": "(of: (client: string) => Promise<{ db: Db; name: string; modelFor: (mailbox: string) => Promise<LlmClient | null>; }>): Step"
+   }
+  },
+  {
+   "id": "@wren/watch#mail",
+   "role": "export",
+   "parent": "@wren/watch",
+   "group": "@wren/watch",
+   "attrs": {
+    "entries": [
+     "@wren/watch",
+     "@wren/watch/schema"
+    ],
+    "file": "packages/watch/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"mail\"; schema: \"watch\"; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"mail\"; dataType: \"number\"; columnType: \"PgSerial\"; data: number; driverParam: number; notNull: true; hasDefault: true; isPrimaryKey: false…"
+   }
+  },
+  {
+   "id": "@wren/watch#mailEvent",
+   "role": "export",
+   "parent": "@wren/watch",
+   "group": "@wren/watch",
+   "attrs": {
+    "entries": [
+     "@wren/watch",
+     "@wren/watch/triage"
+    ],
+    "file": "packages/watch/src/triage.ts",
+    "kind": "function",
+    "sig": "(id: number): ExecutorEvent"
+   }
+  },
+  {
+   "id": "@wren/watch#mailRecords",
+   "role": "export",
+   "parent": "@wren/watch",
+   "group": "@wren/watch",
+   "attrs": {
+    "entries": [
+     "@wren/watch",
+     "@wren/watch/schema"
+    ],
+    "file": "packages/watch/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgViewWithSelection<\"mail_records\", false, { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"mail_records\"; dataType: \"number\"; columnType: \"PgInteger\"; data: number; driverParam: string | number; notNull: false; hasDefault: false; isPrimaryKey: fal…"
+   }
+  },
+  {
+   "id": "@wren/watch#mailSent",
+   "role": "export",
+   "parent": "@wren/watch",
+   "group": "@wren/watch",
+   "attrs": {
+    "entries": [
+     "@wren/watch",
+     "@wren/watch/schema"
+    ],
+    "file": "packages/watch/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"mail_sent\"; schema: \"watch\"; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"mail_sent\"; dataType: \"number\"; columnType: \"PgSerial\"; data: number; driverParam: number; notNull: true; hasDefault: true; isPrimary…"
+   }
+  },
+  {
+   "id": "@wren/watch#makeMailReader",
+   "role": "export",
+   "parent": "@wren/watch",
+   "group": "@wren/watch",
+   "attrs": {
+    "entries": [
+     "@wren/watch/clients"
+    ],
+    "file": "packages/watch/src/clients.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(deps: MailReaderDeps): restate.VirtualObjectDefinition<string, Record<never, never> & Record<never, (ctx: restate.ObjectContext) => Promise<PassOutcome<ClientReadStats>>> & { sync: (ctx: restate.ObjectContext) => Promise<PassOutcome<ClientReadStats>>; start: (ctx: restate.ObjectContext, settings?: Record<string, unknown> …"
+   }
+  },
+  {
+   "id": "@wren/watch#makeWatch",
+   "role": "export",
+   "parent": "@wren/watch",
+   "group": "@wren/watch",
+   "attrs": {
+    "entries": [
+     "@wren/watch/restate"
+    ],
+    "file": "packages/watch/src/restate.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(deps: WatchDeps): restate.VirtualObjectDefinition<string, Record<never, never> & Record<never, (ctx: restate.ObjectContext) => Promise<PassOutcome<Stats>>> & { sync: (ctx: restate.ObjectContext) => Promise<PassOutcome<Stats>>; start: (ctx: restate.ObjectContext, settings?: Record<string, unknown> | null) => Promise<i…"
+   }
+  },
+  {
+   "id": "@wren/watch#makeWatchConsole",
+   "role": "export",
+   "parent": "@wren/watch",
+   "group": "@wren/watch",
+   "attrs": {
+    "entries": [
+     "@wren/watch/restate"
+    ],
+    "file": "packages/watch/src/console.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Db, llm: LlmClient | null): restate.ServiceDefinition<\"WatchConsole\", { done: (_: restate.Context, req: IdsRequest) => Promise<{ done: string[]; }>; undone: (_: restate.Context, req: IdsRequest) => Promise<{ done: string[]; }>; hide: (_: restate.Context, req: LikeRequest) => Promise<{ done: string[]; rules: number; }>; show: (…"
+   }
+  },
+  {
+   "id": "@wren/watch#promptFor",
+   "role": "export",
+   "parent": "@wren/watch",
+   "group": "@wren/watch",
+   "attrs": {
+    "entries": [
+     "@wren/watch",
+     "@wren/watch/triage"
+    ],
+    "file": "packages/watch/src/triage.ts",
+    "kind": "function",
+    "sig": "(all: readonly Rule[], m: Mail): string"
+   }
+  },
+  {
+   "id": "@wren/watch#readClients",
+   "role": "export",
+   "parent": "@wren/watch",
+   "group": "@wren/watch",
+   "attrs": {
+    "entries": [
+     "@wren/watch/clients"
+    ],
+    "file": "packages/watch/src/clients.ts",
+    "kind": "function",
+    "sig": "(d: MailReaderDeps, now: Date): Promise<ClientReadStats>"
+   }
+  },
+  {
+   "id": "@wren/watch#readMail",
+   "role": "export",
+   "parent": "@wren/watch",
+   "group": "@wren/watch",
+   "attrs": {
+    "entries": [
+     "@wren/watch"
+    ],
+    "file": "packages/watch/src/read.ts",
+    "kind": "function",
+    "sig": "(db: Db, boxes: readonly Mailbox[], now: Date, reader: Reader = \"monitor\"): Promise<ReadStats>"
+   }
+  },
+  {
+   "id": "@wren/watch#relinkMail",
+   "role": "export",
+   "parent": "@wren/watch",
+   "group": "@wren/watch",
+   "attrs": {
+    "entries": [
+     "@wren/watch"
+    ],
+    "file": "packages/watch/src/read.ts",
+    "kind": "function",
+    "sig": "(db: Db, boxes: readonly Mailbox[], window: RelinkWindow): Promise<{ linked: number; tried: number; oldest: Date | null }>"
+   }
+  },
+  {
+   "id": "@wren/watch#ruleRecords",
+   "role": "export",
+   "parent": "@wren/watch",
+   "group": "@wren/watch",
+   "attrs": {
+    "entries": [
+     "@wren/watch",
+     "@wren/watch/schema"
+    ],
+    "file": "packages/watch/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgViewWithSelection<\"rule_records\", false, { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"rule_records\"; dataType: \"number\"; columnType: \"PgInteger\"; data: number; driverParam: string | number; notNull: false; hasDefault: false; isPrimaryKey: fal…"
+   }
+  },
+  {
+   "id": "@wren/watch#rules",
+   "role": "export",
+   "parent": "@wren/watch",
+   "group": "@wren/watch",
+   "attrs": {
+    "entries": [
+     "@wren/watch",
+     "@wren/watch/schema"
+    ],
+    "file": "packages/watch/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"rules\"; schema: \"watch\"; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"rules\"; dataType: \"number\"; columnType: \"PgSerial\"; data: number; driverParam: number; notNull: true; hasDefault: true; isPrimaryKey: fal…"
+   }
+  },
+  {
+   "id": "@wren/watch#settle",
+   "role": "export",
+   "parent": "@wren/watch",
+   "group": "@wren/watch",
+   "attrs": {
+    "entries": [
+     "@wren/watch",
+     "@wren/watch/triage"
+    ],
+    "file": "packages/watch/src/triage.ts",
+    "kind": "function",
+    "sig": "(all: readonly Rule[], m: Pick<Mail, \"fromAddress\" | \"subject\">): Rule | null"
+   }
+  },
+  {
+   "id": "@wren/watch#sortAgain",
+   "role": "export",
+   "parent": "@wren/watch",
+   "group": "@wren/watch",
+   "attrs": {
+    "entries": [
+     "@wren/watch",
+     "@wren/watch/triage"
+    ],
+    "file": "packages/watch/src/triage.ts",
+    "kind": "function",
+    "sig": "(db: Db, llm: LlmClient | null, ids: readonly number[]): Promise<Partial<Record<Verdict, number>>>"
+   }
+  },
+  {
+   "id": "@wren/watch#triage",
+   "role": "export",
+   "parent": "@wren/watch",
+   "group": "@wren/watch",
+   "attrs": {
+    "entries": [
+     "@wren/watch",
+     "@wren/watch/triage"
+    ],
+    "file": "packages/watch/src/triage.ts",
+    "kind": "function",
+    "sig": "(db: Db, llm: LlmClient | null, id: number, system: string = SYSTEM): Promise<Verdict | null>"
+   }
+  },
+  {
+   "id": "@wren/watch#triageStep",
+   "role": "export",
+   "parent": "@wren/watch",
+   "group": "@wren/watch",
+   "attrs": {
+    "entries": [
+     "@wren/watch",
+     "@wren/watch/triage"
+    ],
+    "file": "packages/watch/src/triage.ts",
+    "kind": "function",
+    "sig": "(db: Db, llm: LlmClient | null): Step"
+   }
+  },
+  {
+   "id": "@wren/watch#watch",
+   "role": "export",
+   "parent": "@wren/watch",
+   "group": "@wren/watch",
+   "attrs": {
+    "entries": [
+     "@wren/watch",
+     "@wren/watch/schema"
+    ],
+    "file": "packages/watch/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgSchema<\"watch\">"
+   }
+  },
+  {
+   "id": "@wren/watch#watchConsoleApi",
+   "role": "export",
+   "parent": "@wren/watch",
+   "group": "@wren/watch",
+   "attrs": {
+    "entries": [
+     "@wren/watch/restate"
+    ],
+    "file": "packages/watch/src/console.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Db, llm: LlmClient | null = null): { done: (req: IdsRequest) => Promise<{ done: string[]; }>; undone: (req: IdsRequest) => Promise<{ done: string[]; }>; hide: (req: LikeRequest) => Promise<{ done: string[]; rules: number; }>; show: (req: LikeRequest) => Promise<{ done: string[]; rules: number; }>; sort: (req: IdsRequest) => Promise<{…"
+   }
+  }
+ ],
+ "edges": []
+}

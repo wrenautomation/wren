@@ -1,0 +1,27 @@
+{
+ "layer": "routes",
+ "nodes": [
+  {
+   "id": "route:LearnPictures/sign",
+   "role": "route",
+   "parent": "service:LearnPictures",
+   "group": "@wren/learn",
+   "attrs": {
+    "input": "{ ref: string }",
+    "output": "{ url: string | null }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "service:LearnPictures",
+   "role": "service",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "file": "packages/learn/src/pictures.ts",
+    "kind": "service"
+   }
+  }
+ ],
+ "edges": []
+}

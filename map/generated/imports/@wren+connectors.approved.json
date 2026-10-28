@@ -1,0 +1,384 @@
+{
+ "layer": "imports",
+ "nodes": [
+  {
+   "id": "@wren/connectors",
+   "role": "package",
+   "parent": "repo:wren",
+   "group": "@wren/connectors",
+   "attrs": {
+    "dir": "packages/connectors/",
+    "npm": [
+     "node:crypto"
+    ]
+   }
+  },
+  {
+   "id": "@wren/connectors/src/apps.ts",
+   "role": "file",
+   "parent": "@wren/connectors",
+   "group": "@wren/connectors"
+  },
+  {
+   "id": "@wren/connectors/src/connectors.ts",
+   "role": "file",
+   "parent": "@wren/connectors",
+   "group": "@wren/connectors"
+  },
+  {
+   "id": "@wren/connectors/src/console-routes.ts",
+   "role": "file",
+   "parent": "@wren/connectors",
+   "group": "@wren/connectors"
+  },
+  {
+   "id": "@wren/connectors/src/index.ts",
+   "role": "file",
+   "parent": "@wren/connectors",
+   "group": "@wren/connectors"
+  },
+  {
+   "id": "@wren/connectors/src/pull/hubspot.ts",
+   "role": "file",
+   "parent": "@wren/connectors",
+   "group": "@wren/connectors"
+  },
+  {
+   "id": "@wren/connectors/src/pull/jobber.ts",
+   "role": "file",
+   "parent": "@wren/connectors",
+   "group": "@wren/connectors"
+  },
+  {
+   "id": "@wren/connectors/src/pull/quickbooks.ts",
+   "role": "file",
+   "parent": "@wren/connectors",
+   "group": "@wren/connectors"
+  },
+  {
+   "id": "@wren/connectors/src/pull/types.ts",
+   "role": "file",
+   "parent": "@wren/connectors",
+   "group": "@wren/connectors"
+  },
+  {
+   "id": "@wren/connectors/src/restate.ts",
+   "role": "file",
+   "parent": "@wren/connectors",
+   "group": "@wren/connectors"
+  },
+  {
+   "id": "@wren/connectors/src/schema.ts",
+   "role": "file",
+   "parent": "@wren/connectors",
+   "group": "@wren/connectors"
+  },
+  {
+   "id": "@wren/connectors/src/sync.ts",
+   "role": "file",
+   "parent": "@wren/connectors",
+   "group": "@wren/connectors"
+  },
+  {
+   "id": "@wren/connectors/vitest.config.ts",
+   "role": "file",
+   "parent": "@wren/connectors",
+   "group": "@wren/connectors"
+  }
+ ],
+ "edges": [
+  {
+   "from": "@wren/connectors",
+   "to": "@wren/core",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/connectors",
+   "to": "@wren/db",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/connectors/src/connectors.ts",
+   "to": "@wren/connectors/src/apps.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/connectors/src/connectors.ts",
+   "to": "@wren/connectors/src/pull/hubspot.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/connectors/src/connectors.ts",
+   "to": "@wren/connectors/src/pull/jobber.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/connectors/src/connectors.ts",
+   "to": "@wren/connectors/src/pull/quickbooks.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/connectors/src/connectors.ts",
+   "to": "@wren/connectors/src/pull/types.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/connectors/src/connectors.ts",
+   "to": "@wren/connectors/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/connectors/src/connectors.ts",
+   "to": "@wren/core/src/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/connectors/src/connectors.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/connectors/src/connectors.ts",
+   "to": "@wren/core/src/keys.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/connectors/src/connectors.ts",
+   "to": "@wren/core/src/refusal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/connectors/src/connectors.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/connectors/src/console-routes.ts",
+   "to": "@wren/core/src/access.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/connectors/src/index.ts",
+   "to": "@wren/connectors/src/apps.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/connectors/src/index.ts",
+   "to": "@wren/connectors/src/connectors.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/connectors/src/index.ts",
+   "to": "@wren/connectors/src/restate.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/connectors/src/index.ts",
+   "to": "@wren/connectors/src/sync.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/connectors/src/pull/hubspot.ts",
+   "to": "@wren/connectors/src/pull/types.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/connectors/src/pull/jobber.ts",
+   "to": "@wren/connectors/src/pull/types.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/connectors/src/pull/quickbooks.ts",
+   "to": "@wren/connectors/src/pull/types.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/connectors/src/pull/quickbooks.ts",
+   "to": "@wren/connectors/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/connectors/src/pull/types.ts",
+   "to": "@wren/connectors/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/connectors/src/pull/types.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/connectors/src/pull/types.ts",
+   "to": "@wren/core/src/logic.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/connectors/src/restate.ts",
+   "to": "@wren/connectors/src/apps.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/connectors/src/restate.ts",
+   "to": "@wren/connectors/src/connectors.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/connectors/src/restate.ts",
+   "to": "@wren/connectors/src/console-routes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/connectors/src/restate.ts",
+   "to": "@wren/connectors/src/sync.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/connectors/src/restate.ts",
+   "to": "@wren/core/src/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/connectors/src/restate.ts",
+   "to": "@wren/core/src/executor.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/connectors/src/restate.ts",
+   "to": "@wren/core/src/key-refs.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/connectors/src/restate.ts",
+   "to": "@wren/core/src/portal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/connectors/src/restate.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/connectors/src/restate.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/connectors/src/schema.ts",
+   "to": "@wren/connectors/src/apps.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/connectors/src/schema.ts",
+   "to": "@wren/db/src/columns.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/connectors/src/sync.ts",
+   "to": "@wren/connectors/src/apps.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/connectors/src/sync.ts",
+   "to": "@wren/connectors/src/connectors.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/connectors/src/sync.ts",
+   "to": "@wren/connectors/src/pull/hubspot.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/connectors/src/sync.ts",
+   "to": "@wren/connectors/src/pull/jobber.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/connectors/src/sync.ts",
+   "to": "@wren/connectors/src/pull/quickbooks.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/connectors/src/sync.ts",
+   "to": "@wren/connectors/src/pull/types.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/connectors/src/sync.ts",
+   "to": "@wren/connectors/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/connectors/src/sync.ts",
+   "to": "@wren/core/src/executor.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/connectors/src/sync.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/connectors/src/sync.ts",
+   "to": "@wren/core/src/refusal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/connectors/src/sync.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/connectors/vitest.config.ts",
+   "to": "@wren/db/src/testing-vitest.ts",
+   "kind": "imports"
+  }
+ ]
+}

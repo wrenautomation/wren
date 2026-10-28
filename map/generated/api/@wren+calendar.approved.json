@@ -1,0 +1,1159 @@
+{
+ "layer": "api",
+ "nodes": [
+  {
+   "id": "@wren/calendar#AllBookings",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar"
+    ],
+    "file": "packages/calendar/src/sms.ts",
+    "kind": "class",
+    "sig": "readonly name: string;; constructor(private readonly sources: readonly Bookings[]); booked(email: string): Promise<boolean>; upcoming(from: Date, to: Date): Promise<Booking[]>"
+   }
+  },
+  {
+   "id": "@wren/calendar#BOOKING_STATES",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar",
+     "@wren/calendar/schema"
+    ],
+    "file": "packages/calendar/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"booked\", \"cancelled\"]"
+   }
+  },
+  {
+   "id": "@wren/calendar#Booker",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar"
+    ],
+    "file": "packages/calendar/src/book.ts",
+    "kind": "interface",
+    "sig": "interface Booker { name: string; email: string; zone: string; offer: string | null; code: string | null; application: string | null; source: BookingSource; }"
+   }
+  },
+  {
+   "id": "@wren/calendar#BookingSource",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar",
+     "@wren/calendar/schema"
+    ],
+    "file": "packages/calendar/src/schema.ts",
+    "kind": "interface",
+    "sig": "interface BookingSource { utm_source?: string; utm_medium?: string; utm_campaign?: string; utm_content?: string; ref?: string; visitor?: string; page?: string; }"
+   }
+  },
+  {
+   "id": "@wren/calendar#BookingState",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar",
+     "@wren/calendar/schema"
+    ],
+    "file": "packages/calendar/src/schema.ts",
+    "kind": "type",
+    "sig": "type BookingState = (typeof BOOKING_STATES)[number];"
+   }
+  },
+  {
+   "id": "@wren/calendar#CALENDAR",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar"
+    ],
+    "file": "packages/calendar/src/rules.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"calendar.booking\""
+   }
+  },
+  {
+   "id": "@wren/calendar#CALENDAR_COMPONENTS",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar/components"
+    ],
+    "file": "packages/calendar/src/components.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"@wren/core/components\").Component[]"
+   }
+  },
+  {
+   "id": "@wren/calendar#CALENDAR_CONSOLE_APPS",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar/console-routes"
+    ],
+    "file": "packages/calendar/src/console-routes.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly \"*\": \"calendar\"; }"
+   }
+  },
+  {
+   "id": "@wren/calendar#CALENDAR_CONSOLE_ROUTES",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar/console-routes"
+    ],
+    "file": "packages/calendar/src/console-routes.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly range: \"read\"; readonly recordsTypes: \"read\"; readonly recordsList: \"read\"; readonly recordsGet: \"read\"; readonly recordsExport: \"read\"; readonly recordsStats: \"read\"; readonly won: \"act\"; readonly notYet: \"act\"; readonly noShow: \"act\"; readonly notFit: \"act\"; readonly clear: \"act\"; reado…"
+   }
+  },
+  {
+   "id": "@wren/calendar#CALENDAR_CONSOLE_WRITES",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar/console-routes"
+    ],
+    "file": "packages/calendar/src/console-routes.ts",
+    "kind": "const",
+    "sig": "readonly (keyof typeof CALENDAR_CONSOLE_ROUTES)[]"
+   }
+  },
+  {
+   "id": "@wren/calendar#CALENDAR_RECORDS",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar/records"
+    ],
+    "file": "packages/calendar/src/records.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"@wren/core/records\").RecordType[]"
+   }
+  },
+  {
+   "id": "@wren/calendar#CALENDAR_SCOPE",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar"
+    ],
+    "file": "packages/calendar/src/google.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"https://www.googleapis.com/auth/calendar\""
+   }
+  },
+  {
+   "id": "@wren/calendar#Calendar",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar/restate"
+    ],
+    "file": "packages/calendar/src/restate.ts",
+    "kind": "type",
+    "sig": "type Calendar = ReturnType<typeof makeCalendar>;"
+   }
+  },
+  {
+   "id": "@wren/calendar#CalendarBooking",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar",
+     "@wren/calendar/schema"
+    ],
+    "file": "packages/calendar/src/schema.ts",
+    "kind": "type",
+    "sig": "type CalendarBooking = typeof bookings.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/calendar#CalendarBookings",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar"
+    ],
+    "file": "packages/calendar/src/sms.ts",
+    "kind": "class",
+    "sig": "readonly name; constructor(private readonly db: Queryable, private readonly calendar = \"wren\", private readonly now: () => Date = () => new Date()); booked(email: string): Promise<boolean>; upcoming(from: Date, to: Date): Promise<Booking[]>"
+   }
+  },
+  {
+   "id": "@wren/calendar#CalendarDeps",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar/restate"
+    ],
+    "file": "packages/calendar/src/restate.ts",
+    "kind": "interface",
+    "sig": "interface CalendarDeps { db: Db; calendar: string; client?: string | null; settings: () => Promise<unknown>; host: CalendarHost | null; shared: string | null; site: string; send: SendMail | null; notify?: boolean; signer?: string; fire?: FireTriggers; leads?: { day: number; hour: number }; }"
+   }
+  },
+  {
+   "id": "@wren/calendar#CalendarHost",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar"
+    ],
+    "file": "packages/calendar/src/google.ts",
+    "kind": "interface",
+    "sig": "interface CalendarHost { readonly name: string; busy(account: string, from: Date, to: Date): Promise<Span[]>; create(account: string, event: NewEvent): Promise<Made>; move( account: string, eventId: string, start: Date, end: Date, zone: string, notify: boolean, ): Promise<Made>; remove(account: string, eventId: string, notify: boolean): Promise<void>; }"
+   }
+  },
+  {
+   "id": "@wren/calendar#CalendarSettings",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar"
+    ],
+    "file": "packages/calendar/src/rules.ts",
+    "kind": "type",
+    "sig": "type CalendarSettings = z.infer<typeof calendarSettingsSchema>;"
+   }
+  },
+  {
+   "id": "@wren/calendar#CallBlock",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar"
+    ],
+    "file": "packages/calendar/src/book.ts",
+    "kind": "interface",
+    "sig": "interface CallBlock { id: number; start: Date; end: Date; name: string; offer: string | null; state: \"booked\" | \"cancelled\"; outcome: MeetingOutcome | null; meet: string | null; }"
+   }
+  },
+  {
+   "id": "@wren/calendar#ClientCalendar",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar/restate"
+    ],
+    "file": "packages/calendar/src/restate.ts",
+    "kind": "type",
+    "sig": "type ClientCalendar = ReturnType<typeof makeClientCalendar>;"
+   }
+  },
+  {
+   "id": "@wren/calendar#ClientCalendarDeps",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar/restate"
+    ],
+    "file": "packages/calendar/src/restate.ts",
+    "kind": "interface",
+    "sig": "interface ClientCalendarDeps { main: Db; open: (client: Pick<Client, \"id\" | \"database\">) => Db; host: CalendarHost | null; shared: string | null; portal: string; mailer: ((from: string) => SendMail) | null; fire?: FireTriggers; leads?: { day: number; hour: number }; }"
+   }
+  },
+  {
+   "id": "@wren/calendar#DAYS",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar"
+    ],
+    "file": "packages/calendar/src/rules.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"sun\", \"mon\", \"tue\", \"wed\", \"thu\", \"fri\", \"sat\"]"
+   }
+  },
+  {
+   "id": "@wren/calendar#Day",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar"
+    ],
+    "file": "packages/calendar/src/rules.ts",
+    "kind": "type",
+    "sig": "type Day = (typeof DAYS)[number];"
+   }
+  },
+  {
+   "id": "@wren/calendar#FakeHost",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar"
+    ],
+    "file": "packages/calendar/src/google.ts",
+    "kind": "class",
+    "sig": "readonly name; readonly events; readonly log: string[]; down; constructor(public busyTimes: Span[] = []); busy(_account: string, from: Date, to: Date): Promise<Span[]>; create(account: string, e: NewEvent): Promise<Made>; move(_account: string, eventId: string, start: Date, end: Date, _zone: string, notify: boolean): Promise<Made>; remove(_account: string, eventId: string, notify: boolean): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/calendar#GoogleHost",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar"
+    ],
+    "file": "packages/calendar/src/google.ts",
+    "kind": "class",
+    "sig": "readonly name; constructor(private readonly tokenFor: (account: string) => TokenSupplier, fetchImpl?: Fetch); busy(account: string, from: Date, to: Date): Promise<Span[]>; create(account: string, e: NewEvent): Promise<Made>; move(account: string, eventId: string, start: Date, end: Date, zone: string, notify: boolean): Promise<Made>; remove(account: string, eventId: string, notify: boolean): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/calendar#IdsRequest",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar/console"
+    ],
+    "file": "packages/calendar/src/console.ts",
+    "kind": "interface",
+    "sig": "interface IdsRequest extends PortalRequest { ids: string[]; reason?: string | null; }"
+   }
+  },
+  {
+   "id": "@wren/calendar#Kind",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar"
+    ],
+    "file": "packages/calendar/src/mail.ts",
+    "kind": "type",
+    "sig": "type Kind = \"booked\" | \"moved\" | \"cancelled\" | \"day\" | \"hour\";"
+   }
+  },
+  {
+   "id": "@wren/calendar#Made",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar"
+    ],
+    "file": "packages/calendar/src/google.ts",
+    "kind": "interface",
+    "sig": "interface Made { eventId: string; meetUrl: string | null; }"
+   }
+  },
+  {
+   "id": "@wren/calendar#Mail",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar"
+    ],
+    "file": "packages/calendar/src/mail.ts",
+    "kind": "interface",
+    "sig": "interface Mail { to: string; subject: string; text: string; }"
+   }
+  },
+  {
+   "id": "@wren/calendar#RECORDED",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar"
+    ],
+    "file": "packages/calendar/src/mail.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"I record calls so I can keep good notes. If you'd rather I didn't, say so at the start.\""
+   }
+  },
+  {
+   "id": "@wren/calendar#RecorderCalls",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar/recorder"
+    ],
+    "file": "packages/calendar/src/recorder.ts",
+    "kind": "type",
+    "sig": "type RecorderCalls = { status: (ctx: restate.Context, req: RecorderAsk) => Promise<RecorderState>; start: (ctx: restate.Context, req: RecorderAsk) => Promise<RecorderState>; stop: (ctx: restate.Context, req: RecorderAsk) => Promise<RecorderState>; };"
+   }
+  },
+  {
+   "id": "@wren/calendar#RecorderState",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar/recorder"
+    ],
+    "file": "packages/calendar/src/recorder.ts",
+    "kind": "interface",
+    "sig": "interface RecorderState { recording: boolean; since: string | null; booking: number | null; who: string | null; by: \"desk\" | \"manual\" | null; next: string | null; }"
+   }
+  },
+  {
+   "id": "@wren/calendar#RecordingDetail",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar/records"
+    ],
+    "file": "packages/calendar/src/records.ts",
+    "kind": "interface",
+    "sig": "interface RecordingDetail { url: string | null; notes: CallNotes | null; model: string | null; segments: Segment[]; booking: number | null; }"
+   }
+  },
+  {
+   "id": "@wren/calendar#Reminder",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar/restate"
+    ],
+    "file": "packages/calendar/src/restate.ts",
+    "kind": "type",
+    "sig": "type Reminder = \"day\" | \"hour\";"
+   }
+  },
+  {
+   "id": "@wren/calendar#Rules",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar"
+    ],
+    "file": "packages/calendar/src/rules.ts",
+    "kind": "interface",
+    "sig": "interface Rules { zone: string; week: readonly (readonly Stretch[])[]; length: number; step: number; notice: number; buffer: number; perDay: number; days: number; }"
+   }
+  },
+  {
+   "id": "@wren/calendar#SendMail",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar/restate"
+    ],
+    "file": "packages/calendar/src/restate.ts",
+    "kind": "type",
+    "sig": "type SendMail = (m: { to: string; subject: string; text: string }) => Promise<void>;"
+   }
+  },
+  {
+   "id": "@wren/calendar#SlotTaken",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar"
+    ],
+    "file": "packages/calendar/src/book.ts",
+    "kind": "class",
+    "sig": "constructor()"
+   }
+  },
+  {
+   "id": "@wren/calendar#Span",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar"
+    ],
+    "file": "packages/calendar/src/slots.ts",
+    "kind": "interface",
+    "sig": "interface Span { start: Date; end: Date; }"
+   }
+  },
+  {
+   "id": "@wren/calendar#Stretch",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar"
+    ],
+    "file": "packages/calendar/src/rules.ts",
+    "kind": "interface",
+    "sig": "interface Stretch { from: number; to: number; }"
+   }
+  },
+  {
+   "id": "@wren/calendar#Unchangeable",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar"
+    ],
+    "file": "packages/calendar/src/book.ts",
+    "kind": "class",
+    "sig": ""
+   }
+  },
+  {
+   "id": "@wren/calendar#askRecorder",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar/recorder"
+    ],
+    "file": "packages/calendar/src/recorder.ts",
+    "kind": "function",
+    "sig": "(ctx: restate.Context, what: keyof RecorderCalls, by: string): Promise<RecorderState>"
+   }
+  },
+  {
+   "id": "@wren/calendar#bookSig",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar"
+    ],
+    "file": "packages/calendar/src/links.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(shared: string, offer: string, start: string, email: string): string"
+   }
+  },
+  {
+   "id": "@wren/calendar#bookSigned",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar"
+    ],
+    "file": "packages/calendar/src/links.ts",
+    "kind": "function",
+    "sig": "(shared: string, sig: string, offer: string, start: string, email: string): boolean"
+   }
+  },
+  {
+   "id": "@wren/calendar#bookedCalls",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar"
+    ],
+    "file": "packages/calendar/src/book.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, calendar: string, from: Date, to: Date, except?: number): Promise<Span[]>"
+   }
+  },
+  {
+   "id": "@wren/calendar#bookingById",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar"
+    ],
+    "file": "packages/calendar/src/book.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, id: number): Promise<CalendarBooking | null>"
+   }
+  },
+  {
+   "id": "@wren/calendar#bookingPage",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar/restate"
+    ],
+    "file": "packages/calendar/src/restate.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(owner: CalendarOwner, d: CalendarDeps): { owner: string; mails: boolean; meet: boolean; contact: import(\"./contact.js\").ContactLink[]; }"
+   }
+  },
+  {
+   "id": "@wren/calendar#bookingRecords",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar",
+     "@wren/calendar/schema"
+    ],
+    "file": "packages/calendar/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgViewWithSelection<\"booking_records\", false, { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"booking_records\"; dataType: \"number\"; columnType: \"PgInteger\"; data: number; driverParam: string | number; notNull: false; hasDefault: false; isPrimaryKe…"
+   }
+  },
+  {
+   "id": "@wren/calendar#bookings",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar",
+     "@wren/calendar/schema"
+    ],
+    "file": "packages/calendar/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"bookings\"; schema: \"calendar\"; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"bookings\"; dataType: \"number\"; columnType: \"PgSerial\"; data: number; driverParam: number; notNull: true; hasDefault: true; isPrimar…"
+   }
+  },
+  {
+   "id": "@wren/calendar#calendar",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar",
+     "@wren/calendar/schema"
+    ],
+    "file": "packages/calendar/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgSchema<\"calendar\">"
+   }
+  },
+  {
+   "id": "@wren/calendar#calendarChecks",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar"
+    ],
+    "file": "packages/calendar/src/setups.ts",
+    "kind": "function",
+    "sig": "(host: CalendarHost): Record<string, SetupCheck>"
+   }
+  },
+  {
+   "id": "@wren/calendar#calendarFlows",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar/restate"
+    ],
+    "file": "packages/calendar/src/restate.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(deps: CalendarDeps): { rulesNow: (ctx: restate.Context) => Promise<import(\"./rules.js\").Rules & { account: string | null; title: string; }>; shared: () => string; busyAround: (ctx: restate.Context, account: string | null, from: Date, to: Date) => Promise<Span[]>; mail: (ctx: restate.Context, kind: Kind, id: number, titl…"
+   }
+  },
+  {
+   "id": "@wren/calendar#calendarOwner",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar/restate"
+    ],
+    "file": "packages/calendar/src/restate.ts",
+    "kind": "function",
+    "sig": "(main: Db, portal: string, id: string): Promise<CalendarOwner>"
+   }
+  },
+  {
+   "id": "@wren/calendar#calendarRecordsApi",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar/console"
+    ],
+    "file": "packages/calendar/src/console.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(d: Pick<ClientCalendarDeps, \"main\" | \"open\" | \"portal\"> & { mailer?: unknown }): { installed: (req: PortalRequest) => Promise<{ name: string; id: string; accounts: Record<string, string>; sends: string[]; createdAt: Date; database: string; products: Record<string, unknown>; look: unknown; demo: boolean; setupMode: \"self\" | \"for_you\"; buysOk: boolean; approver: \"client\" | \"wren\" …"
+   }
+  },
+  {
+   "id": "@wren/calendar#calendarSettingsSchema",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar"
+    ],
+    "file": "packages/calendar/src/rules.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "z.ZodObject<{ account: z.ZodOptional<z.ZodString>; zone: z.ZodDefault<z.ZodString>; title: z.ZodDefault<z.ZodString>; hours: z.ZodPrefault<z.ZodObject<{ mon: z.ZodDefault<z.ZodString>; tue: z.ZodDefault<z.ZodString>; wed: z.ZodDefault<z.ZodString>; thu: z.ZodDefault<z.ZodString>; fri: z.ZodDefault<z…"
+   }
+  },
+  {
+   "id": "@wren/calendar#callsBetween",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar"
+    ],
+    "file": "packages/calendar/src/book.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, calendar: string, from: Date, to: Date): Promise<CallBlock[]>"
+   }
+  },
+  {
+   "id": "@wren/calendar#cancelBooking",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar"
+    ],
+    "file": "packages/calendar/src/book.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, o: { id: number; by: string; reason: string | null; now: Date }): Promise<{ row: CalendarBooking; changed: boolean }>"
+   }
+  },
+  {
+   "id": "@wren/calendar#claim",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar"
+    ],
+    "file": "packages/calendar/src/book.ts",
+    "kind": "function",
+    "sig": "(db: Db, o: { calendar: string; rules: Rules; start: Date; booker: Booker; now: Date; busy: readonly Span[]; }): Promise<CalendarBooking>"
+   }
+  },
+  {
+   "id": "@wren/calendar#dayOn",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar"
+    ],
+    "file": "packages/calendar/src/slots.ts",
+    "kind": "function",
+    "sig": "(zone: string, at: Date): string"
+   }
+  },
+  {
+   "id": "@wren/calendar#eventIdOf",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar"
+    ],
+    "file": "packages/calendar/src/google.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(id: number, createdAt: Date): string"
+   }
+  },
+  {
+   "id": "@wren/calendar#heldBy",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar"
+    ],
+    "file": "packages/calendar/src/book.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, calendar: string, start: Date, email: string): Promise<CalendarBooking | null>"
+   }
+  },
+  {
+   "id": "@wren/calendar#isOpen",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar"
+    ],
+    "file": "packages/calendar/src/slots.ts",
+    "kind": "function",
+    "sig": "(rules: Rules, start: Date, o: { now: Date; busy: readonly Span[]; calls: readonly Span[] }): boolean"
+   }
+  },
+  {
+   "id": "@wren/calendar#mailFor",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar"
+    ],
+    "file": "packages/calendar/src/mail.ts",
+    "kind": "function",
+    "sig": "(kind: Kind, b: CalendarBooking, o: { title: string; manage: string; rebook: string | null; signer?: string; recorded?: boolean }): Mail"
+   }
+  },
+  {
+   "id": "@wren/calendar#makeCalendar",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar/restate"
+    ],
+    "file": "packages/calendar/src/restate.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(deps: CalendarDeps): restate.ServiceDefinition<\"Calendar\", { slots: (ctx: restate.Context) => Promise<SlotsView>; book: (ctx: restate.Context, req: BookRequest) => Promise<BookingView & { manage: string; }>; booking: (ctx: restate.Context, req: { token: string; }) => Promise<BookingView>; reschedule: (ctx: restate.Conte…"
+   }
+  },
+  {
+   "id": "@wren/calendar#makeCalendarConsole",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar/console"
+    ],
+    "file": "packages/calendar/src/console.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(deps: CalendarConsoleDeps): restate.ServiceDefinition<\"CalendarConsole\", { range: (ctx: restate.Context, req: RangeRequest) => Promise<CalendarRange>; recordsTypes: (_: restate.Context, req: PortalRequest) => Promise<import(\"@wren/core/records\").RecordMeta[]>; recordsList: (_: restate.Context, req: PortalRequest & ListAsk) => …"
+   }
+  },
+  {
+   "id": "@wren/calendar#makeClientCalendar",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar/restate"
+    ],
+    "file": "packages/calendar/src/restate.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(deps: ClientCalendarDeps): restate.ServiceDefinition<\"ClientCalendar\", { slots: (ctx: restate.Context, req: { client: string; }) => Promise<{ zone: string; length: number; title: string; slots: string[]; owner: string; mails: boolean; meet: boolean; contact: import(\"./contact.js\").ContactLink[]; }>; book: (ctx: restate.Contex…"
+   }
+  },
+  {
+   "id": "@wren/calendar#manageToken",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar"
+    ],
+    "file": "packages/calendar/src/links.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(shared: string, id: number, scope?: string): string"
+   }
+  },
+  {
+   "id": "@wren/calendar#manageUrl",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar"
+    ],
+    "file": "packages/calendar/src/links.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(site: string, shared: string, id: number, scope?: string): string"
+   }
+  },
+  {
+   "id": "@wren/calendar#mirror",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar"
+    ],
+    "file": "packages/calendar/src/book.ts",
+    "kind": "function",
+    "sig": "(db: Db, row: CalendarBooking, change: BookingChange, now: Date): Promise<BookingOutcome>"
+   }
+  },
+  {
+   "id": "@wren/calendar#mirrorUid",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar"
+    ],
+    "file": "packages/calendar/src/book.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(id: number): string"
+   }
+  },
+  {
+   "id": "@wren/calendar#moveBooking",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar"
+    ],
+    "file": "packages/calendar/src/book.ts",
+    "kind": "function",
+    "sig": "(db: Db, o: { id: number; rules: Rules; start: Date; now: Date; busy: readonly Span[] }): Promise<{ before: CalendarBooking; after: CalendarBooking }>"
+   }
+  },
+  {
+   "id": "@wren/calendar#openHours",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar"
+    ],
+    "file": "packages/calendar/src/slots.ts",
+    "kind": "function",
+    "sig": "(rules: Rules, from: Date, to: Date): Span[]"
+   }
+  },
+  {
+   "id": "@wren/calendar#openSlots",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar"
+    ],
+    "file": "packages/calendar/src/slots.ts",
+    "kind": "function",
+    "sig": "(rules: Rules, o: { from: Date; to: Date; now: Date; busy: readonly Span[]; calls: readonly Span[] }): Date[]"
+   }
+  },
+  {
+   "id": "@wren/calendar#ownerDeps",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar/restate"
+    ],
+    "file": "packages/calendar/src/restate.ts",
+    "kind": "function",
+    "sig": "(d: ClientCalendarDeps, o: CalendarOwner): CalendarDeps"
+   }
+  },
+  {
+   "id": "@wren/calendar#parseHours",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar"
+    ],
+    "file": "packages/calendar/src/rules.ts",
+    "kind": "function",
+    "sig": "(text: string): Stretch[] | null"
+   }
+  },
+  {
+   "id": "@wren/calendar#rangeOf",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar/console"
+    ],
+    "file": "packages/calendar/src/console.ts",
+    "kind": "function",
+    "sig": "(db: Db, calendar: string, settings: unknown, req: { from: string; to: string }): Promise<CalendarRange>"
+   }
+  },
+  {
+   "id": "@wren/calendar#readManage",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar"
+    ],
+    "file": "packages/calendar/src/links.ts",
+    "kind": "function",
+    "sig": "(shared: string, token: string, scope?: string): number | null"
+   }
+  },
+  {
+   "id": "@wren/calendar#recordingRecord",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar/records"
+    ],
+    "file": "packages/calendar/src/records.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(signGet?: (key: string) => Promise<string>): import(\"@wren/core/records\").RecordType"
+   }
+  },
+  {
+   "id": "@wren/calendar#rulesOf",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar"
+    ],
+    "file": "packages/calendar/src/rules.ts",
+    "kind": "function",
+    "sig": "(settings: unknown): Rules & { account: string | null; title: string }"
+   }
+  },
+  {
+   "id": "@wren/calendar#setEvent",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar"
+    ],
+    "file": "packages/calendar/src/book.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, id: number, made: { eventId: string; meetUrl: string | null }): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/calendar#titleFor",
+   "role": "export",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "entries": [
+     "@wren/calendar"
+    ],
+    "file": "packages/calendar/src/mail.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(title: string, name: string): string"
+   }
+  }
+ ],
+ "edges": []
+}

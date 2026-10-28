@@ -1,0 +1,342 @@
+{
+ "layer": "api",
+ "nodes": [
+  {
+   "id": "@wren/video#Caption",
+   "role": "export",
+   "parent": "@wren/video",
+   "group": "@wren/video",
+   "attrs": {
+    "entries": [
+     "@wren/video"
+    ],
+    "file": "packages/video/src/timeline.ts",
+    "kind": "interface",
+    "sig": "interface Caption { text: string; start: number; end: number; png?: string; }"
+   }
+  },
+  {
+   "id": "@wren/video#CaptureOptions",
+   "role": "export",
+   "parent": "@wren/video",
+   "group": "@wren/video",
+   "attrs": {
+    "entries": [
+     "@wren/video"
+    ],
+    "file": "packages/video/src/capture.ts",
+    "kind": "interface",
+    "sig": "interface CaptureOptions { width?: number; height?: number; waitMs?: number; }"
+   }
+  },
+  {
+   "id": "@wren/video#Card",
+   "role": "export",
+   "parent": "@wren/video",
+   "group": "@wren/video",
+   "attrs": {
+    "entries": [
+     "@wren/video"
+    ],
+    "file": "packages/video/src/overlay.ts",
+    "kind": "interface",
+    "sig": "interface Card { eyebrow?: string; title: string; sub?: string; }"
+   }
+  },
+  {
+   "id": "@wren/video#DEFAULT_LOOK",
+   "role": "export",
+   "parent": "@wren/video",
+   "group": "@wren/video",
+   "attrs": {
+    "entries": [
+     "@wren/video"
+    ],
+    "file": "packages/video/src/overlay.ts",
+    "kind": "const",
+    "sig": "Look"
+   }
+  },
+  {
+   "id": "@wren/video#EncodeOptions",
+   "role": "export",
+   "parent": "@wren/video",
+   "group": "@wren/video",
+   "attrs": {
+    "entries": [
+     "@wren/video"
+    ],
+    "file": "packages/video/src/encode.ts",
+    "kind": "interface",
+    "sig": "interface EncodeOptions { ffmpeg?: string; width?: number; height?: number; fps?: number; crf?: number; }"
+   }
+  },
+  {
+   "id": "@wren/video#Encoded",
+   "role": "export",
+   "parent": "@wren/video",
+   "group": "@wren/video",
+   "attrs": {
+    "entries": [
+     "@wren/video"
+    ],
+    "file": "packages/video/src/encode.ts",
+    "kind": "interface",
+    "sig": "interface Encoded { mp4: string; poster: string; seconds: number; }"
+   }
+  },
+  {
+   "id": "@wren/video#Frame",
+   "role": "export",
+   "parent": "@wren/video",
+   "group": "@wren/video",
+   "attrs": {
+    "entries": [
+     "@wren/video"
+    ],
+    "file": "packages/video/src/timeline.ts",
+    "kind": "interface",
+    "sig": "interface Frame { file: string; t: number; }"
+   }
+  },
+  {
+   "id": "@wren/video#Look",
+   "role": "export",
+   "parent": "@wren/video",
+   "group": "@wren/video",
+   "attrs": {
+    "entries": [
+     "@wren/video"
+    ],
+    "file": "packages/video/src/overlay.ts",
+    "kind": "interface",
+    "sig": "interface Look { background: string; foreground: string; muted: string; accent: string; font: string; }"
+   }
+  },
+  {
+   "id": "@wren/video#PublishOptions",
+   "role": "export",
+   "parent": "@wren/video",
+   "group": "@wren/video",
+   "attrs": {
+    "entries": [
+     "@wren/video/publish"
+    ],
+    "file": "packages/video/src/publish.ts",
+    "kind": "interface",
+    "sig": "interface PublishOptions { bucket: string; origin: string; region?: string; client?: S3Client; }"
+   }
+  },
+  {
+   "id": "@wren/video#Published",
+   "role": "export",
+   "parent": "@wren/video",
+   "group": "@wren/video",
+   "attrs": {
+    "entries": [
+     "@wren/video/publish"
+    ],
+    "file": "packages/video/src/publish.ts",
+    "kind": "interface",
+    "sig": "interface Published { id: string; mp4: string; poster: string; meta: string; }"
+   }
+  },
+  {
+   "id": "@wren/video#Recorder",
+   "role": "export",
+   "parent": "@wren/video",
+   "group": "@wren/video",
+   "attrs": {
+    "entries": [
+     "@wren/video"
+    ],
+    "file": "packages/video/src/recorder.ts",
+    "kind": "class",
+    "sig": "readonly page: Page;; constructor(browser: Browser, page: Page, o: Recorder[\"o\"]); now(): number; goto(url: string): Promise<void>; start(): Promise<void>; pause(ms: number): Promise<void>; card(card: Card, instant = false): Promise<void>; uncard(): Promise<void>; move(target: Locator | Point, ms?: number): Promise<Point>; click(target: Locator): Promise<void>; scrollTo(target: Locator): Promise<void>; zoom(target: Locator | Locator[], o: ZoomOptions = {}): Promise<void>; caption(text: string | null): void; stop(): Promise<Recording>; close(): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/video#RecorderOptions",
+   "role": "export",
+   "parent": "@wren/video",
+   "group": "@wren/video",
+   "attrs": {
+    "entries": [
+     "@wren/video"
+    ],
+    "file": "packages/video/src/recorder.ts",
+    "kind": "interface",
+    "sig": "interface RecorderOptions { dir: string; width?: number; height?: number; scale?: number; quality?: number; look?: Partial<Look>; outWidth?: number; outHeight?: number; }"
+   }
+  },
+  {
+   "id": "@wren/video#Recording",
+   "role": "export",
+   "parent": "@wren/video",
+   "group": "@wren/video",
+   "attrs": {
+    "entries": [
+     "@wren/video"
+    ],
+    "file": "packages/video/src/timeline.ts",
+    "kind": "interface",
+    "sig": "interface Recording { dir: string; width: number; height: number; frames: Frame[]; end: number; zooms: Zoom[]; captions: Caption[]; }"
+   }
+  },
+  {
+   "id": "@wren/video#Zoom",
+   "role": "export",
+   "parent": "@wren/video",
+   "group": "@wren/video",
+   "attrs": {
+    "entries": [
+     "@wren/video"
+    ],
+    "file": "packages/video/src/timeline.ts",
+    "kind": "interface",
+    "sig": "interface Zoom { start: number; end: number; ramp: number; cx: number; cy: number; z: number; }"
+   }
+  },
+  {
+   "id": "@wren/video#ZoomOptions",
+   "role": "export",
+   "parent": "@wren/video",
+   "group": "@wren/video",
+   "attrs": {
+    "entries": [
+     "@wren/video"
+    ],
+    "file": "packages/video/src/recorder.ts",
+    "kind": "interface",
+    "sig": "interface ZoomOptions { hold?: number; ramp?: number; max?: number; }"
+   }
+  },
+  {
+   "id": "@wren/video#capturePage",
+   "role": "export",
+   "parent": "@wren/video",
+   "group": "@wren/video",
+   "attrs": {
+    "entries": [
+     "@wren/video"
+    ],
+    "file": "packages/video/src/capture.ts",
+    "kind": "function",
+    "sig": "(url: string, file: string, o: CaptureOptions = {}): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/video#checkZooms",
+   "role": "export",
+   "parent": "@wren/video",
+   "group": "@wren/video",
+   "attrs": {
+    "entries": [
+     "@wren/video"
+    ],
+    "file": "packages/video/src/timeline.ts",
+    "kind": "function",
+    "sig": "(zooms: readonly Zoom[]): void"
+   }
+  },
+  {
+   "id": "@wren/video#concatList",
+   "role": "export",
+   "parent": "@wren/video",
+   "group": "@wren/video",
+   "attrs": {
+    "entries": [
+     "@wren/video"
+    ],
+    "file": "packages/video/src/timeline.ts",
+    "kind": "function",
+    "sig": "(frames: readonly Frame[], end: number): string"
+   }
+  },
+  {
+   "id": "@wren/video#encode",
+   "role": "export",
+   "parent": "@wren/video",
+   "group": "@wren/video",
+   "attrs": {
+    "entries": [
+     "@wren/video"
+    ],
+    "file": "packages/video/src/encode.ts",
+    "kind": "function",
+    "sig": "(rec: Recording, out: string, options: EncodeOptions & { posterAt?: number; keepFrames?: boolean } = {}): Promise<Encoded>"
+   }
+  },
+  {
+   "id": "@wren/video#encodeArgs",
+   "role": "export",
+   "parent": "@wren/video",
+   "group": "@wren/video",
+   "attrs": {
+    "entries": [
+     "@wren/video"
+    ],
+    "file": "packages/video/src/encode.ts",
+    "kind": "function",
+    "sig": "(rec: Recording, listFile: string, mp4: string, o: Required<Omit<EncodeOptions, \"ffmpeg\">>): string[]"
+   }
+  },
+  {
+   "id": "@wren/video#newVideoId",
+   "role": "export",
+   "parent": "@wren/video",
+   "group": "@wren/video",
+   "attrs": {
+    "entries": [
+     "@wren/video/publish"
+    ],
+    "file": "packages/video/src/publish.ts",
+    "kind": "function",
+    "sig": "(): string"
+   }
+  },
+  {
+   "id": "@wren/video#openRecorder",
+   "role": "export",
+   "parent": "@wren/video",
+   "group": "@wren/video",
+   "attrs": {
+    "entries": [
+     "@wren/video"
+    ],
+    "file": "packages/video/src/recorder.ts",
+    "kind": "function",
+    "sig": "(options: RecorderOptions): Promise<Recorder>"
+   }
+  },
+  {
+   "id": "@wren/video#publish",
+   "role": "export",
+   "parent": "@wren/video",
+   "group": "@wren/video",
+   "attrs": {
+    "entries": [
+     "@wren/video/publish"
+    ],
+    "file": "packages/video/src/publish.ts",
+    "kind": "function",
+    "sig": "(encoded: Encoded, id: string, meta: Record<string, unknown>, o: PublishOptions): Promise<Published>"
+   }
+  },
+  {
+   "id": "@wren/video#zoomExpressions",
+   "role": "export",
+   "parent": "@wren/video",
+   "group": "@wren/video",
+   "attrs": {
+    "entries": [
+     "@wren/video"
+    ],
+    "file": "packages/video/src/timeline.ts",
+    "kind": "function",
+    "sig": "(zooms: readonly Zoom[], width: number, height: number): { z: string; x: string; y: string }"
+   }
+  }
+ ],
+ "edges": []
+}

@@ -1,0 +1,84 @@
+{
+ "layer": "imports",
+ "nodes": [
+  {
+   "id": "@wren/llm-gateway",
+   "role": "package",
+   "parent": "repo:wren",
+   "group": "@wren/llm-gateway",
+   "attrs": {
+    "dir": "apps/llm-gateway/",
+    "npm": [
+     "cloudflare:workers"
+    ]
+   }
+  },
+  {
+   "id": "@wren/llm-gateway/src/catalog.ts",
+   "role": "file",
+   "parent": "@wren/llm-gateway",
+   "group": "@wren/llm-gateway"
+  },
+  {
+   "id": "@wren/llm-gateway/src/guard.ts",
+   "role": "file",
+   "parent": "@wren/llm-gateway",
+   "group": "@wren/llm-gateway"
+  },
+  {
+   "id": "@wren/llm-gateway/src/ledger.ts",
+   "role": "file",
+   "parent": "@wren/llm-gateway",
+   "group": "@wren/llm-gateway"
+  },
+  {
+   "id": "@wren/llm-gateway/src/route.ts",
+   "role": "file",
+   "parent": "@wren/llm-gateway",
+   "group": "@wren/llm-gateway"
+  },
+  {
+   "id": "@wren/llm-gateway/src/worker.ts",
+   "role": "file",
+   "parent": "@wren/llm-gateway",
+   "group": "@wren/llm-gateway"
+  }
+ ],
+ "edges": [
+  {
+   "from": "@wren/llm-gateway/src/ledger.ts",
+   "to": "@wren/llm-gateway/src/catalog.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/llm-gateway/src/route.ts",
+   "to": "@wren/llm-gateway/src/catalog.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/llm-gateway/src/route.ts",
+   "to": "@wren/llm-gateway/src/ledger.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/llm-gateway/src/worker.ts",
+   "to": "@wren/llm-gateway/src/catalog.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/llm-gateway/src/worker.ts",
+   "to": "@wren/llm-gateway/src/guard.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/llm-gateway/src/worker.ts",
+   "to": "@wren/llm-gateway/src/ledger.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/llm-gateway/src/worker.ts",
+   "to": "@wren/llm-gateway/src/route.ts",
+   "kind": "imports"
+  }
+ ]
+}

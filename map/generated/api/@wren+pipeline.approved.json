@@ -1,0 +1,5764 @@
+{
+ "layer": "api",
+ "nodes": [
+  {
+   "id": "@wren/pipeline#ACTIONS",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/model"
+    ],
+    "file": "packages/pipeline/src/model.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"comment\", \"reply\", \"dm\", \"email\", \"text\", \"call\", \"cta\", \"visit\", \"form\", \"book\", \"held\", \"proposal\", \"signed\", \"other\"]"
+   }
+  },
+  {
+   "id": "@wren/pipeline#ATTACH_KINDS",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro"
+    ],
+    "file": "packages/pipeline/src/metro.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"sop\", \"link\", \"page\", \"funnel\", \"doc\", \"template\", \"note\"]"
+   }
+  },
+  {
+   "id": "@wren/pipeline#ATTACH_LABEL_MAX",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro"
+    ],
+    "file": "packages/pipeline/src/metro.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "80"
+   }
+  },
+  {
+   "id": "@wren/pipeline#ATTACH_REF_MAX",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro"
+    ],
+    "file": "packages/pipeline/src/metro.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "500"
+   }
+  },
+  {
+   "id": "@wren/pipeline#Action",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/model"
+    ],
+    "file": "packages/pipeline/src/model.ts",
+    "kind": "type",
+    "sig": "type Action = (typeof ACTIONS)[number];"
+   }
+  },
+  {
+   "id": "@wren/pipeline#Advance",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/model"
+    ],
+    "file": "packages/pipeline/src/model.ts",
+    "kind": "interface",
+    "sig": "interface Advance { trigger: string; with?: Record<string, string | number>; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#AssignRequest",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/restate"
+    ],
+    "file": "packages/pipeline/src/restate.ts",
+    "kind": "interface",
+    "sig": "interface AssignRequest { client?: string | null; journey: string; to?: string | null; by: string; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#Attach",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro"
+    ],
+    "file": "packages/pipeline/src/metro.ts",
+    "kind": "interface",
+    "sig": "interface Attach { kind: AttachKind; ref: string; label?: string; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#AttachAnswer",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/history"
+    ],
+    "file": "packages/pipeline/src/history.ts",
+    "kind": "interface",
+    "sig": "interface AttachAnswer { version: number; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#AttachAsk",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/history"
+    ],
+    "file": "packages/pipeline/src/history.ts",
+    "kind": "interface",
+    "sig": "interface AttachAsk { on: \"line\" | \"station\" | \"group\"; id: string; add?: Attach; remove?: string; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#AttachRequest",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/console"
+    ],
+    "file": "packages/pipeline/src/console.ts",
+    "kind": "type",
+    "sig": "type AttachRequest = PortalRequest & AttachAsk;"
+   }
+  },
+  {
+   "id": "@wren/pipeline#BlameAnswer",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/history"
+    ],
+    "file": "packages/pipeline/src/history.ts",
+    "kind": "interface",
+    "sig": "interface BlameAnswer { lines: BlameLine[]; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#BlameAsk",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/history"
+    ],
+    "file": "packages/pipeline/src/history.ts",
+    "kind": "interface",
+    "sig": "interface BlameAsk { node?: string; edge?: string; station?: string; track?: string; line?: string; group?: string; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#BlameLine",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/history"
+    ],
+    "file": "packages/pipeline/src/history.ts",
+    "kind": "interface",
+    "sig": "interface BlameLine { version: number; how: \"added\" | \"removed\" | \"renamed\" | \"changed\"; from?: string; to?: string; note: string; by: string; at: string; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#BlameOn",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/stored"
+    ],
+    "file": "packages/pipeline/src/stored.ts",
+    "kind": "type",
+    "sig": "type BlameOn = \"node\" | \"edge\" | MetroOn;"
+   }
+  },
+  {
+   "id": "@wren/pipeline#BlameVersion",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/blame"
+    ],
+    "file": "packages/pipeline/src/blame.ts",
+    "kind": "interface",
+    "sig": "interface BlameVersion { number: number; body: ShapeBody; note: string; createdBy: string; createdAt: Date | string; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#COLLECT_STEP",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/collect"
+    ],
+    "file": "packages/pipeline/src/collect.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"pipeline.collect\""
+   }
+  },
+  {
+   "id": "@wren/pipeline#COLUMNS",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro"
+    ],
+    "file": "packages/pipeline/src/metro.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"marketing\", \"sales\", \"delivery\", \"money\"]"
+   }
+  },
+  {
+   "id": "@wren/pipeline#CONVERT_FIRST",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/store"
+    ],
+    "file": "packages/pipeline/src/store.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"Convert first: wren shape convert.\""
+   }
+  },
+  {
+   "id": "@wren/pipeline#CauseFacts",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/entry"
+    ],
+    "file": "packages/pipeline/src/entry.ts",
+    "kind": "interface",
+    "sig": "interface CauseFacts { entry?: string; channel?: string; platform?: string; campaign?: string; adCampaign?: string; source?: string; group?: string; sop?: string; study?: string; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#ChangeLine",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/history"
+    ],
+    "file": "packages/pipeline/src/history.ts",
+    "kind": "interface",
+    "sig": "interface ChangeLine { key: string; line: string; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#Column",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro"
+    ],
+    "file": "packages/pipeline/src/metro.ts",
+    "kind": "type",
+    "sig": "type Column = (typeof COLUMNS)[number];"
+   }
+  },
+  {
+   "id": "@wren/pipeline#Conflict",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro-merge"
+    ],
+    "file": "packages/pipeline/src/metro-merge.ts",
+    "kind": "interface",
+    "sig": "interface Conflict { key: string; field?: string; base: unknown; live: unknown; draft: unknown; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#ContentKind",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro"
+    ],
+    "file": "packages/pipeline/src/metro.ts",
+    "kind": "type",
+    "sig": "type ContentKind = (typeof CONTENT_KINDS)[number];"
+   }
+  },
+  {
+   "id": "@wren/pipeline#ConvertPlan",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/convert-shape"
+    ],
+    "file": "packages/pipeline/src/convert-shape.ts",
+    "kind": "type",
+    "sig": "type ConvertPlan = | { already: true; body: MetroBody } | { already: false; body: MetroBody; report: ConvertReport };"
+   }
+  },
+  {
+   "id": "@wren/pipeline#ConvertReport",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/convert-shape"
+    ],
+    "file": "packages/pipeline/src/convert-shape.ts",
+    "kind": "interface",
+    "sig": "interface ConvertReport { notes: string[]; checks: string[]; graphEqual: boolean; workflowEqual: boolean; deals: DealRule[]; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#Crossing",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/model"
+    ],
+    "file": "packages/pipeline/src/model.ts",
+    "kind": "interface",
+    "sig": "interface Crossing { edge: string | null; from: string | null; to: string; at: string; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#DEAL_RECORD",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/records"
+    ],
+    "file": "packages/pipeline/src/records.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"pipeline.deal\""
+   }
+  },
+  {
+   "id": "@wren/pipeline#DEAL_STATUSES",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/schema"
+    ],
+    "file": "packages/pipeline/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"open\", \"won\", \"lost\", \"ended\"]"
+   }
+  },
+  {
+   "id": "@wren/pipeline#DRAFT_STATES",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/history"
+    ],
+    "file": "packages/pipeline/src/history.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"draft\", \"proposed\", \"applied\", \"dropped\"]"
+   }
+  },
+  {
+   "id": "@wren/pipeline#DROPPED",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/model"
+    ],
+    "file": "packages/pipeline/src/model.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"dropped\""
+   }
+  },
+  {
+   "id": "@wren/pipeline#DURATION",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro"
+    ],
+    "file": "packages/pipeline/src/metro.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "RegExp"
+   }
+  },
+  {
+   "id": "@wren/pipeline#DealStatus",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/schema"
+    ],
+    "file": "packages/pipeline/src/schema.ts",
+    "kind": "type",
+    "sig": "type DealStatus = (typeof DEAL_STATUSES)[number];"
+   }
+  },
+  {
+   "id": "@wren/pipeline#DiffAnswer",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/history"
+    ],
+    "file": "packages/pipeline/src/history.ts",
+    "kind": "interface",
+    "sig": "interface DiffAnswer { a: ShapeRef; b: ShapeRef; diff: StoredDiff; changes: ChangeLine[]; views: [MetroBody, MetroBody] | null; marks: MetroDiff | null; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#DiffAsk",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/history"
+    ],
+    "file": "packages/pipeline/src/history.ts",
+    "kind": "interface",
+    "sig": "interface DiffAsk { a: ShapeRef; b: ShapeRef; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#DraftApplyAnswer",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/history"
+    ],
+    "file": "packages/pipeline/src/history.ts",
+    "kind": "interface",
+    "sig": "interface DraftApplyAnswer { id: string; version: number; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#DraftDetail",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/history"
+    ],
+    "file": "packages/pipeline/src/history.ts",
+    "kind": "interface",
+    "sig": "interface DraftDetail { body: ShapeBody; moves: Moves; metro: MetroBody | null; drawErrors: string[]; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#DraftDropAsk",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/history"
+    ],
+    "file": "packages/pipeline/src/history.ts",
+    "kind": "interface",
+    "sig": "interface DraftDropAsk { id: string; reason: string; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#DraftEdit",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/drafts"
+    ],
+    "file": "packages/pipeline/src/drafts.ts",
+    "kind": "interface",
+    "sig": "interface DraftEdit { id: string; ops: unknown; by: string; triggers: ReadonlySet<string>; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#DraftEditAnswer",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/history"
+    ],
+    "file": "packages/pipeline/src/history.ts",
+    "kind": "interface",
+    "sig": "interface DraftEditAnswer { id: string; lines: string[]; warnings: string[]; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#DraftEditAsk",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/history"
+    ],
+    "file": "packages/pipeline/src/history.ts",
+    "kind": "interface",
+    "sig": "interface DraftEditAsk { id: string; ops: unknown; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#DraftIdAsk",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/history"
+    ],
+    "file": "packages/pipeline/src/history.ts",
+    "kind": "interface",
+    "sig": "interface DraftIdAsk { id: string; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#DraftNewAnswer",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/history"
+    ],
+    "file": "packages/pipeline/src/history.ts",
+    "kind": "interface",
+    "sig": "interface DraftNewAnswer { id: string; base: number; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#DraftNewAsk",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/history"
+    ],
+    "file": "packages/pipeline/src/history.ts",
+    "kind": "interface",
+    "sig": "interface DraftNewAsk { name: string; body?: StoredBody; moves?: Moves; base?: number; note?: string; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#DraftPlanAnswer",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/history"
+    ],
+    "file": "packages/pipeline/src/history.ts",
+    "kind": "interface",
+    "sig": "interface DraftPlanAnswer { id: string; base: number; live: number; moved: boolean; conflicts: string[]; lines: string[]; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#DraftRow",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/history"
+    ],
+    "file": "packages/pipeline/src/history.ts",
+    "kind": "interface",
+    "sig": "interface DraftRow { id: string; name: string; state: DraftState; base: number; note: string; createdBy: string; createdAt: string; updatedAt: string; appliedVersion: number | null; decidedBy: string | null; decidedAt: string | null; dropReason: string | null; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#DraftState",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/history"
+    ],
+    "file": "packages/pipeline/src/history.ts",
+    "kind": "type",
+    "sig": "type DraftState = (typeof DRAFT_STATES)[number];"
+   }
+  },
+  {
+   "id": "@wren/pipeline#DraftStateAnswer",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/history"
+    ],
+    "file": "packages/pipeline/src/history.ts",
+    "kind": "interface",
+    "sig": "interface DraftStateAnswer { id: string; state: DraftState; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#DraftUpdateAnswer",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/history"
+    ],
+    "file": "packages/pipeline/src/history.ts",
+    "kind": "interface",
+    "sig": "interface DraftUpdateAnswer { id: string; updatedAt: string; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#DraftUpdateAsk",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/history"
+    ],
+    "file": "packages/pipeline/src/history.ts",
+    "kind": "interface",
+    "sig": "interface DraftUpdateAsk { id: string; body: StoredBody; moves?: Moves; note?: string; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#DropRequest",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/restate"
+    ],
+    "file": "packages/pipeline/src/restate.ts",
+    "kind": "interface",
+    "sig": "interface DropRequest { client?: string | null; journey: string; reason: string; by: string; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#EDGE_ID_MAX",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/model"
+    ],
+    "file": "packages/pipeline/src/model.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "number"
+   }
+  },
+  {
+   "id": "@wren/pipeline#ENTRY_RECORD",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/records"
+    ],
+    "file": "packages/pipeline/src/records.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"pipeline.entry\""
+   }
+  },
+  {
+   "id": "@wren/pipeline#Emit",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/moves"
+    ],
+    "file": "packages/pipeline/src/moves.ts",
+    "kind": "interface",
+    "sig": "interface Emit { workflow: string; from: string; events: ExecutorEvent[]; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#FIRST",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro-file"
+    ],
+    "file": "packages/pipeline/src/metro-file.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "string[]"
+   }
+  },
+  {
+   "id": "@wren/pipeline#FUNNEL_STATUSES",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/schema"
+    ],
+    "file": "packages/pipeline/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"live\", \"off\"]"
+   }
+  },
+  {
+   "id": "@wren/pipeline#Fit",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/research"
+    ],
+    "file": "packages/pipeline/src/icp.ts",
+    "kind": "interface",
+    "sig": "interface Fit { score: number; reasons: string[]; unknown: string[]; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#FitModel",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/research"
+    ],
+    "file": "packages/pipeline/src/icp.ts",
+    "kind": "interface",
+    "sig": "interface FitModel { complete( prompt: string, opts?: { system?: string; maxTokens?: number }, ): Promise<{ text: string }>; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#FitTraits",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/research"
+    ],
+    "file": "packages/pipeline/src/icp.ts",
+    "kind": "interface",
+    "sig": "interface FitTraits { roles?: readonly string[]; industries?: readonly string[]; size?: number | string | null; regions?: readonly string[]; about?: readonly string[]; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#Funnel",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/schema"
+    ],
+    "file": "packages/pipeline/src/schema.ts",
+    "kind": "type",
+    "sig": "type Funnel = typeof funnels.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/pipeline#FunnelStatus",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/schema"
+    ],
+    "file": "packages/pipeline/src/schema.ts",
+    "kind": "type",
+    "sig": "type FunnelStatus = (typeof FUNNEL_STATUSES)[number];"
+   }
+  },
+  {
+   "id": "@wren/pipeline#FunnelVersion",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/schema"
+    ],
+    "file": "packages/pipeline/src/schema.ts",
+    "kind": "type",
+    "sig": "type FunnelVersion = typeof funnelVersions.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/pipeline#HUB",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro"
+    ],
+    "file": "packages/pipeline/src/metro.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"hub\""
+   }
+  },
+  {
+   "id": "@wren/pipeline#HoldNode",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/model"
+    ],
+    "file": "packages/pipeline/src/model.ts",
+    "kind": "type",
+    "sig": "type HoldNode = StepNode | OfferNode | PlanNode | JobNode;"
+   }
+  },
+  {
+   "id": "@wren/pipeline#How",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro-diff"
+    ],
+    "file": "packages/pipeline/src/metro-diff.ts",
+    "kind": "interface",
+    "sig": "interface How { how: \"added\" | \"removed\" | \"renamed\" | \"changed\"; from?: string; to?: string; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#IDLE_DAYS_MAX",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/model"
+    ],
+    "file": "packages/pipeline/src/model.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "365"
+   }
+  },
+  {
+   "id": "@wren/pipeline#Imported",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/shape-file"
+    ],
+    "file": "packages/pipeline/src/shape-file.ts",
+    "kind": "interface",
+    "sig": "interface Imported { shape: ShapeVersion | null; terms: TermsVersion[]; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#Instance",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/schema"
+    ],
+    "file": "packages/pipeline/src/schema.ts",
+    "kind": "type",
+    "sig": "type Instance = typeof instances.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/pipeline#JOBS",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/model"
+    ],
+    "file": "packages/pipeline/src/model.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"read\", \"extract\", \"call\", \"measure\"]"
+   }
+  },
+  {
+   "id": "@wren/pipeline#JOURNEYS",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/restate"
+    ],
+    "file": "packages/pipeline/src/restate.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly name: \"Journeys\"; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#JOURNEY_PORT",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/workflow"
+    ],
+    "file": "packages/pipeline/src/workflow.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"journey\""
+   }
+  },
+  {
+   "id": "@wren/pipeline#JOURNEY_RECORD",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/records"
+    ],
+    "file": "packages/pipeline/src/records.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"pipeline.journey\""
+   }
+  },
+  {
+   "id": "@wren/pipeline#JOURNEY_STATUSES",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/schema"
+    ],
+    "file": "packages/pipeline/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"open\", \"done\", \"dropped\"]"
+   }
+  },
+  {
+   "id": "@wren/pipeline#Job",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/model"
+    ],
+    "file": "packages/pipeline/src/model.ts",
+    "kind": "type",
+    "sig": "type Job = (typeof JOBS)[number];"
+   }
+  },
+  {
+   "id": "@wren/pipeline#JobNode",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/model"
+    ],
+    "file": "packages/pipeline/src/model.ts",
+    "kind": "interface",
+    "sig": "interface JobNode extends NodeBase { kind: \"job\"; job: Job; advance: Advance[]; idleDays?: number; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#JourneyResearch",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/schema"
+    ],
+    "file": "packages/pipeline/src/schema.ts",
+    "kind": "type",
+    "sig": "type JourneyResearch = typeof journeyResearch.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/pipeline#JourneyStatus",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/schema"
+    ],
+    "file": "packages/pipeline/src/schema.ts",
+    "kind": "type",
+    "sig": "type JourneyStatus = (typeof JOURNEY_STATUSES)[number];"
+   }
+  },
+  {
+   "id": "@wren/pipeline#JourneysApi",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/restate"
+    ],
+    "file": "packages/pipeline/src/restate.ts",
+    "kind": "type",
+    "sig": "type JourneysApi = { open: (ctx: restate.Context, req: OpenRequest) => Promise<{ journey: string; node: string }>; move: ( ctx: restate.Context, req: MoveRequest, ) => Promise<{ journey: string; from: string; to: string; status: string }>; drop: (ctx: restate.Context, req: DropRequest) => Promise<{ journey: string; node: string }>; assign: ( ctx: restate.Context, req: AssignRequest, ) => Promise<{ journey: string; owner: string | null }>; rebuild: (ctx: restate.Context, req: RebuildRequest) => Promise<unknown>; };"
+   }
+  },
+  {
+   "id": "@wren/pipeline#JourneysService",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/restate"
+    ],
+    "file": "packages/pipeline/src/restate.ts",
+    "kind": "type",
+    "sig": "type JourneysService = ReturnType<typeof makeJourneys>;"
+   }
+  },
+  {
+   "id": "@wren/pipeline#LOGIC_KINDS",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro"
+    ],
+    "file": "packages/pipeline/src/metro.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"condition\", \"race\", \"split\", \"join\", \"ab\", \"approval\", \"link\"]"
+   }
+  },
+  {
+   "id": "@wren/pipeline#MANUAL",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/entry"
+    ],
+    "file": "packages/pipeline/src/entry.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"manual\""
+   }
+  },
+  {
+   "id": "@wren/pipeline#MAP_VIEW_RECORD",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro-parts"
+    ],
+    "file": "packages/pipeline/src/metro-parts.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"map\""
+   }
+  },
+  {
+   "id": "@wren/pipeline#MAP_WINDOWS",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/map-read"
+    ],
+    "file": "packages/pipeline/src/map-read.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"all\", \"7\", \"30\", \"90\"]"
+   }
+  },
+  {
+   "id": "@wren/pipeline#METRO_LISTS",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro-diff"
+    ],
+    "file": "packages/pipeline/src/metro-diff.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly line: \"lines\"; readonly station: \"stations\"; readonly track: \"tracks\"; readonly group: \"groups\"; readonly frame: \"frames\"; readonly flow: \"flows\"; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#METRO_ONS",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro-diff"
+    ],
+    "file": "packages/pipeline/src/metro-diff.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"line\", \"station\", \"track\", \"group\", \"frame\", \"flow\"]"
+   }
+  },
+  {
+   "id": "@wren/pipeline#METRO_WORD",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro-diff"
+    ],
+    "file": "packages/pipeline/src/metro-diff.ts",
+    "kind": "const",
+    "sig": "Record<MetroOn, string>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#MONEY_WORKFLOW",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/collect"
+    ],
+    "file": "packages/pipeline/src/collect.ts",
+    "kind": "const",
+    "sig": "Workflow"
+   }
+  },
+  {
+   "id": "@wren/pipeline#MOVE_STEP",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/workflow"
+    ],
+    "file": "packages/pipeline/src/workflow.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"journey.move\""
+   }
+  },
+  {
+   "id": "@wren/pipeline#MapAnswer",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/map-read"
+    ],
+    "file": "packages/pipeline/src/map-read.ts",
+    "kind": "interface",
+    "sig": "interface MapAnswer { shape: { body: ShapeBody; depths: Record<string, number>; metro: MetroBody | null; drawErrors: string[]; versions: VersionLine[]; } | null; numbers: NumberRow[]; people: MapPerson[]; ghosts: MapPerson[]; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#MapPerson",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/map-read"
+    ],
+    "file": "packages/pipeline/src/map-read.ts",
+    "kind": "interface",
+    "sig": "interface MapPerson { id: string; name: string; node: string; nodeName: string; movedAt: string | null; daysAtNode: number; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#MapWindow",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/map-read"
+    ],
+    "file": "packages/pipeline/src/map-read.ts",
+    "kind": "type",
+    "sig": "type MapWindow = (typeof MAP_WINDOWS)[number];"
+   }
+  },
+  {
+   "id": "@wren/pipeline#MetroBlameVersion",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro-blame"
+    ],
+    "file": "packages/pipeline/src/metro-blame.ts",
+    "kind": "interface",
+    "sig": "interface MetroBlameVersion { number: number; body: MetroBody; note: string; createdBy: string; createdAt: Date | string; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#MetroBody",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro"
+    ],
+    "file": "packages/pipeline/src/metro.ts",
+    "kind": "interface",
+    "sig": "interface MetroBody { model: \"metro\"; name: string; lines: MetroLine[]; stations: MetroStation[]; tracks: MetroTrack[]; groups: MetroGroup[]; frames: MetroFrame[]; flows?: MetroFlow[]; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#MetroChange",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro-diff"
+    ],
+    "file": "packages/pipeline/src/metro-diff.ts",
+    "kind": "type",
+    "sig": "type MetroChange = | { on: \"name\" } | { on: \"line\" | \"station\" | \"group\" | \"flow\"; id: string; how: \"added\" | \"removed\" | \"renamed\" | \"changed\"; } | { on: \"track\" | \"frame\"; id: string; how: \"added\" | \"removed\" | \"changed\" };"
+   }
+  },
+  {
+   "id": "@wren/pipeline#MetroDiff",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro-diff"
+    ],
+    "file": "packages/pipeline/src/metro-diff.ts",
+    "kind": "interface",
+    "sig": "interface MetroDiff { lines: MetroPart; stations: MetroPart; tracks: MetroPart; groups: MetroPart; frames: MetroPart; flows: MetroPart; name: { from: string; to: string } | null; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#MetroFlow",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro"
+    ],
+    "file": "packages/pipeline/src/metro.ts",
+    "kind": "interface",
+    "sig": "interface MetroFlow { id: string; label: string; stations: MetroStation[]; tracks: MetroTrack[]; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#MetroGroup",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro"
+    ],
+    "file": "packages/pipeline/src/metro.ts",
+    "kind": "interface",
+    "sig": "interface MetroGroup { id: string; label: string; line?: string; stations: string[]; parent?: string; attach?: Attach[]; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#MetroLine",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro"
+    ],
+    "file": "packages/pipeline/src/metro.ts",
+    "kind": "interface",
+    "sig": "interface MetroLine { id: string; label: string; tier: Tier; offer?: string; colour?: number; entry?: LineEntry; planned?: true; attach?: Attach[]; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#MetroOn",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro-diff"
+    ],
+    "file": "packages/pipeline/src/metro-diff.ts",
+    "kind": "type",
+    "sig": "type MetroOn = (typeof METRO_ONS)[number];"
+   }
+  },
+  {
+   "id": "@wren/pipeline#MetroOp",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro-ops"
+    ],
+    "file": "packages/pipeline/src/metro-ops.ts",
+    "kind": "type",
+    "sig": "type MetroOp = | { op: \"add\"; on: \"line\"; item: MetroLine } | { op: \"add\"; on: \"station\"; item: MetroStation } | { op: \"add\"; on: \"track\"; item: MetroTrack } | { op: \"add\"; on: \"group\"; item: MetroGroup } | { op: \"rename\"; on: \"line\" | \"station\" | \"group\"; id: string; label: string } | { op: \"rename\"; on: \"shape\"; name: string } | { op: \"move\"; on: \"station\"; id: string; line?: string; column?: Column; group?: string | null } | { op: \"move\"; on: \"track\"; id: string; from?: string; to?: string } | { op: \"move\"; on: \"group\"; id: string; line: string } | { op: \"move\"; on: \"line\"; id: string; before: string | null } | { op: \"remove\"; on: OpOn; id: string } | { op: \"set\"; on: OpOn; id: string; field: string; value: unknown } | { op: \"attach\"; on: \"line\" | \"station\" | \"group\"; id: string; ref: Attach } | { op: \"detach\"; on: \"line\" | \"station\" | \"group\"; id: string; ref: string };"
+   }
+  },
+  {
+   "id": "@wren/pipeline#MetroOpSchema",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro-ops"
+    ],
+    "file": "packages/pipeline/src/metro-ops.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "z.ZodDiscriminatedUnion<[z.ZodObject<{ op: z.ZodLiteral<\"add\">; on: z.ZodEnum<{ group: \"group\"; line: \"line\"; station: \"station\"; track: \"track\"; }>; item: z.ZodRecord<z.ZodString, z.ZodUnknown>; }, z.core.$strict>, z.ZodObject<{ op: z.ZodLiteral<\"rename\">; on: z.ZodEnum<{ group: \"group\"; line: \"lin…"
+   }
+  },
+  {
+   "id": "@wren/pipeline#MetroPart",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro-diff"
+    ],
+    "file": "packages/pipeline/src/metro-diff.ts",
+    "kind": "interface",
+    "sig": "interface MetroPart { added: string[]; removed: string[]; renamed: Array<{ id: string; from: string; to: string }>; changed: string[]; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#MetroStation",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro"
+    ],
+    "file": "packages/pipeline/src/metro.ts",
+    "kind": "interface",
+    "sig": "interface MetroStation { id: string; label: string; kind: StationKind; line?: string; column: Column; action?: Action; advance?: Advance[]; research?: Research; idleDays?: number; deal?: true; terms?: string; offer?: string; failure?: true; rule?: string; flow?: string; sop?: string; study?: string; retries?: number; template?: string; platform?: string; planned?: true; attach?: Attach[]; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#MetroTrack",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro"
+    ],
+    "file": "packages/pipeline/src/metro.ts",
+    "kind": "interface",
+    "sig": "interface MetroTrack { id: string; from: string; to: string; line?: string; kind?: TrackKind; by: TrackBy; owner?: string; promise?: string; entries?: string[]; cond?: string; else?: true; wait?: string; weight?: number; label?: string; planned?: true; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#MirrorRef",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/history"
+    ],
+    "file": "packages/pipeline/src/history.ts",
+    "kind": "interface",
+    "sig": "interface MirrorRef { sha: string; url: string; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#MirrorResult",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/mirror"
+    ],
+    "file": "packages/pipeline/src/mirror.ts",
+    "kind": "type",
+    "sig": "type MirrorResult = | { off: true } | { off?: undefined; committed: MirrorCommit[]; failed?: string };"
+   }
+  },
+  {
+   "id": "@wren/pipeline#MoveRequest",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/restate"
+    ],
+    "file": "packages/pipeline/src/restate.ts",
+    "kind": "interface",
+    "sig": "interface MoveRequest { client?: string | null; journey: string; to: string; by: string; reason?: string; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#Moves",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/carry"
+    ],
+    "file": "packages/pipeline/src/carry.ts",
+    "kind": "type",
+    "sig": "type Moves = Record<string, string>;"
+   }
+  },
+  {
+   "id": "@wren/pipeline#NODE_ID_MAX",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/model"
+    ],
+    "file": "packages/pipeline/src/model.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "40"
+   }
+  },
+  {
+   "id": "@wren/pipeline#NUMBER_RECORD",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/records"
+    ],
+    "file": "packages/pipeline/src/records.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"pipeline.number\""
+   }
+  },
+  {
+   "id": "@wren/pipeline#NewTerms",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/store"
+    ],
+    "file": "packages/pipeline/src/store.ts",
+    "kind": "interface",
+    "sig": "interface NewTerms { offer: string; plan: string; from: string; body: Terms; why: string; by: string; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#NodeKind",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/model"
+    ],
+    "file": "packages/pipeline/src/model.ts",
+    "kind": "type",
+    "sig": "type NodeKind = (typeof NODE_KINDS)[number];"
+   }
+  },
+  {
+   "id": "@wren/pipeline#NumberRow",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/numbers"
+    ],
+    "file": "packages/pipeline/src/numbers.ts",
+    "kind": "interface",
+    "sig": "interface NumberRow { id: string; kind: NumberKind; label: string; name: string; position: number; nodeKind: string | null; arrived: number | null; skipped: number | null; left: number | null; now: number | null; medianDays: number | null; reach: number | null; steps: number | null; mark: \"optional\" | \"express\" | null; crossings: number | null; from: string | null; to: string | null; opened: number | null; replied: number | null; booked: number | null; deals: number | null; collected: number | null; scheduled: number | null; cost: number | null; currency: string | null; last: string | null; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#NumberWindow",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/numbers"
+    ],
+    "file": "packages/pipeline/src/numbers.ts",
+    "kind": "type",
+    "sig": "type NumberWindow = 7 | 30 | 90 | \"all\";"
+   }
+  },
+  {
+   "id": "@wren/pipeline#OFFER_RECORD",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/records"
+    ],
+    "file": "packages/pipeline/src/records.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"pipeline.offer\""
+   }
+  },
+  {
+   "id": "@wren/pipeline#ON_GRAPH",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/edit"
+    ],
+    "file": "packages/pipeline/src/edit.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"The shape is on the graph model. Undo by node or edge.\""
+   }
+  },
+  {
+   "id": "@wren/pipeline#ON_METRO",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/edit"
+    ],
+    "file": "packages/pipeline/src/edit.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"The shape is on the metro model. Export, edit the YAML, import.\""
+   }
+  },
+  {
+   "id": "@wren/pipeline#OPEN_DRAFT_STATES",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/history"
+    ],
+    "file": "packages/pipeline/src/history.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"draft\", \"proposed\"]"
+   }
+  },
+  {
+   "id": "@wren/pipeline#OfferNode",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/model"
+    ],
+    "file": "packages/pipeline/src/model.ts",
+    "kind": "interface",
+    "sig": "interface OfferNode extends NodeBase { kind: \"offer\"; offer: string; advance: Advance[]; research?: Research; idleDays?: number; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#OfferNumber",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/numbers"
+    ],
+    "file": "packages/pipeline/src/numbers.ts",
+    "kind": "interface",
+    "sig": "interface OfferNumber { offer: string; currency: string; deals: number; signed: number; collectedCents: number; scheduledCents: number; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#OfferSync",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/store"
+    ],
+    "file": "packages/pipeline/src/store.ts",
+    "kind": "interface",
+    "sig": "interface OfferSync { added: { offer: string; number: number }[]; unchanged: number; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#OfferVersion",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/schema"
+    ],
+    "file": "packages/pipeline/src/schema.ts",
+    "kind": "type",
+    "sig": "type OfferVersion = typeof offerVersions.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/pipeline#OpenRequest",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/restate"
+    ],
+    "file": "packages/pipeline/src/restate.ts",
+    "kind": "interface",
+    "sig": "interface OpenRequest { client?: string | null; person: string; at?: string; entry?: string; by: string; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#PART_KINDS",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro-parts"
+    ],
+    "file": "packages/pipeline/src/metro-parts.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"line\", \"group\", \"station\", \"flow\"]"
+   }
+  },
+  {
+   "id": "@wren/pipeline#PEOPLE_VIAS",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/model"
+    ],
+    "file": "packages/pipeline/src/model.ts",
+    "kind": "const",
+    "sig": "readonly Via[]"
+   }
+  },
+  {
+   "id": "@wren/pipeline#PIPELINE_COMPONENTS",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/components"
+    ],
+    "file": "packages/pipeline/src/components.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"@wren/core/components\").Component[]"
+   }
+  },
+  {
+   "id": "@wren/pipeline#PIPELINE_CONSOLE_APPS",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/console-routes"
+    ],
+    "file": "packages/pipeline/src/console-routes.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly \"*\": \"deals\"; readonly recordsTypes: null; readonly recordsList: null; readonly recordsGet: null; readonly recordsExport: null; readonly recordsStats: null; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#PIPELINE_CONSOLE_ROUTES",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/console-routes"
+    ],
+    "file": "packages/pipeline/src/console-routes.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly recordsTypes: \"read\"; readonly recordsList: \"read\"; readonly recordsGet: \"read\"; readonly recordsExport: \"read\"; readonly recordsStats: \"read\"; readonly mapRead: \"read\"; readonly offersSync: \"act\"; readonly shapeVersion: \"act\"; readonly shapeDiff: \"read\"; readonly shapeImport: \"act\"; read…"
+   }
+  },
+  {
+   "id": "@wren/pipeline#PIPELINE_CONSOLE_WRITES",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/console-routes"
+    ],
+    "file": "packages/pipeline/src/console-routes.ts",
+    "kind": "const",
+    "sig": "readonly PipelineConsoleRoute[]"
+   }
+  },
+  {
+   "id": "@wren/pipeline#PIPELINE_RECORDS",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/records"
+    ],
+    "file": "packages/pipeline/src/records.ts",
+    "kind": "const",
+    "sig": "readonly RecordType[]"
+   }
+  },
+  {
+   "id": "@wren/pipeline#Part",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro-parts"
+    ],
+    "file": "packages/pipeline/src/metro-parts.ts",
+    "kind": "interface",
+    "sig": "interface Part { kind: PartKind; id: string; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#PipelineDeal",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/schema"
+    ],
+    "file": "packages/pipeline/src/schema.ts",
+    "kind": "type",
+    "sig": "type PipelineDeal = typeof pipelineDeals.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/pipeline#PlanNode",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/model"
+    ],
+    "file": "packages/pipeline/src/model.ts",
+    "kind": "interface",
+    "sig": "interface PlanNode extends NodeBase { kind: \"plan\"; terms: string; advance: Advance[]; idleDays?: number; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#PreviewAnswer",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/history"
+    ],
+    "file": "packages/pipeline/src/history.ts",
+    "kind": "interface",
+    "sig": "interface PreviewAnswer { a: number | null; diff: StoredDiff; changes: ChangeLine[]; views: [MetroBody, MetroBody] | null; marks: MetroDiff | null; note: string | null; moves: Moves | null; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#RESEARCH_LEVELS",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/model"
+    ],
+    "file": "packages/pipeline/src/model.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"none\", \"light\", \"full\"]"
+   }
+  },
+  {
+   "id": "@wren/pipeline#RESEARCH_STATES",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/schema"
+    ],
+    "file": "packages/pipeline/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"queued\", \"started\", \"read\", \"skipped\"]"
+   }
+  },
+  {
+   "id": "@wren/pipeline#RebuildRequest",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/restate"
+    ],
+    "file": "packages/pipeline/src/restate.ts",
+    "kind": "interface",
+    "sig": "interface RebuildRequest { client?: string | null; journey: string; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#Rebuilt",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/moves"
+    ],
+    "file": "packages/pipeline/src/moves.ts",
+    "kind": "interface",
+    "sig": "interface Rebuilt { before: RebuiltFields; after: RebuiltFields; changed: boolean; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#Refused",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/refused",
+     "@wren/pipeline/store"
+    ],
+    "file": "packages/pipeline/src/refused.ts",
+    "kind": "class",
+    "sig": "constructor(readonly errors: string[])"
+   }
+  },
+  {
+   "id": "@wren/pipeline#Research",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/model"
+    ],
+    "file": "packages/pipeline/src/model.ts",
+    "kind": "type",
+    "sig": "type Research = (typeof RESEARCH_LEVELS)[number];"
+   }
+  },
+  {
+   "id": "@wren/pipeline#ResearchAsk",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/research"
+    ],
+    "file": "packages/pipeline/src/research.ts",
+    "kind": "interface",
+    "sig": "interface ResearchAsk { client: string | null; profile: number; journey: string; stage: string; level: ResearchLevel; offer: string; icp: Icp | null; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#ResearchState",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/schema"
+    ],
+    "file": "packages/pipeline/src/schema.ts",
+    "kind": "type",
+    "sig": "type ResearchState = (typeof RESEARCH_STATES)[number];"
+   }
+  },
+  {
+   "id": "@wren/pipeline#Researcher",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/research"
+    ],
+    "file": "packages/pipeline/src/research.ts",
+    "kind": "interface",
+    "sig": "interface Researcher { light(db: Queryable, ask: ResearchAsk): Promise<LightRead>; full(ask: ResearchAsk): Promise<Started>; model?: FitModel | null; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#SHAPE_DRAFT_RECORD",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/records"
+    ],
+    "file": "packages/pipeline/src/records.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"pipeline.shape_draft\""
+   }
+  },
+  {
+   "id": "@wren/pipeline#SHAPE_RECORD",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/records"
+    ],
+    "file": "packages/pipeline/src/records.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"pipeline.shape\""
+   }
+  },
+  {
+   "id": "@wren/pipeline#SOP_NAME",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/model"
+    ],
+    "file": "packages/core/src/logic.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "RegExp"
+   }
+  },
+  {
+   "id": "@wren/pipeline#STAGE_KEY",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/model"
+    ],
+    "file": "packages/pipeline/src/model.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "RegExp"
+   }
+  },
+  {
+   "id": "@wren/pipeline#STAGE_STEP",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/workflow"
+    ],
+    "file": "packages/pipeline/src/workflow.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"journey.stage\""
+   }
+  },
+  {
+   "id": "@wren/pipeline#STALE_DAYS",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/records"
+    ],
+    "file": "packages/pipeline/src/records.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "14"
+   }
+  },
+  {
+   "id": "@wren/pipeline#STARTER_NOTE",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/starter"
+    ],
+    "file": "packages/pipeline/src/starter.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"Starter\""
+   }
+  },
+  {
+   "id": "@wren/pipeline#STATION_KINDS",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro"
+    ],
+    "file": "packages/pipeline/src/metro.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"att\", \"time\", \"cash\", \"exit\", \"hub\", \"condition\", \"race\", \"split\", \"join\", \"ab\", \"approval\", \"link\", \"find\", \"read\", \"extract\", \"call\", \"measure\"]"
+   }
+  },
+  {
+   "id": "@wren/pipeline#STUDY_SLUG",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/model"
+    ],
+    "file": "packages/core/src/logic.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "RegExp"
+   }
+  },
+  {
+   "id": "@wren/pipeline#SUBJECT_KINDS",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/model"
+    ],
+    "file": "packages/pipeline/src/model.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"person\", \"document\"]"
+   }
+  },
+  {
+   "id": "@wren/pipeline#Scope",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/workflow"
+    ],
+    "file": "packages/pipeline/src/workflow.ts",
+    "kind": "type",
+    "sig": "type Scope = \"wren\" | \"client\";"
+   }
+  },
+  {
+   "id": "@wren/pipeline#ShapeBody",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/model"
+    ],
+    "file": "packages/pipeline/src/model.ts",
+    "kind": "interface",
+    "sig": "interface ShapeBody { name: string; nodes: ShapeNode[]; edges: ShapeEdge[]; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#ShapeChange",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/diff"
+    ],
+    "file": "packages/pipeline/src/diff.ts",
+    "kind": "type",
+    "sig": "type ShapeChange = | { on: \"name\" } | { on: \"node\"; id: string; how: \"added\" | \"removed\" | \"renamed\" | \"changed\" } | { on: \"edge\"; id: string; how: \"added\" | \"removed\" | \"changed\" };"
+   }
+  },
+  {
+   "id": "@wren/pipeline#ShapeCheckContext",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/model"
+    ],
+    "file": "packages/pipeline/src/model.ts",
+    "kind": "interface",
+    "sig": "interface ShapeCheckContext { triggers: ReadonlySet<string>; group(id: string): { active: boolean } | undefined; source(id: string): { exists: true } | undefined; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#ShapeDiff",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/diff",
+     "@wren/pipeline/store"
+    ],
+    "file": "packages/pipeline/src/diff.ts",
+    "kind": "interface",
+    "sig": "interface ShapeDiff { nodes: { added: string[]; removed: string[]; renamed: Array<{ id: string; from: string; to: string }>; changed: string[]; }; edges: { added: string[]; removed: string[]; changed: string[] }; name: { from: string; to: string } | null; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#ShapeDraft",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/schema"
+    ],
+    "file": "packages/pipeline/src/schema.ts",
+    "kind": "type",
+    "sig": "type ShapeDraft = typeof shapeDrafts.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/pipeline#ShapeEdge",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/model"
+    ],
+    "file": "packages/pipeline/src/model.ts",
+    "kind": "interface",
+    "sig": "interface ShapeEdge { id: string; from: string; to: string; kind: EdgeKind; label?: string; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#ShapeFile",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/shape-file"
+    ],
+    "file": "packages/pipeline/src/shape-file.ts",
+    "kind": "interface",
+    "sig": "interface ShapeFile { body: MetroBody; note?: string; moves?: Moves; terms?: TermsEntry[]; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#ShapeMirror",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/schema"
+    ],
+    "file": "packages/pipeline/src/schema.ts",
+    "kind": "type",
+    "sig": "type ShapeMirror = typeof shapeMirrors.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/pipeline#ShapeNode",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/model"
+    ],
+    "file": "packages/pipeline/src/model.ts",
+    "kind": "type",
+    "sig": "type ShapeNode = SourceNode | StepNode | OfferNode | PlanNode | JobNode;"
+   }
+  },
+  {
+   "id": "@wren/pipeline#ShapeRef",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/history"
+    ],
+    "file": "packages/pipeline/src/history.ts",
+    "kind": "type",
+    "sig": "type ShapeRef = number | `draft:${string}`;"
+   }
+  },
+  {
+   "id": "@wren/pipeline#ShapeTag",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/schema"
+    ],
+    "file": "packages/pipeline/src/schema.ts",
+    "kind": "type",
+    "sig": "type ShapeTag = typeof shapeTags.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/pipeline#ShapeVersion",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/schema"
+    ],
+    "file": "packages/pipeline/src/schema.ts",
+    "kind": "type",
+    "sig": "type ShapeVersion = typeof shapeVersions.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/pipeline#SourceCursors",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/sourced"
+    ],
+    "file": "packages/pipeline/src/sourced.ts",
+    "kind": "type",
+    "sig": "type SourceCursors = Record<string, number>;"
+   }
+  },
+  {
+   "id": "@wren/pipeline#SourceNode",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/model"
+    ],
+    "file": "packages/pipeline/src/model.ts",
+    "kind": "interface",
+    "sig": "interface SourceNode extends NodeBase { kind: \"source\"; via: Via; channel?: string; campaign?: string; source?: string; group?: string; sop?: string; study?: string; parked?: true; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#Started",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/research"
+    ],
+    "file": "packages/pipeline/src/research.ts",
+    "kind": "interface",
+    "sig": "interface Started { state: \"started\" | \"skipped\"; lookupId?: number; note?: string; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#StationKind",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro"
+    ],
+    "file": "packages/pipeline/src/metro.ts",
+    "kind": "type",
+    "sig": "type StationKind = (typeof STATION_KINDS)[number];"
+   }
+  },
+  {
+   "id": "@wren/pipeline#StepNode",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/model"
+    ],
+    "file": "packages/pipeline/src/model.ts",
+    "kind": "interface",
+    "sig": "interface StepNode extends NodeBase { kind: \"step\"; action: Action; advance: Advance[]; research?: Research; idleDays?: number; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#StoredBody",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/stored"
+    ],
+    "file": "packages/pipeline/src/stored.ts",
+    "kind": "type",
+    "sig": "type StoredBody = ShapeBody | MetroBody;"
+   }
+  },
+  {
+   "id": "@wren/pipeline#StoredChange",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/stored"
+    ],
+    "file": "packages/pipeline/src/stored.ts",
+    "kind": "type",
+    "sig": "type StoredChange = ShapeChange | MetroChange;"
+   }
+  },
+  {
+   "id": "@wren/pipeline#StoredDiff",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/stored"
+    ],
+    "file": "packages/pipeline/src/stored.ts",
+    "kind": "type",
+    "sig": "type StoredDiff = { model: \"graph\"; diff: ShapeDiff } | { model: \"metro\"; diff: MetroDiff };"
+   }
+  },
+  {
+   "id": "@wren/pipeline#Subject",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/journeys"
+    ],
+    "file": "packages/pipeline/src/journeys.ts",
+    "kind": "type",
+    "sig": "type Subject = { kind: \"person\"; profile: number } | { kind: \"document\"; document: number };"
+   }
+  },
+  {
+   "id": "@wren/pipeline#SubjectKind",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/model"
+    ],
+    "file": "packages/pipeline/src/model.ts",
+    "kind": "type",
+    "sig": "type SubjectKind = (typeof SUBJECT_KINDS)[number];"
+   }
+  },
+  {
+   "id": "@wren/pipeline#TERMS_RECORD",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/records"
+    ],
+    "file": "packages/pipeline/src/records.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"pipeline.terms\""
+   }
+  },
+  {
+   "id": "@wren/pipeline#TRACK_KINDS",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro"
+    ],
+    "file": "packages/pipeline/src/metro.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"exit\", \"xfer\", \"back\"]"
+   }
+  },
+  {
+   "id": "@wren/pipeline#TagAnswer",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/history"
+    ],
+    "file": "packages/pipeline/src/history.ts",
+    "kind": "interface",
+    "sig": "interface TagAnswer { name: string; version: number; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#TagAsk",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/history"
+    ],
+    "file": "packages/pipeline/src/history.ts",
+    "kind": "interface",
+    "sig": "interface TagAsk { name: string; version: number; note?: string; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#TagRequest",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/console"
+    ],
+    "file": "packages/pipeline/src/console.ts",
+    "kind": "type",
+    "sig": "type TagRequest = PortalRequest & TagAsk;"
+   }
+  },
+  {
+   "id": "@wren/pipeline#TermsVersion",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/schema"
+    ],
+    "file": "packages/pipeline/src/schema.ts",
+    "kind": "type",
+    "sig": "type TermsVersion = typeof termsVersions.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/pipeline#UndoAnswer",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/history"
+    ],
+    "file": "packages/pipeline/src/history.ts",
+    "kind": "interface",
+    "sig": "interface UndoAnswer { version: number; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#UndoAsk",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/history"
+    ],
+    "file": "packages/pipeline/src/history.ts",
+    "kind": "interface",
+    "sig": "interface UndoAsk { a: number; b: number; change: string; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#UndoPreviewAnswer",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/history"
+    ],
+    "file": "packages/pipeline/src/history.ts",
+    "kind": "interface",
+    "sig": "interface UndoPreviewAnswer { line: string; note: string; newest: number; diff: StoredDiff; changes: ChangeLine[]; views: [MetroBody, MetroBody] | null; marks: MetroDiff | null; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#UndoRequest",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/console"
+    ],
+    "file": "packages/pipeline/src/console.ts",
+    "kind": "type",
+    "sig": "type UndoRequest = PortalRequest & UndoAsk;"
+   }
+  },
+  {
+   "id": "@wren/pipeline#VIAS",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/model"
+    ],
+    "file": "packages/pipeline/src/model.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"organic\", \"outbound\", \"ads\", \"referral\", \"sourced\", \"group\", \"manual\", \"found\"]"
+   }
+  },
+  {
+   "id": "@wren/pipeline#VersionLine",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/history"
+    ],
+    "file": "packages/pipeline/src/history.ts",
+    "kind": "interface",
+    "sig": "interface VersionLine { number: number; parent: number | null; note: string; at: string; by: string; nodes: number; edges: number; draft: string | null; tags: TagRef[]; mirror: MirrorRef | null; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#Via",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/model"
+    ],
+    "file": "packages/pipeline/src/model.ts",
+    "kind": "type",
+    "sig": "type Via = (typeof VIAS)[number];"
+   }
+  },
+  {
+   "id": "@wren/pipeline#WREN_WORKSPACE",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/mirror"
+    ],
+    "file": "packages/pipeline/src/mirror.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"wren\""
+   }
+  },
+  {
+   "id": "@wren/pipeline#addTag",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/tags"
+    ],
+    "file": "packages/pipeline/src/tags.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, input: { name: string; version: number; note?: string; by: string }): Promise<ShapeTag>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#addTerms",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/store"
+    ],
+    "file": "packages/pipeline/src/store.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, input: NewTerms): Promise<TermsVersion>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#applyDraft",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/drafts"
+    ],
+    "file": "packages/pipeline/src/drafts.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, input: { id: string; by: string; triggers: ReadonlySet<string> }): Promise<{ draft: ShapeDraft; version: ShapeVersion }>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#applyOp",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro-ops"
+    ],
+    "file": "packages/pipeline/src/metro-ops.ts",
+    "kind": "function",
+    "sig": "(body: MetroBody, op: MetroOp): MetroBody"
+   }
+  },
+  {
+   "id": "@wren/pipeline#applyOps",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro-ops"
+    ],
+    "file": "packages/pipeline/src/metro-ops.ts",
+    "kind": "function",
+    "sig": "(body: MetroBody, ops: readonly MetroOp[]): MetroBody"
+   }
+  },
+  {
+   "id": "@wren/pipeline#assignJourney",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/moves"
+    ],
+    "file": "packages/pipeline/src/moves.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, main: Queryable, p: { client?: string | null; journey: string; to: string | null }): Promise<{ journey: string; owner: string | null }>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#bodyOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/journeys"
+    ],
+    "file": "packages/pipeline/src/journeys.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, version: number): Promise<ShapeBody | null>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#bodyOfRef",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/drafts"
+    ],
+    "file": "packages/pipeline/src/drafts.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, ref: ShapeRef): Promise<StoredBody>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#canonicalJson",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/diff",
+     "@wren/pipeline/store"
+    ],
+    "file": "packages/pipeline/src/diff.ts",
+    "kind": "function",
+    "sig": "(v: unknown): string"
+   }
+  },
+  {
+   "id": "@wren/pipeline#carryJourneys",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/carry"
+    ],
+    "file": "packages/pipeline/src/carry.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, toVersion: number, moves: Moves = {}): Promise<number>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#causeOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/steps"
+    ],
+    "file": "packages/pipeline/src/steps.ts",
+    "kind": "function",
+    "sig": "(e: ExecutorEvent, now: Date): Cause"
+   }
+  },
+  {
+   "id": "@wren/pipeline#changeKey",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/diff"
+    ],
+    "file": "packages/pipeline/src/diff.ts",
+    "kind": "function",
+    "sig": "(c: ShapeChange): string"
+   }
+  },
+  {
+   "id": "@wren/pipeline#changeLine",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/diff"
+    ],
+    "file": "packages/pipeline/src/diff.ts",
+    "kind": "function",
+    "sig": "(a: ShapeBody, b: ShapeBody, c: ShapeChange): string"
+   }
+  },
+  {
+   "id": "@wren/pipeline#changeLines",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/diff"
+    ],
+    "file": "packages/pipeline/src/diff.ts",
+    "kind": "function",
+    "sig": "(a: ShapeBody, b: ShapeBody, diff: ShapeDiff): string[]"
+   }
+  },
+  {
+   "id": "@wren/pipeline#changesOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/diff"
+    ],
+    "file": "packages/pipeline/src/diff.ts",
+    "kind": "function",
+    "sig": "(d: ShapeDiff): ShapeChange[]"
+   }
+  },
+  {
+   "id": "@wren/pipeline#checkEntry",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/model"
+    ],
+    "file": "packages/pipeline/src/model.ts",
+    "kind": "function",
+    "sig": "(who: string, e: EntryFields, ctx: ShapeCheckContext, errors: string[], vias: readonly Via[] = VIAS): void"
+   }
+  },
+  {
+   "id": "@wren/pipeline#checkMetro",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro"
+    ],
+    "file": "packages/pipeline/src/metro.ts",
+    "kind": "function",
+    "sig": "(body: MetroBody, ctx: ShapeCheckContext): string[]"
+   }
+  },
+  {
+   "id": "@wren/pipeline#checkShape",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/model"
+    ],
+    "file": "packages/pipeline/src/model.ts",
+    "kind": "function",
+    "sig": "(next: ShapeBody, ctx: ShapeCheckContext): string[]"
+   }
+  },
+  {
+   "id": "@wren/pipeline#checkStored",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/stored"
+    ],
+    "file": "packages/pipeline/src/stored.ts",
+    "kind": "function",
+    "sig": "(stored: StoredBody, ctx: ShapeCheckContext): string[]"
+   }
+  },
+  {
+   "id": "@wren/pipeline#collectSteps",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/collect"
+    ],
+    "file": "packages/pipeline/src/collect.ts",
+    "kind": "function",
+    "sig": "(d: CollectDeps): Record<string, Step>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#collectedDelta",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/collect"
+    ],
+    "file": "packages/pipeline/src/collect.ts",
+    "kind": "function",
+    "sig": "(data: Record<string, unknown>): number"
+   }
+  },
+  {
+   "id": "@wren/pipeline#conflictLine",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro-merge"
+    ],
+    "file": "packages/pipeline/src/metro-merge.ts",
+    "kind": "function",
+    "sig": "(c: Conflict, names: readonly MetroBody[]): string"
+   }
+  },
+  {
+   "id": "@wren/pipeline#convertShape",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/convert-shape"
+    ],
+    "file": "packages/pipeline/src/convert-shape.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, o: { note: string; by: string; triggers: ReadonlySet<string> }): Promise<{ version: ShapeVersion; report: ConvertReport }>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#cycleOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/model"
+    ],
+    "file": "packages/pipeline/src/model.ts",
+    "kind": "function",
+    "sig": "(ids: readonly string[], pairs: readonly (readonly [string, string])[]): string[] | null"
+   }
+  },
+  {
+   "id": "@wren/pipeline#dealRows",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/records"
+    ],
+    "file": "packages/pipeline/src/records.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, o: { id?: string } = {}): Promise<{ id: string; journey: string; name: string; profile: number; node: string | null; entry: string; offer: string; offer_version: number; plan: string | null; terms_number: number | null; status: \"open\" | \"won\" | \"ended\" | \"lost\"; collected: number; scheduled: number | null; currency: string; …"
+   }
+  },
+  {
+   "id": "@wren/pipeline#dealRulesOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/convert-shape"
+    ],
+    "file": "packages/pipeline/src/convert-shape.ts",
+    "kind": "function",
+    "sig": "(metro: MetroBody, open: ReadonlyMap<string, number>): DealRule[]"
+   }
+  },
+  {
+   "id": "@wren/pipeline#dealScheduleOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/numbers"
+    ],
+    "file": "packages/pipeline/src/numbers.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, id: string): Promise<{ signed: boolean; lines: ({ kind: \"setup\"; on: string; cents: number; currency: string; part?: { n: number; of: number; }; } | { kind: \"monthly\"; on: string; cents: number; currency: string; } | { kind: \"unit\"; on: null; centsEach: number; unit: string | null; capCents: number | null; curre…"
+   }
+  },
+  {
+   "id": "@wren/pipeline#depthOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/model"
+    ],
+    "file": "packages/pipeline/src/model.ts",
+    "kind": "function",
+    "sig": "(body: ShapeBody): Record<string, number>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#diffAnswerOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/stored"
+    ],
+    "file": "packages/pipeline/src/stored.ts",
+    "kind": "function",
+    "sig": "(a: StoredBody, b: StoredBody, onMetro = false): DiffParts"
+   }
+  },
+  {
+   "id": "@wren/pipeline#diffMetro",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro-diff"
+    ],
+    "file": "packages/pipeline/src/metro-diff.ts",
+    "kind": "function",
+    "sig": "(a: MetroBody, b: MetroBody): MetroDiff"
+   }
+  },
+  {
+   "id": "@wren/pipeline#diffShapes",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/diff",
+     "@wren/pipeline/store"
+    ],
+    "file": "packages/pipeline/src/diff.ts",
+    "kind": "function",
+    "sig": "(a: ShapeBody, b: ShapeBody): ShapeDiff"
+   }
+  },
+  {
+   "id": "@wren/pipeline#diffStored",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/stored"
+    ],
+    "file": "packages/pipeline/src/stored.ts",
+    "kind": "function",
+    "sig": "(a: StoredBody, b: StoredBody): StoredDiff"
+   }
+  },
+  {
+   "id": "@wren/pipeline#draftIdOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/drafts"
+    ],
+    "file": "packages/pipeline/src/drafts.ts",
+    "kind": "function",
+    "sig": "(name: string): string"
+   }
+  },
+  {
+   "id": "@wren/pipeline#draftOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/drafts"
+    ],
+    "file": "packages/pipeline/src/drafts.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, id: string): Promise<ShapeDraft | null>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#draftRows",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/records"
+    ],
+    "file": "packages/pipeline/src/records.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable): Promise<{ id: string; name: string; state: \"proposed\" | \"dropped\" | \"applied\" | \"draft\"; base: number; note: string; created_by: string; created_at: Date; updated_at: Date; applied_version: number | null; decided_by: string | null; decided_at: Date | null; drop_reason: string | null; }[]>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#draftsOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/drafts"
+    ],
+    "file": "packages/pipeline/src/drafts.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, o: { states?: readonly DraftState[] } = {}): Promise<ShapeDraft[]>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#drawnOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/stored"
+    ],
+    "file": "packages/pipeline/src/stored.ts",
+    "kind": "function",
+    "sig": "(stored: StoredBody): { ok: true; metro: MetroBody } | { ok: false; errors: string[] }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#dropDraft",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/drafts"
+    ],
+    "file": "packages/pipeline/src/drafts.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, input: { id: string; by: string; reason: string }): Promise<ShapeDraft>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#dropJourney",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/journeys"
+    ],
+    "file": "packages/pipeline/src/journeys.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, p: { journey: string; reason: string; by?: string }): Promise<DropEmit | null>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#edgeFlow",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/views"
+    ],
+    "file": "packages/pipeline/src/views.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgViewWithSelection<\"edge_flow\", false, { version: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"version\"; tableName: \"edge_flow\"; dataType: \"number\"; columnType: \"PgInteger\"; data: number; driverParam: string | number; notNull: false; hasDefault: false; isPrimaryKey:…"
+   }
+  },
+  {
+   "id": "@wren/pipeline#edgeFlowOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/numbers"
+    ],
+    "file": "packages/pipeline/src/numbers.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, f: NumbersFilter = {}): Promise<{ version: number | null; edge: string | null; fromNode: string | null; toNode: string | null; day: string | null; crossings: number | null; }[]>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#edgeIdOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/model"
+    ],
+    "file": "packages/pipeline/src/model.ts",
+    "kind": "function",
+    "sig": "(from: string, to: string): string"
+   }
+  },
+  {
+   "id": "@wren/pipeline#edgeOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/edit"
+    ],
+    "file": "packages/pipeline/src/edit.ts",
+    "kind": "function",
+    "sig": "(from: string, to: string, o: { loop?: boolean; label?: string; id?: string } = {}): ShapeEdge"
+   }
+  },
+  {
+   "id": "@wren/pipeline#edgesOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/model"
+    ],
+    "file": "packages/pipeline/src/model.ts",
+    "kind": "function",
+    "sig": "(body: ShapeBody, ids: readonly string[]): ShapeEdge[]"
+   }
+  },
+  {
+   "id": "@wren/pipeline#editDraft",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/drafts"
+    ],
+    "file": "packages/pipeline/src/drafts.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, input: DraftEdit): Promise<{ draft: ShapeDraft; lines: string[]; warnings: string[] }>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#editMetro",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro-ops"
+    ],
+    "file": "packages/pipeline/src/metro-ops.ts",
+    "kind": "function",
+    "sig": "(body: StoredBody, ops: unknown, ctx?: ShapeCheckContext): { body: MetroBody; lines: string[]; warnings: string[] }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#editShape",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/edit"
+    ],
+    "file": "packages/pipeline/src/edit.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, o: { change: (body: ShapeBody) => ShapeBody; note: string; by: string; triggers: ReadonlySet<string>; moves?: Moves; }): Promise<{ number: number; run: ShapeBody; createdAt: Date; body: StoredBody; draft: string | null; note: string; createdBy: string; parent: number | null; depths: Record<string, number>; }>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#entryNodes",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/entry"
+    ],
+    "file": "packages/pipeline/src/entry.ts",
+    "kind": "function",
+    "sig": "(body: ShapeBody): string[]"
+   }
+  },
+  {
+   "id": "@wren/pipeline#entryNumbers",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/views"
+    ],
+    "file": "packages/pipeline/src/views.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgViewWithSelection<\"entry_numbers\", false, { funnel: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"funnel\"; tableName: \"entry_numbers\"; dataType: \"string\"; columnType: \"PgVarchar\"; data: string; driverParam: string; notNull: false; hasDefault: false; isPrimaryKey: fa…"
+   }
+  },
+  {
+   "id": "@wren/pipeline#entryOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/entry"
+    ],
+    "file": "packages/pipeline/src/entry.ts",
+    "kind": "function",
+    "sig": "(body: ShapeBody, cause: CauseFacts, firstTouch?: CauseFacts | null, to?: string): SourceNode | null"
+   }
+  },
+  {
+   "id": "@wren/pipeline#entryRecord",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/records"
+    ],
+    "file": "packages/pipeline/src/records.ts",
+    "kind": "function",
+    "sig": "(): RecordType"
+   }
+  },
+  {
+   "id": "@wren/pipeline#entryRows",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/records"
+    ],
+    "file": "packages/pipeline/src/records.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable): Promise<{ id: string; name: string; via: \"ads\" | \"group\" | \"manual\" | \"referral\" | \"outbound\" | \"found\" | \"organic\" | \"sourced\"; channel: string | null; campaign: string | null; parked: string | null; open_journeys: number; journeys: number; last_arrival: Date | null; }[]>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#exportMetro",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro-file"
+    ],
+    "file": "packages/pipeline/src/metro-file.ts",
+    "kind": "function",
+    "sig": "(body: MetroBody): string"
+   }
+  },
+  {
+   "id": "@wren/pipeline#exportShape",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/shape-file"
+    ],
+    "file": "packages/pipeline/src/shape-file.ts",
+    "kind": "function",
+    "sig": "(body: StoredBody): string"
+   }
+  },
+  {
+   "id": "@wren/pipeline#factsOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/steps"
+    ],
+    "file": "packages/pipeline/src/steps.ts",
+    "kind": "function",
+    "sig": "(data: Record<string, unknown>): CauseFacts"
+   }
+  },
+  {
+   "id": "@wren/pipeline#flowEdgesFrom",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/model"
+    ],
+    "file": "packages/pipeline/src/model.ts",
+    "kind": "function",
+    "sig": "(body: ShapeBody, id: string): ShapeEdge[]"
+   }
+  },
+  {
+   "id": "@wren/pipeline#foundBy",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/entry"
+    ],
+    "file": "packages/pipeline/src/entry.ts",
+    "kind": "function",
+    "sig": "(s: SourceNode, c: CauseFacts): boolean"
+   }
+  },
+  {
+   "id": "@wren/pipeline#funnelVersions",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/schema"
+    ],
+    "file": "packages/pipeline/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"funnel_versions\"; schema: \"pipeline\"; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"funnel_versions\"; dataType: \"number\"; columnType: \"PgSerial\"; data: number; driverParam: number; notNull: true; hasDefault: …"
+   }
+  },
+  {
+   "id": "@wren/pipeline#funnels",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/schema"
+    ],
+    "file": "packages/pipeline/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"funnels\"; schema: \"pipeline\"; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"funnels\"; dataType: \"string\"; columnType: \"PgVarchar\"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrimar…"
+   }
+  },
+  {
+   "id": "@wren/pipeline#graphOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/convert"
+    ],
+    "file": "packages/pipeline/src/convert.ts",
+    "kind": "function",
+    "sig": "(metro: MetroBody): ShapeBody"
+   }
+  },
+  {
+   "id": "@wren/pipeline#hashOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/store"
+    ],
+    "file": "packages/pipeline/src/store.ts",
+    "kind": "function",
+    "sig": "(v: unknown): string"
+   }
+  },
+  {
+   "id": "@wren/pipeline#historyOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/blame"
+    ],
+    "file": "packages/pipeline/src/blame.ts",
+    "kind": "function",
+    "sig": "(versions: readonly BlameVersion[], id: string, on: \"node\" | \"edge\" = \"node\"): BlameLine[]"
+   }
+  },
+  {
+   "id": "@wren/pipeline#historyOfMetro",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro-blame"
+    ],
+    "file": "packages/pipeline/src/metro-blame.ts",
+    "kind": "function",
+    "sig": "(versions: readonly MetroBlameVersion[], id: string, on: MetroOn): BlameLine[]"
+   }
+  },
+  {
+   "id": "@wren/pipeline#historyOfStored",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/stored"
+    ],
+    "file": "packages/pipeline/src/stored.ts",
+    "kind": "function",
+    "sig": "(versions: readonly StoredBlameVersion[], id: string, on: BlameOn = \"node\"): BlameLine[]"
+   }
+  },
+  {
+   "id": "@wren/pipeline#holds",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/model"
+    ],
+    "file": "packages/pipeline/src/model.ts",
+    "kind": "function",
+    "sig": "(n: ShapeNode): n is HoldNode"
+   }
+  },
+  {
+   "id": "@wren/pipeline#howOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro-diff"
+    ],
+    "file": "packages/pipeline/src/metro-diff.ts",
+    "kind": "function",
+    "sig": "(on: MetroOn, was: Item | undefined, now: Item | undefined): How[]"
+   }
+  },
+  {
+   "id": "@wren/pipeline#icpOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/research"
+    ],
+    "file": "packages/pipeline/src/research.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, offer: string): Promise<Icp | null>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#idOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/moves"
+    ],
+    "file": "packages/pipeline/src/moves.ts",
+    "kind": "function",
+    "sig": "(id: string, what: \"journey\" | \"deal\"): string"
+   }
+  },
+  {
+   "id": "@wren/pipeline#importShape",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/shape-file"
+    ],
+    "file": "packages/pipeline/src/shape-file.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, text: string, o: { by: string; triggers: ReadonlySet<string>; note?: string }): Promise<Imported>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#instanceSubject",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/journeys"
+    ],
+    "file": "packages/pipeline/src/journeys.ts",
+    "kind": "function",
+    "sig": "(j: Pick<Instance, \"id\" | \"subjectKind\" | \"profileId\" | \"documentId\">): Subject"
+   }
+  },
+  {
+   "id": "@wren/pipeline#instances",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/schema"
+    ],
+    "file": "packages/pipeline/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"instances\"; schema: \"pipeline\"; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"instances\"; dataType: \"string\"; columnType: \"PgUUID\"; data: string; driverParam: string; notNull: true; hasDefault: true; isPrimar…"
+   }
+  },
+  {
+   "id": "@wren/pipeline#isContentKind",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro"
+    ],
+    "file": "packages/pipeline/src/metro.ts",
+    "kind": "function",
+    "sig": "(k: string): k is ContentKind"
+   }
+  },
+  {
+   "id": "@wren/pipeline#isEnd",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/model"
+    ],
+    "file": "packages/pipeline/src/model.ts",
+    "kind": "function",
+    "sig": "(body: ShapeBody, id: string): boolean"
+   }
+  },
+  {
+   "id": "@wren/pipeline#isMetro",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro"
+    ],
+    "file": "packages/pipeline/src/metro.ts",
+    "kind": "function",
+    "sig": "(body: unknown): body is MetroBody"
+   }
+  },
+  {
+   "id": "@wren/pipeline#isNamed",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro-diff"
+    ],
+    "file": "packages/pipeline/src/metro-diff.ts",
+    "kind": "function",
+    "sig": "(on: MetroOn): on is (typeof NAMED_ONS)[number]"
+   }
+  },
+  {
+   "id": "@wren/pipeline#isPerson",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/schema"
+    ],
+    "file": "packages/pipeline/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm\").SQL<unknown>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#isRowId",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/moves"
+    ],
+    "file": "packages/pipeline/src/moves.ts",
+    "kind": "function",
+    "sig": "(id: string): boolean"
+   }
+  },
+  {
+   "id": "@wren/pipeline#isSource",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/model"
+    ],
+    "file": "packages/pipeline/src/model.ts",
+    "kind": "function",
+    "sig": "(n: ShapeNode): n is SourceNode"
+   }
+  },
+  {
+   "id": "@wren/pipeline#isStrayNote",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/convert"
+    ],
+    "file": "packages/pipeline/src/convert.ts",
+    "kind": "function",
+    "sig": "(note: string): boolean"
+   }
+  },
+  {
+   "id": "@wren/pipeline#isoOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/blame"
+    ],
+    "file": "packages/pipeline/src/blame.ts",
+    "kind": "function",
+    "sig": "(at: Date | string): string"
+   }
+  },
+  {
+   "id": "@wren/pipeline#itemsOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro-diff"
+    ],
+    "file": "packages/pipeline/src/metro-diff.ts",
+    "kind": "function",
+    "sig": "(body: MetroBody, on: MetroOn): Item[]"
+   }
+  },
+  {
+   "id": "@wren/pipeline#journeyRecord",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/records"
+    ],
+    "file": "packages/pipeline/src/records.ts",
+    "kind": "function",
+    "sig": "(): RecordType"
+   }
+  },
+  {
+   "id": "@wren/pipeline#journeyResearch",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/schema"
+    ],
+    "file": "packages/pipeline/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"journey_research\"; schema: \"pipeline\"; columns: { journey: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"journey\"; tableName: \"journey_research\"; dataType: \"string\"; columnType: \"PgUUID\"; data: string; driverParam: string; notNull: true; ha…"
+   }
+  },
+  {
+   "id": "@wren/pipeline#journeyRows",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/records"
+    ],
+    "file": "packages/pipeline/src/records.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, o: { id?: string; now?: Date } = {}): Promise<{ id: string; name: string; profile: number; email: string; version: number; node: string; node_name: string; trail: string; status: \"open\" | \"dropped\" | \"done\"; flag: string | null; ghost: string | null; entry: string; owner: string | null; days_at_node: number; reason: string | null; opene…"
+   }
+  },
+  {
+   "id": "@wren/pipeline#journeySteps",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/steps"
+    ],
+    "file": "packages/pipeline/src/steps.ts",
+    "kind": "function",
+    "sig": "(d: JourneyStepDeps): Record<string, Step>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#kindOfAction",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro"
+    ],
+    "file": "packages/pipeline/src/metro.ts",
+    "kind": "function",
+    "sig": "(action: Action): \"att\" | \"time\""
+   }
+  },
+  {
+   "id": "@wren/pipeline#leadsOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/numbers"
+    ],
+    "file": "packages/pipeline/src/numbers.ts",
+    "kind": "function",
+    "sig": "(db: Queryable): Promise<number>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#linePass",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/lines"
+    ],
+    "file": "packages/pipeline/src/lines.ts",
+    "kind": "function",
+    "sig": "(db: Db, now: Date, limit = 200): Promise<LinePass>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#liveSources",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/entry"
+    ],
+    "file": "packages/pipeline/src/entry.ts",
+    "kind": "function",
+    "sig": "(body: ShapeBody): SourceNode[]"
+   }
+  },
+  {
+   "id": "@wren/pipeline#liveTerms",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/store"
+    ],
+    "file": "packages/pipeline/src/store.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, offer: string, plan: string, at: string | Date): Promise<TermsVersion | null>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#lock",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/store"
+    ],
+    "file": "packages/pipeline/src/store.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(tx: Tx, key: string): import(\"drizzle-orm/pg-core/query-builders/raw\").PgRaw<import(\".pnpm/postgres@3.4.9/node_modules/postgres\").RowList<Record<string, unknown>[]>>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#lowerable",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/convert"
+    ],
+    "file": "packages/pipeline/src/convert.ts",
+    "kind": "function",
+    "sig": "(metro: MetroBody): string[]"
+   }
+  },
+  {
+   "id": "@wren/pipeline#makeJourneys",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/restate"
+    ],
+    "file": "packages/pipeline/src/restate.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(deps: JourneysDeps): restate.ServiceDefinition<\"Journeys\", { open: (ctx: restate.Context, req: OpenRequest) => Promise<{ journey: string; node: string; }>; move: (ctx: restate.Context, req: MoveRequest) => Promise<{ journey: string; from: string; to: string; status: \"open\" | \"dropped\" | \"done\"; }>; drop: (ctx: restate.C…"
+   }
+  },
+  {
+   "id": "@wren/pipeline#makePipelineConsole",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/console"
+    ],
+    "file": "packages/pipeline/src/console.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(deps: PipelineConsoleDeps): restate.ServiceDefinition<\"PipelineConsole\", { recordsTypes: (_: restate.Context, req: PortalRequest) => Promise<import(\"@wren/core/records\").RecordMeta[]>; recordsList: (_: restate.Context, req: PortalRequest & ListAsk) => Promise<import(\"@wren/core/records/serve\").RecordsPage>; recordsGet: (_: res…"
+   }
+  },
+  {
+   "id": "@wren/pipeline#mapAnswerOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/map-read"
+    ],
+    "file": "packages/pipeline/src/map-read.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, window: MapWindow): Promise<MapAnswer>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#mergeMetro",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro-merge"
+    ],
+    "file": "packages/pipeline/src/metro-merge.ts",
+    "kind": "function",
+    "sig": "(base: MetroBody, live: MetroBody, draft: MetroBody): { body: MetroBody; conflicts: Conflict[] }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#metroChangeKey",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro-diff"
+    ],
+    "file": "packages/pipeline/src/metro-diff.ts",
+    "kind": "function",
+    "sig": "(c: MetroChange): string"
+   }
+  },
+  {
+   "id": "@wren/pipeline#metroChangeLine",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro-diff"
+    ],
+    "file": "packages/pipeline/src/metro-diff.ts",
+    "kind": "function",
+    "sig": "(a: MetroBody, b: MetroBody, c: MetroChange): string"
+   }
+  },
+  {
+   "id": "@wren/pipeline#metroChangeLines",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro-diff"
+    ],
+    "file": "packages/pipeline/src/metro-diff.ts",
+    "kind": "function",
+    "sig": "(a: MetroBody, b: MetroBody, diff: MetroDiff): string[]"
+   }
+  },
+  {
+   "id": "@wren/pipeline#metroChangesOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro-diff"
+    ],
+    "file": "packages/pipeline/src/metro-diff.ts",
+    "kind": "function",
+    "sig": "(d: MetroDiff): MetroChange[]"
+   }
+  },
+  {
+   "id": "@wren/pipeline#metroNameOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro-diff"
+    ],
+    "file": "packages/pipeline/src/metro-diff.ts",
+    "kind": "function",
+    "sig": "(bodies: readonly MetroBody[], on: MetroOn, id: string): string"
+   }
+  },
+  {
+   "id": "@wren/pipeline#metroOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/convert"
+    ],
+    "file": "packages/pipeline/src/convert.ts",
+    "kind": "function",
+    "sig": "(graph: ShapeBody): MetroResult"
+   }
+  },
+  {
+   "id": "@wren/pipeline#metroRowsOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/numbers"
+    ],
+    "file": "packages/pipeline/src/numbers.ts",
+    "kind": "function",
+    "sig": "(metro: MetroBody, graph: readonly NumberRow[], offers: readonly OfferNumber[], f: NumbersFilter = {}, leads: number | null = null): NumberRow[]"
+   }
+  },
+  {
+   "id": "@wren/pipeline#metroView",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/stored"
+    ],
+    "file": "packages/pipeline/src/stored.ts",
+    "kind": "function",
+    "sig": "(stored: StoredBody): MetroBody"
+   }
+  },
+  {
+   "id": "@wren/pipeline#mirrorShapes",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/mirror"
+    ],
+    "file": "packages/pipeline/src/mirror.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, o: { files: GithubFiles | null; repo: string; workspace: string; log?: (line: string) => void; }): Promise<MirrorResult>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#mirrorsOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/mirror"
+    ],
+    "file": "packages/pipeline/src/mirror.ts",
+    "kind": "function",
+    "sig": "(db: Queryable): Promise<ShapeMirror[]>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#moveEmit",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/moves"
+    ],
+    "file": "packages/pipeline/src/moves.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, p: { journey: string; to: string; by: string; reason?: string; now?: Date }): Promise<Emit & { journey: Instance }>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#moveFlow",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/views"
+    ],
+    "file": "packages/pipeline/src/views.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgViewWithSelection<\"move_flow\", false, { version: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"version\"; tableName: \"move_flow\"; dataType: \"number\"; columnType: \"PgInteger\"; data: number; driverParam: string | number; notNull: false; hasDefault: false; isPrimaryKey:…"
+   }
+  },
+  {
+   "id": "@wren/pipeline#moveFlowOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/numbers"
+    ],
+    "file": "packages/pipeline/src/numbers.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, f: NumbersFilter = {}): Promise<{ version: number | null; fromNode: string | null; toNode: string | null; day: string | null; moves: number | null; skips: number | null; loops: number | null; }[]>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#newDraft",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/drafts"
+    ],
+    "file": "packages/pipeline/src/drafts.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, input: NewDraft): Promise<ShapeDraft>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#newestOffers",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/store"
+    ],
+    "file": "packages/pipeline/src/store.ts",
+    "kind": "function",
+    "sig": "(db: Queryable): Promise<OfferVersion[]>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#newestShape",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/store"
+    ],
+    "file": "packages/pipeline/src/store.ts",
+    "kind": "function",
+    "sig": "(db: Queryable): Promise<ShapeVersion | null>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#nodeCounts",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/views"
+    ],
+    "file": "packages/pipeline/src/views.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgViewWithSelection<\"node_counts\", false, { version: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"version\"; tableName: \"node_counts\"; dataType: \"number\"; columnType: \"PgInteger\"; data: number; driverParam: string | number; notNull: false; hasDefault: false; isPrimary…"
+   }
+  },
+  {
+   "id": "@wren/pipeline#nodeCountsOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/numbers"
+    ],
+    "file": "packages/pipeline/src/numbers.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, f: NumbersFilter = {}): Promise<{ version: number | null; node: string | null; day: string | null; arrived: number | null; skipped: number | null; left: number | null; }[]>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#nodeOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/model"
+    ],
+    "file": "packages/pipeline/src/model.ts",
+    "kind": "function",
+    "sig": "(body: ShapeBody, id: string): ShapeNode | undefined"
+   }
+  },
+  {
+   "id": "@wren/pipeline#numberRows",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/numbers"
+    ],
+    "file": "packages/pipeline/src/numbers.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, f: NumbersFilter = {}): Promise<NumberRow[]>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#offerRows",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/records"
+    ],
+    "file": "packages/pipeline/src/records.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, o: { now?: Date } = {}): Promise<{ id: string; name: string; status: \"retired\" | \"paused\" | \"draft\" | \"live\"; version: number; audience: string; promise: string; live_plans: number; open_journeys: number; hash: string; synced_at: Date; synced_by: string; why: string; }[]>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#offerVersions",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/schema"
+    ],
+    "file": "packages/pipeline/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"offer_versions\"; schema: \"pipeline\"; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"offer_versions\"; dataType: \"number\"; columnType: \"PgSerial\"; data: number; driverParam: number; notNull: true; hasDefault: tr…"
+   }
+  },
+  {
+   "id": "@wren/pipeline#offerVersionsOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/store"
+    ],
+    "file": "packages/pipeline/src/store.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, offer: string): Promise<OfferVersion[]>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#openDocument",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/journeys"
+    ],
+    "file": "packages/pipeline/src/journeys.ts",
+    "kind": "function",
+    "sig": "(tx: Queryable, document: number, version: number): Promise<Instance[]>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#openEmit",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/moves"
+    ],
+    "file": "packages/pipeline/src/moves.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, p: { person: string; at?: string; entry?: string; by: string; now?: Date }): Promise<Emit>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#openJourney",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/journeys"
+    ],
+    "file": "packages/pipeline/src/journeys.ts",
+    "kind": "function",
+    "sig": "(tx: Queryable, profile: number): Promise<Instance | null>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#openNowOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/numbers"
+    ],
+    "file": "packages/pipeline/src/numbers.ts",
+    "kind": "function",
+    "sig": "(db: Queryable): Promise<Map<string, number>>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#openOn",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/edit"
+    ],
+    "file": "packages/pipeline/src/edit.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, id: string): Promise<number>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#opensAt",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/entry"
+    ],
+    "file": "packages/pipeline/src/entry.ts",
+    "kind": "function",
+    "sig": "(body: ShapeBody, to: string, byHand: boolean, c: CauseFacts): boolean"
+   }
+  },
+  {
+   "id": "@wren/pipeline#opsJsonSchema",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro-ops"
+    ],
+    "file": "packages/pipeline/src/metro-ops.ts",
+    "kind": "function",
+    "sig": "(): Record<string, unknown>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#ordered",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro-file"
+    ],
+    "file": "packages/pipeline/src/metro-file.ts",
+    "kind": "function",
+    "sig": "(o: Record<string, unknown>): Record<string, unknown>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#ownerOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/journeys"
+    ],
+    "file": "packages/pipeline/src/journeys.ts",
+    "kind": "function",
+    "sig": "(v: unknown): string | null"
+   }
+  },
+  {
+   "id": "@wren/pipeline#parseChangeKey",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/diff"
+    ],
+    "file": "packages/pipeline/src/diff.ts",
+    "kind": "function",
+    "sig": "(key: string): ShapeChange | null"
+   }
+  },
+  {
+   "id": "@wren/pipeline#parseMetroBody",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro-file"
+    ],
+    "file": "packages/pipeline/src/metro-file.ts",
+    "kind": "function",
+    "sig": "(doc: unknown): MetroBody"
+   }
+  },
+  {
+   "id": "@wren/pipeline#parseMetroChangeKey",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro-diff"
+    ],
+    "file": "packages/pipeline/src/metro-diff.ts",
+    "kind": "function",
+    "sig": "(key: string): MetroChange | null"
+   }
+  },
+  {
+   "id": "@wren/pipeline#parseOps",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro-ops"
+    ],
+    "file": "packages/pipeline/src/metro-ops.ts",
+    "kind": "function",
+    "sig": "(v: unknown): MetroOp[]"
+   }
+  },
+  {
+   "id": "@wren/pipeline#parseRef",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/drafts"
+    ],
+    "file": "packages/pipeline/src/drafts.ts",
+    "kind": "function",
+    "sig": "(v: unknown): ShapeRef"
+   }
+  },
+  {
+   "id": "@wren/pipeline#parseShape",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/shape-file"
+    ],
+    "file": "packages/pipeline/src/shape-file.ts",
+    "kind": "function",
+    "sig": "(text: string): ShapeFile"
+   }
+  },
+  {
+   "id": "@wren/pipeline#parseShapeFlow",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/workflow"
+    ],
+    "file": "packages/pipeline/src/workflow.ts",
+    "kind": "function",
+    "sig": "(id: string): { version: number } | null"
+   }
+  },
+  {
+   "id": "@wren/pipeline#parseStoredChangeKey",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/stored"
+    ],
+    "file": "packages/pipeline/src/stored.ts",
+    "kind": "function",
+    "sig": "(key: string): StoredChange | null"
+   }
+  },
+  {
+   "id": "@wren/pipeline#partsOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro-parts"
+    ],
+    "file": "packages/pipeline/src/metro-parts.ts",
+    "kind": "function",
+    "sig": "(text: string | null | undefined): Part[]"
+   }
+  },
+  {
+   "id": "@wren/pipeline#partsParam",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro-parts"
+    ],
+    "file": "packages/pipeline/src/metro-parts.ts",
+    "kind": "function",
+    "sig": "(parts: readonly Part[]): string"
+   }
+  },
+  {
+   "id": "@wren/pipeline#passedThrough",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/model"
+    ],
+    "file": "packages/pipeline/src/model.ts",
+    "kind": "function",
+    "sig": "(body: ShapeBody, edges: readonly string[]): string[]"
+   }
+  },
+  {
+   "id": "@wren/pipeline#pathOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/model"
+    ],
+    "file": "packages/pipeline/src/model.ts",
+    "kind": "function",
+    "sig": "(body: ShapeBody, from: string, to: string, opts: { loops?: boolean } = {}): string[] | null"
+   }
+  },
+  {
+   "id": "@wren/pipeline#personByKey",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/moves"
+    ],
+    "file": "packages/pipeline/src/moves.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, key: string): Promise<number | null>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#personOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/journeys"
+    ],
+    "file": "packages/pipeline/src/journeys.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, data: Record<string, unknown>): Promise<number | null>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#pipeline",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/schema"
+    ],
+    "file": "packages/pipeline/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgSchema<\"pipeline\">"
+   }
+  },
+  {
+   "id": "@wren/pipeline#pipelineConsoleApi",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/console"
+    ],
+    "file": "packages/pipeline/src/console.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "({ db, open, records = PIPELINE_RECORDS, shapes = null, }: PipelineConsoleDeps): { workspace: (req: PortalRequest, p: \"read\" | \"act\") => Promise<{ client: string | null; db: Db; }>; by: (req: PortalRequest) => string; recordsTypes: (req: PortalRequest) => Promise<import(\"@wren/core/records\").RecordMeta[]>; recordsList: (req: PortalRequest & ListAsk) => Promise<import(\"@wren/core…"
+   }
+  },
+  {
+   "id": "@wren/pipeline#pipelineDeals",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/schema"
+    ],
+    "file": "packages/pipeline/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"deals\"; schema: \"pipeline\"; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"deals\"; dataType: \"string\"; columnType: \"PgUUID\"; data: string; driverParam: string; notNull: true; hasDefault: true; isPrimaryKey: fa…"
+   }
+  },
+  {
+   "id": "@wren/pipeline#placesOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro"
+    ],
+    "file": "packages/pipeline/src/metro.ts",
+    "kind": "function",
+    "sig": "(body: MetroBody): Record<string, number>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#planApply",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/drafts"
+    ],
+    "file": "packages/pipeline/src/drafts.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, id: string): Promise<ApplyPlan>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#planConvert",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/convert-shape"
+    ],
+    "file": "packages/pipeline/src/convert-shape.ts",
+    "kind": "function",
+    "sig": "(stored: StoredBody, number: number, ctx: ShapeCheckContext, open: ReadonlyMap<string, number>): ConvertPlan"
+   }
+  },
+  {
+   "id": "@wren/pipeline#planNumbersOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/numbers"
+    ],
+    "file": "packages/pipeline/src/numbers.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, body: ShapeBody, f: NumbersFilter = {}): Promise<PlanNumber[]>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#planUndo",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/undo"
+    ],
+    "file": "packages/pipeline/src/undo.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, o: { a: number; b: number; change: string; triggers: ReadonlySet<string> }): Promise<UndoPlan>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#proposeDraft",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/drafts"
+    ],
+    "file": "packages/pipeline/src/drafts.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, input: { id: string; by: string }): Promise<ShapeDraft>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#rangeOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/numbers"
+    ],
+    "file": "packages/pipeline/src/numbers.ts",
+    "kind": "function",
+    "sig": "(f: NumbersFilter): { from?: string; to?: string }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#readPart",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro-parts"
+    ],
+    "file": "packages/pipeline/src/metro-parts.ts",
+    "kind": "function",
+    "sig": "(body: MetroBody, part: Part): PartRead | null"
+   }
+  },
+  {
+   "id": "@wren/pipeline#readTerms",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/records"
+    ],
+    "file": "packages/pipeline/src/records.ts",
+    "kind": "function",
+    "sig": "(t: Terms): string"
+   }
+  },
+  {
+   "id": "@wren/pipeline#rebuildJourney",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/moves"
+    ],
+    "file": "packages/pipeline/src/moves.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, id: string): Promise<Rebuilt>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#refineFit",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/research"
+    ],
+    "file": "packages/pipeline/src/research.ts",
+    "kind": "function",
+    "sig": "(db: Db, model: FitModel, ask: Pick<ResearchAsk, \"journey\" | \"stage\">, icp: Icp, traits: FitTraits): Promise<Fit | null>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#refusalsOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/convert-shape"
+    ],
+    "file": "packages/pipeline/src/convert-shape.ts",
+    "kind": "function",
+    "sig": "(r: ConvertReport): string[]"
+   }
+  },
+  {
+   "id": "@wren/pipeline#remapDeals",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/carry"
+    ],
+    "file": "packages/pipeline/src/carry.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, moves: Moves): Promise<number>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#reportLines",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/convert-shape"
+    ],
+    "file": "packages/pipeline/src/convert-shape.ts",
+    "kind": "function",
+    "sig": "(r: ConvertReport): string[]"
+   }
+  },
+  {
+   "id": "@wren/pipeline#requestResearch",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/research"
+    ],
+    "file": "packages/pipeline/src/research.ts",
+    "kind": "function",
+    "sig": "(db: Db, researcher: Researcher, ask: ResearchAsk, now: Date): Promise<\"light\" | \"full\" | \"none\">"
+   }
+  },
+  {
+   "id": "@wren/pipeline#runOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/stored"
+    ],
+    "file": "packages/pipeline/src/stored.ts",
+    "kind": "function",
+    "sig": "(stored: StoredBody): ShapeBody"
+   }
+  },
+  {
+   "id": "@wren/pipeline#sameStored",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/stored"
+    ],
+    "file": "packages/pipeline/src/stored.ts",
+    "kind": "function",
+    "sig": "(a: StoredBody, b: StoredBody): boolean"
+   }
+  },
+  {
+   "id": "@wren/pipeline#saveShape",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/store"
+    ],
+    "file": "packages/pipeline/src/store.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, input: NewShape): Promise<ShapeVersion>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#saveThenMirror",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/console"
+    ],
+    "file": "packages/pipeline/src/console.ts",
+    "kind": "function",
+    "sig": "(ctx: Pick<restate.Context, \"run\">, api: { mirror: (req: PortalRequest) => Promise<unknown> }, name: string, req: Q, save: (req: Q) => Promise<T>): Promise<T>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#scheduleOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/schedule"
+    ],
+    "file": "packages/pipeline/src/schedule.ts",
+    "kind": "function",
+    "sig": "(terms: Terms, signedAt: Date | string, until?: Date | string): ScheduleLine[]"
+   }
+  },
+  {
+   "id": "@wren/pipeline#shapeContext",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/store"
+    ],
+    "file": "packages/pipeline/src/store.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, triggers: ReadonlySet<string>): Promise<ShapeCheckContext>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#shapeDetail",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/records"
+    ],
+    "file": "packages/pipeline/src/records.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable): Promise<{ body: ShapeBody; depths: Record<string, number>; metro: import(\"./metro.js\").MetroBody | null; drawErrors: string[]; places: Record<string, number> | null; versions: VersionLine[]; } | null>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#shapeDrafts",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/schema"
+    ],
+    "file": "packages/pipeline/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"shape_drafts\"; schema: \"pipeline\"; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"shape_drafts\"; dataType: \"string\"; columnType: \"PgVarchar\"; data: string; driverParam: string; notNull: true; hasDefault: false…"
+   }
+  },
+  {
+   "id": "@wren/pipeline#shapeFlowId",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/workflow"
+    ],
+    "file": "packages/pipeline/src/workflow.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(version: number): string"
+   }
+  },
+  {
+   "id": "@wren/pipeline#shapeMirrors",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/schema"
+    ],
+    "file": "packages/pipeline/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"shape_mirrors\"; schema: \"pipeline\"; columns: { version: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"version\"; tableName: \"shape_mirrors\"; dataType: \"number\"; columnType: \"PgInteger\"; data: number; driverParam: string | number; notNull: tr…"
+   }
+  },
+  {
+   "id": "@wren/pipeline#shapeRecord",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/records"
+    ],
+    "file": "packages/pipeline/src/records.ts",
+    "kind": "function",
+    "sig": "(): RecordType"
+   }
+  },
+  {
+   "id": "@wren/pipeline#shapeRows",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/records"
+    ],
+    "file": "packages/pipeline/src/records.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable): Promise<{ id: string; name: string; version: number; nodes: number; edges: number; open_journeys: number; why: string; changed_at: Date; changed_by: string; }[]>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#shapeTags",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/schema"
+    ],
+    "file": "packages/pipeline/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"shape_tags\"; schema: \"pipeline\"; columns: { name: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"name\"; tableName: \"shape_tags\"; dataType: \"string\"; columnType: \"PgText\"; data: string; driverParam: string; notNull: true; hasDefault: false; i…"
+   }
+  },
+  {
+   "id": "@wren/pipeline#shapeVersions",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/schema"
+    ],
+    "file": "packages/pipeline/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"shape_versions\"; schema: \"pipeline\"; columns: { number: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"number\"; tableName: \"shape_versions\"; dataType: \"number\"; columnType: \"PgInteger\"; data: number; driverParam: string | number; notNull: tr…"
+   }
+  },
+  {
+   "id": "@wren/pipeline#shapeVersionsOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/store"
+    ],
+    "file": "packages/pipeline/src/store.ts",
+    "kind": "function",
+    "sig": "(db: Queryable): Promise<ShapeVersion[]>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#shapeWorkflow",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/workflow"
+    ],
+    "file": "packages/pipeline/src/workflow.ts",
+    "kind": "function",
+    "sig": "(versionNumber: number, body: ShapeBody, scope: Scope): Workflow"
+   }
+  },
+  {
+   "id": "@wren/pipeline#shapeWorkflowsOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/journeys"
+    ],
+    "file": "packages/pipeline/src/journeys.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, scope: Scope, log: (msg: string) => void = console.warn): Promise<Workflow[]>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#signDeal",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/moves"
+    ],
+    "file": "packages/pipeline/src/moves.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, p: { deal: string; plan: string; force?: boolean; now?: Date }): Promise<{ deal: string; termsVersion: number; changed: boolean }>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#soundShapes",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/journeys"
+    ],
+    "file": "packages/pipeline/src/journeys.ts",
+    "kind": "function",
+    "sig": "(shapes: readonly Workflow[], base: readonly Workflow[], components: readonly Component[], log: (msg: string) => void = console.warn): Workflow[]"
+   }
+  },
+  {
+   "id": "@wren/pipeline#sourceEdge",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/entry"
+    ],
+    "file": "packages/pipeline/src/entry.ts",
+    "kind": "function",
+    "sig": "(body: ShapeBody, source: string, to: string): ShapeEdge | undefined"
+   }
+  },
+  {
+   "id": "@wren/pipeline#sourceNumbers",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/views"
+    ],
+    "file": "packages/pipeline/src/views.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgViewWithSelection<\"source_numbers\", false, { source: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"source\"; tableName: \"source_numbers\"; dataType: \"string\"; columnType: \"PgVarchar\"; data: string; driverParam: string; notNull: false; hasDefault: false; isPrimaryKey: …"
+   }
+  },
+  {
+   "id": "@wren/pipeline#sourceNumbersOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/numbers"
+    ],
+    "file": "packages/pipeline/src/numbers.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, f: NumbersFilter = {}): Promise<{ source: string | null; day: string | null; opened: number | null; deals: number | null; collectedCents: number | null; cost: number | null; replied: number | null; booked: number | null; }[]>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#sourcedPass",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/sourced"
+    ],
+    "file": "packages/pipeline/src/sourced.ts",
+    "kind": "function",
+    "sig": "(db: Db, client: string | null, cursors: SourceCursors, now: Date, limit = 200): Promise<SourcedPass>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#stageCounts",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/views"
+    ],
+    "file": "packages/pipeline/src/views.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgViewWithSelection<\"stage_counts\", false, { funnel: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"funnel\"; tableName: \"stage_counts\"; dataType: \"string\"; columnType: \"PgVarchar\"; data: string; driverParam: string; notNull: false; hasDefault: false; isPrimaryKey: fals…"
+   }
+  },
+  {
+   "id": "@wren/pipeline#stageFlow",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/views"
+    ],
+    "file": "packages/pipeline/src/views.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgViewWithSelection<\"stage_flow\", false, { funnel: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"funnel\"; tableName: \"stage_flow\"; dataType: \"string\"; columnType: \"PgVarchar\"; data: string; driverParam: string; notNull: false; hasDefault: false; isPrimaryKey: false; i…"
+   }
+  },
+  {
+   "id": "@wren/pipeline#startShape",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/starter"
+    ],
+    "file": "packages/pipeline/src/starter.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, o: { by: string; triggers: ReadonlySet<string> }): Promise<ShapeVersion | null>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#starterShape",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/starter"
+    ],
+    "file": "packages/pipeline/src/starter.ts",
+    "kind": "function",
+    "sig": "(): ShapeFile"
+   }
+  },
+  {
+   "id": "@wren/pipeline#storedChangeKey",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/stored"
+    ],
+    "file": "packages/pipeline/src/stored.ts",
+    "kind": "function",
+    "sig": "(c: StoredChange): string"
+   }
+  },
+  {
+   "id": "@wren/pipeline#storedChangeLine",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/stored"
+    ],
+    "file": "packages/pipeline/src/stored.ts",
+    "kind": "function",
+    "sig": "(a: StoredBody, b: StoredBody, c: StoredChange): string"
+   }
+  },
+  {
+   "id": "@wren/pipeline#storedChangeLines",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/stored"
+    ],
+    "file": "packages/pipeline/src/stored.ts",
+    "kind": "function",
+    "sig": "(a: StoredBody, b: StoredBody, d: StoredDiff): string[]"
+   }
+  },
+  {
+   "id": "@wren/pipeline#storedChangesOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/stored"
+    ],
+    "file": "packages/pipeline/src/stored.ts",
+    "kind": "function",
+    "sig": "(d: StoredDiff): StoredChange[]"
+   }
+  },
+  {
+   "id": "@wren/pipeline#strayFieldsOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/convert"
+    ],
+    "file": "packages/pipeline/src/convert.ts",
+    "kind": "function",
+    "sig": "(graph: ShapeBody): StrayField[]"
+   }
+  },
+  {
+   "id": "@wren/pipeline#strayNote",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/convert"
+    ],
+    "file": "packages/pipeline/src/convert.ts",
+    "kind": "function",
+    "sig": "(s: StrayField): string"
+   }
+  },
+  {
+   "id": "@wren/pipeline#subjectKindOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/model"
+    ],
+    "file": "packages/pipeline/src/model.ts",
+    "kind": "function",
+    "sig": "(n: ShapeNode): SubjectKind"
+   }
+  },
+  {
+   "id": "@wren/pipeline#subjectOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/moves"
+    ],
+    "file": "packages/pipeline/src/moves.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(journey: string): string"
+   }
+  },
+  {
+   "id": "@wren/pipeline#syncOffers",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/store"
+    ],
+    "file": "packages/pipeline/src/store.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, offers: readonly Offer[], by: string): Promise<OfferSync>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#tagsOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/tags"
+    ],
+    "file": "packages/pipeline/src/tags.ts",
+    "kind": "function",
+    "sig": "(db: Queryable): Promise<ShapeTag[]>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#termsHistory",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/store"
+    ],
+    "file": "packages/pipeline/src/store.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, offer: string, plan?: string): Promise<TermsVersion[]>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#termsVersions",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/schema"
+    ],
+    "file": "packages/pipeline/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"terms_versions\"; schema: \"pipeline\"; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"terms_versions\"; dataType: \"number\"; columnType: \"PgSerial\"; data: number; driverParam: number; notNull: true; hasDefault: tr…"
+   }
+  },
+  {
+   "id": "@wren/pipeline#textOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/journeys"
+    ],
+    "file": "packages/pipeline/src/journeys.ts",
+    "kind": "function",
+    "sig": "(v: unknown): string | undefined"
+   }
+  },
+  {
+   "id": "@wren/pipeline#trailOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/records"
+    ],
+    "file": "packages/pipeline/src/records.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, id: string): Promise<{ at: Date; workflow: string; node: string; cause: string | null; ref: string | null; }[]>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#undoChange",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/edit"
+    ],
+    "file": "packages/pipeline/src/edit.ts",
+    "kind": "function",
+    "sig": "(newest: ShapeBody, a: ShapeBody, b: ShapeBody, change: ShapeChange): ShapeBody"
+   }
+  },
+  {
+   "id": "@wren/pipeline#undoMetroChange",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro-edit"
+    ],
+    "file": "packages/pipeline/src/metro-edit.ts",
+    "kind": "function",
+    "sig": "(newest: MetroBody, a: MetroBody, b: MetroBody, change: MetroChange): MetroBody"
+   }
+  },
+  {
+   "id": "@wren/pipeline#undoShape",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/undo"
+    ],
+    "file": "packages/pipeline/src/undo.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, o: { a: number; b: number; change: string; by: string; triggers: ReadonlySet<string> }): Promise<ShapeVersion>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#undoStoredChange",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/edit"
+    ],
+    "file": "packages/pipeline/src/edit.ts",
+    "kind": "function",
+    "sig": "(newest: StoredBody, a: StoredBody, b: StoredBody, change: StoredChange): StoredBody"
+   }
+  },
+  {
+   "id": "@wren/pipeline#updateDraft",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/drafts"
+    ],
+    "file": "packages/pipeline/src/drafts.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, input: DraftUpdate): Promise<ShapeDraft>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#versionOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/journeys"
+    ],
+    "file": "packages/pipeline/src/journeys.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, version: number): Promise<{ body: ShapeBody; depths: Record<string, number>; newest: number; } | null>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#withEdge",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/edit"
+    ],
+    "file": "packages/pipeline/src/edit.ts",
+    "kind": "function",
+    "sig": "(body: ShapeBody, edge: ShapeEdge): ShapeBody"
+   }
+  },
+  {
+   "id": "@wren/pipeline#withNode",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/edit"
+    ],
+    "file": "packages/pipeline/src/edit.ts",
+    "kind": "function",
+    "sig": "(body: ShapeBody, node: ShapeNode, edges: ShapeEdge[] = []): ShapeBody"
+   }
+  },
+  {
+   "id": "@wren/pipeline#withoutEdge",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/edit"
+    ],
+    "file": "packages/pipeline/src/edit.ts",
+    "kind": "function",
+    "sig": "(body: ShapeBody, id: string): ShapeBody"
+   }
+  },
+  {
+   "id": "@wren/pipeline#withoutNode",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/edit"
+    ],
+    "file": "packages/pipeline/src/edit.ts",
+    "kind": "function",
+    "sig": "(body: ShapeBody, id: string): ShapeBody"
+   }
+  },
+  {
+   "id": "@wren/pipeline#withoutStation",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro-edit"
+    ],
+    "file": "packages/pipeline/src/metro-edit.ts",
+    "kind": "function",
+    "sig": "(body: MetroBody, id: string): MetroBody"
+   }
+  },
+  {
+   "id": "@wren/pipeline#withoutStrayFields",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/convert"
+    ],
+    "file": "packages/pipeline/src/convert.ts",
+    "kind": "function",
+    "sig": "(graph: ShapeBody): ShapeBody"
+   }
+  },
+  {
+   "id": "@wren/pipeline/sourced#liveSources",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/sourced"
+    ],
+    "file": "packages/pipeline/src/sourced.ts",
+    "kind": "function",
+    "sig": "(db: Db): Promise<string[]>"
+   }
+  }
+ ],
+ "edges": []
+}

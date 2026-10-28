@@ -30,3 +30,6 @@ packages/db/.drift.*
 # Storybook's static build (pnpm --filter @wren/ui stories:build) and the story tests' diffs
 storybook-static/
 packages/ui/test-results/
+
+# kestrel: each gen writes the current map; only the approved one is committed.
+map/generated/**/*.current.json

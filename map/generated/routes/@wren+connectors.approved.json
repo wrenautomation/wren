@@ -1,0 +1,48 @@
+{
+ "layer": "routes",
+ "nodes": [
+  {
+   "id": "route:ConnectorCallback/land",
+   "role": "route",
+   "parent": "service:ConnectorCallback",
+   "group": "@wren/connectors",
+   "attrs": {
+    "input": "z.infer<typeof CONNECTOR_LANDING>",
+    "output": "{ ok: boolean; said: string; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ConnectorSync/run",
+   "role": "route",
+   "parent": "service:ConnectorSync",
+   "group": "@wren/connectors",
+   "attrs": {
+    "input": "{ chain?: string }",
+    "output": "{ state: string; people: number; fired: number }",
+    "wrap": "restate.handlers.object.exclusive"
+   }
+  },
+  {
+   "id": "service:ConnectorCallback",
+   "role": "service",
+   "parent": "@wren/connectors",
+   "group": "@wren/connectors",
+   "attrs": {
+    "file": "packages/connectors/src/restate.ts",
+    "kind": "service"
+   }
+  },
+  {
+   "id": "service:ConnectorSync",
+   "role": "service",
+   "parent": "@wren/connectors",
+   "group": "@wren/connectors",
+   "attrs": {
+    "file": "packages/connectors/src/restate.ts",
+    "kind": "object"
+   }
+  }
+ ],
+ "edges": []
+}

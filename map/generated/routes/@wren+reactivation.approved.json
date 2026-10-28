@@ -1,0 +1,60 @@
+{
+ "layer": "routes",
+ "nodes": [
+  {
+   "id": "route:CrmRun/lookup",
+   "role": "route",
+   "parent": "service:CrmRun",
+   "group": "@wren/reactivation",
+   "attrs": {
+    "input": "CrmLookupRequest",
+    "output": "CrmSliceResult<CrmLookupStats>",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:CrmRun/redraft",
+   "role": "route",
+   "parent": "service:CrmRun",
+   "group": "@wren/reactivation",
+   "attrs": {
+    "input": "CrmRedraftRequest",
+    "output": "CrmSliceResult<RedraftStats>",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:CrmRun/run",
+   "role": "route",
+   "parent": "service:CrmRun",
+   "group": "@wren/reactivation",
+   "attrs": {
+    "input": "CrmRunRequest",
+    "output": "CrmRunResult",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:CrmRun/settle",
+   "role": "route",
+   "parent": "service:CrmRun",
+   "group": "@wren/reactivation",
+   "attrs": {
+    "input": "CrmSettleRequest",
+    "output": "CrmSliceResult<SettleStats & { byName: boolean }>",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "service:CrmRun",
+   "role": "service",
+   "parent": "@wren/reactivation",
+   "group": "@wren/reactivation",
+   "attrs": {
+    "file": "packages/reactivation/src/crm-run.ts",
+    "kind": "object"
+   }
+  }
+ ],
+ "edges": []
+}

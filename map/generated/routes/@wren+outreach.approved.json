@@ -1,0 +1,37 @@
+{
+ "layer": "routes",
+ "nodes": [
+  {
+   "id": "route:CommentProofs/check",
+   "role": "route",
+   "parent": "service:CommentProofs",
+   "group": "@wren/outreach",
+   "attrs": {
+    "input": "ProofCheck",
+    "output": "Proof",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "service:CommentProofs",
+   "role": "service",
+   "parent": "@wren/outreach",
+   "group": "@wren/outreach",
+   "attrs": {
+    "file": "packages/outreach/src/restate/proofs.ts",
+    "kind": "service"
+   }
+  },
+  {
+   "id": "service:ReachDesk",
+   "role": "service",
+   "parent": "@wren/outreach",
+   "group": "@wren/outreach",
+   "attrs": {
+    "file": "packages/outreach/src/restate/desk.ts",
+    "kind": "service"
+   }
+  }
+ ],
+ "edges": []
+}

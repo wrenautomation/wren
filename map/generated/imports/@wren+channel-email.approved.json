@@ -1,0 +1,4694 @@
+{
+ "layer": "imports",
+ "nodes": [
+  {
+   "id": "@wren/channel-email",
+   "role": "package",
+   "parent": "repo:wren",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "dir": "packages/channel-email/",
+    "npm": [
+     "node:child_process",
+     "node:crypto",
+     "node:dns",
+     "node:fs",
+     "node:util"
+    ]
+   }
+  },
+  {
+   "id": "@wren/channel-email/src/access/access.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/access/console-routes.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/access/console.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/access/mailbox.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/access/oauth.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/access/schema.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/access/setups.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/calls/brief.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/calls/index.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/calls/outcome.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/calls/recording.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/calls/restate.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/calls/settings.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/calls/site.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/components.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/concurrent.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/console-routes.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/dossier.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/fetch-like.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/follow.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/guards.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/inbox/away.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/inbox/bookings.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/inbox/click-sync.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/inbox/clicks.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/inbox/disposition.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/inbox/health.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/inbox/inbound.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/inbox/index.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/inbox/instantly.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/inbox/invite.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/inbox/marketing-bounces.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/inbox/opens.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/inbox/placement.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/inbox/postmaster.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/inbox/reply.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/inbox/sync.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/index.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/listmonk/campaign.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/listmonk/client.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/listmonk/index.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/listmonk/setup.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/listmonk/sync.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/outreach/authoring.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/outreach/compose.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/outreach/facts.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/outreach/fills.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/outreach/index.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/outreach/live.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/outreach/pages.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/outreach/plan.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/outreach/preview.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/outreach/provenance.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/outreach/readable.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/outreach/refresh.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/outreach/review.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/outreach/sequences.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/outreach/templates.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/recontact.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/record-views.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/records.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/report/index.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/report/schedule.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/report/send.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/report/stats.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/report/variants.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/report/weekly.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/resolution/index.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/resolution/listed.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/resolution/service.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/restate/bounce-scheduler.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/restate/call-bookings.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/restate/clicks-scheduler.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/restate/compose-scheduler.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/restate/console.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/restate/digest-scheduler.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/restate/disposition.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/restate/inbox-scheduler.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/restate/index.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/restate/listmonk.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/restate/marketing.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/restate/newsletter.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/restate/opens-scheduler.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/restate/placement-scheduler.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/restate/pool-scheduler.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/restate/postmaster-scheduler.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/restate/queue-refresh.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/restate/report-scheduler.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/restate/resolution.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/restate/send-scheduler.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/schema.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/send/call-times.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/send/campaign-controls.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/send/dates.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/send/deliver.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/send/gmail.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/send/holidays.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/send/index.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/send/lead-timezone.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/send/mailboxes.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/send/mime.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/send/policy.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/send/reconcile.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/send/rng.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/send/roster.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/send/smtp.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/send/suppress.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/send/tick.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/send/transport.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/send/tz.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/sequences-settings.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/sequences.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/setups.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/spam/coverage.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/spam/index.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/spam/spamassassin.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/state.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/verification/checks.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/verification/domain-health.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/verification/index.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/verification/lead-checks.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/verification/local.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/verification/mailifier.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/verification/prober-health.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/verification/retry.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/verification/service.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/verification/shared.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/verification/verifier.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/src/views.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/test/integration/compose-fixtures.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/test/integration/inbox-fixtures.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  },
+  {
+   "id": "@wren/channel-email/vitest.config.ts",
+   "role": "file",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email"
+  }
+ ],
+ "edges": [
+  {
+   "from": "@wren/channel-email",
+   "to": "@wren/config",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email",
+   "to": "@wren/core",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email",
+   "to": "@wren/db",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email",
+   "to": "@wren/llm",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email",
+   "to": "@wren/research",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/access/access.ts",
+   "to": "@wren/channel-email/src/access/mailbox.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/access/access.ts",
+   "to": "@wren/channel-email/src/access/oauth.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/access/access.ts",
+   "to": "@wren/channel-email/src/access/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/access/access.ts",
+   "to": "@wren/channel-email/src/fetch-like.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/access/access.ts",
+   "to": "@wren/channel-email/src/send/mime.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/access/access.ts",
+   "to": "@wren/core/src/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/access/access.ts",
+   "to": "@wren/core/src/fetch-limit.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/access/access.ts",
+   "to": "@wren/core/src/keys.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/access/access.ts",
+   "to": "@wren/core/src/mailbox.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/access/access.ts",
+   "to": "@wren/core/src/refusal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/access/access.ts",
+   "to": "@wren/core/src/setup-schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/access/access.ts",
+   "to": "@wren/core/src/setup.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/access/access.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/access/console-routes.ts",
+   "to": "@wren/core/src/access.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/access/console.ts",
+   "to": "@wren/channel-email/src/access/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/access/console.ts",
+   "to": "@wren/channel-email/src/access/console-routes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/access/console.ts",
+   "to": "@wren/channel-email/src/access/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/access/console.ts",
+   "to": "@wren/channel-email/src/access/setups.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/access/console.ts",
+   "to": "@wren/core/src/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/access/console.ts",
+   "to": "@wren/core/src/executor.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/access/console.ts",
+   "to": "@wren/core/src/portal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/access/console.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/access/console.ts",
+   "to": "@wren/core/src/setup-schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/access/console.ts",
+   "to": "@wren/core/src/setup.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/access/console.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/access/mailbox.ts",
+   "to": "@wren/channel-email/src/fetch-like.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/access/mailbox.ts",
+   "to": "@wren/channel-email/src/send/mime.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/access/mailbox.ts",
+   "to": "@wren/channel-email/src/send/transport.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/access/mailbox.ts",
+   "to": "@wren/core/src/html.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/access/mailbox.ts",
+   "to": "@wren/core/src/mailbox.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/access/schema.ts",
+   "to": "@wren/core/src/setup-schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/access/schema.ts",
+   "to": "@wren/db/src/columns.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/access/setups.ts",
+   "to": "@wren/channel-email/src/access/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/access/setups.ts",
+   "to": "@wren/channel-email/src/access/oauth.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/access/setups.ts",
+   "to": "@wren/channel-email/src/access/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/access/setups.ts",
+   "to": "@wren/channel-email/src/fetch-like.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/access/setups.ts",
+   "to": "@wren/core/src/setup-schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/access/setups.ts",
+   "to": "@wren/core/src/setup.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/access/setups.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/calls/brief.ts",
+   "to": "@wren/channel-email/src/calls/recording.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/calls/brief.ts",
+   "to": "@wren/channel-email/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/calls/brief.ts",
+   "to": "@wren/core/src/touches.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/calls/brief.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/calls/brief.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/calls/brief.ts",
+   "to": "@wren/research/src/dossier.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/calls/index.ts",
+   "to": "@wren/channel-email/src/calls/brief.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/calls/index.ts",
+   "to": "@wren/channel-email/src/calls/outcome.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/calls/index.ts",
+   "to": "@wren/channel-email/src/calls/recording.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/calls/index.ts",
+   "to": "@wren/channel-email/src/calls/restate.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/calls/index.ts",
+   "to": "@wren/channel-email/src/calls/settings.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/calls/index.ts",
+   "to": "@wren/channel-email/src/calls/site.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/calls/outcome.ts",
+   "to": "@wren/channel-email/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/calls/outcome.ts",
+   "to": "@wren/core/src/calls.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/calls/outcome.ts",
+   "to": "@wren/core/src/executor.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/calls/outcome.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/calls/recording.ts",
+   "to": "@wren/channel-email/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/calls/recording.ts",
+   "to": "@wren/core/src/profiles.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/calls/recording.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/calls/recording.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/calls/restate.ts",
+   "to": "@wren/channel-email/src/calls/brief.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/calls/restate.ts",
+   "to": "@wren/channel-email/src/calls/outcome.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/calls/restate.ts",
+   "to": "@wren/channel-email/src/calls/settings.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/calls/restate.ts",
+   "to": "@wren/channel-email/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/calls/restate.ts",
+   "to": "@wren/core/src/calls.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/calls/restate.ts",
+   "to": "@wren/core/src/executor.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/calls/restate.ts",
+   "to": "@wren/core/src/logic.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/calls/restate.ts",
+   "to": "@wren/core/src/notify.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/calls/restate.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/calls/restate.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/calls/restate.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/calls/site.ts",
+   "to": "@wren/channel-email/src/calls/brief.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/calls/site.ts",
+   "to": "@wren/channel-email/src/inbox/clicks.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/components.ts",
+   "to": "@wren/channel-email/src/calls/settings.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/components.ts",
+   "to": "@wren/channel-email/src/sequences-settings.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/components.ts",
+   "to": "@wren/core/src/components.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/components.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/console-routes.ts",
+   "to": "@wren/core/src/access.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/dossier.ts",
+   "to": "@wren/channel-email/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/dossier.ts",
+   "to": "@wren/core/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/dossier.ts",
+   "to": "@wren/core/src/touches.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/dossier.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/dossier.ts",
+   "to": "@wren/research/src/dossier.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/follow.ts",
+   "to": "@wren/channel-email/src/components.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/follow.ts",
+   "to": "@wren/channel-email/src/guards.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/follow.ts",
+   "to": "@wren/channel-email/src/outreach/facts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/follow.ts",
+   "to": "@wren/channel-email/src/outreach/sequences.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/follow.ts",
+   "to": "@wren/channel-email/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/follow.ts",
+   "to": "@wren/core/src/executor.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/follow.ts",
+   "to": "@wren/core/src/follow.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/follow.ts",
+   "to": "@wren/core/src/slots/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/follow.ts",
+   "to": "@wren/core/src/template-defaults.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/follow.ts",
+   "to": "@wren/core/src/template-labels.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/follow.ts",
+   "to": "@wren/core/src/templates.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/follow.ts",
+   "to": "@wren/core/src/workflows.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/follow.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/guards.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/guards.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/away.ts",
+   "to": "@wren/channel-email/src/send/dates.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/bookings.ts",
+   "to": "@wren/channel-email/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/bookings.ts",
+   "to": "@wren/channel-email/src/send/deliver.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/bookings.ts",
+   "to": "@wren/core/src/profiles-backfill.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/bookings.ts",
+   "to": "@wren/core/src/profiles-link.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/bookings.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/click-sync.ts",
+   "to": "@wren/channel-email/src/fetch-like.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/click-sync.ts",
+   "to": "@wren/channel-email/src/inbox/clicks.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/click-sync.ts",
+   "to": "@wren/channel-email/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/click-sync.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/clicks.ts",
+   "to": "@wren/channel-email/src/fetch-like.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/clicks.ts",
+   "to": "@wren/channel-email/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/clicks.ts",
+   "to": "@wren/core/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/clicks.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/disposition.ts",
+   "to": "@wren/channel-email/src/inbox/sync.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/disposition.ts",
+   "to": "@wren/channel-email/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/disposition.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/disposition.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/disposition.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/health.ts",
+   "to": "@wren/channel-email/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/health.ts",
+   "to": "@wren/channel-email/src/send/policy.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/health.ts",
+   "to": "@wren/channel-email/src/send/tick.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/health.ts",
+   "to": "@wren/channel-email/src/views.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/health.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/inbound.ts",
+   "to": "@wren/core/src/mail.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/index.ts",
+   "to": "@wren/channel-email/src/inbox/bookings.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/index.ts",
+   "to": "@wren/channel-email/src/inbox/click-sync.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/index.ts",
+   "to": "@wren/channel-email/src/inbox/clicks.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/index.ts",
+   "to": "@wren/channel-email/src/inbox/disposition.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/index.ts",
+   "to": "@wren/channel-email/src/inbox/health.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/index.ts",
+   "to": "@wren/channel-email/src/inbox/inbound.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/index.ts",
+   "to": "@wren/channel-email/src/inbox/instantly.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/index.ts",
+   "to": "@wren/channel-email/src/inbox/invite.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/index.ts",
+   "to": "@wren/channel-email/src/inbox/marketing-bounces.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/index.ts",
+   "to": "@wren/channel-email/src/inbox/opens.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/index.ts",
+   "to": "@wren/channel-email/src/inbox/placement.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/index.ts",
+   "to": "@wren/channel-email/src/inbox/postmaster.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/index.ts",
+   "to": "@wren/channel-email/src/inbox/reply.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/index.ts",
+   "to": "@wren/channel-email/src/inbox/sync.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/instantly.ts",
+   "to": "@wren/channel-email/src/send/transport.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/invite.ts",
+   "to": "@wren/channel-email/src/guards.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/invite.ts",
+   "to": "@wren/channel-email/src/inbox/reply.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/invite.ts",
+   "to": "@wren/channel-email/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/invite.ts",
+   "to": "@wren/channel-email/src/send/call-times.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/invite.ts",
+   "to": "@wren/channel-email/src/state.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/invite.ts",
+   "to": "@wren/core/src/calendar.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/invite.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/invite.ts",
+   "to": "@wren/core/src/message-settings.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/invite.ts",
+   "to": "@wren/core/src/notify.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/invite.ts",
+   "to": "@wren/core/src/time.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/invite.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/invite.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/marketing-bounces.ts",
+   "to": "@wren/channel-email/src/inbox/inbound.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/marketing-bounces.ts",
+   "to": "@wren/core/src/bounces.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/marketing-bounces.ts",
+   "to": "@wren/core/src/mailbox.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/marketing-bounces.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/opens.ts",
+   "to": "@wren/channel-email/src/fetch-like.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/opens.ts",
+   "to": "@wren/channel-email/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/opens.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/placement.ts",
+   "to": "@wren/channel-email/src/inbox/health.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/placement.ts",
+   "to": "@wren/channel-email/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/placement.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/postmaster.ts",
+   "to": "@wren/channel-email/src/fetch-like.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/postmaster.ts",
+   "to": "@wren/channel-email/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/postmaster.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/reply.ts",
+   "to": "@wren/channel-email/src/outreach/compose.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/reply.ts",
+   "to": "@wren/channel-email/src/outreach/facts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/reply.ts",
+   "to": "@wren/channel-email/src/outreach/fills.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/reply.ts",
+   "to": "@wren/channel-email/src/outreach/live.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/reply.ts",
+   "to": "@wren/channel-email/src/outreach/sequences.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/reply.ts",
+   "to": "@wren/channel-email/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/reply.ts",
+   "to": "@wren/channel-email/src/send/tick.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/reply.ts",
+   "to": "@wren/channel-email/src/send/transport.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/reply.ts",
+   "to": "@wren/channel-email/src/state.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/reply.ts",
+   "to": "@wren/core/src/slots/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/reply.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/sync.ts",
+   "to": "@wren/channel-email/src/guards.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/sync.ts",
+   "to": "@wren/channel-email/src/inbox/away.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/sync.ts",
+   "to": "@wren/channel-email/src/inbox/inbound.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/sync.ts",
+   "to": "@wren/channel-email/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/sync.ts",
+   "to": "@wren/channel-email/src/send/dates.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/sync.ts",
+   "to": "@wren/channel-email/src/send/deliver.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/sync.ts",
+   "to": "@wren/channel-email/src/send/suppress.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/sync.ts",
+   "to": "@wren/core/src/mail.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/inbox/sync.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/index.ts",
+   "to": "@wren/channel-email/src/concurrent.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/index.ts",
+   "to": "@wren/channel-email/src/dossier.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/index.ts",
+   "to": "@wren/channel-email/src/follow.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/index.ts",
+   "to": "@wren/channel-email/src/guards.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/index.ts",
+   "to": "@wren/channel-email/src/inbox/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/index.ts",
+   "to": "@wren/channel-email/src/outreach/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/index.ts",
+   "to": "@wren/channel-email/src/recontact.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/index.ts",
+   "to": "@wren/channel-email/src/report/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/index.ts",
+   "to": "@wren/channel-email/src/resolution/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/index.ts",
+   "to": "@wren/channel-email/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/index.ts",
+   "to": "@wren/channel-email/src/send/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/index.ts",
+   "to": "@wren/channel-email/src/sequences-settings.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/index.ts",
+   "to": "@wren/channel-email/src/sequences.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/index.ts",
+   "to": "@wren/channel-email/src/setups.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/index.ts",
+   "to": "@wren/channel-email/src/state.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/index.ts",
+   "to": "@wren/channel-email/src/verification/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/index.ts",
+   "to": "@wren/channel-email/src/views.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/index.ts",
+   "to": "@wren/core/src/notify.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/listmonk/campaign.ts",
+   "to": "@wren/channel-email/src/listmonk/client.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/listmonk/client.ts",
+   "to": "@wren/channel-email/src/fetch-like.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/listmonk/index.ts",
+   "to": "@wren/channel-email/src/listmonk/campaign.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/listmonk/index.ts",
+   "to": "@wren/channel-email/src/listmonk/client.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/listmonk/index.ts",
+   "to": "@wren/channel-email/src/listmonk/setup.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/listmonk/index.ts",
+   "to": "@wren/channel-email/src/listmonk/sync.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/listmonk/setup.ts",
+   "to": "@wren/channel-email/src/listmonk/campaign.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/listmonk/setup.ts",
+   "to": "@wren/channel-email/src/listmonk/client.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/listmonk/sync.ts",
+   "to": "@wren/channel-email/src/listmonk/client.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/authoring.ts",
+   "to": "@wren/core/src/slots/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/compose.ts",
+   "to": "@wren/channel-email/src/guards.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/compose.ts",
+   "to": "@wren/channel-email/src/outreach/facts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/compose.ts",
+   "to": "@wren/channel-email/src/outreach/fills.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/compose.ts",
+   "to": "@wren/channel-email/src/outreach/pages.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/compose.ts",
+   "to": "@wren/channel-email/src/outreach/provenance.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/compose.ts",
+   "to": "@wren/channel-email/src/outreach/sequences.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/compose.ts",
+   "to": "@wren/channel-email/src/recontact.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/compose.ts",
+   "to": "@wren/channel-email/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/compose.ts",
+   "to": "@wren/channel-email/src/send/call-times.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/compose.ts",
+   "to": "@wren/channel-email/src/state.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/compose.ts",
+   "to": "@wren/core/src/leads.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/compose.ts",
+   "to": "@wren/core/src/profiles.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/compose.ts",
+   "to": "@wren/core/src/slots/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/compose.ts",
+   "to": "@wren/core/src/templates.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/compose.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/facts.ts",
+   "to": "@wren/channel-email/src/outreach/readable.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/facts.ts",
+   "to": "@wren/core/src/touches.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/facts.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/fills.ts",
+   "to": "@wren/channel-email/src/concurrent.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/fills.ts",
+   "to": "@wren/channel-email/src/outreach/facts.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/fills.ts",
+   "to": "@wren/channel-email/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/fills.ts",
+   "to": "@wren/core/src/slots/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/fills.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/fills.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/index.ts",
+   "to": "@wren/channel-email/src/outreach/compose.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/index.ts",
+   "to": "@wren/channel-email/src/outreach/facts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/index.ts",
+   "to": "@wren/channel-email/src/outreach/fills.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/index.ts",
+   "to": "@wren/channel-email/src/outreach/live.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/index.ts",
+   "to": "@wren/channel-email/src/outreach/plan.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/index.ts",
+   "to": "@wren/channel-email/src/outreach/provenance.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/index.ts",
+   "to": "@wren/channel-email/src/outreach/readable.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/index.ts",
+   "to": "@wren/channel-email/src/outreach/refresh.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/index.ts",
+   "to": "@wren/channel-email/src/outreach/review.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/index.ts",
+   "to": "@wren/channel-email/src/outreach/sequences.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/index.ts",
+   "to": "@wren/core/src/slots/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/live.ts",
+   "to": "@wren/channel-email/src/outreach/sequences.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/live.ts",
+   "to": "@wren/core/src/slots/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/live.ts",
+   "to": "@wren/core/src/templates.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/live.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/pages.ts",
+   "to": "@wren/core/src/slots/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/pages.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/plan.ts",
+   "to": "@wren/channel-email/src/recontact.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/preview.ts",
+   "to": "@wren/core/src/slots/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/provenance.ts",
+   "to": "@wren/channel-email/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/provenance.ts",
+   "to": "@wren/channel-email/src/verification/service.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/provenance.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/provenance.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/provenance.ts",
+   "to": "@wren/research/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/refresh.ts",
+   "to": "@wren/channel-email/src/outreach/compose.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/refresh.ts",
+   "to": "@wren/channel-email/src/outreach/facts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/refresh.ts",
+   "to": "@wren/channel-email/src/outreach/fills.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/refresh.ts",
+   "to": "@wren/channel-email/src/outreach/pages.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/refresh.ts",
+   "to": "@wren/channel-email/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/refresh.ts",
+   "to": "@wren/channel-email/src/send/call-times.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/refresh.ts",
+   "to": "@wren/core/src/slots/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/refresh.ts",
+   "to": "@wren/core/src/templates.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/refresh.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/review.ts",
+   "to": "@wren/channel-email/src/outreach/provenance.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/review.ts",
+   "to": "@wren/channel-email/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/review.ts",
+   "to": "@wren/channel-email/src/send/deliver.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/review.ts",
+   "to": "@wren/channel-email/src/send/suppress.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/review.ts",
+   "to": "@wren/channel-email/src/state.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/review.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/review.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/sequences.ts",
+   "to": "@wren/core/src/slots/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/outreach/templates.ts",
+   "to": "@wren/core/src/slots/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/recontact.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/records.ts",
+   "to": "@wren/channel-email/src/calls/brief.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/records.ts",
+   "to": "@wren/channel-email/src/inbox/health.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/records.ts",
+   "to": "@wren/channel-email/src/send/campaign-controls.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/records.ts",
+   "to": "@wren/channel-email/src/send/deliver.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/records.ts",
+   "to": "@wren/channel-email/src/send/policy.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/records.ts",
+   "to": "@wren/channel-email/src/send/roster.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/records.ts",
+   "to": "@wren/core/src/calls.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/records.ts",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/records.ts",
+   "to": "@wren/core/src/template-labels.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/records.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/report/index.ts",
+   "to": "@wren/channel-email/src/report/schedule.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/report/index.ts",
+   "to": "@wren/channel-email/src/report/send.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/report/index.ts",
+   "to": "@wren/channel-email/src/report/stats.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/report/index.ts",
+   "to": "@wren/channel-email/src/report/variants.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/report/index.ts",
+   "to": "@wren/channel-email/src/report/weekly.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/report/schedule.ts",
+   "to": "@wren/channel-email/src/send/policy.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/report/schedule.ts",
+   "to": "@wren/channel-email/src/send/tz.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/report/send.ts",
+   "to": "@wren/channel-email/src/report/weekly.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/report/send.ts",
+   "to": "@wren/channel-email/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/report/send.ts",
+   "to": "@wren/channel-email/src/send/transport.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/report/send.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/report/stats.ts",
+   "to": "@wren/core/src/stats.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/report/variants.ts",
+   "to": "@wren/core/src/slots/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/report/variants.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/report/weekly.ts",
+   "to": "@wren/channel-email/src/report/stats.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/report/weekly.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/resolution/index.ts",
+   "to": "@wren/channel-email/src/resolution/listed.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/resolution/index.ts",
+   "to": "@wren/channel-email/src/resolution/service.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/resolution/listed.ts",
+   "to": "@wren/channel-email/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/resolution/listed.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/resolution/listed.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/resolution/service.ts",
+   "to": "@wren/channel-email/src/guards.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/resolution/service.ts",
+   "to": "@wren/channel-email/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/resolution/service.ts",
+   "to": "@wren/channel-email/src/state.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/resolution/service.ts",
+   "to": "@wren/channel-email/src/verification/local.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/resolution/service.ts",
+   "to": "@wren/channel-email/src/verification/mailifier.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/resolution/service.ts",
+   "to": "@wren/channel-email/src/verification/retry.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/resolution/service.ts",
+   "to": "@wren/channel-email/src/verification/verifier.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/resolution/service.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/resolution/service.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/bounce-scheduler.ts",
+   "to": "@wren/channel-email/src/inbox/marketing-bounces.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/bounce-scheduler.ts",
+   "to": "@wren/core/src/bounces.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/bounce-scheduler.ts",
+   "to": "@wren/core/src/mailbox.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/restate/bounce-scheduler.ts",
+   "to": "@wren/core/src/message-settings.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/bounce-scheduler.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/bounce-scheduler.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/restate/call-bookings.ts",
+   "to": "@wren/channel-email/src/calls/restate.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/call-bookings.ts",
+   "to": "@wren/channel-email/src/inbox/bookings.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/call-bookings.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/call-bookings.ts",
+   "to": "@wren/core/src/executor.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/call-bookings.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/restate/clicks-scheduler.ts",
+   "to": "@wren/channel-email/src/fetch-like.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/restate/clicks-scheduler.ts",
+   "to": "@wren/channel-email/src/inbox/click-sync.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/clicks-scheduler.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/clicks-scheduler.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/restate/compose-scheduler.ts",
+   "to": "@wren/channel-email/src/guards.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/restate/compose-scheduler.ts",
+   "to": "@wren/channel-email/src/outreach/compose.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/compose-scheduler.ts",
+   "to": "@wren/channel-email/src/outreach/fills.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/restate/compose-scheduler.ts",
+   "to": "@wren/channel-email/src/outreach/live.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/compose-scheduler.ts",
+   "to": "@wren/channel-email/src/outreach/plan.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/compose-scheduler.ts",
+   "to": "@wren/channel-email/src/outreach/refresh.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/compose-scheduler.ts",
+   "to": "@wren/channel-email/src/outreach/sequences.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/restate/compose-scheduler.ts",
+   "to": "@wren/channel-email/src/recontact.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/compose-scheduler.ts",
+   "to": "@wren/channel-email/src/restate/postmaster-scheduler.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/compose-scheduler.ts",
+   "to": "@wren/channel-email/src/send/campaign-controls.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/compose-scheduler.ts",
+   "to": "@wren/channel-email/src/send/deliver.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/restate/compose-scheduler.ts",
+   "to": "@wren/channel-email/src/send/lead-timezone.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/compose-scheduler.ts",
+   "to": "@wren/channel-email/src/send/policy.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/restate/compose-scheduler.ts",
+   "to": "@wren/channel-email/src/sequences.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/compose-scheduler.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/restate/compose-scheduler.ts",
+   "to": "@wren/core/src/notify.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/compose-scheduler.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/compose-scheduler.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/restate/console.ts",
+   "to": "@wren/channel-email/src/calls/restate.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/restate/console.ts",
+   "to": "@wren/channel-email/src/calls/settings.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/console.ts",
+   "to": "@wren/channel-email/src/console-routes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/console.ts",
+   "to": "@wren/channel-email/src/inbox/health.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/console.ts",
+   "to": "@wren/channel-email/src/inbox/invite.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/console.ts",
+   "to": "@wren/channel-email/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/console.ts",
+   "to": "@wren/channel-email/src/restate/disposition.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/console.ts",
+   "to": "@wren/channel-email/src/send/campaign-controls.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/console.ts",
+   "to": "@wren/channel-email/src/send/policy.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/restate/console.ts",
+   "to": "@wren/channel-email/src/sequences-settings.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/console.ts",
+   "to": "@wren/channel-email/src/sequences.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/console.ts",
+   "to": "@wren/core/src/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/console.ts",
+   "to": "@wren/core/src/calls.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/restate/console.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/restate/console.ts",
+   "to": "@wren/core/src/portal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/console.ts",
+   "to": "@wren/core/src/records-serve.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/console.ts",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/console.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/console.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/console.ts",
+   "to": "@wren/research/src/components.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/console.ts",
+   "to": "@wren/research/src/dossier.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/digest-scheduler.ts",
+   "to": "@wren/channel-email/src/restate/placement-scheduler.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/digest-scheduler.ts",
+   "to": "@wren/channel-email/src/send/deliver.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/restate/digest-scheduler.ts",
+   "to": "@wren/channel-email/src/send/policy.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/restate/digest-scheduler.ts",
+   "to": "@wren/channel-email/src/send/tz.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/digest-scheduler.ts",
+   "to": "@wren/channel-email/src/verification/domain-health.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/digest-scheduler.ts",
+   "to": "@wren/channel-email/src/verification/prober-health.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/digest-scheduler.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/digest-scheduler.ts",
+   "to": "@wren/core/src/notify.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/restate/digest-scheduler.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/digest-scheduler.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/restate/disposition.ts",
+   "to": "@wren/channel-email/src/inbox/disposition.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/disposition.ts",
+   "to": "@wren/channel-email/src/inbox/invite.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/disposition.ts",
+   "to": "@wren/channel-email/src/inbox/reply.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/restate/disposition.ts",
+   "to": "@wren/core/src/calendar.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/restate/disposition.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/disposition.ts",
+   "to": "@wren/core/src/notify.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/restate/disposition.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/disposition.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/restate/disposition.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/restate/inbox-scheduler.ts",
+   "to": "@wren/channel-email/src/guards.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/restate/inbox-scheduler.ts",
+   "to": "@wren/channel-email/src/inbox/sync.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/inbox-scheduler.ts",
+   "to": "@wren/channel-email/src/restate/disposition.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/restate/inbox-scheduler.ts",
+   "to": "@wren/core/src/executor.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/inbox-scheduler.ts",
+   "to": "@wren/core/src/notify.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/inbox-scheduler.ts",
+   "to": "@wren/core/src/reply-who.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/inbox-scheduler.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/inbox-scheduler.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/restate/index.ts",
+   "to": "@wren/channel-email/src/restate/bounce-scheduler.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/index.ts",
+   "to": "@wren/channel-email/src/restate/call-bookings.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/index.ts",
+   "to": "@wren/channel-email/src/restate/clicks-scheduler.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/index.ts",
+   "to": "@wren/channel-email/src/restate/compose-scheduler.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/index.ts",
+   "to": "@wren/channel-email/src/restate/console.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/index.ts",
+   "to": "@wren/channel-email/src/restate/digest-scheduler.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/index.ts",
+   "to": "@wren/channel-email/src/restate/disposition.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/index.ts",
+   "to": "@wren/channel-email/src/restate/inbox-scheduler.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/index.ts",
+   "to": "@wren/channel-email/src/restate/listmonk.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/index.ts",
+   "to": "@wren/channel-email/src/restate/marketing.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/index.ts",
+   "to": "@wren/channel-email/src/restate/newsletter.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/index.ts",
+   "to": "@wren/channel-email/src/restate/opens-scheduler.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/index.ts",
+   "to": "@wren/channel-email/src/restate/placement-scheduler.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/index.ts",
+   "to": "@wren/channel-email/src/restate/pool-scheduler.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/index.ts",
+   "to": "@wren/channel-email/src/restate/postmaster-scheduler.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/index.ts",
+   "to": "@wren/channel-email/src/restate/queue-refresh.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/index.ts",
+   "to": "@wren/channel-email/src/restate/report-scheduler.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/index.ts",
+   "to": "@wren/channel-email/src/restate/resolution.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/index.ts",
+   "to": "@wren/channel-email/src/restate/send-scheduler.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/index.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/listmonk.ts",
+   "to": "@wren/channel-email/src/listmonk/campaign.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/listmonk.ts",
+   "to": "@wren/channel-email/src/listmonk/client.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/restate/listmonk.ts",
+   "to": "@wren/channel-email/src/listmonk/sync.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/listmonk.ts",
+   "to": "@wren/channel-email/src/restate/newsletter.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/listmonk.ts",
+   "to": "@wren/core/src/marketing.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/listmonk.ts",
+   "to": "@wren/core/src/message-settings.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/listmonk.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/listmonk.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/restate/marketing.ts",
+   "to": "@wren/channel-email/src/send/gmail.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/restate/marketing.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/marketing.ts",
+   "to": "@wren/core/src/marketing.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/marketing.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/marketing.ts",
+   "to": "@wren/core/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/marketing.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/restate/newsletter.ts",
+   "to": "@wren/channel-email/src/listmonk/campaign.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/newsletter.ts",
+   "to": "@wren/channel-email/src/listmonk/client.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/newsletter.ts",
+   "to": "@wren/channel-email/src/send/gmail.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/restate/newsletter.ts",
+   "to": "@wren/core/src/bounces.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/newsletter.ts",
+   "to": "@wren/core/src/marketing.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/newsletter.ts",
+   "to": "@wren/core/src/message-settings.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/newsletter.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/newsletter.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/restate/opens-scheduler.ts",
+   "to": "@wren/channel-email/src/fetch-like.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/restate/opens-scheduler.ts",
+   "to": "@wren/channel-email/src/inbox/opens.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/opens-scheduler.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/opens-scheduler.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/restate/placement-scheduler.ts",
+   "to": "@wren/channel-email/src/inbox/placement.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/placement-scheduler.ts",
+   "to": "@wren/channel-email/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/placement-scheduler.ts",
+   "to": "@wren/channel-email/src/send/call-times.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/placement-scheduler.ts",
+   "to": "@wren/channel-email/src/send/deliver.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/placement-scheduler.ts",
+   "to": "@wren/channel-email/src/send/policy.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/restate/placement-scheduler.ts",
+   "to": "@wren/channel-email/src/send/tick.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/restate/placement-scheduler.ts",
+   "to": "@wren/channel-email/src/send/transport.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/placement-scheduler.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/placement-scheduler.ts",
+   "to": "@wren/core/src/content/restate.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/placement-scheduler.ts",
+   "to": "@wren/core/src/notify.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/placement-scheduler.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/placement-scheduler.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/restate/pool-scheduler.ts",
+   "to": "@wren/channel-email/src/outreach/compose.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/pool-scheduler.ts",
+   "to": "@wren/channel-email/src/recontact.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/restate/pool-scheduler.ts",
+   "to": "@wren/channel-email/src/restate/postmaster-scheduler.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/pool-scheduler.ts",
+   "to": "@wren/channel-email/src/restate/resolution.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/pool-scheduler.ts",
+   "to": "@wren/channel-email/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/pool-scheduler.ts",
+   "to": "@wren/channel-email/src/send/policy.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/restate/pool-scheduler.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/pool-scheduler.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/pool-scheduler.ts",
+   "to": "@wren/core/src/limits.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/pool-scheduler.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/pool-scheduler.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/restate/pool-scheduler.ts",
+   "to": "@wren/research/src/components.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/pool-scheduler.ts",
+   "to": "@wren/research/src/enrichment/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/pool-scheduler.ts",
+   "to": "@wren/research/src/limits.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/pool-scheduler.ts",
+   "to": "@wren/research/src/restate/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/restate/pool-scheduler.ts",
+   "to": "@wren/research/src/signals/collectors.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/postmaster-scheduler.ts",
+   "to": "@wren/channel-email/src/components.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/postmaster-scheduler.ts",
+   "to": "@wren/channel-email/src/inbox/postmaster.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/postmaster-scheduler.ts",
+   "to": "@wren/channel-email/src/send/policy.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/restate/postmaster-scheduler.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/postmaster-scheduler.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/postmaster-scheduler.ts",
+   "to": "@wren/core/src/setup-alerts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/postmaster-scheduler.ts",
+   "to": "@wren/core/src/setup.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/postmaster-scheduler.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/restate/queue-refresh.ts",
+   "to": "@wren/channel-email/src/outreach/refresh.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/restate/queue-refresh.ts",
+   "to": "@wren/channel-email/src/restate/compose-scheduler.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/queue-refresh.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/queue-refresh.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/queue-refresh.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/restate/report-scheduler.ts",
+   "to": "@wren/channel-email/src/report/schedule.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/report-scheduler.ts",
+   "to": "@wren/channel-email/src/report/send.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/report-scheduler.ts",
+   "to": "@wren/channel-email/src/send/policy.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/restate/report-scheduler.ts",
+   "to": "@wren/channel-email/src/send/transport.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/restate/report-scheduler.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/report-scheduler.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/restate/resolution.ts",
+   "to": "@wren/channel-email/src/concurrent.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/resolution.ts",
+   "to": "@wren/channel-email/src/recontact.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/restate/resolution.ts",
+   "to": "@wren/channel-email/src/resolution/service.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/resolution.ts",
+   "to": "@wren/channel-email/src/verification/local.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/restate/resolution.ts",
+   "to": "@wren/channel-email/src/verification/mailifier.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/resolution.ts",
+   "to": "@wren/channel-email/src/verification/service.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/resolution.ts",
+   "to": "@wren/channel-email/src/verification/shared.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/resolution.ts",
+   "to": "@wren/channel-email/src/verification/verifier.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/restate/resolution.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/resolution.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/resolution.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/send-scheduler.ts",
+   "to": "@wren/channel-email/src/guards.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/restate/send-scheduler.ts",
+   "to": "@wren/channel-email/src/send/deliver.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/restate/send-scheduler.ts",
+   "to": "@wren/channel-email/src/send/policy.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/restate/send-scheduler.ts",
+   "to": "@wren/channel-email/src/send/rng.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/send-scheduler.ts",
+   "to": "@wren/channel-email/src/send/tick.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/send-scheduler.ts",
+   "to": "@wren/channel-email/src/send/transport.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/restate/send-scheduler.ts",
+   "to": "@wren/core/src/calendar.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/restate/send-scheduler.ts",
+   "to": "@wren/core/src/executor.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/send-scheduler.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/send-scheduler.ts",
+   "to": "@wren/core/src/notify.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/send-scheduler.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/restate/send-scheduler.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/schema.ts",
+   "to": "@wren/core/src/calls.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/schema.ts",
+   "to": "@wren/core/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/schema.ts",
+   "to": "@wren/db/src/columns.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/campaign-controls.ts",
+   "to": "@wren/channel-email/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/campaign-controls.ts",
+   "to": "@wren/channel-email/src/send/policy.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/send/campaign-controls.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/send/deliver.ts",
+   "to": "@wren/channel-email/src/guards.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/deliver.ts",
+   "to": "@wren/channel-email/src/outreach/pages.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/deliver.ts",
+   "to": "@wren/channel-email/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/deliver.ts",
+   "to": "@wren/channel-email/src/send/call-times.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/deliver.ts",
+   "to": "@wren/channel-email/src/send/dates.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/deliver.ts",
+   "to": "@wren/channel-email/src/send/policy.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/send/deliver.ts",
+   "to": "@wren/channel-email/src/send/reconcile.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/deliver.ts",
+   "to": "@wren/channel-email/src/send/rng.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/deliver.ts",
+   "to": "@wren/channel-email/src/send/suppress.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/deliver.ts",
+   "to": "@wren/channel-email/src/send/transport.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/deliver.ts",
+   "to": "@wren/channel-email/src/send/tz.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/deliver.ts",
+   "to": "@wren/channel-email/src/state.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/deliver.ts",
+   "to": "@wren/channel-email/src/views.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/deliver.ts",
+   "to": "@wren/core/src/calendar.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/send/deliver.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/deliver.ts",
+   "to": "@wren/core/src/leads.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/deliver.ts",
+   "to": "@wren/core/src/people-map.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/deliver.ts",
+   "to": "@wren/core/src/slots/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/deliver.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/gmail.ts",
+   "to": "@wren/channel-email/src/send/mime.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/gmail.ts",
+   "to": "@wren/channel-email/src/send/transport.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/gmail.ts",
+   "to": "@wren/core/src/fetch-limit.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/holidays.ts",
+   "to": "@wren/channel-email/src/send/dates.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/index.ts",
+   "to": "@wren/channel-email/src/send/call-times.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/index.ts",
+   "to": "@wren/channel-email/src/send/campaign-controls.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/index.ts",
+   "to": "@wren/channel-email/src/send/dates.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/index.ts",
+   "to": "@wren/channel-email/src/send/deliver.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/index.ts",
+   "to": "@wren/channel-email/src/send/gmail.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/index.ts",
+   "to": "@wren/channel-email/src/send/holidays.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/index.ts",
+   "to": "@wren/channel-email/src/send/lead-timezone.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/index.ts",
+   "to": "@wren/channel-email/src/send/mailboxes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/index.ts",
+   "to": "@wren/channel-email/src/send/mime.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/index.ts",
+   "to": "@wren/channel-email/src/send/policy.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/index.ts",
+   "to": "@wren/channel-email/src/send/reconcile.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/index.ts",
+   "to": "@wren/channel-email/src/send/rng.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/index.ts",
+   "to": "@wren/channel-email/src/send/roster.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/index.ts",
+   "to": "@wren/channel-email/src/send/smtp.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/index.ts",
+   "to": "@wren/channel-email/src/send/suppress.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/index.ts",
+   "to": "@wren/channel-email/src/send/tick.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/index.ts",
+   "to": "@wren/channel-email/src/send/transport.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/index.ts",
+   "to": "@wren/channel-email/src/send/tz.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/lead-timezone.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/lead-timezone.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/send/mime.ts",
+   "to": "@wren/channel-email/src/send/transport.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/policy.ts",
+   "to": "@wren/channel-email/src/send/dates.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/policy.ts",
+   "to": "@wren/channel-email/src/send/holidays.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/policy.ts",
+   "to": "@wren/channel-email/src/send/rng.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/policy.ts",
+   "to": "@wren/channel-email/src/send/tz.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/policy.ts",
+   "to": "@wren/config/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/reconcile.ts",
+   "to": "@wren/channel-email/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/reconcile.ts",
+   "to": "@wren/channel-email/src/send/policy.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/send/reconcile.ts",
+   "to": "@wren/channel-email/src/send/transport.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/reconcile.ts",
+   "to": "@wren/channel-email/src/state.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/reconcile.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/send/roster.ts",
+   "to": "@wren/channel-email/src/send/dates.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/roster.ts",
+   "to": "@wren/channel-email/src/send/policy.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/send/roster.ts",
+   "to": "@wren/channel-email/src/send/transport.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/smtp.ts",
+   "to": "@wren/channel-email/src/send/mailboxes.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/send/smtp.ts",
+   "to": "@wren/channel-email/src/send/mime.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/smtp.ts",
+   "to": "@wren/channel-email/src/send/transport.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/suppress.ts",
+   "to": "@wren/channel-email/src/guards.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/send/suppress.ts",
+   "to": "@wren/channel-email/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/send/suppress.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/suppress.ts",
+   "to": "@wren/core/src/slots/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/suppress.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/send/tick.ts",
+   "to": "@wren/channel-email/src/follow.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/tick.ts",
+   "to": "@wren/channel-email/src/guards.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/send/tick.ts",
+   "to": "@wren/channel-email/src/inbox/health.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/tick.ts",
+   "to": "@wren/channel-email/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/send/tick.ts",
+   "to": "@wren/channel-email/src/send/deliver.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/tick.ts",
+   "to": "@wren/channel-email/src/send/policy.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/send/tick.ts",
+   "to": "@wren/channel-email/src/send/rng.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/send/tick.ts",
+   "to": "@wren/channel-email/src/send/roster.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/send/tick.ts",
+   "to": "@wren/channel-email/src/send/transport.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/send/tick.ts",
+   "to": "@wren/core/src/calendar.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/send/tick.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/send/transport.ts",
+   "to": "@wren/core/src/html.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/send/tz.ts",
+   "to": "@wren/core/src/time.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/sequences.ts",
+   "to": "@wren/channel-email/src/guards.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/sequences.ts",
+   "to": "@wren/channel-email/src/restate/compose-scheduler.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/sequences.ts",
+   "to": "@wren/channel-email/src/restate/send-scheduler.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/sequences.ts",
+   "to": "@wren/channel-email/src/send/campaign-controls.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/sequences.ts",
+   "to": "@wren/channel-email/src/send/dates.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/sequences.ts",
+   "to": "@wren/channel-email/src/send/policy.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/sequences.ts",
+   "to": "@wren/channel-email/src/send/tick.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/sequences.ts",
+   "to": "@wren/channel-email/src/sequences-settings.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/sequences.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/sequences.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/sequences.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/setups.ts",
+   "to": "@wren/channel-email/src/inbox/placement.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/setups.ts",
+   "to": "@wren/core/src/setup.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/setups.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/spam/coverage.ts",
+   "to": "@wren/core/src/slots/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/spam/index.ts",
+   "to": "@wren/channel-email/src/spam/coverage.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/spam/index.ts",
+   "to": "@wren/channel-email/src/spam/spamassassin.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/state.ts",
+   "to": "@wren/channel-email/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/state.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/verification/checks.ts",
+   "to": "@wren/channel-email/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/verification/checks.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/verification/checks.ts",
+   "to": "@wren/research/src/companies/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/verification/checks.ts",
+   "to": "@wren/research/src/people/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/verification/domain-health.ts",
+   "to": "@wren/channel-email/src/send/mailboxes.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/verification/domain-health.ts",
+   "to": "@wren/channel-email/src/send/roster.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/verification/domain-health.ts",
+   "to": "@wren/channel-email/src/verification/prober-health.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/verification/index.ts",
+   "to": "@wren/channel-email/src/verification/checks.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/verification/index.ts",
+   "to": "@wren/channel-email/src/verification/domain-health.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/verification/index.ts",
+   "to": "@wren/channel-email/src/verification/lead-checks.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/verification/index.ts",
+   "to": "@wren/channel-email/src/verification/local.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/verification/index.ts",
+   "to": "@wren/channel-email/src/verification/mailifier.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/verification/index.ts",
+   "to": "@wren/channel-email/src/verification/prober-health.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/verification/index.ts",
+   "to": "@wren/channel-email/src/verification/retry.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/verification/index.ts",
+   "to": "@wren/channel-email/src/verification/service.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/verification/index.ts",
+   "to": "@wren/channel-email/src/verification/verifier.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/verification/lead-checks.ts",
+   "to": "@wren/channel-email/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/verification/lead-checks.ts",
+   "to": "@wren/channel-email/src/verification/checks.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/verification/lead-checks.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/verification/mailifier.ts",
+   "to": "@wren/channel-email/src/verification/local.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/verification/mailifier.ts",
+   "to": "@wren/channel-email/src/verification/verifier.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/verification/prober-health.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/verification/retry.ts",
+   "to": "@wren/channel-email/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/verification/service.ts",
+   "to": "@wren/channel-email/src/concurrent.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/verification/service.ts",
+   "to": "@wren/channel-email/src/recontact.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/verification/service.ts",
+   "to": "@wren/channel-email/src/resolution/listed.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/verification/service.ts",
+   "to": "@wren/channel-email/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/verification/service.ts",
+   "to": "@wren/channel-email/src/verification/local.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/verification/service.ts",
+   "to": "@wren/channel-email/src/verification/mailifier.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/verification/service.ts",
+   "to": "@wren/channel-email/src/verification/retry.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/verification/service.ts",
+   "to": "@wren/channel-email/src/verification/verifier.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/verification/service.ts",
+   "to": "@wren/channel-email/src/views.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/verification/service.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/verification/service.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/verification/shared.ts",
+   "to": "@wren/channel-email/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/verification/shared.ts",
+   "to": "@wren/channel-email/src/verification/verifier.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/verification/shared.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/verification/verifier.ts",
+   "to": "@wren/channel-email/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/src/verification/verifier.ts",
+   "to": "@wren/channel-email/src/verification/mailifier.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/src/views.ts",
+   "to": "@wren/core/src/emails.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/test/integration/compose-fixtures.ts",
+   "to": "@wren/channel-email/src/outreach/compose.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/test/integration/compose-fixtures.ts",
+   "to": "@wren/channel-email/src/outreach/sequences.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/test/integration/compose-fixtures.ts",
+   "to": "@wren/channel-email/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/test/integration/compose-fixtures.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/test/integration/compose-fixtures.ts",
+   "to": "@wren/core/src/slots/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/test/integration/compose-fixtures.ts",
+   "to": "@wren/core/src/templates.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/test/integration/compose-fixtures.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-email/test/integration/compose-fixtures.ts",
+   "to": "@wren/research/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/test/integration/inbox-fixtures.ts",
+   "to": "@wren/core/src/mail.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-email/vitest.config.ts",
+   "to": "@wren/db/src/testing-vitest.ts",
+   "kind": "imports"
+  }
+ ]
+}

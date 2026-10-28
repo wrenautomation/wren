@@ -1,0 +1,478 @@
+{
+ "layer": "imports",
+ "nodes": [
+  {
+   "id": "@wren/payments",
+   "role": "package",
+   "parent": "repo:wren",
+   "group": "@wren/payments",
+   "attrs": {
+    "dir": "packages/payments/",
+    "npm": [
+     "node:crypto"
+    ]
+   }
+  },
+  {
+   "id": "@wren/payments/src/components.ts",
+   "role": "file",
+   "parent": "@wren/payments",
+   "group": "@wren/payments"
+  },
+  {
+   "id": "@wren/payments/src/console-routes.ts",
+   "role": "file",
+   "parent": "@wren/payments",
+   "group": "@wren/payments"
+  },
+  {
+   "id": "@wren/payments/src/console.ts",
+   "role": "file",
+   "parent": "@wren/payments",
+   "group": "@wren/payments"
+  },
+  {
+   "id": "@wren/payments/src/reconcile.ts",
+   "role": "file",
+   "parent": "@wren/payments",
+   "group": "@wren/payments"
+  },
+  {
+   "id": "@wren/payments/src/records.ts",
+   "role": "file",
+   "parent": "@wren/payments",
+   "group": "@wren/payments"
+  },
+  {
+   "id": "@wren/payments/src/schema.ts",
+   "role": "file",
+   "parent": "@wren/payments",
+   "group": "@wren/payments"
+  },
+  {
+   "id": "@wren/payments/src/service.ts",
+   "role": "file",
+   "parent": "@wren/payments",
+   "group": "@wren/payments"
+  },
+  {
+   "id": "@wren/payments/src/setups.ts",
+   "role": "file",
+   "parent": "@wren/payments",
+   "group": "@wren/payments"
+  },
+  {
+   "id": "@wren/payments/src/states.ts",
+   "role": "file",
+   "parent": "@wren/payments",
+   "group": "@wren/payments"
+  },
+  {
+   "id": "@wren/payments/src/store.ts",
+   "role": "file",
+   "parent": "@wren/payments",
+   "group": "@wren/payments"
+  },
+  {
+   "id": "@wren/payments/src/stripe.ts",
+   "role": "file",
+   "parent": "@wren/payments",
+   "group": "@wren/payments"
+  },
+  {
+   "id": "@wren/payments/vitest.config.ts",
+   "role": "file",
+   "parent": "@wren/payments",
+   "group": "@wren/payments"
+  }
+ ],
+ "edges": [
+  {
+   "from": "@wren/payments",
+   "to": "@wren/channel-sms",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/payments",
+   "to": "@wren/core",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/payments",
+   "to": "@wren/db",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/payments/src/components.ts",
+   "to": "@wren/core/src/components.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/payments/src/components.ts",
+   "to": "@wren/payments/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/payments/src/console-routes.ts",
+   "to": "@wren/core/src/access.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/payments/src/console.ts",
+   "to": "@wren/channel-sms/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/payments/src/console.ts",
+   "to": "@wren/channel-sms/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/payments/src/console.ts",
+   "to": "@wren/core/src/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/payments/src/console.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/payments/src/console.ts",
+   "to": "@wren/core/src/ids.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/payments/src/console.ts",
+   "to": "@wren/core/src/key-refs.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/payments/src/console.ts",
+   "to": "@wren/core/src/portal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/payments/src/console.ts",
+   "to": "@wren/core/src/records-serve.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/payments/src/console.ts",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/payments/src/console.ts",
+   "to": "@wren/core/src/refusal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/payments/src/console.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/payments/src/console.ts",
+   "to": "@wren/core/src/setup.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/payments/src/console.ts",
+   "to": "@wren/core/src/vendor-schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/payments/src/console.ts",
+   "to": "@wren/core/src/vendors.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/payments/src/console.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/payments/src/console.ts",
+   "to": "@wren/payments/src/console-routes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/payments/src/console.ts",
+   "to": "@wren/payments/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/payments/src/console.ts",
+   "to": "@wren/payments/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/payments/src/console.ts",
+   "to": "@wren/payments/src/service.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/payments/src/console.ts",
+   "to": "@wren/payments/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/payments/src/console.ts",
+   "to": "@wren/payments/src/stripe.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/payments/src/reconcile.ts",
+   "to": "@wren/core/src/notify.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/payments/src/reconcile.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/payments/src/reconcile.ts",
+   "to": "@wren/payments/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/payments/src/reconcile.ts",
+   "to": "@wren/payments/src/service.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/payments/src/reconcile.ts",
+   "to": "@wren/payments/src/states.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/payments/src/reconcile.ts",
+   "to": "@wren/payments/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/payments/src/reconcile.ts",
+   "to": "@wren/payments/src/stripe.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/payments/src/records.ts",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/payments/src/records.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/payments/src/records.ts",
+   "to": "@wren/payments/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/payments/src/records.ts",
+   "to": "@wren/payments/src/states.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/payments/src/schema.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/payments/src/schema.ts",
+   "to": "@wren/db/src/columns.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/payments/src/schema.ts",
+   "to": "@wren/payments/src/states.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/payments/src/service.ts",
+   "to": "@wren/channel-sms/src/restate/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/payments/src/service.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/payments/src/service.ts",
+   "to": "@wren/core/src/executor.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/payments/src/service.ts",
+   "to": "@wren/core/src/keys.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/payments/src/service.ts",
+   "to": "@wren/core/src/profiles-backfill.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/payments/src/service.ts",
+   "to": "@wren/core/src/refusal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/payments/src/service.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/payments/src/service.ts",
+   "to": "@wren/core/src/vendor-schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/payments/src/service.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/payments/src/service.ts",
+   "to": "@wren/payments/src/components.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/payments/src/service.ts",
+   "to": "@wren/payments/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/payments/src/service.ts",
+   "to": "@wren/payments/src/states.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/payments/src/service.ts",
+   "to": "@wren/payments/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/payments/src/service.ts",
+   "to": "@wren/payments/src/stripe.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/payments/src/setups.ts",
+   "to": "@wren/core/src/setup.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/payments/src/setups.ts",
+   "to": "@wren/core/src/vendor-schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/payments/src/setups.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/payments/src/setups.ts",
+   "to": "@wren/payments/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/payments/src/states.ts",
+   "to": "@wren/payments/src/stripe.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/payments/src/store.ts",
+   "to": "@wren/channel-sms/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/payments/src/store.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/payments/src/store.ts",
+   "to": "@wren/core/src/ids.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/payments/src/store.ts",
+   "to": "@wren/core/src/refusal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/payments/src/store.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/payments/src/store.ts",
+   "to": "@wren/payments/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/payments/src/store.ts",
+   "to": "@wren/payments/src/states.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/payments/src/store.ts",
+   "to": "@wren/payments/src/stripe.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/payments/vitest.config.ts",
+   "to": "@wren/db/src/testing-vitest.ts",
+   "kind": "imports"
+  }
+ ]
+}

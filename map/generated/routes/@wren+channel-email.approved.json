@@ -1,0 +1,413 @@
+{
+ "layer": "routes",
+ "nodes": [
+  {
+   "id": "route:CallBookings/ingest",
+   "role": "route",
+   "parent": "service:CallBookings",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "input": "unknown",
+    "output": "BookingOutcome | null",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:CallBookings/ingestFor",
+   "role": "route",
+   "parent": "service:CallBookings",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "input": "{ client: string; body: unknown }",
+    "output": "BookingOutcome | null",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:CallBriefs/build",
+   "role": "route",
+   "parent": "service:CallBriefs",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "input": "{ client?: string | null; id: number }",
+    "output": "{ built: boolean; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:CallBriefs/send",
+   "role": "route",
+   "parent": "service:CallBriefs",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "input": "SendAsk",
+    "output": "{ sent: boolean; why: string; } | { sent: boolean; why?: never; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Disposition/approve",
+   "role": "route",
+   "parent": "service:Disposition",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "input": "{ id: number; body?: string | null }",
+    "output": "ApproveOutcome",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:Disposition/classify",
+   "role": "route",
+   "parent": "service:Disposition",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "input": "void",
+    "output": "ClassifyOutcome",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:Disposition/drop",
+   "role": "route",
+   "parent": "service:Disposition",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "input": "{ id: number }",
+    "output": "{ state: string }",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:Disposition/followUp",
+   "role": "route",
+   "parent": "service:Disposition",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "input": "{ enrollmentId: number; body: string; campaign?: string | null }",
+    "output": "{ ok: boolean; reason: string | null; until: string | null }",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:Disposition/reply",
+   "role": "route",
+   "parent": "service:Disposition",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "input": "{ threadEventId: number; body: string }",
+    "output": "{ ok: boolean; reason: string | null }",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:Disposition/status",
+   "role": "route",
+   "parent": "service:Disposition",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "input": "void",
+    "output": "ClassifyOutcome | null",
+    "wrap": "sharedHandler"
+   }
+  },
+  {
+   "id": "route:InboxPush/claim",
+   "role": "route",
+   "parent": "service:InboxPush",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "input": "string",
+    "output": "void",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:InboxPush/listen",
+   "role": "route",
+   "parent": "service:InboxPush",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "input": "PushListener",
+    "output": "void",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:InboxPush/notify",
+   "role": "route",
+   "parent": "service:InboxPush",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "input": "void",
+    "output": "void",
+    "wrap": "sharedHandler"
+   }
+  },
+  {
+   "id": "route:ListmonkIntake/post",
+   "role": "route",
+   "parent": "service:ListmonkIntake",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "input": "ListmonkMessage",
+    "output": "{ ok: true }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ListmonkMail/send",
+   "role": "route",
+   "parent": "service:ListmonkMail",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "input": "ListmonkMessage",
+    "output": "IssueSent",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:MailCallback/land",
+   "role": "route",
+   "parent": "service:MailCallback",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "input": "z.infer<typeof LANDING>",
+    "output": "{ ok: boolean; said: string; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Marketing/confirm",
+   "role": "route",
+   "parent": "service:Marketing",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "input": "Visit & { token: string }",
+    "output": "{ ok: boolean; prefs: { channel: \"email\" | \"sms\"; topic: string | null; named: string | null; from: string | null; address: string; everything: boolean; frequency: \"as_sent\" | \"weekly\" | \"monthly\"; pausedUntil: Date | null; topics: { name: string; publicName: string; line: string; cadence: string; on: boolean; }[]; }; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Marketing/prefs",
+   "role": "route",
+   "parent": "service:Marketing",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "input": "{ token: string }",
+    "output": "{ channel: \"email\" | \"sms\"; topic: string | null; named: string | null; from: string | null; address: string; everything: boolean; frequency: \"as_sent\" | \"weekly\" | \"monthly\"; pausedUntil: Date | null; topics: { name: string; publicName: string; line: string; cadence: string; on: boolean; }[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Marketing/set",
+   "role": "route",
+   "parent": "service:Marketing",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "input": "Visit & { token: string; change: Change }",
+    "output": "{ prefs: { channel: \"email\" | \"sms\"; topic: string | null; named: string | null; from: string | null; address: string; everything: boolean; frequency: \"as_sent\" | \"weekly\" | \"monthly\"; pausedUntil: Date | null; topics: { name: string; publicName: string; line: string; cadence: string; on: boolean; }[]; }; event: number | null; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Marketing/signUp",
+   "role": "route",
+   "parent": "service:Marketing",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "input": "SignUpRequest",
+    "output": "{ ok: true }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Newsletter/send",
+   "role": "route",
+   "parent": "service:Newsletter",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "input": "Issue",
+    "output": "IssueRun",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:QueueRefresh/all",
+   "role": "route",
+   "parent": "service:QueueRefresh",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "input": "void",
+    "output": "Record<string, RefreshStats>",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Resolution/build",
+   "role": "route",
+   "parent": "service:Resolution",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "input": "{ limitPeople?: number } & ClientInput",
+    "output": "import(\"../resolution/service.js\").BuildCandidatesStats",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:Resolution/queue",
+   "role": "route",
+   "parent": "service:Resolution",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "input": "QueueOptions & ClientInput",
+    "output": "import(\"../resolution/service.js\").QueueStats",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:Resolution/resolve",
+   "role": "route",
+   "parent": "service:Resolution",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "input": "ResolveInput",
+    "output": "ResolutionStats",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:Resolution/resolveNewDomains",
+   "role": "route",
+   "parent": "service:Resolution",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "input": "ResolveNewInput",
+    "output": "ResolutionStats",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:Resolution/verifyLeads",
+   "role": "route",
+   "parent": "service:Resolution",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "input": "VerifyLeadsInput",
+    "output": "VerificationStats",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "service:CallBookings",
+   "role": "service",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "file": "packages/channel-email/src/restate/call-bookings.ts",
+    "kind": "service"
+   }
+  },
+  {
+   "id": "service:CallBriefs",
+   "role": "service",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "file": "packages/channel-email/src/calls/restate.ts",
+    "kind": "service"
+   }
+  },
+  {
+   "id": "service:Disposition",
+   "role": "service",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "file": "packages/channel-email/src/restate/disposition.ts",
+    "kind": "object"
+   }
+  },
+  {
+   "id": "service:InboxPush",
+   "role": "service",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "file": "packages/channel-email/src/restate/inbox-scheduler.ts",
+    "kind": "object"
+   }
+  },
+  {
+   "id": "service:ListmonkIntake",
+   "role": "service",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "file": "packages/channel-email/src/restate/listmonk.ts",
+    "kind": "service"
+   }
+  },
+  {
+   "id": "service:ListmonkMail",
+   "role": "service",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "file": "packages/channel-email/src/restate/listmonk.ts",
+    "kind": "object"
+   }
+  },
+  {
+   "id": "service:MailCallback",
+   "role": "service",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "file": "packages/channel-email/src/access/console.ts",
+    "kind": "service"
+   }
+  },
+  {
+   "id": "service:Marketing",
+   "role": "service",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "file": "packages/channel-email/src/restate/marketing.ts",
+    "kind": "service"
+   }
+  },
+  {
+   "id": "service:Newsletter",
+   "role": "service",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "file": "packages/channel-email/src/restate/newsletter.ts",
+    "kind": "object"
+   }
+  },
+  {
+   "id": "service:QueueRefresh",
+   "role": "service",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "file": "packages/channel-email/src/restate/queue-refresh.ts",
+    "kind": "service"
+   }
+  },
+  {
+   "id": "service:Resolution",
+   "role": "service",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "file": "packages/channel-email/src/restate/resolution.ts",
+    "kind": "object"
+   }
+  }
+ ],
+ "edges": []
+}

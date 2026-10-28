@@ -1,0 +1,3631 @@
+{
+ "layer": "api",
+ "nodes": [
+  {
+   "id": "@wren/sites#ARM_LABELS",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites",
+     "@wren/sites/model"
+    ],
+    "file": "packages/sites/src/model.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"A\", \"B\", \"C\", \"D\", \"E\"]"
+   }
+  },
+  {
+   "id": "@wren/sites#AdIn",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/detail"
+    ],
+    "file": "packages/sites/src/detail.ts",
+    "kind": "interface",
+    "sig": "interface AdIn { id: string; name: string; status: string; adId: string; link: string; currency: string | null; spend: number; impressions: number; clicks: number; leads: number; views: number; forms: number; books: number; hops: number; costPerVisit: number | null; costPerForm: number | null; costPerBook: number | null; }"
+   }
+  },
+  {
+   "id": "@wren/sites#Answer",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/service"
+    ],
+    "file": "packages/sites/src/service.ts",
+    "kind": "interface",
+    "sig": "interface Answer { status: number; error?: string; errors?: Record<string, string>; }"
+   }
+  },
+  {
+   "id": "@wren/sites#ArmCount",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/split-call"
+    ],
+    "file": "packages/sites/src/split-call.ts",
+    "kind": "interface",
+    "sig": "interface ArmCount { readonly label: string; readonly visits: number; readonly goals: number; }"
+   }
+  },
+  {
+   "id": "@wren/sites#ArmLabel",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites",
+     "@wren/sites/model"
+    ],
+    "file": "packages/sites/src/model.ts",
+    "kind": "type",
+    "sig": "type ArmLabel = (typeof ARM_LABELS)[number];"
+   }
+  },
+  {
+   "id": "@wren/sites#AskRequest",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/console"
+    ],
+    "file": "packages/sites/src/console.ts",
+    "kind": "interface",
+    "sig": "interface AskRequest extends IdRequest { number?: number | null; }"
+   }
+  },
+  {
+   "id": "@wren/sites#CHANNELS",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites",
+     "@wren/sites/model"
+    ],
+    "file": "packages/sites/src/model.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"ads\", \"organic\", \"outreach\", \"referral\", \"direct\", \"other\"]"
+   }
+  },
+  {
+   "id": "@wren/sites#CHAT_MAX",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/chat-widget"
+    ],
+    "file": "packages/sites/src/chat-widget.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "2000"
+   }
+  },
+  {
+   "id": "@wren/sites#CHAT_PATH",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/chat-widget"
+    ],
+    "file": "packages/sites/src/chat-widget.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"/o/__chat\""
+   }
+  },
+  {
+   "id": "@wren/sites#CHAT_SCRIPT_PATH",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/chat-widget"
+    ],
+    "file": "packages/sites/src/chat-widget.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"/o/__chat.js\""
+   }
+  },
+  {
+   "id": "@wren/sites#CONSENT_KEY",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/forms"
+    ],
+    "file": "packages/sites/src/forms.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"sms_consent\""
+   }
+  },
+  {
+   "id": "@wren/sites#Channel",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites",
+     "@wren/sites/model"
+    ],
+    "file": "packages/sites/src/model.ts",
+    "kind": "type",
+    "sig": "type Channel = (typeof CHANNELS)[number];"
+   }
+  },
+  {
+   "id": "@wren/sites#Checked",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/forms"
+    ],
+    "file": "packages/sites/src/forms.ts",
+    "kind": "interface",
+    "sig": "interface Checked { values: Record<string, string>; errors: Record<string, string>; }"
+   }
+  },
+  {
+   "id": "@wren/sites#Content",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/templates"
+    ],
+    "file": "packages/sites/src/templates/types.ts",
+    "kind": "type",
+    "sig": "type Content = Record<string, FieldValue>;"
+   }
+  },
+  {
+   "id": "@wren/sites#ContentProblem",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/templates"
+    ],
+    "file": "packages/sites/src/templates/index.ts",
+    "kind": "class",
+    "sig": ""
+   }
+  },
+  {
+   "id": "@wren/sites#CopyField",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/templates"
+    ],
+    "file": "packages/sites/src/templates/types.ts",
+    "kind": "interface",
+    "sig": "interface CopyField { key: string; label: string; kind: FieldKind; max: number; hint?: string; optional?: true; group?: string; items?: readonly CopyField[]; }"
+   }
+  },
+  {
+   "id": "@wren/sites#CreateRequest",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/console"
+    ],
+    "file": "packages/sites/src/console.ts",
+    "kind": "interface",
+    "sig": "interface CreateRequest extends PortalRequest { offer: string; template?: string | null; title?: string | null; slug?: string | null; angle?: string | null; audience?: string | null; owner?: string | null; ai?: boolean | null; }"
+   }
+  },
+  {
+   "id": "@wren/sites#DayNumbers",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/store"
+    ],
+    "file": "packages/sites/src/store.ts",
+    "kind": "interface",
+    "sig": "interface DayNumbers { day: string; views: number; ctas: number; forms: number; books: number; }"
+   }
+  },
+  {
+   "id": "@wren/sites#ENTRY_RECORD",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/records"
+    ],
+    "file": "packages/sites/src/records.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"sites.entry\""
+   }
+  },
+  {
+   "id": "@wren/sites#EVENT_NAMES",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites",
+     "@wren/sites/model"
+    ],
+    "file": "packages/sites/src/model.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"view\", \"cta\", \"form\", \"book\", \"start\", \"step\"]"
+   }
+  },
+  {
+   "id": "@wren/sites#EventName",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites",
+     "@wren/sites/model"
+    ],
+    "file": "packages/sites/src/model.ts",
+    "kind": "type",
+    "sig": "type EventName = (typeof EVENT_NAMES)[number];"
+   }
+  },
+  {
+   "id": "@wren/sites#FIELD_KINDS",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/forms"
+    ],
+    "file": "packages/sites/src/forms.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"text\", \"long\", \"email\", \"phone\", \"select\", \"multi\", \"date\", \"consent\", \"hidden\", \"step\"]"
+   }
+  },
+  {
+   "id": "@wren/sites#FIELD_KIND_LABELS",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/forms"
+    ],
+    "file": "packages/sites/src/forms.ts",
+    "kind": "const",
+    "sig": "Record<FieldKind, string>"
+   }
+  },
+  {
+   "id": "@wren/sites#FIELD_RULES",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/forms"
+    ],
+    "file": "packages/sites/src/forms.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"digits\", \"letters\", \"zip\", \"url\"]"
+   }
+  },
+  {
+   "id": "@wren/sites#FIELD_RULE_LABELS",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/forms"
+    ],
+    "file": "packages/sites/src/forms.ts",
+    "kind": "const",
+    "sig": "Record<FieldRule, string>"
+   }
+  },
+  {
+   "id": "@wren/sites#FORM_ARMS",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites",
+     "@wren/sites/model"
+    ],
+    "file": "packages/sites/src/model.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"A\", \"B\"]"
+   }
+  },
+  {
+   "id": "@wren/sites#FORM_CSP",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/render"
+    ],
+    "file": "packages/sites/src/render.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "string"
+   }
+  },
+  {
+   "id": "@wren/sites#FORM_PATH",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/kit"
+    ],
+    "file": "packages/sites/src/kit.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"/o/__form\""
+   }
+  },
+  {
+   "id": "@wren/sites#FORM_RECORD",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/records"
+    ],
+    "file": "packages/sites/src/records.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"sites.form\""
+   }
+  },
+  {
+   "id": "@wren/sites#FORM_SPLIT_STATES",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites",
+     "@wren/sites/model"
+    ],
+    "file": "packages/sites/src/model.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"running\", \"shipped\", \"stopped\"]"
+   }
+  },
+  {
+   "id": "@wren/sites#FUNNEL_RECORD",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/records"
+    ],
+    "file": "packages/sites/src/records.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"sites.funnel\""
+   }
+  },
+  {
+   "id": "@wren/sites#FieldKind",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/forms"
+    ],
+    "file": "packages/sites/src/forms.ts",
+    "kind": "type",
+    "sig": "type FieldKind = (typeof FIELD_KINDS)[number];"
+   }
+  },
+  {
+   "id": "@wren/sites#FieldRule",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/forms"
+    ],
+    "file": "packages/sites/src/forms.ts",
+    "kind": "type",
+    "sig": "type FieldRule = (typeof FIELD_RULES)[number];"
+   }
+  },
+  {
+   "id": "@wren/sites#FormArm",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites",
+     "@wren/sites/model"
+    ],
+    "file": "packages/sites/src/model.ts",
+    "kind": "type",
+    "sig": "type FormArm = (typeof FORM_ARMS)[number];"
+   }
+  },
+  {
+   "id": "@wren/sites#FormConsent",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/schema"
+    ],
+    "file": "packages/sites/src/schema.ts",
+    "kind": "interface",
+    "sig": "interface FormConsent { text: string; version: string; }"
+   }
+  },
+  {
+   "id": "@wren/sites#FormDetail",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/form-store"
+    ],
+    "file": "packages/sites/src/form-store.ts",
+    "kind": "interface",
+    "sig": "interface FormDetail { id: string; name: string; slug: string; status: string; owner: string; spec: FormSpec; version: string; url: string; embed: ReturnType<typeof embedSnippets>; days: FormDayNumbers[]; sources: FormSourceNumbers[]; steps: FormStepNumbers[]; recent: { id: string; at: Date; fields: Record<string, string>; entered: boolean }[]; splits: FormSplitDetail[]; }"
+   }
+  },
+  {
+   "id": "@wren/sites#FormField",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/forms"
+    ],
+    "file": "packages/sites/src/forms.ts",
+    "kind": "interface",
+    "sig": "interface FormField { key: string; kind: FieldKind; label: string; hint?: string; required?: boolean; min?: number; max?: number; rule?: FieldRule; options?: string[]; show?: ShowRule; }"
+   }
+  },
+  {
+   "id": "@wren/sites#FormProblem",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/forms"
+    ],
+    "file": "packages/sites/src/forms.ts",
+    "kind": "class",
+    "sig": ""
+   }
+  },
+  {
+   "id": "@wren/sites#FormSpec",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/forms"
+    ],
+    "file": "packages/sites/src/forms.ts",
+    "kind": "interface",
+    "sig": "interface FormSpec { title: string; intro?: string; button: string; fields: FormField[]; after: FormAfter; booking?: { url: string; label?: string } | null; }"
+   }
+  },
+  {
+   "id": "@wren/sites#FormSplitState",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites",
+     "@wren/sites/model"
+    ],
+    "file": "packages/sites/src/model.ts",
+    "kind": "type",
+    "sig": "type FormSplitState = (typeof FORM_SPLIT_STATES)[number];"
+   }
+  },
+  {
+   "id": "@wren/sites#FormTouch",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/schema"
+    ],
+    "file": "packages/sites/src/schema.ts",
+    "kind": "interface",
+    "sig": "interface FormTouch { source?: string | null; medium?: string | null; campaign?: string | null; content?: string | null; ref?: string | null; }"
+   }
+  },
+  {
+   "id": "@wren/sites#Found",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/scan"
+    ],
+    "file": "packages/sites/src/scan.ts",
+    "kind": "interface",
+    "sig": "interface Found { url: string; from: string; title?: string; offer?: string; kind?: string; repoPath?: string; }"
+   }
+  },
+  {
+   "id": "@wren/sites#IdRequest",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/console"
+    ],
+    "file": "packages/sites/src/console.ts",
+    "kind": "interface",
+    "sig": "interface IdRequest extends PortalRequest { id: string; }"
+   }
+  },
+  {
+   "id": "@wren/sites#IdsRequest",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/console"
+    ],
+    "file": "packages/sites/src/console.ts",
+    "kind": "interface",
+    "sig": "interface IdsRequest extends PortalRequest { ids: string[]; }"
+   }
+  },
+  {
+   "id": "@wren/sites#ItemValue",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/templates"
+    ],
+    "file": "packages/sites/src/templates/types.ts",
+    "kind": "type",
+    "sig": "type ItemValue = Record<string, string>;"
+   }
+  },
+  {
+   "id": "@wren/sites#KIT_JS",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/kit"
+    ],
+    "file": "packages/sites/src/kit.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "string"
+   }
+  },
+  {
+   "id": "@wren/sites#KIT_PATH",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/kit"
+    ],
+    "file": "packages/sites/src/kit.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"/o/__kit.js\""
+   }
+  },
+  {
+   "id": "@wren/sites#LINK_RECORD",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/records"
+    ],
+    "file": "packages/sites/src/records.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"sites.link\""
+   }
+  },
+  {
+   "id": "@wren/sites#LinkTarget",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/links"
+    ],
+    "file": "packages/sites/src/links.ts",
+    "kind": "interface",
+    "sig": "interface LinkTarget { id: string; title: string; slug: string; status: string; }"
+   }
+  },
+  {
+   "id": "@wren/sites#MIN_VISITS",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/split-call"
+    ],
+    "file": "packages/sites/src/split-call.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "100"
+   }
+  },
+  {
+   "id": "@wren/sites#NewLink",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/links"
+    ],
+    "file": "packages/sites/src/links.ts",
+    "kind": "interface",
+    "sig": "interface NewLink { client: string | null; page: string; link: string; campaign?: string | null; content?: string | null; name?: string | null; by: string; }"
+   }
+  },
+  {
+   "id": "@wren/sites#OpenClient",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/store"
+    ],
+    "file": "packages/sites/src/store.ts",
+    "kind": "type",
+    "sig": "type OpenClient = (client: string) => Queryable;"
+   }
+  },
+  {
+   "id": "@wren/sites#PAGE_CSP",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/render"
+    ],
+    "file": "packages/sites/src/render.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "string"
+   }
+  },
+  {
+   "id": "@wren/sites#PAGE_CSS",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/render"
+    ],
+    "file": "packages/sites/src/render.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"\\n:root{--ink:#16181d;--muted:#5b6170;--paper:#fbfaf7;--line:#e4e1d8;--accent:#24594b;--accent-ink:#fff;--card:#fff}\\n@media (prefers-color-scheme:dark){:root{--ink:#eceae4;--muted:#a3a7b0;--paper:#121417;--line:#2a2e35;--accent:#7cc3a8;--accent-ink:#0d1512;--card:#191c20}}\\n*{box-sizing:border-box…"
+   }
+  },
+  {
+   "id": "@wren/sites#PAGE_KINDS",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites",
+     "@wren/sites/model"
+    ],
+    "file": "packages/sites/src/model.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"lander\", \"listicle\", \"pitch\", \"demo\", \"booking\", \"thank-you\", \"portal\"]"
+   }
+  },
+  {
+   "id": "@wren/sites#PAGE_RECORD",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/records"
+    ],
+    "file": "packages/sites/src/records.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"sites.page\""
+   }
+  },
+  {
+   "id": "@wren/sites#PAGE_SOURCES",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites",
+     "@wren/sites/model"
+    ],
+    "file": "packages/sites/src/model.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"data\", \"code\"]"
+   }
+  },
+  {
+   "id": "@wren/sites#PAGE_STAGES",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites",
+     "@wren/sites/model"
+    ],
+    "file": "packages/sites/src/model.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"reach\", \"trust\", \"convert\"]"
+   }
+  },
+  {
+   "id": "@wren/sites#PAGE_STATUSES",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites",
+     "@wren/sites/model"
+    ],
+    "file": "packages/sites/src/model.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"draft\", \"live\", \"retired\"]"
+   }
+  },
+  {
+   "id": "@wren/sites#PREVIEW_PATH",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/kit"
+    ],
+    "file": "packages/sites/src/kit.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"/o/__preview/\""
+   }
+  },
+  {
+   "id": "@wren/sites#PageDetail",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/detail"
+    ],
+    "file": "packages/sites/src/detail.ts",
+    "kind": "interface",
+    "sig": "interface PageDetail { source: \"data\" | \"code\"; template: { id: string; name: string; fields: readonly CopyField[] } | null; draft: { number: number; content: Content } | null; live: number | null; waiting: number | null; retiring: boolean; versions: { number: number; origin: string; why: string | null; by: string; at: string }[]; preview: string | null; repoPath: string | null; notes: string | null; kit: string | null; days: DayNumbers[]; sources: SourceNumbers[]; ads: AdIn[]; variants: Variant[]; split: SplitResult | null; splitWith: { id: string; title: string; slug: string; variant: boolean }[]; }"
+   }
+  },
+  {
+   "id": "@wren/sites#PageKind",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites",
+     "@wren/sites/model"
+    ],
+    "file": "packages/sites/src/model.ts",
+    "kind": "type",
+    "sig": "type PageKind = (typeof PAGE_KINDS)[number];"
+   }
+  },
+  {
+   "id": "@wren/sites#PageSource",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites",
+     "@wren/sites/model"
+    ],
+    "file": "packages/sites/src/model.ts",
+    "kind": "type",
+    "sig": "type PageSource = (typeof PAGE_SOURCES)[number];"
+   }
+  },
+  {
+   "id": "@wren/sites#PageStage",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites",
+     "@wren/sites/model"
+    ],
+    "file": "packages/sites/src/model.ts",
+    "kind": "type",
+    "sig": "type PageStage = (typeof PAGE_STAGES)[number];"
+   }
+  },
+  {
+   "id": "@wren/sites#PageStatus",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites",
+     "@wren/sites/model"
+    ],
+    "file": "packages/sites/src/model.ts",
+    "kind": "type",
+    "sig": "type PageStatus = (typeof PAGE_STATUSES)[number];"
+   }
+  },
+  {
+   "id": "@wren/sites#Part",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/templates"
+    ],
+    "file": "packages/sites/src/templates/index.ts",
+    "kind": "type",
+    "sig": "type Part = { key: string; label: string; fields: CopyField[]; section?: string };"
+   }
+  },
+  {
+   "id": "@wren/sites#RenderContext",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/templates"
+    ],
+    "file": "packages/sites/src/templates/types.ts",
+    "kind": "interface",
+    "sig": "interface RenderContext { page: string; base: string; track: boolean; banner?: string; form?: { id: string; spec: FormSpec } | null; split?: string | null; }"
+   }
+  },
+  {
+   "id": "@wren/sites#RepoFile",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/scan"
+    ],
+    "file": "packages/sites/src/scan.ts",
+    "kind": "interface",
+    "sig": "interface RepoFile { path: string; text: string; }"
+   }
+  },
+  {
+   "id": "@wren/sites#SECTIONS",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/templates"
+    ],
+    "file": "packages/sites/src/templates/sections.ts",
+    "kind": "const",
+    "sig": "readonly SectionType[]"
+   }
+  },
+  {
+   "id": "@wren/sites#SECTIONS_MAX",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/templates"
+    ],
+    "file": "packages/sites/src/templates/sections.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "20"
+   }
+  },
+  {
+   "id": "@wren/sites#SHOW_OPS",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/forms"
+    ],
+    "file": "packages/sites/src/forms.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"is\", \"not\", \"filled\", \"empty\"]"
+   }
+  },
+  {
+   "id": "@wren/sites#SHOW_OP_LABELS",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/forms"
+    ],
+    "file": "packages/sites/src/forms.ts",
+    "kind": "const",
+    "sig": "Record<ShowOp, string>"
+   }
+  },
+  {
+   "id": "@wren/sites#SITES",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites",
+     "@wren/sites/service"
+    ],
+    "file": "packages/sites/src/service.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly name: \"Sites\"; }"
+   }
+  },
+  {
+   "id": "@wren/sites#SITES_COMPONENTS",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/components"
+    ],
+    "file": "packages/sites/src/components.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"@wren/core/components\").Component[]"
+   }
+  },
+  {
+   "id": "@wren/sites#SITES_CONSOLE_APPS",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/console-routes"
+    ],
+    "file": "packages/sites/src/console-routes.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly \"*\": \"sites\"; }"
+   }
+  },
+  {
+   "id": "@wren/sites#SITES_CONSOLE_ROUTES",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/console-routes"
+    ],
+    "file": "packages/sites/src/console-routes.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly offers: \"read\"; readonly detail: \"read\"; readonly create: \"act\"; readonly save: \"act\"; readonly draft: \"act\"; readonly rewrite: \"act\"; readonly share: \"act\"; readonly ask: \"act\"; readonly approve: \"act\"; readonly decline: \"act\"; readonly retire: \"act\"; readonly retireAsk: \"act\"; readonly …"
+   }
+  },
+  {
+   "id": "@wren/sites#SITES_CONSOLE_WRITES",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/console-routes"
+    ],
+    "file": "packages/sites/src/console-routes.ts",
+    "kind": "const",
+    "sig": "readonly (keyof typeof SITES_CONSOLE_ROUTES)[]"
+   }
+  },
+  {
+   "id": "@wren/sites#SITES_RECORDS",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites",
+     "@wren/sites/records"
+    ],
+    "file": "packages/sites/src/records.ts",
+    "kind": "const",
+    "sig": "readonly RecordType[]"
+   }
+  },
+  {
+   "id": "@wren/sites#SLUG",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites",
+     "@wren/sites/model"
+    ],
+    "file": "packages/sites/src/model.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "RegExp"
+   }
+  },
+  {
+   "id": "@wren/sites#SLUG_MAX",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites",
+     "@wren/sites/model"
+    ],
+    "file": "packages/sites/src/model.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "80"
+   }
+  },
+  {
+   "id": "@wren/sites#SPLIT_COOKIE",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/split"
+    ],
+    "file": "packages/sites/src/split.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "RegExp"
+   }
+  },
+  {
+   "id": "@wren/sites#SPLIT_COOKIE_DAYS",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/split"
+    ],
+    "file": "packages/sites/src/split.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "30"
+   }
+  },
+  {
+   "id": "@wren/sites#SPLIT_GOALS",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites",
+     "@wren/sites/model"
+    ],
+    "file": "packages/sites/src/model.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"forms\", \"books\", \"won\"]"
+   }
+  },
+  {
+   "id": "@wren/sites#SPLIT_STATES",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites",
+     "@wren/sites/model"
+    ],
+    "file": "packages/sites/src/model.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"running\", \"shipping\", \"shipped\", \"stopped\"]"
+   }
+  },
+  {
+   "id": "@wren/sites#STEPS_MAX",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/forms"
+    ],
+    "file": "packages/sites/src/forms.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "9"
+   }
+  },
+  {
+   "id": "@wren/sites#SURE",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/split-call"
+    ],
+    "file": "packages/sites/src/split-call.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "0.95"
+   }
+  },
+  {
+   "id": "@wren/sites#SaveRequest",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/console"
+    ],
+    "file": "packages/sites/src/console.ts",
+    "kind": "interface",
+    "sig": "interface SaveRequest extends IdRequest { content: unknown; why?: string | null; expect?: number | null; }"
+   }
+  },
+  {
+   "id": "@wren/sites#SectionType",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/templates"
+    ],
+    "file": "packages/sites/src/templates/sections.ts",
+    "kind": "interface",
+    "sig": "interface SectionType { type: string; name: string; blurb: string; fields: readonly CopyField[]; sample: Content; render(c: Content, ctx: RenderContext): string; }"
+   }
+  },
+  {
+   "id": "@wren/sites#SectionValue",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/templates"
+    ],
+    "file": "packages/sites/src/templates/types.ts",
+    "kind": "type",
+    "sig": "type SectionValue = { id: string; type: string } & Record< string, string | string[] | ItemValue[] >;"
+   }
+  },
+  {
+   "id": "@wren/sites#Served",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/service"
+    ],
+    "file": "packages/sites/src/service.ts",
+    "kind": "interface",
+    "sig": "interface Served { status: 200 | 404 | 410; html: string; split?: { id: string; label: string; cookie: string; days: number } | null; }"
+   }
+  },
+  {
+   "id": "@wren/sites#ShowOp",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/forms"
+    ],
+    "file": "packages/sites/src/forms.ts",
+    "kind": "type",
+    "sig": "type ShowOp = (typeof SHOW_OPS)[number];"
+   }
+  },
+  {
+   "id": "@wren/sites#ShowRule",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/forms"
+    ],
+    "file": "packages/sites/src/forms.ts",
+    "kind": "interface",
+    "sig": "interface ShowRule { key: string; op: ShowOp; values?: string[]; }"
+   }
+  },
+  {
+   "id": "@wren/sites#SiteEvent",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/schema"
+    ],
+    "file": "packages/sites/src/schema.ts",
+    "kind": "type",
+    "sig": "type SiteEvent = typeof siteEvents.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/sites#SiteForm",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/schema"
+    ],
+    "file": "packages/sites/src/schema.ts",
+    "kind": "type",
+    "sig": "type SiteForm = typeof siteForms.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/sites#SiteFormDef",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/schema"
+    ],
+    "file": "packages/sites/src/schema.ts",
+    "kind": "type",
+    "sig": "type SiteFormDef = typeof siteFormDefs.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/sites#SiteFormSplit",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/schema"
+    ],
+    "file": "packages/sites/src/schema.ts",
+    "kind": "type",
+    "sig": "type SiteFormSplit = typeof siteFormSplits.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/sites#SiteHop",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/schema"
+    ],
+    "file": "packages/sites/src/schema.ts",
+    "kind": "type",
+    "sig": "type SiteHop = typeof siteHops.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/sites#SiteLink",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/schema"
+    ],
+    "file": "packages/sites/src/schema.ts",
+    "kind": "type",
+    "sig": "type SiteLink = typeof siteLinks.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/sites#SitePage",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/schema"
+    ],
+    "file": "packages/sites/src/schema.ts",
+    "kind": "type",
+    "sig": "type SitePage = typeof sitePages.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/sites#SitePageVersion",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/schema"
+    ],
+    "file": "packages/sites/src/schema.ts",
+    "kind": "type",
+    "sig": "type SitePageVersion = typeof sitePageVersions.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/sites#SiteSplit",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/schema"
+    ],
+    "file": "packages/sites/src/schema.ts",
+    "kind": "type",
+    "sig": "type SiteSplit = typeof siteSplits.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/sites#SiteSplitArm",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/schema"
+    ],
+    "file": "packages/sites/src/schema.ts",
+    "kind": "type",
+    "sig": "type SiteSplitArm = typeof siteSplitArms.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/sites#SitesRefusal",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/store"
+    ],
+    "file": "packages/sites/src/store.ts",
+    "kind": "class",
+    "sig": ""
+   }
+  },
+  {
+   "id": "@wren/sites#SourceNumbers",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/store"
+    ],
+    "file": "packages/sites/src/store.ts",
+    "kind": "interface",
+    "sig": "interface SourceNumbers { channel: Channel; source: string; campaign: string; views: number; forms: number; books: number; }"
+   }
+  },
+  {
+   "id": "@wren/sites#SplitCall",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/split-call"
+    ],
+    "file": "packages/sites/src/split-call.ts",
+    "kind": "interface",
+    "sig": "interface SplitCall { readonly words: string; readonly kind: \"too_early\" | \"no_goals\" | \"leading\" | \"settled\"; readonly leader: string | null; readonly sure: readonly number[]; readonly more: number; }"
+   }
+  },
+  {
+   "id": "@wren/sites#SplitGoal",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites",
+     "@wren/sites/model"
+    ],
+    "file": "packages/sites/src/model.ts",
+    "kind": "type",
+    "sig": "type SplitGoal = (typeof SPLIT_GOALS)[number];"
+   }
+  },
+  {
+   "id": "@wren/sites#SplitResult",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/split"
+    ],
+    "file": "packages/sites/src/split.ts",
+    "kind": "interface",
+    "sig": "interface SplitResult { split: SplitWithArms; arms: ArmNumbers[]; call: SplitCall; }"
+   }
+  },
+  {
+   "id": "@wren/sites#SplitState",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites",
+     "@wren/sites/model"
+    ],
+    "file": "packages/sites/src/model.ts",
+    "kind": "type",
+    "sig": "type SplitState = (typeof SPLIT_STATES)[number];"
+   }
+  },
+  {
+   "id": "@wren/sites#SplitWithArms",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/split"
+    ],
+    "file": "packages/sites/src/split.ts",
+    "kind": "interface",
+    "sig": "interface SplitWithArms extends SiteSplit { arms: SplitArm[]; }"
+   }
+  },
+  {
+   "id": "@wren/sites#TEMPLATES",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/templates"
+    ],
+    "file": "packages/sites/src/templates/index.ts",
+    "kind": "const",
+    "sig": "Readonly<Record<string, Template>>"
+   }
+  },
+  {
+   "id": "@wren/sites#TEMPLATE_IDS",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/templates"
+    ],
+    "file": "packages/sites/src/templates/index.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly string[]"
+   }
+  },
+  {
+   "id": "@wren/sites#TRACK_PATH",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/kit"
+    ],
+    "file": "packages/sites/src/kit.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"/o/__t\""
+   }
+  },
+  {
+   "id": "@wren/sites#Template",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/templates"
+    ],
+    "file": "packages/sites/src/templates/types.ts",
+    "kind": "interface",
+    "sig": "interface Template { id: string; name: string; blurb: string; fields: readonly CopyField[]; fill(offer: Offer, o: { angle?: string | null; audience?: string | null }): Content; body(c: Content, ctx: RenderContext): string; head(c: Content): { title: string; description: string }; }"
+   }
+  },
+  {
+   "id": "@wren/sites#Unlisted",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/scan"
+    ],
+    "file": "packages/sites/src/scan.ts",
+    "kind": "interface",
+    "sig": "interface Unlisted extends Found { add: string; }"
+   }
+  },
+  {
+   "id": "@wren/sites#VERSION_ORIGINS",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites",
+     "@wren/sites/model"
+    ],
+    "file": "packages/sites/src/model.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"offer\", \"edit\", \"ai\", \"copy\", \"restore\"]"
+   }
+  },
+  {
+   "id": "@wren/sites#Variant",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/detail"
+    ],
+    "file": "packages/sites/src/detail.ts",
+    "kind": "interface",
+    "sig": "interface Variant { id: string; title: string; angle: string | null; audience: string | null; status: string; views: number; forms: number; books: number; formRate: number | null; spend: number; }"
+   }
+  },
+  {
+   "id": "@wren/sites#VersionOrigin",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites",
+     "@wren/sites/model"
+    ],
+    "file": "packages/sites/src/model.ts",
+    "kind": "type",
+    "sig": "type VersionOrigin = (typeof VERSION_ORIGINS)[number];"
+   }
+  },
+  {
+   "id": "@wren/sites#WREN_SITE",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites",
+     "@wren/sites/model"
+    ],
+    "file": "packages/sites/src/model.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"wrenautomation.com\""
+   }
+  },
+  {
+   "id": "@wren/sites#Write",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/draft"
+    ],
+    "file": "packages/sites/src/draft.ts",
+    "kind": "type",
+    "sig": "type Write = (prompt: string) => Promise<string>;"
+   }
+  },
+  {
+   "id": "@wren/sites#addLine",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/scan"
+    ],
+    "file": "packages/sites/src/scan.ts",
+    "kind": "function",
+    "sig": "(f: Found, client?: string): string"
+   }
+  },
+  {
+   "id": "@wren/sites#approvePage",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/store"
+    ],
+    "file": "packages/sites/src/store.ts",
+    "kind": "function",
+    "sig": "(db: Db, id: string, number: number, by: string): Promise<SitePage>"
+   }
+  },
+  {
+   "id": "@wren/sites#approveRetire",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/store"
+    ],
+    "file": "packages/sites/src/store.ts",
+    "kind": "function",
+    "sig": "(db: Db, id: string, by: string): Promise<SitePage>"
+   }
+  },
+  {
+   "id": "@wren/sites#armToServe",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/split"
+    ],
+    "file": "packages/sites/src/split.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, page: SitePage, cookie: string | null, roll: number): Promise<{ split: string; label: string; page: SitePage; content: Content } | null>"
+   }
+  },
+  {
+   "id": "@wren/sites#askPublish",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/store"
+    ],
+    "file": "packages/sites/src/store.ts",
+    "kind": "function",
+    "sig": "(db: Db, id: string, a: { by: string; number?: number | null }): Promise<SitePage>"
+   }
+  },
+  {
+   "id": "@wren/sites#askRetire",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/store"
+    ],
+    "file": "packages/sites/src/store.ts",
+    "kind": "function",
+    "sig": "(db: Db, id: string, by: string): Promise<SitePage>"
+   }
+  },
+  {
+   "id": "@wren/sites#channelOf",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites",
+     "@wren/sites/model"
+    ],
+    "file": "packages/sites/src/model.ts",
+    "kind": "function",
+    "sig": "(t: { source?: string | null; medium?: string | null; ref?: string | null; }): Channel"
+   }
+  },
+  {
+   "id": "@wren/sites#chatJs",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/chat-widget"
+    ],
+    "file": "packages/sites/src/chat-widget.ts",
+    "kind": "function",
+    "sig": "(): string"
+   }
+  },
+  {
+   "id": "@wren/sites#checkContent",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/templates"
+    ],
+    "file": "packages/sites/src/templates/index.ts",
+    "kind": "function",
+    "sig": "(t: Pick<Template, \"fields\">, raw: unknown): Content"
+   }
+  },
+  {
+   "id": "@wren/sites#checkEntry",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/forms"
+    ],
+    "file": "packages/sites/src/forms.ts",
+    "kind": "function",
+    "sig": "(spec: FormSpec, raw: Record<string, unknown>): Checked"
+   }
+  },
+  {
+   "id": "@wren/sites#cleanUrl",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/store"
+    ],
+    "file": "packages/sites/src/store.ts",
+    "kind": "function",
+    "sig": "(raw: string): string"
+   }
+  },
+  {
+   "id": "@wren/sites#consentOf",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/forms"
+    ],
+    "file": "packages/sites/src/forms.ts",
+    "kind": "function",
+    "sig": "(spec: FormSpec): string | null"
+   }
+  },
+  {
+   "id": "@wren/sites#consentVersion",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/form-store"
+    ],
+    "file": "packages/sites/src/form-store.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(text: string): string"
+   }
+  },
+  {
+   "id": "@wren/sites#consentWords",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/forms"
+    ],
+    "file": "packages/sites/src/forms.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(business: string): string"
+   }
+  },
+  {
+   "id": "@wren/sites#createDataPage",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/store"
+    ],
+    "file": "packages/sites/src/store.ts",
+    "kind": "function",
+    "sig": "(db: Db, p: NewDataPage): Promise<SitePage>"
+   }
+  },
+  {
+   "id": "@wren/sites#createForm",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/form-store"
+    ],
+    "file": "packages/sites/src/form-store.ts",
+    "kind": "function",
+    "sig": "(db: Db, f: { client: string | null; name: string; slug?: string | null; spec?: unknown; business: string; by: string; }): Promise<SiteFormDef>"
+   }
+  },
+  {
+   "id": "@wren/sites#createLink",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/links"
+    ],
+    "file": "packages/sites/src/links.ts",
+    "kind": "function",
+    "sig": "(db: Db, l: NewLink): Promise<MadeLink>"
+   }
+  },
+  {
+   "id": "@wren/sites#declinePage",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/store"
+    ],
+    "file": "packages/sites/src/store.ts",
+    "kind": "function",
+    "sig": "(db: Db, id: string, number: number, by: string): Promise<boolean>"
+   }
+  },
+  {
+   "id": "@wren/sites#declineRetire",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/store"
+    ],
+    "file": "packages/sites/src/store.ts",
+    "kind": "function",
+    "sig": "(db: Db, id: string, by: string): Promise<boolean>"
+   }
+  },
+  {
+   "id": "@wren/sites#defaultSpec",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/forms"
+    ],
+    "file": "packages/sites/src/forms.ts",
+    "kind": "function",
+    "sig": "(business: string): FormSpec"
+   }
+  },
+  {
+   "id": "@wren/sites#doorFor",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/store"
+    ],
+    "file": "packages/sites/src/store.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, page: { hook: string | null; client: string | null }): Promise<string | null>"
+   }
+  },
+  {
+   "id": "@wren/sites#doorOf",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/store"
+    ],
+    "file": "packages/sites/src/store.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, page: Pick<SitePage, \"hook\" | \"client\">): Promise<string | null>"
+   }
+  },
+  {
+   "id": "@wren/sites#draftCopy",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/draft"
+    ],
+    "file": "packages/sites/src/draft.ts",
+    "kind": "function",
+    "sig": "(write: Write, t: Template, o: Offer, a: { angle?: string | null; audience?: string | null; facts: readonly string[]; start: Content }): Promise<Guarded<Content>>"
+   }
+  },
+  {
+   "id": "@wren/sites#draftPrompt",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/draft"
+    ],
+    "file": "packages/sites/src/draft.ts",
+    "kind": "function",
+    "sig": "(t: Template, o: Offer, a: { angle?: string | null; audience?: string | null; facts: readonly string[]; start: Content }, fix: string | null): string"
+   }
+  },
+  {
+   "id": "@wren/sites#draftToPreview",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/store"
+    ],
+    "file": "packages/sites/src/store.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, id: string, token: string): Promise<{ page: SitePage; content: Content; number: number } | null>"
+   }
+  },
+  {
+   "id": "@wren/sites#duplicatePage",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/store"
+    ],
+    "file": "packages/sites/src/store.ts",
+    "kind": "function",
+    "sig": "(db: Db, id: string, d: { by: string; title?: string | null; angle?: string | null; audience?: string | null }): Promise<SitePage>"
+   }
+  },
+  {
+   "id": "@wren/sites#embedSnippets",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/kit"
+    ],
+    "file": "packages/sites/src/kit.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(o: { origin: string; slug: string; title: string }): { iframe: string; script: string; url: string; }"
+   }
+  },
+  {
+   "id": "@wren/sites#entryRecord",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/records"
+    ],
+    "file": "packages/sites/src/records.ts",
+    "kind": "const",
+    "sig": "RecordType"
+   }
+  },
+  {
+   "id": "@wren/sites#entryRecordFor",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/records"
+    ],
+    "file": "packages/sites/src/records.ts",
+    "kind": "function",
+    "sig": "(client: string): RecordType"
+   }
+  },
+  {
+   "id": "@wren/sites#esc",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/templates"
+    ],
+    "file": "packages/sites/src/templates/parts.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(s: string): string"
+   }
+  },
+  {
+   "id": "@wren/sites#formById",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/form-store"
+    ],
+    "file": "packages/sites/src/form-store.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, id: string): Promise<SiteFormDef | null>"
+   }
+  },
+  {
+   "id": "@wren/sites#formDetail",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/form-store"
+    ],
+    "file": "packages/sites/src/form-store.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, id: string): Promise<FormDetail | null>"
+   }
+  },
+  {
+   "id": "@wren/sites#formFieldsOf",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/store"
+    ],
+    "file": "packages/sites/src/store.ts",
+    "kind": "function",
+    "sig": "(raw: unknown): Record<string, string>"
+   }
+  },
+  {
+   "id": "@wren/sites#formHtml",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/forms"
+    ],
+    "file": "packages/sites/src/forms.ts",
+    "kind": "function",
+    "sig": "(spec: FormSpec, ctx: FormContext): string"
+   }
+  },
+  {
+   "id": "@wren/sites#formIntro",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/forms"
+    ],
+    "file": "packages/sites/src/forms.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(spec: FormSpec, h: \"h1\" | \"h2\"): string"
+   }
+  },
+  {
+   "id": "@wren/sites#formKeyOf",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/templates"
+    ],
+    "file": "packages/sites/src/templates/index.ts",
+    "kind": "function",
+    "sig": "(c: Content): string"
+   }
+  },
+  {
+   "id": "@wren/sites#formOf",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/form-store"
+    ],
+    "file": "packages/sites/src/form-store.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, client: string | null, key: string): Promise<SiteFormDef | null>"
+   }
+  },
+  {
+   "id": "@wren/sites#formRecord",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/records"
+    ],
+    "file": "packages/sites/src/records.ts",
+    "kind": "const",
+    "sig": "RecordType"
+   }
+  },
+  {
+   "id": "@wren/sites#formRecordFor",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/records"
+    ],
+    "file": "packages/sites/src/records.ts",
+    "kind": "function",
+    "sig": "(client: string): RecordType"
+   }
+  },
+  {
+   "id": "@wren/sites#formToServe",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/form-store"
+    ],
+    "file": "packages/sites/src/form-store.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, client: string | null, key: string): Promise<{ form: SiteFormDef } | { status: 404 | 410 }>"
+   }
+  },
+  {
+   "id": "@wren/sites#formUrl",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites",
+     "@wren/sites/model"
+    ],
+    "file": "packages/sites/src/model.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(host: string, slug: string): string"
+   }
+  },
+  {
+   "id": "@wren/sites#formsOf",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/form-store"
+    ],
+    "file": "packages/sites/src/form-store.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, client: string | null): Omit<import(\"drizzle-orm/pg-core\").PgSelectBase<\"site_form_defs\", { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"site_form_defs\"; dataType: \"string\"; columnType: \"PgUUID\"; data: string; driverParam: string; notNull: true; hasDefault: true; isPrimaryKey: false; isAutoincrement…"
+   }
+  },
+  {
+   "id": "@wren/sites#funnelRecord",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/records"
+    ],
+    "file": "packages/sites/src/records.ts",
+    "kind": "const",
+    "sig": "RecordType"
+   }
+  },
+  {
+   "id": "@wren/sites#goLinkOf",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/hops"
+    ],
+    "file": "packages/sites/src/hops.ts",
+    "kind": "function",
+    "sig": "(l: { host: string; link: string; campaign: string; content?: string | null; slug: string; }): string"
+   }
+  },
+  {
+   "id": "@wren/sites#goneHtml",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/render"
+    ],
+    "file": "packages/sites/src/render.ts",
+    "kind": "function",
+    "sig": "(status: 404 | 410): string"
+   }
+  },
+  {
+   "id": "@wren/sites#hopOf",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/hops"
+    ],
+    "file": "packages/sites/src/hops.ts",
+    "kind": "function",
+    "sig": "(path: string, search: URLSearchParams): Hop | null"
+   }
+  },
+  {
+   "id": "@wren/sites#importLanderClicks",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/store"
+    ],
+    "file": "packages/sites/src/store.ts",
+    "kind": "function",
+    "sig": "(db: Db, rows: readonly LanderClick[]): Promise<number>"
+   }
+  },
+  {
+   "id": "@wren/sites#isBot",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/hops"
+    ],
+    "file": "packages/sites/src/hops.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(ua: string | null | undefined): boolean"
+   }
+  },
+  {
+   "id": "@wren/sites#jsonIn",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/draft"
+    ],
+    "file": "packages/sites/src/draft.ts",
+    "kind": "function",
+    "sig": "(text: string): unknown"
+   }
+  },
+  {
+   "id": "@wren/sites#keepForm",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/store"
+    ],
+    "file": "packages/sites/src/store.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Db, f: { page: SitePage | null; form?: string | null; view: string | null; fields: Record<string, string>; touch: unknown; split?: string | null; formSplit?: string | null; arm?: FormArm | null; } & EntryMeta, open?: OpenClient): Promise<{ page: string | null; why: string | null; split: string | null; at: Date; id: string; channel: string; pages: SeenPage[] | null; fields: Record<string, string>; arm: string | null; form: string | null; consent: FormConsent | null; entered: boolean; formSplit: string | null; touch: FormTouch…"
+   }
+  },
+  {
+   "id": "@wren/sites#keyOf",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/forms"
+    ],
+    "file": "packages/sites/src/forms.ts",
+    "kind": "function",
+    "sig": "(label: string): string"
+   }
+  },
+  {
+   "id": "@wren/sites#kitJs",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/kit"
+    ],
+    "file": "packages/sites/src/kit.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(turnstileSiteKey: string | null | undefined): string"
+   }
+  },
+  {
+   "id": "@wren/sites#kitTag",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/kit"
+    ],
+    "file": "packages/sites/src/kit.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(page: string, origin: string): string"
+   }
+  },
+  {
+   "id": "@wren/sites#landerPages",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/scan"
+    ],
+    "file": "packages/sites/src/scan.ts",
+    "kind": "function",
+    "sig": "(files: RepoFile[], origin: string, repo = \"lander\"): Found[]"
+   }
+  },
+  {
+   "id": "@wren/sites#linkHost",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/links"
+    ],
+    "file": "packages/sites/src/links.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, client: string | null): Promise<string | null>"
+   }
+  },
+  {
+   "id": "@wren/sites#linkRecordFor",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/records"
+    ],
+    "file": "packages/sites/src/records.ts",
+    "kind": "function",
+    "sig": "(client: string): RecordType"
+   }
+  },
+  {
+   "id": "@wren/sites#linkTargets",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/links"
+    ],
+    "file": "packages/sites/src/links.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, client: string | null): Promise<LinkTarget[]>"
+   }
+  },
+  {
+   "id": "@wren/sites#linkUtm",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/hops"
+    ],
+    "file": "packages/sites/src/hops.ts",
+    "kind": "function",
+    "sig": "(link: string, wren = false): { source: string; medium: string }"
+   }
+  },
+  {
+   "id": "@wren/sites#linkWord",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/hops"
+    ],
+    "file": "packages/sites/src/hops.ts",
+    "kind": "function",
+    "sig": "(raw: string | null | undefined): string"
+   }
+  },
+  {
+   "id": "@wren/sites#liveSplitOf",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/split"
+    ],
+    "file": "packages/sites/src/split.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, page: string): Promise<SplitWithArms | null>"
+   }
+  },
+  {
+   "id": "@wren/sites#makeSites",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites",
+     "@wren/sites/service"
+    ],
+    "file": "packages/sites/src/service.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(deps: { main: Db; shareKey?: string | null; open?: OpenClient }): restate.ServiceDefinition<\"Sites\", { serve: (_: restate.Context, req: Parameters<(req: { client?: string | null; slug?: string; preview?: { id: string; token: string; } | null; arm?: string | null; bot?: boolean | null; roll?: number | null; }) => Promise<Served>>[0]) => Promise<Served>; serveForm: …"
+   }
+  },
+  {
+   "id": "@wren/sites#makeSitesConsole",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites",
+     "@wren/sites/console"
+    ],
+    "file": "packages/sites/src/console.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(deps: { db: Db; write?: Write | null; shareKey?: string | null }): restate.ServiceDefinition<\"SitesConsole\", { offers: (_: restate.Context, req: PortalRequest) => Promise<{ offers: { id: string; name: string; status: \"retired\" | \"paused\" | \"draft\" | \"live\"; audience: string; }[]; templates: { id: string; name: string; blurb: string; }[]; ai: boolean; }>; detail: (_…"
+   }
+  },
+  {
+   "id": "@wren/sites#markForm",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/store"
+    ],
+    "file": "packages/sites/src/store.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Db, id: string, entered: boolean, why: string | null): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/sites#pageApprovalId",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites",
+     "@wren/sites/console"
+    ],
+    "file": "packages/sites/src/console.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(id: string, number: number): string"
+   }
+  },
+  {
+   "id": "@wren/sites#pageById",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/store"
+    ],
+    "file": "packages/sites/src/store.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, id: string): Promise<SitePage | null>"
+   }
+  },
+  {
+   "id": "@wren/sites#pageDetail",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/detail"
+    ],
+    "file": "packages/sites/src/detail.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, id: string): Promise<PageDetail | null>"
+   }
+  },
+  {
+   "id": "@wren/sites#pageNumbers",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/store"
+    ],
+    "file": "packages/sites/src/store.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, id: string): Promise<{ days: DayNumbers[]; sources: SourceNumbers[]; }>"
+   }
+  },
+  {
+   "id": "@wren/sites#pageRecord",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/records"
+    ],
+    "file": "packages/sites/src/records.ts",
+    "kind": "const",
+    "sig": "RecordType"
+   }
+  },
+  {
+   "id": "@wren/sites#pageRecordFor",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/records"
+    ],
+    "file": "packages/sites/src/records.ts",
+    "kind": "function",
+    "sig": "(client: string): RecordType"
+   }
+  },
+  {
+   "id": "@wren/sites#pageToServe",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/store"
+    ],
+    "file": "packages/sites/src/store.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, client: string | null, slug: string): Promise<{ page: SitePage; content: Content } | { status: 404 | 410 }>"
+   }
+  },
+  {
+   "id": "@wren/sites#pageUrl",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites",
+     "@wren/sites/model"
+    ],
+    "file": "packages/sites/src/model.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(host: string, slug: string): string"
+   }
+  },
+  {
+   "id": "@wren/sites#pagesOf",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/store"
+    ],
+    "file": "packages/sites/src/store.ts",
+    "kind": "function",
+    "sig": "(raw: unknown): SeenPage[] | null"
+   }
+  },
+  {
+   "id": "@wren/sites#parsePageApprovalId",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites",
+     "@wren/sites/console"
+    ],
+    "file": "packages/sites/src/console.ts",
+    "kind": "function",
+    "sig": "(id: string): { id: string; number: number } | null"
+   }
+  },
+  {
+   "id": "@wren/sites#parseSpec",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/forms"
+    ],
+    "file": "packages/sites/src/forms.ts",
+    "kind": "function",
+    "sig": "(raw: unknown): FormSpec"
+   }
+  },
+  {
+   "id": "@wren/sites#partsOf",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/templates"
+    ],
+    "file": "packages/sites/src/templates/index.ts",
+    "kind": "function",
+    "sig": "(t: Template, c: Content): Part[]"
+   }
+  },
+  {
+   "id": "@wren/sites#posteriorsOf",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/split-call"
+    ],
+    "file": "packages/sites/src/split-call.ts",
+    "kind": "function",
+    "sig": "(arms: readonly ArmCount[]): Beta[]"
+   }
+  },
+  {
+   "id": "@wren/sites#priceLine",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/templates"
+    ],
+    "file": "packages/sites/src/templates/lander.ts",
+    "kind": "function",
+    "sig": "(p: Price): string"
+   }
+  },
+  {
+   "id": "@wren/sites#qrMatrix",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/qr"
+    ],
+    "file": "packages/sites/src/qr.ts",
+    "kind": "function",
+    "sig": "(text: string): boolean[][] | null"
+   }
+  },
+  {
+   "id": "@wren/sites#qrPath",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/qr"
+    ],
+    "file": "packages/sites/src/qr.ts",
+    "kind": "function",
+    "sig": "(m: readonly (readonly boolean[])[]): string"
+   }
+  },
+  {
+   "id": "@wren/sites#recordEvent",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/store"
+    ],
+    "file": "packages/sites/src/store.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, e: { page?: string | null; form?: string | null; view: string; name: EventName; touch: unknown; width?: number | null; split?: string | null; step?: number | null; formSplit?: string | null; arm?: string | null; }): Promise<boolean>"
+   }
+  },
+  {
+   "id": "@wren/sites#recordHop",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/store"
+    ],
+    "file": "packages/sites/src/store.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, h: { client: string | null; link: string; source?: string | null; medium?: string | null; campaign?: string | null; content?: string | null; to: string; slug?: string | null; ref?: string | null; }): Promise<boolean>"
+   }
+  },
+  {
+   "id": "@wren/sites#registerCodePage",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/store"
+    ],
+    "file": "packages/sites/src/store.ts",
+    "kind": "function",
+    "sig": "(db: Db, p: CodePage): Promise<{ page: SitePage; added: boolean }>"
+   }
+  },
+  {
+   "id": "@wren/sites#renderFormPage",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/render"
+    ],
+    "file": "packages/sites/src/render.ts",
+    "kind": "function",
+    "sig": "(spec: FormSpec, ctx: { form: string; base: string; embed?: boolean; track?: boolean; banner?: string; split?: { id: string; arm: string } | null; }): string"
+   }
+  },
+  {
+   "id": "@wren/sites#renderPage",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/render"
+    ],
+    "file": "packages/sites/src/render.ts",
+    "kind": "function",
+    "sig": "(t: Template, c: Content, ctx: RenderContext): string"
+   }
+  },
+  {
+   "id": "@wren/sites#retireApprovalId",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/console"
+    ],
+    "file": "packages/sites/src/console.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(id: string): string"
+   }
+  },
+  {
+   "id": "@wren/sites#retirePages",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/store"
+    ],
+    "file": "packages/sites/src/store.ts",
+    "kind": "function",
+    "sig": "(db: Db, ids: readonly string[], by: string): Promise<string[]>"
+   }
+  },
+  {
+   "id": "@wren/sites#rewritePart",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/draft"
+    ],
+    "file": "packages/sites/src/draft.ts",
+    "kind": "function",
+    "sig": "(write: Write, t: Template, content: Content, a: { part: string; ask: string; facts: readonly string[]; offer: Offer | null }): Promise<Guarded<Content>>"
+   }
+  },
+  {
+   "id": "@wren/sites#safeHref",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/templates"
+    ],
+    "file": "packages/sites/src/templates/parts.ts",
+    "kind": "function",
+    "sig": "(raw: string): string | null"
+   }
+  },
+  {
+   "id": "@wren/sites#saveForm",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/form-store"
+    ],
+    "file": "packages/sites/src/form-store.ts",
+    "kind": "function",
+    "sig": "(db: Db, f: { id: string; spec: unknown; name?: string | null; by: string; expect?: unknown }): Promise<SiteFormDef>"
+   }
+  },
+  {
+   "id": "@wren/sites#saveVersion",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/store"
+    ],
+    "file": "packages/sites/src/store.ts",
+    "kind": "function",
+    "sig": "(db: Db, id: string, v: { content: unknown; origin: VersionOrigin; by: string; why?: string | null; expect?: number | null; }): Promise<SitePage>"
+   }
+  },
+  {
+   "id": "@wren/sites#sectionOf",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/templates"
+    ],
+    "file": "packages/sites/src/templates/sections.ts",
+    "kind": "function",
+    "sig": "(type: unknown): SectionType | undefined"
+   }
+  },
+  {
+   "id": "@wren/sites#sectionsOf",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/templates"
+    ],
+    "file": "packages/sites/src/templates/page.ts",
+    "kind": "function",
+    "sig": "(c: Content): SectionValue[]"
+   }
+  },
+  {
+   "id": "@wren/sites#setFormStatus",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/form-store"
+    ],
+    "file": "packages/sites/src/form-store.ts",
+    "kind": "function",
+    "sig": "(db: Db, ids: readonly string[], status: PageStatus, by: string): Promise<string[]>"
+   }
+  },
+  {
+   "id": "@wren/sites#setSplitWeights",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/split"
+    ],
+    "file": "packages/sites/src/split.ts",
+    "kind": "function",
+    "sig": "(db: Db, id: string, weights: readonly number[], expect?: unknown): Promise<SplitWithArms>"
+   }
+  },
+  {
+   "id": "@wren/sites#shipSplit",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/split"
+    ],
+    "file": "packages/sites/src/split.ts",
+    "kind": "function",
+    "sig": "(db: Db, id: string, label: string, by: string, sure?: number | null): Promise<{ split: SplitWithArms; page: SitePage; number: number }>"
+   }
+  },
+  {
+   "id": "@wren/sites#shows",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/forms"
+    ],
+    "file": "packages/sites/src/forms.ts",
+    "kind": "function",
+    "sig": "(rule: ShowRule | undefined, got: readonly string[]): boolean"
+   }
+  },
+  {
+   "id": "@wren/sites#siteEntryRecords",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/views"
+    ],
+    "file": "packages/sites/src/views.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgViewWithSelection<\"site_entry_records\", false, { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"site_entry_records\"; dataType: \"string\"; columnType: \"PgText\"; data: string; driverParam: string; notNull: false; hasDefault: false; isPrimaryKey: fal…"
+   }
+  },
+  {
+   "id": "@wren/sites#siteEvents",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/schema"
+    ],
+    "file": "packages/sites/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"site_events\"; schema: undefined; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"site_events\"; dataType: \"number\"; columnType: \"PgBigSerial53\"; data: number; driverParam: number; notNull: true; hasDefault: true…"
+   }
+  },
+  {
+   "id": "@wren/sites#siteFormDefs",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/schema"
+    ],
+    "file": "packages/sites/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"site_form_defs\"; schema: undefined; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"site_form_defs\"; dataType: \"string\"; columnType: \"PgUUID\"; data: string; driverParam: string; notNull: true; hasDefault: true;…"
+   }
+  },
+  {
+   "id": "@wren/sites#siteFormRecords",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/views"
+    ],
+    "file": "packages/sites/src/views.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgViewWithSelection<\"site_form_records\", false, { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"site_form_records\"; dataType: \"string\"; columnType: \"PgText\"; data: string; driverParam: string; notNull: false; hasDefault: false; isPrimaryKey: false…"
+   }
+  },
+  {
+   "id": "@wren/sites#siteFormSplits",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/schema"
+    ],
+    "file": "packages/sites/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"site_form_splits\"; schema: undefined; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"site_form_splits\"; dataType: \"string\"; columnType: \"PgUUID\"; data: string; driverParam: string; notNull: true; hasDefault: t…"
+   }
+  },
+  {
+   "id": "@wren/sites#siteForms",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/schema"
+    ],
+    "file": "packages/sites/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"site_forms\"; schema: undefined; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"site_forms\"; dataType: \"string\"; columnType: \"PgUUID\"; data: string; driverParam: string; notNull: true; hasDefault: true; isPrima…"
+   }
+  },
+  {
+   "id": "@wren/sites#siteFunnelRecords",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/views"
+    ],
+    "file": "packages/sites/src/views.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgViewWithSelection<\"site_funnel_records\", false, { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"site_funnel_records\"; dataType: \"string\"; columnType: \"PgText\"; data: string; driverParam: string; notNull: false; hasDefault: false; isPrimaryKey: f…"
+   }
+  },
+  {
+   "id": "@wren/sites#siteHops",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/schema"
+    ],
+    "file": "packages/sites/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"site_hops\"; schema: undefined; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"site_hops\"; dataType: \"number\"; columnType: \"PgBigSerial53\"; data: number; driverParam: number; notNull: true; hasDefault: true; is…"
+   }
+  },
+  {
+   "id": "@wren/sites#siteLinkRecords",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/views"
+    ],
+    "file": "packages/sites/src/views.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgViewWithSelection<\"site_link_records\", false, { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"site_link_records\"; dataType: \"string\"; columnType: \"PgText\"; data: string; driverParam: string; notNull: false; hasDefault: false; isPrimaryKey: false…"
+   }
+  },
+  {
+   "id": "@wren/sites#siteLinks",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/schema"
+    ],
+    "file": "packages/sites/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"site_links\"; schema: undefined; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"site_links\"; dataType: \"string\"; columnType: \"PgUUID\"; data: string; driverParam: string; notNull: true; hasDefault: true; isPrima…"
+   }
+  },
+  {
+   "id": "@wren/sites#sitePageRecords",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/views"
+    ],
+    "file": "packages/sites/src/views.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgViewWithSelection<\"site_page_records\", false, { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"site_page_records\"; dataType: \"string\"; columnType: \"PgText\"; data: string; driverParam: string; notNull: false; hasDefault: false; isPrimaryKey: false…"
+   }
+  },
+  {
+   "id": "@wren/sites#sitePageVersions",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/schema"
+    ],
+    "file": "packages/sites/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"site_page_versions\"; schema: undefined; columns: { page: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"page\"; tableName: \"site_page_versions\"; dataType: \"string\"; columnType: \"PgUUID\"; data: string; driverParam: string; notNull: true; hasDe…"
+   }
+  },
+  {
+   "id": "@wren/sites#sitePages",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/schema"
+    ],
+    "file": "packages/sites/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"site_pages\"; schema: undefined; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"site_pages\"; dataType: \"string\"; columnType: \"PgUUID\"; data: string; driverParam: string; notNull: true; hasDefault: true; isPrima…"
+   }
+  },
+  {
+   "id": "@wren/sites#siteSplitArms",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/schema"
+    ],
+    "file": "packages/sites/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"site_split_arms\"; schema: undefined; columns: { split: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"split\"; tableName: \"site_split_arms\"; dataType: \"string\"; columnType: \"PgUUID\"; data: string; driverParam: string; notNull: true; hasDefaul…"
+   }
+  },
+  {
+   "id": "@wren/sites#siteSplits",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/schema"
+    ],
+    "file": "packages/sites/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"site_splits\"; schema: undefined; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"site_splits\"; dataType: \"string\"; columnType: \"PgUUID\"; data: string; driverParam: string; notNull: true; hasDefault: true; isPri…"
+   }
+  },
+  {
+   "id": "@wren/sites#sitemapUrls",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/scan"
+    ],
+    "file": "packages/sites/src/scan.ts",
+    "kind": "function",
+    "sig": "(xml: string, from: string): Found[]"
+   }
+  },
+  {
+   "id": "@wren/sites#sitesApi",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites",
+     "@wren/sites/console"
+    ],
+    "file": "packages/sites/src/console.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(deps: { db: Db; write?: Write | null; shareKey?: string | null }): { offers(req: PortalRequest): Promise<{ offers: { id: string; name: string; status: \"retired\" | \"paused\" | \"draft\" | \"live\"; audience: string; }[]; templates: { id: string; name: string; blurb: string; }[]; ai: boolean; }>; detail(req: IdRequest): Promise<PageDetail>; create(req: CreateRequest): Pro…"
+   }
+  },
+  {
+   "id": "@wren/sites#sitesPublicApi",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites",
+     "@wren/sites/service"
+    ],
+    "file": "packages/sites/src/service.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(main: Db, opts: { shareKey?: string | null; open?: OpenClient } = {}): { serve(req: { client?: string | null; slug?: string; preview?: { id: string; token: string; } | null; arm?: string | null; bot?: boolean | null; roll?: number | null; }): Promise<Served>; serveForm(req: { client?: string | null; slug?: string; embed?: boolean | null; arm?: string | null; bot?: bool…"
+   }
+  },
+  {
+   "id": "@wren/sites#slugOf",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites",
+     "@wren/sites/model"
+    ],
+    "file": "packages/sites/src/model.ts",
+    "kind": "function",
+    "sig": "(words: string): string"
+   }
+  },
+  {
+   "id": "@wren/sites#splitCall",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/split-call"
+    ],
+    "file": "packages/sites/src/split-call.ts",
+    "kind": "function",
+    "sig": "(arms: readonly ArmCount[]): SplitCall"
+   }
+  },
+  {
+   "id": "@wren/sites#splitCookieValue",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/split"
+    ],
+    "file": "packages/sites/src/split.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(split: string, label: string): string"
+   }
+  },
+  {
+   "id": "@wren/sites#splitResult",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/split"
+    ],
+    "file": "packages/sites/src/split.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, split: SplitWithArms): Promise<SplitResult>"
+   }
+  },
+  {
+   "id": "@wren/sites#splitsOf",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/split"
+    ],
+    "file": "packages/sites/src/split.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, page: string): Promise<SplitWithArms[]>"
+   }
+  },
+  {
+   "id": "@wren/sites#startSplit",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/split"
+    ],
+    "file": "packages/sites/src/split.ts",
+    "kind": "function",
+    "sig": "(db: Db, s: { page: string; arms: readonly string[]; weights?: readonly number[] | null; goal?: SplitGoal | null; by: string; }): Promise<SplitWithArms>"
+   }
+  },
+  {
+   "id": "@wren/sites#stillAt",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/store"
+    ],
+    "file": "packages/sites/src/store.ts",
+    "kind": "function",
+    "sig": "(column: AnyColumn, expect: unknown): SQL[]"
+   }
+  },
+  {
+   "id": "@wren/sites#stopSplit",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/split"
+    ],
+    "file": "packages/sites/src/split.ts",
+    "kind": "function",
+    "sig": "(db: Db, id: string, by: string): Promise<boolean>"
+   }
+  },
+  {
+   "id": "@wren/sites#templateOf",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/templates"
+    ],
+    "file": "packages/sites/src/templates/index.ts",
+    "kind": "function",
+    "sig": "(id: string | null | undefined): Template"
+   }
+  },
+  {
+   "id": "@wren/sites#touchOf",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/store"
+    ],
+    "file": "packages/sites/src/store.ts",
+    "kind": "function",
+    "sig": "(raw: unknown): FormTouch & { channel: Channel }"
+   }
+  },
+  {
+   "id": "@wren/sites#unlisted",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/scan"
+    ],
+    "file": "packages/sites/src/scan.ts",
+    "kind": "function",
+    "sig": "(known: Iterable<string | null>, found: Found[], clientOf: (host: string) => string | undefined = () => undefined): Unlisted[]"
+   }
+  },
+  {
+   "id": "@wren/sites#versionOf",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/store"
+    ],
+    "file": "packages/sites/src/store.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, page: string, number: number): Promise<SitePageVersion | null>"
+   }
+  },
+  {
+   "id": "@wren/sites#versionsOf",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/store"
+    ],
+    "file": "packages/sites/src/store.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, page: string): Omit<import(\"drizzle-orm/pg-core\").PgSelectBase<\"site_page_versions\", { number: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"number\"; tableName: \"site_page_versions\"; dataType: \"number\"; columnType: \"PgInteger\"; data: number; driverParam: string | number; notNull: true; hasDefault: false; isPrima…"
+   }
+  },
+  {
+   "id": "@wren/sites#waitingPages",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/store"
+    ],
+    "file": "packages/sites/src/store.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable): Promise<{ id: string; title: string; slug: string; client: string | null; number: number | null; by: string | null; at: Date | null; offer: string | null; }[]>"
+   }
+  },
+  {
+   "id": "@wren/sites#waitingRetires",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/store"
+    ],
+    "file": "packages/sites/src/store.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable): Promise<{ id: string; title: string; slug: string; client: string | null; by: string | null; at: Date | null; offer: string | null; }[]>"
+   }
+  },
+  {
+   "id": "@wren/sites#wordsOf",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/templates"
+    ],
+    "file": "packages/sites/src/templates/index.ts",
+    "kind": "function",
+    "sig": "(t: Pick<Template, \"fields\">, c: Content): { label: string; text: string }[]"
+   }
+  },
+  {
+   "id": "@wren/sites/templates#FieldKind",
+   "role": "export",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "entries": [
+     "@wren/sites/templates"
+    ],
+    "file": "packages/sites/src/templates/types.ts",
+    "kind": "type",
+    "sig": "type FieldKind = \"text\" | \"long\" | \"lines\" | \"url\" | \"items\" | \"sections\";"
+   }
+  }
+ ],
+ "edges": []
+}

@@ -1,0 +1,161 @@
+{
+ "layer": "imports",
+ "nodes": [
+  {
+   "id": "@wren/channel-reddit",
+   "role": "package",
+   "parent": "repo:wren",
+   "group": "@wren/channel-reddit",
+   "attrs": {
+    "dir": "packages/channel-reddit/"
+   }
+  },
+  {
+   "id": "@wren/channel-reddit/src/api.ts",
+   "role": "file",
+   "parent": "@wren/channel-reddit",
+   "group": "@wren/channel-reddit"
+  },
+  {
+   "id": "@wren/channel-reddit/src/content.ts",
+   "role": "file",
+   "parent": "@wren/channel-reddit",
+   "group": "@wren/channel-reddit"
+  },
+  {
+   "id": "@wren/channel-reddit/src/index.ts",
+   "role": "file",
+   "parent": "@wren/channel-reddit",
+   "group": "@wren/channel-reddit"
+  },
+  {
+   "id": "@wren/channel-reddit/src/outreach.ts",
+   "role": "file",
+   "parent": "@wren/channel-reddit",
+   "group": "@wren/channel-reddit"
+  },
+  {
+   "id": "@wren/channel-reddit/src/thread.ts",
+   "role": "file",
+   "parent": "@wren/channel-reddit",
+   "group": "@wren/channel-reddit"
+  },
+  {
+   "id": "@wren/channel-reddit/src/warmup.ts",
+   "role": "file",
+   "parent": "@wren/channel-reddit",
+   "group": "@wren/channel-reddit"
+  }
+ ],
+ "edges": [
+  {
+   "from": "@wren/channel-reddit",
+   "to": "@wren/core",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-reddit/src/api.ts",
+   "to": "@wren/channel-reddit/src/content.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-reddit/src/api.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-reddit/src/api.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-reddit/src/content.ts",
+   "to": "@wren/channel-reddit/src/thread.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-reddit/src/content.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-reddit/src/content.ts",
+   "to": "@wren/core/src/content/shapes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-reddit/src/content.ts",
+   "to": "@wren/core/src/objects/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-reddit/src/index.ts",
+   "to": "@wren/channel-reddit/src/api.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-reddit/src/index.ts",
+   "to": "@wren/channel-reddit/src/content.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-reddit/src/index.ts",
+   "to": "@wren/channel-reddit/src/outreach.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-reddit/src/index.ts",
+   "to": "@wren/channel-reddit/src/thread.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-reddit/src/index.ts",
+   "to": "@wren/channel-reddit/src/warmup.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-reddit/src/outreach.ts",
+   "to": "@wren/channel-reddit/src/content.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-reddit/src/outreach.ts",
+   "to": "@wren/channel-reddit/src/thread.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-reddit/src/outreach.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-reddit/src/outreach.ts",
+   "to": "@wren/core/src/outreach/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-reddit/src/thread.ts",
+   "to": "@wren/channel-reddit/src/content.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-reddit/src/thread.ts",
+   "to": "@wren/core/src/outreach/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-reddit/src/warmup.ts",
+   "to": "@wren/core/src/outreach/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  }
+ ]
+}

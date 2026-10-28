@@ -1,0 +1,1463 @@
+{
+ "layer": "api",
+ "nodes": [
+  {
+   "id": "@wren/payments#Applied",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/store"
+    ],
+    "file": "packages/payments/src/store.ts",
+    "kind": "interface",
+    "sig": "interface Applied { fresh: boolean; result: EventResult; link: PayLink | null; drift: string | null; }"
+   }
+  },
+  {
+   "id": "@wren/payments#ConnectRequest",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/console"
+    ],
+    "file": "packages/payments/src/console.ts",
+    "kind": "interface",
+    "sig": "interface ConnectRequest extends PortalRequest { keyRef?: string | null; secretRef?: string | null; }"
+   }
+  },
+  {
+   "id": "@wren/payments#CreateRequest",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/console"
+    ],
+    "file": "packages/payments/src/console.ts",
+    "kind": "interface",
+    "sig": "interface CreateRequest extends PortalRequest { channel?: string | null; phone?: string | null; email?: string | null; name?: string | null; amount: string | number; description: string; quantity?: string | number | null; }"
+   }
+  },
+  {
+   "id": "@wren/payments#DISPUTES",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/states"
+    ],
+    "file": "packages/payments/src/states.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"open\", \"won\", \"lost\"]"
+   }
+  },
+  {
+   "id": "@wren/payments#Dispute",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/states"
+    ],
+    "file": "packages/payments/src/states.ts",
+    "kind": "type",
+    "sig": "type Dispute = (typeof DISPUTES)[number];"
+   }
+  },
+  {
+   "id": "@wren/payments#EventResult",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/states"
+    ],
+    "file": "packages/payments/src/states.ts",
+    "kind": "type",
+    "sig": "type EventResult = (typeof PAY_EVENT_RESULTS)[number];"
+   }
+  },
+  {
+   "id": "@wren/payments#Fetch",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/stripe"
+    ],
+    "file": "packages/payments/src/stripe.ts",
+    "kind": "type",
+    "sig": "type Fetch = (url: string, init: RequestInit) => Promise<Response>;"
+   }
+  },
+  {
+   "id": "@wren/payments#IdsRequest",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/console"
+    ],
+    "file": "packages/payments/src/console.ts",
+    "kind": "interface",
+    "sig": "interface IdsRequest extends PortalRequest { ids: string[]; }"
+   }
+  },
+  {
+   "id": "@wren/payments#LINK_RECORD",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/records"
+    ],
+    "file": "packages/payments/src/records.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"payments.link\""
+   }
+  },
+  {
+   "id": "@wren/payments#LinkMoney",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/states"
+    ],
+    "file": "packages/payments/src/states.ts",
+    "kind": "interface",
+    "sig": "interface LinkMoney { status: PayStatus; due: number; paidCents: number | null; paidAt: Date | null; session: string | null; intent: string | null; live: boolean | null; refundedCents: number; refundedAt: Date | null; dispute: Dispute | null; disputeAt: number | null; }"
+   }
+  },
+  {
+   "id": "@wren/payments#NewLink",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/store"
+    ],
+    "file": "packages/payments/src/store.ts",
+    "kind": "interface",
+    "sig": "interface NewLink { client: string; channel: PayChannel; contact?: number | null; email?: string | null; name?: string | null; description: string; cents: number; quantity?: number; by: string; approved?: boolean; now: Date; id?: string; }"
+   }
+  },
+  {
+   "id": "@wren/payments#PAYMENTS",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/service"
+    ],
+    "file": "packages/payments/src/service.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly name: \"Payments\"; }"
+   }
+  },
+  {
+   "id": "@wren/payments#PAYMENTS_COMPONENTS",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/components"
+    ],
+    "file": "packages/payments/src/components.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"@wren/core/components\").Component[]"
+   }
+  },
+  {
+   "id": "@wren/payments#PAYMENTS_CONSOLE_APPS",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/console-routes"
+    ],
+    "file": "packages/payments/src/console-routes.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly \"*\": null; readonly status: \"payments\"; readonly create: \"payments\"; readonly fromThread: { readonly app: \"texts\"; readonly channel: \"sms\"; }; readonly approve: \"payments\"; readonly decline: \"payments\"; readonly again: \"payments\"; readonly connect: \"payments\"; }"
+   }
+  },
+  {
+   "id": "@wren/payments#PAYMENTS_CONSOLE_ROUTES",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/console-routes"
+    ],
+    "file": "packages/payments/src/console-routes.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly recordsTypes: \"read\"; readonly recordsList: \"read\"; readonly recordsGet: \"read\"; readonly recordsExport: \"read\"; readonly recordsStats: \"read\"; readonly status: \"read\"; readonly create: \"act\"; readonly fromThread: \"act\"; readonly approve: \"act\"; readonly decline: \"act\"; readonly again: \"a…"
+   }
+  },
+  {
+   "id": "@wren/payments#PAYMENTS_CONSOLE_WRITES",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/console-routes"
+    ],
+    "file": "packages/payments/src/console-routes.ts",
+    "kind": "const",
+    "sig": "readonly PaymentsConsoleRoute[]"
+   }
+  },
+  {
+   "id": "@wren/payments#PAYMENTS_RECORDS",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/records"
+    ],
+    "file": "packages/payments/src/records.ts",
+    "kind": "const",
+    "sig": "readonly RecordType[]"
+   }
+  },
+  {
+   "id": "@wren/payments#PAYMENTS_SETUPS",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/setups"
+    ],
+    "file": "packages/payments/src/setups.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"@wren/core/setup\").Setup[]"
+   }
+  },
+  {
+   "id": "@wren/payments#PAY_CHANGES",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/states"
+    ],
+    "file": "packages/payments/src/states.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"paid\", \"refunded\", \"failed\"]"
+   }
+  },
+  {
+   "id": "@wren/payments#PAY_CHANNELS",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/schema"
+    ],
+    "file": "packages/payments/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"sms\", \"email\"]"
+   }
+  },
+  {
+   "id": "@wren/payments#PAY_EVENT_RESULTS",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/schema",
+     "@wren/payments/states"
+    ],
+    "file": "packages/payments/src/states.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"paid\", \"processing\", \"unpaid\", \"refunded\", \"disputed\", \"stale\", \"unknown\", \"ignored\", \"drift\"]"
+   }
+  },
+  {
+   "id": "@wren/payments#PAY_LINKS",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/components"
+    ],
+    "file": "packages/payments/src/components.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"payments.links\""
+   }
+  },
+  {
+   "id": "@wren/payments#PAY_STATUSES",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/schema",
+     "@wren/payments/states"
+    ],
+    "file": "packages/payments/src/states.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"waiting\", \"sending\", \"sent\", \"processing\", \"unpaid\", \"paid\", \"refunded\", \"declined\", \"failed\"]"
+   }
+  },
+  {
+   "id": "@wren/payments#PayAccount",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/schema"
+    ],
+    "file": "packages/payments/src/schema.ts",
+    "kind": "type",
+    "sig": "type PayAccount = typeof payAccounts.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/payments#PayChange",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/states"
+    ],
+    "file": "packages/payments/src/states.ts",
+    "kind": "type",
+    "sig": "type PayChange = (typeof PAY_CHANGES)[number];"
+   }
+  },
+  {
+   "id": "@wren/payments#PayChannel",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/schema"
+    ],
+    "file": "packages/payments/src/schema.ts",
+    "kind": "type",
+    "sig": "type PayChannel = (typeof PAY_CHANNELS)[number];"
+   }
+  },
+  {
+   "id": "@wren/payments#PayLink",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/schema"
+    ],
+    "file": "packages/payments/src/schema.ts",
+    "kind": "type",
+    "sig": "type PayLink = typeof payLinks.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/payments#PayReconcile",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/reconcile"
+    ],
+    "file": "packages/payments/src/reconcile.ts",
+    "kind": "type",
+    "sig": "type PayReconcile = ReturnType<typeof makePayReconcile>;"
+   }
+  },
+  {
+   "id": "@wren/payments#PayRefusal",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/store"
+    ],
+    "file": "packages/payments/src/store.ts",
+    "kind": "class",
+    "sig": ""
+   }
+  },
+  {
+   "id": "@wren/payments#PayStatus",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/schema",
+     "@wren/payments/states"
+    ],
+    "file": "packages/payments/src/states.ts",
+    "kind": "type",
+    "sig": "type PayStatus = (typeof PAY_STATUSES)[number];"
+   }
+  },
+  {
+   "id": "@wren/payments#PaymentsDeps",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/service"
+    ],
+    "file": "packages/payments/src/service.ts",
+    "kind": "interface",
+    "sig": "interface PaymentsDeps { main: Db; open: (client: Pick<Client, \"id\" | \"database\">) => Db; keys: KeyStore | null; fetch: Fetch; portal: string; mailer: ((from: string) => SendMail) | null; fire?: FireTriggers; stripeBase?: string; stripeRetry?: StripeRetry; }"
+   }
+  },
+  {
+   "id": "@wren/payments#PaymentsService",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/service"
+    ],
+    "file": "packages/payments/src/service.ts",
+    "kind": "type",
+    "sig": "type PaymentsService = ReturnType<typeof makePayments>;"
+   }
+  },
+  {
+   "id": "@wren/payments#READ_ACCESS",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/stripe"
+    ],
+    "file": "packages/payments/src/stripe.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"Checkout Sessions, Payment Intents, Charges and Disputes\""
+   }
+  },
+  {
+   "id": "@wren/payments#ReconcileStats",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/reconcile"
+    ],
+    "file": "packages/payments/src/reconcile.ts",
+    "kind": "interface",
+    "sig": "interface ReconcileStats { clients: number; checked: number; healed: number; drift: number; endpoints: number; noted: number; skipped: { client: string; why: string }[]; touched: string[]; }"
+   }
+  },
+  {
+   "id": "@wren/payments#STRIPE_API",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/stripe"
+    ],
+    "file": "packages/payments/src/stripe.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"https://api.stripe.com\""
+   }
+  },
+  {
+   "id": "@wren/payments#STRIPE_EVENTS",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/stripe"
+    ],
+    "file": "packages/payments/src/stripe.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"checkout.session.completed\", \"checkout.session.async_payment_succeeded\", \"checkout.session.async_payment_failed\", \"charge.refunded\", \"charge.dispute.created\", \"charge.dispute.updated\", \"charge.dispute.closed\"]"
+   }
+  },
+  {
+   "id": "@wren/payments#STRIPE_RETRY",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/service"
+    ],
+    "file": "packages/payments/src/service.ts",
+    "kind": "const",
+    "sig": "StripeRetry"
+   }
+  },
+  {
+   "id": "@wren/payments#STRIPE_VERSION",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/stripe"
+    ],
+    "file": "packages/payments/src/stripe.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"2026-08-26.dahlia\""
+   }
+  },
+  {
+   "id": "@wren/payments#SendMail",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/service"
+    ],
+    "file": "packages/payments/src/service.ts",
+    "kind": "type",
+    "sig": "type SendMail = (m: { to: string; subject: string; text: string }) => Promise<void>;"
+   }
+  },
+  {
+   "id": "@wren/payments#Stepped",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/states"
+    ],
+    "file": "packages/payments/src/states.ts",
+    "kind": "interface",
+    "sig": "interface Stepped { next: LinkMoney; result: EventResult; changed: boolean; drift: string | null; }"
+   }
+  },
+  {
+   "id": "@wren/payments#StripeApi",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/stripe"
+    ],
+    "file": "packages/payments/src/stripe.ts",
+    "kind": "type",
+    "sig": "type StripeApi = ReturnType<typeof stripeApi>;"
+   }
+  },
+  {
+   "id": "@wren/payments#StripeError",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/stripe"
+    ],
+    "file": "packages/payments/src/stripe.ts",
+    "kind": "class",
+    "sig": "constructor(message: string, readonly status: number, readonly code: string | null, readonly transient = false); get denied()"
+   }
+  },
+  {
+   "id": "@wren/payments#StripeFact",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/stripe"
+    ],
+    "file": "packages/payments/src/stripe.ts",
+    "kind": "interface",
+    "sig": "interface StripeFact { event: string; type: string; kind: FactKind; created: number | null; session: string | null; link: string | null; intent: string | null; wren: string | null; status: string | null; cents: number | null; currency: string | null; email: string | null; refunded: number | null; live: boolean; }"
+   }
+  },
+  {
+   "id": "@wren/payments#TOLERANCE_S",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/stripe"
+    ],
+    "file": "packages/payments/src/stripe.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "300"
+   }
+  },
+  {
+   "id": "@wren/payments#WEBHOOK_SECRET",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/service"
+    ],
+    "file": "packages/payments/src/service.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"STRIPE_WEBHOOK_SECRET\""
+   }
+  },
+  {
+   "id": "@wren/payments#applyEvent",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/store"
+    ],
+    "file": "packages/payments/src/store.ts",
+    "kind": "function",
+    "sig": "(main: Db, client: string, f: StripeFact, now: Date): Promise<Applied>"
+   }
+  },
+  {
+   "id": "@wren/payments#approveLinks",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/store"
+    ],
+    "file": "packages/payments/src/store.ts",
+    "kind": "function",
+    "sig": "(main: Db, ids: readonly string[], by: string, now: Date): Promise<PayLink[]>"
+   }
+  },
+  {
+   "id": "@wren/payments#centsOf",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/store"
+    ],
+    "file": "packages/payments/src/store.ts",
+    "kind": "function",
+    "sig": "(amount: unknown): number"
+   }
+  },
+  {
+   "id": "@wren/payments#claimChanges",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/store"
+    ],
+    "file": "packages/payments/src/store.ts",
+    "kind": "function",
+    "sig": "(main: Db, id: string, token: string): Promise<{ link: PayLink | null; changes: PayChange[] }>"
+   }
+  },
+  {
+   "id": "@wren/payments#createLink",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/store"
+    ],
+    "file": "packages/payments/src/store.ts",
+    "kind": "function",
+    "sig": "(main: Db, l: NewLink): Promise<PayLink>"
+   }
+  },
+  {
+   "id": "@wren/payments#declineLinks",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/store"
+    ],
+    "file": "packages/payments/src/store.ts",
+    "kind": "function",
+    "sig": "(main: Db, ids: readonly string[], by: string, now: Date): Promise<string[]>"
+   }
+  },
+  {
+   "id": "@wren/payments#disputeOf",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/states"
+    ],
+    "file": "packages/payments/src/states.ts",
+    "kind": "function",
+    "sig": "(status: string | null): Dispute | null"
+   }
+  },
+  {
+   "id": "@wren/payments#factsOf",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/stripe"
+    ],
+    "file": "packages/payments/src/stripe.ts",
+    "kind": "function",
+    "sig": "(raw: string): StripeFact | null"
+   }
+  },
+  {
+   "id": "@wren/payments#hasAccess",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/states"
+    ],
+    "file": "packages/payments/src/states.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(m: Pick<LinkMoney, \"status\">): boolean"
+   }
+  },
+  {
+   "id": "@wren/payments#isSigningSecret",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/stripe"
+    ],
+    "file": "packages/payments/src/stripe.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(s: string): boolean"
+   }
+  },
+  {
+   "id": "@wren/payments#keepStripeLink",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/store"
+    ],
+    "file": "packages/payments/src/store.ts",
+    "kind": "function",
+    "sig": "(main: Db, id: string, l: { stripeLink: string; url: string; live: boolean }): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/payments#keepWebhookNote",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/store"
+    ],
+    "file": "packages/payments/src/store.ts",
+    "kind": "function",
+    "sig": "(main: Queryable, client: string, note: string | null): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/payments#keyMode",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/stripe"
+    ],
+    "file": "packages/payments/src/stripe.ts",
+    "kind": "function",
+    "sig": "(key: string): \"live\" | \"test\" | null"
+   }
+  },
+  {
+   "id": "@wren/payments#kindOf",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/stripe"
+    ],
+    "file": "packages/payments/src/stripe.ts",
+    "kind": "function",
+    "sig": "(type: string): FactKind"
+   }
+  },
+  {
+   "id": "@wren/payments#linkById",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/store"
+    ],
+    "file": "packages/payments/src/store.ts",
+    "kind": "function",
+    "sig": "(main: Queryable, id: string): Promise<PayLink | null>"
+   }
+  },
+  {
+   "id": "@wren/payments#linkIdFor",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/store"
+    ],
+    "file": "packages/payments/src/store.ts",
+    "kind": "function",
+    "sig": "(seed: string, part: string | number = \"\"): string"
+   }
+  },
+  {
+   "id": "@wren/payments#linkIdOf",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/store"
+    ],
+    "file": "packages/payments/src/store.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(id: string): string"
+   }
+  },
+  {
+   "id": "@wren/payments#linkRecordFor",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/records"
+    ],
+    "file": "packages/payments/src/records.ts",
+    "kind": "function",
+    "sig": "(client: string): RecordType"
+   }
+  },
+  {
+   "id": "@wren/payments#linksToCheck",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/store"
+    ],
+    "file": "packages/payments/src/store.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(main: Queryable, client: string, now: Date, limit = 50): Promise<{ id: string; client: string; contact: number | null; email: string | null; name: string | null; channel: string; description: string; amountCents: number; quantity: number; currency: string; status: string; why: string | null; stripeLink: string | null; url: string | null; message: number |…"
+   }
+  },
+  {
+   "id": "@wren/payments#makePayReconcile",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/reconcile"
+    ],
+    "file": "packages/payments/src/reconcile.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(deps: PayReconcileDeps): restate.VirtualObjectDefinition<string, Record<never, never> & Record<never, (ctx: restate.ObjectContext) => Promise<PassOutcome<ReconcileStats>>> & { sync: (ctx: restate.ObjectContext) => Promise<PassOutcome<ReconcileStats>>; start: (ctx: restate.ObjectContext, settings?: Record<string, unknown> | …"
+   }
+  },
+  {
+   "id": "@wren/payments#makePayments",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/service"
+    ],
+    "file": "packages/payments/src/service.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(deps: PaymentsDeps): restate.ServiceDefinition<\"Payments\", { send: (ctx: restate.Context, req: { id: string; }) => Promise<{ sent: boolean; why?: never; } | { sent: boolean; why: string; }>; stripe: (ctx: restate.Context, req: { client: string; raw: string; signature?: string | null; }) => Promise<HookAnswer>; }>"
+   }
+  },
+  {
+   "id": "@wren/payments#makePaymentsConsole",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/console"
+    ],
+    "file": "packages/payments/src/console.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(deps: PaymentsConsoleDeps): restate.ServiceDefinition<\"PaymentsConsole\", { recordsTypes: (_: restate.Context, req: PortalRequest) => Promise<import(\"@wren/core/records\").RecordMeta[]>; recordsList: (_: restate.Context, req: PortalRequest & ListAsk) => Promise<import(\"@wren/core/records/serve\").RecordsPage>; recordsGet: (_: res…"
+   }
+  },
+  {
+   "id": "@wren/payments#markChecked",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/store"
+    ],
+    "file": "packages/payments/src/store.ts",
+    "kind": "function",
+    "sig": "(main: Db, id: string, now: Date): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/payments#markFailed",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/store"
+    ],
+    "file": "packages/payments/src/store.ts",
+    "kind": "function",
+    "sig": "(main: Db, id: string, why: string): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/payments#markSent",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/store"
+    ],
+    "file": "packages/payments/src/store.ts",
+    "kind": "function",
+    "sig": "(main: Db, id: string, o: { message: number | null; now: Date }): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/payments#money",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/store"
+    ],
+    "file": "packages/payments/src/store.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(cents: number, currency = \"usd\"): string"
+   }
+  },
+  {
+   "id": "@wren/payments#moneyOf",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/store"
+    ],
+    "file": "packages/payments/src/store.ts",
+    "kind": "function",
+    "sig": "(l: PayLink): LinkMoney"
+   }
+  },
+  {
+   "id": "@wren/payments#netCents",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/states"
+    ],
+    "file": "packages/payments/src/states.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(m: Pick<LinkMoney, \"status\" | \"paidCents\" | \"refundedCents\">): number"
+   }
+  },
+  {
+   "id": "@wren/payments#noteDrift",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/store"
+    ],
+    "file": "packages/payments/src/store.ts",
+    "kind": "function",
+    "sig": "(main: Db, l: Pick<PayLink, \"id\" | \"client\">, key: string, what: string, now: Date): Promise<boolean>"
+   }
+  },
+  {
+   "id": "@wren/payments#payAccountOf",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/store"
+    ],
+    "file": "packages/payments/src/store.ts",
+    "kind": "function",
+    "sig": "(main: Queryable, client: string): Promise<PayAccount | null>"
+   }
+  },
+  {
+   "id": "@wren/payments#payAccounts",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/schema"
+    ],
+    "file": "packages/payments/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"pay_accounts\"; schema: undefined; columns: { client: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"client\"; tableName: \"pay_accounts\"; dataType: \"string\"; columnType: \"PgVarchar\"; data: string; driverParam: string; notNull: true; hasDefault…"
+   }
+  },
+  {
+   "id": "@wren/payments#payApprovalId",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/store"
+    ],
+    "file": "packages/payments/src/store.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(id: string): string"
+   }
+  },
+  {
+   "id": "@wren/payments#payClients",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/store"
+    ],
+    "file": "packages/payments/src/store.ts",
+    "kind": "function",
+    "sig": "(main: Queryable): Promise<PayAccount[]>"
+   }
+  },
+  {
+   "id": "@wren/payments#payEmail",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/service"
+    ],
+    "file": "packages/payments/src/service.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(business: string, l: PayLink, url: string): { subject: string; text: string; }"
+   }
+  },
+  {
+   "id": "@wren/payments#payEvents",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/schema"
+    ],
+    "file": "packages/payments/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"pay_events\"; schema: undefined; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"pay_events\"; dataType: \"string\"; columnType: \"PgVarchar\"; data: string; driverParam: string; notNull: true; hasDefault: false; isP…"
+   }
+  },
+  {
+   "id": "@wren/payments#payLinks",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/schema"
+    ],
+    "file": "packages/payments/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"pay_links\"; schema: undefined; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"pay_links\"; dataType: \"string\"; columnType: \"PgUUID\"; data: string; driverParam: string; notNull: true; hasDefault: true; isPrimary…"
+   }
+  },
+  {
+   "id": "@wren/payments#payText",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/service"
+    ],
+    "file": "packages/payments/src/service.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(business: string, l: PayLink, url: string): string"
+   }
+  },
+  {
+   "id": "@wren/payments#paymentFired",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/service"
+    ],
+    "file": "packages/payments/src/service.ts",
+    "kind": "function",
+    "sig": "(l: PayLink, change: PayChange = \"paid\"): Fired"
+   }
+  },
+  {
+   "id": "@wren/payments#paymentsConsoleApi",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/console"
+    ],
+    "file": "packages/payments/src/console.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(deps: PaymentsConsoleDeps): { recordsTypes: (req: PortalRequest) => Promise<import(\"@wren/core/records\").RecordMeta[]>; recordsList: (req: PortalRequest & ListAsk) => Promise<import(\"@wren/core/records/serve\").RecordsPage>; recordsGet: (req: PortalRequest & GetAsk) => Promise<import(\"@wren/core/records/serve\").RecordAnswer>; r…"
+   }
+  },
+  {
+   "id": "@wren/payments#reached",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/states"
+    ],
+    "file": "packages/payments/src/states.ts",
+    "kind": "function",
+    "sig": "(m: Pick<LinkMoney, \"status\" | \"paidCents\">): PayChange[]"
+   }
+  },
+  {
+   "id": "@wren/payments#reconcileAll",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/reconcile"
+    ],
+    "file": "packages/payments/src/reconcile.ts",
+    "kind": "function",
+    "sig": "(d: Pick<PaymentsDeps, \"main\" | \"open\" | \"keys\" | \"fetch\" | \"stripeBase\" | \"portal\">, now: Date): Promise<ReconcileStats>"
+   }
+  },
+  {
+   "id": "@wren/payments#savePayAccount",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/store"
+    ],
+    "file": "packages/payments/src/store.ts",
+    "kind": "function",
+    "sig": "(main: Db, a: { client: string; endpoint?: string | null; secretName?: string | null; how?: \"api\" | \"pasted\" | null; live?: boolean | null; note?: string | null; by: string; }): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/payments#settleLink",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/service"
+    ],
+    "file": "packages/payments/src/service.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(d: Pick<PaymentsDeps, \"main\" | \"open\">, id: string): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/payments#settled",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/states"
+    ],
+    "file": "packages/payments/src/states.ts",
+    "kind": "function",
+    "sig": "(m: LinkMoney): PayStatus"
+   }
+  },
+  {
+   "id": "@wren/payments#signFor",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/stripe"
+    ],
+    "file": "packages/payments/src/stripe.ts",
+    "kind": "function",
+    "sig": "(raw: string, secret: string, at: Date): string"
+   }
+  },
+  {
+   "id": "@wren/payments#step",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/states"
+    ],
+    "file": "packages/payments/src/states.ts",
+    "kind": "function",
+    "sig": "(m: LinkMoney, f: StripeFact, now: Date): Stepped"
+   }
+  },
+  {
+   "id": "@wren/payments#stripeApi",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/stripe"
+    ],
+    "file": "packages/payments/src/stripe.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(key: string, fetchFn: Fetch, base = STRIPE_API, retries?: number): { createPrice: (o: { id: string; cents: number; currency: string; description: string; }) => Promise<StripePrice>; createPaymentLink: (o: { id: string; client: string; price: string; quantity: number; }) => Promise<StripeLink>; registerWebhook: (o: { client: string; url: string; idem: string; }) => …"
+   }
+  },
+  {
+   "id": "@wren/payments#stripeChecks",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/setups"
+    ],
+    "file": "packages/payments/src/setups.ts",
+    "kind": "function",
+    "sig": "(main: Queryable): Record<string, SetupCheck>"
+   }
+  },
+  {
+   "id": "@wren/payments#stripeKeyOf",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/service"
+    ],
+    "file": "packages/payments/src/service.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(d: Pick<PaymentsDeps, \"main\" | \"keys\">, client: string, why: string): Promise<string>"
+   }
+  },
+  {
+   "id": "@wren/payments#stripeStep",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/service"
+    ],
+    "file": "packages/payments/src/service.ts",
+    "kind": "function",
+    "sig": "(ctx: restate.Context, name: string, retry: StripeRetry, fn: () => Promise<T>): Promise<T | { error: string }>"
+   }
+  },
+  {
+   "id": "@wren/payments#syncContactPaid",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/store"
+    ],
+    "file": "packages/payments/src/store.ts",
+    "kind": "function",
+    "sig": "(main: Queryable, db: Queryable, client: string, contact: number): Promise<{ cents: number; at: Date | null }>"
+   }
+  },
+  {
+   "id": "@wren/payments#takeWebhook",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/service"
+    ],
+    "file": "packages/payments/src/service.ts",
+    "kind": "function",
+    "sig": "(d: Pick<PaymentsDeps, \"main\" | \"open\" | \"keys\">, req: { client: string; raw: string; signature?: string | null }, now: Date): Promise<HookAnswer & { link: string | null }>"
+   }
+  },
+  {
+   "id": "@wren/payments#tellChanges",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/service"
+    ],
+    "file": "packages/payments/src/service.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(ctx: restate.Context, d: PaymentsDeps, id: string): Promise<(\"paid\" | \"failed\" | \"refunded\")[]>"
+   }
+  },
+  {
+   "id": "@wren/payments#verifySignature",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/stripe"
+    ],
+    "file": "packages/payments/src/stripe.ts",
+    "kind": "function",
+    "sig": "(raw: string, header: string | null | undefined, secret: string, now: Date): { ok: true } | { ok: false; why: string }"
+   }
+  },
+  {
+   "id": "@wren/payments#waitingPayLinks",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/store"
+    ],
+    "file": "packages/payments/src/store.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(main: Queryable): Promise<{ id: string; client: string; clientName: string | null; channel: string; name: string | null; email: string | null; description: string; cents: number; quantity: number; currency: string; by: string; at: Date; }[]>"
+   }
+  },
+  {
+   "id": "@wren/payments#webhookUrl",
+   "role": "export",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "entries": [
+     "@wren/payments/service"
+    ],
+    "file": "packages/payments/src/service.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(portal: string, client: string): string"
+   }
+  }
+ ],
+ "edges": []
+}

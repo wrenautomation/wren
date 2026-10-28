@@ -1,0 +1,1048 @@
+{
+ "layer": "api",
+ "nodes": [
+  {
+   "id": "@wren/channel-meta#AdAccount",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta"
+    ],
+    "file": "packages/channel-meta/src/ads.ts",
+    "kind": "interface",
+    "sig": "interface AdAccount { id: string; name?: string; account_status?: number; currency?: string; amount_spent?: string; created_time?: string; }"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#AdDay",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta",
+     "@wren/channel-meta/schema"
+    ],
+    "file": "packages/channel-meta/src/schema.ts",
+    "kind": "type",
+    "sig": "type AdDay = typeof adDays.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#AdLaunch",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta",
+     "@wren/channel-meta/schema"
+    ],
+    "file": "packages/channel-meta/src/schema.ts",
+    "kind": "type",
+    "sig": "type AdLaunch = typeof adLaunches.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#AdRow",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta"
+    ],
+    "file": "packages/channel-meta/src/ads.ts",
+    "kind": "interface",
+    "sig": "interface AdRow { id: string; name?: string; adset_id?: string; effective_status?: string; creative?: { id: string; object_type?: string; url_tags?: string }; }"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#AdSetRow",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta"
+    ],
+    "file": "packages/channel-meta/src/ads.ts",
+    "kind": "interface",
+    "sig": "interface AdSetRow { id: string; name?: string; campaign_id?: string; effective_status?: string; optimization_goal?: string; promoted_object?: { pixel_id?: string; custom_event_type?: string; page_id?: string }; daily_budget?: string; learning_stage_info?: { status?: string }; }"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#AdsService",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta/restate"
+    ],
+    "file": "packages/channel-meta/src/restate.ts",
+    "kind": "type",
+    "sig": "type AdsService = ReturnType<typeof makeAds>;"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#AdsWatch",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta/restate"
+    ],
+    "file": "packages/channel-meta/src/watch.ts",
+    "kind": "type",
+    "sig": "type AdsWatch = ReturnType<typeof makeAdsWatch>;"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#Audit",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta"
+    ],
+    "file": "packages/channel-meta/src/audit.ts",
+    "kind": "interface",
+    "sig": "interface Audit { at: string; accountId: string | null; coldStart: ColdStart; scope: \"live\" | \"paused\"; controls: Control[]; categories: Partial<Record<Category, { health: number | null; coverage: number }>>; health: number | null; coverage: number; grade: \"graded\" | \"provisional\" | \"insufficient\"; gaps: string[]; drafts: Draft[]; errors: Record<string, string>; }"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#AuditSettings",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta"
+    ],
+    "file": "packages/channel-meta/src/audit.ts",
+    "kind": "type",
+    "sig": "type AuditSettings = z.infer<typeof auditSettingsSchema>;"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#CampaignRow",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta"
+    ],
+    "file": "packages/channel-meta/src/ads.ts",
+    "kind": "interface",
+    "sig": "interface CampaignRow { id: string; name: string; status: string; effective_status?: string; objective?: string; daily_budget?: string; }"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#Category",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta"
+    ],
+    "file": "packages/channel-meta/src/audit.ts",
+    "kind": "type",
+    "sig": "type Category = | \"measurement\" | \"creative\" | \"structure\" | \"audiences\" | \"delivery\" | \"policy\";"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#Cold",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta"
+    ],
+    "file": "packages/channel-meta/src/audit.ts",
+    "kind": "type",
+    "sig": "type Cold = \"cold\" | \"warm\" | \"unknown\";"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#Control",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta"
+    ],
+    "file": "packages/channel-meta/src/audit.ts",
+    "kind": "interface",
+    "sig": "interface Control { id: string; category: Category; severity: Severity; state: ControlState; detail: string; }"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#Draft",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta"
+    ],
+    "file": "packages/channel-meta/src/audit.ts",
+    "kind": "interface",
+    "sig": "interface Draft { control: string | null; text: string; }"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#Evidence",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta"
+    ],
+    "file": "packages/channel-meta/src/audit.ts",
+    "kind": "interface",
+    "sig": "interface Evidence { now: string; account: AdAccount | null; campaigns: CampaignRow[] | null; adsets: AdSetRow[] | null; ads: AdRow[] | null; pixels: PixelRow[] | null; recent: InsightRow[] | null; matured: InsightRow[] | null; errors: Record<string, string>; }"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#InsightRow",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta"
+    ],
+    "file": "packages/channel-meta/src/ads.ts",
+    "kind": "interface",
+    "sig": "interface InsightRow { date_start?: string; date_stop?: string; campaign_id?: string; campaign_name?: string; adset_id?: string; adset_name?: string; spend?: string; impressions?: string; reach?: string; clicks?: string; cpc?: string; ctr?: string; actions?: { action_type: string; value: string }[]; account_currency?: string; }"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#Interest",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta"
+    ],
+    "file": "packages/channel-meta/src/ads.ts",
+    "kind": "interface",
+    "sig": "interface Interest { id: string; name: string; audience_size_lower_bound?: number; audience_size_upper_bound?: number; path?: string[]; }"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#LAUNCH_STATUSES",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta",
+     "@wren/channel-meta/schema"
+    ],
+    "file": "packages/channel-meta/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"paused\", \"active\", \"stopped\"]"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#LaunchSpec",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta"
+    ],
+    "file": "packages/channel-meta/src/ads.ts",
+    "kind": "interface",
+    "sig": "interface LaunchSpec { name: string; objective: MetaObjective; dailyBudgetUsd: number; targeting: Targeting; optimizationGoal?: string; format?: string; creative: { message: string; link: string; headline?: string; description?: string; callToAction?: string; media?: { kind: \"image\" | \"video\"; source: string; thumbnail?: string }; leadForm?: { id: string } | LeadFormSpec; }; status?: AdStatus; }"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#LaunchStatus",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta",
+     "@wren/channel-meta/schema"
+    ],
+    "file": "packages/channel-meta/src/schema.ts",
+    "kind": "type",
+    "sig": "type LaunchStatus = (typeof LAUNCH_STATUSES)[number];"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#Launched",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta"
+    ],
+    "file": "packages/channel-meta/src/ads.ts",
+    "kind": "interface",
+    "sig": "interface Launched extends Tree { creativeId: string; status: AdStatus; dailyBudgetUsd: number; leadFormId?: string; }"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#Lead",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta"
+    ],
+    "file": "packages/channel-meta/src/ads.ts",
+    "kind": "interface",
+    "sig": "interface Lead { id: string; created_time?: string; ad_id?: string; campaign_id?: string; field_data?: { name: string; values: string[] }[]; custom_disclaimer_responses?: { checkbox_key: string; is_checked: boolean | string }[]; }"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#LeadFormRow",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta"
+    ],
+    "file": "packages/channel-meta/src/ads.ts",
+    "kind": "interface",
+    "sig": "interface LeadFormRow { id: string; name: string; status?: string; leads_count?: number; created_time?: string; }"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#LeadFormSpec",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta"
+    ],
+    "file": "packages/channel-meta/src/ads.ts",
+    "kind": "interface",
+    "sig": "interface LeadFormSpec { name: string; privacyUrl: string; questions?: Record<string, unknown>[]; followUpUrl?: string; }"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#META_COMPONENTS",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta/components"
+    ],
+    "file": "packages/channel-meta/src/components.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"@wren/core/components\").Component[]"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#META_OBJECTIVES",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta"
+    ],
+    "file": "packages/channel-meta/src/ads.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"OUTCOME_AWARENESS\", \"OUTCOME_TRAFFIC\", \"OUTCOME_ENGAGEMENT\", \"OUTCOME_LEADS\", \"OUTCOME_APP_PROMOTION\", \"OUTCOME_SALES\"]"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#MetaAds",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta"
+    ],
+    "file": "packages/channel-meta/src/ads.ts",
+    "kind": "type",
+    "sig": "type MetaAds = ReturnType<typeof metaAds>;"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#MetaObjective",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta"
+    ],
+    "file": "packages/channel-meta/src/ads.ts",
+    "kind": "type",
+    "sig": "type MetaObjective = (typeof META_OBJECTIVES)[number];"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#PixelRow",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta"
+    ],
+    "file": "packages/channel-meta/src/ads.ts",
+    "kind": "interface",
+    "sig": "interface PixelRow { id: string; name?: string; creation_time?: string; last_fired_time?: string; is_unavailable?: boolean; }"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#Tree",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta"
+    ],
+    "file": "packages/channel-meta/src/ads.ts",
+    "kind": "interface",
+    "sig": "interface Tree { campaignId: string; adsetId: string; adId: string; }"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#URL_TAGS",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta"
+    ],
+    "file": "packages/channel-meta/src/ads.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"utm_source=meta&utm_medium=paid&utm_campaign={{campaign.id}}\""
+   }
+  },
+  {
+   "id": "@wren/channel-meta#Verdict",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta"
+    ],
+    "file": "packages/channel-meta/src/launches.ts",
+    "kind": "interface",
+    "sig": "interface Verdict { launch: AdLaunch; result: AdsetResult; pause: string | null; }"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#WATCH_KEY",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta/restate"
+    ],
+    "file": "packages/channel-meta/src/watch.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"default\""
+   }
+  },
+  {
+   "id": "@wren/channel-meta#WatchStats",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta/restate"
+    ],
+    "file": "packages/channel-meta/src/watch.ts",
+    "kind": "interface",
+    "sig": "interface WatchStats { active: number; days: number; verdicts: { campaignId: string; name: string; spendUsd: number; clicks: number; results: number; paused: boolean; }[]; failed: { campaignId: string; error: string }[]; ideas: { campaignId: string; ideaId: string }[]; insightsError?: string; }"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#accountIdOf",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta"
+    ],
+    "file": "packages/channel-meta/src/ads.ts",
+    "kind": "function",
+    "sig": "(id: string): string"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#activeLaunches",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta"
+    ],
+    "file": "packages/channel-meta/src/launches.ts",
+    "kind": "function",
+    "sig": "(db: Db): Promise<AdLaunch[]>"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#adDayRecord",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta/records"
+    ],
+    "file": "packages/channel-meta/src/records.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"@wren/core/records\").RecordType"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#adDays",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta",
+     "@wren/channel-meta/schema"
+    ],
+    "file": "packages/channel-meta/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"ad_days\"; schema: undefined; columns: { day: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"day\"; tableName: \"ad_days\"; dataType: \"string\"; columnType: \"PgDateString\"; data: string; driverParam: string; notNull: true; hasDefault: false; isPr…"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#adLaunches",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta",
+     "@wren/channel-meta/schema"
+    ],
+    "file": "packages/channel-meta/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"ad_launches\"; schema: undefined; columns: { name: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"name\"; tableName: \"ad_launches\"; dataType: \"string\"; columnType: \"PgVarchar\"; data: string; driverParam: string; notNull: true; hasDefault: fals…"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#audit",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta"
+    ],
+    "file": "packages/channel-meta/src/audit.ts",
+    "kind": "function",
+    "sig": "(e: Evidence, s: AuditSettings = auditSettingsSchema.parse({})): Audit"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#auditSettingsSchema",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta"
+    ],
+    "file": "packages/channel-meta/src/audit.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "z.ZodObject<{ pixelStaleDays: z.ZodDefault<z.ZodNumber>; minAdsPerAdset: z.ZodDefault<z.ZodNumber>; maxAdsetsPerCampaign: z.ZodDefault<z.ZodNumber>; minBudgetUse: z.ZodDefault<z.ZodNumber>; conversionLagDays: z.ZodDefault<z.ZodNumber>; }, z.core.$strict>"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#coldStart",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta"
+    ],
+    "file": "packages/channel-meta/src/audit.ts",
+    "kind": "function",
+    "sig": "(e: Evidence): ColdStart"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#controls",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta"
+    ],
+    "file": "packages/channel-meta/src/audit.ts",
+    "kind": "function",
+    "sig": "(e: Evidence, cold: ColdStart, s: AuditSettings): { scope: Audit[\"scope\"]; controls: Control[]; }"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#drafts",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta"
+    ],
+    "file": "packages/channel-meta/src/audit.ts",
+    "kind": "function",
+    "sig": "(cs: Control[], cold: ColdStart): Draft[]"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#facebookContent",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta"
+    ],
+    "file": "packages/channel-meta/src/content.ts",
+    "kind": "function",
+    "sig": "(sites: SiteClient, o: MetaContentOptions = {}): ContentChannel"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#fbCurveOf",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta"
+    ],
+    "file": "packages/channel-meta/src/content.ts",
+    "kind": "function",
+    "sig": "(graph: unknown): Array<{ ratio: number; watch: number }>"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#formatLaunches",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta"
+    ],
+    "file": "packages/channel-meta/src/launches.ts",
+    "kind": "function",
+    "sig": "(rows: AdLaunch[]): string[]"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#formatVerdicts",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta"
+    ],
+    "file": "packages/channel-meta/src/launches.ts",
+    "kind": "function",
+    "sig": "(vs: Verdict[]): string[]"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#gatherEvidence",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta"
+    ],
+    "file": "packages/channel-meta/src/audit.ts",
+    "kind": "function",
+    "sig": "(ads: MetaAds, now: Date, s: AuditSettings = auditSettingsSchema.parse({})): Promise<Evidence>"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#ideaFromVerdict",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta"
+    ],
+    "file": "packages/channel-meta/src/bridge.ts",
+    "kind": "function",
+    "sig": "(v: Verdict): string"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#igFollowersOf",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta"
+    ],
+    "file": "packages/channel-meta/src/content.ts",
+    "kind": "function",
+    "sig": "(metric: string, d: Demographics | undefined): InsightValue[]"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#igMetricsFor",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta"
+    ],
+    "file": "packages/channel-meta/src/content.ts",
+    "kind": "function",
+    "sig": "(kind: string | null | undefined): string[]"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#instagramContent",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta"
+    ],
+    "file": "packages/channel-meta/src/content.ts",
+    "kind": "function",
+    "sig": "(sites: SiteClient, o: MetaContentOptions = {}): ContentChannel"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#instagramWebContent",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta"
+    ],
+    "file": "packages/channel-meta/src/content-web.ts",
+    "kind": "function",
+    "sig": "(sites: SiteClient, o: { now?: () => Date; host?: MediaHost } = {}): ContentChannel"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#isWinner",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta"
+    ],
+    "file": "packages/channel-meta/src/bridge.ts",
+    "kind": "function",
+    "sig": "(v: Verdict): boolean"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#judge",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta"
+    ],
+    "file": "packages/channel-meta/src/launches.ts",
+    "kind": "function",
+    "sig": "(launches: AdLaunch[], rows: InsightRow[], o: { pauseAfterUsd: number }): Verdict[]"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#launchesByCampaign",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta"
+    ],
+    "file": "packages/channel-meta/src/launches.ts",
+    "kind": "function",
+    "sig": "(db: Db, campaignIds: string[]): Promise<AdLaunch[]>"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#leadsOf",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta"
+    ],
+    "file": "packages/channel-meta/src/days.ts",
+    "kind": "function",
+    "sig": "(row: InsightRow): number"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#listLaunches",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta"
+    ],
+    "file": "packages/channel-meta/src/launches.ts",
+    "kind": "function",
+    "sig": "(db: Db, limit = 50): Promise<AdLaunch[]>"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#makeAds",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta/restate"
+    ],
+    "file": "packages/channel-meta/src/restate.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(deps: AdsDeps): restate.ServiceDefinition<\"Ads\", { accounts: (ctx: restate.Context) => Promise<import(\"./ads.js\").AdAccount[]>; campaigns: (ctx: restate.Context) => Promise<import(\"./ads.js\").CampaignRow[]>; launch: (ctx: restate.Context, spec: LaunchSpec) => Promise<import(\"./ads.js\").Launched>; start: (ctx: resta…"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#makeAdsWatch",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta/restate"
+    ],
+    "file": "packages/channel-meta/src/watch.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(deps: AdsWatchDeps): restate.VirtualObjectDefinition<string, Record<never, never> & Record<never, (ctx: restate.ObjectContext) => Promise<PassOutcome<WatchStats>>> & { sync: (ctx: restate.ObjectContext) => Promise<PassOutcome<WatchStats>>; start: (ctx: restate.ObjectContext, settings?: Record<string, unknown> | null) =>…"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#markStarted",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta"
+    ],
+    "file": "packages/channel-meta/src/launches.ts",
+    "kind": "function",
+    "sig": "(db: Db, campaignId: string, dailyBudgetUsd: number, now = new Date()): Promise<AdLaunch | null>"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#markStopped",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta"
+    ],
+    "file": "packages/channel-meta/src/launches.ts",
+    "kind": "function",
+    "sig": "(db: Db, campaignId: string, reason: string | null = null, now = new Date()): Promise<AdLaunch | null>"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#marketingAdDayRecords",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta",
+     "@wren/channel-meta/schema"
+    ],
+    "file": "packages/channel-meta/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgViewWithSelection<\"marketing_ad_day_records\", false, { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"marketing_ad_day_records\"; dataType: \"string\"; columnType: \"PgText\"; data: string; driverParam: string; notNull: false; hasDefault: false; isPri…"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#metaAds",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta"
+    ],
+    "file": "packages/channel-meta/src/ads.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(sites: SiteClient, o: MetaAdsOptions = {}): { accounts: () => Promise<AdAccount[]>; account: () => Promise<AdAccount>; adsets: () => Promise<AdSetRow[]>; ads: () => Promise<AdRow[]>; pixels: () => Promise<PixelRow[]>; campaigns(): Promise<CampaignRow[]>; launch(spec: LaunchSpec): Promise<Launched>; leadForm: (form: LeadFormSpec, followUp?: st…"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#metaChecks",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta"
+    ],
+    "file": "packages/channel-meta/src/setups.ts",
+    "kind": "function",
+    "sig": "(sites: SiteClient): Record<string, SetupCheck>"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#recordLaunch",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta"
+    ],
+    "file": "packages/channel-meta/src/launches.ts",
+    "kind": "function",
+    "sig": "(db: Db, r: { adAccountId: string; spec: LaunchSpec; launched: Launched }): Promise<AdLaunch>"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#resultOf",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta"
+    ],
+    "file": "packages/channel-meta/src/launches.ts",
+    "kind": "function",
+    "sig": "(row: InsightRow): AdsetResult | null"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#score",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta"
+    ],
+    "file": "packages/channel-meta/src/audit.ts",
+    "kind": "function",
+    "sig": "(cs: Control[]): Pick<Audit, \"categories\" | \"health\" | \"coverage\" | \"grade\" | \"gaps\">"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#specFromPost",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta"
+    ],
+    "file": "packages/channel-meta/src/bridge.ts",
+    "kind": "function",
+    "sig": "(post: PostLike, o: SpecFromPostOptions = {}): LaunchSpec"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#threadsContent",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta"
+    ],
+    "file": "packages/channel-meta/src/threads.ts",
+    "kind": "function",
+    "sig": "(sites: SiteClient, o: ThreadsContentOptions = {}): ContentChannel"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#toMinor",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta"
+    ],
+    "file": "packages/channel-meta/src/ads.ts",
+    "kind": "function",
+    "sig": "(usd: number): number"
+   }
+  },
+  {
+   "id": "@wren/channel-meta#upsertAdDays",
+   "role": "export",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "entries": [
+     "@wren/channel-meta"
+    ],
+    "file": "packages/channel-meta/src/days.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, rows: readonly InsightRow[]): Promise<number>"
+   }
+  }
+ ],
+ "edges": []
+}

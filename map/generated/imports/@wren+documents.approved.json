@@ -1,0 +1,427 @@
+{
+ "layer": "imports",
+ "nodes": [
+  {
+   "id": "@wren/documents",
+   "role": "package",
+   "parent": "repo:wren",
+   "group": "@wren/documents",
+   "attrs": {
+    "dir": "packages/documents/",
+    "npm": [
+     "node:crypto"
+    ]
+   }
+  },
+  {
+   "id": "@wren/documents/src/components.ts",
+   "role": "file",
+   "parent": "@wren/documents",
+   "group": "@wren/documents"
+  },
+  {
+   "id": "@wren/documents/src/console-routes.ts",
+   "role": "file",
+   "parent": "@wren/documents",
+   "group": "@wren/documents"
+  },
+  {
+   "id": "@wren/documents/src/console.ts",
+   "role": "file",
+   "parent": "@wren/documents",
+   "group": "@wren/documents"
+  },
+  {
+   "id": "@wren/documents/src/documenso.ts",
+   "role": "file",
+   "parent": "@wren/documents",
+   "group": "@wren/documents"
+  },
+  {
+   "id": "@wren/documents/src/lines.ts",
+   "role": "file",
+   "parent": "@wren/documents",
+   "group": "@wren/documents"
+  },
+  {
+   "id": "@wren/documents/src/pdf.ts",
+   "role": "file",
+   "parent": "@wren/documents",
+   "group": "@wren/documents"
+  },
+  {
+   "id": "@wren/documents/src/records.ts",
+   "role": "file",
+   "parent": "@wren/documents",
+   "group": "@wren/documents"
+  },
+  {
+   "id": "@wren/documents/src/render.ts",
+   "role": "file",
+   "parent": "@wren/documents",
+   "group": "@wren/documents"
+  },
+  {
+   "id": "@wren/documents/src/schema.ts",
+   "role": "file",
+   "parent": "@wren/documents",
+   "group": "@wren/documents"
+  },
+  {
+   "id": "@wren/documents/src/service.ts",
+   "role": "file",
+   "parent": "@wren/documents",
+   "group": "@wren/documents"
+  },
+  {
+   "id": "@wren/documents/src/store.ts",
+   "role": "file",
+   "parent": "@wren/documents",
+   "group": "@wren/documents"
+  },
+  {
+   "id": "@wren/documents/vitest.config.ts",
+   "role": "file",
+   "parent": "@wren/documents",
+   "group": "@wren/documents"
+  }
+ ],
+ "edges": [
+  {
+   "from": "@wren/documents",
+   "to": "@wren/channel-sms",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/documents",
+   "to": "@wren/core",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/documents",
+   "to": "@wren/db",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/documents",
+   "to": "@wren/payments",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/documents/src/components.ts",
+   "to": "@wren/core/src/components.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/documents/src/components.ts",
+   "to": "@wren/documents/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/documents/src/console-routes.ts",
+   "to": "@wren/core/src/access.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/documents/src/console.ts",
+   "to": "@wren/channel-sms/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/documents/src/console.ts",
+   "to": "@wren/channel-sms/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/documents/src/console.ts",
+   "to": "@wren/core/src/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/documents/src/console.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/documents/src/console.ts",
+   "to": "@wren/core/src/custom-fields.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/documents/src/console.ts",
+   "to": "@wren/core/src/ids.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/documents/src/console.ts",
+   "to": "@wren/core/src/portal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/documents/src/console.ts",
+   "to": "@wren/core/src/records-serve.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/documents/src/console.ts",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/documents/src/console.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/documents/src/console.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/documents/src/console.ts",
+   "to": "@wren/documents/src/console-routes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/documents/src/console.ts",
+   "to": "@wren/documents/src/pdf.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/documents/src/console.ts",
+   "to": "@wren/documents/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/documents/src/console.ts",
+   "to": "@wren/documents/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/documents/src/console.ts",
+   "to": "@wren/documents/src/service.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/documents/src/console.ts",
+   "to": "@wren/documents/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/documents/src/pdf.ts",
+   "to": "@wren/documents/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/documents/src/pdf.ts",
+   "to": "@wren/documents/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/documents/src/records.ts",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/documents/src/records.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/documents/src/records.ts",
+   "to": "@wren/documents/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/documents/src/records.ts",
+   "to": "@wren/documents/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/documents/src/records.ts",
+   "to": "@wren/payments/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/documents/src/render.ts",
+   "to": "@wren/documents/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/documents/src/render.ts",
+   "to": "@wren/documents/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/documents/src/schema.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/documents/src/schema.ts",
+   "to": "@wren/db/src/columns.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/documents/src/schema.ts",
+   "to": "@wren/documents/src/lines.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/documents/src/service.ts",
+   "to": "@wren/channel-sms/src/restate/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/documents/src/service.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/documents/src/service.ts",
+   "to": "@wren/core/src/custom-fields.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/documents/src/service.ts",
+   "to": "@wren/core/src/executor.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/documents/src/service.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/documents/src/service.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/documents/src/service.ts",
+   "to": "@wren/documents/src/components.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/documents/src/service.ts",
+   "to": "@wren/documents/src/documenso.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/documents/src/service.ts",
+   "to": "@wren/documents/src/pdf.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/documents/src/service.ts",
+   "to": "@wren/documents/src/render.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/documents/src/service.ts",
+   "to": "@wren/documents/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/documents/src/service.ts",
+   "to": "@wren/documents/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/documents/src/service.ts",
+   "to": "@wren/payments/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/documents/src/service.ts",
+   "to": "@wren/payments/src/service.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/documents/src/service.ts",
+   "to": "@wren/payments/src/states.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/documents/src/service.ts",
+   "to": "@wren/payments/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/documents/src/service.ts",
+   "to": "@wren/payments/src/stripe.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/documents/src/store.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/documents/src/store.ts",
+   "to": "@wren/core/src/ids.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/documents/src/store.ts",
+   "to": "@wren/core/src/refusal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/documents/src/store.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/documents/src/store.ts",
+   "to": "@wren/documents/src/lines.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/documents/src/store.ts",
+   "to": "@wren/documents/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/documents/vitest.config.ts",
+   "to": "@wren/db/src/testing-vitest.ts",
+   "kind": "imports"
+  }
+ ]
+}

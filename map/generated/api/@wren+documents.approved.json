@@ -1,0 +1,1741 @@
+{
+ "layer": "api",
+ "nodes": [
+  {
+   "id": "@wren/documents#Answer",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/service"
+    ],
+    "file": "packages/documents/src/service.ts",
+    "kind": "interface",
+    "sig": "interface Answer { status: number; html?: string; pdf?: string; filename?: string; location?: string; }"
+   }
+  },
+  {
+   "id": "@wren/documents#CONSENT_WORDS",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/store.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"I agree to sign electronically. Typing my name is my signature.\""
+   }
+  },
+  {
+   "id": "@wren/documents#Client",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/service"
+    ],
+    "file": "packages/core/src/clients/schema.ts",
+    "kind": "type",
+    "sig": "type Client = typeof clients.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/documents#CreateRequest",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/console"
+    ],
+    "file": "packages/documents/src/console.ts",
+    "kind": "interface",
+    "sig": "interface CreateRequest extends PortalRequest, DocFields {}"
+   }
+  },
+  {
+   "id": "@wren/documents#DOCUMENTS",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/components"
+    ],
+    "file": "packages/documents/src/components.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"documents.docs\""
+   }
+  },
+  {
+   "id": "@wren/documents#DOCUMENTS_COMPONENTS",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/components"
+    ],
+    "file": "packages/documents/src/components.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"@wren/core/components\").Component[]"
+   }
+  },
+  {
+   "id": "@wren/documents#DOCUMENTS_CONSOLE_APPS",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/console-routes"
+    ],
+    "file": "packages/documents/src/console-routes.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly \"*\": \"documents\"; readonly recordsTypes: null; readonly recordsList: null; readonly recordsGet: null; readonly recordsExport: null; readonly recordsStats: null; }"
+   }
+  },
+  {
+   "id": "@wren/documents#DOCUMENTS_CONSOLE_ROUTES",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/console-routes"
+    ],
+    "file": "packages/documents/src/console-routes.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly recordsTypes: \"read\"; readonly recordsList: \"read\"; readonly recordsGet: \"read\"; readonly recordsExport: \"read\"; readonly recordsStats: \"read\"; readonly templates: \"read\"; readonly pdf: \"read\"; readonly create: \"act\"; readonly update: \"act\"; readonly send: \"act\"; readonly approve: \"act\"; …"
+   }
+  },
+  {
+   "id": "@wren/documents#DOCUMENTS_CONSOLE_WRITES",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/console-routes"
+    ],
+    "file": "packages/documents/src/console-routes.ts",
+    "kind": "const",
+    "sig": "readonly DocumentsConsoleRoute[]"
+   }
+  },
+  {
+   "id": "@wren/documents#DOCUMENTS_RECORDS",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/records"
+    ],
+    "file": "packages/documents/src/records.ts",
+    "kind": "const",
+    "sig": "readonly RecordType[]"
+   }
+  },
+  {
+   "id": "@wren/documents#DOCUMENTS_SERVICE",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/service"
+    ],
+    "file": "packages/documents/src/service.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly name: \"Documents\"; }"
+   }
+  },
+  {
+   "id": "@wren/documents#DOC_CHANNELS",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/schema"
+    ],
+    "file": "packages/documents/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"email\", \"sms\"]"
+   }
+  },
+  {
+   "id": "@wren/documents#DOC_EVENTS",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/schema"
+    ],
+    "file": "packages/documents/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"made\", \"asked\", \"sent\", \"viewed\", \"signed\", \"declined\", \"paid\", \"voided\", \"expired\", \"reminded\"]"
+   }
+  },
+  {
+   "id": "@wren/documents#DOC_KINDS",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/lines",
+     "@wren/documents/schema",
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/lines.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"contract\", \"proposal\", \"estimate\"]"
+   }
+  },
+  {
+   "id": "@wren/documents#DOC_RECORD",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/records"
+    ],
+    "file": "packages/documents/src/records.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"documents.document\""
+   }
+  },
+  {
+   "id": "@wren/documents#DOC_SIGNINGS",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/schema"
+    ],
+    "file": "packages/documents/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"own\", \"sealed\"]"
+   }
+  },
+  {
+   "id": "@wren/documents#DOC_STATUSES",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/schema"
+    ],
+    "file": "packages/documents/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"draft\", \"waiting\", \"sending\", \"sent\", \"viewed\", \"signed\", \"declined\", \"expired\", \"void\", \"failed\"]"
+   }
+  },
+  {
+   "id": "@wren/documents#Doc",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/schema"
+    ],
+    "file": "packages/documents/src/schema.ts",
+    "kind": "type",
+    "sig": "type Doc = typeof docs.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/documents#DocChannel",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/schema"
+    ],
+    "file": "packages/documents/src/schema.ts",
+    "kind": "type",
+    "sig": "type DocChannel = (typeof DOC_CHANNELS)[number];"
+   }
+  },
+  {
+   "id": "@wren/documents#DocEvent",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/schema"
+    ],
+    "file": "packages/documents/src/schema.ts",
+    "kind": "type",
+    "sig": "type DocEvent = typeof docEvents.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/documents#DocEventType",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/schema"
+    ],
+    "file": "packages/documents/src/schema.ts",
+    "kind": "type",
+    "sig": "type DocEventType = (typeof DOC_EVENTS)[number];"
+   }
+  },
+  {
+   "id": "@wren/documents#DocKind",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/lines",
+     "@wren/documents/schema",
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/lines.ts",
+    "kind": "type",
+    "sig": "type DocKind = (typeof DOC_KINDS)[number];"
+   }
+  },
+  {
+   "id": "@wren/documents#DocLine",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/lines",
+     "@wren/documents/schema",
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/lines.ts",
+    "kind": "interface",
+    "sig": "interface DocLine { name: string; detail?: string | null; qty: number; unit_cents: number; tax_pct?: number | null; }"
+   }
+  },
+  {
+   "id": "@wren/documents#DocRefusal",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/store.ts",
+    "kind": "class",
+    "sig": ""
+   }
+  },
+  {
+   "id": "@wren/documents#DocSigning",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/schema"
+    ],
+    "file": "packages/documents/src/schema.ts",
+    "kind": "type",
+    "sig": "type DocSigning = (typeof DOC_SIGNINGS)[number];"
+   }
+  },
+  {
+   "id": "@wren/documents#DocStatus",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/schema"
+    ],
+    "file": "packages/documents/src/schema.ts",
+    "kind": "type",
+    "sig": "type DocStatus = (typeof DOC_STATUSES)[number];"
+   }
+  },
+  {
+   "id": "@wren/documents#DocTemplate",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/schema"
+    ],
+    "file": "packages/documents/src/schema.ts",
+    "kind": "type",
+    "sig": "type DocTemplate = typeof docTemplates.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/documents#Documenso",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/documenso"
+    ],
+    "file": "packages/documents/src/documenso.ts",
+    "kind": "type",
+    "sig": "type Documenso = ReturnType<typeof documenso>;"
+   }
+  },
+  {
+   "id": "@wren/documents#DocumensoError",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/documenso"
+    ],
+    "file": "packages/documents/src/documenso.ts",
+    "kind": "class",
+    "sig": "constructor(readonly status: number, message: string); get transient()"
+   }
+  },
+  {
+   "id": "@wren/documents#DocumentsDeps",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/service"
+    ],
+    "file": "packages/documents/src/service.ts",
+    "kind": "interface",
+    "sig": "interface DocumentsDeps extends Pick< PaymentsDeps, \"main\" | \"open\" | \"keys\" | \"fetch\" | \"portal\" | \"stripeBase\" | \"stripeRetry\" > { mailer: ((from: string) => SendMail) | null; fire?: FireTriggers; documenso?: Documenso | null; files?: SealedStore | null; esignRetry?: PaymentsDeps[\"stripeRetry\"]; }"
+   }
+  },
+  {
+   "id": "@wren/documents#DocumentsService",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/service"
+    ],
+    "file": "packages/documents/src/service.ts",
+    "kind": "type",
+    "sig": "type DocumentsService = ReturnType<typeof makeDocuments>;"
+   }
+  },
+  {
+   "id": "@wren/documents#IdRequest",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/console"
+    ],
+    "file": "packages/documents/src/console.ts",
+    "kind": "interface",
+    "sig": "interface IdRequest extends PortalRequest { id: string; }"
+   }
+  },
+  {
+   "id": "@wren/documents#IdsRequest",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/console"
+    ],
+    "file": "packages/documents/src/console.ts",
+    "kind": "interface",
+    "sig": "interface IdsRequest extends PortalRequest { ids: string[]; }"
+   }
+  },
+  {
+   "id": "@wren/documents#KIND_NAME",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/lines",
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/lines.ts",
+    "kind": "const",
+    "sig": "Record<DocKind, string>"
+   }
+  },
+  {
+   "id": "@wren/documents#KIND_PREFIX",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/lines",
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/lines.ts",
+    "kind": "const",
+    "sig": "Record<DocKind, string>"
+   }
+  },
+  {
+   "id": "@wren/documents#OPEN",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/store.ts",
+    "kind": "const",
+    "sig": "readonly DocStatus[]"
+   }
+  },
+  {
+   "id": "@wren/documents#PageCtx",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/render"
+    ],
+    "file": "packages/documents/src/render.ts",
+    "kind": "interface",
+    "sig": "interface PageCtx { business: string; look: PageLook; token: string; siteKey: string | null; reach: { phone: string | null; email: string | null }; error?: string | null; typed?: { name?: string; email?: string } | null; deposit?: \"pay\" | \"paid\" | \"clearing\" | \"refunded\" | null | undefined; }"
+   }
+  },
+  {
+   "id": "@wren/documents#SEALED_CONSENT_VERSION",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/store.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"2026-10-21\""
+   }
+  },
+  {
+   "id": "@wren/documents#SEALED_CONSENT_WORDS",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/store.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"By signing I agree to use electronic records and an electronic signature. My signature here has the same effect as a handwritten one. I can keep a copy and ask for a paper one.\""
+   }
+  },
+  {
+   "id": "@wren/documents#SIGN_LABEL",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/lines",
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/lines.ts",
+    "kind": "const",
+    "sig": "Record<DocKind, string>"
+   }
+  },
+  {
+   "id": "@wren/documents#SLOT_NAMES",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/lines",
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/lines.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly \"contact.name\": \"Their full name\"; readonly \"contact.first_name\": \"Their first name\"; readonly \"contact.email\": \"Their email\"; readonly \"biz.name\": \"Your business name\"; readonly \"biz.phone\": \"Your phone (a business fact)\"; readonly \"biz.email\": \"Your email (a business fact)\"; readonly \"d…"
+   }
+  },
+  {
+   "id": "@wren/documents#SealedFiles",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/schema"
+    ],
+    "file": "packages/documents/src/schema.ts",
+    "kind": "interface",
+    "sig": "interface SealedFiles { pdf: string; certificate: string; audit: string; sha256: string; at: string; }"
+   }
+  },
+  {
+   "id": "@wren/documents#SendMail",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/service"
+    ],
+    "file": "packages/documents/src/service.ts",
+    "kind": "type",
+    "sig": "type SendMail = (m: { to: string; subject: string; text: string }) => Promise<void>;"
+   }
+  },
+  {
+   "id": "@wren/documents#Signing",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/store.ts",
+    "kind": "interface",
+    "sig": "interface Signing extends Visit { name: unknown; email: unknown; consent: unknown; sha: unknown; }"
+   }
+  },
+  {
+   "id": "@wren/documents#TEMPLATE_RECORD",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/records"
+    ],
+    "file": "packages/documents/src/records.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"documents.template\""
+   }
+  },
+  {
+   "id": "@wren/documents#TOKEN",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/store.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "RegExp"
+   }
+  },
+  {
+   "id": "@wren/documents#TemplateRequest",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/console"
+    ],
+    "file": "packages/documents/src/console.ts",
+    "kind": "interface",
+    "sig": "interface TemplateRequest extends PortalRequest { id?: string | null; kind?: string | null; name?: string | null; body?: string | null; lines?: unknown; depositPct?: number | string | null; expiresDays?: number | string | null; expect?: unknown; }"
+   }
+  },
+  {
+   "id": "@wren/documents#Visit",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/store.ts",
+    "kind": "interface",
+    "sig": "interface Visit { ip?: string | null | undefined; agent?: string | null | undefined; now: Date; }"
+   }
+  },
+  {
+   "id": "@wren/documents#WREN_CLIENT",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/service"
+    ],
+    "file": "packages/documents/src/service.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"wren\""
+   }
+  },
+  {
+   "id": "@wren/documents#ansi",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/pdf"
+    ],
+    "file": "packages/documents/src/pdf.ts",
+    "kind": "function",
+    "sig": "(s: string): string"
+   }
+  },
+  {
+   "id": "@wren/documents#approveDocs",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/store.ts",
+    "kind": "function",
+    "sig": "(main: Db, ids: readonly string[], by: string, now: Date): Promise<Doc[]>"
+   }
+  },
+  {
+   "id": "@wren/documents#archiveTemplates",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/store.ts",
+    "kind": "function",
+    "sig": "(main: Queryable, client: string, ids: readonly string[], now: Date): Promise<number>"
+   }
+  },
+  {
+   "id": "@wren/documents#askSend",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/store.ts",
+    "kind": "function",
+    "sig": "(main: Db, client: string, id: string, a: { facts: Readonly<Record<string, string>>; by: string; approved: boolean; sealedOn?: boolean; now: Date; }): Promise<Doc>"
+   }
+  },
+  {
+   "id": "@wren/documents#centsOf",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/store.ts",
+    "kind": "function",
+    "sig": "(amount: unknown): number"
+   }
+  },
+  {
+   "id": "@wren/documents#declineDoc",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/store.ts",
+    "kind": "function",
+    "sig": "(main: Db, d: Doc, v: Visit & { why?: unknown }): Promise<Doc>"
+   }
+  },
+  {
+   "id": "@wren/documents#declineDocs",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/store.ts",
+    "kind": "function",
+    "sig": "(main: Db, ids: readonly string[], by: string, now: Date): Promise<number>"
+   }
+  },
+  {
+   "id": "@wren/documents#depositOf",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/lines"
+    ],
+    "file": "packages/documents/src/lines.ts",
+    "kind": "function",
+    "sig": "(total: number, pct: number | null | undefined): number | null"
+   }
+  },
+  {
+   "id": "@wren/documents#docApprovalId",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/store.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(id: string): string"
+   }
+  },
+  {
+   "id": "@wren/documents#docByEnvelope",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/store.ts",
+    "kind": "function",
+    "sig": "(main: Queryable, envelopeId: string): Promise<Doc | null>"
+   }
+  },
+  {
+   "id": "@wren/documents#docById",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/store.ts",
+    "kind": "function",
+    "sig": "(main: Queryable, id: string): Promise<Doc | null>"
+   }
+  },
+  {
+   "id": "@wren/documents#docByToken",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/store.ts",
+    "kind": "function",
+    "sig": "(main: Db, token: string, client: string | null, now: Date): Promise<Doc | null>"
+   }
+  },
+  {
+   "id": "@wren/documents#docCounters",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/schema"
+    ],
+    "file": "packages/documents/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"doc_counters\"; schema: undefined; columns: { client: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"client\"; tableName: \"doc_counters\"; dataType: \"string\"; columnType: \"PgVarchar\"; data: string; driverParam: string; notNull: true; hasDefault…"
+   }
+  },
+  {
+   "id": "@wren/documents#docEvents",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/schema"
+    ],
+    "file": "packages/documents/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"doc_events\"; schema: undefined; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"doc_events\"; dataType: \"number\"; columnType: \"PgBigSerial53\"; data: number; driverParam: number; notNull: true; hasDefault: true; …"
+   }
+  },
+  {
+   "id": "@wren/documents#docEventsOf",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/store.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(main: Queryable, id: string): Promise<{ id: number; document: string; type: string; at: Date; by: string; ip: string | null; agent: string | null; note: string | null; }[]>"
+   }
+  },
+  {
+   "id": "@wren/documents#docIdOf",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/store.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(id: string): string"
+   }
+  },
+  {
+   "id": "@wren/documents#docOf",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/store.ts",
+    "kind": "function",
+    "sig": "(main: Queryable, client: string, id: string): Promise<Doc>"
+   }
+  },
+  {
+   "id": "@wren/documents#docPage",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/render"
+    ],
+    "file": "packages/documents/src/render.ts",
+    "kind": "function",
+    "sig": "(d: Doc, ctx: PageCtx): string"
+   }
+  },
+  {
+   "id": "@wren/documents#docPath",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/store.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(token: string): string"
+   }
+  },
+  {
+   "id": "@wren/documents#docPdf",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/pdf"
+    ],
+    "file": "packages/documents/src/pdf.ts",
+    "kind": "function",
+    "sig": "(d: Doc, events: readonly DocEvent[], business: string): Promise<Uint8Array>"
+   }
+  },
+  {
+   "id": "@wren/documents#docTemplates",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/schema"
+    ],
+    "file": "packages/documents/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"doc_templates\"; schema: undefined; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"doc_templates\"; dataType: \"string\"; columnType: \"PgUUID\"; data: string; driverParam: string; notNull: true; hasDefault: true; i…"
+   }
+  },
+  {
+   "id": "@wren/documents#docs",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/schema"
+    ],
+    "file": "packages/documents/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"docs\"; schema: undefined; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"docs\"; dataType: \"string\"; columnType: \"PgUUID\"; data: string; driverParam: string; notNull: true; hasDefault: true; isPrimaryKey: false…"
+   }
+  },
+  {
+   "id": "@wren/documents#documenso",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/documenso"
+    ],
+    "file": "packages/documents/src/documenso.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(cfg: DocumensoConfig): { create(o: { title: string; externalId: string; signer: { name: string; email: string; }; pdf: Uint8Array; }): Promise<string>; distribute(envelopeId: string): Promise<string>; look: (envelopeId: string) => Promise<{ status: string; url: string | null; }>; sealed(envelopeId: string): Promise<Sealed…"
+   }
+  },
+  {
+   "id": "@wren/documents#documentRecordFor",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/records"
+    ],
+    "file": "packages/documents/src/records.ts",
+    "kind": "function",
+    "sig": "(client: string): RecordType"
+   }
+  },
+  {
+   "id": "@wren/documents#documentsConsoleApi",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/console"
+    ],
+    "file": "packages/documents/src/console.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(deps: DocumentsConsoleDeps): { recordsTypes: (req: PortalRequest) => Promise<import(\"@wren/core/records\").RecordMeta[]>; recordsList: (req: PortalRequest & ListAsk) => Promise<import(\"@wren/core/records/serve\").RecordsPage>; recordsGet: (req: PortalRequest & GetAsk) => Promise<import(\"@wren/core/records/serve\").RecordAnswer>; r…"
+   }
+  },
+  {
+   "id": "@wren/documents#duplicateDoc",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/store.ts",
+    "kind": "function",
+    "sig": "(main: Db, client: string, id: string, by: string, now: Date): Promise<Doc>"
+   }
+  },
+  {
+   "id": "@wren/documents#editDoc",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/store.ts",
+    "kind": "function",
+    "sig": "(main: Queryable, client: string, id: string, p: DocPatch, now: Date): Promise<Doc>"
+   }
+  },
+  {
+   "id": "@wren/documents#ensureStarters",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/store.ts",
+    "kind": "function",
+    "sig": "(main: Queryable, client: string, by: string): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/documents#esc",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/render"
+    ],
+    "file": "packages/documents/src/render.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(s: unknown): string"
+   }
+  },
+  {
+   "id": "@wren/documents#eventOf",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/documenso"
+    ],
+    "file": "packages/documents/src/documenso.ts",
+    "kind": "function",
+    "sig": "(body: unknown): DocumensoEvent | null"
+   }
+  },
+  {
+   "id": "@wren/documents#factsFor",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/store.ts",
+    "kind": "function",
+    "sig": "(d: Pick< Doc, \"name\" | \"email\" | \"number\" | \"totalCents\" | \"depositCents\" | \"currency\" | \"expiresAt\" >, facts: Readonly<Record<string, string>> = {}): Record<string, string>"
+   }
+  },
+  {
+   "id": "@wren/documents#factsOf",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/console"
+    ],
+    "file": "packages/documents/src/console.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(main: Db, client: Pick<Client, \"id\" | \"name\">): Promise<{ \"biz.name\": string; }>"
+   }
+  },
+  {
+   "id": "@wren/documents#fillSlots",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/lines",
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/lines.ts",
+    "kind": "function",
+    "sig": "(text: string, values: Readonly<Record<string, string>>): string"
+   }
+  },
+  {
+   "id": "@wren/documents#freezeDoc",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/store.ts",
+    "kind": "function",
+    "sig": "(main: Db, id: string, now: Date): Promise<Doc>"
+   }
+  },
+  {
+   "id": "@wren/documents#hostOf",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/service"
+    ],
+    "file": "packages/documents/src/service.ts",
+    "kind": "function",
+    "sig": "(main: Db, client: string, portal: string): Promise<string>"
+   }
+  },
+  {
+   "id": "@wren/documents#invoicePdf",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/pdf"
+    ],
+    "file": "packages/documents/src/pdf.ts",
+    "kind": "function",
+    "sig": "(i: InvoicePdf): Promise<Uint8Array>"
+   }
+  },
+  {
+   "id": "@wren/documents#isKind",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/store.ts",
+    "kind": "function",
+    "sig": "(v: unknown): v is DocKind"
+   }
+  },
+  {
+   "id": "@wren/documents#isSigning",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/store.ts",
+    "kind": "function",
+    "sig": "(v: unknown): v is DocSigning"
+   }
+  },
+  {
+   "id": "@wren/documents#issueLink",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/store.ts",
+    "kind": "function",
+    "sig": "(main: Db, id: string, now: Date): Promise<string>"
+   }
+  },
+  {
+   "id": "@wren/documents#keepEnvelope",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/store.ts",
+    "kind": "function",
+    "sig": "(main: Db, id: string, envelopeId: string, now: Date, was: string | null = null): Promise<string>"
+   }
+  },
+  {
+   "id": "@wren/documents#keepPayLink",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/store.ts",
+    "kind": "function",
+    "sig": "(main: Db, id: string, link: string, now: Date, replacing: string | null = null): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/documents#lineAmount",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/lines",
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/lines.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(l: DocLine): number"
+   }
+  },
+  {
+   "id": "@wren/documents#lineTax",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/lines",
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/lines.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(l: DocLine): number"
+   }
+  },
+  {
+   "id": "@wren/documents#linesOf",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/store.ts",
+    "kind": "function",
+    "sig": "(input: unknown): DocLine[]"
+   }
+  },
+  {
+   "id": "@wren/documents#lookOf",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/render"
+    ],
+    "file": "packages/documents/src/render.ts",
+    "kind": "function",
+    "sig": "(raw: unknown): PageLook"
+   }
+  },
+  {
+   "id": "@wren/documents#makeDoc",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/store.ts",
+    "kind": "function",
+    "sig": "(main: Db, n: NewDoc): Promise<Doc>"
+   }
+  },
+  {
+   "id": "@wren/documents#makeDocuments",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/service"
+    ],
+    "file": "packages/documents/src/service.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(deps: DocumentsDeps): restate.ServiceDefinition<\"Documents\", { send: (ctx: restate.Context, req: { id: string; remind?: boolean | null; by?: string | null; }) => Promise<{ sent: boolean; url: null; why?: never; } | { sent: boolean; why: string; url: null; } | { sent: boolean; url: string; why?: never; }>; serve: (ctx: re…"
+   }
+  },
+  {
+   "id": "@wren/documents#makeDocumentsConsole",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/console"
+    ],
+    "file": "packages/documents/src/console.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(deps: DocumentsConsoleDeps): restate.ServiceDefinition<\"DocumentsConsole\", { recordsTypes: (_: restate.Context, req: PortalRequest) => Promise<import(\"@wren/core/records\").RecordMeta[]>; recordsList: (_: restate.Context, req: PortalRequest & ListAsk) => Promise<import(\"@wren/core/records/serve\").RecordsPage>; recordsGet: (_: re…"
+   }
+  },
+  {
+   "id": "@wren/documents#markFailed",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/store.ts",
+    "kind": "function",
+    "sig": "(main: Db, id: string, why: string, now: Date): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/documents#markSent",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/store.ts",
+    "kind": "function",
+    "sig": "(main: Db, id: string, s: { message: number | null; by: string; now: Date; remind?: boolean }): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/documents#money",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/lines",
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/lines.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(cents: number, currency = \"usd\"): string"
+   }
+  },
+  {
+   "id": "@wren/documents#newToken",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/store.ts",
+    "kind": "function",
+    "sig": "(): { token: string; hash: string }"
+   }
+  },
+  {
+   "id": "@wren/documents#remindable",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/store.ts",
+    "kind": "function",
+    "sig": "(d: Doc, now: Date): string | null"
+   }
+  },
+  {
+   "id": "@wren/documents#saveTemplate",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/store.ts",
+    "kind": "function",
+    "sig": "(main: Queryable, client: string, input: TemplateInput, by: string, now: Date): Promise<DocTemplate>"
+   }
+  },
+  {
+   "id": "@wren/documents#sealSigned",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/store.ts",
+    "kind": "function",
+    "sig": "(main: Db, d: Doc, s: { signer: SealedSigner; files: SealedFiles; now: Date }): Promise<Doc | null>"
+   }
+  },
+  {
+   "id": "@wren/documents#sealedCancelled",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/store.ts",
+    "kind": "function",
+    "sig": "(main: Db, d: Doc, now: Date): Promise<Doc | null>"
+   }
+  },
+  {
+   "id": "@wren/documents#sealedPdf",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/pdf"
+    ],
+    "file": "packages/documents/src/pdf.ts",
+    "kind": "function",
+    "sig": "(d: Doc, business: string): Promise<Uint8Array>"
+   }
+  },
+  {
+   "id": "@wren/documents#sealedRejected",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/store.ts",
+    "kind": "function",
+    "sig": "(main: Db, d: Doc, s: { why: string | null; now: Date }): Promise<Doc | null>"
+   }
+  },
+  {
+   "id": "@wren/documents#seeDoc",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/store.ts",
+    "kind": "function",
+    "sig": "(main: Db, d: Doc, v: Visit): Promise<\"first\" | \"again\" | null>"
+   }
+  },
+  {
+   "id": "@wren/documents#sendBlocker",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/store.ts",
+    "kind": "function",
+    "sig": "(d: Doc): string | null"
+   }
+  },
+  {
+   "id": "@wren/documents#sha256",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/store.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(s: string): string"
+   }
+  },
+  {
+   "id": "@wren/documents#shaOf",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/store.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(d: Shown): string"
+   }
+  },
+  {
+   "id": "@wren/documents#shutPage",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/render"
+    ],
+    "file": "packages/documents/src/render.ts",
+    "kind": "function",
+    "sig": "(why: \"expired\" | \"void\" | \"missing\", ctx: Pick<PageCtx, \"business\" | \"look\" | \"reach\">): string"
+   }
+  },
+  {
+   "id": "@wren/documents#signDoc",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/store.ts",
+    "kind": "function",
+    "sig": "(main: Db, d: Doc, s: Signing): Promise<Doc>"
+   }
+  },
+  {
+   "id": "@wren/documents#slotsLeft",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/lines",
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/lines.ts",
+    "kind": "function",
+    "sig": "(...texts: string[]): string[]"
+   }
+  },
+  {
+   "id": "@wren/documents#templateRecordFor",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/records"
+    ],
+    "file": "packages/documents/src/records.ts",
+    "kind": "function",
+    "sig": "(client: string): RecordType"
+   }
+  },
+  {
+   "id": "@wren/documents#totalsOf",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/lines",
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/lines.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(lines: readonly DocLine[]): { subtotalCents: number; taxCents: number; totalCents: number; }"
+   }
+  },
+  {
+   "id": "@wren/documents#versionAt",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/store.ts",
+    "kind": "function",
+    "sig": "(at: Date): string"
+   }
+  },
+  {
+   "id": "@wren/documents#voidDocs",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/store.ts",
+    "kind": "function",
+    "sig": "(main: Db, client: string, ids: readonly string[], by: string, now: Date): Promise<Array<{ id: string; envelopeId: string | null }>>"
+   }
+  },
+  {
+   "id": "@wren/documents#waitingDocs",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/store.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(main: Queryable): Promise<{ id: string; client: string; clientName: string | null; kind: string; number: string; title: string; name: string | null; email: string | null; channel: string; total: number; currency: string; by: string; at: Date; }[]>"
+   }
+  },
+  {
+   "id": "@wren/documents/store#depositOf",
+   "role": "export",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "entries": [
+     "@wren/documents/store"
+    ],
+    "file": "packages/documents/src/store.ts",
+    "kind": "function",
+    "sig": "(total: number, pct: number | null | undefined): number | null"
+   }
+  }
+ ],
+ "edges": []
+}

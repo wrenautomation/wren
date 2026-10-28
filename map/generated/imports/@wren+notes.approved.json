@@ -1,0 +1,1016 @@
+{
+ "layer": "imports",
+ "nodes": [
+  {
+   "id": "@wren/notes",
+   "role": "package",
+   "parent": "repo:wren",
+   "group": "@wren/notes",
+   "attrs": {
+    "dir": "packages/notes/"
+   }
+  },
+  {
+   "id": "@wren/notes/src/access.ts",
+   "role": "file",
+   "parent": "@wren/notes",
+   "group": "@wren/notes"
+  },
+  {
+   "id": "@wren/notes/src/boards.ts",
+   "role": "file",
+   "parent": "@wren/notes",
+   "group": "@wren/notes"
+  },
+  {
+   "id": "@wren/notes/src/chips.ts",
+   "role": "file",
+   "parent": "@wren/notes",
+   "group": "@wren/notes"
+  },
+  {
+   "id": "@wren/notes/src/console-boards.ts",
+   "role": "file",
+   "parent": "@wren/notes",
+   "group": "@wren/notes"
+  },
+  {
+   "id": "@wren/notes/src/console-comments.ts",
+   "role": "file",
+   "parent": "@wren/notes",
+   "group": "@wren/notes"
+  },
+  {
+   "id": "@wren/notes/src/console-context.ts",
+   "role": "file",
+   "parent": "@wren/notes",
+   "group": "@wren/notes"
+  },
+  {
+   "id": "@wren/notes/src/console-pages.ts",
+   "role": "file",
+   "parent": "@wren/notes",
+   "group": "@wren/notes"
+  },
+  {
+   "id": "@wren/notes/src/console-records.ts",
+   "role": "file",
+   "parent": "@wren/notes",
+   "group": "@wren/notes"
+  },
+  {
+   "id": "@wren/notes/src/console-routes.ts",
+   "role": "file",
+   "parent": "@wren/notes",
+   "group": "@wren/notes"
+  },
+  {
+   "id": "@wren/notes/src/console-sharing.ts",
+   "role": "file",
+   "parent": "@wren/notes",
+   "group": "@wren/notes"
+  },
+  {
+   "id": "@wren/notes/src/console-training.ts",
+   "role": "file",
+   "parent": "@wren/notes",
+   "group": "@wren/notes"
+  },
+  {
+   "id": "@wren/notes/src/console-writes.ts",
+   "role": "file",
+   "parent": "@wren/notes",
+   "group": "@wren/notes"
+  },
+  {
+   "id": "@wren/notes/src/console.ts",
+   "role": "file",
+   "parent": "@wren/notes",
+   "group": "@wren/notes"
+  },
+  {
+   "id": "@wren/notes/src/diff.ts",
+   "role": "file",
+   "parent": "@wren/notes",
+   "group": "@wren/notes"
+  },
+  {
+   "id": "@wren/notes/src/doc.ts",
+   "role": "file",
+   "parent": "@wren/notes",
+   "group": "@wren/notes"
+  },
+  {
+   "id": "@wren/notes/src/docx.ts",
+   "role": "file",
+   "parent": "@wren/notes",
+   "group": "@wren/notes"
+  },
+  {
+   "id": "@wren/notes/src/drive.ts",
+   "role": "file",
+   "parent": "@wren/notes",
+   "group": "@wren/notes"
+  },
+  {
+   "id": "@wren/notes/src/inbox.ts",
+   "role": "file",
+   "parent": "@wren/notes",
+   "group": "@wren/notes"
+  },
+  {
+   "id": "@wren/notes/src/index.ts",
+   "role": "file",
+   "parent": "@wren/notes",
+   "group": "@wren/notes"
+  },
+  {
+   "id": "@wren/notes/src/mention-mail.ts",
+   "role": "file",
+   "parent": "@wren/notes",
+   "group": "@wren/notes"
+  },
+  {
+   "id": "@wren/notes/src/position.ts",
+   "role": "file",
+   "parent": "@wren/notes",
+   "group": "@wren/notes"
+  },
+  {
+   "id": "@wren/notes/src/propose.ts",
+   "role": "file",
+   "parent": "@wren/notes",
+   "group": "@wren/notes"
+  },
+  {
+   "id": "@wren/notes/src/records.ts",
+   "role": "file",
+   "parent": "@wren/notes",
+   "group": "@wren/notes"
+  },
+  {
+   "id": "@wren/notes/src/room.ts",
+   "role": "file",
+   "parent": "@wren/notes",
+   "group": "@wren/notes"
+  },
+  {
+   "id": "@wren/notes/src/schema.ts",
+   "role": "file",
+   "parent": "@wren/notes",
+   "group": "@wren/notes"
+  },
+  {
+   "id": "@wren/notes/src/sheet.ts",
+   "role": "file",
+   "parent": "@wren/notes",
+   "group": "@wren/notes"
+  },
+  {
+   "id": "@wren/notes/src/store.ts",
+   "role": "file",
+   "parent": "@wren/notes",
+   "group": "@wren/notes"
+  },
+  {
+   "id": "@wren/notes/src/suggest.ts",
+   "role": "file",
+   "parent": "@wren/notes",
+   "group": "@wren/notes"
+  },
+  {
+   "id": "@wren/notes/src/task-records.ts",
+   "role": "file",
+   "parent": "@wren/notes",
+   "group": "@wren/notes"
+  },
+  {
+   "id": "@wren/notes/src/tasks.ts",
+   "role": "file",
+   "parent": "@wren/notes",
+   "group": "@wren/notes"
+  },
+  {
+   "id": "@wren/notes/src/train.ts",
+   "role": "file",
+   "parent": "@wren/notes",
+   "group": "@wren/notes"
+  },
+  {
+   "id": "@wren/notes/src/types.ts",
+   "role": "file",
+   "parent": "@wren/notes",
+   "group": "@wren/notes"
+  },
+  {
+   "id": "@wren/notes/vitest.config.ts",
+   "role": "file",
+   "parent": "@wren/notes",
+   "group": "@wren/notes"
+  }
+ ],
+ "edges": [
+  {
+   "from": "@wren/notes",
+   "to": "@wren/core",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes",
+   "to": "@wren/db",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/access.ts",
+   "to": "@wren/notes/src/types.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/boards.ts",
+   "to": "@wren/core/src/ids.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/boards.ts",
+   "to": "@wren/db/src/columns.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/boards.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/boards.ts",
+   "to": "@wren/notes/src/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/boards.ts",
+   "to": "@wren/notes/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/boards.ts",
+   "to": "@wren/notes/src/types.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console-boards.ts",
+   "to": "@wren/core/src/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console-boards.ts",
+   "to": "@wren/core/src/portal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console-boards.ts",
+   "to": "@wren/core/src/records-delta.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console-boards.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/notes/src/console-boards.ts",
+   "to": "@wren/notes/src/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console-boards.ts",
+   "to": "@wren/notes/src/boards.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console-boards.ts",
+   "to": "@wren/notes/src/chips.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console-boards.ts",
+   "to": "@wren/notes/src/doc.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console-boards.ts",
+   "to": "@wren/notes/src/propose.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console-boards.ts",
+   "to": "@wren/notes/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/notes/src/console-boards.ts",
+   "to": "@wren/notes/src/sheet.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console-boards.ts",
+   "to": "@wren/notes/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console-boards.ts",
+   "to": "@wren/notes/src/tasks.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console-boards.ts",
+   "to": "@wren/notes/src/types.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console-comments.ts",
+   "to": "@wren/core/src/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console-comments.ts",
+   "to": "@wren/core/src/portal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console-comments.ts",
+   "to": "@wren/notes/src/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console-comments.ts",
+   "to": "@wren/notes/src/console-context.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console-comments.ts",
+   "to": "@wren/notes/src/doc.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console-comments.ts",
+   "to": "@wren/notes/src/inbox.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console-comments.ts",
+   "to": "@wren/notes/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/notes/src/console-comments.ts",
+   "to": "@wren/notes/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console-comments.ts",
+   "to": "@wren/notes/src/types.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console-context.ts",
+   "to": "@wren/core/src/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console-context.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console-context.ts",
+   "to": "@wren/core/src/portal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console-context.ts",
+   "to": "@wren/core/src/records-serve.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console-context.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console-context.ts",
+   "to": "@wren/notes/src/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console-context.ts",
+   "to": "@wren/notes/src/console-boards.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console-context.ts",
+   "to": "@wren/notes/src/doc.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console-context.ts",
+   "to": "@wren/notes/src/drive.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/notes/src/console-context.ts",
+   "to": "@wren/notes/src/mention-mail.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console-context.ts",
+   "to": "@wren/notes/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console-context.ts",
+   "to": "@wren/notes/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console-context.ts",
+   "to": "@wren/notes/src/task-records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console-context.ts",
+   "to": "@wren/notes/src/types.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/notes/src/console-pages.ts",
+   "to": "@wren/core/src/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console-pages.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console-pages.ts",
+   "to": "@wren/core/src/portal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console-pages.ts",
+   "to": "@wren/notes/src/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console-pages.ts",
+   "to": "@wren/notes/src/boards.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console-pages.ts",
+   "to": "@wren/notes/src/console-context.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console-pages.ts",
+   "to": "@wren/notes/src/diff.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console-pages.ts",
+   "to": "@wren/notes/src/doc.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console-pages.ts",
+   "to": "@wren/notes/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/notes/src/console-pages.ts",
+   "to": "@wren/notes/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console-pages.ts",
+   "to": "@wren/notes/src/types.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console-records.ts",
+   "to": "@wren/core/src/portal.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/notes/src/console-records.ts",
+   "to": "@wren/core/src/records-serve.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console-records.ts",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console-records.ts",
+   "to": "@wren/notes/src/console-context.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/notes/src/console-records.ts",
+   "to": "@wren/notes/src/task-records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console-routes.ts",
+   "to": "@wren/core/src/access.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/notes/src/console-sharing.ts",
+   "to": "@wren/core/src/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console-sharing.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console-sharing.ts",
+   "to": "@wren/core/src/portal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console-sharing.ts",
+   "to": "@wren/notes/src/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console-sharing.ts",
+   "to": "@wren/notes/src/console-context.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console-sharing.ts",
+   "to": "@wren/notes/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console-sharing.ts",
+   "to": "@wren/notes/src/types.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/notes/src/console-training.ts",
+   "to": "@wren/core/src/portal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console-training.ts",
+   "to": "@wren/notes/src/console-context.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console-training.ts",
+   "to": "@wren/notes/src/doc.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console-training.ts",
+   "to": "@wren/notes/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console-writes.ts",
+   "to": "@wren/core/src/portal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console-writes.ts",
+   "to": "@wren/notes/src/console-context.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console-writes.ts",
+   "to": "@wren/notes/src/doc.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console-writes.ts",
+   "to": "@wren/notes/src/drive.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console-writes.ts",
+   "to": "@wren/notes/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console.ts",
+   "to": "@wren/core/src/portal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console.ts",
+   "to": "@wren/notes/src/console-comments.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console.ts",
+   "to": "@wren/notes/src/console-context.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/notes/src/console.ts",
+   "to": "@wren/notes/src/console-pages.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console.ts",
+   "to": "@wren/notes/src/console-records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console.ts",
+   "to": "@wren/notes/src/console-routes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console.ts",
+   "to": "@wren/notes/src/console-sharing.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console.ts",
+   "to": "@wren/notes/src/console-training.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/console.ts",
+   "to": "@wren/notes/src/console-writes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/doc.ts",
+   "to": "@wren/notes/src/types.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/docx.ts",
+   "to": "@wren/notes/src/types.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/drive.ts",
+   "to": "@wren/core/src/refusal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/inbox.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/inbox.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/inbox.ts",
+   "to": "@wren/notes/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/index.ts",
+   "to": "@wren/notes/src/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/index.ts",
+   "to": "@wren/notes/src/boards.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/index.ts",
+   "to": "@wren/notes/src/diff.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/index.ts",
+   "to": "@wren/notes/src/doc.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/index.ts",
+   "to": "@wren/notes/src/position.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/index.ts",
+   "to": "@wren/notes/src/sheet.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/index.ts",
+   "to": "@wren/notes/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/index.ts",
+   "to": "@wren/notes/src/suggest.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/index.ts",
+   "to": "@wren/notes/src/task-records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/index.ts",
+   "to": "@wren/notes/src/tasks.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/index.ts",
+   "to": "@wren/notes/src/train.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/index.ts",
+   "to": "@wren/notes/src/types.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/mention-mail.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/notes/src/mention-mail.ts",
+   "to": "@wren/notes/src/access.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/notes/src/mention-mail.ts",
+   "to": "@wren/notes/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/mention-mail.ts",
+   "to": "@wren/notes/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/records.ts",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/records.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/notes/src/records.ts",
+   "to": "@wren/notes/src/doc.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/records.ts",
+   "to": "@wren/notes/src/inbox.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/records.ts",
+   "to": "@wren/notes/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/records.ts",
+   "to": "@wren/notes/src/task-records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/room.ts",
+   "to": "@wren/notes/src/doc.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/room.ts",
+   "to": "@wren/notes/src/types.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/schema.ts",
+   "to": "@wren/db/src/columns.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/schema.ts",
+   "to": "@wren/notes/src/types.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/store.ts",
+   "to": "@wren/core/src/ids.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/store.ts",
+   "to": "@wren/db/src/columns.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/store.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/store.ts",
+   "to": "@wren/notes/src/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/store.ts",
+   "to": "@wren/notes/src/boards.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/store.ts",
+   "to": "@wren/notes/src/doc.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/store.ts",
+   "to": "@wren/notes/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/store.ts",
+   "to": "@wren/notes/src/suggest.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/store.ts",
+   "to": "@wren/notes/src/types.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/notes/src/suggest.ts",
+   "to": "@wren/notes/src/types.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/task-records.ts",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/task-records.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/notes/src/task-records.ts",
+   "to": "@wren/notes/src/access.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/notes/src/task-records.ts",
+   "to": "@wren/notes/src/doc.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/task-records.ts",
+   "to": "@wren/notes/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/task-records.ts",
+   "to": "@wren/notes/src/tasks.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/task-records.ts",
+   "to": "@wren/notes/src/types.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/tasks.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/tasks.ts",
+   "to": "@wren/notes/src/access.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/notes/src/tasks.ts",
+   "to": "@wren/notes/src/boards.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/tasks.ts",
+   "to": "@wren/notes/src/position.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/tasks.ts",
+   "to": "@wren/notes/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/tasks.ts",
+   "to": "@wren/notes/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/tasks.ts",
+   "to": "@wren/notes/src/types.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/train.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/notes/src/train.ts",
+   "to": "@wren/notes/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/src/train.ts",
+   "to": "@wren/notes/src/types.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/notes/vitest.config.ts",
+   "to": "@wren/db/src/testing-vitest.ts",
+   "kind": "imports"
+  }
+ ]
+}

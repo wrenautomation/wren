@@ -1,0 +1,53 @@
+{
+ "layer": "imports",
+ "nodes": [
+  {
+   "id": "@wren/channel-x",
+   "role": "package",
+   "parent": "repo:wren",
+   "group": "@wren/channel-x",
+   "attrs": {
+    "dir": "packages/channel-x/"
+   }
+  },
+  {
+   "id": "@wren/channel-x/src/content.ts",
+   "role": "file",
+   "parent": "@wren/channel-x",
+   "group": "@wren/channel-x"
+  },
+  {
+   "id": "@wren/channel-x/src/index.ts",
+   "role": "file",
+   "parent": "@wren/channel-x",
+   "group": "@wren/channel-x"
+  }
+ ],
+ "edges": [
+  {
+   "from": "@wren/channel-x",
+   "to": "@wren/core",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-x/src/content.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-x/src/content.ts",
+   "to": "@wren/core/src/content/shapes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-x/src/content.ts",
+   "to": "@wren/core/src/content/thread.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-x/src/index.ts",
+   "to": "@wren/channel-x/src/content.ts",
+   "kind": "imports"
+  }
+ ]
+}

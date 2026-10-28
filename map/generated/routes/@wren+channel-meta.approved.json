@@ -1,0 +1,159 @@
+{
+ "layer": "routes",
+ "nodes": [
+  {
+   "id": "route:Ads/accounts",
+   "role": "route",
+   "parent": "service:Ads",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "input": "void",
+    "output": "import(\"./ads.js\").AdAccount[]",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Ads/audit",
+   "role": "route",
+   "parent": "service:Ads",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "input": "void",
+    "output": "import(\"./audit.js\").Audit",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Ads/campaigns",
+   "role": "route",
+   "parent": "service:Ads",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "input": "void",
+    "output": "import(\"./ads.js\").CampaignRow[]",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Ads/insights",
+   "role": "route",
+   "parent": "service:Ads",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "input": "{ preset?: string; level?: \"account\" | \"campaign\" | \"adset\" | \"ad\"; daily?: boolean; }",
+    "output": "import(\"./ads.js\").InsightRow[]",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Ads/interests",
+   "role": "route",
+   "parent": "service:Ads",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "input": "{ q: string; limit?: number }",
+    "output": "import(\"./ads.js\").Interest[]",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Ads/launch",
+   "role": "route",
+   "parent": "service:Ads",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "input": "LaunchSpec",
+    "output": "import(\"./ads.js\").Launched",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Ads/leadConsents",
+   "role": "route",
+   "parent": "service:Ads",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "input": "LeadConsent & { limit?: number }",
+    "output": "{ given: number; skipped: number; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Ads/leadForm",
+   "role": "route",
+   "parent": "service:Ads",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "input": "LeadFormSpec",
+    "output": "string",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Ads/leadForms",
+   "role": "route",
+   "parent": "service:Ads",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "input": "void",
+    "output": "import(\"./ads.js\").LeadFormRow[]",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Ads/leads",
+   "role": "route",
+   "parent": "service:Ads",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "input": "{ formId: string; limit?: number }",
+    "output": "import(\"./ads.js\").Lead[]",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Ads/resume",
+   "role": "route",
+   "parent": "service:Ads",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "input": "{ campaignId: string }",
+    "output": "void",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Ads/start",
+   "role": "route",
+   "parent": "service:Ads",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "input": "Tree & { dailyBudgetUsd: number }",
+    "output": "void",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Ads/stop",
+   "role": "route",
+   "parent": "service:Ads",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "input": "{ campaignId: string; reason?: string }",
+    "output": "void",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "service:Ads",
+   "role": "service",
+   "parent": "@wren/channel-meta",
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "file": "packages/channel-meta/src/restate.ts",
+    "kind": "service"
+   }
+  }
+ ],
+ "edges": []
+}

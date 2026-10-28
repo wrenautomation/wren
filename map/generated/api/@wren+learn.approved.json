@@ -1,0 +1,4602 @@
+{
+ "layer": "api",
+ "nodes": [
+  {
+   "id": "@wren/learn#ALERTS_PER_HOUR",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "5"
+   }
+  },
+  {
+   "id": "@wren/learn#ALERT_PICKS",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"every\", \"top\", \"off\"]"
+   }
+  },
+  {
+   "id": "@wren/learn#ALERT_STATES",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"bell\", \"digest\"]"
+   }
+  },
+  {
+   "id": "@wren/learn#ALERT_WHYS",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"new\", \"score\", \"saved\"]"
+   }
+  },
+  {
+   "id": "@wren/learn#AlertPick",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "kind": "type",
+    "sig": "type AlertPick = (typeof ALERT_PICKS)[number];"
+   }
+  },
+  {
+   "id": "@wren/learn#AlertState",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "kind": "type",
+    "sig": "type AlertState = (typeof ALERT_STATES)[number];"
+   }
+  },
+  {
+   "id": "@wren/learn#AlertWhy",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "kind": "type",
+    "sig": "type AlertWhy = (typeof ALERT_WHYS)[number];"
+   }
+  },
+  {
+   "id": "@wren/learn#BREAKDOWN_BYS",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"model\", \"hand\"]"
+   }
+  },
+  {
+   "id": "@wren/learn#BROKEN_DOWN",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/breakdown.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"reel\", \"video\", \"post\", \"film\"]"
+   }
+  },
+  {
+   "id": "@wren/learn#Beat",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "kind": "interface",
+    "sig": "interface Beat { t: number | null; beat: string; }"
+   }
+  },
+  {
+   "id": "@wren/learn#BellLine",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/alerts.ts",
+    "kind": "interface",
+    "sig": "interface BellLine { id: number; itemId: number; title: string; type: ItemType; source: string; score: number | null; line: string | null; why: AlertWhy; at: string; seen: boolean; }"
+   }
+  },
+  {
+   "id": "@wren/learn#BreakdownBy",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "kind": "type",
+    "sig": "type BreakdownBy = (typeof BREAKDOWN_BYS)[number];"
+   }
+  },
+  {
+   "id": "@wren/learn#BreakdownRow",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "kind": "type",
+    "sig": "type BreakdownRow = typeof breakdowns.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/learn#BrokenDown",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/breakdown.ts",
+    "kind": "type",
+    "sig": "type BrokenDown = (typeof BROKEN_DOWN)[number];"
+   }
+  },
+  {
+   "id": "@wren/learn#Browse",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/drive.ts",
+    "kind": "interface",
+    "sig": "interface Browse { place?: string | null | undefined; types?: string[] | null | undefined; sources?: (string | number)[] | null | undefined; tag?: string | null | undefined; q?: string | null | undefined; sort?: string | null | undefined; offset?: number | null | undefined; limit?: number | null | undefined; }"
+   }
+  },
+  {
+   "id": "@wren/learn#CHECK_MEASURES",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"hook\", \"watched\", \"engagement\"]"
+   }
+  },
+  {
+   "id": "@wren/learn#CREATOR_KINDS",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/creators.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"instagram\", \"x\", \"tiktok\"]"
+   }
+  },
+  {
+   "id": "@wren/learn#CTA_KINDS",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"comment-word\", \"follow\", \"link\", \"dm\", \"save-share\", \"none\", \"other\"]"
+   }
+  },
+  {
+   "id": "@wren/learn#CUTS_TRUSTS",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"ok\", \"low\"]"
+   }
+  },
+  {
+   "id": "@wren/learn#Card",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/drive.ts",
+    "kind": "interface",
+    "sig": "interface Card { id: number; title: string; type: ItemType; url: string; thumbnail: string | null; duration: number | null; chars: number; source: { id: number; name: string; kind: SourceKind; avatar: string | null } | null; creator: string | null; score: number | null; summary: string | null; status: \"unread\" | \"read\" | \"archived\"; state: \"reading\" | \"failed\" | \"mac\" | \"scoring\" | \"ready\"; starred: boolean; pinned: boolean; later: boolean; position: number | null; collectionId: number | null; tags: string[]; saved: boolean; pick?: LearnPick | null; at: string; }"
+   }
+  },
+  {
+   "id": "@wren/learn#CatalogRead",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/catalog.ts",
+    "kind": "interface",
+    "sig": "interface CatalogRead { id: number; read: \"read\" | \"mac\" | \"failed\" | \"waits\" | null; verdict: Verdict | null; why: string | null; seconds: number; }"
+   }
+  },
+  {
+   "id": "@wren/learn#CatalogReader",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/catalog.ts",
+    "kind": "type",
+    "sig": "type CatalogReader = ( kind: CreatorKind, handle: string, page: { after: string | null; limit: number }, ) => Promise<CreatorPage> | null;"
+   }
+  },
+  {
+   "id": "@wren/learn#CheckMeasure",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "kind": "type",
+    "sig": "type CheckMeasure = (typeof CHECK_MEASURES)[number];"
+   }
+  },
+  {
+   "id": "@wren/learn#CheckRow",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/learnback.ts",
+    "kind": "type",
+    "sig": "type CheckRow = typeof checks.$inferInsert;"
+   }
+  },
+  {
+   "id": "@wren/learn#CreatorKind",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/creators.ts",
+    "kind": "type",
+    "sig": "type CreatorKind = (typeof CREATOR_KINDS)[number];"
+   }
+  },
+  {
+   "id": "@wren/learn#CreatorPage",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/creators.ts",
+    "kind": "interface",
+    "sig": "interface CreatorPage { posts: CreatorPost[]; next: string | null; }"
+   }
+  },
+  {
+   "id": "@wren/learn#CreatorPost",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/creators.ts",
+    "kind": "interface",
+    "sig": "interface CreatorPost extends FeedItem { kind: ItemKind; stats?: PostStats | null; }"
+   }
+  },
+  {
+   "id": "@wren/learn#CtaKind",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "kind": "type",
+    "sig": "type CtaKind = (typeof CTA_KINDS)[number];"
+   }
+  },
+  {
+   "id": "@wren/learn#CutsTrust",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "kind": "type",
+    "sig": "type CutsTrust = (typeof CUTS_TRUSTS)[number];"
+   }
+  },
+  {
+   "id": "@wren/learn#DIGEST_HOUR",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/tell.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "9"
+   }
+  },
+  {
+   "id": "@wren/learn#DigestMail",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/alerts.ts",
+    "kind": "interface",
+    "sig": "interface DigestMail { to: string; subject: string; text: string; }"
+   }
+  },
+  {
+   "id": "@wren/learn#FACTS",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/breakdown.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly reel: z.ZodObject<{ format: z.ZodEnum<{ \"talking-head\": \"talking-head\"; \"screen-demo\": \"screen-demo\"; voiceover: \"voiceover\"; \"text-on-screen\": \"text-on-screen\"; mixed: \"mixed\"; }>; }, z.core.$strip>; readonly video: z.ZodObject<{ format: z.ZodEnum<{ \"talking-head\": \"talking-head\"; \"scree…"
+   }
+  },
+  {
+   "id": "@wren/learn#FACT_CALLS",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/calls.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"keep\", \"tune\", \"drop\"]"
+   }
+  },
+  {
+   "id": "@wren/learn#FOLLOWED_BEFORE",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/creators.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"Posted before you followed.\""
+   }
+  },
+  {
+   "id": "@wren/learn#FactCall",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/calls.ts",
+    "kind": "type",
+    "sig": "type FactCall = (typeof FACT_CALLS)[number];"
+   }
+  },
+  {
+   "id": "@wren/learn#FactCallRefusal",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/calls.ts",
+    "kind": "class",
+    "sig": ""
+   }
+  },
+  {
+   "id": "@wren/learn#FactCallRow",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/calls.ts",
+    "kind": "interface",
+    "sig": "interface FactCallRow { path: string; call: FactCall; comment: string | null; by: string | null; at: Date; }"
+   }
+  },
+  {
+   "id": "@wren/learn#FactRow",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/calls.ts",
+    "kind": "interface",
+    "sig": "interface FactRow { path: string; label: string; value: string; proof?: Proof; }"
+   }
+  },
+  {
+   "id": "@wren/learn#Feed",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/feeds.ts",
+    "kind": "interface",
+    "sig": "interface Feed { title: string; podcast: boolean; image: string | null; generator: string; items: FeedItem[]; }"
+   }
+  },
+  {
+   "id": "@wren/learn#FeedItem",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/feeds.ts",
+    "kind": "interface",
+    "sig": "interface FeedItem { url: string; title: string; text: string; publishedAt: Date | null; creator: string | null; enclosure: string | null; thumbnail: string | null; duration: number | null; }"
+   }
+  },
+  {
+   "id": "@wren/learn#FetchFn",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/feeds.ts",
+    "kind": "type",
+    "sig": "type FetchFn = (url: string, init?: RequestInit) => Promise<Response>;"
+   }
+  },
+  {
+   "id": "@wren/learn#FilmFacts",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/film.ts",
+    "kind": "type",
+    "sig": "type FilmFacts = z.infer<typeof filmFactsSchema>;"
+   }
+  },
+  {
+   "id": "@wren/learn#Find",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/hunt.ts",
+    "kind": "interface",
+    "sig": "interface Find { url: string; title: string; creator: string | null; views: number | null; publishedAt: Date | null; duration: number | null; }"
+   }
+  },
+  {
+   "id": "@wren/learn#Found",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/items.ts",
+    "kind": "interface",
+    "sig": "interface Found { id: number; title: string; kind: ItemKind; source: string; }"
+   }
+  },
+  {
+   "id": "@wren/learn#HOOK_STYLES",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"contrarian\", \"demo-first\", \"result-first\", \"identity-call\", \"list-tease\", \"question\", \"story\", \"warning\", \"news\", \"how-to\", \"pattern-break\", \"other\"]"
+   }
+  },
+  {
+   "id": "@wren/learn#HOOK_STYLE_ABOUT",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/breakdown.ts",
+    "kind": "const",
+    "sig": "Record<HookStyle, string>"
+   }
+  },
+  {
+   "id": "@wren/learn#HUNT_CAP",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/hunt.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "10"
+   }
+  },
+  {
+   "id": "@wren/learn#HUNT_PER_QUERY",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/hunt.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "30"
+   }
+  },
+  {
+   "id": "@wren/learn#Hit",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/items.ts",
+    "kind": "interface",
+    "sig": "interface Hit { id: number; title: string; url: string; kind: string; source: string; score: number | null; savedAt: Date | null; at: Date; snippet: string; rank: number; }"
+   }
+  },
+  {
+   "id": "@wren/learn#HookStyle",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "kind": "type",
+    "sig": "type HookStyle = (typeof HOOK_STYLES)[number];"
+   }
+  },
+  {
+   "id": "@wren/learn#Hunt",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/hunt.ts",
+    "kind": "interface",
+    "sig": "interface Hunt { tag: string; cap: number; before: number; revived: number[]; walked: { creator: string; queued: number }[]; unfollowed: string[]; searched: string[]; found: number; known: number; saved: number[]; left: number; }"
+   }
+  },
+  {
+   "id": "@wren/learn#IN_FEED_BEFORE",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/feeds.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"In the feed before you followed it.\""
+   }
+  },
+  {
+   "id": "@wren/learn#ITEM_KINDS",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"article\", \"video\", \"reel\", \"post\", \"film\", \"episode\"]"
+   }
+  },
+  {
+   "id": "@wren/learn#ITEM_PATH",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/calls.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"/\""
+   }
+  },
+  {
+   "id": "@wren/learn#IdsRequest",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn/console"
+    ],
+    "file": "packages/learn/src/console.ts",
+    "kind": "interface",
+    "sig": "interface IdsRequest extends PortalRequest { ids: string[]; }"
+   }
+  },
+  {
+   "id": "@wren/learn#ItemKind",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "kind": "type",
+    "sig": "type ItemKind = (typeof ITEM_KINDS)[number];"
+   }
+  },
+  {
+   "id": "@wren/learn#ItemType",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "kind": "type",
+    "sig": "type ItemType = (typeof TYPES)[number];"
+   }
+  },
+  {
+   "id": "@wren/learn#Judge",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/score.ts",
+    "kind": "interface",
+    "sig": "interface Judge { name: string; wren: boolean; llm: LlmClient | null; practices: readonly Practice[]; focus?: readonly string[]; wait?: string | null; }"
+   }
+  },
+  {
+   "id": "@wren/learn#JudgeFor",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/score.ts",
+    "kind": "type",
+    "sig": "type JudgeFor = (client: string) => Promise<Judge>;"
+   }
+  },
+  {
+   "id": "@wren/learn#KindStandard",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/standard.ts",
+    "kind": "interface",
+    "sig": "interface KindStandard { kind: string; n: number; trusted: number; numbers: { label: string; n: number; median: number; p25: number; p75: number }[]; shares: { label: string; n: number; of: [string, number][] }[]; }"
+   }
+  },
+  {
+   "id": "@wren/learn#LEARN_COMPONENTS",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn/components"
+    ],
+    "file": "packages/learn/src/components.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"@wren/core/components\").Component[]"
+   }
+  },
+  {
+   "id": "@wren/learn#LEARN_CONSOLE_APPS",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn/console-routes"
+    ],
+    "file": "packages/learn/src/console-routes.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly \"*\": \"learn\"; }"
+   }
+  },
+  {
+   "id": "@wren/learn#LEARN_CONSOLE_ROUTES",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn/console-routes"
+    ],
+    "file": "packages/learn/src/console-routes.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly save: \"act\"; readonly follow: \"act\"; readonly tell: \"manage\"; readonly unfollow: \"act\"; readonly browse: \"read\"; readonly rail: \"read\"; readonly home: \"read\"; readonly sources: \"read\"; readonly mark: \"act\"; readonly call: \"act\"; readonly open: \"read\"; readonly progress: \"read\"; readonly m…"
+   }
+  },
+  {
+   "id": "@wren/learn#LEARN_CONSOLE_WRITES",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn/console-routes"
+    ],
+    "file": "packages/learn/src/console-routes.ts",
+    "kind": "const",
+    "sig": "readonly (keyof typeof LEARN_CONSOLE_ROUTES)[]"
+   }
+  },
+  {
+   "id": "@wren/learn#LEARN_FEEDS_FROM",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn/console"
+    ],
+    "file": "packages/learn/src/console.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"feeds.items\""
+   }
+  },
+  {
+   "id": "@wren/learn#LEARN_FLOW",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn/console"
+    ],
+    "file": "packages/learn/src/console.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"learn\""
+   }
+  },
+  {
+   "id": "@wren/learn#LEARN_RECORDS",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn/records"
+    ],
+    "file": "packages/learn/src/records.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"@wren/core/records\").RecordType[]"
+   }
+  },
+  {
+   "id": "@wren/learn#LEARN_SAVED_FROM",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn/console"
+    ],
+    "file": "packages/learn/src/console.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"saved.item\""
+   }
+  },
+  {
+   "id": "@wren/learn#LEARN_WORKFLOWS",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn/components"
+    ],
+    "file": "packages/learn/src/components.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"@wren/core/workflows\").Workflow[]"
+   }
+  },
+  {
+   "id": "@wren/learn#LearnPick",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn/decide"
+    ],
+    "file": "packages/learn/src/decide.ts",
+    "kind": "type",
+    "sig": "type LearnPick = \"keep\" | \"drop\";"
+   }
+  },
+  {
+   "id": "@wren/learn#MARKS",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/drive.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"star\", \"unstar\", \"pin\", \"unpin\", \"later\", \"unlater\", \"archive\", \"unarchive\", \"read\", \"unread\"]"
+   }
+  },
+  {
+   "id": "@wren/learn#MEASURE_OF",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/learnback.ts",
+    "kind": "const",
+    "sig": "Partial<Record<ItemKind, CheckMeasure>>"
+   }
+  },
+  {
+   "id": "@wren/learn#MIN_STANDARD",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/standard.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "5"
+   }
+  },
+  {
+   "id": "@wren/learn#Mark",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/drive.ts",
+    "kind": "type",
+    "sig": "type Mark = (typeof MARKS)[number];"
+   }
+  },
+  {
+   "id": "@wren/learn#Moment",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "kind": "interface",
+    "sig": "interface Moment { t: number; label: string; }"
+   }
+  },
+  {
+   "id": "@wren/learn#MoveRequest",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn/console"
+    ],
+    "file": "packages/learn/src/console.ts",
+    "kind": "interface",
+    "sig": "interface MoveRequest extends IdsRequest { collection?: string | null; }"
+   }
+  },
+  {
+   "id": "@wren/learn#NUMBERS",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/standard.ts",
+    "kind": "const",
+    "sig": "Record< string, { key: keyof StandardRow; label: string; trusted?: boolean }[] >"
+   }
+  },
+  {
+   "id": "@wren/learn#OurPiece",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/learnback.ts",
+    "kind": "interface",
+    "sig": "interface OurPiece { draftId: string; kind: ItemKind; platform: string; url: string; title: string; text: string; outcome: number; measure: CheckMeasure; }"
+   }
+  },
+  {
+   "id": "@wren/learn#Ours",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/check.ts",
+    "kind": "type",
+    "sig": "type Ours = Partial<Record<keyof StandardRow, string | number | boolean | null>>;"
+   }
+  },
+  {
+   "id": "@wren/learn#PATTERN_PATHS",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/standard.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "Set<string>"
+   }
+  },
+  {
+   "id": "@wren/learn#PLACES",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/drive.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"inbox\", \"all\", \"later\", \"starred\", \"saved\", \"archived\"]"
+   }
+  },
+  {
+   "id": "@wren/learn#POST_FORMATS",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"talking-head\", \"screen-demo\", \"voiceover\", \"text-on-screen\", \"mixed\"]"
+   }
+  },
+  {
+   "id": "@wren/learn#POST_LINKS",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"body\", \"comment\", \"none\"]"
+   }
+  },
+  {
+   "id": "@wren/learn#POST_MEDIA",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"text\", \"image\", \"carousel\", \"doc\", \"video\"]"
+   }
+  },
+  {
+   "id": "@wren/learn#POST_SHAPES",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"list\", \"story\", \"essay\", \"one-liner\", \"thread\"]"
+   }
+  },
+  {
+   "id": "@wren/learn#PatternRule",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/standard.ts",
+    "kind": "interface",
+    "sig": "interface PatternRule { path: string; label: string; value: string; keeps: number; tunes: number; drops: number; rule: boolean; calls: SopCall[]; }"
+   }
+  },
+  {
+   "id": "@wren/learn#PatternVerdict",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/check.ts",
+    "kind": "type",
+    "sig": "type PatternVerdict = \"meets\" | \"breaks\" | \"off\";"
+   }
+  },
+  {
+   "id": "@wren/learn#PictureStore",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/pictures.ts",
+    "kind": "interface",
+    "sig": "interface PictureStore { put(bytes: Uint8Array, ext: string): Promise<string>; sign(ref: string): Promise<string>; }"
+   }
+  },
+  {
+   "id": "@wren/learn#PieceCheck",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/check.ts",
+    "kind": "interface",
+    "sig": "interface PieceCheck { kind: string; n: number; numbers: { label: string; ours: number | null; median: number; p25: number; p75: number; where: Where | null; }[]; shares: { label: string; ours: string | null; n: number; of: [string, number][] }[]; patterns: { label: string; ours: string | null; kept: string[]; dropped: string[]; verdict: PatternVerdict; }[]; }"
+   }
+  },
+  {
+   "id": "@wren/learn#Place",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/drive.ts",
+    "kind": "type",
+    "sig": "type Place = (typeof PLACES)[number] | `c${number}` | `s${number}`;"
+   }
+  },
+  {
+   "id": "@wren/learn#PostFacts",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/breakdown.ts",
+    "kind": "type",
+    "sig": "type PostFacts = z.infer<typeof postFactsSchema>;"
+   }
+  },
+  {
+   "id": "@wren/learn#PostFormat",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "kind": "type",
+    "sig": "type PostFormat = (typeof POST_FORMATS)[number];"
+   }
+  },
+  {
+   "id": "@wren/learn#PostLink",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "kind": "type",
+    "sig": "type PostLink = (typeof POST_LINKS)[number];"
+   }
+  },
+  {
+   "id": "@wren/learn#PostMedia",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "kind": "type",
+    "sig": "type PostMedia = (typeof POST_MEDIA)[number];"
+   }
+  },
+  {
+   "id": "@wren/learn#PostShape",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "kind": "type",
+    "sig": "type PostShape = (typeof POST_SHAPES)[number];"
+   }
+  },
+  {
+   "id": "@wren/learn#PostStats",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "kind": "interface",
+    "sig": "interface PostStats { likes?: number; comments?: number; views?: number; }"
+   }
+  },
+  {
+   "id": "@wren/learn#Practice",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/score.ts",
+    "kind": "interface",
+    "sig": "interface Practice { name: string; about: string; headings: string[]; }"
+   }
+  },
+  {
+   "id": "@wren/learn#PullStats",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/feeds.ts",
+    "kind": "interface",
+    "sig": "interface PullStats { added: number[]; failed: Array<{ source: string; error: string }>; }"
+   }
+  },
+  {
+   "id": "@wren/learn#RULE_KEEPS",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/standard.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "3"
+   }
+  },
+  {
+   "id": "@wren/learn#SHARES",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/standard.ts",
+    "kind": "const",
+    "sig": "Record<string, { key: keyof StandardRow; label: string }[]>"
+   }
+  },
+  {
+   "id": "@wren/learn#SHOT_INS",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"cut\", \"dissolve\", \"fade\", \"whip\"]"
+   }
+  },
+  {
+   "id": "@wren/learn#SHOT_MOVES",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"static\", \"push\", \"pull\", \"pan\", \"track\", \"orbit\", \"roll\", \"rack-focus\", \"macro\", \"ui-zoom\"]"
+   }
+  },
+  {
+   "id": "@wren/learn#SHOT_SOUNDS",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"music\", \"vo\", \"both\", \"silent\"]"
+   }
+  },
+  {
+   "id": "@wren/learn#SHOT_SRCS",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"hand\", \"scene\"]"
+   }
+  },
+  {
+   "id": "@wren/learn#SHOT_TYPES",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"ui\", \"b-roll\", \"graphic\", \"logo\", \"text-card\", \"talking-head\"]"
+   }
+  },
+  {
+   "id": "@wren/learn#SOP_STATES",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"asked\", \"added\", \"failed\"]"
+   }
+  },
+  {
+   "id": "@wren/learn#SORTS",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/drive.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"newest\", \"score\", \"length\", \"source\", \"title\"]"
+   }
+  },
+  {
+   "id": "@wren/learn#SOURCE_KINDS",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"youtube\", \"podcast\", \"newsletter\", \"blog\", \"reddit\", \"forum\", \"releases\", \"instagram\", \"x\", \"tiktok\"]"
+   }
+  },
+  {
+   "id": "@wren/learn#SaveRequest",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn/console"
+    ],
+    "file": "packages/learn/src/console.ts",
+    "kind": "interface",
+    "sig": "interface SaveRequest extends PortalRequest { url: string; title?: string | null; via?: string | null; }"
+   }
+  },
+  {
+   "id": "@wren/learn#Saved",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/items.ts",
+    "kind": "interface",
+    "sig": "interface Saved { id: number; url: string; kind: ItemKind; fresh: boolean; unread: boolean; }"
+   }
+  },
+  {
+   "id": "@wren/learn#SeedFilm",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/film.ts",
+    "kind": "type",
+    "sig": "type SeedFilm = z.infer<typeof seedFilmSchema>;"
+   }
+  },
+  {
+   "id": "@wren/learn#Shot",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/film.ts",
+    "kind": "type",
+    "sig": "type Shot = z.infer<typeof shotSchema>;"
+   }
+  },
+  {
+   "id": "@wren/learn#ShotIn",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "kind": "type",
+    "sig": "type ShotIn = (typeof SHOT_INS)[number];"
+   }
+  },
+  {
+   "id": "@wren/learn#ShotMove",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "kind": "type",
+    "sig": "type ShotMove = (typeof SHOT_MOVES)[number];"
+   }
+  },
+  {
+   "id": "@wren/learn#ShotSound",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "kind": "type",
+    "sig": "type ShotSound = (typeof SHOT_SOUNDS)[number];"
+   }
+  },
+  {
+   "id": "@wren/learn#ShotSrc",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "kind": "type",
+    "sig": "type ShotSrc = (typeof SHOT_SRCS)[number];"
+   }
+  },
+  {
+   "id": "@wren/learn#ShotType",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "kind": "type",
+    "sig": "type ShotType = (typeof SHOT_TYPES)[number];"
+   }
+  },
+  {
+   "id": "@wren/learn#SopCall",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/standard.ts",
+    "kind": "interface",
+    "sig": "interface SopCall { id: number; title: string; creator: string | null; path: string; label: string; value: string; call: FactCall; comment: string | null; at: Date; }"
+   }
+  },
+  {
+   "id": "@wren/learn#SopScope",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/standard.ts",
+    "kind": "interface",
+    "sig": "interface SopScope { kinds: string[]; platforms: string[]; topic: string; set: string[]; sop?: string; }"
+   }
+  },
+  {
+   "id": "@wren/learn#SopState",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "kind": "type",
+    "sig": "type SopState = (typeof SOP_STATES)[number];"
+   }
+  },
+  {
+   "id": "@wren/learn#Sort",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/drive.ts",
+    "kind": "type",
+    "sig": "type Sort = (typeof SORTS)[number];"
+   }
+  },
+  {
+   "id": "@wren/learn#SourceKind",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "kind": "type",
+    "sig": "type SourceKind = (typeof SOURCE_KINDS)[number];"
+   }
+  },
+  {
+   "id": "@wren/learn#StandardRow",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/standard.ts",
+    "kind": "type",
+    "sig": "type StandardRow = typeof standards.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/learn#TELLS",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"every\", \"top\", \"digest\"]"
+   }
+  },
+  {
+   "id": "@wren/learn#TOP_SCORE",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "8"
+   }
+  },
+  {
+   "id": "@wren/learn#TYPES",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"youtube\", \"shorts\", \"podcast\", \"newsletter\", \"blog\", \"reddit\", \"x\", \"instagram\", \"tiktok\", \"releases\", \"link\"]"
+   }
+  },
+  {
+   "id": "@wren/learn#TagRequest",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn/console"
+    ],
+    "file": "packages/learn/src/console.ts",
+    "kind": "interface",
+    "sig": "interface TagRequest extends IdsRequest { add?: string[] | null; remove?: string[] | null; }"
+   }
+  },
+  {
+   "id": "@wren/learn#Tell",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "kind": "type",
+    "sig": "type Tell = (typeof TELLS)[number];"
+   }
+  },
+  {
+   "id": "@wren/learn#TodayLine",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/alerts.ts",
+    "kind": "interface",
+    "sig": "interface TodayLine { id: number; title: string; type: ItemType; url: string; source: string; score: number | null; line: string | null; told: AlertState | null; read: boolean; pick?: LearnPick | null; at: string; }"
+   }
+  },
+  {
+   "id": "@wren/learn#TopicSearch",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/hunt.ts",
+    "kind": "type",
+    "sig": "type TopicSearch = (query: string, n: number) => Promise<Find[]>;"
+   }
+  },
+  {
+   "id": "@wren/learn#VERDICTS",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"show\", \"hold\", \"drop\"]"
+   }
+  },
+  {
+   "id": "@wren/learn#VIAS",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"portal\", \"shortcut\", \"cli\"]"
+   }
+  },
+  {
+   "id": "@wren/learn#Verdict",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "kind": "type",
+    "sig": "type Verdict = (typeof VERDICTS)[number];"
+   }
+  },
+  {
+   "id": "@wren/learn#Via",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "kind": "type",
+    "sig": "type Via = (typeof VIAS)[number];"
+   }
+  },
+  {
+   "id": "@wren/learn#VideoReader",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/read.ts",
+    "kind": "type",
+    "sig": "type VideoReader = (item: { url: string; kind: ItemKind; title: string; creator: string | null; duration: number | null; mediaUrl: string | null; }) => Promise<{ file: string; md: string }>;"
+   }
+  },
+  {
+   "id": "@wren/learn#WREN_FOCUS",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/score.ts",
+    "kind": "const",
+    "sig": "readonly string[]"
+   }
+  },
+  {
+   "id": "@wren/learn#Where",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/check.ts",
+    "kind": "type",
+    "sig": "type Where = \"below\" | \"inside\" | \"above\";"
+   }
+  },
+  {
+   "id": "@wren/learn#addCollection",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/drive.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, client: string, p: { name: string; parentId?: number | null; by?: string | null }): Promise<{ name: string; id: number; parentId: number | null; client: string; by: string | null; createdAt: Date; }>"
+   }
+  },
+  {
+   "id": "@wren/learn#alertLearn",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/alerts.ts",
+    "kind": "function",
+    "sig": "(db: Db, now: Date, perHour = ALERTS_PER_HOUR): Promise<AlertStats>"
+   }
+  },
+  {
+   "id": "@wren/learn#alertPicks",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"alert_picks\"; schema: \"learn\"; columns: { client: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"client\"; tableName: \"alert_picks\"; dataType: \"string\"; columnType: \"PgVarchar\"; data: string; driverParam: string; notNull: true; hasDefault: fa…"
+   }
+  },
+  {
+   "id": "@wren/learn#alerts",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"alerts\"; schema: \"learn\"; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"alerts\"; dataType: \"number\"; columnType: \"PgSerial\"; data: number; driverParam: number; notNull: true; hasDefault: true; isPrimaryKey: f…"
+   }
+  },
+  {
+   "id": "@wren/learn#answerSchema",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/breakdown.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(kind: K): z.ZodObject<{ [k in keyof ((\"topic\" | \"hook\" | \"cta\" | \"hook_style\" | \"hook_why\" | \"beats\" | \"cta_kind\") & keyof { readonly reel: { readonly format: z.ZodEnum<{ \"talking-head\": \"talking-head\"; \"screen-demo\": \"screen-demo\"; voiceover: \"voiceover\"; \"text-on-screen\": \"text-on-screen\"; mixed: \"mixed\"; }…"
+   }
+  },
+  {
+   "id": "@wren/learn#articleMd",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/read.ts",
+    "kind": "function",
+    "sig": "(p: { url: string; title: string; creator: string | null; publishedAt: Date | null; text: string; }): string"
+   }
+  },
+  {
+   "id": "@wren/learn#askNoteSop",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/sops.ts",
+    "kind": "function",
+    "sig": "(db: Db, notesDb: Db, p: { client: string; noteId: string; sop: string; title: string; text: string; by: string }): Promise<{ sop: string; state: \"asked\" | \"added\"; note: string | null }>"
+   }
+  },
+  {
+   "id": "@wren/learn#askSop",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/sops.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Db, p: { client: string; itemId: number; sop: string; by: string | null }): Promise<{ error: string | null; title: string | null; file: string | null; id: number; state: \"added\" | \"asked\" | \"failed\"; text: string | null; client: string | null; by: string | null; sop: string; askedAt: Date; itemId: number | null; noteId: string | null; points: Date | null; doneAt: Date | nul…"
+   }
+  },
+  {
+   "id": "@wren/learn#backfillLearnCalls",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn/decide"
+    ],
+    "file": "packages/learn/src/decide.ts",
+    "kind": "function",
+    "sig": "(db: Queryable): Promise<{ keep: number; drop: number }>"
+   }
+  },
+  {
+   "id": "@wren/learn#beatsOf",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/breakdown.ts",
+    "kind": "function",
+    "sig": "(raw: Answer[\"beats\"]): Beat[]"
+   }
+  },
+  {
+   "id": "@wren/learn#bellOf",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/alerts.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, client: string, email: string): Promise<{ unseen: number; alerts: BellLine[] }>"
+   }
+  },
+  {
+   "id": "@wren/learn#bellSeen",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/alerts.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, client: string, email: string, now = new Date()): Promise<number>"
+   }
+  },
+  {
+   "id": "@wren/learn#breakdownItem",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/breakdown.ts",
+    "kind": "function",
+    "sig": "(db: Db, judgeFor: JudgeFor, id: number, hand?: { facts: Record<string, unknown>; by: BreakdownBy }): Promise<boolean>"
+   }
+  },
+  {
+   "id": "@wren/learn#breakdownPrompt",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/breakdown.ts",
+    "kind": "function",
+    "sig": "(item: { kind?: BrokenDown; title: string; url: string; text: string; }): string"
+   }
+  },
+  {
+   "id": "@wren/learn#breakdownRecords",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgViewWithSelection<\"breakdown_records\", false, { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"breakdown_records\"; dataType: \"number\"; columnType: \"PgInteger\"; data: number; driverParam: string | number; notNull: false; hasDefault: false; isPrima…"
+   }
+  },
+  {
+   "id": "@wren/learn#breakdownSchema",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/breakdown.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "z.ZodObject<{ hook_style: z.ZodEnum<{ other: \"other\"; news: \"news\"; question: \"question\"; story: \"story\"; contrarian: \"contrarian\"; \"demo-first\": \"demo-first\"; \"result-first\": \"result-first\"; \"identity-call\": \"identity-call\"; \"list-tease\": \"list-tease\"; warning: \"warning\"; \"how-to\": \"how-to\"; \"patte…"
+   }
+  },
+  {
+   "id": "@wren/learn#breakdowns",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"breakdowns\"; schema: \"learn\"; columns: { itemId: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"item_id\"; tableName: \"breakdowns\"; dataType: \"number\"; columnType: \"PgInteger\"; data: number; driverParam: string | number; notNull: true; hasDef…"
+   }
+  },
+  {
+   "id": "@wren/learn#browse",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/drive.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, client: string, b: Browse): Promise<{ place: string; sort: \"title\" | \"length\" | \"source\" | \"score\" | \"newest\"; items: (Card & { pick: LearnPick | null; })[]; more: boolean; total: number; types: Partial<Record<ItemType, number>>; sources: { n: number; id: number; name: string; kind: \"reddit\" | \"youtube\" | \"x\" | \"tiktok\" | \"ins…"
+   }
+  },
+  {
+   "id": "@wren/learn#callsMarkdown",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/standard.ts",
+    "kind": "function",
+    "sig": "(scope: SopScope, calls: SopCall[], at = new Date()): string"
+   }
+  },
+  {
+   "id": "@wren/learn#callsOf",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/standard.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, scope: SopScope, sop: string): Promise<SopCall[]>"
+   }
+  },
+  {
+   "id": "@wren/learn#catalogSummary",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/catalog.ts",
+    "kind": "function",
+    "sig": "(reads: readonly CatalogRead[], seconds: number, stopped: string | null): CatalogSummary"
+   }
+  },
+  {
+   "id": "@wren/learn#chaptersOf",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/score.ts",
+    "kind": "function",
+    "sig": "(transcript: string | null): Moment[]"
+   }
+  },
+  {
+   "id": "@wren/learn#checkPiece",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/check.ts",
+    "kind": "function",
+    "sig": "(kind: string, standard: KindStandard | null, patterns: PatternRule[], ours: Ours): PieceCheck"
+   }
+  },
+  {
+   "id": "@wren/learn#checks",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"checks\"; schema: \"learn\"; columns: { itemId: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"item_id\"; tableName: \"checks\"; dataType: \"number\"; columnType: \"PgInteger\"; data: number; driverParam: string | number; notNull: true; hasDefault: fa…"
+   }
+  },
+  {
+   "id": "@wren/learn#checksOf",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/learnback.ts",
+    "kind": "function",
+    "sig": "(sop: string, kind: ItemKind, patterns: PatternRule[], ours: { values: Map<string, string>; outcome: number }[], measure: CheckMeasure): CheckRow[]"
+   }
+  },
+  {
+   "id": "@wren/learn#cleanUrl",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/links.ts",
+    "kind": "function",
+    "sig": "(raw: string): string"
+   }
+  },
+  {
+   "id": "@wren/learn#clientAskedOnRead",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/sops.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Db, clientDb: (client: string) => Db): (itemId: number) => Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/learn#collections",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"collections\"; schema: \"learn\"; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"collections\"; dataType: \"number\"; columnType: \"PgSerial\"; data: number; driverParam: number; notNull: true; hasDefault: true; isPri…"
+   }
+  },
+  {
+   "id": "@wren/learn#creatorOf",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/creators.ts",
+    "kind": "function",
+    "sig": "(raw: string): { kind: CreatorKind; handle: string; page: string } | null"
+   }
+  },
+  {
+   "id": "@wren/learn#creatorSite",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/links.ts",
+    "kind": "function",
+    "sig": "(raw: string): string | null"
+   }
+  },
+  {
+   "id": "@wren/learn#creatorSource",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/creators.ts",
+    "kind": "function",
+    "sig": "(raw: string): { kind: SourceKind; url: string; name: string } | null"
+   }
+  },
+  {
+   "id": "@wren/learn#cutsTrust",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/film.ts",
+    "kind": "function",
+    "sig": "(hash: number, adaptive: number, handCuts?: number | null): CutsTrust"
+   }
+  },
+  {
+   "id": "@wren/learn#decode",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/feeds.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "(s: string) => string"
+   }
+  },
+  {
+   "id": "@wren/learn#digestMailOn",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/alerts.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, client: string): Promise<boolean>"
+   }
+  },
+  {
+   "id": "@wren/learn#digests",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"digests\"; schema: \"learn\"; columns: { day: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"day\"; tableName: \"digests\"; dataType: \"string\"; columnType: \"PgDateString\"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrim…"
+   }
+  },
+  {
+   "id": "@wren/learn#draftScope",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/standard.ts",
+    "kind": "function",
+    "sig": "(playbook: { sop: string; scope: SopScope | null } | null, kind: string, platform: string): SopScope"
+   }
+  },
+  {
+   "id": "@wren/learn#dropCollection",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/drive.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, client: string, id: number): Promise<boolean>"
+   }
+  },
+  {
+   "id": "@wren/learn#editCollection",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/drive.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, client: string, p: { id: number; name?: string | null | undefined; parentId?: number | null }): Promise<{ id: number; client: string; name: string; parentId: number | null; by: string | null; createdAt: Date; }>"
+   }
+  },
+  {
+   "id": "@wren/learn#embedMissing",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/embed.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, embed: Embed, limit = 50): Promise<{ embedded: number }>"
+   }
+  },
+  {
+   "id": "@wren/learn#factCalls",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/calls.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, id: number): Promise<FactCallRow[]>"
+   }
+  },
+  {
+   "id": "@wren/learn#factFindings",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/findings.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, b: BreakdownRow): Promise<number>"
+   }
+  },
+  {
+   "id": "@wren/learn#factRows",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/calls.ts",
+    "kind": "function",
+    "sig": "(b: Pick< BreakdownRow, \"hookStyle\" | \"hook\" | \"hookWhy\" | \"topic\" | \"beats\" | \"ctaKind\" | \"cta\" | \"facts\" >): FactRow[]"
+   }
+  },
+  {
+   "id": "@wren/learn#factSubject",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/calls.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(document: number, path: string): string"
+   }
+  },
+  {
+   "id": "@wren/learn#factsOf",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/breakdown.ts",
+    "kind": "function",
+    "sig": "(item: { kind: BrokenDown; text: string; transcript: string }, v: Answer): Record<string, unknown> | null"
+   }
+  },
+  {
+   "id": "@wren/learn#feedLinkOf",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/feeds.ts",
+    "kind": "function",
+    "sig": "(html: string, base: string): string | null"
+   }
+  },
+  {
+   "id": "@wren/learn#fetchFeed",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/feeds.ts",
+    "kind": "function",
+    "sig": "(fetchFn: FetchFn, url: string): Promise<Feed>"
+   }
+  },
+  {
+   "id": "@wren/learn#fileOf",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/read.ts",
+    "kind": "function",
+    "sig": "(url: string): string"
+   }
+  },
+  {
+   "id": "@wren/learn#filmFacts",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/film.ts",
+    "kind": "function",
+    "sig": "(w: WatchFacts, o: { speech: boolean }): FilmFacts"
+   }
+  },
+  {
+   "id": "@wren/learn#filmFactsOf",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/breakdown.ts",
+    "kind": "function",
+    "sig": "(transcript: string): FilmFacts | null"
+   }
+  },
+  {
+   "id": "@wren/learn#filmFactsSchema",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/film.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "z.ZodObject<{ duration_s: z.ZodNumber; cuts: z.ZodNumber; cuts_by_signal: z.ZodRecord<z.ZodString, z.ZodNumber>; cuts_trust: z.ZodEnum<{ ok: \"ok\"; low: \"low\"; }>; shot_median_s: z.ZodNumber; shot_p90_s: z.ZodNumber; cuts_per_10s: z.ZodArray<z.ZodNumber>; first_product_s: z.ZodNullable<z.ZodNumber>; …"
+   }
+  },
+  {
+   "id": "@wren/learn#filmShots",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/film.ts",
+    "kind": "function",
+    "sig": "(facts: unknown): Shot[]"
+   }
+  },
+  {
+   "id": "@wren/learn#findItems",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/items.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, client: string, q: string, limit = 6): Promise<Found[]>"
+   }
+  },
+  {
+   "id": "@wren/learn#follow",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/feeds.ts",
+    "kind": "function",
+    "sig": "(db: Db, fetchFn: FetchFn, p: { client: string; url: string; name?: string | null; tell?: Tell | null; by?: string | null; }): Promise<{ id: number; name: string; kind: SourceKind; items: number }>"
+   }
+  },
+  {
+   "id": "@wren/learn#frontField",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/read.ts",
+    "kind": "function",
+    "sig": "(md: string, key: string): string | null"
+   }
+  },
+  {
+   "id": "@wren/learn#home",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/drive.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, client: string, now = new Date()): Promise<{ shelves: { type: \"reddit\" | \"link\" | \"youtube\" | \"x\" | \"tiktok\" | \"instagram\" | \"newsletter\" | \"shorts\" | \"podcast\" | \"blog\" | \"releases\"; total: number; items: (Card & { pick: LearnPick | null; })[]; }[]; continue: (Card & { pick: LearnPick | null; })[]; top: (Card & { pick: LearnPick | n…"
+   }
+  },
+  {
+   "id": "@wren/learn#hookRecords",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgViewWithSelection<\"hook_records\", false, { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"hook_records\"; dataType: \"string\"; columnType: \"PgText\"; data: string; driverParam: string; notNull: false; hasDefault: false; isPrimaryKey: false; isAutoin…"
+   }
+  },
+  {
+   "id": "@wren/learn#huntSop",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/hunt.ts",
+    "kind": "function",
+    "sig": "(db: Db, o: { client: string; name: string; scope: SopScope; search: TopicSearch; catalog: CatalogReader | null; cap?: number; perQuery?: number; now?: Date; }): Promise<Hunt>"
+   }
+  },
+  {
+   "id": "@wren/learn#huntedIds",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/hunt.ts",
+    "kind": "function",
+    "sig": "(h: Hunt): number[]"
+   }
+  },
+  {
+   "id": "@wren/learn#instagramPage",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/creators.ts",
+    "kind": "function",
+    "sig": "(sites: SiteClient, handle: string, page: { after?: string | null; limit?: number } = {}): Promise<CreatorPage>"
+   }
+  },
+  {
+   "id": "@wren/learn#isCreatorKind",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/creators.ts",
+    "kind": "function",
+    "sig": "(k: string): k is CreatorKind"
+   }
+  },
+  {
+   "id": "@wren/learn#isFactCall",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/calls.ts",
+    "kind": "function",
+    "sig": "(c: string): c is FactCall"
+   }
+  },
+  {
+   "id": "@wren/learn#isStoredPicture",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/pictures.ts",
+    "kind": "function",
+    "sig": "(u: string | null | undefined): u is string"
+   }
+  },
+  {
+   "id": "@wren/learn#itemEvent",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/feeds.ts",
+    "kind": "function",
+    "sig": "(id: number): ExecutorEvent"
+   }
+  },
+  {
+   "id": "@wren/learn#itemIdOf",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/score.ts",
+    "kind": "function",
+    "sig": "(e: { subject: string; data: Record<string, unknown> }): number"
+   }
+  },
+  {
+   "id": "@wren/learn#itemOf",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/items.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, client: string, id: number): Promise<{ source: string | null; sops: { id: number; itemId: number | null; noteId: string | null; client: string | null; title: string | null; text: string | null; sop: string; state: \"added\" | \"asked\" | \"failed\"; file: string | null; points: Date | null; error: string | null; by: string | null; as…"
+   }
+  },
+  {
+   "id": "@wren/learn#itemPage",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/drive.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, client: string, id: number): Promise<{ pick: \"drop\" | \"keep\" | null; text: string; transcript: string | null; file: string | null; mediaUrl: string | null; moments: Moment[]; why: string | null; changes: string[]; verdict: \"drop\" | \"hold\" | \"show\" | null; failure: string | null; kind: \"post\" | \"video\" | \"reel\" | \"article\" | \"fi…"
+   }
+  },
+  {
+   "id": "@wren/learn#itemRecords",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgViewWithSelection<\"item_records\", false, { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"item_records\"; dataType: \"number\"; columnType: \"PgInteger\"; data: number; driverParam: string | number; notNull: false; hasDefault: false; isPrimaryKey: fal…"
+   }
+  },
+  {
+   "id": "@wren/learn#itemTags",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"item_tags\"; schema: \"learn\"; columns: { itemId: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"item_id\"; tableName: \"item_tags\"; dataType: \"number\"; columnType: \"PgInteger\"; data: number; driverParam: string | number; notNull: true; hasDefau…"
+   }
+  },
+  {
+   "id": "@wren/learn#items",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"items\"; schema: \"learn\"; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"items\"; dataType: \"number\"; columnType: \"PgSerial\"; data: number; driverParam: number; notNull: true; hasDefault: true; isPrimaryKey: fal…"
+   }
+  },
+  {
+   "id": "@wren/learn#judges",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/score.ts",
+    "kind": "function",
+    "sig": "(o: { db: Db; llm: LlmClient | null; wrenPractices: () => Promise<Practice[]>; now?: () => Date; keys?: KeyStore | null; }): JudgeFor"
+   }
+  },
+  {
+   "id": "@wren/learn#keepPictures",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/pictures.ts",
+    "kind": "function",
+    "sig": "(db: Db, store: PictureStore, fetchFn: FetchFn = fetch, limit = PICTURES_PER_PASS): Promise<PictureStats>"
+   }
+  },
+  {
+   "id": "@wren/learn#keepQueries",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/embed.ts",
+    "kind": "function",
+    "sig": "(embed: Embed, max = 500): Embed"
+   }
+  },
+  {
+   "id": "@wren/learn#kindOf",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/links.ts",
+    "kind": "function",
+    "sig": "(clean: string, audio?: string | null): ItemKind"
+   }
+  },
+  {
+   "id": "@wren/learn#kindStandard",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/standard.ts",
+    "kind": "function",
+    "sig": "(kind: string, rows: StandardRow[]): KindStandard"
+   }
+  },
+  {
+   "id": "@wren/learn#kindStandardOf",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/standard.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, scope: SopScope): Promise<KindStandard | null>"
+   }
+  },
+  {
+   "id": "@wren/learn#learn",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgSchema<\"learn\">"
+   }
+  },
+  {
+   "id": "@wren/learn#learnCalled",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn/decide"
+    ],
+    "file": "packages/learn/src/decide.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, limit: number): Promise<DecideSubject[]>"
+   }
+  },
+  {
+   "id": "@wren/learn#learnConsoleApi",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn/console"
+    ],
+    "file": "packages/learn/src/console.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Db, fetchFn: FetchFn = fetch, clientDb?: ClientDbOf, embed: Embed | null = null): { save: (req: SaveRequest) => Promise<{ id: string; url: string; kind: \"post\" | \"video\" | \"reel\" | \"article\" | \"film\" | \"episode\"; fresh: boolean; unread: boolean; }>; follow: (req: FollowRequest) => Promise<{ id: string; name: string; kind: \"reddit\" | \"youtube\" | \"x\" | \"tiktok\" | \"instagram\" | \"new…"
+   }
+  },
+  {
+   "id": "@wren/learn#learnDue",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn/decide"
+    ],
+    "file": "packages/learn/src/decide.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, now: Date, limit: number): Promise<DecideSubject[]>"
+   }
+  },
+  {
+   "id": "@wren/learn#learnMarkCalls",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn/decide"
+    ],
+    "file": "packages/learn/src/decide.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, client: string, ids: readonly number[], m: string, by: string | null = null): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/learn#learnPeople",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/alerts.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, client: string): Promise<string[]>"
+   }
+  },
+  {
+   "id": "@wren/learn#learnSettings",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"settings\"; schema: \"learn\"; columns: { client: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"client\"; tableName: \"settings\"; dataType: \"string\"; columnType: \"PgVarchar\"; data: string; driverParam: string; notNull: true; hasDefault: false; i…"
+   }
+  },
+  {
+   "id": "@wren/learn#learnSource",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn/decide"
+    ],
+    "file": "packages/learn/src/decide.ts",
+    "kind": "const",
+    "sig": "DecideSource"
+   }
+  },
+  {
+   "id": "@wren/learn#learnWorthCall",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn/decide"
+    ],
+    "file": "packages/learn/src/decide.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, client: string, id: number, source: \"save\" | \"sop\", by: string | null): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/learn#listItems",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/items.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, client: string, o: { saved?: boolean; waiting?: boolean; limit?: number } = {}): Promise<{ id: number; title: string; kind: \"post\" | \"video\" | \"reel\" | \"article\" | \"film\" | \"episode\"; url: string; score: number | null; verdict: \"drop\" | \"hold\" | \"show\" | null; readAt: Date | null; readFailure: string | null; savedAt: Date | null; source: string | null; }[]>"
+   }
+  },
+  {
+   "id": "@wren/learn#mailLearnDigests",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/alerts.ts",
+    "kind": "function",
+    "sig": "(db: Db, send: (m: DigestMail) => Promise<void>, p: { now: Date; today: string; hour: number; portal: string | null }): Promise<{ sent: number; failed: number }>"
+   }
+  },
+  {
+   "id": "@wren/learn#makeLearnConsole",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn/console"
+    ],
+    "file": "packages/learn/src/console.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Db, fetchFn: FetchFn = fetch, clientDb?: ClientDbOf, embed: Embed | null = null): restate.ServiceDefinition<\"LearnConsole\", { save: (ctx: restate.Context, req: SaveRequest) => Promise<{ id: string; url: string; kind: \"post\" | \"video\" | \"reel\" | \"article\" | \"film\" | \"episode\"; fresh: boolean; unread: boolean; }>; follow: (_: restate.Context, req: FollowRequest) => Promise<{ id: st…"
+   }
+  },
+  {
+   "id": "@wren/learn#makeLearnPictures",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/pictures.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Db, store: PictureStore | null): restate.ServiceDefinition<\"LearnPictures\", { sign: (_: restate.Context, req: { ref: string; }) => Promise<{ url: string | null; }>; }>"
+   }
+  },
+  {
+   "id": "@wren/learn#mark",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/drive.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, client: string, ids: number[], m: Mark, by: string | null = null): Promise<number[]>"
+   }
+  },
+  {
+   "id": "@wren/learn#markSeen",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/drive.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, client: string, email: string, at = new Date()): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/learn#mayManage",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn/console"
+    ],
+    "file": "packages/learn/src/console.ts",
+    "kind": "function",
+    "sig": "(main: Db, req: PortalRequest, client: string): Promise<boolean>"
+   }
+  },
+  {
+   "id": "@wren/learn#mediaOf",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/drive.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, ids: readonly number[], client: string): Promise<string[]>"
+   }
+  },
+  {
+   "id": "@wren/learn#median",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/standard.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(xs: number[]): number"
+   }
+  },
+  {
+   "id": "@wren/learn#momentsOf",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/score.ts",
+    "kind": "function",
+    "sig": "(raw: readonly { at: string; label: string }[]): Moment[]"
+   }
+  },
+  {
+   "id": "@wren/learn#moveItems",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/drive.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, client: string, ids: number[], collectionId: number | null): Promise<number[]>"
+   }
+  },
+  {
+   "id": "@wren/learn#nearItems",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/embed.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, client: string, query: readonly number[], limit = 40): Promise<{ id: number; near: number }[]>"
+   }
+  },
+  {
+   "id": "@wren/learn#needsMac",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/links.ts",
+    "kind": "function",
+    "sig": "(kind: ItemKind, media?: string | null): boolean"
+   }
+  },
+  {
+   "id": "@wren/learn#ogImageOf",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/feeds.ts",
+    "kind": "function",
+    "sig": "(html: string): string | null"
+   }
+  },
+  {
+   "id": "@wren/learn#oneLine",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/alerts.ts",
+    "kind": "function",
+    "sig": "(text: string | null | undefined, max = 140): string | null"
+   }
+  },
+  {
+   "id": "@wren/learn#opened",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/drive.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, client: string, id: number): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/learn#ourPatterns",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/learnback.ts",
+    "kind": "function",
+    "sig": "(db: Db, ids: readonly number[]): Promise<Map<number, Map<string, string>>>"
+   }
+  },
+  {
+   "id": "@wren/learn#pageFetcher",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/read.ts",
+    "kind": "function",
+    "sig": "(): Fetcher"
+   }
+  },
+  {
+   "id": "@wren/learn#pageText",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/read.ts",
+    "kind": "function",
+    "sig": "(html: string): { title: string; creator: string | null; text: string; image: string | null; }"
+   }
+  },
+  {
+   "id": "@wren/learn#parseFeed",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/feeds.ts",
+    "kind": "function",
+    "sig": "(xml: string): Feed"
+   }
+  },
+  {
+   "id": "@wren/learn#patternValue",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/standard.ts",
+    "kind": "function",
+    "sig": "(path: string, value: string): string"
+   }
+  },
+  {
+   "id": "@wren/learn#patternsOf",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/learnback.ts",
+    "kind": "function",
+    "sig": "(b: { hookStyle: string; ctaKind: string; facts: Record<string, unknown>; }): Map<string, string>"
+   }
+  },
+  {
+   "id": "@wren/learn#phrasesOf",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/hunt.ts",
+    "kind": "function",
+    "sig": "(topic: string): string[]"
+   }
+  },
+  {
+   "id": "@wren/learn#picksOf",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/alerts.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, client: string, email: string): Promise<{ saved: AlertPick; sources: Record<number, AlertPick>; }>"
+   }
+  },
+  {
+   "id": "@wren/learn#plain",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/feeds.ts",
+    "kind": "function",
+    "sig": "(raw: string): string"
+   }
+  },
+  {
+   "id": "@wren/learn#postCounts",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/breakdown.ts",
+    "kind": "function",
+    "sig": "(text: string): Omit<PostFacts, \"shape\" | \"format\">"
+   }
+  },
+  {
+   "id": "@wren/learn#postFactsSchema",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/breakdown.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "z.ZodObject<{ format: z.ZodNullable<z.ZodEnum<{ text: \"text\"; video: \"video\"; doc: \"doc\"; carousel: \"carousel\"; image: \"image\"; }>>; chars: z.ZodNumber; lines: z.ZodNumber; first_line_chars: z.ZodNumber; link: z.ZodNullable<z.ZodEnum<{ comment: \"comment\"; none: \"none\"; body: \"body\"; }>>; hashtags: z…"
+   }
+  },
+  {
+   "id": "@wren/learn#practiceOf",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/score.ts",
+    "kind": "function",
+    "sig": "(name: string, sop: string): Practice"
+   }
+  },
+  {
+   "id": "@wren/learn#profileOf",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/creators.ts",
+    "kind": "function",
+    "sig": "(raw: string): { kind: CreatorKind; handle: string; page: string } | null"
+   }
+  },
+  {
+   "id": "@wren/learn#progress",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/drive.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, client: string, p: { id: number; position: number; duration?: number | null | undefined }): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/learn#pullCreators",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/creators.ts",
+    "kind": "function",
+    "sig": "(db: Db, read: CreatorReader, now: Date, opts: { kinds: readonly CreatorKind[]; macReads?: boolean }): Promise<PullStats>"
+   }
+  },
+  {
+   "id": "@wren/learn#pullFeeds",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/feeds.ts",
+    "kind": "function",
+    "sig": "(db: Db, fetchFn: FetchFn, now: Date): Promise<PullStats>"
+   }
+  },
+  {
+   "id": "@wren/learn#rail",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/drive.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, client: string): Promise<{ places: { inbox: number; all: number; later: number; starred: number; saved: number; archived: number; }; collections: { n: number; id: number; name: string; parentId: number | null; }[]; sources: { kind: \"reddit\" | \"youtube\" | \"x\" | \"tiktok\" | \"instagram\" | \"newsletter\" | \"podcast\" | \"blo…"
+   }
+  },
+  {
+   "id": "@wren/learn#rankFinds",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/hunt.ts",
+    "kind": "function",
+    "sig": "(lists: readonly Find[][]): Find[]"
+   }
+  },
+  {
+   "id": "@wren/learn#readCatalog",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/catalog.ts",
+    "kind": "function",
+    "sig": "(db: Db, read: CatalogReader, o: { client: string; url: string; want: number; now: Date; reelsOnly?: boolean; pageSize?: number; maxPages?: number; onPage?: (pass: Readonly<CatalogPass>) => void; }): Promise<CatalogPass>"
+   }
+  },
+  {
+   "id": "@wren/learn#readItem",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/read.ts",
+    "kind": "function",
+    "sig": "(db: Db, pages: Fetcher, id: number, video: VideoReader | null = null): Promise<ReadResult>"
+   }
+  },
+  {
+   "id": "@wren/learn#readQueued",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/catalog.ts",
+    "kind": "function",
+    "sig": "(db: Db, ids: readonly number[], o: { read: VideoReader; judge: JudgeFor; giveUp?: number; onRead?: (r: CatalogRead, n: number, of: number) => void; clock?: () => number; }): Promise<{ reads: CatalogRead[]; stopped: string | null }>"
+   }
+  },
+  {
+   "id": "@wren/learn#readStep",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/read.ts",
+    "kind": "function",
+    "sig": "(db: Db, pages: Fetcher, video: VideoReader | null = null): Step"
+   }
+  },
+  {
+   "id": "@wren/learn#readVideo",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/read.ts",
+    "kind": "function",
+    "sig": "(db: Db, reader: VideoReader, id: number, now = new Date()): Promise<ReadResult | \"waits\">"
+   }
+  },
+  {
+   "id": "@wren/learn#readers",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"readers\"; schema: \"learn\"; columns: { client: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"client\"; tableName: \"readers\"; dataType: \"string\"; columnType: \"PgVarchar\"; data: string; driverParam: string; notNull: true; hasDefault: false; isP…"
+   }
+  },
+  {
+   "id": "@wren/learn#recordFactCall",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/calls.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, p: { client: string; id: number; path: string; call: FactCall; comment?: string | null | undefined; by: string | null; source: \"console\" | \"cli\"; }): Promise<{ subject: string; row: FactRow | null }>"
+   }
+  },
+  {
+   "id": "@wren/learn#rulesOf",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/standard.ts",
+    "kind": "function",
+    "sig": "(calls: SopCall[]): { patterns: PatternRule[]; own: SopCall[] }"
+   }
+  },
+  {
+   "id": "@wren/learn#saveLink",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/items.ts",
+    "kind": "function",
+    "sig": "(db: Db, p: { client: string; url: string; by: string | null; via: Via; title?: string | null; kind?: ItemKind; creator?: string | null; now?: Date; stats?: PostStats | null; worth?: boolean; }): Promise<Saved>"
+   }
+  },
+  {
+   "id": "@wren/learn#saveOurs",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/learnback.ts",
+    "kind": "function",
+    "sig": "(db: Db, client: string, pieces: OurPiece[]): Promise<{ ids: Map<string, number>; saved: number }>"
+   }
+  },
+  {
+   "id": "@wren/learn#savedRecords",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgViewWithSelection<\"saved_records\", false, { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"saved_records\"; dataType: \"number\"; columnType: \"PgInteger\"; data: number; driverParam: string | number; notNull: false; hasDefault: false; isPrimaryKey: f…"
+   }
+  },
+  {
+   "id": "@wren/learn#scopeOf",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/standard.ts",
+    "kind": "function",
+    "sig": "(notes: string, sop?: string): SopScope | null"
+   }
+  },
+  {
+   "id": "@wren/learn#scoreItem",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/score.ts",
+    "kind": "function",
+    "sig": "(db: Db, judgeFor: JudgeFor, id: number): Promise<Verdict | null>"
+   }
+  },
+  {
+   "id": "@wren/learn#scoreStep",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/score.ts",
+    "kind": "function",
+    "sig": "(db: Db, judgeFor: JudgeFor, after?: (itemId: number) => Promise<unknown>): Step"
+   }
+  },
+  {
+   "id": "@wren/learn#searchItems",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/items.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, client: string, q: string, limit = 40, embed: Embed | null = null): Promise<Hit[]>"
+   }
+  },
+  {
+   "id": "@wren/learn#secondsOf",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/feeds.ts",
+    "kind": "function",
+    "sig": "(raw: string): number | null"
+   }
+  },
+  {
+   "id": "@wren/learn#seedFilmFacts",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/film.ts",
+    "kind": "function",
+    "sig": "(f: SeedFilm): FilmFacts"
+   }
+  },
+  {
+   "id": "@wren/learn#seedFilmSchema",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/film.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "z.ZodObject<{ url: z.ZodString; slug: z.ZodString; brand: z.ZodString; rival: z.ZodBoolean; duration_s: z.ZodNumber; cuts_by_signal: z.ZodRecord<z.ZodString, z.ZodNumber>; first_product_s: z.ZodNullable<z.ZodNumber>; logo_s: z.ZodNullable<z.ZodNumber>; cta_s: z.ZodNullable<z.ZodNumber>; cta: z.ZodNu…"
+   }
+  },
+  {
+   "id": "@wren/learn#seedStudySchema",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/film.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "z.ZodObject<{ films: z.ZodArray<z.ZodObject<{ url: z.ZodString; slug: z.ZodString; brand: z.ZodString; rival: z.ZodBoolean; duration_s: z.ZodNumber; cuts_by_signal: z.ZodRecord<z.ZodString, z.ZodNumber>; first_product_s: z.ZodNullable<z.ZodNumber>; logo_s: z.ZodNullable<z.ZodNumber>; cta_s: z.ZodNul…"
+   }
+  },
+  {
+   "id": "@wren/learn#seen",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"seen\"; schema: \"learn\"; columns: { client: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"client\"; tableName: \"seen\"; dataType: \"string\"; columnType: \"PgVarchar\"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrimary…"
+   }
+  },
+  {
+   "id": "@wren/learn#setDigestMail",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/alerts.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, client: string, on: boolean, by: string): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/learn#setPick",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/alerts.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, client: string, email: string, on: number | \"saved\", pick: AlertPick): Promise<boolean>"
+   }
+  },
+  {
+   "id": "@wren/learn#shotSchema",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/film.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "z.ZodObject<{ t: z.ZodNumber; len: z.ZodNumber; src: z.ZodEnum<{ hand: \"hand\"; scene: \"scene\"; }>; type: z.ZodNullable<z.ZodEnum<{ \"talking-head\": \"talking-head\"; ui: \"ui\"; \"b-roll\": \"b-roll\"; graphic: \"graphic\"; logo: \"logo\"; \"text-card\": \"text-card\"; }>>; move: z.ZodNullable<z.ZodEnum<{ push: \"pus…"
+   }
+  },
+  {
+   "id": "@wren/learn#shotStats",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/film.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(shots: readonly Shot[], durationS: number): { shot_median_s: number; shot_p90_s: number; cuts_per_10s: number[]; }"
+   }
+  },
+  {
+   "id": "@wren/learn#shotsOf",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/film.ts",
+    "kind": "function",
+    "sig": "(cuts: readonly number[], durationS: number): Shot[]"
+   }
+  },
+  {
+   "id": "@wren/learn#sitesReader",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/creators.ts",
+    "kind": "function",
+    "sig": "(sites: SiteClient): CreatorReader"
+   }
+  },
+  {
+   "id": "@wren/learn#sopLibrary",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/sops.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, client: string, sopsDir: string | null): Promise<SopRow[]>"
+   }
+  },
+  {
+   "id": "@wren/learn#sopRecordFor",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn/records"
+    ],
+    "file": "packages/learn/src/records.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(sopsDir: string | null): import(\"@wren/core/records\").RecordType"
+   }
+  },
+  {
+   "id": "@wren/learn#sopSources",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"sop_sources\"; schema: \"learn\"; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"sop_sources\"; dataType: \"number\"; columnType: \"PgSerial\"; data: number; driverParam: number; notNull: true; hasDefault: true; isPri…"
+   }
+  },
+  {
+   "id": "@wren/learn#sourceKindOf",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/feeds.ts",
+    "kind": "function",
+    "sig": "(feedUrl: string, feed: Feed): SourceKind"
+   }
+  },
+  {
+   "id": "@wren/learn#sourceRecords",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgViewWithSelection<\"source_records\", false, { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"source_records\"; dataType: \"number\"; columnType: \"PgInteger\"; data: number; driverParam: string | number; notNull: false; hasDefault: false; isPrimaryKey:…"
+   }
+  },
+  {
+   "id": "@wren/learn#sources",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"sources\"; schema: \"learn\"; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"sources\"; dataType: \"number\"; columnType: \"PgSerial\"; data: number; driverParam: number; notNull: true; hasDefault: true; isPrimaryKey:…"
+   }
+  },
+  {
+   "id": "@wren/learn#sourcesByKind",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/drive.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, client: string): Promise<{ kind: \"reddit\" | \"youtube\" | \"x\" | \"tiktok\" | \"instagram\" | \"newsletter\" | \"podcast\" | \"blog\" | \"forum\" | \"releases\"; sources: { items: number; fresh: number; last: string | null; id: number; name: string; url: string; page: string | null; kind: \"reddit\" | \"youtube\" | \"x\" | \"tiktok\" | \"ins…"
+   }
+  },
+  {
+   "id": "@wren/learn#standardLines",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/standard.ts",
+    "kind": "function",
+    "sig": "(k: KindStandard): string[]"
+   }
+  },
+  {
+   "id": "@wren/learn#standardMarkdown",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/standard.ts",
+    "kind": "function",
+    "sig": "(scope: SopScope, kinds: KindStandard[], at = new Date()): string"
+   }
+  },
+  {
+   "id": "@wren/learn#standardOf",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/standard.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, scope: SopScope): Promise<KindStandard[]>"
+   }
+  },
+  {
+   "id": "@wren/learn#standardRows",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/standard.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, scope: SopScope): Promise<StandardRow[]>"
+   }
+  },
+  {
+   "id": "@wren/learn#standards",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn",
+     "@wren/learn/schema"
+    ],
+    "file": "packages/learn/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgViewWithSelection<\"standards\", false, { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"standards\"; dataType: \"number\"; columnType: \"PgInteger\"; data: number; driverParam: string | number; notNull: false; hasDefault: false; isPrimaryKey: false; is…"
+   }
+  },
+  {
+   "id": "@wren/learn#statsOf",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/creators.ts",
+    "kind": "function",
+    "sig": "(n: { likes?: number | null | undefined; comments?: number | null | undefined; views?: number | null | undefined; }): PostStats | null"
+   }
+  },
+  {
+   "id": "@wren/learn#tagItems",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/drive.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, client: string, picked: number[], p: { add?: string[]; remove?: string[] }): Promise<number[]>"
+   }
+  },
+  {
+   "id": "@wren/learn#tagOf",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/drive.ts",
+    "kind": "function",
+    "sig": "(raw: string): string"
+   }
+  },
+  {
+   "id": "@wren/learn#tellLearn",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/tell.ts",
+    "kind": "function",
+    "sig": "(db: Db, notifier: Notifier, p: { today: string; hour: number; now: Date; portal?: string | null }): Promise<{ alerts: number; digest: number }>"
+   }
+  },
+  {
+   "id": "@wren/learn#tellSources",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/feeds.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, client: string, ids: number[], tell: Tell): Promise<number[]>"
+   }
+  },
+  {
+   "id": "@wren/learn#tiktokPage",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/creators.ts",
+    "kind": "function",
+    "sig": "(ytDlp: string, handle: string, page: { after?: string | null; limit?: number } = {}): Promise<CreatorPage>"
+   }
+  },
+  {
+   "id": "@wren/learn#tiktokReader",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/creators.ts",
+    "kind": "function",
+    "sig": "(ytDlp: string): CreatorReader"
+   }
+  },
+  {
+   "id": "@wren/learn#timed",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/score.ts",
+    "kind": "function",
+    "sig": "(text: string): boolean"
+   }
+  },
+  {
+   "id": "@wren/learn#todayOf",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/alerts.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, client: string, email: string, now = new Date()): Promise<{ since: string; total: number; held: number; items: TodayLine[] }>"
+   }
+  },
+  {
+   "id": "@wren/learn#typeOf",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/links.ts",
+    "kind": "function",
+    "sig": "(clean: string, kind: ItemKind, sourceKind?: SourceKind | null): ItemType"
+   }
+  },
+  {
+   "id": "@wren/learn#unfollowSources",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/feeds.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, client: string, ids: number[]): Promise<number[]>"
+   }
+  },
+  {
+   "id": "@wren/learn#unscore",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/score.ts",
+    "kind": "function",
+    "sig": "(db: Db, client: string, ids: readonly number[]): Promise<number[]>"
+   }
+  },
+  {
+   "id": "@wren/learn#unseen",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/drive.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, client: string, email: string): Promise<number>"
+   }
+  },
+  {
+   "id": "@wren/learn#verdictOf",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/score.ts",
+    "kind": "function",
+    "sig": "(score: number): Verdict"
+   }
+  },
+  {
+   "id": "@wren/learn#waitingForMac",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/read.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Db, opts: { limit?: number; retry?: boolean; client?: string | null } = {}): Promise<{ id: number; client: string; url: string; kind: \"post\" | \"video\" | \"reel\" | \"article\" | \"film\" | \"episode\"; title: string; }[]>"
+   }
+  },
+  {
+   "id": "@wren/learn#withLearnPicks",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn/decide"
+    ],
+    "file": "packages/learn/src/decide.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, client: string, cards: C[]): Promise<(C & { pick: LearnPick | null })[]>"
+   }
+  },
+  {
+   "id": "@wren/learn#writeAsked",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/sops.ts",
+    "kind": "function",
+    "sig": "(db: Db, sopsDir: string, writer: SopWriter, only?: { itemId?: number; sop?: string }): Promise<Array<{ sop: string; file: string | null; error: string | null }>>"
+   }
+  },
+  {
+   "id": "@wren/learn#writeChecks",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/learnback.ts",
+    "kind": "function",
+    "sig": "(db: Db, sop: string, rows: CheckRow[]): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/learn#writeClientAsked",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/sops.ts",
+    "kind": "function",
+    "sig": "(db: Db, client: string, notesDb: Db, only?: { itemId?: number }): Promise<Array<{ sop: string; note: string | null; error: string | null }>>"
+   }
+  },
+  {
+   "id": "@wren/learn#writeSopFiles",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/standard.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, dir: string, sop: string, notes: string): Promise<{ scope: SopScope; files: string[]; pieces: number; calls: number } | null>"
+   }
+  },
+  {
+   "id": "@wren/learn#youtubeId",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/links.ts",
+    "kind": "function",
+    "sig": "(url: URL): string | null"
+   }
+  },
+  {
+   "id": "@wren/learn#youtubeSearch",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/hunt.ts",
+    "kind": "function",
+    "sig": "(ytDlp: string): TopicSearch"
+   }
+  },
+  {
+   "id": "@wren/learn#youtubeThumb",
+   "role": "export",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "entries": [
+     "@wren/learn"
+    ],
+    "file": "packages/learn/src/links.ts",
+    "kind": "function",
+    "sig": "(clean: string): string | null"
+   }
+  }
+ ],
+ "edges": []
+}

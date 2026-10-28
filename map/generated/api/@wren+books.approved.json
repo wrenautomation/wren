@@ -1,0 +1,2655 @@
+{
+ "layer": "api",
+ "nodes": [
+  {
+   "id": "@wren/books#ACCOUNT_TYPES",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books",
+     "@wren/books/schema"
+    ],
+    "file": "packages/books/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"asset\", \"liability\", \"equity\", \"income\", \"expense\"]"
+   }
+  },
+  {
+   "id": "@wren/books#ALERT_KINDS",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books",
+     "@wren/books/schema"
+    ],
+    "file": "packages/books/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"capture\", \"held\", \"unread\", \"new_subscription\", \"renewal\", \"lapsed\", \"spike\", \"card\"]"
+   }
+  },
+  {
+   "id": "@wren/books#Account",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books",
+     "@wren/books/schema"
+    ],
+    "file": "packages/books/src/schema.ts",
+    "kind": "type",
+    "sig": "type Account = typeof accounts.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/books#AccountRequest",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books/restate"
+    ],
+    "file": "packages/books/src/console.ts",
+    "kind": "interface",
+    "sig": "interface AccountRequest extends PortalRequest { ids: string[]; bucket?: string | null; channel?: string | null; }"
+   }
+  },
+  {
+   "id": "@wren/books#AccountType",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books",
+     "@wren/books/schema"
+    ],
+    "file": "packages/books/src/schema.ts",
+    "kind": "type",
+    "sig": "type AccountType = (typeof ACCOUNT_TYPES)[number];"
+   }
+  },
+  {
+   "id": "@wren/books#AlertKind",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books",
+     "@wren/books/schema"
+    ],
+    "file": "packages/books/src/schema.ts",
+    "kind": "type",
+    "sig": "type AlertKind = (typeof ALERT_KINDS)[number];"
+   }
+  },
+  {
+   "id": "@wren/books#AlertsRead",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/card.ts",
+    "kind": "interface",
+    "sig": "interface AlertsRead { read: number; added: number; }"
+   }
+  },
+  {
+   "id": "@wren/books#BILL_CYCLES",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books",
+     "@wren/books/schema"
+    ],
+    "file": "packages/books/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"monthly\", \"yearly\", \"usage\", \"once\"]"
+   }
+  },
+  {
+   "id": "@wren/books#BILL_KINDS",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books",
+     "@wren/books/schema"
+    ],
+    "file": "packages/books/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"invoice\", \"receipt\", \"credit_note\"]"
+   }
+  },
+  {
+   "id": "@wren/books#BOOKS_COMPONENTS",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books/components"
+    ],
+    "file": "packages/books/src/components.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"@wren/core/components\").Component[]"
+   }
+  },
+  {
+   "id": "@wren/books#BOOKS_CONSOLE_APPS",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books/console-routes"
+    ],
+    "file": "packages/books/src/console-routes.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly \"*\": \"money\"; }"
+   }
+  },
+  {
+   "id": "@wren/books#BOOKS_CONSOLE_ROUTES",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books/console-routes"
+    ],
+    "file": "packages/books/src/console-routes.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly setAccount: \"wren:money\"; }"
+   }
+  },
+  {
+   "id": "@wren/books#BOOKS_CONSOLE_VIEWS",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books",
+     "@wren/books/schema"
+    ],
+    "file": "packages/books/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"books.spend\", \"books.subscriptions\", \"books.usage_by_month\"]"
+   }
+  },
+  {
+   "id": "@wren/books#BOOKS_CONSOLE_WRITES",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books/console-routes"
+    ],
+    "file": "packages/books/src/console-routes.ts",
+    "kind": "const",
+    "sig": "readonly (keyof typeof BOOKS_CONSOLE_ROUTES)[]"
+   }
+  },
+  {
+   "id": "@wren/books#BOOKS_KEY",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books/restate"
+    ],
+    "file": "packages/books/src/restate.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"all\""
+   }
+  },
+  {
+   "id": "@wren/books#BOOKS_RECORDS",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books/records"
+    ],
+    "file": "packages/books/src/records.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"@wren/core/records\").RecordType[]"
+   }
+  },
+  {
+   "id": "@wren/books#BUCKETS",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books",
+     "@wren/books/schema"
+    ],
+    "file": "packages/books/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"acquisition\", \"delivery\", \"overhead\"]"
+   }
+  },
+  {
+   "id": "@wren/books#Bill",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books",
+     "@wren/books/schema"
+    ],
+    "file": "packages/books/src/schema.ts",
+    "kind": "type",
+    "sig": "type Bill = typeof bills.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/books#BillCycle",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books",
+     "@wren/books/schema"
+    ],
+    "file": "packages/books/src/schema.ts",
+    "kind": "type",
+    "sig": "type BillCycle = (typeof BILL_CYCLES)[number];"
+   }
+  },
+  {
+   "id": "@wren/books#BillLine",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books",
+     "@wren/books/schema"
+    ],
+    "file": "packages/books/src/schema.ts",
+    "kind": "type",
+    "sig": "type BillLine = typeof billLines.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/books#BillPayment",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books",
+     "@wren/books/schema"
+    ],
+    "file": "packages/books/src/schema.ts",
+    "kind": "type",
+    "sig": "type BillPayment = typeof billPayments.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/books#BillTax",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books",
+     "@wren/books/schema"
+    ],
+    "file": "packages/books/src/schema.ts",
+    "kind": "type",
+    "sig": "type BillTax = typeof billTaxes.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/books#Books",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books/restate"
+    ],
+    "file": "packages/books/src/restate.ts",
+    "kind": "type",
+    "sig": "type Books = ReturnType<typeof makeBooks>;"
+   }
+  },
+  {
+   "id": "@wren/books#BooksDay",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/daily.ts",
+    "kind": "interface",
+    "sig": "interface BooksDay { captured: Captured[]; unreachable: Array<{ mailbox: string; error: string }>; read: ReadReport; card: AlertsRead & CardMatch & { sorted: number }; posted: Posted; aws: UsageIngest | null; usageLines: { month: string; lines: number; amountCents: number }[]; raised: string[]; }"
+   }
+  },
+  {
+   "id": "@wren/books#BooksDayDeps",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/daily.ts",
+    "kind": "interface",
+    "sig": "interface BooksDayDeps { db: Db; mailboxes: readonly Mailbox[]; store: DocumentStore; llm: LlmClient; rates: RateFeed; aws: UsageFeed | null; decrypts?: DecryptFeed | null; since: string; log?: (line: string) => void; }"
+   }
+  },
+  {
+   "id": "@wren/books#Bucket",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books",
+     "@wren/books/schema"
+    ],
+    "file": "packages/books/src/schema.ts",
+    "kind": "type",
+    "sig": "type Bucket = (typeof BUCKETS)[number];"
+   }
+  },
+  {
+   "id": "@wren/books#CARD",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/chart.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"card-bmo\""
+   }
+  },
+  {
+   "id": "@wren/books#CARD_ALERT_SPEC",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/card.ts",
+    "kind": "const",
+    "sig": "VendorSpec"
+   }
+  },
+  {
+   "id": "@wren/books#CARD_SOURCES",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books",
+     "@wren/books/schema"
+    ],
+    "file": "packages/books/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"statement\", \"alert\"]"
+   }
+  },
+  {
+   "id": "@wren/books#CaptureOptions",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/capture.ts",
+    "kind": "interface",
+    "sig": "interface CaptureOptions { since: string; store: DocumentStore; runId?: string | null; vendorSpecs?: readonly VendorSpec[]; log?: (line: string) => void; }"
+   }
+  },
+  {
+   "id": "@wren/books#Captured",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/capture.ts",
+    "kind": "interface",
+    "sig": "interface Captured { mailbox: string; found: number; known: number; kept: number; attachments: number; unmatched: number; }"
+   }
+  },
+  {
+   "id": "@wren/books#CardLine",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books",
+     "@wren/books/schema"
+    ],
+    "file": "packages/books/src/schema.ts",
+    "kind": "type",
+    "sig": "type CardLine = typeof cardLines.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/books#CardMatch",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/card.ts",
+    "kind": "interface",
+    "sig": "interface CardMatch { matched: number; charged: number; made: number; }"
+   }
+  },
+  {
+   "id": "@wren/books#CardSource",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books",
+     "@wren/books/schema"
+    ],
+    "file": "packages/books/src/schema.ts",
+    "kind": "type",
+    "sig": "type CardSource = (typeof CARD_SOURCES)[number];"
+   }
+  },
+  {
+   "id": "@wren/books#Checked",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/ground.ts",
+    "kind": "interface",
+    "sig": "interface Checked { kind: DocumentKind; bill: CheckedBill | null; payments: CheckedPayment[]; notes: string[]; }"
+   }
+  },
+  {
+   "id": "@wren/books#CheckedBill",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/ground.ts",
+    "kind": "interface",
+    "sig": "interface CheckedBill { number: string; kind: \"invoice\" | \"receipt\" | \"credit_note\"; issuedOn: string; dueOn: string | null; periodStart: string | null; periodEnd: string | null; currency: string; subtotalCents: number; taxCents: number; totalCents: number; chargedCadCents: number | null; plan: string | null; cycle: BillCycle | null; paymentMethod: string | null; billedTo: string | null; vendorTaxNumber: string | null; lines: CheckedLine[]; taxes: CheckedTax[]; reasons: string[]; }"
+   }
+  },
+  {
+   "id": "@wren/books#Condition",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/alerts.ts",
+    "kind": "interface",
+    "sig": "interface Condition { key: string; kind: AlertKind; message: string; }"
+   }
+  },
+  {
+   "id": "@wren/books#DOCUMENT_KINDS",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books",
+     "@wren/books/schema"
+    ],
+    "file": "packages/books/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"bill\", \"payment\", \"notice\", \"other\"]"
+   }
+  },
+  {
+   "id": "@wren/books#DOCUMENT_SOURCES",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books",
+     "@wren/books/schema"
+    ],
+    "file": "packages/books/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"mailbox\", \"file\", \"attachment\"]"
+   }
+  },
+  {
+   "id": "@wren/books#DecryptFeed",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/decrypts.ts",
+    "kind": "type",
+    "sig": "type DecryptFeed = (from: Date, to: Date) => Promise<Map<string, number>>;"
+   }
+  },
+  {
+   "id": "@wren/books#DelegatedGmail",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/core/src/mailbox.ts",
+    "kind": "interface",
+    "sig": "interface DelegatedGmail { searchAll(sender: string, query: string): Promise<string[]>; getRaw(sender: string, messageId: string): Promise<Uint8Array>; getMetadata(sender: string, messageId: string, headers: readonly string[]): Promise<unknown>; }"
+   }
+  },
+  {
+   "id": "@wren/books#Document",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books",
+     "@wren/books/schema"
+    ],
+    "file": "packages/books/src/schema.ts",
+    "kind": "type",
+    "sig": "type Document = typeof documents.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/books#DocumentKind",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books",
+     "@wren/books/schema"
+    ],
+    "file": "packages/books/src/schema.ts",
+    "kind": "type",
+    "sig": "type DocumentKind = (typeof DOCUMENT_KINDS)[number];"
+   }
+  },
+  {
+   "id": "@wren/books#DocumentStore",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/store.ts",
+    "kind": "interface",
+    "sig": "interface DocumentStore { put(key: string, bytes: Uint8Array, mediaType: string): Promise<void>; get(key: string): Promise<Uint8Array>; }"
+   }
+  },
+  {
+   "id": "@wren/books#Entry",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books",
+     "@wren/books/schema"
+    ],
+    "file": "packages/books/src/schema.ts",
+    "kind": "type",
+    "sig": "type Entry = typeof entries.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/books#GST_PAID",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/chart.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"gst-paid\""
+   }
+  },
+  {
+   "id": "@wren/books#Line",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books",
+     "@wren/books/schema"
+    ],
+    "file": "packages/books/src/schema.ts",
+    "kind": "type",
+    "sig": "type Line = typeof lines.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/books#MailSpec",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/chart.ts",
+    "kind": "interface",
+    "sig": "interface MailSpec { from: readonly string[]; subject?: readonly string[]; }"
+   }
+  },
+  {
+   "id": "@wren/books#Mailbox",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/core/src/mailbox.ts",
+    "kind": "interface",
+    "sig": "interface Mailbox { readonly address: string; search(query: string): Promise<string[]>; raw(id: string): Promise<Uint8Array>; meta(id: string): Promise<MailMeta>; }"
+   }
+  },
+  {
+   "id": "@wren/books#PostOptions",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/post.ts",
+    "kind": "interface",
+    "sig": "interface PostOptions { feed: RateFeed; runId?: string | null; log?: (line: string) => void; }"
+   }
+  },
+  {
+   "id": "@wren/books#Posted",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/post.ts",
+    "kind": "interface",
+    "sig": "interface Posted { posted: number; reversed: number; unchanged: number; }"
+   }
+  },
+  {
+   "id": "@wren/books#RATE_SOURCES",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books",
+     "@wren/books/schema"
+    ],
+    "file": "packages/books/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"same\", \"boc\", \"stated\", \"card\"]"
+   }
+  },
+  {
+   "id": "@wren/books#REVIEW_STATES",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books",
+     "@wren/books/schema"
+    ],
+    "file": "packages/books/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"ok\", \"needs_review\", \"accepted\", \"personal\", \"void\"]"
+   }
+  },
+  {
+   "id": "@wren/books#Range",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/report.ts",
+    "kind": "interface",
+    "sig": "interface Range { from?: string; to?: string; }"
+   }
+  },
+  {
+   "id": "@wren/books#RateFeed",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/rates.ts",
+    "kind": "type",
+    "sig": "type RateFeed = ( currency: string, from: string, to: string, ) => Promise<Array<{ on: string; cadPerUnit: string }>>;"
+   }
+  },
+  {
+   "id": "@wren/books#RateSource",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books",
+     "@wren/books/schema"
+    ],
+    "file": "packages/books/src/schema.ts",
+    "kind": "type",
+    "sig": "type RateSource = (typeof RATE_SOURCES)[number];"
+   }
+  },
+  {
+   "id": "@wren/books#ReadReport",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/read.ts",
+    "kind": "interface",
+    "sig": "interface ReadReport { read: number; bills: number; payments: number; review: number; unreadable: number; voided: number; }"
+   }
+  },
+  {
+   "id": "@wren/books#Readable",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/read.ts",
+    "kind": "interface",
+    "sig": "interface Readable { subject: string | null; fromAddress: string | null; sentAt: Date | null; text: string | null; attachments: ReadonlyArray<{ filename: string | null; text: string | null }>; }"
+   }
+  },
+  {
+   "id": "@wren/books#Reading",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/ground.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "z.ZodObject<{ kind: z.ZodOptional<z.ZodNullable<z.ZodString>>; bill: z.ZodOptional<z.ZodNullable<z.ZodObject<{ number: z.ZodOptional<z.ZodNullable<z.ZodString>>; kind: z.ZodOptional<z.ZodNullable<z.ZodString>>; issued_on: z.ZodOptional<z.ZodNullable<z.ZodString>>; due_on: z.ZodOptional<z.ZodNullable…"
+   }
+  },
+  {
+   "id": "@wren/books#ReviewState",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books",
+     "@wren/books/schema"
+    ],
+    "file": "packages/books/src/schema.ts",
+    "kind": "type",
+    "sig": "type ReviewState = (typeof REVIEW_STATES)[number];"
+   }
+  },
+  {
+   "id": "@wren/books#UNKNOWN_CHANNEL",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/economics.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"unknown\""
+   }
+  },
+  {
+   "id": "@wren/books#USAGE_LINE_STATES",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books",
+     "@wren/books/schema"
+    ],
+    "file": "packages/books/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"draft\", \"on_invoice\"]"
+   }
+  },
+  {
+   "id": "@wren/books#USAGE_PROVIDERS",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books",
+     "@wren/books/schema"
+    ],
+    "file": "packages/books/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"aws\"]"
+   }
+  },
+  {
+   "id": "@wren/books#UsageDay",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/usage.ts",
+    "kind": "interface",
+    "sig": "interface UsageDay { on: string; service: string; currency: string; amount: string; }"
+   }
+  },
+  {
+   "id": "@wren/books#UsageFeed",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/usage.ts",
+    "kind": "type",
+    "sig": "type UsageFeed = (from: string, to: string) => Promise<UsageDay[]>;"
+   }
+  },
+  {
+   "id": "@wren/books#UsageIngest",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/usage.ts",
+    "kind": "interface",
+    "sig": "interface UsageIngest { from: string; to: string; rows: number; }"
+   }
+  },
+  {
+   "id": "@wren/books#UsageLine",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books",
+     "@wren/books/schema"
+    ],
+    "file": "packages/books/src/schema.ts",
+    "kind": "type",
+    "sig": "type UsageLine = typeof usageLines.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/books#UsageLineState",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books",
+     "@wren/books/schema"
+    ],
+    "file": "packages/books/src/schema.ts",
+    "kind": "type",
+    "sig": "type UsageLineState = (typeof USAGE_LINE_STATES)[number];"
+   }
+  },
+  {
+   "id": "@wren/books#UsageProvider",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books",
+     "@wren/books/schema"
+    ],
+    "file": "packages/books/src/schema.ts",
+    "kind": "type",
+    "sig": "type UsageProvider = (typeof USAGE_PROVIDERS)[number];"
+   }
+  },
+  {
+   "id": "@wren/books#VENDORS",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/chart.ts",
+    "kind": "const",
+    "sig": "readonly VendorSpec[]"
+   }
+  },
+  {
+   "id": "@wren/books#Vendor",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books",
+     "@wren/books/schema"
+    ],
+    "file": "packages/books/src/schema.ts",
+    "kind": "type",
+    "sig": "type Vendor = typeof vendors.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/books#VendorFacts",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/ground.ts",
+    "kind": "interface",
+    "sig": "interface VendorFacts { name: string; currency: string | null; cycle: BillCycle | null; plansOnly?: boolean; plan?: string | null; gstClaimable: boolean | null; }"
+   }
+  },
+  {
+   "id": "@wren/books#VendorSpec",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/chart.ts",
+    "kind": "interface",
+    "sig": "interface VendorSpec { key: string; name: string; account: string; mail: MailSpec; currency?: string; cycle?: BillCycle; plansOnly?: boolean; plan?: string; gstClaimable?: boolean; card?: readonly string[]; }"
+   }
+  },
+  {
+   "id": "@wren/books#accountRecord",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books/records"
+    ],
+    "file": "packages/books/src/records.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"@wren/core/records\").RecordType"
+   }
+  },
+  {
+   "id": "@wren/books#accounts",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books",
+     "@wren/books/schema"
+    ],
+    "file": "packages/books/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"accounts\"; schema: \"books\"; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"accounts\"; dataType: \"number\"; columnType: \"PgSerial\"; data: number; driverParam: number; notNull: true; hasDefault: true; isPrimaryKe…"
+   }
+  },
+  {
+   "id": "@wren/books#alerts",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books",
+     "@wren/books/schema"
+    ],
+    "file": "packages/books/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"alerts\"; schema: \"books\"; columns: { key: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"key\"; tableName: \"alerts\"; dataType: \"string\"; columnType: \"PgText\"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey: …"
+   }
+  },
+  {
+   "id": "@wren/books#amountPrinted",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/card.ts",
+    "kind": "function",
+    "sig": "(amount: number, text: string): boolean"
+   }
+  },
+  {
+   "id": "@wren/books#assignVendor",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/read.ts",
+    "kind": "function",
+    "sig": "(db: Db, ids: readonly number[], vendorKey: string): Promise<number>"
+   }
+  },
+  {
+   "id": "@wren/books#awsCostExplorer",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/usage.ts",
+    "kind": "function",
+    "sig": "(client: CostExplorerClient = new CostExplorerClient({ region: \"us-east-1\" })): UsageFeed"
+   }
+  },
+  {
+   "id": "@wren/books#bankOfCanada",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/rates.ts",
+    "kind": "function",
+    "sig": "(fetchFn: typeof fetch = fetch): RateFeed"
+   }
+  },
+  {
+   "id": "@wren/books#billCosts",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books",
+     "@wren/books/schema"
+    ],
+    "file": "packages/books/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgViewWithSelection<\"bill_costs\", false, { billId: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"bill_id\"; tableName: \"bill_costs\"; dataType: \"number\"; columnType: \"PgInteger\"; data: number; driverParam: string | number; notNull: false; hasDefault: false; isPrimaryKey…"
+   }
+  },
+  {
+   "id": "@wren/books#billDetail",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/report.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Db, id: number): Promise<{ bill: { id: number; vendorId: number; number: string; kind: \"invoice\" | \"receipt\" | \"credit_note\"; issuedOn: string; dueOn: string | null; periodStart: string | null; periodEnd: string | null; currency: string; subtotalCents: number; taxCents: number; totalCents: number; chargedCadCents: n…"
+   }
+  },
+  {
+   "id": "@wren/books#billDocuments",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books",
+     "@wren/books/schema"
+    ],
+    "file": "packages/books/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"bill_documents\"; schema: \"books\"; columns: { billId: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"bill_id\"; tableName: \"bill_documents\"; dataType: \"number\"; columnType: \"PgInteger\"; data: number; driverParam: string | number; notNull: true…"
+   }
+  },
+  {
+   "id": "@wren/books#billLines",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books",
+     "@wren/books/schema"
+    ],
+    "file": "packages/books/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"bill_lines\"; schema: \"books\"; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"bill_lines\"; dataType: \"number\"; columnType: \"PgSerial\"; data: number; driverParam: number; notNull: true; hasDefault: true; isPrima…"
+   }
+  },
+  {
+   "id": "@wren/books#billPayments",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books",
+     "@wren/books/schema"
+    ],
+    "file": "packages/books/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"bill_payments\"; schema: \"books\"; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"bill_payments\"; dataType: \"number\"; columnType: \"PgSerial\"; data: number; driverParam: number; notNull: true; hasDefault: true; i…"
+   }
+  },
+  {
+   "id": "@wren/books#billTaxes",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books",
+     "@wren/books/schema"
+    ],
+    "file": "packages/books/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"bill_taxes\"; schema: \"books\"; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"bill_taxes\"; dataType: \"number\"; columnType: \"PgSerial\"; data: number; driverParam: number; notNull: true; hasDefault: true; isPrima…"
+   }
+  },
+  {
+   "id": "@wren/books#billingQuery",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/mailbox.ts",
+    "kind": "function",
+    "sig": "(vendorSpecs: readonly VendorSpec[], since: string): string"
+   }
+  },
+  {
+   "id": "@wren/books#bills",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books",
+     "@wren/books/schema"
+    ],
+    "file": "packages/books/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"bills\"; schema: \"books\"; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"bills\"; dataType: \"number\"; columnType: \"PgSerial\"; data: number; driverParam: number; notNull: true; hasDefault: true; isPrimaryKey: fal…"
+   }
+  },
+  {
+   "id": "@wren/books#billsStep",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/bills.ts",
+    "kind": "function",
+    "sig": "(d: BillsStepDeps): Step"
+   }
+  },
+  {
+   "id": "@wren/books#bocRate",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/rates.ts",
+    "kind": "function",
+    "sig": "(db: Db, feed: RateFeed, currency: string, on: string): Promise<{ rate: string; on: string }>"
+   }
+  },
+  {
+   "id": "@wren/books#bodyText",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/text.ts",
+    "kind": "function",
+    "sig": "(message: MimePart): string"
+   }
+  },
+  {
+   "id": "@wren/books#bookConditions",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/alerts.ts",
+    "kind": "function",
+    "sig": "(db: Db, on: string): Promise<Condition[]>"
+   }
+  },
+  {
+   "id": "@wren/books#books",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books",
+     "@wren/books/schema"
+    ],
+    "file": "packages/books/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgSchema<\"books\">"
+   }
+  },
+  {
+   "id": "@wren/books#booksConsoleApi",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books/restate"
+    ],
+    "file": "packages/books/src/console.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Db): { setAccount(req: AccountRequest): Promise<{ done: string[]; }>; }"
+   }
+  },
+  {
+   "id": "@wren/books#booksDay",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/daily.ts",
+    "kind": "function",
+    "sig": "(deps: BooksDayDeps, now: Date, runId: string | null): Promise<BooksDay>"
+   }
+  },
+  {
+   "id": "@wren/books#capture",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/capture.ts",
+    "kind": "function",
+    "sig": "(db: Db, mailbox: Mailbox, opts: CaptureOptions): Promise<Captured>"
+   }
+  },
+  {
+   "id": "@wren/books#cardLines",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books",
+     "@wren/books/schema"
+    ],
+    "file": "packages/books/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"card_lines\"; schema: \"books\"; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"card_lines\"; dataType: \"number\"; columnType: \"PgSerial\"; data: number; driverParam: number; notNull: true; hasDefault: true; isPrima…"
+   }
+  },
+  {
+   "id": "@wren/books#cardRecords",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books",
+     "@wren/books/schema"
+    ],
+    "file": "packages/books/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgViewWithSelection<\"card_records\", false, { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"card_records\"; dataType: \"number\"; columnType: \"PgInteger\"; data: number; driverParam: string | number; notNull: false; hasDefault: false; isPrimaryKey: fal…"
+   }
+  },
+  {
+   "id": "@wren/books#cardRules",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books",
+     "@wren/books/schema"
+    ],
+    "file": "packages/books/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"card_rules\"; schema: \"books\"; columns: { descriptor: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"descriptor\"; tableName: \"card_rules\"; dataType: \"string\"; columnType: \"PgText\"; data: string; driverParam: string; notNull: true; hasDefault:…"
+   }
+  },
+  {
+   "id": "@wren/books#cardVendor",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/card.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(descriptor: string, specs: readonly VendorSpec[] = VENDORS): VendorSpec | null"
+   }
+  },
+  {
+   "id": "@wren/books#check",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/ground.ts",
+    "kind": "function",
+    "sig": "(reading: Reading, corpus: Corpus, vendor: VendorFacts): Checked"
+   }
+  },
+  {
+   "id": "@wren/books#cloudTrailDecrypts",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/decrypts.ts",
+    "kind": "function",
+    "sig": "(client: CloudTrailClient = new CloudTrailClient({ region: \"us-east-1\" })): DecryptFeed"
+   }
+  },
+  {
+   "id": "@wren/books#csvRows",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/card.ts",
+    "kind": "function",
+    "sig": "(text: string): string[][]"
+   }
+  },
+  {
+   "id": "@wren/books#currencyOf",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/money.ts",
+    "kind": "function",
+    "sig": "(printed: string): string | null"
+   }
+  },
+  {
+   "id": "@wren/books#decryptSpikes",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/decrypts.ts",
+    "kind": "function",
+    "sig": "(day: ReadonlyMap<string, number>, before: ReadonlyMap<string, number>): DecryptSpike[]"
+   }
+  },
+  {
+   "id": "@wren/books#delegatedMailbox",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/core/src/mailbox.ts",
+    "kind": "function",
+    "sig": "(gmail: DelegatedGmail, address: string): Mailbox"
+   }
+  },
+  {
+   "id": "@wren/books#descriptorOf",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/card.ts",
+    "kind": "function",
+    "sig": "(description: string): string"
+   }
+  },
+  {
+   "id": "@wren/books#descriptorOfLine",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/card.ts",
+    "kind": "function",
+    "sig": "(db: Db, id: number): Promise<string | null>"
+   }
+  },
+  {
+   "id": "@wren/books#dirStore",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/store.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(root: string): { put(key: string, bytes: Uint8Array<ArrayBufferLike>): Promise<void>; get(key: string): Promise<Uint8Array<ArrayBuffer>>; }"
+   }
+  },
+  {
+   "id": "@wren/books#dismissDocuments",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/read.ts",
+    "kind": "function",
+    "sig": "(db: Db, ids: readonly number[]): Promise<number>"
+   }
+  },
+  {
+   "id": "@wren/books#documents",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books",
+     "@wren/books/schema"
+    ],
+    "file": "packages/books/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"documents\"; schema: \"books\"; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"documents\"; dataType: \"number\"; columnType: \"PgSerial\"; data: number; driverParam: number; notNull: true; hasDefault: true; isPrimary…"
+   }
+  },
+  {
+   "id": "@wren/books#econChannels",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/economics.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgViewWithSelection<\"econ_channels\", false, { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"econ_channels\"; dataType: \"string\"; columnType: \"PgText\"; data: string; driverParam: string; notNull: false; hasDefault: false; isPrimaryKey: false; isAuto…"
+   }
+  },
+  {
+   "id": "@wren/books#econClientMonths",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/economics.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgViewWithSelection<\"econ_client_months\", false, { clientId: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"client_id\"; tableName: \"econ_client_months\"; dataType: \"string\"; columnType: \"PgText\"; data: string; driverParam: string; notNull: false; hasDefault: false; isPr…"
+   }
+  },
+  {
+   "id": "@wren/books#econCohorts",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/economics.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgViewWithSelection<\"econ_cohorts\", false, { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"econ_cohorts\"; dataType: \"string\"; columnType: \"PgText\"; data: string; driverParam: string; notNull: false; hasDefault: false; isPrimaryKey: false; isAutoin…"
+   }
+  },
+  {
+   "id": "@wren/books#econMonths",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/economics.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgViewWithSelection<\"econ_months\", false, { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"econ_months\"; dataType: \"string\"; columnType: \"PgText\"; data: string; driverParam: string; notNull: false; hasDefault: false; isPrimaryKey: false; isAutoincr…"
+   }
+  },
+  {
+   "id": "@wren/books#econPaid",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/economics.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgViewWithSelection<\"econ_paid\", false, { invoiceId: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"invoice_id\"; tableName: \"econ_paid\"; dataType: \"number\"; columnType: \"PgInteger\"; data: number; driverParam: string | number; notNull: false; hasDefault: false; isPrimar…"
+   }
+  },
+  {
+   "id": "@wren/books#endSubscription",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/card.ts",
+    "kind": "function",
+    "sig": "(db: Db, vendorKey: string, endedOn: string, plan?: string | null): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/books#entries",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books",
+     "@wren/books/schema"
+    ],
+    "file": "packages/books/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"entries\"; schema: \"books\"; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"entries\"; dataType: \"number\"; columnType: \"PgSerial\"; data: number; driverParam: number; notNull: true; hasDefault: true; isPrimaryKey:…"
+   }
+  },
+  {
+   "id": "@wren/books#fingerprints",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/card.ts",
+    "kind": "function",
+    "sig": "(lines: readonly StatementLine[]): string[]"
+   }
+  },
+  {
+   "id": "@wren/books#formatCents",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/money.ts",
+    "kind": "function",
+    "sig": "(cents: number): string"
+   }
+  },
+  {
+   "id": "@wren/books#formatMoney",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/money.ts",
+    "kind": "function",
+    "sig": "(cents: number, currency: string): string"
+   }
+  },
+  {
+   "id": "@wren/books#getDocument",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/report.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Db, id: number): Promise<{ id: number; sha256: string; mediaType: string; size: number; storeKey: string; source: \"file\" | \"mailbox\" | \"attachment\"; parentId: number | null; filename: string | null; mailbox: string | null; mailboxKey: string | null; messageId: string | null; fromAddress: string | null; fromName: str…"
+   }
+  },
+  {
+   "id": "@wren/books#importStatement",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/card.ts",
+    "kind": "function",
+    "sig": "(db: Db, store: DocumentStore, file: { bytes: Uint8Array; filename: string; card?: string }, runId: string | null = null): Promise<CardImport>"
+   }
+  },
+  {
+   "id": "@wren/books#ingestUsage",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/usage.ts",
+    "kind": "function",
+    "sig": "(db: Db, provider: UsageProvider, feed: UsageFeed, opts: { since: string; on: string }): Promise<UsageIngest>"
+   }
+  },
+  {
+   "id": "@wren/books#invoiceNumber",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/ground.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(s: string): string"
+   }
+  },
+  {
+   "id": "@wren/books#isDay",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/ground.ts",
+    "kind": "function",
+    "sig": "(value: string | null | undefined): value is string"
+   }
+  },
+  {
+   "id": "@wren/books#lines",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books",
+     "@wren/books/schema"
+    ],
+    "file": "packages/books/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"lines\"; schema: \"books\"; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"lines\"; dataType: \"number\"; columnType: \"PgSerial\"; data: number; driverParam: number; notNull: true; hasDefault: true; isPrimaryKey: fal…"
+   }
+  },
+  {
+   "id": "@wren/books#listBills",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/report.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Db, opts: Range & { vendor?: string; review?: boolean } = {}): Promise<{ billId: number | null; vendorId: number | null; vendor: string | null; vendorName: string | null; number: string | null; kind: string | null; issuedOn: string | null; periodStart: string | null; periodEnd: string | null; currency: string | null; totalCents: number | null; taxCents: number …"
+   }
+  },
+  {
+   "id": "@wren/books#listPayments",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/report.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Db, opts: Range & { vendor?: string } = {}): Promise<{ id: number; paidOn: string; vendor: string; invoiceNumber: string | null; billId: number | null; amountCents: number; currency: string; method: string | null; reference: string | null; documentId: number; }[]>"
+   }
+  },
+  {
+   "id": "@wren/books#listSpend",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/report.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Db, opts: Range = {}): Promise<{ month: string | null; account: string | null; accountName: string | null; t2125Line: string | null; vendor: string | null; vendorName: string | null; cadCents: number | null; }[]>"
+   }
+  },
+  {
+   "id": "@wren/books#listSubscriptions",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/report.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Db, opts: { on?: string } = {}): Promise<{ vendorId: number | null; vendor: string | null; vendorName: string | null; plan: string | null; cycle: string | null; currency: string | null; lastTotalCents: number | null; lastCadCents: number | null; lastBilledOn: string | null; renewsOn: string | null; monthlyCadCents: number | null; s…"
+   }
+  },
+  {
+   "id": "@wren/books#mailClause",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/mailbox.ts",
+    "kind": "function",
+    "sig": "(mail: MailSpec): string"
+   }
+  },
+  {
+   "id": "@wren/books#makeBooks",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books/restate"
+    ],
+    "file": "packages/books/src/restate.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(deps: BooksDeps): restate.VirtualObjectDefinition<string, Record<never, never> & Record<never, (ctx: restate.ObjectContext) => Promise<PassOutcome<BooksDay>>> & { sync: (ctx: restate.ObjectContext) => Promise<PassOutcome<BooksDay>>; start: (ctx: restate.ObjectContext, settings?: Record<string, unknown> | null) => Pro…"
+   }
+  },
+  {
+   "id": "@wren/books#makeBooksConsole",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books/restate"
+    ],
+    "file": "packages/books/src/console.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Db): restate.ServiceDefinition<\"BooksConsole\", { setAccount: (_: restate.Context, req: AccountRequest) => Promise<{ done: string[]; }>; }>"
+   }
+  },
+  {
+   "id": "@wren/books#matchCard",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/card.ts",
+    "kind": "function",
+    "sig": "(db: Db, on: string, runId: string | null = null): Promise<CardMatch>"
+   }
+  },
+  {
+   "id": "@wren/books#mentionsCurrency",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/money.ts",
+    "kind": "function",
+    "sig": "(text: string, code: string): boolean"
+   }
+  },
+  {
+   "id": "@wren/books#monthBounds",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/usage-lines.ts",
+    "kind": "function",
+    "sig": "(month: string): { from: Date; to: Date; day: string }"
+   }
+  },
+  {
+   "id": "@wren/books#monthOf",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/usage-lines.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(d: Date): string"
+   }
+  },
+  {
+   "id": "@wren/books#openAlerts",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/alerts.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Db, kind?: AlertKind): Promise<{ key: string; kind: \"held\" | \"unread\" | \"card\" | \"capture\" | \"new_subscription\" | \"renewal\" | \"lapsed\" | \"spike\"; message: string; raisedAt: Date; clearedAt: Date | null; }[]>"
+   }
+  },
+  {
+   "id": "@wren/books#parseCents",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/money.ts",
+    "kind": "function",
+    "sig": "(printed: string): number | null"
+   }
+  },
+  {
+   "id": "@wren/books#parseStatement",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/card.ts",
+    "kind": "function",
+    "sig": "(text: string, card?: string): StatementLine[]"
+   }
+  },
+  {
+   "id": "@wren/books#planLines",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/post.ts",
+    "kind": "function",
+    "sig": "(db: Db, feed: RateFeed, bill: Bill, vendorName: string, claimableCents: number, ids: { card: number; gst: number }): Promise<PlannedLine[]>"
+   }
+  },
+  {
+   "id": "@wren/books#post",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/post.ts",
+    "kind": "function",
+    "sig": "(db: Db, opts: PostOptions): Promise<Posted>"
+   }
+  },
+  {
+   "id": "@wren/books#principalOf",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/decrypts.ts",
+    "kind": "function",
+    "sig": "(id: Identity | undefined): string"
+   }
+  },
+  {
+   "id": "@wren/books#printedCents",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/money.ts",
+    "kind": "function",
+    "sig": "(text: string): Set<number>"
+   }
+  },
+  {
+   "id": "@wren/books#printedDays",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/ground.ts",
+    "kind": "function",
+    "sig": "(text: string): Set<string>"
+   }
+  },
+  {
+   "id": "@wren/books#rates",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books",
+     "@wren/books/schema"
+    ],
+    "file": "packages/books/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"rates\"; schema: \"books\"; columns: { on: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"on\"; tableName: \"rates\"; dataType: \"string\"; columnType: \"PgDateString\"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey…"
+   }
+  },
+  {
+   "id": "@wren/books#readCardAlerts",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/card.ts",
+    "kind": "function",
+    "sig": "(db: Db, llm: LlmClient, opts: { runId?: string | null; tracer?: Tracer | null; card?: string } = {}): Promise<AlertsRead>"
+   }
+  },
+  {
+   "id": "@wren/books#readDocuments",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/read.ts",
+    "kind": "function",
+    "sig": "(db: Db, llm: LlmClient, opts: ReadOptions = {}): Promise<ReadReport>"
+   }
+  },
+  {
+   "id": "@wren/books#reviewQueue",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/report.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Db): Promise<{ bills: { id: number; vendor: string; number: string; issuedOn: string; totalCents: number; currency: string; reasons: string[]; }[]; payments: { id: number; vendor: string; invoiceNumber: string | null; paidOn: string; amountCents: number; currency: string; documentId: number; }[]; documen…"
+   }
+  },
+  {
+   "id": "@wren/books#ruleCard",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/card.ts",
+    "kind": "function",
+    "sig": "(db: Db, descriptor: string, to: { vendor: string } | \"personal\"): Promise<number>"
+   }
+  },
+  {
+   "id": "@wren/books#s3Store",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/store.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(bucket: string, opts: { client?: S3Client; region?: string } = {}): { put(key: string, bytes: Uint8Array<ArrayBufferLike>, mediaType: string): Promise<void>; get(key: string): Promise<Uint8Array<ArrayBufferLike>>; }"
+   }
+  },
+  {
+   "id": "@wren/books#seedBooks",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/chart.ts",
+    "kind": "function",
+    "sig": "(db: Queryable): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/books#setReview",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/read.ts",
+    "kind": "function",
+    "sig": "(db: Db, billId: number, review: \"accepted\" | \"personal\"): Promise<Bill | undefined>"
+   }
+  },
+  {
+   "id": "@wren/books#settleAlerts",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/alerts.ts",
+    "kind": "function",
+    "sig": "(db: Db, kinds: readonly AlertKind[], open: readonly Condition[]): Promise<Condition[]>"
+   }
+  },
+  {
+   "id": "@wren/books#sha256",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/store.ts",
+    "kind": "function",
+    "sig": "(bytes: Uint8Array): string"
+   }
+  },
+  {
+   "id": "@wren/books#shiftDay",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/day.ts",
+    "kind": "function",
+    "sig": "(day: string, n: number): string"
+   }
+  },
+  {
+   "id": "@wren/books#shiftMonth",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/usage.ts",
+    "kind": "function",
+    "sig": "(day: string, n: number): string"
+   }
+  },
+  {
+   "id": "@wren/books#siteMailbox",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/core/src/mailbox.ts",
+    "kind": "function",
+    "sig": "(sites: SiteClient, address: string): Mailbox"
+   }
+  },
+  {
+   "id": "@wren/books#sortCard",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/card.ts",
+    "kind": "function",
+    "sig": "(db: Db): Promise<number>"
+   }
+  },
+  {
+   "id": "@wren/books#spend",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books",
+     "@wren/books/schema"
+    ],
+    "file": "packages/books/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgViewWithSelection<\"spend\", false, { month: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"month\"; tableName: \"spend\"; dataType: \"string\"; columnType: \"PgDateString\"; data: string; driverParam: string; notNull: false; hasDefault: false; isPrimaryKey: false; isAutoincr…"
+   }
+  },
+  {
+   "id": "@wren/books#spendRecords",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books",
+     "@wren/books/schema"
+    ],
+    "file": "packages/books/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgViewWithSelection<\"spend_records\", false, { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"spend_records\"; dataType: \"string\"; columnType: \"PgText\"; data: string; driverParam: string; notNull: false; hasDefault: false; isPrimaryKey: false; isAuto…"
+   }
+  },
+  {
+   "id": "@wren/books#statementDay",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/card.ts",
+    "kind": "function",
+    "sig": "(s: string): string"
+   }
+  },
+  {
+   "id": "@wren/books#storeKey",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/store.ts",
+    "kind": "function",
+    "sig": "(hash: string, mediaType: string): string"
+   }
+  },
+  {
+   "id": "@wren/books#subscriptionEnds",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books",
+     "@wren/books/schema"
+    ],
+    "file": "packages/books/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"subscription_ends\"; schema: \"books\"; columns: { vendorId: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"vendor_id\"; tableName: \"subscription_ends\"; dataType: \"number\"; columnType: \"PgInteger\"; data: number; driverParam: string | number; not…"
+   }
+  },
+  {
+   "id": "@wren/books#subscriptionRecords",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books",
+     "@wren/books/schema"
+    ],
+    "file": "packages/books/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgViewWithSelection<\"subscription_records\", false, { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"subscription_records\"; dataType: \"string\"; columnType: \"PgText\"; data: string; driverParam: string; notNull: false; hasDefault: false; isPrimaryKey:…"
+   }
+  },
+  {
+   "id": "@wren/books#subscriptions",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books",
+     "@wren/books/schema"
+    ],
+    "file": "packages/books/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgViewWithSelection<\"subscriptions\", false, { vendorId: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"vendor_id\"; tableName: \"subscriptions\"; dataType: \"number\"; columnType: \"PgInteger\"; data: number; driverParam: string | number; notNull: false; hasDefault: false; is…"
+   }
+  },
+  {
+   "id": "@wren/books#toCad",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/money.ts",
+    "kind": "function",
+    "sig": "(cents: number, rate: string): number"
+   }
+  },
+  {
+   "id": "@wren/books#today",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/day.ts",
+    "kind": "function",
+    "sig": "(now: Date = new Date()): string"
+   }
+  },
+  {
+   "id": "@wren/books#unsortedCard",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/card.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Db): Promise<{ descriptor: string; lines: number; last: string; }[]>"
+   }
+  },
+  {
+   "id": "@wren/books#usage",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books",
+     "@wren/books/schema"
+    ],
+    "file": "packages/books/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"usage\"; schema: \"books\"; columns: { on: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"on\"; tableName: \"usage\"; dataType: \"string\"; columnType: \"PgDateString\"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey…"
+   }
+  },
+  {
+   "id": "@wren/books#usageByMonth",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books",
+     "@wren/books/schema"
+    ],
+    "file": "packages/books/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgViewWithSelection<\"usage_by_month\", false, { month: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"month\"; tableName: \"usage_by_month\"; dataType: \"string\"; columnType: \"PgDateString\"; data: string; driverParam: string; notNull: false; hasDefault: false; isPrimaryKey:…"
+   }
+  },
+  {
+   "id": "@wren/books#usageLines",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books",
+     "@wren/books/schema"
+    ],
+    "file": "packages/books/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"usage_lines\"; schema: \"books\"; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"usage_lines\"; dataType: \"number\"; columnType: \"PgSerial\"; data: number; driverParam: number; notNull: true; hasDefault: true; isPri…"
+   }
+  },
+  {
+   "id": "@wren/books#usageLinesOf",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/usage-lines.ts",
+    "kind": "function",
+    "sig": "(main: Db, month: string, client?: string | null): Promise<UsageLine[]>"
+   }
+  },
+  {
+   "id": "@wren/books#usageMonth",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/usage.ts",
+    "kind": "function",
+    "sig": "(db: Db, provider: UsageProvider, on: string): Promise<UsageMonth[]>"
+   }
+  },
+  {
+   "id": "@wren/books#usageSpikes",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/usage.ts",
+    "kind": "function",
+    "sig": "(db: Db, provider: UsageProvider, on: string): Promise<Spike[]>"
+   }
+  },
+  {
+   "id": "@wren/books#vendorFor",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/mailbox.ts",
+    "kind": "function",
+    "sig": "(vendorSpecs: readonly VendorSpec[], fromAddress: string, subject: string): VendorSpec | null"
+   }
+  },
+  {
+   "id": "@wren/books#vendorSpec",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/chart.ts",
+    "kind": "function",
+    "sig": "(key: string): VendorSpec | undefined"
+   }
+  },
+  {
+   "id": "@wren/books#vendors",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books",
+     "@wren/books/schema"
+    ],
+    "file": "packages/books/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"vendors\"; schema: \"books\"; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"vendors\"; dataType: \"number\"; columnType: \"PgSerial\"; data: number; driverParam: number; notNull: true; hasDefault: true; isPrimaryKey:…"
+   }
+  },
+  {
+   "id": "@wren/books#writeUsageLines",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/usage-lines.ts",
+    "kind": "function",
+    "sig": "(main: Db, month: string): Promise<{ lines: number; costCents: number; amountCents: number; kept: number }>"
+   }
+  }
+ ],
+ "edges": []
+}

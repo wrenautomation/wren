@@ -18,7 +18,8 @@ import path from "node:path";
 import ts from "typescript";
 
 const root = process.cwd();
-const SKIP = /node_modules|\/dist\/|\/drizzle\/|\.d\.ts$/;
+// map/generated lists every export by name (kestrel): it is no reader.
+const SKIP = /node_modules|\/dist\/|\/drizzle\/|\/map\/generated\/|\.d\.ts$/;
 const READER = /\.(test|stories|spec)\.[jt]sx?$|\/(test|tests|__tests__|mocks|fixtures)\//;
 const SCHEMA = /schema\.ts$/;
 const DRIZZLE = /\b(pgView|pgTable|pgMaterializedView)\(|\.(view|table|materializedView)\(/;

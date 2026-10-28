@@ -11,6 +11,7 @@
       "!**/dist",
       "!**/drizzle/meta",
       "!designs",
+      "!map/generated",
       "!.claude/worktrees",
       "!**/mockServiceWorker.js"
     ]

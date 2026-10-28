@@ -1,0 +1,3357 @@
+{
+ "layer": "imports",
+ "nodes": [
+  {
+   "id": "@wren/research",
+   "role": "package",
+   "parent": "repo:wren",
+   "group": "@wren/research",
+   "attrs": {
+    "dir": "packages/research/",
+    "npm": [
+     "node:crypto",
+     "node:dns",
+     "node:fs",
+     "node:path",
+     "node:stream",
+     "node:util",
+     "node:zlib"
+    ]
+   }
+  },
+  {
+   "id": "@wren/research/src/companies/boards.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/companies/customers.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/companies/events.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/companies/hiring.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/companies/index.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/companies/ppp-size.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/companies/profile.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/companies/store.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/components.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/discovery/candidates.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/discovery/find.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/discovery/gate.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/discovery/homepage.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/discovery/index.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/discovery/service.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/dossier.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/enrichment/ad-library.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/enrichment/audit-backfill.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/enrichment/contacts.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/enrichment/crawler.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/enrichment/email-pick/graph.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/enrichment/email-pick/run.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/enrichment/email-scan.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/enrichment/exa-search.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/enrichment/extraction.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/enrichment/fb-groups.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/enrichment/index.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/enrichment/instagram.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/enrichment/news-triggers.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/enrichment/opener.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/enrichment/profiles.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/enrichment/readings.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/enrichment/remote-browser.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/enrichment/render.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/enrichment/shard.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/enrichment/shared-pages.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/enrichment/store.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/enrichment/team.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/enrichment/testimonials.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/enrichment/urls.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/enrichment/youtube-search.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/enrichment/youtube.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/fetch/datasets.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/fetch/index.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/fetch/overture.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/fetch/ppp.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/fetch/sba.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/fetch/tier-memory.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/findings.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/index.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/limits.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/linkedin-reads.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/pacing.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/pages.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/people/contacts.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/people/elsewhere.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/people/fit-traits.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/people/index.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/people/lookup.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/people/names.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/people/profile-link.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/people/profile-research.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/people/store.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/people/team.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/phones.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/records.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/restate/discovery.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/restate/enrichment-context.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/restate/enrichment-crawl.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/restate/enrichment-people.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/restate/enrichment-picks.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/restate/enrichment-search.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/restate/enrichment-social.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/restate/enrichment.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/restate/index.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/restate/page-archive.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/restate/profile-research.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/restate/units.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/schema.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/signals/collectors.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/signals/demand.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/signals/funding.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/signals/hiring.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/signals/index.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/signals/linkedin.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/signals/news.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/signals/site.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/signals/stack-prints.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/signals/stack.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/signals/talks.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/social-schema.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/sops/cites.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/sops/index.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/studies/index.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/studies/plan.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/studies/recipes.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/src/studies/run.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/test/integration/fixtures.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  },
+  {
+   "id": "@wren/research/vitest.config.ts",
+   "role": "file",
+   "parent": "@wren/research",
+   "group": "@wren/research"
+  }
+ ],
+ "edges": [
+  {
+   "from": "@wren/research",
+   "to": "@wren/core",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research",
+   "to": "@wren/db",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research",
+   "to": "@wren/llm",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/companies/customers.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/companies/customers.ts",
+   "to": "@wren/research/src/people/names.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/companies/events.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/companies/events.ts",
+   "to": "@wren/research/src/companies/profile.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/companies/events.ts",
+   "to": "@wren/research/src/findings.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/companies/events.ts",
+   "to": "@wren/research/src/pacing.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/companies/events.ts",
+   "to": "@wren/research/src/people/names.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/companies/hiring.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/companies/hiring.ts",
+   "to": "@wren/research/src/companies/boards.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/companies/hiring.ts",
+   "to": "@wren/research/src/companies/profile.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/companies/hiring.ts",
+   "to": "@wren/research/src/findings.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/companies/hiring.ts",
+   "to": "@wren/research/src/linkedin-reads.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/companies/hiring.ts",
+   "to": "@wren/research/src/pacing.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/companies/hiring.ts",
+   "to": "@wren/research/src/people/names.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/companies/hiring.ts",
+   "to": "@wren/research/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/companies/index.ts",
+   "to": "@wren/research/src/companies/boards.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/companies/index.ts",
+   "to": "@wren/research/src/companies/customers.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/companies/index.ts",
+   "to": "@wren/research/src/companies/events.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/companies/index.ts",
+   "to": "@wren/research/src/companies/hiring.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/companies/index.ts",
+   "to": "@wren/research/src/companies/ppp-size.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/companies/index.ts",
+   "to": "@wren/research/src/companies/profile.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/companies/index.ts",
+   "to": "@wren/research/src/companies/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/companies/ppp-size.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/companies/ppp-size.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/companies/ppp-size.ts",
+   "to": "@wren/research/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/companies/profile.ts",
+   "to": "@wren/core/src/checks.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/companies/profile.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/companies/profile.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/companies/profile.ts",
+   "to": "@wren/core/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/companies/profile.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/companies/profile.ts",
+   "to": "@wren/research/src/findings.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/companies/profile.ts",
+   "to": "@wren/research/src/pacing.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/companies/profile.ts",
+   "to": "@wren/research/src/people/names.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/companies/profile.ts",
+   "to": "@wren/research/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/companies/store.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/companies/store.ts",
+   "to": "@wren/research/src/companies/events.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/companies/store.ts",
+   "to": "@wren/research/src/companies/hiring.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/companies/store.ts",
+   "to": "@wren/research/src/findings.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/companies/store.ts",
+   "to": "@wren/research/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/components.ts",
+   "to": "@wren/core/src/components.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/components.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/components.ts",
+   "to": "@wren/core/src/workflows.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/components.ts",
+   "to": "@wren/research/src/signals/collectors.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/discovery/candidates.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/discovery/find.ts",
+   "to": "@wren/research/src/discovery/candidates.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/discovery/find.ts",
+   "to": "@wren/research/src/discovery/gate.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/discovery/find.ts",
+   "to": "@wren/research/src/discovery/service.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/discovery/find.ts",
+   "to": "@wren/research/src/people/names.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/discovery/gate.ts",
+   "to": "@wren/research/src/discovery/candidates.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/discovery/homepage.ts",
+   "to": "@wren/research/src/discovery/service.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/discovery/index.ts",
+   "to": "@wren/research/src/discovery/candidates.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/discovery/index.ts",
+   "to": "@wren/research/src/discovery/find.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/discovery/index.ts",
+   "to": "@wren/research/src/discovery/gate.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/discovery/index.ts",
+   "to": "@wren/research/src/discovery/homepage.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/discovery/index.ts",
+   "to": "@wren/research/src/discovery/service.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/discovery/service.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/discovery/service.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/discovery/service.ts",
+   "to": "@wren/research/src/discovery/candidates.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/discovery/service.ts",
+   "to": "@wren/research/src/discovery/gate.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/discovery/service.ts",
+   "to": "@wren/research/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/dossier.ts",
+   "to": "@wren/core/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/dossier.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/dossier.ts",
+   "to": "@wren/research/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/ad-library.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/enrichment/ad-library.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/ad-library.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/ad-library.ts",
+   "to": "@wren/research/src/pacing.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/audit-backfill.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/enrichment/audit-backfill.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/audit-backfill.ts",
+   "to": "@wren/research/src/enrichment/email-pick/graph.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/audit-backfill.ts",
+   "to": "@wren/research/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/contacts.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/contacts.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/contacts.ts",
+   "to": "@wren/research/src/companies/profile.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/contacts.ts",
+   "to": "@wren/research/src/enrichment/profiles.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/contacts.ts",
+   "to": "@wren/research/src/pages.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/contacts.ts",
+   "to": "@wren/research/src/people/profile-link.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/contacts.ts",
+   "to": "@wren/research/src/phones.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/contacts.ts",
+   "to": "@wren/research/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/crawler.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/crawler.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/crawler.ts",
+   "to": "@wren/research/src/enrichment/shard.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/enrichment/crawler.ts",
+   "to": "@wren/research/src/enrichment/urls.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/crawler.ts",
+   "to": "@wren/research/src/fetch/tier-memory.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/crawler.ts",
+   "to": "@wren/research/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/email-pick/graph.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/email-pick/graph.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/email-pick/graph.ts",
+   "to": "@wren/research/src/enrichment/email-scan.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/enrichment/email-pick/run.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/email-pick/run.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/email-pick/run.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/email-pick/run.ts",
+   "to": "@wren/research/src/enrichment/email-pick/graph.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/email-pick/run.ts",
+   "to": "@wren/research/src/enrichment/email-scan.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/email-pick/run.ts",
+   "to": "@wren/research/src/enrichment/shard.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/enrichment/email-pick/run.ts",
+   "to": "@wren/research/src/enrichment/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/email-pick/run.ts",
+   "to": "@wren/research/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/email-scan.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/email-scan.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/email-scan.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/email-scan.ts",
+   "to": "@wren/research/src/pages.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/email-scan.ts",
+   "to": "@wren/research/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/exa-search.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/exa-search.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/exa-search.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/exa-search.ts",
+   "to": "@wren/research/src/pacing.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/extraction.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/extraction.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/extraction.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/extraction.ts",
+   "to": "@wren/research/src/enrichment/shard.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/enrichment/extraction.ts",
+   "to": "@wren/research/src/enrichment/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/extraction.ts",
+   "to": "@wren/research/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/fb-groups.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/enrichment/fb-groups.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/fb-groups.ts",
+   "to": "@wren/core/src/objects/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/fb-groups.ts",
+   "to": "@wren/db/src/columns.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/fb-groups.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/fb-groups.ts",
+   "to": "@wren/research/src/findings.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/fb-groups.ts",
+   "to": "@wren/research/src/pacing.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/fb-groups.ts",
+   "to": "@wren/research/src/social-schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/index.ts",
+   "to": "@wren/research/src/enrichment/ad-library.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/index.ts",
+   "to": "@wren/research/src/enrichment/audit-backfill.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/index.ts",
+   "to": "@wren/research/src/enrichment/contacts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/index.ts",
+   "to": "@wren/research/src/enrichment/crawler.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/index.ts",
+   "to": "@wren/research/src/enrichment/email-pick/graph.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/index.ts",
+   "to": "@wren/research/src/enrichment/email-pick/run.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/index.ts",
+   "to": "@wren/research/src/enrichment/email-scan.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/index.ts",
+   "to": "@wren/research/src/enrichment/exa-search.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/index.ts",
+   "to": "@wren/research/src/enrichment/extraction.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/index.ts",
+   "to": "@wren/research/src/enrichment/fb-groups.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/index.ts",
+   "to": "@wren/research/src/enrichment/instagram.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/index.ts",
+   "to": "@wren/research/src/enrichment/news-triggers.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/index.ts",
+   "to": "@wren/research/src/enrichment/opener.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/index.ts",
+   "to": "@wren/research/src/enrichment/profiles.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/index.ts",
+   "to": "@wren/research/src/enrichment/readings.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/index.ts",
+   "to": "@wren/research/src/enrichment/remote-browser.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/index.ts",
+   "to": "@wren/research/src/enrichment/render.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/index.ts",
+   "to": "@wren/research/src/enrichment/shard.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/index.ts",
+   "to": "@wren/research/src/enrichment/shared-pages.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/index.ts",
+   "to": "@wren/research/src/enrichment/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/index.ts",
+   "to": "@wren/research/src/enrichment/team.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/index.ts",
+   "to": "@wren/research/src/enrichment/testimonials.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/index.ts",
+   "to": "@wren/research/src/enrichment/urls.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/index.ts",
+   "to": "@wren/research/src/enrichment/youtube-search.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/index.ts",
+   "to": "@wren/research/src/enrichment/youtube.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/instagram.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/enrichment/instagram.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/enrichment/instagram.ts",
+   "to": "@wren/research/src/findings.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/instagram.ts",
+   "to": "@wren/research/src/pacing.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/news-triggers.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/news-triggers.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/news-triggers.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/news-triggers.ts",
+   "to": "@wren/research/src/companies/events.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/news-triggers.ts",
+   "to": "@wren/research/src/findings.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/news-triggers.ts",
+   "to": "@wren/research/src/pacing.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/news-triggers.ts",
+   "to": "@wren/research/src/people/names.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/opener.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/opener.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/opener.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/opener.ts",
+   "to": "@wren/research/src/enrichment/shard.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/enrichment/opener.ts",
+   "to": "@wren/research/src/enrichment/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/opener.ts",
+   "to": "@wren/research/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/profiles.ts",
+   "to": "@wren/core/src/checks.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/profiles.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/enrichment/profiles.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/enrichment/profiles.ts",
+   "to": "@wren/research/src/companies/profile.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/profiles.ts",
+   "to": "@wren/research/src/linkedin-reads.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/enrichment/profiles.ts",
+   "to": "@wren/research/src/pacing.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/profiles.ts",
+   "to": "@wren/research/src/pages.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/profiles.ts",
+   "to": "@wren/research/src/people/lookup.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/profiles.ts",
+   "to": "@wren/research/src/people/profile-link.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/profiles.ts",
+   "to": "@wren/research/src/people/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/profiles.ts",
+   "to": "@wren/research/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/enrichment/readings.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/readings.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/enrichment/readings.ts",
+   "to": "@wren/research/src/enrichment/extraction.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/readings.ts",
+   "to": "@wren/research/src/enrichment/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/readings.ts",
+   "to": "@wren/research/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/remote-browser.ts",
+   "to": "@wren/research/src/enrichment/render.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/enrichment/render.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/enrichment/render.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/render.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/render.ts",
+   "to": "@wren/research/src/enrichment/crawler.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/render.ts",
+   "to": "@wren/research/src/enrichment/shard.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/enrichment/render.ts",
+   "to": "@wren/research/src/enrichment/urls.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/render.ts",
+   "to": "@wren/research/src/fetch/tier-memory.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/render.ts",
+   "to": "@wren/research/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/shared-pages.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/enrichment/shared-pages.ts",
+   "to": "@wren/research/src/enrichment/crawler.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/shared-pages.ts",
+   "to": "@wren/research/src/pages.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/shared-pages.ts",
+   "to": "@wren/research/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/store.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/enrichment/store.ts",
+   "to": "@wren/research/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/team.ts",
+   "to": "@wren/core/src/checks.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/team.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/enrichment/team.ts",
+   "to": "@wren/core/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/team.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/enrichment/team.ts",
+   "to": "@wren/research/src/findings.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/team.ts",
+   "to": "@wren/research/src/pacing.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/team.ts",
+   "to": "@wren/research/src/people/names.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/team.ts",
+   "to": "@wren/research/src/people/team.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/team.ts",
+   "to": "@wren/research/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/testimonials.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/testimonials.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/enrichment/youtube-search.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/youtube-search.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/youtube-search.ts",
+   "to": "@wren/research/src/enrichment/youtube.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/youtube-search.ts",
+   "to": "@wren/research/src/pacing.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/youtube.ts",
+   "to": "@wren/core/src/fetch-limit.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/youtube.ts",
+   "to": "@wren/core/src/vendor-keys.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/enrichment/youtube.ts",
+   "to": "@wren/core/src/vendor-stop.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/youtube.ts",
+   "to": "@wren/core/src/vendors.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/youtube.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/enrichment/youtube.ts",
+   "to": "@wren/research/src/findings.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/enrichment/youtube.ts",
+   "to": "@wren/research/src/pacing.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/fetch/index.ts",
+   "to": "@wren/research/src/fetch/datasets.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/fetch/index.ts",
+   "to": "@wren/research/src/fetch/overture.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/fetch/index.ts",
+   "to": "@wren/research/src/fetch/ppp.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/fetch/index.ts",
+   "to": "@wren/research/src/fetch/sba.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/fetch/overture.ts",
+   "to": "@wren/research/src/fetch/datasets.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/fetch/ppp.ts",
+   "to": "@wren/research/src/fetch/datasets.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/fetch/sba.ts",
+   "to": "@wren/research/src/fetch/datasets.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/fetch/tier-memory.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/fetch/tier-memory.ts",
+   "to": "@wren/research/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/findings.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/findings.ts",
+   "to": "@wren/db/src/columns.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/findings.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/findings.ts",
+   "to": "@wren/research/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/index.ts",
+   "to": "@wren/research/src/discovery/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/index.ts",
+   "to": "@wren/research/src/enrichment/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/index.ts",
+   "to": "@wren/research/src/fetch/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/index.ts",
+   "to": "@wren/research/src/findings.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/index.ts",
+   "to": "@wren/research/src/pacing.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/index.ts",
+   "to": "@wren/research/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/index.ts",
+   "to": "@wren/research/src/social-schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/limits.ts",
+   "to": "@wren/core/src/buckets.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/limits.ts",
+   "to": "@wren/core/src/limits.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/limits.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/limits.ts",
+   "to": "@wren/research/src/enrichment/ad-library.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/limits.ts",
+   "to": "@wren/research/src/enrichment/exa-search.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/limits.ts",
+   "to": "@wren/research/src/enrichment/fb-groups.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/limits.ts",
+   "to": "@wren/research/src/enrichment/instagram.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/limits.ts",
+   "to": "@wren/research/src/enrichment/news-triggers.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/limits.ts",
+   "to": "@wren/research/src/enrichment/profiles.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/limits.ts",
+   "to": "@wren/research/src/enrichment/team.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/limits.ts",
+   "to": "@wren/research/src/enrichment/youtube-search.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/limits.ts",
+   "to": "@wren/research/src/enrichment/youtube.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/limits.ts",
+   "to": "@wren/research/src/signals/collectors.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/limits.ts",
+   "to": "@wren/research/src/signals/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/linkedin-reads.ts",
+   "to": "@wren/core/src/vendors.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/linkedin-reads.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/pacing.ts",
+   "to": "@wren/core/src/buckets.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/pacing.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/pages.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/pages.ts",
+   "to": "@wren/research/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/people/contacts.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/people/contacts.ts",
+   "to": "@wren/research/src/pacing.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/people/contacts.ts",
+   "to": "@wren/research/src/people/names.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/people/contacts.ts",
+   "to": "@wren/research/src/people/profile-link.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/people/elsewhere.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/people/elsewhere.ts",
+   "to": "@wren/core/src/touches.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/people/elsewhere.ts",
+   "to": "@wren/research/src/pacing.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/people/elsewhere.ts",
+   "to": "@wren/research/src/people/names.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/people/fit-traits.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/people/fit-traits.ts",
+   "to": "@wren/research/src/people/profile-research.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/people/index.ts",
+   "to": "@wren/research/src/people/contacts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/people/index.ts",
+   "to": "@wren/research/src/people/elsewhere.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/people/index.ts",
+   "to": "@wren/research/src/people/fit-traits.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/people/index.ts",
+   "to": "@wren/research/src/people/lookup.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/people/index.ts",
+   "to": "@wren/research/src/people/names.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/people/index.ts",
+   "to": "@wren/research/src/people/profile-link.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/people/index.ts",
+   "to": "@wren/research/src/people/profile-research.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/people/index.ts",
+   "to": "@wren/research/src/people/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/people/index.ts",
+   "to": "@wren/research/src/people/team.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/people/lookup.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/people/lookup.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/people/lookup.ts",
+   "to": "@wren/research/src/findings.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/people/lookup.ts",
+   "to": "@wren/research/src/pacing.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/people/lookup.ts",
+   "to": "@wren/research/src/people/elsewhere.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/people/lookup.ts",
+   "to": "@wren/research/src/people/names.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/people/lookup.ts",
+   "to": "@wren/research/src/people/profile-link.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/people/lookup.ts",
+   "to": "@wren/research/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/people/names.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/people/profile-research.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/people/profile-research.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/people/profile-research.ts",
+   "to": "@wren/core/src/profiles-schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/people/profile-research.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/people/profile-research.ts",
+   "to": "@wren/research/src/enrichment/profiles.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/people/profile-research.ts",
+   "to": "@wren/research/src/findings.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/people/profile-research.ts",
+   "to": "@wren/research/src/linkedin-reads.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/people/profile-research.ts",
+   "to": "@wren/research/src/pacing.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/people/profile-research.ts",
+   "to": "@wren/research/src/people/lookup.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/people/profile-research.ts",
+   "to": "@wren/research/src/people/names.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/people/profile-research.ts",
+   "to": "@wren/research/src/people/profile-link.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/people/store.ts",
+   "to": "@wren/core/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/people/store.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/people/store.ts",
+   "to": "@wren/research/src/findings.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/people/store.ts",
+   "to": "@wren/research/src/people/lookup.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/people/store.ts",
+   "to": "@wren/research/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/people/team.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/people/team.ts",
+   "to": "@wren/research/src/pacing.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/people/team.ts",
+   "to": "@wren/research/src/people/contacts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/people/team.ts",
+   "to": "@wren/research/src/people/names.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/people/team.ts",
+   "to": "@wren/research/src/people/profile-link.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/records.ts",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/records.ts",
+   "to": "@wren/research/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/discovery.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/discovery.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/discovery.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/restate/discovery.ts",
+   "to": "@wren/research/src/discovery/homepage.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/discovery.ts",
+   "to": "@wren/research/src/discovery/service.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/discovery.ts",
+   "to": "@wren/research/src/restate/enrichment.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/discovery.ts",
+   "to": "@wren/research/src/restate/units.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-context.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-context.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-context.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-context.ts",
+   "to": "@wren/core/src/keys.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-context.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-context.ts",
+   "to": "@wren/core/src/vendor-keys.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-context.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-context.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-context.ts",
+   "to": "@wren/research/src/enrichment/extraction.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-context.ts",
+   "to": "@wren/research/src/enrichment/render.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-context.ts",
+   "to": "@wren/research/src/enrichment/shard.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-context.ts",
+   "to": "@wren/research/src/enrichment/shared-pages.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-context.ts",
+   "to": "@wren/research/src/enrichment/youtube.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-context.ts",
+   "to": "@wren/research/src/fetch/tier-memory.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-context.ts",
+   "to": "@wren/research/src/pages.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-context.ts",
+   "to": "@wren/research/src/restate/units.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-crawl.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-crawl.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-crawl.ts",
+   "to": "@wren/research/src/enrichment/contacts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-crawl.ts",
+   "to": "@wren/research/src/enrichment/crawler.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-crawl.ts",
+   "to": "@wren/research/src/enrichment/email-scan.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-crawl.ts",
+   "to": "@wren/research/src/enrichment/extraction.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-crawl.ts",
+   "to": "@wren/research/src/enrichment/render.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-crawl.ts",
+   "to": "@wren/research/src/restate/enrichment-context.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-crawl.ts",
+   "to": "@wren/research/src/restate/units.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-people.ts",
+   "to": "@wren/core/src/limits.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-people.ts",
+   "to": "@wren/core/src/metered.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-people.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-people.ts",
+   "to": "@wren/core/src/vendors.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-people.ts",
+   "to": "@wren/research/src/enrichment/profiles.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-people.ts",
+   "to": "@wren/research/src/enrichment/team.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-people.ts",
+   "to": "@wren/research/src/findings.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-people.ts",
+   "to": "@wren/research/src/limits.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-people.ts",
+   "to": "@wren/research/src/linkedin-reads.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-people.ts",
+   "to": "@wren/research/src/restate/enrichment-context.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-people.ts",
+   "to": "@wren/research/src/restate/units.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-people.ts",
+   "to": "@wren/research/src/signals/collectors.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-picks.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-picks.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-picks.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-picks.ts",
+   "to": "@wren/research/src/enrichment/audit-backfill.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-picks.ts",
+   "to": "@wren/research/src/enrichment/email-pick/graph.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-picks.ts",
+   "to": "@wren/research/src/enrichment/email-pick/run.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-picks.ts",
+   "to": "@wren/research/src/enrichment/opener.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-picks.ts",
+   "to": "@wren/research/src/enrichment/testimonials.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-picks.ts",
+   "to": "@wren/research/src/restate/enrichment-context.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-picks.ts",
+   "to": "@wren/research/src/restate/units.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-search.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-search.ts",
+   "to": "@wren/core/src/limits.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-search.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-search.ts",
+   "to": "@wren/core/src/vendors.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-search.ts",
+   "to": "@wren/research/src/enrichment/ad-library.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-search.ts",
+   "to": "@wren/research/src/enrichment/exa-search.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-search.ts",
+   "to": "@wren/research/src/enrichment/news-triggers.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-search.ts",
+   "to": "@wren/research/src/limits.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-search.ts",
+   "to": "@wren/research/src/restate/enrichment-context.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-search.ts",
+   "to": "@wren/research/src/restate/units.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-social.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-social.ts",
+   "to": "@wren/core/src/limits.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-social.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-social.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-social.ts",
+   "to": "@wren/research/src/components.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-social.ts",
+   "to": "@wren/research/src/enrichment/fb-groups.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-social.ts",
+   "to": "@wren/research/src/enrichment/instagram.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-social.ts",
+   "to": "@wren/research/src/enrichment/youtube-search.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-social.ts",
+   "to": "@wren/research/src/enrichment/youtube.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-social.ts",
+   "to": "@wren/research/src/limits.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-social.ts",
+   "to": "@wren/research/src/restate/enrichment-context.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment-social.ts",
+   "to": "@wren/research/src/restate/units.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment.ts",
+   "to": "@wren/research/src/restate/enrichment-context.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment.ts",
+   "to": "@wren/research/src/restate/enrichment-crawl.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment.ts",
+   "to": "@wren/research/src/restate/enrichment-people.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment.ts",
+   "to": "@wren/research/src/restate/enrichment-picks.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment.ts",
+   "to": "@wren/research/src/restate/enrichment-search.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/enrichment.ts",
+   "to": "@wren/research/src/restate/enrichment-social.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/index.ts",
+   "to": "@wren/research/src/restate/discovery.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/index.ts",
+   "to": "@wren/research/src/restate/enrichment.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/index.ts",
+   "to": "@wren/research/src/restate/page-archive.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/index.ts",
+   "to": "@wren/research/src/restate/profile-research.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/page-archive.ts",
+   "to": "@wren/core/src/notify.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/restate/page-archive.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/page-archive.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/restate/page-archive.ts",
+   "to": "@wren/research/src/pages.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/profile-research.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/restate/profile-research.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/profile-research.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/profile-research.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/restate/profile-research.ts",
+   "to": "@wren/research/src/findings.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/profile-research.ts",
+   "to": "@wren/research/src/limits.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/profile-research.ts",
+   "to": "@wren/research/src/linkedin-reads.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/profile-research.ts",
+   "to": "@wren/research/src/people/profile-research.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/units.ts",
+   "to": "@wren/core/src/checks.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/units.ts",
+   "to": "@wren/core/src/vendor-stop.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/restate/units.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/schema.ts",
+   "to": "@wren/core/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/schema.ts",
+   "to": "@wren/db/src/columns.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/signals/collectors.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/signals/collectors.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/signals/collectors.ts",
+   "to": "@wren/research/src/signals/demand.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/signals/collectors.ts",
+   "to": "@wren/research/src/signals/funding.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/signals/collectors.ts",
+   "to": "@wren/research/src/signals/hiring.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/signals/collectors.ts",
+   "to": "@wren/research/src/signals/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/signals/collectors.ts",
+   "to": "@wren/research/src/signals/linkedin.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/signals/collectors.ts",
+   "to": "@wren/research/src/signals/news.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/signals/collectors.ts",
+   "to": "@wren/research/src/signals/site.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/signals/collectors.ts",
+   "to": "@wren/research/src/signals/stack.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/signals/collectors.ts",
+   "to": "@wren/research/src/signals/talks.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/signals/demand.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/signals/demand.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/signals/demand.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/signals/demand.ts",
+   "to": "@wren/research/src/enrichment/fb-groups.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/signals/demand.ts",
+   "to": "@wren/research/src/pacing.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/signals/demand.ts",
+   "to": "@wren/research/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/signals/demand.ts",
+   "to": "@wren/research/src/signals/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/signals/funding.ts",
+   "to": "@wren/research/src/people/names.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/signals/funding.ts",
+   "to": "@wren/research/src/signals/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/signals/hiring.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/signals/hiring.ts",
+   "to": "@wren/research/src/companies/hiring.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/signals/hiring.ts",
+   "to": "@wren/research/src/companies/profile.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/signals/hiring.ts",
+   "to": "@wren/research/src/findings.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/signals/hiring.ts",
+   "to": "@wren/research/src/linkedin-reads.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/signals/hiring.ts",
+   "to": "@wren/research/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/signals/hiring.ts",
+   "to": "@wren/research/src/signals/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/signals/index.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/signals/index.ts",
+   "to": "@wren/core/src/vendors.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/signals/index.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/signals/index.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/signals/index.ts",
+   "to": "@wren/research/src/enrichment/profiles.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/signals/index.ts",
+   "to": "@wren/research/src/enrichment/youtube.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/signals/index.ts",
+   "to": "@wren/research/src/findings.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/signals/index.ts",
+   "to": "@wren/research/src/pacing.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/signals/index.ts",
+   "to": "@wren/research/src/pages.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/signals/index.ts",
+   "to": "@wren/research/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/signals/linkedin.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/signals/linkedin.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/signals/linkedin.ts",
+   "to": "@wren/research/src/findings.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/signals/linkedin.ts",
+   "to": "@wren/research/src/linkedin-reads.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/signals/linkedin.ts",
+   "to": "@wren/research/src/pacing.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/signals/linkedin.ts",
+   "to": "@wren/research/src/people/profile-link.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/signals/linkedin.ts",
+   "to": "@wren/research/src/signals/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/signals/linkedin.ts",
+   "to": "@wren/research/src/signals/talks.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/signals/news.ts",
+   "to": "@wren/research/src/companies/events.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/signals/news.ts",
+   "to": "@wren/research/src/signals/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/signals/site.ts",
+   "to": "@wren/research/src/enrichment/crawler.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/signals/site.ts",
+   "to": "@wren/research/src/findings.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/signals/site.ts",
+   "to": "@wren/research/src/signals/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/signals/stack.ts",
+   "to": "@wren/research/src/companies/boards.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/signals/stack.ts",
+   "to": "@wren/research/src/findings.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/signals/stack.ts",
+   "to": "@wren/research/src/pages.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/signals/stack.ts",
+   "to": "@wren/research/src/signals/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/signals/stack.ts",
+   "to": "@wren/research/src/signals/stack-prints.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/signals/talks.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/signals/talks.ts",
+   "to": "@wren/research/src/enrichment/youtube.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/signals/talks.ts",
+   "to": "@wren/research/src/findings.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/signals/talks.ts",
+   "to": "@wren/research/src/signals/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/social-schema.ts",
+   "to": "@wren/core/src/objects-schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/social-schema.ts",
+   "to": "@wren/core/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/social-schema.ts",
+   "to": "@wren/db/src/columns.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/sops/index.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/sops/index.ts",
+   "to": "@wren/research/src/sops/cites.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/studies/index.ts",
+   "to": "@wren/research/src/studies/recipes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/studies/index.ts",
+   "to": "@wren/research/src/studies/run.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/studies/run.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/studies/run.ts",
+   "to": "@wren/core/src/decide/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/studies/run.ts",
+   "to": "@wren/core/src/logic.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/studies/run.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/src/studies/run.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/studies/run.ts",
+   "to": "@wren/research/src/findings.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/studies/run.ts",
+   "to": "@wren/research/src/pacing.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/studies/run.ts",
+   "to": "@wren/research/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/studies/run.ts",
+   "to": "@wren/research/src/studies/plan.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/research/src/studies/run.ts",
+   "to": "@wren/research/src/studies/recipes.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/test/integration/fixtures.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/test/integration/fixtures.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/research/vitest.config.ts",
+   "to": "@wren/db/src/testing-vitest.ts",
+   "kind": "imports"
+  }
+ ]
+}

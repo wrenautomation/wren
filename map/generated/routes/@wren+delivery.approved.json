@@ -1,0 +1,27 @@
+{
+ "layer": "routes",
+ "nodes": [
+  {
+   "id": "route:Domains/resolve",
+   "role": "route",
+   "parent": "service:Domains",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "{ host: string }",
+    "output": "{ client: string | null; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "service:Domains",
+   "role": "service",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "file": "packages/delivery/src/domains.ts",
+    "kind": "service"
+   }
+  }
+ ],
+ "edges": []
+}

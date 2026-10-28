@@ -1,0 +1,4925 @@
+{
+ "layer": "api",
+ "nodes": [
+  {
+   "id": "@wren/channel-sms#ANSWER_KINDS",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/schema"
+    ],
+    "file": "packages/channel-sms/src/schema.ts",
+    "kind": "const",
+    "sig": "ReadonlySet<string>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#ANSWER_SLOTS",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/templates"
+    ],
+    "file": "packages/channel-sms/src/templates.ts",
+    "kind": "const",
+    "sig": "readonly TemplateSlot[]"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#ANSWER_STATES",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/schema"
+    ],
+    "file": "packages/channel-sms/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"queued\", \"would_send\", \"skipped\", \"refused\"]"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#ASKED",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/policy.ts",
+    "kind": "const",
+    "sig": "ReadonlySet<SourceKind>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#ASKED_WINDOW",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/policy.ts",
+    "kind": "const",
+    "sig": "AskedWindow"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#AfterOptions",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/form-after.ts",
+    "kind": "interface",
+    "sig": "interface AfterOptions { send: SendMail | null; bookings: Bookings | null; senderName: string; notifier: Notifier | null; policy: SmsPolicy; site?: SiteSource | null; now: Date; }"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#AfterStats",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/form-after.ts",
+    "kind": "interface",
+    "sig": "interface AfterStats { emailed: number; booked: number; noticed: number; errors: string[]; }"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#AnswerState",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/schema"
+    ],
+    "file": "packages/channel-sms/src/schema.ts",
+    "kind": "type",
+    "sig": "type AnswerState = (typeof ANSWER_STATES)[number];"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#AskOptions",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/reviews.ts",
+    "kind": "interface",
+    "sig": "interface AskOptions { live: boolean; why: string | null; senderName: string; placeId: string | null; via: ReviewVia; mail: MailOptions; feedback: boolean; onceEvery: number; client: string; origin: string; now: Date; }"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#Booking",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/bookings.ts",
+    "kind": "interface",
+    "sig": "interface Booking { uid: string; start: Date; createdAt: Date; name: string | null; email: string; timeZone: string | null; application: string | null; }"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#Bookings",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/bookings.ts",
+    "kind": "interface",
+    "sig": "interface Bookings { name: string; booked(email: string): Promise<boolean>; upcoming(from: Date, to: Date): Promise<Booking[]>; }"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#CALL_OUTCOMES",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/schema"
+    ],
+    "file": "packages/channel-sms/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"reached\", \"voicemail\", \"no_answer\", \"wrong_number\"]"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#CALL_RESULTS",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/schema"
+    ],
+    "file": "packages/channel-sms/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"answered\", \"missed\", \"busy\", \"voicemail\"]"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#CONSENTED_KINDS",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/schema"
+    ],
+    "file": "packages/channel-sms/src/schema.ts",
+    "kind": "const",
+    "sig": "ReadonlySet<string>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#CONTACT_BASES",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/schema"
+    ],
+    "file": "packages/channel-sms/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"published\", \"opt_in\"]"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#CONTACT_STATES",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/schema"
+    ],
+    "file": "packages/channel-sms/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"new\", \"enrolled\", \"replied\", \"opted_out\", \"finished\", \"stopped\", \"unreachable\"]"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#COUNTRY_ZONES",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/phone.ts",
+    "kind": "const",
+    "sig": "Readonly<Record<string, string>>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#CalcomBookings",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/bookings.ts",
+    "kind": "class",
+    "sig": "readonly name; constructor(source: string | BookingsQuery, fetchImpl: typeof fetch = globalThis.fetch); booked(email: string): Promise<boolean>; upcoming(from: Date, to: Date): Promise<Booking[]>; history(since: Date): Promise<CalcomBooking[]>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#CallHooks",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms/restate"
+    ],
+    "file": "packages/channel-sms/src/restate/answers.ts",
+    "kind": "interface",
+    "sig": "interface CallHooks { missed(ctx: restate.Context, client: string | null, callId: number): void; replied(ctx: restate.Context, client: string | null, contactId: number): Promise<void>; }"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#CallOutcome",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/schema"
+    ],
+    "file": "packages/channel-sms/src/schema.ts",
+    "kind": "type",
+    "sig": "type CallOutcome = DialOutcome;"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#CallResult",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/schema"
+    ],
+    "file": "packages/channel-sms/src/schema.ts",
+    "kind": "type",
+    "sig": "type CallResult = (typeof CALL_RESULTS)[number];"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#CallStage",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/provider.ts",
+    "kind": "type",
+    "sig": "type CallStage = \"ringing\" | \"answered\" | \"bridged\" | \"ended\";"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#CampaignState",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/provider.ts",
+    "kind": "interface",
+    "sig": "interface CampaignState { status: \"pending\" | \"approved\" | \"rejected\"; raw: string; detail: string | null; }"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#ClassifyStats",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/classify.ts",
+    "kind": "interface",
+    "sig": "interface ClassifyStats { selected: number; labelled: number; ungrounded: number; optOuts: number; aborted: string | null; }"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#ClientSms",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/clients.ts",
+    "kind": "type",
+    "sig": "type ClientSms = | { kind: \"gone\"; why: string } | { kind: \"work\"; client: Pick<Client, \"id\" | \"database\">; profile: string; senderName: string | null; campaignId: string | null; bookingLink: string | null; calcom: string | null; calendar: boolean; };"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#ContactBasis",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/schema"
+    ],
+    "file": "packages/channel-sms/src/schema.ts",
+    "kind": "type",
+    "sig": "type ContactBasis = (typeof CONTACT_BASES)[number];"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#ContactState",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/schema"
+    ],
+    "file": "packages/channel-sms/src/schema.ts",
+    "kind": "type",
+    "sig": "type ContactState = (typeof CONTACT_STATES)[number];"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#Customer",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/reviews.ts",
+    "kind": "interface",
+    "sig": "interface Customer { subject: string; source: ReviewSource; name: string | null; phone: string | null; email: string | null; zone: string | null; }"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#DAY_BEFORE",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/templates"
+    ],
+    "file": "packages/channel-sms/src/templates.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"reminder.day-before\""
+   }
+  },
+  {
+   "id": "@wren/channel-sms#DEFAULT_HEALTH",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/health.ts",
+    "kind": "const",
+    "sig": "HealthPolicy"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#DEFAULT_POLICY",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/policy.ts",
+    "kind": "const",
+    "sig": "SmsPolicy"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#DIRECTIONS",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/schema"
+    ],
+    "file": "packages/channel-sms/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"out\", \"in\"]"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#DISPOSITIONS",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/schema"
+    ],
+    "file": "packages/channel-sms/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"interested\", \"not_interested\", \"question\", \"wrong_person\", \"opt_out\", \"other\"]"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#DISPOSITION_SOURCES",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/schema"
+    ],
+    "file": "packages/channel-sms/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"rule\", \"llm\", \"operator\"]"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#DeliveryStatus",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/provider.ts",
+    "kind": "type",
+    "sig": "type DeliveryStatus = \"sent\" | \"delivered\" | \"failed\" | \"unconfirmed\";"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#Direction",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/schema"
+    ],
+    "file": "packages/channel-sms/src/schema.ts",
+    "kind": "type",
+    "sig": "type Direction = (typeof DIRECTIONS)[number];"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#Disposition",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/schema"
+    ],
+    "file": "packages/channel-sms/src/schema.ts",
+    "kind": "type",
+    "sig": "type Disposition = (typeof DISPOSITIONS)[number];"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#DispositionSource",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/schema"
+    ],
+    "file": "packages/channel-sms/src/schema.ts",
+    "kind": "type",
+    "sig": "type DispositionSource = (typeof DISPOSITION_SOURCES)[number];"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#E164",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/phone.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "RegExp"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#EMAIL_AFTER_MS",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/form-after.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "number"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#EmailOutcome",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/form-after.ts",
+    "kind": "type",
+    "sig": "type EmailOutcome = \"sent\" | \"booked\" | \"not_yet\" | \"skipped\";"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#EnrollOptions",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/enroll.ts",
+    "kind": "interface",
+    "sig": "interface EnrollOptions { sequence: SmsSequence; policy: SmsPolicy; provider: SmsProvider; senderName: string; niche?: string | null; heldNiches: readonly string[]; contactIds?: readonly number[]; bookingLink?: string | null; limit: number; now: Date; runId?: string | null; }"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#EnrollStats",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/enroll.ts",
+    "kind": "interface",
+    "sig": "interface EnrollStats { considered: number; enrolled: number; lookedUp: number; notTextable: number; suppressed: number; companyBusy: number; leadBusy: number; noNumber: boolean; lookupErrors: string[]; }"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#FIRST_TEXT_AFTER_MS",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/form.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "number"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#FIRST_TOUCHES",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/schema"
+    ],
+    "file": "packages/channel-sms/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"queued\", \"sent\", \"would_send\", \"no_consent\", \"no_phone\", \"refused\", \"booked\"]"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#FLEET_ZONE",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/policy.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"America/New_York\""
+   }
+  },
+  {
+   "id": "@wren/channel-sms#FOLLOW_UP",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms/components"
+    ],
+    "file": "packages/channel-sms/src/components.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"sms.follow_up\""
+   }
+  },
+  {
+   "id": "@wren/channel-sms#FORMS_SERVICE",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms/restate"
+    ],
+    "file": "packages/channel-sms/src/restate/forms.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly name: \"SmsForms\"; }"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#FORM_SEQUENCES",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/form.ts",
+    "kind": "const",
+    "sig": "readonly SmsSequence[]"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#FORM_WORKFLOW",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/form.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"site.forms\""
+   }
+  },
+  {
+   "id": "@wren/channel-sms#FakeBookings",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/bookings.ts",
+    "kind": "class",
+    "sig": "readonly name; readonly asked: string[]; constructor(private readonly emails: Iterable<string> = [], readonly calls: Booking[] = []); booked(email: string): Promise<boolean>; upcoming(from: Date, to: Date): Promise<Booking[]>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#FakeProvider",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/provider.ts",
+    "kind": "class",
+    "sig": "readonly name; readonly sent: (SendRequest &; readonly reject; readonly retry; readonly explode; readonly landlines; numbers: ProviderNumber[]; usd: number | null; readonly registration; readonly keywordReplies; send(req: SendRequest): Promise<SendResult>; lookup(e164: string): Promise<LookupResult>; listNumbers(): Promise<ProviderNumber[]>; balance(): Promise<number | null>; parseEvent(body: unknown): SmsEvent"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#FakePusher",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/push.ts",
+    "kind": "class",
+    "sig": "readonly name; readonly publicKey; readonly sent:; readonly gone; push(sub: SmsPushSubscription, alert: PushAlert): Promise<\"ok\" | \"gone\">"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#FakeRegistration",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/provider.ts",
+    "kind": "class",
+    "sig": "campaignState: CampaignState; readonly assignments; campaign(): Promise<CampaignState>; number(e164: string): Promise<NumberAssignment>; assign(e164: string, campaignId: string): Promise<NumberAssignment>; settle(): void"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#FirstTouch",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/schema"
+    ],
+    "file": "packages/channel-sms/src/schema.ts",
+    "kind": "type",
+    "sig": "type FirstTouch = (typeof FIRST_TOUCHES)[number];"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#FormApplication",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/form.ts",
+    "kind": "interface",
+    "sig": "interface FormApplication { id: number; ts: string; offer: string; name: string | null; email: string; phone: string | null; sms_consent: number; fit: number; page: string; }"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#FormOptions",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/form.ts",
+    "kind": "interface",
+    "sig": "interface FormOptions { site: SiteSource; bookings: Bookings | null; sequences: ReadonlyMap<string, SmsSequence>; policy: SmsPolicy; provider: SmsProvider; senderName: string; heldNiches: readonly string[]; countries?: readonly string[]; now: Date; runId?: string | null; }"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#FormOutcome",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/form.ts",
+    "kind": "type",
+    "sig": "type FormOutcome = | { kind: \"no_consent\" } | { kind: \"no_phone\"; why: string } | { kind: \"done\" } | { kind: \"waiting\"; due: Date } | { kind: \"texted\"; contactId: number } | { kind: \"booked\" } | { kind: \"ended\"; why: string } | { kind: \"error\"; why: string };"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#FormStats",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/form.ts",
+    "kind": "interface",
+    "sig": "interface FormStats { read: number; seeded: number; added: number; texted: number; booked: number; noPhone: number; ended: number; waiting: number; errors: string[]; }"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#HOUR_BEFORE",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/templates"
+    ],
+    "file": "packages/channel-sms/src/templates.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"reminder.hour-before\""
+   }
+  },
+  {
+   "id": "@wren/channel-sms#HealthPolicy",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/health.ts",
+    "kind": "interface",
+    "sig": "interface HealthPolicy { windowDays: number; minSample: number; maxFailRate: number; maxNumberOptOutRate: number; maxFleetOptOutRate: number; minFleetSample: number; lowBalanceUsd: number; }"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#HealthReport",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/health.ts",
+    "kind": "interface",
+    "sig": "interface HealthReport { numbers: NumberHealth[]; fleet: { sent: number; texted: number; optOuts: number }; paused: { e164: string; reason: string }[]; balanceUsd: number | null; warnings: string[]; }"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#KEYWORDS",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/templates"
+    ],
+    "file": "packages/channel-sms/src/templates.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"help\", \"start\", \"stop\"]"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#KEYWORD_SLOTS",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/templates"
+    ],
+    "file": "packages/channel-sms/src/templates.ts",
+    "kind": "const",
+    "sig": "readonly TemplateSlot[]"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#KEYWORD_WORDS",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/templates"
+    ],
+    "file": "packages/channel-sms/src/templates.ts",
+    "kind": "const",
+    "sig": "Record<Keyword, readonly string[]>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#Keyword",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/templates"
+    ],
+    "file": "packages/channel-sms/src/templates.ts",
+    "kind": "type",
+    "sig": "type Keyword = (typeof KEYWORDS)[number];"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#KeywordReplies",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/provider.ts",
+    "kind": "interface",
+    "sig": "interface KeywordReplies { set(keyword: Keyword, words: readonly string[], text: string | null): Promise<void>; }"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#LATEST_MINUTE",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/policy.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "number"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#LINE_TYPES",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/schema"
+    ],
+    "file": "packages/channel-sms/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"mobile\", \"landline\", \"voip\", \"toll_free\", \"unknown\"]"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#LINK_ORIGIN",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/reviews.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"https://phone.wrenautomation.com\""
+   }
+  },
+  {
+   "id": "@wren/channel-sms#LiftOptions",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/lift.ts",
+    "kind": "interface",
+    "sig": "interface LiftOptions { niche?: string | null; heldNiches: readonly string[]; batch?: number; limit?: number | null; onBatch?: (stats: LiftStats) => void | Promise<void>; }"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#LiftStats",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/lift.ts",
+    "kind": "interface",
+    "sig": "interface LiftStats { read: number; added: number; tollFree: number; companies: number; }"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#LineType",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/schema"
+    ],
+    "file": "packages/channel-sms/src/schema.ts",
+    "kind": "type",
+    "sig": "type LineType = (typeof LINE_TYPES)[number];"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#LookupResult",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/provider.ts",
+    "kind": "interface",
+    "sig": "interface LookupResult { e164: string; lineType: LineType; carrier: string | null; raw: unknown; imessage?: boolean; }"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#MESSAGE_KINDS",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/schema"
+    ],
+    "file": "packages/channel-sms/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"sequence\", \"manual\", \"reminder\", \"inbound\", \"follow_up\", \"text_back\", \"review\", \"pay\", \"doc\", \"broadcast\"]"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#MESSAGE_STATES",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/schema"
+    ],
+    "file": "packages/channel-sms/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"queued\", \"sending\", \"sent\", \"delivered\", \"failed\", \"unknown\", \"skipped\", \"received\"]"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#MIN_CONFIDENCE",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/classify.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "0.6"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#MISSED_CALL",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms/components"
+    ],
+    "file": "packages/channel-sms/src/components.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"missed_call\""
+   }
+  },
+  {
+   "id": "@wren/channel-sms#MISSED_FLOW",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms/restate"
+    ],
+    "file": "packages/channel-sms/src/restate/answers.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"missed_call.steps\""
+   }
+  },
+  {
+   "id": "@wren/channel-sms#MessageKind",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/schema"
+    ],
+    "file": "packages/channel-sms/src/schema.ts",
+    "kind": "type",
+    "sig": "type MessageKind = (typeof MESSAGE_KINDS)[number];"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#MessageState",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/schema"
+    ],
+    "file": "packages/channel-sms/src/schema.ts",
+    "kind": "type",
+    "sig": "type MessageState = (typeof MESSAGE_STATES)[number];"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#NOTICE_AFTER_MS",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/form-after.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "number"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#NUMBER_STATES",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/schema"
+    ],
+    "file": "packages/channel-sms/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"active\", \"paused\", \"retired\"]"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#NewSmsContact",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/schema"
+    ],
+    "file": "packages/channel-sms/src/schema.ts",
+    "kind": "type",
+    "sig": "type NewSmsContact = typeof smsContacts.$inferInsert;"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#NoProvider",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/provider.ts",
+    "kind": "class",
+    "sig": "readonly name; send(): Promise<SendResult>; lookup(): Promise<LookupResult>; listNumbers(): Promise<ProviderNumber[]>; balance(): Promise<number | null>; parseEvent(): SmsEvent"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#NumberAssignment",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/provider.ts",
+    "kind": "interface",
+    "sig": "interface NumberAssignment { status: \"none\" | \"pending\" | \"assigned\" | \"failed\"; campaignId: string | null; detail: string | null; }"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#NumberState",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/schema"
+    ],
+    "file": "packages/channel-sms/src/schema.ts",
+    "kind": "type",
+    "sig": "type NumberState = (typeof NUMBER_STATES)[number];"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#PHONE_COUNTRIES",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/schema"
+    ],
+    "file": "packages/channel-sms/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"US\", \"CA\"]"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#PLACE_FINDER",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/setups.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"google_business.place\""
+   }
+  },
+  {
+   "id": "@wren/channel-sms#PhoneCountry",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/schema"
+    ],
+    "file": "packages/channel-sms/src/schema.ts",
+    "kind": "type",
+    "sig": "type PhoneCountry = (typeof PHONE_COUNTRIES)[number];"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#PlaceFound",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/setups.ts",
+    "kind": "interface",
+    "sig": "interface PlaceFound { placeId: string | null; name: string | null; address: string | null; via: \"place\" | \"list\" | \"none\"; }"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#Proposal",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/classify.ts",
+    "kind": "type",
+    "sig": "type Proposal = z.infer<typeof proposalSchema>;"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#ProviderNumber",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/provider.ts",
+    "kind": "interface",
+    "sig": "interface ProviderNumber { e164: string; providerId: string; }"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#PushAlert",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/push.ts",
+    "kind": "interface",
+    "sig": "interface PushAlert { title: string; body: string; url: string; tag: string; }"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#PushSubscriptionInput",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/push.ts",
+    "kind": "interface",
+    "sig": "interface PushSubscriptionInput { endpoint: string; keys: { p256dh: string; auth: string }; }"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#Pusher",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/push.ts",
+    "kind": "interface",
+    "sig": "interface Pusher { name: string; publicKey: string; push(sub: SmsPushSubscription, alert: PushAlert): Promise<\"ok\" | \"gone\">; }"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#REMINDERS",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/clients.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"sms.reminders\""
+   }
+  },
+  {
+   "id": "@wren/channel-sms#REMINDER_FRESH_MS",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/deliver.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "number"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#REMINDER_SLOTS",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/templates"
+    ],
+    "file": "packages/channel-sms/src/templates.ts",
+    "kind": "const",
+    "sig": "readonly TemplateSlot[]"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#REVIEWS",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms/components"
+    ],
+    "file": "packages/channel-sms/src/components.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"reviews\""
+   }
+  },
+  {
+   "id": "@wren/channel-sms#REVIEWS_FLOW",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms/restate"
+    ],
+    "file": "packages/channel-sms/src/restate/answers.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"reviews.steps\""
+   }
+  },
+  {
+   "id": "@wren/channel-sms#REVIEW_SOURCES",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/schema"
+    ],
+    "file": "packages/channel-sms/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"won\", \"done\", \"paid\", \"hand\", \"door\"]"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#REVIEW_STEP",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms/components"
+    ],
+    "file": "packages/channel-sms/src/components.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"reviews.ask\""
+   }
+  },
+  {
+   "id": "@wren/channel-sms#REVIEW_VIA",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/schema"
+    ],
+    "file": "packages/channel-sms/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"text\", \"email\"]"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#Rate",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/stats.ts",
+    "kind": "interface",
+    "sig": "interface Rate { k: number; n: number; low: number; high: number; text: string; }"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#Registration",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/provider.ts",
+    "kind": "interface",
+    "sig": "interface Registration { campaign(campaignId: string): Promise<CampaignState>; number(e164: string): Promise<NumberAssignment>; assign(e164: string, campaignId: string): Promise<NumberAssignment>; }"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#RegistrationStats",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/registration.ts",
+    "kind": "interface",
+    "sig": "interface RegistrationStats { campaign: CampaignState | null; skipped: string | null; registered: string[]; asked: string[]; pending: string[]; failed: string[]; }"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#ReminderStats",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/reminders.ts",
+    "kind": "interface",
+    "sig": "interface ReminderStats { calls: number; due: number; queued: number; already: number; bookedToday: number; outOfHours: number; empty: number; noConsent: number; ended: number; capped: number; unreachable: number; }"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#RenderField",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/templates"
+    ],
+    "file": "packages/channel-sms/src/templates.ts",
+    "kind": "type",
+    "sig": "type RenderField = keyof RenderFields;"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#RenderFields",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/templates"
+    ],
+    "file": "packages/channel-sms/src/templates.ts",
+    "kind": "interface",
+    "sig": "interface RenderFields { first_name: string | null; company: string | null; sender: string; time: string | null; booking_link: string | null; review_link?: string | null; feedback_link?: string | null; }"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#ReviewAsk",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/schema"
+    ],
+    "file": "packages/channel-sms/src/schema.ts",
+    "kind": "type",
+    "sig": "type ReviewAsk = typeof reviewAsks.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#ReviewSource",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/schema"
+    ],
+    "file": "packages/channel-sms/src/schema.ts",
+    "kind": "type",
+    "sig": "type ReviewSource = (typeof REVIEW_SOURCES)[number];"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#ReviewVia",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/schema"
+    ],
+    "file": "packages/channel-sms/src/schema.ts",
+    "kind": "type",
+    "sig": "type ReviewVia = (typeof REVIEW_VIA)[number];"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#SEEDED",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/form.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"applied before form texts were on: not texted\""
+   }
+  },
+  {
+   "id": "@wren/channel-sms#SENDER_KEY",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms/restate"
+    ],
+    "file": "packages/channel-sms/src/restate/index.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"fleet\""
+   }
+  },
+  {
+   "id": "@wren/channel-sms#SERVICES",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/schema"
+    ],
+    "file": "packages/channel-sms/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"imessage\", \"rcs\", \"sms\"]"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#SIGNATURE_HEADER",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/webhook"
+    ],
+    "file": "packages/channel-sms/src/webhook.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"telnyx-signature-ed25519\""
+   }
+  },
+  {
+   "id": "@wren/channel-sms#SMS_COMPONENTS",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms/components"
+    ],
+    "file": "packages/channel-sms/src/components.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"@wren/core/components\").Component[]"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#SMS_CONSOLE_APPS",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms/console-routes"
+    ],
+    "file": "packages/channel-sms/src/console-routes.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly \"*\": null; readonly reply: { readonly app: \"texts\"; readonly channel: \"sms\"; }; readonly callDone: { readonly app: \"texts\"; readonly channel: \"sms\"; }; readonly askReview: { readonly app: \"texts\"; readonly channel: \"sms\"; }; }"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#SMS_CONSOLE_ROUTES",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms/console-routes"
+    ],
+    "file": "packages/channel-sms/src/console-routes.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly recordsTypes: \"read\"; readonly recordsList: \"read\"; readonly recordsGet: \"read\"; readonly recordsExport: \"read\"; readonly recordsStats: \"read\"; readonly reply: \"act\"; readonly callDone: \"act\"; readonly askReview: \"act\"; }"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#SMS_CONSOLE_WRITES",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms/console-routes"
+    ],
+    "file": "packages/channel-sms/src/console-routes.ts",
+    "kind": "const",
+    "sig": "readonly SmsConsoleRoute[]"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#SMS_RECORDS",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms/records"
+    ],
+    "file": "packages/channel-sms/src/records.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"@wren/core/records\").RecordType[]"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#SMS_SETUPS",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/setups.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"@wren/core/setup\").Setup[]"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#SOURCE_KINDS",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/schema"
+    ],
+    "file": "packages/channel-sms/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"tel_link\", \"page_text\", \"manual\", \"inbound\", \"form\", \"hook\", \"call\", \"customer\"]"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#SPEED",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/components"
+    ],
+    "file": "packages/channel-sms/src/components.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"speed-to-lead\""
+   }
+  },
+  {
+   "id": "@wren/channel-sms#SPEED_CALLS",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/schema"
+    ],
+    "file": "packages/channel-sms/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"alerted\", \"dialed\", \"skipped\"]"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#SPEED_SEQUENCES",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/speed.ts",
+    "kind": "const",
+    "sig": "readonly SmsSequence[]"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#STAGE_NAME",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/classify.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"sms_reply_disposition\""
+   }
+  },
+  {
+   "id": "@wren/channel-sms#STALE_SENDING_MS",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/deliver.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "number"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#STANDARD_ID_HEADER",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms/webhook"
+    ],
+    "file": "packages/channel-sms/src/webhook.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"webhook-id\""
+   }
+  },
+  {
+   "id": "@wren/channel-sms#STANDARD_SIGNATURE_HEADER",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms/webhook"
+    ],
+    "file": "packages/channel-sms/src/webhook.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"webhook-signature\""
+   }
+  },
+  {
+   "id": "@wren/channel-sms#STANDARD_TIMESTAMP_HEADER",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms/webhook"
+    ],
+    "file": "packages/channel-sms/src/webhook.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"webhook-timestamp\""
+   }
+  },
+  {
+   "id": "@wren/channel-sms#Segments",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/templates"
+    ],
+    "file": "packages/channel-sms/src/templates.ts",
+    "kind": "interface",
+    "sig": "interface Segments { encoding: \"GSM-7\" | \"UCS-2\"; units: number; parts: number; }"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#SendMail",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/reviews.ts",
+    "kind": "type",
+    "sig": "type SendMail = (m: { to: string; subject: string; text: string; headers?: readonly (readonly [string, string])[]; }) => Promise<void>;"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#SendRequest",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/provider.ts",
+    "kind": "interface",
+    "sig": "interface SendRequest { from: string; to: string; text: string; }"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#SendResult",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/provider.ts",
+    "kind": "type",
+    "sig": "type SendResult = | { ok: true; providerId: string; parts: number | null; costUsd: number | null; service?: Service | null; } | { ok: false; retry: false; code: string | null; detail: string; optedOut: boolean; } | { ok: false; retry: true; detail: string };"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#Service",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/schema"
+    ],
+    "file": "packages/channel-sms/src/schema.ts",
+    "kind": "type",
+    "sig": "type Service = (typeof SERVICES)[number];"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#SetTemplate",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/template-store.ts",
+    "kind": "interface",
+    "sig": "interface SetTemplate { key: string; body: string; by: string; }"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#SiteSource",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/form.ts",
+    "kind": "interface",
+    "sig": "interface SiteSource { baseUrl: string; exportToken: string; fetch?: typeof fetch; }"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#SlotView",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/template-store.ts",
+    "kind": "interface",
+    "sig": "interface SlotView extends TemplateSlot { body: string; version: string | null; updatedAt: string | null; updatedBy: string | null; preview: string; segments: Segments | null; }"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#SmsCall",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/schema"
+    ],
+    "file": "packages/channel-sms/src/schema.ts",
+    "kind": "type",
+    "sig": "type SmsCall = typeof smsCalls.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#SmsConsoleService",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms/restate"
+    ],
+    "file": "packages/channel-sms/src/restate/console.ts",
+    "kind": "type",
+    "sig": "type SmsConsoleService = ReturnType<typeof makeSmsConsole>;"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#SmsContact",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/schema"
+    ],
+    "file": "packages/channel-sms/src/schema.ts",
+    "kind": "type",
+    "sig": "type SmsContact = typeof smsContacts.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#SmsDeps",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms/restate"
+    ],
+    "file": "packages/channel-sms/src/restate/index.ts",
+    "kind": "interface",
+    "sig": "interface SmsDeps { db: Db; provider: SmsProvider; policy: SmsPolicy; health: HealthPolicy; live: boolean; campaignId: string | null; sequences: ReadonlyMap<string, SmsSequence>; senderName: string; bookingLink?: string | null; heldNiches: readonly string[]; site?: SiteSource | null; formCountries?: readonly string[]; formMail?: SendMail | null; bookings?: Bookings | null; notifier?: Notifier; pusher?: Pusher | null; llm?: LlmClient | null; clock?: () => Date; forClient?: ((plan: Extract<ClientSms, { kind: \"work\" }>) => SmsDeps) | null; clientDb?: ((client: string) => Db) | null; }"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#SmsDeskService",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms/restate"
+    ],
+    "file": "packages/channel-sms/src/restate/index.ts",
+    "kind": "type",
+    "sig": "type SmsDeskService = ReturnType<typeof makeSmsDesk>;"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#SmsEvent",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/provider.ts",
+    "kind": "type",
+    "sig": "type SmsEvent = | { kind: \"status\"; eventId: string; type: string; messageId: string; status: DeliveryStatus; at: Date; code: string | null; detail: string | null; parts: number | null; costUsd: number | null; service?: Service | null; } | { kind: \"inbound\"; eventId: string; type: string; messageId: string; from: string; to: string; text: string; at: Date; service?: Service | null; } | { kind: \"call\"; eventId: string; type: string; callId: string; stage: CallStage; from: string; to: string; at: Date; cause: string | null; } | { kind: \"ignored\"; eventId: string; type: string };"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#SmsEventRow",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/schema"
+    ],
+    "file": "packages/channel-sms/src/schema.ts",
+    "kind": "type",
+    "sig": "type SmsEventRow = typeof smsEvents.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#SmsEventsService",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms/restate"
+    ],
+    "file": "packages/channel-sms/src/restate/index.ts",
+    "kind": "type",
+    "sig": "type SmsEventsService = ReturnType<typeof makeSmsEvents>;"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#SmsFormsService",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms/restate"
+    ],
+    "file": "packages/channel-sms/src/restate/forms.ts",
+    "kind": "type",
+    "sig": "type SmsFormsService = ReturnType<typeof makeSmsForms>;"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#SmsMessage",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/schema"
+    ],
+    "file": "packages/channel-sms/src/schema.ts",
+    "kind": "type",
+    "sig": "type SmsMessage = typeof smsMessages.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#SmsNotifier",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/operator.ts",
+    "kind": "class",
+    "sig": "readonly name; constructor(private readonly db: Queryable, private readonly provider: SmsProvider, private readonly to: string, private readonly log: (line: string) => void = console.warn); notify(title: string, body = \"\", level: NotifyLevel = \"info\"): Promise<boolean>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#SmsNumber",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/schema"
+    ],
+    "file": "packages/channel-sms/src/schema.ts",
+    "kind": "type",
+    "sig": "type SmsNumber = typeof smsNumbers.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#SmsPolicy",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/policy.ts",
+    "kind": "interface",
+    "sig": "interface SmsPolicy { windowStartMinute: number; windowEndMinute: number; days: readonly number[]; dailyCap: number; monthlyPerContact: number; numberCap: number; rampStart: number; rampStep: number; rampEveryDays: number; gapSeconds: number; maxNumbers: number; bases: readonly ContactBasis[]; asked?: AskedWindow; }"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#SmsProvider",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/provider.ts",
+    "kind": "interface",
+    "sig": "interface SmsProvider { readonly name: string; send(req: SendRequest): Promise<SendResult>; lookup(e164: string): Promise<LookupResult>; listNumbers(): Promise<ProviderNumber[]>; balance(): Promise<number | null>; parseEvent(body: unknown): SmsEvent; readonly registration?: Registration; readonly keywordReplies?: KeywordReplies; }"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#SmsPushSubscription",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/schema"
+    ],
+    "file": "packages/channel-sms/src/schema.ts",
+    "kind": "type",
+    "sig": "type SmsPushSubscription = typeof smsPushSubscriptions.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#SmsRefusal",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/refusal.ts",
+    "kind": "class",
+    "sig": "override name"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#SmsSender",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms/restate"
+    ],
+    "file": "packages/channel-sms/src/restate/index.ts",
+    "kind": "type",
+    "sig": "type SmsSender = ReturnType<typeof makeSmsSender>;"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#SmsSequence",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/templates"
+    ],
+    "file": "packages/channel-sms/src/templates.ts",
+    "kind": "interface",
+    "sig": "interface SmsSequence { name: string; label?: string; steps: readonly SmsStep[]; firstGoes?: string; fields?: readonly RenderField[]; namesSender?: boolean; }"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#SmsStats",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/stats.ts",
+    "kind": "interface",
+    "sig": "interface SmsStats { since: string; steps: StepRow[]; contacts: Record<string, number>; texted: number; delivery: Rate; reply: Rate; interested: Rate; optOut: Rate; costUsd: number; costPerReplyUsd: number | null; speed: SpeedStats; }"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#SmsWatchObject",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms/restate"
+    ],
+    "file": "packages/channel-sms/src/restate/index.ts",
+    "kind": "type",
+    "sig": "type SmsWatchObject = ReturnType<typeof makeSmsWatch>;"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#SourceKind",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/schema"
+    ],
+    "file": "packages/channel-sms/src/schema.ts",
+    "kind": "type",
+    "sig": "type SourceKind = (typeof SOURCE_KINDS)[number];"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#SpeedCall",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/schema"
+    ],
+    "file": "packages/channel-sms/src/schema.ts",
+    "kind": "type",
+    "sig": "type SpeedCall = (typeof SPEED_CALLS)[number];"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#SpeedRun",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/schema"
+    ],
+    "file": "packages/channel-sms/src/schema.ts",
+    "kind": "type",
+    "sig": "type SpeedRun = typeof speedRuns.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#StepRow",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/stats.ts",
+    "kind": "interface",
+    "sig": "interface StepRow { sequence: string | null; step: number | null; sent: number; delivered: number; failed: number; costUsd: number; }"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#SyncStats",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/pool.ts",
+    "kind": "interface",
+    "sig": "interface SyncStats { seen: number; added: string[]; retired: string[]; overCap: string[]; notUsOrCa: string[]; }"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#TEXTS",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/clients.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"sms.texts\""
+   }
+  },
+  {
+   "id": "@wren/channel-sms#TEXTS_SYSTEM",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/template-store.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"texts\""
+   }
+  },
+  {
+   "id": "@wren/channel-sms#TEXT_BACK",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms/components"
+    ],
+    "file": "packages/channel-sms/src/components.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"sms.text_back\""
+   }
+  },
+  {
+   "id": "@wren/channel-sms#TIMESTAMP_HEADER",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/webhook"
+    ],
+    "file": "packages/channel-sms/src/webhook.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"telnyx-timestamp\""
+   }
+  },
+  {
+   "id": "@wren/channel-sms#TOUCH",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms/components"
+    ],
+    "file": "packages/channel-sms/src/components.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"sms.touch\""
+   }
+  },
+  {
+   "id": "@wren/channel-sms#TelnyxProvider",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/telnyx.ts",
+    "kind": "class",
+    "sig": "readonly name; constructor(private readonly opts: TelnyxOptions); send(req: SendRequest): Promise<SendResult>; lookup(e164: string): Promise<LookupResult>; listNumbers(): Promise<ProviderNumber[]>; balance(): Promise<number | null>; parseEvent(body: unknown): SmsEvent; readonly registration: Registration; readonly keywordReplies: KeywordReplies"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#TemplateSlot",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/templates"
+    ],
+    "file": "packages/channel-sms/src/templates.ts",
+    "kind": "interface",
+    "sig": "interface TemplateSlot { key: string; purpose: string; goes?: string; fields: readonly RenderField[]; mustSayStop: boolean; mustUse?: readonly RenderField[]; minLength: number; }"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#TextBackOptions",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/missed.ts",
+    "kind": "interface",
+    "sig": "interface TextBackOptions { live: boolean; why: string | null; senderName: string; bookingLink: string | null; onceEvery: number; zone: string | null; now: Date; }"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#Thread",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/threads.ts",
+    "kind": "interface",
+    "sig": "interface Thread { contact: SmsContact & { display: string; company: string | null; companyDomain: string | null; fromNumber: string | null; }; messages: (Pick< SmsMessage, | \"id\" | \"direction\" | \"kind\" | \"step\" | \"body\" | \"state\" | \"errorCode\" | \"detail\" | \"disposition\" | \"dispositionSource\" | \"service\" > & { at: string })[]; month: { sent: number; cap: number }; }"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#ThreadFilter",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/threads.ts",
+    "kind": "type",
+    "sig": "type ThreadFilter = \"all\" | \"unread\" | \"replied\";"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#ThreadSummary",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/threads.ts",
+    "kind": "interface",
+    "sig": "interface ThreadSummary { contactId: number; e164: string; display: string; company: string | null; name: string | null; state: SmsContact[\"state\"]; lastAt: string; lastBody: string; lastDirection: \"in\" | \"out\"; unread: number; disposition: string | null; }"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#TickOptions",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/deliver.ts",
+    "kind": "interface",
+    "sig": "interface TickOptions { provider: SmsProvider; policy: SmsPolicy; live: boolean; sequences: ReadonlyMap<string, SmsSequence>; senderName: string; bookingLink?: string | null; linkSource?: string | null; now: Date; runId?: string | null; }"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#TickStats",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/deliver.ts",
+    "kind": "interface",
+    "sig": "interface TickStats { due: number; sent: number; failed: number; retried: number; unknown: number; skipped: number; outOfWindow: number; capped: number; gated: number; noCapacity: number; unreachable: number; reconciled: number; remainingToday: number; activeNumbers: number; stepped: Array<{ contactId: number; sequence: string; step: number }>; nextDue: string | null; }"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#TouchTexts",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/follow.ts",
+    "kind": "type",
+    "sig": "type TouchTexts = Omit<TouchOptions, \"now\"> & { db: Db; main?: Queryable; off?: string | null; };"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#Verdict",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/classify.ts",
+    "kind": "interface",
+    "sig": "interface Verdict { disposition: Disposition | null; grounded: boolean; reason: string; }"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#WATCH_KEY",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms/restate"
+    ],
+    "file": "packages/channel-sms/src/restate/index.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"daily\""
+   }
+  },
+  {
+   "id": "@wren/channel-sms#WatchStats",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms/restate"
+    ],
+    "file": "packages/channel-sms/src/restate/index.ts",
+    "kind": "interface",
+    "sig": "interface WatchStats { registration: RegistrationStats; forms: FormStats | null; formsAfter: AfterStats | null; formsError?: string; reminders: ReminderStats | null; remindersError?: string; classify: ClassifyStats | null; health: Pick<HealthReport, \"paused\" | \"warnings\" | \"balanceUsd\" | \"fleet\">; summarized: string | null; }"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#WebPusher",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/push.ts",
+    "kind": "class",
+    "sig": "readonly name; readonly publicKey: string;; constructor(private readonly vapid: Vapid); push(sub: SmsPushSubscription, alert: PushAlert): Promise<\"ok\" | \"gone\">"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#addContact",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/contacts.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, input: { phone: string; basis: ContactBasis; why: string; niche?: string | null }): Promise<{ contact: SmsContact; created: boolean }>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#answerChecks",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/setups.ts",
+    "kind": "function",
+    "sig": "(dbOf: (client: string | null) => Promise<Db>, get: typeof fetch): Record<string, SetupCheck>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#applyEvent",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/events.ts",
+    "kind": "function",
+    "sig": "(db: Db, raw: unknown, event: SmsEvent, opts: ApplyOptions): Promise<ApplyResult>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#askReview",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/reviews.ts",
+    "kind": "function",
+    "sig": "(db: Db, c: Customer, o: AskOptions): Promise<ReviewAsk>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#assignmentOf",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/telnyx.ts",
+    "kind": "function",
+    "sig": "(body: unknown): NumberAssignment"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#bookedRun",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/follow.ts",
+    "kind": "function",
+    "sig": "(db: Db, contactId: number, at: Date): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#buildPrompt",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/classify.ts",
+    "kind": "function",
+    "sig": "(s: ReplyState): string"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#callHooks",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms/restate"
+    ],
+    "file": "packages/channel-sms/src/restate/answers.ts",
+    "kind": "function",
+    "sig": "(d: { main: Db; clientDb(id: string): Db }): CallHooks"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#callJson",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/provider.ts",
+    "kind": "function",
+    "sig": "(fetchImpl: typeof fetch, base: string, opts: { apiKey: string; timeoutMs?: number }, method: string, path: string, body: unknown, unparsed: (text: string) => unknown): Promise<{ status: number; json: unknown }>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#callReplied",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/missed.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, contactId: number, now: Date): Promise<{ id: number; callId: string; fromE164: string; toE164: string; numberId: string | null; startedAt: Date; answeredAt: Date | null; bridgedAt: Date | null; endedAt: Date | null; cause: string | null; result: \"answered\" | \"voicemail\" | \"missed\" | \"busy\" | null; known: boolean | null; contactId…"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#callResult",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/events.ts",
+    "kind": "function",
+    "sig": "(c: { bridgedAt: Date | null; answeredAt: Date | null }, cause: string | null): CallResult"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#campaignOf",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/telnyx.ts",
+    "kind": "function",
+    "sig": "(body: unknown): CampaignState"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#cannotReach",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/pool.ts",
+    "kind": "function",
+    "sig": "(number: Pick<SmsNumber, \"e164\" | \"country\" | \"registeredAt\">, to: string): string | null"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#channelOf",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/reviews.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(via: ReviewVia, phone: string | null, email: string | null): \"email\" | \"text\" | null"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#checkBody",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/templates"
+    ],
+    "file": "packages/channel-sms/src/templates.ts",
+    "kind": "function",
+    "sig": "(slot: TemplateSlot, body: string): string"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#checkHealth",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/health.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, opts: { now: Date; policy: HealthPolicy; provider?: SmsProvider | null; notifier?: Notifier | null; }): Promise<HealthReport>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#checkSequence",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/templates"
+    ],
+    "file": "packages/channel-sms/src/templates.ts",
+    "kind": "function",
+    "sig": "(seq: SmsSequence): SmsSequence"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#classifyInbound",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/events.ts",
+    "kind": "function",
+    "sig": "(text: string): { kind: InboundClass; disposition: Disposition | null; }"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#classifyReplies",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/classify.ts",
+    "kind": "function",
+    "sig": "(db: Db, llm: LlmClient, opts: { limit?: number; runId?: string | null; now: Date }): Promise<ClassifyStats>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#cleanEmail",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/reviews.ts",
+    "kind": "function",
+    "sig": "(raw: string | null | undefined): string | null"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#clickReview",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/reviews.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, token: string, now: Date): Promise<string | null>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#clientSms",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/clients.ts",
+    "kind": "function",
+    "sig": "(main: Db, id: string): Promise<ClientSms>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#countryOf",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/phone.ts",
+    "kind": "function",
+    "sig": "(e164: string): PhoneCountry | null"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#daysBetween",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/policy.ts",
+    "kind": "function",
+    "sig": "(from: string, to: string): number"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#endContact",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/deliver.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, contactId: number, state: SmsContact[\"state\"], reason: string, now: Date): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#enroll",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/enroll.ts",
+    "kind": "function",
+    "sig": "(db: Db, opts: EnrollOptions): Promise<EnrollStats>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#fieldsFor",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/template-store.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, contact: Pick<SmsContact, \"companyId\" | \"personId\" | \"name\"> & Partial<Pick<SmsContact, \"bookingLink\">>, sender: string, bookingLink: string | null = null): Promise<RenderFields>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#findPlace",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/setups.ts",
+    "kind": "function",
+    "sig": "(sites: SiteClient, ref: string): Promise<{ ref: string | null; why: string }>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#firstName",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/templates"
+    ],
+    "file": "packages/channel-sms/src/templates.ts",
+    "kind": "function",
+    "sig": "(full: string | null | undefined): string | null"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#firstText",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/speed.ts",
+    "kind": "function",
+    "sig": "(db: Db, r: { workflow: string; subject: string; lead: DoorLead; leadAt: Date }, t: Omit<SpeedTexts, \"db\" | \"nudge\">, now: Date): Promise<FirstText>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#firstTextStep",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/speed.ts",
+    "kind": "function",
+    "sig": "(textsFor: (client: string | null) => Promise<SpeedTexts>): Step"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#fleetDay",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/policy.ts",
+    "kind": "function",
+    "sig": "(at: Date): string"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#followUpForms",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/form.ts",
+    "kind": "function",
+    "sig": "(db: Db, opts: FormOptions): Promise<FormStats>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#formAfter",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/form-after.ts",
+    "kind": "function",
+    "sig": "(db: Db, o: AfterOptions): Promise<AfterStats>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#formBookingLink",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/form.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(baseUrl: string, app: Pick<FormApplication, \"id\" | \"offer\">): string"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#formCountriesFrom",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/settings.ts",
+    "kind": "function",
+    "sig": "(s: Pick<Settings, \"smsFormCountries\">): readonly string[]"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#formEmail",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/form-after.ts",
+    "kind": "function",
+    "sig": "(db: Db, runId: number, o: AfterOptions): Promise<EmailOutcome>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#formStep",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/form.ts",
+    "kind": "function",
+    "sig": "(db: Db, app: FormApplication, opts: FormOptions): Promise<FormOutcome>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#formSubject",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/form.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(id: number): string"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#formatPhone",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/phone.ts",
+    "kind": "function",
+    "sig": "(e164: string): string"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#getThread",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/threads.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, contactId: number, opts: { now: Date; cap: number }): Promise<Thread | null>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#ground",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/classify.ts",
+    "kind": "function",
+    "sig": "(s: ReplyState, proposal: Proposal | null, why: string | null): Verdict"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#handSubject",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/reviews.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(id: string): string"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#healthFrom",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/settings.ts",
+    "kind": "function",
+    "sig": "(s: Settings): HealthPolicy"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#inWindow",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/policy.ts",
+    "kind": "function",
+    "sig": "(zone: string | null, at: Date, policy: SmsPolicy): boolean"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#isTollFree",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/research/src/phones.ts",
+    "kind": "function",
+    "sig": "(e164: string): boolean"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#keyedProvider",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/keyed.ts",
+    "kind": "function",
+    "sig": "(o: KeyedOptions): SmsProvider"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#keywordOf",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/templates"
+    ],
+    "file": "packages/channel-sms/src/templates.ts",
+    "kind": "function",
+    "sig": "(key: string): Keyword | null"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#labelReply",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/classify.ts",
+    "kind": "function",
+    "sig": "(db: Db, input: { messageId: number; disposition: Disposition; now: Date }): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#liftPhones",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/lift.ts",
+    "kind": "function",
+    "sig": "(db: Db, opts: LiftOptions): Promise<LiftStats>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#lineTypeOf",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/telnyx.ts",
+    "kind": "function",
+    "sig": "(type: string | null | undefined): LineType"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#listTemplates",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/template-store.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, slots: readonly TemplateSlot[], sender: string): Promise<SlotView[]>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#listThreads",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/threads.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, opts: { filter?: ThreadFilter; limit?: number; offset?: number } = {}): Promise<ThreadSummary[]>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#liveTexts",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/template-store.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, keys: readonly string[]): Promise<Map<string, Template>>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#makeReviews",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms/restate"
+    ],
+    "file": "packages/channel-sms/src/restate/answers.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(d: { main: Db; clientDb(id: string): Db }): restate.ServiceDefinition<\"Reviews\", { click: (ctx: restate.Context, req: z.infer<typeof CLICK>) => Promise<{ to: string | null; }>; feedback: (ctx: restate.Context, req: z.infer<typeof FEEDBACK>) => Promise<{ ok: boolean; }>; stop: (ctx: restate.Context, req: z.infer<typeof CLICK>) => Promise<{ ok:…"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#makeSmsConsole",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms/restate"
+    ],
+    "file": "packages/channel-sms/src/restate/console.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(deps: SmsConsoleDeps): restate.ServiceDefinition<\"SmsConsole\", { recordsTypes: (_: restate.Context, req: PortalRequest) => Promise<import(\"@wren/core/records\").RecordMeta[]>; recordsList: (_: restate.Context, req: PortalRequest & ListAsk) => Promise<import(\"@wren/core/records/serve\").RecordsPage>; recordsGet: (_: restate.…"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#makeSmsDesk",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms/restate"
+    ],
+    "file": "packages/channel-sms/src/restate/index.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(deps: SmsDeps): restate.ServiceDefinition<\"SmsDesk\", { threads: (ctx: restate.Context, req?: { filter?: ThreadFilter; limit?: number; offset?: number; } & ForClient) => Promise<ThreadSummary[]>; thread: (ctx: restate.Context, req: { contactId: number; } & ForClient) => Promise<Thread | null>; markRead: (ctx: restat…"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#makeSmsEvents",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms/restate"
+    ],
+    "file": "packages/channel-sms/src/restate/index.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(deps: Pick< SmsDeps, \"db\" | \"provider\" | \"notifier\" | \"pusher\" | \"clock\" | \"campaignId\" | \"clientDb\" > & { fire?: FireTriggers; calls?: CallHooks; keys?: KeyStore | null; }): restate.ServiceDefinition<\"SmsEvents\", { signer: (ctx: restate.Context, req: { number?: string | null; client?: string | null; }) => Promise<Signer>; ingest: (ctx: restate.Context, body: unknown) => Promise<{ duplicate: boolean; outcome: string; }>; ingestFor: (ctx: restate.Context, req: { client: s…"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#makeSmsForms",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms/restate"
+    ],
+    "file": "packages/channel-sms/src/restate/forms.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(deps: SmsDeps): restate.ServiceDefinition<\"SmsForms\", { applied: (ctx: restate.Context, req: { application: number; }) => Promise<Stepped | null>; first: (ctx: restate.Context, req: FirstRequest) => Promise<Stepped>; email: (ctx: restate.Context, req: RunRequest) => Promise<EmailOutcome>; check: (ctx: restate.Conte…"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#makeSmsSender",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms/restate"
+    ],
+    "file": "packages/channel-sms/src/restate/index.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(wren: SmsDeps): restate.VirtualObjectDefinition<string, Record<never, never> & Record<never, (ctx: restate.ObjectContext) => Promise<PassOutcome<TickStats>>> & { sync: (ctx: restate.ObjectContext) => Promise<PassOutcome<TickStats>>; start: (ctx: restate.ObjectContext, settings?: Record<string, unknown> | null) => P…"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#makeSmsWatch",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms/restate"
+    ],
+    "file": "packages/channel-sms/src/restate/index.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(wren: SmsDeps): restate.VirtualObjectDefinition<string, Record<never, never> & Record<never, (ctx: restate.ObjectContext) => Promise<PassOutcome<WatchStats>>> & { sync: (ctx: restate.ObjectContext) => Promise<PassOutcome<WatchStats>>; start: (ctx: restate.ObjectContext, settings?: Record<string, unknown> | null) =>…"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#markRead",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/threads.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, contactId: number, now: Date): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#marketingTextContactRecords",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/schema"
+    ],
+    "file": "packages/channel-sms/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgViewWithSelection<\"marketing_text_contact_records\", false, { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"marketing_text_contact_records\"; dataType: \"number\"; columnType: \"PgInteger\"; data: number; driverParam: string | number; notNull: false; …"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#meteredProvider",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/keyed.ts",
+    "kind": "function",
+    "sig": "(p: SmsProvider, main: Db, part = \"sms.send\"): SmsProvider"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#missedCallEvent",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/missed.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(id: number): { subject: string; kind: \"call\"; data: { call: number; }; }"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#missedCallSettingsSchema",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms/components"
+    ],
+    "file": "packages/channel-sms/src/components.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "z.ZodObject<{ hoursBetween: z.ZodDefault<z.ZodNumber>; zone: z.ZodDefault<z.ZodNullable<z.ZodString>>; }, z.core.$strict>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#monthlyRoomAt",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/deliver.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, e164: string, policy: Pick<SmsPolicy, \"monthlyPerContact\">, now: Date): Promise<Date | null>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#newToken",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/reviews.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(): string"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#nextOpen",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/policy.ts",
+    "kind": "function",
+    "sig": "(zone: string | null, from: Date, policy: SmsPolicy): Date | null"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#noTextNotice",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/form-after.ts",
+    "kind": "function",
+    "sig": "(db: Db, runId: number, o: Pick<AfterOptions, \"notifier\" | \"policy\" | \"now\">): Promise<\"sent\" | \"not_yet\" | \"skipped\">"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#numberByE164",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/pool.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, e164: string): Promise<SmsNumber | null>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#numberCapOn",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/policy.ts",
+    "kind": "function",
+    "sig": "(rampStartedOn: string, day: string, policy: SmsPolicy): number"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#numberReady",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/pool.ts",
+    "kind": "function",
+    "sig": "(n: NumberToday, now: Date, policy: SmsPolicy): boolean"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#ourNumber",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms/webhook"
+    ],
+    "file": "packages/channel-sms/src/webhook.ts",
+    "kind": "function",
+    "sig": "(body: unknown): string | null"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#parseClock",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/policy.ts",
+    "kind": "function",
+    "sig": "(text: string): number"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#parseTelnyxEvent",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/telnyx.ts",
+    "kind": "function",
+    "sig": "(body: unknown): SmsEvent"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#pauseNumber",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/pool.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, e164: string, reason: string, now: Date): Promise<boolean>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#phoneCountry",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/phone.ts",
+    "kind": "function",
+    "sig": "(raw: string): string | null"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#pickNumber",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/pool.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, country: PhoneCountry): Promise<SmsNumber | null>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#pickSender",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/pool.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, to: string): Promise<SmsNumber | null>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#placeIdOf",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/reviews.ts",
+    "kind": "function",
+    "sig": "(main: Queryable, client: string): Promise<string | null>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#policyFor",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/policy.ts",
+    "kind": "function",
+    "sig": "(source: SourceKind, policy: SmsPolicy, kind?: string, basis?: ContactBasis): SmsPolicy"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#policyFrom",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/settings.ts",
+    "kind": "function",
+    "sig": "(s: Settings): SmsPolicy"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#poolToday",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/pool.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, policy: SmsPolicy, now: Date): Promise<PoolToday>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#preview",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/templates"
+    ],
+    "file": "packages/channel-sms/src/templates.ts",
+    "kind": "function",
+    "sig": "(source: string, fields: RenderFields): string"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#proposalSchema",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/classify.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "z.ZodObject<{ disposition: z.ZodString; evidence: z.ZodOptional<z.ZodNullable<z.ZodString>>; confidence: z.ZodOptional<z.ZodNullable<z.ZodNumber>>; reason: z.ZodOptional<z.ZodNullable<z.ZodString>>; }, z.core.$strip>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#providerFrom",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/settings.ts",
+    "kind": "function",
+    "sig": "(s: Settings): SmsProvider"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#pushAll",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/push.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, pusher: Pusher, alert: PushAlert): Promise<PushStats>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#pushOne",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/push.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, pusher: Pusher, endpoint: string, alert: PushAlert): Promise<{ pushed: boolean; error: string | null }>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#pusherFrom",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/settings.ts",
+    "kind": "function",
+    "sig": "(s: Settings): Pusher | null"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#queueManual",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/deliver.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, input: { contactId: number; body: string; now: Date; policy: Pick<SmsPolicy, \"monthlyPerContact\">; kind?: \"manual\" | \"pay\" | \"doc\"; }): Promise<SmsMessage>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#rate",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/stats.ts",
+    "kind": "function",
+    "sig": "(k: number, n: number): Rate"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#readApplication",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/form.ts",
+    "kind": "function",
+    "sig": "(site: SiteSource, id: number): Promise<FormApplication | null>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#reconcile",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/deliver.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, now: Date): Promise<number>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#remindBookings",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/reminders.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, opts: ReminderOptions): Promise<ReminderStats>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#remindReview",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/reviews.ts",
+    "kind": "function",
+    "sig": "(db: Db, id: number, o: Pick< AskOptions, \"live\" | \"why\" | \"senderName\" | \"feedback\" | \"client\" | \"origin\" | \"now\" | \"mail\" >): Promise<ReviewAsk>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#remindersSettingsSchema",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/clients.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "z.ZodObject<{}, z.core.$strict>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#render",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/templates"
+    ],
+    "file": "packages/channel-sms/src/templates.ts",
+    "kind": "function",
+    "sig": "(tpl: Template, fields: RenderFields, seed: string): RenderedText"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#resumeNumber",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/pool.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, e164: string): Promise<boolean>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#reviewAsks",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/schema"
+    ],
+    "file": "packages/channel-sms/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"review_asks\"; schema: undefined; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"review_asks\"; dataType: \"number\"; columnType: \"PgSerial\"; data: number; driverParam: number; notNull: true; hasDefault: true; isP…"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#reviewRecord",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms/records"
+    ],
+    "file": "packages/channel-sms/src/records.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"@wren/core/records\").RecordType"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#reviewStep",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/reviews.ts",
+    "kind": "function",
+    "sig": "(depsFor: (client: string) => Promise<ReviewDeps>): Step"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#reviewUrl",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/setups.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(placeId: string): string"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#reviewsSettingsSchema",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms/components"
+    ],
+    "file": "packages/channel-sms/src/components.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "z.ZodObject<{ via: z.ZodDefault<z.ZodEnum<{ email: \"email\"; text: \"text\"; }>>; feedback: z.ZodDefault<z.ZodBoolean>; daysBetween: z.ZodDefault<z.ZodNumber>; }, z.core.$strict>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#runOfCall",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/missed.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, workflow: string, call: SmsCall, now: Date): Promise<SpeedRun | null>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#sampleFields",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/templates"
+    ],
+    "file": "packages/channel-sms/src/templates.ts",
+    "kind": "function",
+    "sig": "(sender: string): RenderFields"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#saveFeedback",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/reviews.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, token: string, words: string, now: Date): Promise<boolean>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#segments",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/templates"
+    ],
+    "file": "packages/channel-sms/src/templates.ts",
+    "kind": "function",
+    "sig": "(text: string): Segments"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#senderDelayMs",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms/restate"
+    ],
+    "file": "packages/channel-sms/src/restate/index.ts",
+    "kind": "function",
+    "sig": "(s: TickStats, gapSeconds: number, now: Date): number"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#sequenceSlots",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/templates"
+    ],
+    "file": "packages/channel-sms/src/templates.ts",
+    "kind": "function",
+    "sig": "(seq: SmsSequence): TemplateSlot[]"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#setTemplate",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/template-store.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, opts: { provider: SmsProvider; slots: readonly TemplateSlot[]; sender: string }, req: SetTemplate): Promise<SlotView>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#signedFresh",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms/webhook"
+    ],
+    "file": "packages/channel-sms/src/webhook.ts",
+    "kind": "function",
+    "sig": "(input: { signature: string | null; timestamp: string | null; nowSeconds?: number; }): Verdict"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#skipQueued",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/deliver.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, contactId: number, why: string): Promise<number>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#slotsOf",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/template-store.ts",
+    "kind": "function",
+    "sig": "(sequences: Iterable<SmsSequence>): TemplateSlot[]"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#smsCalls",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/schema"
+    ],
+    "file": "packages/channel-sms/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"sms_calls\"; schema: undefined; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"sms_calls\"; dataType: \"number\"; columnType: \"PgSerial\"; data: number; driverParam: number; notNull: true; hasDefault: true; isPrima…"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#smsChecks",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/setups.ts",
+    "kind": "function",
+    "sig": "(main: Db, reg: Registration, wrenCampaign: string | null): Record<string, SetupCheck>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#smsConsoleApi",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms/restate"
+    ],
+    "file": "packages/channel-sms/src/restate/console.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "({ db, open }: SmsConsoleDeps): { recordsTypes: (req: PortalRequest) => Promise<import(\"@wren/core/records\").RecordMeta[]>; recordsList: (req: PortalRequest & ListAsk) => Promise<import(\"@wren/core/records/serve\").RecordsPage>; recordsGet: (req: PortalRequest & GetAsk) => Promise<import(\"@wren/core/records/serve\").RecordAnswer>; r…"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#smsContacts",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/schema"
+    ],
+    "file": "packages/channel-sms/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"sms_contacts\"; schema: undefined; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"sms_contacts\"; dataType: \"number\"; columnType: \"PgSerial\"; data: number; driverParam: number; notNull: true; hasDefault: true; i…"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#smsEvents",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/schema"
+    ],
+    "file": "packages/channel-sms/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"sms_events\"; schema: undefined; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"sms_events\"; dataType: \"number\"; columnType: \"PgSerial\"; data: number; driverParam: number; notNull: true; hasDefault: true; isPri…"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#smsMessages",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/schema"
+    ],
+    "file": "packages/channel-sms/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"sms_messages\"; schema: undefined; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"sms_messages\"; dataType: \"number\"; columnType: \"PgSerial\"; data: number; driverParam: number; notNull: true; hasDefault: true; i…"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#smsNumbers",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/schema"
+    ],
+    "file": "packages/channel-sms/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"sms_numbers\"; schema: undefined; columns: { e164: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"e164\"; tableName: \"sms_numbers\"; dataType: \"string\"; columnType: \"PgVarchar\"; data: string; driverParam: string; notNull: true; hasDefault: fals…"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#smsPushSubscriptions",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/schema"
+    ],
+    "file": "packages/channel-sms/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"sms_push_subscriptions\"; schema: undefined; columns: { endpoint: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"endpoint\"; tableName: \"sms_push_subscriptions\"; dataType: \"string\"; columnType: \"PgText\"; data: string; driverParam: string; notN…"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#smsStats",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/stats.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, opts: { since: Date; niche?: string | null }): Promise<SmsStats>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#sourceOf",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/reviews.ts",
+    "kind": "function",
+    "sig": "(e: ExecutorEvent): ReviewSource"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#speedRuns",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/schema"
+    ],
+    "file": "packages/channel-sms/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"speed_runs\"; schema: undefined; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"speed_runs\"; dataType: \"number\"; columnType: \"PgSerial\"; data: number; driverParam: number; notNull: true; hasDefault: true; isPri…"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#startThread",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/contacts.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, input: { phone: string; why: string; body: string; now: Date; policy: Pick<SmsPolicy, \"monthlyPerContact\">; }): Promise<{ contactId: number; messageId: number }>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#stepKey",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/templates"
+    ],
+    "file": "packages/channel-sms/src/templates.ts",
+    "kind": "function",
+    "sig": "(sequence: string, step: number): string"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#stepTemplate",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/templates"
+    ],
+    "file": "packages/channel-sms/src/templates.ts",
+    "kind": "function",
+    "sig": "(seq: SmsSequence, step: number): string"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#stopReview",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/reviews.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, token: string, now: Date): Promise<boolean>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#subscribe",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/push.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, sub: PushSubscriptionInput, operator: string): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#syncNumbers",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/pool.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, provider: SmsProvider, policy: SmsPolicy, now: Date): Promise<SyncStats>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#textBack",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/missed.ts",
+    "kind": "function",
+    "sig": "(db: Db, id: number, o: TextBackOptions): Promise<TextBack>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#textBackStep",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/missed.ts",
+    "kind": "function",
+    "sig": "(depsFor: (client: string | null) => Promise<TextBackDeps>): Step"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#textCadence",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/follow.ts",
+    "kind": "function",
+    "sig": "(seq: SmsSequence): Workflow"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#textContactRecord",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms/records"
+    ],
+    "file": "packages/channel-sms/src/records.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"@wren/core/records\").RecordType"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#textCopyRecord",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms/records"
+    ],
+    "file": "packages/channel-sms/src/records.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(sequences: Iterable<SmsSequence>, sender: string): import(\"@wren/core/records\").RecordType"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#textLead",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/follow.ts",
+    "kind": "function",
+    "sig": "(contactId: number): ExecutorEvent"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#textRef",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/template-store.ts",
+    "kind": "function",
+    "sig": "(key: string): TemplateRef"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#textSeed",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/templates"
+    ],
+    "file": "packages/channel-sms/src/templates.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(contactId: number): string"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#textedThisMonth",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/deliver.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, e164: string, now: Date): Promise<number>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#textsSettingsSchema",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/clients.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "z.ZodObject<{ senderName: z.ZodDefault<z.ZodNullable<z.ZodString>>; campaignId: z.ZodDefault<z.ZodNullable<z.ZodString>>; bookingLink: z.ZodDefault<z.ZodNullable<z.ZodURL>>; }, z.core.$strict>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#threadRecord",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms/records"
+    ],
+    "file": "packages/channel-sms/src/records.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"@wren/core/records\").RecordType"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#tick",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/deliver.ts",
+    "kind": "function",
+    "sig": "(db: Db, opts: TickOptions): Promise<TickStats>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#toPhoneE164",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/phone.ts",
+    "kind": "function",
+    "sig": "(raw: string, countries: readonly string[] = PHONE_COUNTRIES): string | null"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#toUsE164",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/research/src/phones.ts",
+    "kind": "function",
+    "sig": "(raw: string): string | null"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#touch",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/follow.ts",
+    "kind": "function",
+    "sig": "(db: Db, contactId: number, step: number, opts: TouchOptions): Promise<\"queued\" | \"replied\" | \"booked\" | \"ended\">"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#touchStep",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/follow.ts",
+    "kind": "function",
+    "sig": "(textsFor: (client: string | null) => TouchTexts | Promise<TouchTexts>): Step"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#unsubscribe",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/push.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, endpoint: string): Promise<boolean>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#verifyStandardWebhook",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms/webhook"
+    ],
+    "file": "packages/channel-sms/src/webhook.ts",
+    "kind": "function",
+    "sig": "(input: { secret: string; id: string | null; signature: string | null; timestamp: string | null; rawBody: string; nowSeconds?: number; }): Promise<Verdict>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#verifyTelnyx",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms",
+     "@wren/channel-sms/webhook"
+    ],
+    "file": "packages/channel-sms/src/webhook.ts",
+    "kind": "function",
+    "sig": "(input: { publicKey: string; signature: string | null; timestamp: string | null; rawBody: string; nowSeconds?: number; }): Promise<Verdict>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#watchRegistration",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/registration.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, provider: SmsProvider, campaignId: string | null, now: Date): Promise<RegistrationStats>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#whyNoText",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/form-after.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, run: SpeedRun, contact: SmsContact | null, policy: SmsPolicy, now: Date): Promise<string>"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#wrongCountry",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/pool.ts",
+    "kind": "function",
+    "sig": "(number: Pick<SmsNumber, \"country\">, to: string): boolean"
+   }
+  },
+  {
+   "id": "@wren/channel-sms#zoneOfPhone",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/phone.ts",
+    "kind": "function",
+    "sig": "(e164: string): string | null"
+   }
+  },
+  {
+   "id": "@wren/channel-sms/webhook#Verdict",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms/webhook"
+    ],
+    "file": "packages/channel-sms/src/webhook.ts",
+    "kind": "type",
+    "sig": "type Verdict = { ok: true } | { ok: false; reason: string };"
+   }
+  }
+ ],
+ "edges": []
+}

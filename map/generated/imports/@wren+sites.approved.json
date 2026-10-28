@@ -1,0 +1,1113 @@
+{
+ "layer": "imports",
+ "nodes": [
+  {
+   "id": "@wren/sites",
+   "role": "package",
+   "parent": "repo:wren",
+   "group": "@wren/sites",
+   "attrs": {
+    "dir": "packages/sites/",
+    "npm": [
+     "node:crypto"
+    ]
+   }
+  },
+  {
+   "id": "@wren/sites/scripts/seed-preview.ts",
+   "role": "file",
+   "parent": "@wren/sites",
+   "group": "@wren/sites"
+  },
+  {
+   "id": "@wren/sites/src/chat-widget.ts",
+   "role": "file",
+   "parent": "@wren/sites",
+   "group": "@wren/sites"
+  },
+  {
+   "id": "@wren/sites/src/components.ts",
+   "role": "file",
+   "parent": "@wren/sites",
+   "group": "@wren/sites"
+  },
+  {
+   "id": "@wren/sites/src/console-routes.ts",
+   "role": "file",
+   "parent": "@wren/sites",
+   "group": "@wren/sites"
+  },
+  {
+   "id": "@wren/sites/src/console.ts",
+   "role": "file",
+   "parent": "@wren/sites",
+   "group": "@wren/sites"
+  },
+  {
+   "id": "@wren/sites/src/detail.ts",
+   "role": "file",
+   "parent": "@wren/sites",
+   "group": "@wren/sites"
+  },
+  {
+   "id": "@wren/sites/src/draft.ts",
+   "role": "file",
+   "parent": "@wren/sites",
+   "group": "@wren/sites"
+  },
+  {
+   "id": "@wren/sites/src/form-split.ts",
+   "role": "file",
+   "parent": "@wren/sites",
+   "group": "@wren/sites"
+  },
+  {
+   "id": "@wren/sites/src/form-store.ts",
+   "role": "file",
+   "parent": "@wren/sites",
+   "group": "@wren/sites"
+  },
+  {
+   "id": "@wren/sites/src/forms.ts",
+   "role": "file",
+   "parent": "@wren/sites",
+   "group": "@wren/sites"
+  },
+  {
+   "id": "@wren/sites/src/hops.ts",
+   "role": "file",
+   "parent": "@wren/sites",
+   "group": "@wren/sites"
+  },
+  {
+   "id": "@wren/sites/src/index.ts",
+   "role": "file",
+   "parent": "@wren/sites",
+   "group": "@wren/sites"
+  },
+  {
+   "id": "@wren/sites/src/kit.ts",
+   "role": "file",
+   "parent": "@wren/sites",
+   "group": "@wren/sites"
+  },
+  {
+   "id": "@wren/sites/src/links.ts",
+   "role": "file",
+   "parent": "@wren/sites",
+   "group": "@wren/sites"
+  },
+  {
+   "id": "@wren/sites/src/model.ts",
+   "role": "file",
+   "parent": "@wren/sites",
+   "group": "@wren/sites"
+  },
+  {
+   "id": "@wren/sites/src/qr.ts",
+   "role": "file",
+   "parent": "@wren/sites",
+   "group": "@wren/sites"
+  },
+  {
+   "id": "@wren/sites/src/records.ts",
+   "role": "file",
+   "parent": "@wren/sites",
+   "group": "@wren/sites"
+  },
+  {
+   "id": "@wren/sites/src/render.ts",
+   "role": "file",
+   "parent": "@wren/sites",
+   "group": "@wren/sites"
+  },
+  {
+   "id": "@wren/sites/src/scan.ts",
+   "role": "file",
+   "parent": "@wren/sites",
+   "group": "@wren/sites"
+  },
+  {
+   "id": "@wren/sites/src/schema.ts",
+   "role": "file",
+   "parent": "@wren/sites",
+   "group": "@wren/sites"
+  },
+  {
+   "id": "@wren/sites/src/service.ts",
+   "role": "file",
+   "parent": "@wren/sites",
+   "group": "@wren/sites"
+  },
+  {
+   "id": "@wren/sites/src/share.ts",
+   "role": "file",
+   "parent": "@wren/sites",
+   "group": "@wren/sites"
+  },
+  {
+   "id": "@wren/sites/src/split-call.ts",
+   "role": "file",
+   "parent": "@wren/sites",
+   "group": "@wren/sites"
+  },
+  {
+   "id": "@wren/sites/src/split.ts",
+   "role": "file",
+   "parent": "@wren/sites",
+   "group": "@wren/sites"
+  },
+  {
+   "id": "@wren/sites/src/store.ts",
+   "role": "file",
+   "parent": "@wren/sites",
+   "group": "@wren/sites"
+  },
+  {
+   "id": "@wren/sites/src/templates/index.ts",
+   "role": "file",
+   "parent": "@wren/sites",
+   "group": "@wren/sites"
+  },
+  {
+   "id": "@wren/sites/src/templates/lander.ts",
+   "role": "file",
+   "parent": "@wren/sites",
+   "group": "@wren/sites"
+  },
+  {
+   "id": "@wren/sites/src/templates/listicle.ts",
+   "role": "file",
+   "parent": "@wren/sites",
+   "group": "@wren/sites"
+  },
+  {
+   "id": "@wren/sites/src/templates/page.ts",
+   "role": "file",
+   "parent": "@wren/sites",
+   "group": "@wren/sites"
+  },
+  {
+   "id": "@wren/sites/src/templates/parts.ts",
+   "role": "file",
+   "parent": "@wren/sites",
+   "group": "@wren/sites"
+  },
+  {
+   "id": "@wren/sites/src/templates/sections.ts",
+   "role": "file",
+   "parent": "@wren/sites",
+   "group": "@wren/sites"
+  },
+  {
+   "id": "@wren/sites/src/templates/types.ts",
+   "role": "file",
+   "parent": "@wren/sites",
+   "group": "@wren/sites"
+  },
+  {
+   "id": "@wren/sites/src/views.ts",
+   "role": "file",
+   "parent": "@wren/sites",
+   "group": "@wren/sites"
+  },
+  {
+   "id": "@wren/sites/vitest.config.ts",
+   "role": "file",
+   "parent": "@wren/sites",
+   "group": "@wren/sites"
+  }
+ ],
+ "edges": [
+  {
+   "from": "@wren/sites",
+   "to": "@wren/core",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites",
+   "to": "@wren/db",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites",
+   "to": "@wren/experiments",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites",
+   "to": "@wren/offers",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/scripts/seed-preview.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/scripts/seed-preview.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/scripts/seed-preview.ts",
+   "to": "@wren/offers/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/scripts/seed-preview.ts",
+   "to": "@wren/sites/src/console.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/scripts/seed-preview.ts",
+   "to": "@wren/sites/src/service.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/components.ts",
+   "to": "@wren/core/src/components.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/components.ts",
+   "to": "@wren/sites/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/console-routes.ts",
+   "to": "@wren/core/src/access.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/sites/src/console.ts",
+   "to": "@wren/core/src/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/console.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/console.ts",
+   "to": "@wren/core/src/facts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/console.ts",
+   "to": "@wren/core/src/ids.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/console.ts",
+   "to": "@wren/core/src/portal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/console.ts",
+   "to": "@wren/core/src/records-serve.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/console.ts",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/console.ts",
+   "to": "@wren/core/src/refusal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/console.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/console.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/console.ts",
+   "to": "@wren/offers/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/console.ts",
+   "to": "@wren/sites/src/console-routes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/console.ts",
+   "to": "@wren/sites/src/detail.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/console.ts",
+   "to": "@wren/sites/src/draft.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/console.ts",
+   "to": "@wren/sites/src/form-split.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/console.ts",
+   "to": "@wren/sites/src/form-store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/console.ts",
+   "to": "@wren/sites/src/kit.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/console.ts",
+   "to": "@wren/sites/src/links.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/console.ts",
+   "to": "@wren/sites/src/model.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/console.ts",
+   "to": "@wren/sites/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/console.ts",
+   "to": "@wren/sites/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/console.ts",
+   "to": "@wren/sites/src/share.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/console.ts",
+   "to": "@wren/sites/src/split.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/console.ts",
+   "to": "@wren/sites/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/console.ts",
+   "to": "@wren/sites/src/templates/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/console.ts",
+   "to": "@wren/sites/src/templates/types.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/sites/src/detail.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/sites/src/detail.ts",
+   "to": "@wren/sites/src/kit.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/detail.ts",
+   "to": "@wren/sites/src/model.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/detail.ts",
+   "to": "@wren/sites/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/sites/src/detail.ts",
+   "to": "@wren/sites/src/split.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/detail.ts",
+   "to": "@wren/sites/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/detail.ts",
+   "to": "@wren/sites/src/templates/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/detail.ts",
+   "to": "@wren/sites/src/templates/types.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/sites/src/draft.ts",
+   "to": "@wren/core/src/facts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/draft.ts",
+   "to": "@wren/core/src/grounded.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/draft.ts",
+   "to": "@wren/offers/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/sites/src/draft.ts",
+   "to": "@wren/sites/src/templates/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/draft.ts",
+   "to": "@wren/sites/src/templates/types.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/sites/src/form-split.ts",
+   "to": "@wren/core/src/ids.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/form-split.ts",
+   "to": "@wren/core/src/refusal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/form-split.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/form-split.ts",
+   "to": "@wren/sites/src/forms.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/form-split.ts",
+   "to": "@wren/sites/src/model.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/sites/src/form-split.ts",
+   "to": "@wren/sites/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/form-split.ts",
+   "to": "@wren/sites/src/split-call.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/form-split.ts",
+   "to": "@wren/sites/src/split.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/form-split.ts",
+   "to": "@wren/sites/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/form-store.ts",
+   "to": "@wren/core/src/ids.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/form-store.ts",
+   "to": "@wren/core/src/refusal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/form-store.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/form-store.ts",
+   "to": "@wren/sites/src/form-split.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/form-store.ts",
+   "to": "@wren/sites/src/forms.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/form-store.ts",
+   "to": "@wren/sites/src/kit.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/form-store.ts",
+   "to": "@wren/sites/src/model.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/form-store.ts",
+   "to": "@wren/sites/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/form-store.ts",
+   "to": "@wren/sites/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/forms.ts",
+   "to": "@wren/sites/src/templates/parts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/hops.ts",
+   "to": "@wren/sites/src/model.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/index.ts",
+   "to": "@wren/sites/src/console.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/index.ts",
+   "to": "@wren/sites/src/model.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/index.ts",
+   "to": "@wren/sites/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/index.ts",
+   "to": "@wren/sites/src/service.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/links.ts",
+   "to": "@wren/core/src/ids.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/links.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/sites/src/links.ts",
+   "to": "@wren/sites/src/hops.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/links.ts",
+   "to": "@wren/sites/src/model.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/links.ts",
+   "to": "@wren/sites/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/links.ts",
+   "to": "@wren/sites/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/records.ts",
+   "to": "@wren/core/src/ids.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/records.ts",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/records.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/sites/src/records.ts",
+   "to": "@wren/sites/src/detail.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/records.ts",
+   "to": "@wren/sites/src/form-store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/records.ts",
+   "to": "@wren/sites/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/render.ts",
+   "to": "@wren/sites/src/forms.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/render.ts",
+   "to": "@wren/sites/src/kit.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/render.ts",
+   "to": "@wren/sites/src/templates/parts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/render.ts",
+   "to": "@wren/sites/src/templates/types.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/sites/src/scan.ts",
+   "to": "@wren/sites/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/schema.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/schema.ts",
+   "to": "@wren/core/src/profiles-backfill.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/sites/src/schema.ts",
+   "to": "@wren/core/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/schema.ts",
+   "to": "@wren/db/src/columns.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/schema.ts",
+   "to": "@wren/sites/src/forms.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/sites/src/schema.ts",
+   "to": "@wren/sites/src/model.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/schema.ts",
+   "to": "@wren/sites/src/templates/types.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/sites/src/service.ts",
+   "to": "@wren/core/src/executor.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/service.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/service.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/sites/src/service.ts",
+   "to": "@wren/sites/src/form-split.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/service.ts",
+   "to": "@wren/sites/src/form-store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/service.ts",
+   "to": "@wren/sites/src/forms.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/service.ts",
+   "to": "@wren/sites/src/model.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/service.ts",
+   "to": "@wren/sites/src/render.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/service.ts",
+   "to": "@wren/sites/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/sites/src/service.ts",
+   "to": "@wren/sites/src/share.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/service.ts",
+   "to": "@wren/sites/src/split.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/service.ts",
+   "to": "@wren/sites/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/service.ts",
+   "to": "@wren/sites/src/templates/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/service.ts",
+   "to": "@wren/sites/src/templates/parts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/service.ts",
+   "to": "@wren/sites/src/templates/types.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/sites/src/split-call.ts",
+   "to": "@wren/experiments/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/split.ts",
+   "to": "@wren/core/src/ids.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/split.ts",
+   "to": "@wren/core/src/refusal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/split.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/split.ts",
+   "to": "@wren/sites/src/model.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/split.ts",
+   "to": "@wren/sites/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/split.ts",
+   "to": "@wren/sites/src/split-call.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/split.ts",
+   "to": "@wren/sites/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/split.ts",
+   "to": "@wren/sites/src/templates/types.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/sites/src/store.ts",
+   "to": "@wren/core/src/door.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/store.ts",
+   "to": "@wren/core/src/ids.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/store.ts",
+   "to": "@wren/core/src/profiles-backfill.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/store.ts",
+   "to": "@wren/core/src/refusal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/store.ts",
+   "to": "@wren/core/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/store.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/store.ts",
+   "to": "@wren/sites/src/forms.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/store.ts",
+   "to": "@wren/sites/src/model.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/store.ts",
+   "to": "@wren/sites/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/store.ts",
+   "to": "@wren/sites/src/templates/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/store.ts",
+   "to": "@wren/sites/src/templates/types.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/sites/src/templates/index.ts",
+   "to": "@wren/sites/src/templates/lander.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/templates/index.ts",
+   "to": "@wren/sites/src/templates/listicle.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/templates/index.ts",
+   "to": "@wren/sites/src/templates/page.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/templates/index.ts",
+   "to": "@wren/sites/src/templates/parts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/templates/index.ts",
+   "to": "@wren/sites/src/templates/sections.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/templates/index.ts",
+   "to": "@wren/sites/src/templates/types.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/sites/src/templates/lander.ts",
+   "to": "@wren/offers/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/sites/src/templates/lander.ts",
+   "to": "@wren/sites/src/templates/parts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/templates/lander.ts",
+   "to": "@wren/sites/src/templates/types.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/sites/src/templates/listicle.ts",
+   "to": "@wren/offers/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/sites/src/templates/listicle.ts",
+   "to": "@wren/sites/src/templates/lander.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/templates/listicle.ts",
+   "to": "@wren/sites/src/templates/parts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/templates/listicle.ts",
+   "to": "@wren/sites/src/templates/types.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/sites/src/templates/page.ts",
+   "to": "@wren/offers/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/sites/src/templates/page.ts",
+   "to": "@wren/sites/src/templates/lander.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/templates/page.ts",
+   "to": "@wren/sites/src/templates/parts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/templates/page.ts",
+   "to": "@wren/sites/src/templates/sections.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/templates/page.ts",
+   "to": "@wren/sites/src/templates/types.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/sites/src/templates/parts.ts",
+   "to": "@wren/sites/src/forms.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/templates/parts.ts",
+   "to": "@wren/sites/src/templates/types.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/sites/src/templates/sections.ts",
+   "to": "@wren/sites/src/templates/parts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/src/templates/sections.ts",
+   "to": "@wren/sites/src/templates/types.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/sites/src/templates/types.ts",
+   "to": "@wren/offers/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/sites/src/templates/types.ts",
+   "to": "@wren/sites/src/forms.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/sites/src/views.ts",
+   "to": "@wren/sites/src/model.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/sites/vitest.config.ts",
+   "to": "@wren/db/src/testing-vitest.ts",
+   "kind": "imports"
+  }
+ ]
+}

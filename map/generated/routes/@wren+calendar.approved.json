@@ -1,0 +1,158 @@
+{
+ "layer": "routes",
+ "nodes": [
+  {
+   "id": "route:Calendar/book",
+   "role": "route",
+   "parent": "service:Calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "input": "BookRequest",
+    "output": "BookingView & { manage: string; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Calendar/booking",
+   "role": "route",
+   "parent": "service:Calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "input": "{ token: string }",
+    "output": "BookingView",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Calendar/cancel",
+   "role": "route",
+   "parent": "service:Calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "input": "{ token: string; reason?: string }",
+    "output": "BookingView",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Calendar/remind",
+   "role": "route",
+   "parent": "service:Calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "input": "RemindRequest",
+    "output": "{ sent: boolean; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Calendar/reschedule",
+   "role": "route",
+   "parent": "service:Calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "input": "{ token: string; start: string }",
+    "output": "BookingView",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Calendar/slots",
+   "role": "route",
+   "parent": "service:Calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "input": "void",
+    "output": "SlotsView",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ClientCalendar/book",
+   "role": "route",
+   "parent": "service:ClientCalendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "input": "z.infer<typeof CLIENT_BOOK>",
+    "output": "BookingView & { manage: string; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ClientCalendar/booking",
+   "role": "route",
+   "parent": "service:ClientCalendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "input": "{ client: string; token: string }",
+    "output": "{ id: number; state: \"booked\" | \"cancelled\"; start: string; end: string; name: string; zone: string; title: string; offer: string | null; meetUrl: string | null; open: boolean; owner: string; mails: boolean; meet: boolean; contact: import(\"./contact.js\").ContactLink[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ClientCalendar/cancel",
+   "role": "route",
+   "parent": "service:ClientCalendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "input": "{ client: string; token: string; reason?: string }",
+    "output": "BookingView",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ClientCalendar/remind",
+   "role": "route",
+   "parent": "service:ClientCalendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "input": "RemindRequest",
+    "output": "{ sent: boolean; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ClientCalendar/reschedule",
+   "role": "route",
+   "parent": "service:ClientCalendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "input": "{ client: string; token: string; start: string }",
+    "output": "BookingView",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ClientCalendar/slots",
+   "role": "route",
+   "parent": "service:ClientCalendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "input": "{ client: string }",
+    "output": "{ zone: string; length: number; title: string; slots: string[]; owner: string; mails: boolean; meet: boolean; contact: import(\"./contact.js\").ContactLink[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "service:Calendar",
+   "role": "service",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "file": "packages/calendar/src/restate.ts",
+    "kind": "service"
+   }
+  },
+  {
+   "id": "service:ClientCalendar",
+   "role": "service",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "file": "packages/calendar/src/restate.ts",
+    "kind": "service"
+   }
+  }
+ ],
+ "edges": []
+}

@@ -1,0 +1,76 @@
+{
+ "layer": "api",
+ "nodes": [
+  {
+   "id": "@wren/channel-linkedin#PostAnalytics",
+   "role": "export",
+   "parent": "@wren/channel-linkedin",
+   "group": "@wren/channel-linkedin",
+   "attrs": {
+    "entries": [
+     "@wren/channel-linkedin"
+    ],
+    "file": "packages/channel-linkedin/src/content.ts",
+    "kind": "interface",
+    "sig": "interface PostAnalytics { urn: string; url?: string; impressions: number | null; reached: number | null; reactions: number | null; comments: number | null; reposts: number | null; saves: number | null; sends: number | null; profileViewers: number | null; followersGained: number | null; videoViews?: number | null; watchSecs?: number | null; avgWatchSecs?: number | null; }"
+   }
+  },
+  {
+   "id": "@wren/channel-linkedin#connectedOn",
+   "role": "export",
+   "parent": "@wren/channel-linkedin",
+   "group": "@wren/channel-linkedin",
+   "attrs": {
+    "entries": [
+     "@wren/channel-linkedin"
+    ],
+    "file": "packages/channel-linkedin/src/outreach.ts",
+    "kind": "function",
+    "sig": "(text: string | undefined): Date | null"
+   }
+  },
+  {
+   "id": "@wren/channel-linkedin#linkedinContent",
+   "role": "export",
+   "parent": "@wren/channel-linkedin",
+   "group": "@wren/channel-linkedin",
+   "attrs": {
+    "entries": [
+     "@wren/channel-linkedin"
+    ],
+    "file": "packages/channel-linkedin/src/content.ts",
+    "kind": "function",
+    "sig": "(sites: SiteClient, o: LinkedInContentOptions = {}): ContentChannel"
+   }
+  },
+  {
+   "id": "@wren/channel-linkedin#linkedinOutreach",
+   "role": "export",
+   "parent": "@wren/channel-linkedin",
+   "group": "@wren/channel-linkedin",
+   "attrs": {
+    "entries": [
+     "@wren/channel-linkedin"
+    ],
+    "file": "packages/channel-linkedin/src/outreach.ts",
+    "kind": "function",
+    "sig": "(sites: SiteClient, o: LinkedInOutreachOptions): OutreachChannel"
+   }
+  },
+  {
+   "id": "@wren/channel-linkedin#parseFindQuery",
+   "role": "export",
+   "parent": "@wren/channel-linkedin",
+   "group": "@wren/channel-linkedin",
+   "attrs": {
+    "entries": [
+     "@wren/channel-linkedin"
+    ],
+    "file": "packages/channel-linkedin/src/outreach.ts",
+    "kind": "function",
+    "sig": "(query: string): { company: string | null; words: string }"
+   }
+  }
+ ],
+ "edges": []
+}

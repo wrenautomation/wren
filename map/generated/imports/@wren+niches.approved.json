@@ -1,0 +1,394 @@
+{
+ "layer": "imports",
+ "nodes": [
+  {
+   "id": "@wren/niches",
+   "role": "package",
+   "parent": "repo:wren",
+   "group": "@wren/niches",
+   "attrs": {
+    "dir": "packages/niches/",
+    "npm": [
+     "node:crypto",
+     "node:fs",
+     "node:path",
+     "node:zlib"
+    ]
+   }
+  },
+  {
+   "id": "@wren/niches/src/agencies.ts",
+   "role": "file",
+   "parent": "@wren/niches",
+   "group": "@wren/niches"
+  },
+  {
+   "id": "@wren/niches/src/agencies/clutch-pages.ts",
+   "role": "file",
+   "parent": "@wren/niches",
+   "group": "@wren/niches"
+  },
+  {
+   "id": "@wren/niches/src/agencies/directory.ts",
+   "role": "file",
+   "parent": "@wren/niches",
+   "group": "@wren/niches"
+  },
+  {
+   "id": "@wren/niches/src/agencies/facts.ts",
+   "role": "file",
+   "parent": "@wren/niches",
+   "group": "@wren/niches"
+  },
+  {
+   "id": "@wren/niches/src/agencies/profiles.ts",
+   "role": "file",
+   "parent": "@wren/niches",
+   "group": "@wren/niches"
+  },
+  {
+   "id": "@wren/niches/src/agencies/shopify-pages.ts",
+   "role": "file",
+   "parent": "@wren/niches",
+   "group": "@wren/niches"
+  },
+  {
+   "id": "@wren/niches/src/index.ts",
+   "role": "file",
+   "parent": "@wren/niches",
+   "group": "@wren/niches"
+  },
+  {
+   "id": "@wren/niches/src/niche.ts",
+   "role": "file",
+   "parent": "@wren/niches",
+   "group": "@wren/niches"
+  },
+  {
+   "id": "@wren/niches/src/recruiting.ts",
+   "role": "file",
+   "parent": "@wren/niches",
+   "group": "@wren/niches"
+  },
+  {
+   "id": "@wren/niches/src/recruiting/sources.ts",
+   "role": "file",
+   "parent": "@wren/niches",
+   "group": "@wren/niches"
+  },
+  {
+   "id": "@wren/niches/src/sec-ria.ts",
+   "role": "file",
+   "parent": "@wren/niches",
+   "group": "@wren/niches"
+  },
+  {
+   "id": "@wren/niches/src/sec-ria/datasets.ts",
+   "role": "file",
+   "parent": "@wren/niches",
+   "group": "@wren/niches"
+  },
+  {
+   "id": "@wren/niches/src/sec-ria/filing-data.ts",
+   "role": "file",
+   "parent": "@wren/niches",
+   "group": "@wren/niches"
+  },
+  {
+   "id": "@wren/niches/src/sec-ria/firm-feed.ts",
+   "role": "file",
+   "parent": "@wren/niches",
+   "group": "@wren/niches"
+  },
+  {
+   "id": "@wren/niches/src/sec-ria/roster.ts",
+   "role": "file",
+   "parent": "@wren/niches",
+   "group": "@wren/niches"
+  },
+  {
+   "id": "@wren/niches/vitest.config.ts",
+   "role": "file",
+   "parent": "@wren/niches",
+   "group": "@wren/niches"
+  }
+ ],
+ "edges": [
+  {
+   "from": "@wren/niches",
+   "to": "@wren/channel-email",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/niches",
+   "to": "@wren/channel-sms",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/niches",
+   "to": "@wren/core",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/niches",
+   "to": "@wren/db",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/niches",
+   "to": "@wren/offers",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/niches",
+   "to": "@wren/research",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/niches/src/agencies.ts",
+   "to": "@wren/channel-email/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/niches/src/agencies.ts",
+   "to": "@wren/niches/src/agencies/clutch-pages.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/niches/src/agencies.ts",
+   "to": "@wren/niches/src/agencies/directory.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/niches/src/agencies.ts",
+   "to": "@wren/niches/src/agencies/profiles.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/niches/src/agencies.ts",
+   "to": "@wren/niches/src/agencies/shopify-pages.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/niches/src/agencies.ts",
+   "to": "@wren/niches/src/niche.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/niches/src/agencies/clutch-pages.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/niches/src/agencies/clutch-pages.ts",
+   "to": "@wren/niches/src/agencies/directory.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/niches/src/agencies/directory.ts",
+   "to": "@wren/core/src/html.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/niches/src/agencies/directory.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/niches/src/agencies/directory.ts",
+   "to": "@wren/niches/src/agencies/facts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/niches/src/agencies/profiles.ts",
+   "to": "@wren/niches/src/agencies/shopify-pages.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/niches/src/agencies/profiles.ts",
+   "to": "@wren/research/src/fetch/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/niches/src/agencies/shopify-pages.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/niches/src/agencies/shopify-pages.ts",
+   "to": "@wren/niches/src/agencies/directory.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/niches/src/index.ts",
+   "to": "@wren/channel-email/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/niches/src/index.ts",
+   "to": "@wren/channel-sms/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/niches/src/index.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/niches/src/index.ts",
+   "to": "@wren/core/src/template-labels.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/niches/src/index.ts",
+   "to": "@wren/niches/src/agencies.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/niches/src/index.ts",
+   "to": "@wren/niches/src/niche.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/niches/src/index.ts",
+   "to": "@wren/niches/src/recruiting.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/niches/src/index.ts",
+   "to": "@wren/niches/src/sec-ria.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/niches/src/index.ts",
+   "to": "@wren/research/src/fetch/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/niches/src/niche.ts",
+   "to": "@wren/channel-email/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/niches/src/niche.ts",
+   "to": "@wren/channel-sms/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/niches/src/niche.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/niches/src/niche.ts",
+   "to": "@wren/offers/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/niches/src/niche.ts",
+   "to": "@wren/research/src/fetch/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/niches/src/recruiting.ts",
+   "to": "@wren/channel-email/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/niches/src/recruiting.ts",
+   "to": "@wren/niches/src/niche.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/niches/src/recruiting.ts",
+   "to": "@wren/niches/src/recruiting/sources.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/niches/src/recruiting/sources.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/niches/src/recruiting/sources.ts",
+   "to": "@wren/research/src/fetch/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/niches/src/sec-ria.ts",
+   "to": "@wren/channel-email/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/niches/src/sec-ria.ts",
+   "to": "@wren/niches/src/niche.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/niches/src/sec-ria.ts",
+   "to": "@wren/niches/src/sec-ria/datasets.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/niches/src/sec-ria.ts",
+   "to": "@wren/niches/src/sec-ria/filing-data.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/niches/src/sec-ria.ts",
+   "to": "@wren/niches/src/sec-ria/firm-feed.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/niches/src/sec-ria.ts",
+   "to": "@wren/niches/src/sec-ria/roster.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/niches/src/sec-ria/datasets.ts",
+   "to": "@wren/research/src/fetch/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/niches/src/sec-ria/filing-data.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/niches/src/sec-ria/firm-feed.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/niches/src/sec-ria/roster.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/niches/vitest.config.ts",
+   "to": "@wren/db/src/testing-vitest.ts",
+   "kind": "imports"
+  }
+ ]
+}

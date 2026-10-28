@@ -1,0 +1,71 @@
+{
+ "layer": "routes",
+ "nodes": [
+  {
+   "id": "route:Journeys/assign",
+   "role": "route",
+   "parent": "service:Journeys",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "input": "AssignRequest",
+    "output": "restate.RestatePromise<{ journey: string; owner: string | null; }>",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Journeys/drop",
+   "role": "route",
+   "parent": "service:Journeys",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "input": "DropRequest",
+    "output": "{ journey: string; node: string; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Journeys/move",
+   "role": "route",
+   "parent": "service:Journeys",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "input": "MoveRequest",
+    "output": "{ journey: string; from: string; to: string; status: \"open\" | \"dropped\" | \"done\"; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Journeys/open",
+   "role": "route",
+   "parent": "service:Journeys",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "input": "OpenRequest",
+    "output": "{ journey: string; node: string; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Journeys/rebuild",
+   "role": "route",
+   "parent": "service:Journeys",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "input": "RebuildRequest",
+    "output": "restate.RestatePromise<import(\"./moves.js\").Rebuilt>",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "service:Journeys",
+   "role": "service",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "file": "packages/pipeline/src/restate.ts",
+    "kind": "service"
+   }
+  }
+ ],
+ "edges": []
+}

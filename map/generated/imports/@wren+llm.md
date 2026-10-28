@@ -1,0 +1,59 @@
+# @wren/llm
+
+Role: package. Files: 11.
+
+## Outside packages
+
+node:fs, node:path
+
+## Folders
+
+Dotted: types only.
+
+```mermaid
+flowchart LR
+  nindex_ts["index.ts"]
+  naudit_ts["audit.ts"]
+  nclient_ts["client.ts"]
+  nembed_ts["embed.ts"]
+  nenv_ts["env.ts"]
+  ngateway_ts["gateway.ts"]
+  nparsing_ts["parsing.ts"]
+  nstage_ts["stage.ts"]
+  ntracing_ts["tracing.ts"]
+  nusage_ts["usage.ts"]
+  nvitest_config_ts["vitest.config.ts"]
+  nindex_ts --> naudit_ts
+  nindex_ts --> nclient_ts
+  nindex_ts --> nembed_ts
+  nindex_ts --> nenv_ts
+  nindex_ts --> ngateway_ts
+  nindex_ts --> nparsing_ts
+  nindex_ts --> nstage_ts
+  nindex_ts --> ntracing_ts
+  nindex_ts --> nusage_ts
+  naudit_ts -.-> nclient_ts
+  nembed_ts -.-> nclient_ts
+  nstage_ts --> naudit_ts
+  nstage_ts --> nclient_ts
+  nstage_ts --> nparsing_ts
+  nstage_ts --> ntracing_ts
+  ntracing_ts -.-> nclient_ts
+  ntracing_ts -.-> nstage_ts
+  nusage_ts --> naudit_ts
+  nusage_ts -.-> nclient_ts
+```
+
+## Files
+
+- audit.ts
+- client.ts
+- embed.ts
+- env.ts
+- gateway.ts
+- index.ts
+- parsing.ts
+- stage.ts
+- tracing.ts
+- usage.ts
+- vitest.config.ts

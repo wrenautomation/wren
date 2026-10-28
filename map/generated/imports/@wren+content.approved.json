@@ -1,0 +1,5672 @@
+{
+ "layer": "imports",
+ "nodes": [
+  {
+   "id": "@wren/content",
+   "role": "package",
+   "parent": "repo:wren",
+   "group": "@wren/content",
+   "attrs": {
+    "dir": "packages/content/",
+    "npm": [
+     "node:crypto",
+     "node:fs",
+     "node:path"
+    ]
+   }
+  },
+  {
+   "id": "@wren/content/src/analytics/catalog.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/analytics/digest.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/analytics/goals.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/analytics/records.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/analytics/store.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/analytics/variants.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/attach.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/blog.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/carousel.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/chat/store.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/check.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/client-reports/schema.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/client-reports/store.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/client-reports/tiles.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/clients.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/components.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/connect/access.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/connect/app-reviews.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/connect/business.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/connect/console-routes.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/connect/console.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/connect/dms.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/connect/index.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/connect/oauth.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/connect/own.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/connect/platforms.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/connect/review-log.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/connect/reviews-schema.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/connect/schema.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/connect/setups.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/connect/sites.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/connect/tiktok-numbers.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/connect/video-length.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/costs.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/draft-ask.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/draft-calls.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/draft.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/film-check.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/funnel.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/ideas.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/ideas/chapters.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/ideas/questions.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/inbox/auto.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/inbox/conversation.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/inbox/index.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/inbox/mail-reply.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/inbox/review.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/inbox/routes.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/inbox/send.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/inbox/suggest.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/inbox/threads.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/index.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/learn-back.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/lessons.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/library.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/media.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/metrics.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/our-posts.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/own.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/pieces.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/plan.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/platforms.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/playbook.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/promo.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/queue.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/records.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/restate/after-publish.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/restate/auto-reply.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/restate/blog.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/restate/chat.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/restate/desk-approvals.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/restate/desk-context.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/restate/desk-drafting.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/restate/desk-edits.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/restate/desk-formats.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/restate/desk-swaps.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/restate/desk.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/restate/draft-ask.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/restate/inbox-desk.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/restate/index.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/restate/keyword-dm.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/restate/mail-reply.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/restate/marketing-console.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/restate/metrics.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/restate/pieces.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/restate/planner.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/restate/reports.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/restate/scheduler.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/restate/social-inbox.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/restate/social-push.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/restate/social.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/restate/video-desk.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/review.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/schema.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/shape-view.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/site-posts.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/slide-paint.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/slots.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/social/ad-formats.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/social/done-record.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/social/keywords.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/social/maps-reviews.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/social/records.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/social/review-record.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/social/review-ring.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/social/store.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/status.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/story.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/subreddit.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/thumbs.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/touches.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/train-backfill.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/video-ask.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/video-edit.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/video.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/voice.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/src/write.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/test/inbox-preview.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/test/inbox-seed.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/test/libs-preview.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/test/mail-preview.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/test/outreach-preview.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/test/threads-preview.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/test/touch-links-preview.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  },
+  {
+   "id": "@wren/content/vitest.config.ts",
+   "role": "file",
+   "parent": "@wren/content",
+   "group": "@wren/content"
+  }
+ ],
+ "edges": [
+  {
+   "from": "@wren/content",
+   "to": "@wren/channel-sms",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content",
+   "to": "@wren/core",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content",
+   "to": "@wren/db",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content",
+   "to": "@wren/delivery",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content",
+   "to": "@wren/documents",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content",
+   "to": "@wren/learn",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content",
+   "to": "@wren/llm",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content",
+   "to": "@wren/notes",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content",
+   "to": "@wren/outreach",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content",
+   "to": "@wren/payments",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content",
+   "to": "@wren/research",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content",
+   "to": "@wren/sites",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content",
+   "to": "@wren/studio",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/analytics/catalog.ts",
+   "to": "@wren/content/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/analytics/catalog.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/analytics/digest.ts",
+   "to": "@wren/content/src/analytics/catalog.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/analytics/digest.ts",
+   "to": "@wren/content/src/analytics/goals.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/analytics/digest.ts",
+   "to": "@wren/content/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/analytics/digest.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/analytics/digest.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/analytics/goals.ts",
+   "to": "@wren/content/src/analytics/catalog.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/analytics/goals.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/analytics/goals.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/analytics/records.ts",
+   "to": "@wren/content/src/analytics/catalog.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/analytics/records.ts",
+   "to": "@wren/content/src/analytics/goals.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/analytics/records.ts",
+   "to": "@wren/content/src/analytics/variants.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/analytics/records.ts",
+   "to": "@wren/content/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/analytics/records.ts",
+   "to": "@wren/content/src/social/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/analytics/records.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/analytics/records.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/analytics/records.ts",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/analytics/records.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/analytics/store.ts",
+   "to": "@wren/content/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/analytics/store.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/analytics/store.ts",
+   "to": "@wren/core/src/objects/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/analytics/store.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/analytics/variants.ts",
+   "to": "@wren/content/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/analytics/variants.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/analytics/variants.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/attach.ts",
+   "to": "@wren/content/src/media.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/attach.ts",
+   "to": "@wren/content/src/review.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/attach.ts",
+   "to": "@wren/content/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/attach.ts",
+   "to": "@wren/core/src/content/shapes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/attach.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/blog.ts",
+   "to": "@wren/content/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/blog.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/carousel.ts",
+   "to": "@wren/content/src/draft.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/carousel.ts",
+   "to": "@wren/content/src/ideas.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/carousel.ts",
+   "to": "@wren/content/src/media.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/carousel.ts",
+   "to": "@wren/content/src/platforms.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/carousel.ts",
+   "to": "@wren/content/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/carousel.ts",
+   "to": "@wren/content/src/write.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/carousel.ts",
+   "to": "@wren/core/src/content/shapes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/carousel.ts",
+   "to": "@wren/core/src/content/slides.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/carousel.ts",
+   "to": "@wren/core/src/draft-record.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/carousel.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/chat/store.ts",
+   "to": "@wren/content/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/chat/store.ts",
+   "to": "@wren/core/src/profiles-backfill.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/chat/store.ts",
+   "to": "@wren/core/src/refusal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/chat/store.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/chat/store.ts",
+   "to": "@wren/sites/src/chat-widget.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/check.ts",
+   "to": "@wren/content/src/playbook.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/check.ts",
+   "to": "@wren/content/src/review.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/check.ts",
+   "to": "@wren/content/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/check.ts",
+   "to": "@wren/core/src/metered.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/check.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/check.ts",
+   "to": "@wren/learn/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/check.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/client-reports/schema.ts",
+   "to": "@wren/content/src/client-reports/tiles.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/client-reports/schema.ts",
+   "to": "@wren/db/src/columns.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/client-reports/store.ts",
+   "to": "@wren/content/src/client-reports/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/client-reports/store.ts",
+   "to": "@wren/content/src/client-reports/tiles.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/client-reports/store.ts",
+   "to": "@wren/core/src/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/client-reports/store.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/client-reports/store.ts",
+   "to": "@wren/core/src/portal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/client-reports/store.ts",
+   "to": "@wren/core/src/records-serve.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/client-reports/store.ts",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/client-reports/store.ts",
+   "to": "@wren/core/src/refusal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/client-reports/store.ts",
+   "to": "@wren/core/src/time.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/client-reports/store.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/clients.ts",
+   "to": "@wren/content/src/components.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/clients.ts",
+   "to": "@wren/content/src/connect/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/clients.ts",
+   "to": "@wren/content/src/connect/platforms.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/clients.ts",
+   "to": "@wren/content/src/connect/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/clients.ts",
+   "to": "@wren/content/src/voice.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/clients.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/clients.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/clients.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/clients.ts",
+   "to": "@wren/outreach/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/components.ts",
+   "to": "@wren/core/src/components.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/components.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/components.ts",
+   "to": "@wren/core/src/workflows.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/components.ts",
+   "to": "@wren/studio/src/cuts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/access.ts",
+   "to": "@wren/content/src/connect/oauth.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/access.ts",
+   "to": "@wren/content/src/connect/platforms.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/access.ts",
+   "to": "@wren/content/src/connect/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/access.ts",
+   "to": "@wren/content/src/connect/tiktok-numbers.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/connect/access.ts",
+   "to": "@wren/core/src/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/access.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/connect/access.ts",
+   "to": "@wren/core/src/keys.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/connect/access.ts",
+   "to": "@wren/core/src/refusal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/access.ts",
+   "to": "@wren/core/src/setup-schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/access.ts",
+   "to": "@wren/core/src/setup.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/access.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/connect/app-reviews.ts",
+   "to": "@wren/content/src/connect/platforms.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/business.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/business.ts",
+   "to": "@wren/core/src/content/shapes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/console-routes.ts",
+   "to": "@wren/core/src/access.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/connect/console.ts",
+   "to": "@wren/content/src/connect/access.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/connect/console.ts",
+   "to": "@wren/content/src/connect/console-routes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/console.ts",
+   "to": "@wren/content/src/connect/own.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/console.ts",
+   "to": "@wren/content/src/connect/platforms.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/console.ts",
+   "to": "@wren/content/src/connect/setups.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/console.ts",
+   "to": "@wren/content/src/connect/tiktok-numbers.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/console.ts",
+   "to": "@wren/core/src/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/console.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/connect/console.ts",
+   "to": "@wren/core/src/content/restate.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/connect/console.ts",
+   "to": "@wren/core/src/executor.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/console.ts",
+   "to": "@wren/core/src/key-refs.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/console.ts",
+   "to": "@wren/core/src/portal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/console.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/console.ts",
+   "to": "@wren/core/src/setup.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/console.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/connect/dms.ts",
+   "to": "@wren/content/src/connect/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/dms.ts",
+   "to": "@wren/content/src/connect/platforms.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/connect/dms.ts",
+   "to": "@wren/content/src/connect/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/connect/dms.ts",
+   "to": "@wren/core/src/ask.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/dms.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/connect/dms.ts",
+   "to": "@wren/core/src/content/page-inbox.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/dms.ts",
+   "to": "@wren/core/src/draft-record.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/dms.ts",
+   "to": "@wren/core/src/touches.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/dms.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/connect/dms.ts",
+   "to": "@wren/outreach/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/index.ts",
+   "to": "@wren/content/src/connect/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/index.ts",
+   "to": "@wren/content/src/connect/business.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/index.ts",
+   "to": "@wren/content/src/connect/console-routes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/index.ts",
+   "to": "@wren/content/src/connect/console.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/index.ts",
+   "to": "@wren/content/src/connect/dms.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/index.ts",
+   "to": "@wren/content/src/connect/oauth.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/index.ts",
+   "to": "@wren/content/src/connect/own.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/index.ts",
+   "to": "@wren/content/src/connect/platforms.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/index.ts",
+   "to": "@wren/content/src/connect/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/index.ts",
+   "to": "@wren/content/src/connect/setups.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/index.ts",
+   "to": "@wren/content/src/connect/sites.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/index.ts",
+   "to": "@wren/content/src/connect/tiktok-numbers.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/oauth.ts",
+   "to": "@wren/content/src/connect/platforms.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/oauth.ts",
+   "to": "@wren/content/src/connect/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/connect/oauth.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/own.ts",
+   "to": "@wren/content/src/platforms.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/own.ts",
+   "to": "@wren/content/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/own.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/connect/own.ts",
+   "to": "@wren/core/src/content/renewal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/own.ts",
+   "to": "@wren/core/src/content/restate.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/connect/own.ts",
+   "to": "@wren/core/src/key-refs.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/own.ts",
+   "to": "@wren/core/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/own.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/connect/review-log.ts",
+   "to": "@wren/content/src/connect/app-reviews.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/review-log.ts",
+   "to": "@wren/content/src/connect/reviews-schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/review-log.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/reviews-schema.ts",
+   "to": "@wren/db/src/columns.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/schema.ts",
+   "to": "@wren/content/src/connect/platforms.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/schema.ts",
+   "to": "@wren/core/src/setup-schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/schema.ts",
+   "to": "@wren/db/src/columns.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/setups.ts",
+   "to": "@wren/content/src/connect/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/setups.ts",
+   "to": "@wren/content/src/connect/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/setups.ts",
+   "to": "@wren/core/src/setup.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/setups.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/connect/sites.ts",
+   "to": "@wren/content/src/connect/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/sites.ts",
+   "to": "@wren/content/src/connect/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/connect/sites.ts",
+   "to": "@wren/content/src/connect/video-length.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/sites.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/sites.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/connect/sites.ts",
+   "to": "@wren/core/src/refusal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/tiktok-numbers.ts",
+   "to": "@wren/content/src/connect/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/connect/tiktok-numbers.ts",
+   "to": "@wren/content/src/connect/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/connect/tiktok-numbers.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/costs.ts",
+   "to": "@wren/content/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/costs.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/draft-ask.ts",
+   "to": "@wren/content/src/platforms.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/draft-ask.ts",
+   "to": "@wren/content/src/playbook.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/draft-ask.ts",
+   "to": "@wren/content/src/review.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/draft-ask.ts",
+   "to": "@wren/content/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/draft-ask.ts",
+   "to": "@wren/core/src/ask.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/draft-ask.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/draft-ask.ts",
+   "to": "@wren/core/src/content/thread.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/draft-ask.ts",
+   "to": "@wren/core/src/draft-record.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/draft-ask.ts",
+   "to": "@wren/core/src/ids.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/draft-ask.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/draft-ask.ts",
+   "to": "@wren/core/src/refusal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/draft-ask.ts",
+   "to": "@wren/core/src/slots/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/draft-ask.ts",
+   "to": "@wren/core/src/template-defaults.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/draft-ask.ts",
+   "to": "@wren/core/src/templates.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/draft-ask.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/draft-ask.ts",
+   "to": "@wren/outreach/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/draft.ts",
+   "to": "@wren/content/src/lessons.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/draft.ts",
+   "to": "@wren/content/src/platforms.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/draft.ts",
+   "to": "@wren/content/src/playbook.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/draft.ts",
+   "to": "@wren/content/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/draft.ts",
+   "to": "@wren/content/src/subreddit.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/draft.ts",
+   "to": "@wren/content/src/voice.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/draft.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/draft.ts",
+   "to": "@wren/core/src/content/thread.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/draft.ts",
+   "to": "@wren/core/src/draft-record.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/draft.ts",
+   "to": "@wren/core/src/grounded.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/draft.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/draft.ts",
+   "to": "@wren/learn/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/draft.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/film-check.ts",
+   "to": "@wren/content/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/film-check.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/film-check.ts",
+   "to": "@wren/learn/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/film-check.ts",
+   "to": "@wren/studio/src/cuts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/film-check.ts",
+   "to": "@wren/studio/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/funnel.ts",
+   "to": "@wren/content/src/platforms.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/funnel.ts",
+   "to": "@wren/content/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/funnel.ts",
+   "to": "@wren/core/src/content/shapes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/funnel.ts",
+   "to": "@wren/core/src/draft-record.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/funnel.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/ideas.ts",
+   "to": "@wren/content/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/ideas.ts",
+   "to": "@wren/content/src/write.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/ideas.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/ideas.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/ideas/chapters.ts",
+   "to": "@wren/content/src/ideas.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/ideas/chapters.ts",
+   "to": "@wren/content/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/ideas/chapters.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/ideas/chapters.ts",
+   "to": "@wren/studio/src/cuts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/ideas/chapters.ts",
+   "to": "@wren/studio/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/ideas/questions.ts",
+   "to": "@wren/content/src/ideas.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/ideas/questions.ts",
+   "to": "@wren/content/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/ideas/questions.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/inbox/auto.ts",
+   "to": "@wren/content/src/inbox/conversation.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/inbox/auto.ts",
+   "to": "@wren/content/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/inbox/auto.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/inbox/conversation.ts",
+   "to": "@wren/content/src/inbox/threads.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/inbox/conversation.ts",
+   "to": "@wren/content/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/inbox/conversation.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/inbox/conversation.ts",
+   "to": "@wren/notes/src/inbox.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/inbox/index.ts",
+   "to": "@wren/content/src/inbox/conversation.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/inbox/index.ts",
+   "to": "@wren/content/src/inbox/mail-reply.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/inbox/index.ts",
+   "to": "@wren/content/src/inbox/routes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/inbox/index.ts",
+   "to": "@wren/content/src/inbox/send.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/inbox/index.ts",
+   "to": "@wren/content/src/inbox/suggest.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/inbox/index.ts",
+   "to": "@wren/content/src/inbox/threads.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/inbox/mail-reply.ts",
+   "to": "@wren/core/src/mailbox.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/inbox/mail-reply.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/inbox/review.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/inbox/routes.ts",
+   "to": "@wren/content/src/connect/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/inbox/routes.ts",
+   "to": "@wren/content/src/inbox/conversation.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/inbox/routes.ts",
+   "to": "@wren/content/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/inbox/routes.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/inbox/send.ts",
+   "to": "@wren/content/src/inbox/conversation.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/inbox/send.ts",
+   "to": "@wren/content/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/inbox/send.ts",
+   "to": "@wren/core/src/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/inbox/send.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/inbox/send.ts",
+   "to": "@wren/core/src/leads.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/inbox/send.ts",
+   "to": "@wren/core/src/message-settings.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/inbox/send.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/inbox/suggest.ts",
+   "to": "@wren/content/src/inbox/conversation.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/inbox/suggest.ts",
+   "to": "@wren/content/src/inbox/review.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/inbox/suggest.ts",
+   "to": "@wren/content/src/inbox/send.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/inbox/suggest.ts",
+   "to": "@wren/content/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/inbox/suggest.ts",
+   "to": "@wren/core/src/facts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/inbox/suggest.ts",
+   "to": "@wren/core/src/grounded.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/inbox/suggest.ts",
+   "to": "@wren/core/src/touches.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/inbox/suggest.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/inbox/suggest.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/inbox/suggest.ts",
+   "to": "@wren/outreach/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/inbox/suggest.ts",
+   "to": "@wren/research/src/dossier.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/inbox/threads.ts",
+   "to": "@wren/content/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/inbox/threads.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/index.ts",
+   "to": "@wren/content/src/analytics/catalog.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/index.ts",
+   "to": "@wren/content/src/analytics/goals.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/index.ts",
+   "to": "@wren/content/src/analytics/variants.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/index.ts",
+   "to": "@wren/content/src/attach.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/index.ts",
+   "to": "@wren/content/src/blog.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/index.ts",
+   "to": "@wren/content/src/carousel.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/index.ts",
+   "to": "@wren/content/src/check.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/index.ts",
+   "to": "@wren/content/src/clients.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/index.ts",
+   "to": "@wren/content/src/costs.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/index.ts",
+   "to": "@wren/content/src/draft-ask.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/index.ts",
+   "to": "@wren/content/src/draft.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/index.ts",
+   "to": "@wren/content/src/film-check.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/index.ts",
+   "to": "@wren/content/src/funnel.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/index.ts",
+   "to": "@wren/content/src/ideas.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/index.ts",
+   "to": "@wren/content/src/learn-back.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/index.ts",
+   "to": "@wren/content/src/lessons.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/index.ts",
+   "to": "@wren/content/src/media.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/index.ts",
+   "to": "@wren/content/src/metrics.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/index.ts",
+   "to": "@wren/content/src/own.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/index.ts",
+   "to": "@wren/content/src/pieces.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/index.ts",
+   "to": "@wren/content/src/plan.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/index.ts",
+   "to": "@wren/content/src/platforms.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/index.ts",
+   "to": "@wren/content/src/playbook.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/index.ts",
+   "to": "@wren/content/src/promo.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/index.ts",
+   "to": "@wren/content/src/queue.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/index.ts",
+   "to": "@wren/content/src/review.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/index.ts",
+   "to": "@wren/content/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/index.ts",
+   "to": "@wren/content/src/slide-paint.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/index.ts",
+   "to": "@wren/content/src/slots.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/index.ts",
+   "to": "@wren/content/src/social/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/index.ts",
+   "to": "@wren/content/src/status.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/index.ts",
+   "to": "@wren/content/src/touches.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/index.ts",
+   "to": "@wren/content/src/train-backfill.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/index.ts",
+   "to": "@wren/content/src/video-ask.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/index.ts",
+   "to": "@wren/content/src/video.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/index.ts",
+   "to": "@wren/content/src/voice.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/learn-back.ts",
+   "to": "@wren/content/src/film-check.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/learn-back.ts",
+   "to": "@wren/content/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/learn-back.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/learn-back.ts",
+   "to": "@wren/learn/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/lessons.ts",
+   "to": "@wren/content/src/analytics/digest.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/lessons.ts",
+   "to": "@wren/content/src/metrics.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/lessons.ts",
+   "to": "@wren/content/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/lessons.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/lessons.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/library.ts",
+   "to": "@wren/content/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/library.ts",
+   "to": "@wren/content/src/video.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/library.ts",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/library.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/library.ts",
+   "to": "@wren/studio/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/media.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/metrics.ts",
+   "to": "@wren/content/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/metrics.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/metrics.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/our-posts.ts",
+   "to": "@wren/content/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/our-posts.ts",
+   "to": "@wren/core/src/our-posts.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/our-posts.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/own.ts",
+   "to": "@wren/content/src/check.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/own.ts",
+   "to": "@wren/content/src/draft.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/own.ts",
+   "to": "@wren/content/src/ideas.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/own.ts",
+   "to": "@wren/content/src/platforms.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/own.ts",
+   "to": "@wren/content/src/review.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/own.ts",
+   "to": "@wren/content/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/own.ts",
+   "to": "@wren/content/src/subreddit.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/own.ts",
+   "to": "@wren/content/src/write.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/own.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/own.ts",
+   "to": "@wren/core/src/content/shapes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/own.ts",
+   "to": "@wren/core/src/content/slides.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/own.ts",
+   "to": "@wren/core/src/draft-record.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/own.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/pieces.ts",
+   "to": "@wren/content/src/blog.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/pieces.ts",
+   "to": "@wren/content/src/queue.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/pieces.ts",
+   "to": "@wren/content/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/pieces.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/plan.ts",
+   "to": "@wren/content/src/ideas/chapters.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/plan.ts",
+   "to": "@wren/content/src/ideas/questions.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/plan.ts",
+   "to": "@wren/content/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/plan.ts",
+   "to": "@wren/content/src/slots.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/plan.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/plan.ts",
+   "to": "@wren/core/src/time.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/plan.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/platforms.ts",
+   "to": "@wren/content/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/platforms.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/platforms.ts",
+   "to": "@wren/core/src/content/shapes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/platforms.ts",
+   "to": "@wren/core/src/content/slides.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/platforms.ts",
+   "to": "@wren/core/src/content/thread.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/playbook.ts",
+   "to": "@wren/content/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/playbook.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/playbook.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/playbook.ts",
+   "to": "@wren/learn/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/promo.ts",
+   "to": "@wren/content/src/draft.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/promo.ts",
+   "to": "@wren/content/src/lessons.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/promo.ts",
+   "to": "@wren/content/src/platforms.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/promo.ts",
+   "to": "@wren/content/src/playbook.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/promo.ts",
+   "to": "@wren/content/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/promo.ts",
+   "to": "@wren/content/src/subreddit.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/promo.ts",
+   "to": "@wren/content/src/voice.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/promo.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/promo.ts",
+   "to": "@wren/core/src/content/shapes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/promo.ts",
+   "to": "@wren/core/src/content/slides.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/promo.ts",
+   "to": "@wren/core/src/content/thread.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/promo.ts",
+   "to": "@wren/core/src/grounded.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/promo.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/promo.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/promo.ts",
+   "to": "@wren/studio/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/queue.ts",
+   "to": "@wren/content/src/analytics/variants.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/queue.ts",
+   "to": "@wren/content/src/platforms.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/queue.ts",
+   "to": "@wren/content/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/queue.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/queue.ts",
+   "to": "@wren/core/src/draft-record.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/queue.ts",
+   "to": "@wren/core/src/objects/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/queue.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/records.ts",
+   "to": "@wren/content/src/analytics/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/records.ts",
+   "to": "@wren/content/src/draft-calls.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/records.ts",
+   "to": "@wren/content/src/library.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/records.ts",
+   "to": "@wren/content/src/platforms.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/records.ts",
+   "to": "@wren/content/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/records.ts",
+   "to": "@wren/content/src/shape-view.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/records.ts",
+   "to": "@wren/content/src/social/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/records.ts",
+   "to": "@wren/content/src/social/review-record.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/records.ts",
+   "to": "@wren/content/src/thumbs.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/records.ts",
+   "to": "@wren/content/src/video.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/records.ts",
+   "to": "@wren/core/src/ask.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/records.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/records.ts",
+   "to": "@wren/core/src/draft-record.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/records.ts",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/records.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/records.ts",
+   "to": "@wren/outreach/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/after-publish.ts",
+   "to": "@wren/content/src/queue.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/after-publish.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/restate/after-publish.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/after-publish.ts",
+   "to": "@wren/core/src/send-verdict.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/after-publish.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/restate/after-publish.ts",
+   "to": "@wren/outreach/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/auto-reply.ts",
+   "to": "@wren/content/src/inbox/auto.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/auto-reply.ts",
+   "to": "@wren/content/src/inbox/send.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/auto-reply.ts",
+   "to": "@wren/content/src/inbox/suggest.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/auto-reply.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/auto-reply.ts",
+   "to": "@wren/core/src/custom-fields.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/auto-reply.ts",
+   "to": "@wren/core/src/executor.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/restate/auto-reply.ts",
+   "to": "@wren/core/src/keys.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/restate/auto-reply.ts",
+   "to": "@wren/core/src/metered.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/auto-reply.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/auto-reply.ts",
+   "to": "@wren/core/src/vendors.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/auto-reply.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/restate/auto-reply.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/blog.ts",
+   "to": "@wren/content/src/blog.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/blog.ts",
+   "to": "@wren/content/src/own.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/blog.ts",
+   "to": "@wren/core/src/ask.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/blog.ts",
+   "to": "@wren/core/src/github.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/restate/blog.ts",
+   "to": "@wren/core/src/marketing.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/blog.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/blog.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/restate/chat.ts",
+   "to": "@wren/content/src/chat/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/chat.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/restate/desk-approvals.ts",
+   "to": "@wren/content/src/components.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-approvals.ts",
+   "to": "@wren/content/src/funnel.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-approvals.ts",
+   "to": "@wren/content/src/platforms.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-approvals.ts",
+   "to": "@wren/content/src/queue.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-approvals.ts",
+   "to": "@wren/content/src/restate/after-publish.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-approvals.ts",
+   "to": "@wren/content/src/restate/desk-context.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-approvals.ts",
+   "to": "@wren/content/src/review.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-approvals.ts",
+   "to": "@wren/content/src/video.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-approvals.ts",
+   "to": "@wren/core/src/ask.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-approvals.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/restate/desk-approvals.ts",
+   "to": "@wren/core/src/content/shapes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-approvals.ts",
+   "to": "@wren/core/src/draft-record.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-approvals.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-approvals.ts",
+   "to": "@wren/core/src/send-verdict.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-approvals.ts",
+   "to": "@wren/outreach/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-context.ts",
+   "to": "@wren/content/src/carousel.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/restate/desk-context.ts",
+   "to": "@wren/content/src/clients.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-context.ts",
+   "to": "@wren/content/src/draft.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-context.ts",
+   "to": "@wren/content/src/ideas.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-context.ts",
+   "to": "@wren/content/src/media.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/restate/desk-context.ts",
+   "to": "@wren/content/src/restate/planner.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-context.ts",
+   "to": "@wren/content/src/review.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-context.ts",
+   "to": "@wren/content/src/slots.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-context.ts",
+   "to": "@wren/content/src/voice.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-context.ts",
+   "to": "@wren/core/src/ask.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/restate/desk-context.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/restate/desk-context.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-context.ts",
+   "to": "@wren/core/src/keys.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/restate/desk-context.ts",
+   "to": "@wren/core/src/metered.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-context.ts",
+   "to": "@wren/core/src/portal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-context.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-context.ts",
+   "to": "@wren/core/src/vendors.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-context.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/restate/desk-context.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-drafting.ts",
+   "to": "@wren/content/src/check.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-drafting.ts",
+   "to": "@wren/content/src/draft.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-drafting.ts",
+   "to": "@wren/content/src/ideas.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-drafting.ts",
+   "to": "@wren/content/src/own.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-drafting.ts",
+   "to": "@wren/content/src/restate/desk-context.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-drafting.ts",
+   "to": "@wren/content/src/review.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-drafting.ts",
+   "to": "@wren/content/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-drafting.ts",
+   "to": "@wren/content/src/write.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-drafting.ts",
+   "to": "@wren/core/src/ask.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-drafting.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/restate/desk-drafting.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-drafting.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-edits.ts",
+   "to": "@wren/content/src/attach.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-edits.ts",
+   "to": "@wren/content/src/carousel.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-edits.ts",
+   "to": "@wren/content/src/draft.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-edits.ts",
+   "to": "@wren/content/src/funnel.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-edits.ts",
+   "to": "@wren/content/src/platforms.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-edits.ts",
+   "to": "@wren/content/src/promo.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-edits.ts",
+   "to": "@wren/content/src/restate/desk-context.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-edits.ts",
+   "to": "@wren/content/src/review.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-edits.ts",
+   "to": "@wren/content/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-edits.ts",
+   "to": "@wren/content/src/shape-view.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-edits.ts",
+   "to": "@wren/core/src/ask.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-edits.ts",
+   "to": "@wren/core/src/content/shapes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-edits.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-edits.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-formats.ts",
+   "to": "@wren/content/src/carousel.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-formats.ts",
+   "to": "@wren/content/src/restate/desk-context.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-formats.ts",
+   "to": "@wren/content/src/shape-view.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-formats.ts",
+   "to": "@wren/content/src/story.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-formats.ts",
+   "to": "@wren/core/src/ask.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-formats.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-swaps.ts",
+   "to": "@wren/content/src/analytics/variants.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-swaps.ts",
+   "to": "@wren/content/src/restate/desk-context.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-swaps.ts",
+   "to": "@wren/content/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-swaps.ts",
+   "to": "@wren/core/src/ask.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-swaps.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/restate/desk-swaps.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk.ts",
+   "to": "@wren/content/src/restate/desk-approvals.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk.ts",
+   "to": "@wren/content/src/restate/desk-context.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk.ts",
+   "to": "@wren/content/src/restate/desk-drafting.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk.ts",
+   "to": "@wren/content/src/restate/desk-edits.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk.ts",
+   "to": "@wren/content/src/restate/desk-formats.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk.ts",
+   "to": "@wren/content/src/restate/desk-swaps.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/draft-ask.ts",
+   "to": "@wren/content/src/draft-ask.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/draft-ask.ts",
+   "to": "@wren/core/src/ask.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/draft-ask.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/draft-ask.ts",
+   "to": "@wren/core/src/portal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/draft-ask.ts",
+   "to": "@wren/core/src/record-accounts.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/restate/draft-ask.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/draft-ask.ts",
+   "to": "@wren/core/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/draft-ask.ts",
+   "to": "@wren/core/src/template-defaults.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/draft-ask.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/restate/draft-ask.ts",
+   "to": "@wren/outreach/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/inbox-desk.ts",
+   "to": "@wren/content/src/chat/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/inbox-desk.ts",
+   "to": "@wren/content/src/inbox/auto.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/inbox-desk.ts",
+   "to": "@wren/content/src/inbox/conversation.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/inbox-desk.ts",
+   "to": "@wren/content/src/inbox/routes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/inbox-desk.ts",
+   "to": "@wren/content/src/inbox/send.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/inbox-desk.ts",
+   "to": "@wren/content/src/inbox/suggest.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/inbox-desk.ts",
+   "to": "@wren/content/src/inbox/threads.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/inbox-desk.ts",
+   "to": "@wren/content/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/inbox-desk.ts",
+   "to": "@wren/core/src/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/inbox-desk.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/inbox-desk.ts",
+   "to": "@wren/core/src/custom-fields.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/inbox-desk.ts",
+   "to": "@wren/core/src/keys.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/restate/inbox-desk.ts",
+   "to": "@wren/core/src/metered.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/inbox-desk.ts",
+   "to": "@wren/core/src/portal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/inbox-desk.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/inbox-desk.ts",
+   "to": "@wren/core/src/vendors.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/inbox-desk.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/restate/inbox-desk.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/inbox-desk.ts",
+   "to": "@wren/notes/src/inbox.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/inbox-desk.ts",
+   "to": "@wren/notes/src/mention-mail.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/inbox-desk.ts",
+   "to": "@wren/outreach/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/index.ts",
+   "to": "@wren/content/src/restate/auto-reply.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/index.ts",
+   "to": "@wren/content/src/restate/blog.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/index.ts",
+   "to": "@wren/content/src/restate/chat.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/index.ts",
+   "to": "@wren/content/src/restate/desk.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/index.ts",
+   "to": "@wren/content/src/restate/draft-ask.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/index.ts",
+   "to": "@wren/content/src/restate/inbox-desk.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/index.ts",
+   "to": "@wren/content/src/restate/keyword-dm.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/index.ts",
+   "to": "@wren/content/src/restate/mail-reply.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/index.ts",
+   "to": "@wren/content/src/restate/marketing-console.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/index.ts",
+   "to": "@wren/content/src/restate/metrics.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/index.ts",
+   "to": "@wren/content/src/restate/pieces.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/index.ts",
+   "to": "@wren/content/src/restate/planner.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/index.ts",
+   "to": "@wren/content/src/restate/reports.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/index.ts",
+   "to": "@wren/content/src/restate/scheduler.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/index.ts",
+   "to": "@wren/content/src/restate/social-inbox.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/index.ts",
+   "to": "@wren/content/src/restate/social-push.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/index.ts",
+   "to": "@wren/content/src/restate/social.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/index.ts",
+   "to": "@wren/content/src/restate/video-desk.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/keyword-dm.ts",
+   "to": "@wren/content/src/social/keywords.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/keyword-dm.ts",
+   "to": "@wren/core/src/ask.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/keyword-dm.ts",
+   "to": "@wren/core/src/message-settings.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/keyword-dm.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/keyword-dm.ts",
+   "to": "@wren/core/src/send-verdict.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/keyword-dm.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/restate/keyword-dm.ts",
+   "to": "@wren/outreach/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/keyword-dm.ts",
+   "to": "@wren/outreach/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/mail-reply.ts",
+   "to": "@wren/content/src/inbox/mail-reply.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/mail-reply.ts",
+   "to": "@wren/content/src/inbox/send.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/mail-reply.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/mail-reply.ts",
+   "to": "@wren/core/src/content/restate.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/mail-reply.ts",
+   "to": "@wren/core/src/key-refs.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/mail-reply.ts",
+   "to": "@wren/core/src/mailbox.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/restate/mail-reply.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/mail-reply.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/restate/marketing-console.ts",
+   "to": "@wren/content/src/client-reports/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/marketing-console.ts",
+   "to": "@wren/content/src/client-reports/tiles.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/marketing-console.ts",
+   "to": "@wren/content/src/inbox/conversation.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/restate/marketing-console.ts",
+   "to": "@wren/content/src/inbox/routes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/marketing-console.ts",
+   "to": "@wren/content/src/promo.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/marketing-console.ts",
+   "to": "@wren/content/src/restate/desk.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/marketing-console.ts",
+   "to": "@wren/content/src/restate/inbox-desk.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/restate/marketing-console.ts",
+   "to": "@wren/content/src/restate/reports.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/marketing-console.ts",
+   "to": "@wren/content/src/restate/social-inbox.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/restate/marketing-console.ts",
+   "to": "@wren/content/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/marketing-console.ts",
+   "to": "@wren/content/src/shape-view.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/restate/marketing-console.ts",
+   "to": "@wren/core/src/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/marketing-console.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/restate/marketing-console.ts",
+   "to": "@wren/core/src/content/tiktok.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/restate/marketing-console.ts",
+   "to": "@wren/core/src/draft-record.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/marketing-console.ts",
+   "to": "@wren/core/src/flag-store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/marketing-console.ts",
+   "to": "@wren/core/src/flags.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/marketing-console.ts",
+   "to": "@wren/core/src/ids.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/marketing-console.ts",
+   "to": "@wren/core/src/marketing-console-routes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/marketing-console.ts",
+   "to": "@wren/core/src/portal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/marketing-console.ts",
+   "to": "@wren/core/src/records-serve.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/marketing-console.ts",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/marketing-console.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/marketing-console.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/marketing-console.ts",
+   "to": "@wren/outreach/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/metrics.ts",
+   "to": "@wren/content/src/analytics/digest.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/metrics.ts",
+   "to": "@wren/content/src/analytics/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/metrics.ts",
+   "to": "@wren/content/src/clients.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/metrics.ts",
+   "to": "@wren/content/src/metrics.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/metrics.ts",
+   "to": "@wren/content/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/restate/metrics.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/metrics.ts",
+   "to": "@wren/core/src/notify.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/restate/metrics.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/metrics.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/restate/pieces.ts",
+   "to": "@wren/content/src/pieces.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/pieces.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/pieces.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/restate/planner.ts",
+   "to": "@wren/content/src/clients.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/planner.ts",
+   "to": "@wren/content/src/plan.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/planner.ts",
+   "to": "@wren/content/src/platforms.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/planner.ts",
+   "to": "@wren/content/src/restate/desk.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/planner.ts",
+   "to": "@wren/content/src/review.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/planner.ts",
+   "to": "@wren/content/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/planner.ts",
+   "to": "@wren/content/src/slots.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/planner.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/planner.ts",
+   "to": "@wren/core/src/notify.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/restate/planner.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/planner.ts",
+   "to": "@wren/core/src/time.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/planner.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/restate/reports.ts",
+   "to": "@wren/content/src/client-reports/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/scheduler.ts",
+   "to": "@wren/content/src/clients.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/scheduler.ts",
+   "to": "@wren/content/src/funnel.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/scheduler.ts",
+   "to": "@wren/content/src/platforms.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/scheduler.ts",
+   "to": "@wren/content/src/queue.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/scheduler.ts",
+   "to": "@wren/content/src/restate/after-publish.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/scheduler.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/scheduler.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/scheduler.ts",
+   "to": "@wren/core/src/content/shapes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/scheduler.ts",
+   "to": "@wren/core/src/notify.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/restate/scheduler.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/scheduler.ts",
+   "to": "@wren/core/src/send-verdict.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/scheduler.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/restate/scheduler.ts",
+   "to": "@wren/outreach/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/social-inbox.ts",
+   "to": "@wren/content/src/connect/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/social-inbox.ts",
+   "to": "@wren/content/src/connect/dms.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/social-inbox.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/social-inbox.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/restate/social-inbox.ts",
+   "to": "@wren/core/src/content/restate.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/social-inbox.ts",
+   "to": "@wren/core/src/key-refs.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/social-inbox.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/social-inbox.ts",
+   "to": "@wren/core/src/send-verdict.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/social-inbox.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/restate/social-inbox.ts",
+   "to": "@wren/outreach/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/social-inbox.ts",
+   "to": "@wren/outreach/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/social-push.ts",
+   "to": "@wren/content/src/components.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/social-push.ts",
+   "to": "@wren/content/src/connect/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/social-push.ts",
+   "to": "@wren/content/src/restate/social.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/social-push.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/restate/social-push.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/social-push.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/restate/social.ts",
+   "to": "@wren/content/src/clients.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/social.ts",
+   "to": "@wren/content/src/restate/auto-reply.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/social.ts",
+   "to": "@wren/content/src/restate/keyword-dm.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/social.ts",
+   "to": "@wren/content/src/restate/planner.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/social.ts",
+   "to": "@wren/content/src/restate/social-push.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/restate/social.ts",
+   "to": "@wren/content/src/site-posts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/social.ts",
+   "to": "@wren/content/src/social/maps-reviews.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/social.ts",
+   "to": "@wren/content/src/social/review-ring.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/social.ts",
+   "to": "@wren/content/src/social/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/social.ts",
+   "to": "@wren/content/src/touches.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/social.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/social.ts",
+   "to": "@wren/core/src/content/restate.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/social.ts",
+   "to": "@wren/core/src/executor.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/social.ts",
+   "to": "@wren/core/src/notify.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/social.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/social.ts",
+   "to": "@wren/core/src/time.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/social.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/restate/social.ts",
+   "to": "@wren/outreach/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/video-desk.ts",
+   "to": "@wren/content/src/video-ask.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/video-desk.ts",
+   "to": "@wren/content/src/video-edit.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/video-desk.ts",
+   "to": "@wren/content/src/video.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/video-desk.ts",
+   "to": "@wren/core/src/ask.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/video-desk.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/video-desk.ts",
+   "to": "@wren/core/src/portal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/video-desk.ts",
+   "to": "@wren/core/src/refusal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/video-desk.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/video-desk.ts",
+   "to": "@wren/core/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/video-desk.ts",
+   "to": "@wren/core/src/template-defaults.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/video-desk.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/video-desk.ts",
+   "to": "@wren/studio/src/change.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/video-desk.ts",
+   "to": "@wren/studio/src/edit.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/video-desk.ts",
+   "to": "@wren/studio/src/finish.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/video-desk.ts",
+   "to": "@wren/studio/src/punctuate.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/video-desk.ts",
+   "to": "@wren/studio/src/render-hash.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/video-desk.ts",
+   "to": "@wren/studio/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/restate/video-desk.ts",
+   "to": "@wren/studio/src/stress.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/review.ts",
+   "to": "@wren/content/src/funnel.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/review.ts",
+   "to": "@wren/content/src/platforms.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/review.ts",
+   "to": "@wren/content/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/review.ts",
+   "to": "@wren/content/src/slots.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/review.ts",
+   "to": "@wren/content/src/subreddit.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/review.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/review.ts",
+   "to": "@wren/core/src/content/shapes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/review.ts",
+   "to": "@wren/core/src/content/slides.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/review.ts",
+   "to": "@wren/core/src/content/thread.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/review.ts",
+   "to": "@wren/core/src/draft-record.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/review.ts",
+   "to": "@wren/core/src/refusal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/review.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/schema.ts",
+   "to": "@wren/content/src/check.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/schema.ts",
+   "to": "@wren/content/src/write.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/schema.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/schema.ts",
+   "to": "@wren/core/src/objects-schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/schema.ts",
+   "to": "@wren/db/src/columns.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/schema.ts",
+   "to": "@wren/learn/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/shape-view.ts",
+   "to": "@wren/content/src/funnel.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/shape-view.ts",
+   "to": "@wren/content/src/platforms.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/shape-view.ts",
+   "to": "@wren/content/src/promo.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/shape-view.ts",
+   "to": "@wren/content/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/shape-view.ts",
+   "to": "@wren/content/src/subreddit.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/shape-view.ts",
+   "to": "@wren/content/src/video.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/shape-view.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/shape-view.ts",
+   "to": "@wren/core/src/content/shapes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/shape-view.ts",
+   "to": "@wren/core/src/content/slides.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/shape-view.ts",
+   "to": "@wren/core/src/content/thread.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/shape-view.ts",
+   "to": "@wren/core/src/content/tiktok.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/shape-view.ts",
+   "to": "@wren/core/src/grounded.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/shape-view.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/site-posts.ts",
+   "to": "@wren/content/src/queue.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/site-posts.ts",
+   "to": "@wren/content/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/site-posts.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/site-posts.ts",
+   "to": "@wren/core/src/objects/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/site-posts.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/slide-paint.ts",
+   "to": "@wren/content/src/carousel.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/slide-paint.ts",
+   "to": "@wren/core/src/content/slides.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/slots.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/slots.ts",
+   "to": "@wren/core/src/epsilon.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/slots.ts",
+   "to": "@wren/core/src/time.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/social/ad-formats.ts",
+   "to": "@wren/content/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/social/ad-formats.ts",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/social/done-record.ts",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/social/done-record.ts",
+   "to": "@wren/outreach/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/social/keywords.ts",
+   "to": "@wren/content/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/social/keywords.ts",
+   "to": "@wren/core/src/objects/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/social/keywords.ts",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/social/keywords.ts",
+   "to": "@wren/core/src/refusal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/social/keywords.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/social/keywords.ts",
+   "to": "@wren/outreach/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/social/maps-reviews.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/social/records.ts",
+   "to": "@wren/channel-sms/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/social/records.ts",
+   "to": "@wren/content/src/analytics/variants.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/social/records.ts",
+   "to": "@wren/content/src/draft-calls.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/social/records.ts",
+   "to": "@wren/content/src/inbox/conversation.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/social/records.ts",
+   "to": "@wren/content/src/inbox/send.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/social/records.ts",
+   "to": "@wren/content/src/inbox/threads.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/social/records.ts",
+   "to": "@wren/content/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/social/records.ts",
+   "to": "@wren/content/src/shape-view.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/social/records.ts",
+   "to": "@wren/content/src/social/ad-formats.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/social/records.ts",
+   "to": "@wren/content/src/social/done-record.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/social/records.ts",
+   "to": "@wren/content/src/social/keywords.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/social/records.ts",
+   "to": "@wren/content/src/social/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/social/records.ts",
+   "to": "@wren/content/src/thumbs.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/social/records.ts",
+   "to": "@wren/content/src/video.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/social/records.ts",
+   "to": "@wren/core/src/ask.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/social/records.ts",
+   "to": "@wren/core/src/broadcasts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/social/records.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/social/records.ts",
+   "to": "@wren/core/src/content/tiktok.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/social/records.ts",
+   "to": "@wren/core/src/decide/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/social/records.ts",
+   "to": "@wren/core/src/draft-record.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/social/records.ts",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/social/records.ts",
+   "to": "@wren/core/src/template-install.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/social/records.ts",
+   "to": "@wren/core/src/templates-console.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/social/records.ts",
+   "to": "@wren/core/src/templates.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/social/records.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/social/records.ts",
+   "to": "@wren/delivery/src/billing/console.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/social/records.ts",
+   "to": "@wren/delivery/src/billing/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/social/records.ts",
+   "to": "@wren/documents/src/lines.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/social/records.ts",
+   "to": "@wren/documents/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/social/records.ts",
+   "to": "@wren/outreach/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/social/records.ts",
+   "to": "@wren/outreach/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/social/records.ts",
+   "to": "@wren/payments/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/social/records.ts",
+   "to": "@wren/sites/src/console.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/social/records.ts",
+   "to": "@wren/sites/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/social/review-record.ts",
+   "to": "@wren/content/src/inbox/conversation.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/social/review-record.ts",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/social/review-record.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/social/review-record.ts",
+   "to": "@wren/outreach/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/social/review-ring.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/social/review-ring.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/social/review-ring.ts",
+   "to": "@wren/notes/src/inbox.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/social/review-ring.ts",
+   "to": "@wren/outreach/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/social/store.ts",
+   "to": "@wren/content/src/analytics/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/social/store.ts",
+   "to": "@wren/content/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/social/store.ts",
+   "to": "@wren/content/src/touches.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/social/store.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/social/store.ts",
+   "to": "@wren/core/src/notify.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/social/store.ts",
+   "to": "@wren/core/src/objects/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/social/store.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/social/store.ts",
+   "to": "@wren/outreach/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/social/store.ts",
+   "to": "@wren/outreach/src/touches.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/status.ts",
+   "to": "@wren/content/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/status.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/story.ts",
+   "to": "@wren/content/src/draft.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/story.ts",
+   "to": "@wren/content/src/ideas.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/story.ts",
+   "to": "@wren/content/src/media.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/story.ts",
+   "to": "@wren/content/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/story.ts",
+   "to": "@wren/content/src/write.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/story.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/story.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/subreddit.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/subreddit.ts",
+   "to": "@wren/outreach/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/thumbs.ts",
+   "to": "@wren/content/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/thumbs.ts",
+   "to": "@wren/content/src/video.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/thumbs.ts",
+   "to": "@wren/core/src/content/shapes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/thumbs.ts",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/thumbs.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/thumbs.ts",
+   "to": "@wren/studio/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/touches.ts",
+   "to": "@wren/content/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/touches.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/touches.ts",
+   "to": "@wren/core/src/touch-link.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/touches.ts",
+   "to": "@wren/core/src/touches.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/touches.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/touches.ts",
+   "to": "@wren/outreach/src/touches.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/train-backfill.ts",
+   "to": "@wren/core/src/draft-record.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/train-backfill.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/video-ask.ts",
+   "to": "@wren/core/src/slots/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/video-ask.ts",
+   "to": "@wren/core/src/template-defaults.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/video-ask.ts",
+   "to": "@wren/core/src/templates.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/video-ask.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/video-ask.ts",
+   "to": "@wren/studio/src/change.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/video-ask.ts",
+   "to": "@wren/studio/src/edit.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/video-ask.ts",
+   "to": "@wren/studio/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/video-edit.ts",
+   "to": "@wren/content/src/video-ask.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/video-edit.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/video-edit.ts",
+   "to": "@wren/core/src/slots/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/video-edit.ts",
+   "to": "@wren/core/src/template-defaults.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/video-edit.ts",
+   "to": "@wren/core/src/templates.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/video-edit.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/video-edit.ts",
+   "to": "@wren/studio/src/bar.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/video-edit.ts",
+   "to": "@wren/studio/src/cuts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/video-edit.ts",
+   "to": "@wren/studio/src/edit.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/video-edit.ts",
+   "to": "@wren/studio/src/render-hash.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/video-edit.ts",
+   "to": "@wren/studio/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/video-edit.ts",
+   "to": "@wren/studio/src/sentences.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/video.ts",
+   "to": "@wren/content/src/film-check.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/video.ts",
+   "to": "@wren/content/src/promo.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/video.ts",
+   "to": "@wren/content/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/video.ts",
+   "to": "@wren/content/src/thumbs.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/video.ts",
+   "to": "@wren/content/src/video-ask.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/video.ts",
+   "to": "@wren/content/src/video-edit.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/video.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/video.ts",
+   "to": "@wren/core/src/content/shapes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/video.ts",
+   "to": "@wren/core/src/draft-record.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/video.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/video.ts",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/video.ts",
+   "to": "@wren/core/src/slots/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/video.ts",
+   "to": "@wren/core/src/template-defaults.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/video.ts",
+   "to": "@wren/core/src/templates.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/video.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/video.ts",
+   "to": "@wren/studio/src/cuts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/video.ts",
+   "to": "@wren/studio/src/finish.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/video.ts",
+   "to": "@wren/studio/src/punctuate.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/video.ts",
+   "to": "@wren/studio/src/render-hash.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/video.ts",
+   "to": "@wren/studio/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/video.ts",
+   "to": "@wren/studio/src/storyboard.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/write.ts",
+   "to": "@wren/content/src/platforms.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/write.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/src/write.ts",
+   "to": "@wren/core/src/content/thread.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/test/inbox-preview.ts",
+   "to": "@wren/content/src/inbox/send.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/test/inbox-preview.ts",
+   "to": "@wren/content/src/inbox/threads.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/test/inbox-preview.ts",
+   "to": "@wren/content/test/inbox-seed.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/test/inbox-preview.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/test/inbox-preview.ts",
+   "to": "@wren/notes/src/inbox.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/test/inbox-seed.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/test/libs-preview.ts",
+   "to": "@wren/core/src/profiles-backfill.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/test/libs-preview.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/test/mail-preview.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/test/mail-preview.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/test/outreach-preview.ts",
+   "to": "@wren/content/test/inbox-seed.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/test/outreach-preview.ts",
+   "to": "@wren/core/src/objects/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/test/outreach-preview.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/test/threads-preview.ts",
+   "to": "@wren/content/test/inbox-seed.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/test/threads-preview.ts",
+   "to": "@wren/core/src/outreach/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/content/test/threads-preview.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/test/threads-preview.ts",
+   "to": "@wren/outreach/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/test/threads-preview.ts",
+   "to": "@wren/outreach/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/test/touch-links-preview.ts",
+   "to": "@wren/core/src/profiles.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/test/touch-links-preview.ts",
+   "to": "@wren/core/src/touch-link.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/test/touch-links-preview.ts",
+   "to": "@wren/core/src/touches.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/test/touch-links-preview.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/vitest.config.ts",
+   "to": "@wren/db/src/testing-vitest.ts",
+   "kind": "imports"
+  }
+ ]
+}

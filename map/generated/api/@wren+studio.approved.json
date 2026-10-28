@@ -1,0 +1,5239 @@
+{
+ "layer": "api",
+ "nodes": [
+  {
+   "id": "@wren/studio#ASPECT",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/finish"
+    ],
+    "file": "packages/studio/src/finish.ts",
+    "kind": "const",
+    "sig": "Record<Format, string>"
+   }
+  },
+  {
+   "id": "@wren/studio#AudioProps",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/sounds.ts",
+    "kind": "type",
+    "sig": "type AudioProps = { sounds: PlacedSound[]; music: { file: string; volume: number; duck: [number, number][]; duckDb: number } | null; };"
+   }
+  },
+  {
+   "id": "@wren/studio#BAR",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/bar"
+    ],
+    "file": "packages/studio/src/bar.ts",
+    "kind": "const",
+    "sig": "readonly BarRule[]"
+   }
+  },
+  {
+   "id": "@wren/studio#BAR_IDS",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/bar"
+    ],
+    "file": "packages/studio/src/bar.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "string[]"
+   }
+  },
+  {
+   "id": "@wren/studio#BEAT",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/storyboard"
+    ],
+    "file": "packages/studio/src/storyboard.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly partS: 30; }"
+   }
+  },
+  {
+   "id": "@wren/studio#BED_DB",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/sounds.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "-16"
+   }
+  },
+  {
+   "id": "@wren/studio#BED_ID",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/sounds.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "RegExp"
+   }
+  },
+  {
+   "id": "@wren/studio#BED_LUFS",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/sounds.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "-14"
+   }
+  },
+  {
+   "id": "@wren/studio#BIG",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/props.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly long: { readonly frame: [1920, 1080]; readonly size: 260; readonly y: 430; }; readonly vertical: { readonly frame: [1080, 1920]; readonly size: 220; readonly y: 620; }; readonly square: { readonly frame: [1080, 1080]; readonly size: 200; readonly y: 400; }; readonly portrait: { readonly f…"
+   }
+  },
+  {
+   "id": "@wren/studio#BarFormat",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/bar"
+    ],
+    "file": "packages/studio/src/bar.ts",
+    "kind": "type",
+    "sig": "type BarFormat = \"long\" | \"short\";"
+   }
+  },
+  {
+   "id": "@wren/studio#BarRule",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/bar"
+    ],
+    "file": "packages/studio/src/bar.ts",
+    "kind": "interface",
+    "sig": "interface BarRule { id: string; says: string; only?: BarFormat; }"
+   }
+  },
+  {
+   "id": "@wren/studio#Beat",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/storyboard"
+    ],
+    "file": "packages/studio/src/storyboard.ts",
+    "kind": "interface",
+    "sig": "interface Beat { key: string; kind: \"chapter\" | \"part\" | \"short\"; n: number; title: string | null; from: number; to: number; at: number; onCut: { from: number; to: number } | null; playsS: number; cutS: number; cut: \"none\" | \"some\" | \"all\"; said: string; struck: string; onScreen: string[]; layout: Show[]; }"
+   }
+  },
+  {
+   "id": "@wren/studio#Bed",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/kit.ts",
+    "kind": "type",
+    "sig": "type Bed = z.infer<typeof bedSchema>;"
+   }
+  },
+  {
+   "id": "@wren/studio#BehindWord",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/props.ts",
+    "kind": "type",
+    "sig": "type BehindWord = { w: string; s: number; e: number; to: number; matte: { file: string; src: string; fromFrame: number; frames: number }; place: { text: string; x: number; y: number; size: number }; };"
+   }
+  },
+  {
+   "id": "@wren/studio#BoardChange",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/storyboard"
+    ],
+    "file": "packages/studio/src/storyboard.ts",
+    "kind": "interface",
+    "sig": "interface BoardChange { header: string[]; beats: string[]; gone: string[]; }"
+   }
+  },
+  {
+   "id": "@wren/studio#CAM",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/edit"
+    ],
+    "file": "packages/studio/src/edit.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "RegExp"
+   }
+  },
+  {
+   "id": "@wren/studio#CAPTION_LOOK",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/finish"
+    ],
+    "file": "packages/studio/src/finish-look.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly foreground: \"#0e0e0e\"; readonly accent: \"#7969a3\"; readonly font: \"\\\"General Sans\\\", ui-sans-serif, system-ui, sans-serif\"; }"
+   }
+  },
+  {
+   "id": "@wren/studio#CAPTION_SHOWS",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/caption-styles.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"screen\", \"track\"]"
+   }
+  },
+  {
+   "id": "@wren/studio#CAPTION_STYLES",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/caption-styles.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"word\", \"pill\", \"sweep\", \"pop\", \"wipe\", \"stress\"]"
+   }
+  },
+  {
+   "id": "@wren/studio#CAPTION_Y",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/finish"
+    ],
+    "file": "packages/studio/src/finish-look.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly long: 0.885; readonly short: 0.66; }"
+   }
+  },
+  {
+   "id": "@wren/studio#CAP_RECORDINGS",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/cap.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "string"
+   }
+  },
+  {
+   "id": "@wren/studio#CHANGE",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/change"
+    ],
+    "file": "packages/studio/src/change.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly maxChars: 1000; readonly asks: 2; readonly beatChars: 900; readonly descriptionChars: 1500; readonly maxTokens: 4000; }"
+   }
+  },
+  {
+   "id": "@wren/studio#CROPPED",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/finish"
+    ],
+    "file": "packages/studio/src/finish.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"vertical\", \"square\", \"portrait\"]"
+   }
+  },
+  {
+   "id": "@wren/studio#CUT_DEFAULTS",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/cuts"
+    ],
+    "file": "packages/studio/src/cuts.ts",
+    "kind": "const",
+    "sig": "CutKnobs"
+   }
+  },
+  {
+   "id": "@wren/studio#CUT_FORMATS",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/cuts"
+    ],
+    "file": "packages/studio/src/cuts.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"long\", \"short\"]"
+   }
+  },
+  {
+   "id": "@wren/studio#CUT_HASH",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/hash"
+    ],
+    "file": "packages/studio/src/render-hash.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "string"
+   }
+  },
+  {
+   "id": "@wren/studio#CUT_STATES",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/schema"
+    ],
+    "file": "packages/studio/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"cut\", \"proposed\", \"kept\"]"
+   }
+  },
+  {
+   "id": "@wren/studio#CUT_WHYS",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/schema"
+    ],
+    "file": "packages/studio/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"silence\", \"filler\", \"retake\", \"manual\"]"
+   }
+  },
+  {
+   "id": "@wren/studio#CaptionLine",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/finish"
+    ],
+    "file": "packages/studio/src/finish.ts",
+    "kind": "interface",
+    "sig": "interface CaptionLine { at: number[]; text: string; s: number; e: number; }"
+   }
+  },
+  {
+   "id": "@wren/studio#CaptionShow",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/caption-styles.ts",
+    "kind": "type",
+    "sig": "type CaptionShow = (typeof CAPTION_SHOWS)[number];"
+   }
+  },
+  {
+   "id": "@wren/studio#CaptionStyle",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/caption-styles.ts",
+    "kind": "type",
+    "sig": "type CaptionStyle = (typeof CAPTION_STYLES)[number];"
+   }
+  },
+  {
+   "id": "@wren/studio#Captions",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/caption-styles.ts",
+    "kind": "interface",
+    "sig": "interface Captions { style: string; long?: CaptionShow | undefined; short?: CaptionShow | undefined; behind?: boolean | undefined; on?: boolean | undefined; place?: { long?: number | undefined; short?: number | undefined } | undefined; }"
+   }
+  },
+  {
+   "id": "@wren/studio#ChangeModel",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/change"
+    ],
+    "file": "packages/studio/src/change.ts",
+    "kind": "type",
+    "sig": "type ChangeModel = StressModel & { answered?: string[]; name?: string };"
+   }
+  },
+  {
+   "id": "@wren/studio#Chapter",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/schema"
+    ],
+    "file": "packages/studio/src/schema.ts",
+    "kind": "interface",
+    "sig": "interface Chapter { at: number; title: string; }"
+   }
+  },
+  {
+   "id": "@wren/studio#CheckIssue",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/video-check.ts",
+    "kind": "interface",
+    "sig": "interface CheckIssue { at: number; rule: string; says: string; }"
+   }
+  },
+  {
+   "id": "@wren/studio#CheckResult",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/video-check.ts",
+    "kind": "interface",
+    "sig": "interface CheckResult { pass: boolean; issues: CheckIssue[]; }"
+   }
+  },
+  {
+   "id": "@wren/studio#Checked",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/change"
+    ],
+    "file": "packages/studio/src/change.ts",
+    "kind": "interface",
+    "sig": "interface Checked { patch: EditPatch | null; expect: Record<string, unknown>; issues: string[]; snapped: Moved[]; }"
+   }
+  },
+  {
+   "id": "@wren/studio#CroppedFormat",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/finish"
+    ],
+    "file": "packages/studio/src/finish.ts",
+    "kind": "type",
+    "sig": "type CroppedFormat = (typeof CROPPED)[number];"
+   }
+  },
+  {
+   "id": "@wren/studio#Crops",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/finish"
+    ],
+    "file": "packages/studio/src/finish.ts",
+    "kind": "type",
+    "sig": "type Crops = { [F in CroppedFormat]?: Point | undefined } & { shorts?: Record<string, Point> | undefined; };"
+   }
+  },
+  {
+   "id": "@wren/studio#Cut",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/schema"
+    ],
+    "file": "packages/studio/src/schema.ts",
+    "kind": "interface",
+    "sig": "interface Cut { from: number; to: number; why: (typeof CUT_WHYS)[number]; state: (typeof CUT_STATES)[number]; }"
+   }
+  },
+  {
+   "id": "@wren/studio#CutFormat",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/cuts"
+    ],
+    "file": "packages/studio/src/cuts.ts",
+    "kind": "type",
+    "sig": "type CutFormat = (typeof CUT_FORMATS)[number];"
+   }
+  },
+  {
+   "id": "@wren/studio#CutKnobs",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/cuts"
+    ],
+    "file": "packages/studio/src/cuts.ts",
+    "kind": "type",
+    "sig": "type CutKnobs = z.infer<typeof cutKnobsSchema>;"
+   }
+  },
+  {
+   "id": "@wren/studio#CutKnobsByFormat",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/cuts"
+    ],
+    "file": "packages/studio/src/cuts.ts",
+    "kind": "type",
+    "sig": "type CutKnobsByFormat = z.infer<typeof cutKnobsByFormat>;"
+   }
+  },
+  {
+   "id": "@wren/studio#CutRow",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/cuts"
+    ],
+    "file": "packages/studio/src/cuts.ts",
+    "kind": "interface",
+    "sig": "interface CutRow { n: number; cut: Cut; lengthS: number; before: string; after: string; flags: string[]; }"
+   }
+  },
+  {
+   "id": "@wren/studio#DUCK",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/duck.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly db: 8; readonly joinS: 0.6; readonly attackS: 0.15; readonly releaseS: 0.5; }"
+   }
+  },
+  {
+   "id": "@wren/studio#EDIT_STATES",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/schema"
+    ],
+    "file": "packages/studio/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"added\", \"edited\", \"rendered\", \"approved\", \"uploaded\", \"rejected\"]"
+   }
+  },
+  {
+   "id": "@wren/studio#EditPatch",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/edit"
+    ],
+    "file": "packages/studio/src/edit.ts",
+    "kind": "type",
+    "sig": "type EditPatch = z.infer<typeof editPatchSchema>;"
+   }
+  },
+  {
+   "id": "@wren/studio#EditState",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/schema"
+    ],
+    "file": "packages/studio/src/schema.ts",
+    "kind": "type",
+    "sig": "type EditState = (typeof EDIT_STATES)[number];"
+   }
+  },
+  {
+   "id": "@wren/studio#EditWords",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/sentences"
+    ],
+    "file": "packages/studio/src/sentences.ts",
+    "kind": "interface",
+    "sig": "interface EditWords { words: readonly Word[]; cuts: readonly Cut[]; durationS: number; }"
+   }
+  },
+  {
+   "id": "@wren/studio#FORMATS",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/schema"
+    ],
+    "file": "packages/studio/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"long\", \"vertical\", \"square\", \"portrait\"]"
+   }
+  },
+  {
+   "id": "@wren/studio#FPS",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/finish"
+    ],
+    "file": "packages/studio/src/finish.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "30"
+   }
+  },
+  {
+   "id": "@wren/studio#FRAME",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/finish"
+    ],
+    "file": "packages/studio/src/finish.ts",
+    "kind": "const",
+    "sig": "Record<Format, [number, number]>"
+   }
+  },
+  {
+   "id": "@wren/studio#FX",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/fx.ts",
+    "kind": "const",
+    "sig": "Record<Role, FxRole>"
+   }
+  },
+  {
+   "id": "@wren/studio#FX_BED_LUFS",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/sounds.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly voice: number; readonly music: -24; }"
+   }
+  },
+  {
+   "id": "@wren/studio#Film",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/film.ts",
+    "kind": "type",
+    "sig": "type Film = Record<string, string>;"
+   }
+  },
+  {
+   "id": "@wren/studio#FilmChange",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/film.ts",
+    "kind": "interface",
+    "sig": "interface FilmChange { run: string; command: string; by: string | null; at: string; fields: string[]; diff: string; }"
+   }
+  },
+  {
+   "id": "@wren/studio#FilmOptions",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/film.ts",
+    "kind": "interface",
+    "sig": "interface FilmOptions { bedS?: number | undefined; }"
+   }
+  },
+  {
+   "id": "@wren/studio#Format",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/schema"
+    ],
+    "file": "packages/studio/src/schema.ts",
+    "kind": "type",
+    "sig": "type Format = (typeof FORMATS)[number];"
+   }
+  },
+  {
+   "id": "@wren/studio#FramedProps",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/props.ts",
+    "kind": "type",
+    "sig": "type FramedProps = Omit<LongProps, \"cam\" | \"layout\"> & { format: CroppedFormat; frame: [number, number]; picture: { file: string; size: [number, number]; window: [number, number, number, number] }; };"
+   }
+  },
+  {
+   "id": "@wren/studio#KIT_CACHE",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/kit.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "string"
+   }
+  },
+  {
+   "id": "@wren/studio#LAYOUTS",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/schema"
+    ],
+    "file": "packages/studio/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"corner\", \"cam\", \"screen\"]"
+   }
+  },
+  {
+   "id": "@wren/studio#LOOK_PROVIDERS",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/look.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"gemini\", \"twelvelabs\", \"cohere\"]"
+   }
+  },
+  {
+   "id": "@wren/studio#LOUDNESS",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/loudness.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly i: -14; readonly tp: -1.5; readonly lra: 11; }"
+   }
+  },
+  {
+   "id": "@wren/studio#LayoutRange",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/schema"
+    ],
+    "file": "packages/studio/src/schema.ts",
+    "kind": "interface",
+    "sig": "interface LayoutRange { from: number; to: number; show: (typeof LAYOUTS)[number]; }"
+   }
+  },
+  {
+   "id": "@wren/studio#Line",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/captions.ts",
+    "kind": "interface",
+    "sig": "interface Line { words: Word[]; s: number; e: number; }"
+   }
+  },
+  {
+   "id": "@wren/studio#LineRules",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/captions.ts",
+    "kind": "interface",
+    "sig": "interface LineRules { minWords: number; maxWords: number; maxChars: number; overCost: number; pauseS: number; softPauseS: number; holdS: number; }"
+   }
+  },
+  {
+   "id": "@wren/studio#LongProps",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/props.ts",
+    "kind": "type",
+    "sig": "type LongProps = { main: string; cam: string | null; fps: number; durationInFrames: number; words: Word[]; layout: LayoutRange[]; captions: Captions; stress: number[]; behind: BehindWord[]; overlays: TextOverlay[]; audio: AudioProps; look: Look; };"
+   }
+  },
+  {
+   "id": "@wren/studio#Look",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/schema"
+    ],
+    "file": "packages/studio/src/schema.ts",
+    "kind": "interface",
+    "sig": "interface Look { at: string; summary: string; moments: { at: number; why: string }[]; shorts: Short[]; chapters: Chapter[]; thumbnails: { at: number; why: string }[]; media?: { id: string; asset: string; cut: string; minutes: number }; }"
+   }
+  },
+  {
+   "id": "@wren/studio#LookProvider",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/look.ts",
+    "kind": "type",
+    "sig": "type LookProvider = (typeof LOOK_PROVIDERS)[number];"
+   }
+  },
+  {
+   "id": "@wren/studio#Looker",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/look.ts",
+    "kind": "type",
+    "sig": "type Looker = ( file: string, transcript: string, prior?: Look[\"media\"], ) => Promise<Omit<Look, \"at\">>;"
+   }
+  },
+  {
+   "id": "@wren/studio#Loudness",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/loudness.ts",
+    "kind": "interface",
+    "sig": "interface Loudness { i: number; tp: number; lra: number; thresh: number; }"
+   }
+  },
+  {
+   "id": "@wren/studio#MATTE",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/matte.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly size: 320; readonly maxS: 3; readonly mergeS: 0.5; readonly max: 40; readonly dir: \"matte\"; }"
+   }
+  },
+  {
+   "id": "@wren/studio#MODEL",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/matte.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly name: \"u2net_human_seg\"; readonly url: \"https://github.com/danielgatis/rembg/releases/download/v0.0.0/u2net_human_seg.onnx\"; readonly sha256: \"01eb6a29a5c4d8edb30b56adad9bb3a2a0535338e480724a213e0acfd2d1c73c\"; readonly bytes: 175997641; }"
+   }
+  },
+  {
+   "id": "@wren/studio#Matte",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/props.ts",
+    "kind": "type",
+    "sig": "type Matte = MatteWindow & { file: string; zone?: Zone };"
+   }
+  },
+  {
+   "id": "@wren/studio#MattePlan",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/matte.ts",
+    "kind": "interface",
+    "sig": "interface MattePlan { windows: MatteWindow[]; skipped: { i: number; why: string }[]; }"
+   }
+  },
+  {
+   "id": "@wren/studio#MatteWindow",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/matte.ts",
+    "kind": "interface",
+    "sig": "interface MatteWindow { n: number; source: \"main\" | \"cam\"; fromFrame: number; frames: number; picks: number[]; }"
+   }
+  },
+  {
+   "id": "@wren/studio#Moved",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/sentences"
+    ],
+    "file": "packages/studio/src/sentences.ts",
+    "kind": "interface",
+    "sig": "interface Moved { n: number; from: number; to: number; }"
+   }
+  },
+  {
+   "id": "@wren/studio#Music",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/sounds.ts",
+    "kind": "interface",
+    "sig": "interface Music { id: string; gainDb?: number | undefined; duck?: boolean | undefined; }"
+   }
+  },
+  {
+   "id": "@wren/studio#OUT_OF_FREE",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/stress"
+    ],
+    "file": "packages/studio/src/stress.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "RegExp"
+   }
+  },
+  {
+   "id": "@wren/studio#OVERLAY",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/finish"
+    ],
+    "file": "packages/studio/src/finish-look.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly maxChars: 120; readonly max: 30; readonly minS: 0.3; readonly scale: { s: number; m: number; l: number; }; readonly margin: 0.04; readonly fadeS: 0.18; readonly maxWidth: 0.86; }"
+   }
+  },
+  {
+   "id": "@wren/studio#OVERLAY_SIZES",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/finish"
+    ],
+    "file": "packages/studio/src/finish-look.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"s\", \"m\", \"l\"]"
+   }
+  },
+  {
+   "id": "@wren/studio#OnSkip",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/props.ts",
+    "kind": "type",
+    "sig": "type OnSkip = (w: { w: string; s: number }, format: string) => void;"
+   }
+  },
+  {
+   "id": "@wren/studio#OverlaySize",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/finish"
+    ],
+    "file": "packages/studio/src/finish-look.ts",
+    "kind": "type",
+    "sig": "type OverlaySize = (typeof OVERLAY_SIZES)[number];"
+   }
+  },
+  {
+   "id": "@wren/studio#PUNCTUATE_CHUNK",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/punctuate"
+    ],
+    "file": "packages/studio/src/punctuate.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "250"
+   }
+  },
+  {
+   "id": "@wren/studio#Pcm",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/cuts"
+    ],
+    "file": "packages/studio/src/cuts.ts",
+    "kind": "interface",
+    "sig": "interface Pcm { samples: Float32Array; rate: number; }"
+   }
+  },
+  {
+   "id": "@wren/studio#Pick",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/matte.ts",
+    "kind": "interface",
+    "sig": "interface Pick { i: number; w: string; s: number; e: number; }"
+   }
+  },
+  {
+   "id": "@wren/studio#PlacedSound",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/sounds.ts",
+    "kind": "type",
+    "sig": "type PlacedSound = { file: string; from: number; volume: number; trim?: number };"
+   }
+  },
+  {
+   "id": "@wren/studio#Point",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/finish"
+    ],
+    "file": "packages/studio/src/finish.ts",
+    "kind": "type",
+    "sig": "type Point = { x: number; y: number };"
+   }
+  },
+  {
+   "id": "@wren/studio#PromoProps",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/promo.ts",
+    "kind": "type",
+    "sig": "type PromoProps = { fps: number; durationInFrames: number; width: number; height: number; look: Look; audio: AudioProps; lufs: number; finish: { glow: boolean; dither: boolean }; scenes: TimedScene[]; };"
+   }
+  },
+  {
+   "id": "@wren/studio#PromoScene",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/promo.ts",
+    "kind": "type",
+    "sig": "type PromoScene = z.infer<typeof promoScene>;"
+   }
+  },
+  {
+   "id": "@wren/studio#PromoScript",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/promo.ts",
+    "kind": "type",
+    "sig": "type PromoScript = z.infer<typeof promoScript>;"
+   }
+  },
+  {
+   "id": "@wren/studio#Proposal",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/change"
+    ],
+    "file": "packages/studio/src/change.ts",
+    "kind": "interface",
+    "sig": "interface Proposal { run: string; id: number; sentence: string; beat: string | null; changes: string[]; patch: EditPatch | null; expect: Record<string, unknown>; issues: string[]; snapped: Moved[]; after: Storyboard; changed: BoardChange; model: string; }"
+   }
+  },
+  {
+   "id": "@wren/studio#REEL",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/finish"
+    ],
+    "file": "packages/studio/src/captions.ts",
+    "kind": "const",
+    "sig": "LineRules"
+   }
+  },
+  {
+   "id": "@wren/studio#RENDER_PARTS",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/hash"
+    ],
+    "file": "packages/studio/src/render-hash.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"long\", \"vertical\", \"square\", \"portrait\", \"shorts\", \"thumbs\"]"
+   }
+  },
+  {
+   "id": "@wren/studio#RENDER_VERSION",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/hash"
+    ],
+    "file": "packages/studio/src/render-hash.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "1"
+   }
+  },
+  {
+   "id": "@wren/studio#ROLES",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/sounds.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "(\"text\" | \"key\" | \"pop\" | \"drop\" | \"click\" | \"tick\" | \"land\" | \"hit\" | \"tick.crisp\" | \"tock\" | \"land.light\" | \"whoosh.short\" | \"whoosh.long\" | \"riser\" | \"swell\" | \"key.space\" | \"key.return\" | \"click.confirm\" | \"snap\" | \"bell\")[]"
+   }
+  },
+  {
+   "id": "@wren/studio#ROLE_SAYS",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/sounds.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly tick: \"an airy tick, in quick runs\"; readonly \"tick.crisp\": \"a brighter tick\"; readonly tock: \"a wooden knock, just before the cut\"; readonly hit: \"a short punchy hit on a cut\"; readonly land: \"a round low thump just after the cut, for a card or a panel landing\"; readonly \"land.light\": \"a…"
+   }
+  },
+  {
+   "id": "@wren/studio#RecordingEvents",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/sounds.ts",
+    "kind": "interface",
+    "sig": "interface RecordingEvents { clicks: number[]; keys: number[]; }"
+   }
+  },
+  {
+   "id": "@wren/studio#Rect",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/safe-zones.ts",
+    "kind": "type",
+    "sig": "type Rect = [number, number, number, number];"
+   }
+  },
+  {
+   "id": "@wren/studio#RenderJob",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/remotion.ts",
+    "kind": "interface",
+    "sig": "interface RenderJob { long?: LongProps; framed?: { [F in CroppedFormat]?: FramedProps | undefined }; shorts?: Map<number, ShortProps>; thumbnails?: ThumbnailProps[]; }"
+   }
+  },
+  {
+   "id": "@wren/studio#RenderPart",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/hash"
+    ],
+    "file": "packages/studio/src/render-hash.ts",
+    "kind": "type",
+    "sig": "type RenderPart = (typeof RENDER_PARTS)[number];"
+   }
+  },
+  {
+   "id": "@wren/studio#RenderState",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/schema"
+    ],
+    "file": "packages/studio/src/schema.ts",
+    "kind": "interface",
+    "sig": "interface RenderState { state: \"waiting\" | \"rendering\" | \"failed\"; at: string; by?: string; why?: string; }"
+   }
+  },
+  {
+   "id": "@wren/studio#Role",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/fx.ts",
+    "kind": "type",
+    "sig": "type Role = keyof typeof fx;"
+   }
+  },
+  {
+   "id": "@wren/studio#SENTENCE",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/sentences"
+    ],
+    "file": "packages/studio/src/sentences.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly pauseS: 0.6; readonly reachS: 20; readonly padS: 0.15; readonly slackS: 0.05; }"
+   }
+  },
+  {
+   "id": "@wren/studio#SHORT_COUNT",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/props.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly min: 2; readonly max: 12; }"
+   }
+  },
+  {
+   "id": "@wren/studio#SHORT_CUT_DEFAULTS",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/cuts"
+    ],
+    "file": "packages/studio/src/cuts.ts",
+    "kind": "const",
+    "sig": "CutKnobs"
+   }
+  },
+  {
+   "id": "@wren/studio#SHORT_S",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/props.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly min: 20; readonly max: 60; }"
+   }
+  },
+  {
+   "id": "@wren/studio#SOUND_RULES",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/sounds.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [{ readonly on: \"click\"; readonly id: \"click\"; readonly says: \"a small plastic click on each mouse click\"; }, { readonly on: \"key\"; readonly id: \"key\"; readonly says: \"a key tap on each key press, a new take each\"; }, { readonly on: \"overlay\"; readonly id: \"pop\"; readonly says: \"a soft pop …"
+   }
+  },
+  {
+   "id": "@wren/studio#STRESS",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/stress"
+    ],
+    "file": "packages/studio/src/stress.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly perMinute: 3; readonly gapS: 0.6; readonly holdS: 1.2; readonly repeatMax: 2; readonly repeatGapS: 180; readonly chunk: 300; }"
+   }
+  },
+  {
+   "id": "@wren/studio#STRIP",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/media.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly n: 60; readonly across: 10; readonly width: 160; }"
+   }
+  },
+  {
+   "id": "@wren/studio#SUBS",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/captions.ts",
+    "kind": "const",
+    "sig": "LineRules"
+   }
+  },
+  {
+   "id": "@wren/studio#Short",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/schema"
+    ],
+    "file": "packages/studio/src/schema.ts",
+    "kind": "interface",
+    "sig": "interface Short { from: number; to: number; title: string; card?: boolean | undefined; cardText?: string | undefined; }"
+   }
+  },
+  {
+   "id": "@wren/studio#ShortProps",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/props.ts",
+    "kind": "type",
+    "sig": "type ShortProps = Omit<LongProps, \"cam\"> & { face: Face; crop: Point | null; startFrame: number; segments: { from: number; frames: number }[]; title: string; card: TitleCard | null; };"
+   }
+  },
+  {
+   "id": "@wren/studio#Show",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/storyboard"
+    ],
+    "file": "packages/studio/src/storyboard.ts",
+    "kind": "type",
+    "sig": "type Show = (typeof LAYOUTS)[number];"
+   }
+  },
+  {
+   "id": "@wren/studio#ShownLine",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/finish"
+    ],
+    "file": "packages/studio/src/finish.ts",
+    "kind": "interface",
+    "sig": "interface ShownLine { words: ShownWord[]; end: number; t: number; }"
+   }
+  },
+  {
+   "id": "@wren/studio#Sound",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/sounds.ts",
+    "kind": "interface",
+    "sig": "interface Sound { at: number; id: string; gainDb?: number | undefined; only?: \"long\" | \"short\" | undefined; }"
+   }
+  },
+  {
+   "id": "@wren/studio#Span",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/cuts"
+    ],
+    "file": "packages/studio/src/cuts.ts",
+    "kind": "interface",
+    "sig": "interface Span { s: number; e: number; }"
+   }
+  },
+  {
+   "id": "@wren/studio#Spot",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/safe-zones.ts",
+    "kind": "interface",
+    "sig": "interface Spot { x: number; y: number; size: number; where: Where; clear: number; }"
+   }
+  },
+  {
+   "id": "@wren/studio#Storyboard",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/storyboard"
+    ],
+    "file": "packages/studio/src/storyboard.ts",
+    "kind": "interface",
+    "sig": "interface Storyboard { title: string; rawS: number; cutS: number; formats: Format[]; chapters: number; captions: string; beats: Beat[]; shorts: Beat[]; }"
+   }
+  },
+  {
+   "id": "@wren/studio#StressModel",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/stress"
+    ],
+    "file": "packages/studio/src/stress.ts",
+    "kind": "interface",
+    "sig": "interface StressModel { complete(prompt: string, o?: { system?: string; maxTokens?: number }): Promise<{ text: string }>; }"
+   }
+  },
+  {
+   "id": "@wren/studio#TL_FREE_MINUTES",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/look.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "600"
+   }
+  },
+  {
+   "id": "@wren/studio#TextOverlay",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/finish"
+    ],
+    "file": "packages/studio/src/finish-look.ts",
+    "kind": "interface",
+    "sig": "interface TextOverlay { text: string; from: number; to: number; x: number; y: number; size: OverlaySize; }"
+   }
+  },
+  {
+   "id": "@wren/studio#ThumbnailProps",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/props.ts",
+    "kind": "type",
+    "sig": "type ThumbnailProps = { main: string; face: Face; frame: number; text: string; variant: 1 | 2 | 3; look: Look; };"
+   }
+  },
+  {
+   "id": "@wren/studio#Track",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/schema"
+    ],
+    "file": "packages/studio/src/schema.ts",
+    "kind": "interface",
+    "sig": "interface Track { path: string; durationS: number; width: number; height: number; fps: number; }"
+   }
+  },
+  {
+   "id": "@wren/studio#Tracks",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/schema"
+    ],
+    "file": "packages/studio/src/schema.ts",
+    "kind": "interface",
+    "sig": "interface Tracks { main: Track; cam?: Track & { offsetS: number }; camBox?: [number, number, number, number]; }"
+   }
+  },
+  {
+   "id": "@wren/studio#VIDEO",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/edit"
+    ],
+    "file": "packages/studio/src/edit.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "RegExp"
+   }
+  },
+  {
+   "id": "@wren/studio#VIDEO_CHECK",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/bar"
+    ],
+    "file": "packages/studio/src/bar.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"video check\""
+   }
+  },
+  {
+   "id": "@wren/studio#VerticalProps",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/props.ts",
+    "kind": "type",
+    "sig": "type VerticalProps = FramedProps;"
+   }
+  },
+  {
+   "id": "@wren/studio#VideoEdit",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/schema"
+    ],
+    "file": "packages/studio/src/schema.ts",
+    "kind": "type",
+    "sig": "type VideoEdit = typeof videoEdits.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/studio#Where",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/safe-zones.ts",
+    "kind": "type",
+    "sig": "type Where = \"middle\" | \"above\" | \"left\" | \"right\";"
+   }
+  },
+  {
+   "id": "@wren/studio#Word",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/schema"
+    ],
+    "file": "packages/studio/src/schema.ts",
+    "kind": "interface",
+    "sig": "interface Word { w: string; s: number; e: number; }"
+   }
+  },
+  {
+   "id": "@wren/studio#WordsFix",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/edit"
+    ],
+    "file": "packages/studio/src/edit.ts",
+    "kind": "type",
+    "sig": "type WordsFix = { wrong: string; right: string } | { at: number; text: string };"
+   }
+  },
+  {
+   "id": "@wren/studio#ZONE",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/safe-zones.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly grid: 48; readonly thresh: number; readonly clear: 0.7; readonly margin: 0.04; readonly shrink: 0.8; readonly minScale: 0.5; readonly charW: 0.62; readonly glyphH: 0.72; }"
+   }
+  },
+  {
+   "id": "@wren/studio#Zone",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/safe-zones.ts",
+    "kind": "interface",
+    "sig": "interface Zone { grid: number; occ: string; }"
+   }
+  },
+  {
+   "id": "@wren/studio#addCut",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/finish"
+    ],
+    "file": "packages/studio/src/finish.ts",
+    "kind": "function",
+    "sig": "(cuts: readonly Cut[], from: number, to: number, durationS: number): Cut[]"
+   }
+  },
+  {
+   "id": "@wren/studio#addMask",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/safe-zones.ts",
+    "kind": "function",
+    "sig": "(acc: Float32Array, mask: Uint8Array, size: number): void"
+   }
+  },
+  {
+   "id": "@wren/studio#addVideo",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/edit"
+    ],
+    "file": "packages/studio/src/edit.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, input: string, o: AddOptions): Promise<VideoEdit>"
+   }
+  },
+  {
+   "id": "@wren/studio#alignPunctuation",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/punctuate"
+    ],
+    "file": "packages/studio/src/punctuate.ts",
+    "kind": "function",
+    "sig": "(words: readonly Word[], text: string): { words: Word[]; changed: number }"
+   }
+  },
+  {
+   "id": "@wren/studio#applyChange",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/change"
+    ],
+    "file": "packages/studio/src/change.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, id: number, p: Pick<Proposal, \"patch\" | \"expect\" | \"run\">, by: string): Promise<{ run: string; edit: VideoEdit; snapped: Moved[]; }>"
+   }
+  },
+  {
+   "id": "@wren/studio#applyFilter",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/loudness.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(m: Loudness, i: number = LOUDNESS.i): string"
+   }
+  },
+  {
+   "id": "@wren/studio#audioFiles",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/kit.ts",
+    "kind": "function",
+    "sig": "(audio: AudioProps | undefined): string[]"
+   }
+  },
+  {
+   "id": "@wren/studio#autoSounds",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/sounds.ts",
+    "kind": "function",
+    "sig": "(edit: { tracks: { main: { durationS: number } }; layout: readonly LayoutRange[]; overlays?: readonly { from: number }[] | undefined; shorts: readonly Short[]; }, events: RecordingEvents = { clicks: [], keys: [] }): Sound[]"
+   }
+  },
+  {
+   "id": "@wren/studio#barLines",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/bar"
+    ],
+    "file": "packages/studio/src/bar.ts",
+    "kind": "function",
+    "sig": "(format?: BarFormat): string"
+   }
+  },
+  {
+   "id": "@wren/studio#beatSpans",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/storyboard"
+    ],
+    "file": "packages/studio/src/storyboard.ts",
+    "kind": "function",
+    "sig": "(e: Pick<Edit, \"words\" | \"chapters\">, durationS: number): { kind: \"chapter\" | \"part\"; title: string | null; from: number; to: number }[]"
+   }
+  },
+  {
+   "id": "@wren/studio#beatText",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/storyboard"
+    ],
+    "file": "packages/studio/src/storyboard.ts",
+    "kind": "function",
+    "sig": "(b: Beat, o: { max?: number } = {}): string[]"
+   }
+  },
+  {
+   "id": "@wren/studio#beatsOf",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/stress"
+    ],
+    "file": "packages/studio/src/stress.ts",
+    "kind": "function",
+    "sig": "(words: readonly Word[]): number[]"
+   }
+  },
+  {
+   "id": "@wren/studio#bedPath",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/kit.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(e: Bed, cache = KIT_CACHE): string"
+   }
+  },
+  {
+   "id": "@wren/studio#bedVolume",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/duck.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(m: { volume: number; duck: readonly (readonly [number, number])[]; duckDb: number }, t: number): number"
+   }
+  },
+  {
+   "id": "@wren/studio#bigText",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/props.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(w: string): string"
+   }
+  },
+  {
+   "id": "@wren/studio#bigWordState",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/caption-styles.ts",
+    "kind": "function",
+    "sig": "(t: number, s: number, end: number): { opacity: number; scale: number }"
+   }
+  },
+  {
+   "id": "@wren/studio#boardChange",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/storyboard"
+    ],
+    "file": "packages/studio/src/storyboard.ts",
+    "kind": "function",
+    "sig": "(before: Storyboard, after: Storyboard): BoardChange"
+   }
+  },
+  {
+   "id": "@wren/studio#brokenLocks",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/locks.ts",
+    "kind": "function",
+    "sig": "(locked: readonly string[], before: object, after: object): string[]"
+   }
+  },
+  {
+   "id": "@wren/studio#capEvents",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/cap.ts",
+    "kind": "function",
+    "sig": "(project: string, ffmpeg: string): Promise<RecordingEvents>"
+   }
+  },
+  {
+   "id": "@wren/studio#capNotReady",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/cap.ts",
+    "kind": "function",
+    "sig": "(m: CapMeta | null): string | null"
+   }
+  },
+  {
+   "id": "@wren/studio#capProjectOf",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/cap.ts",
+    "kind": "function",
+    "sig": "(path: string): string | null"
+   }
+  },
+  {
+   "id": "@wren/studio#capTracks",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/cap.ts",
+    "kind": "function",
+    "sig": "(project: string, ffmpeg: string): Promise<{ main: string; cam?: string; offsetS?: number }>"
+   }
+  },
+  {
+   "id": "@wren/studio#captionLines",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/finish"
+    ],
+    "file": "packages/studio/src/finish.ts",
+    "kind": "function",
+    "sig": "(words: readonly Word[], cuts: readonly Cut[], durationS: number): CaptionLine[]"
+   }
+  },
+  {
+   "id": "@wren/studio#captionPlaceSchema",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/finish"
+    ],
+    "file": "packages/studio/src/finish.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "z.ZodObject<{ long: z.ZodOptional<z.ZodNumber>; short: z.ZodOptional<z.ZodNumber>; }, z.core.$strict>"
+   }
+  },
+  {
+   "id": "@wren/studio#captionShown",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/finish"
+    ],
+    "file": "packages/studio/src/finish.ts",
+    "kind": "function",
+    "sig": "(track: ReturnType<typeof captionTrack>, t: number): ShownLine | null"
+   }
+  },
+  {
+   "id": "@wren/studio#captionTrack",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/finish"
+    ],
+    "file": "packages/studio/src/finish.ts",
+    "kind": "function",
+    "sig": "(words: readonly (Word & { stress?: boolean })[], cuts: readonly Cut[], durationS: number, which: \"long\" | \"short\"): { keep: Span[]; lines: (Line & { words: ShownWord[] })[]; which: \"long\" | \"short\" }"
+   }
+  },
+  {
+   "id": "@wren/studio#captionWordLook",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/finish"
+    ],
+    "file": "packages/studio/src/finish-look.ts",
+    "kind": "function",
+    "sig": "(style: string, st: WordState, o: { stressed: boolean; size: number; accent: string }): { word: CSSProperties; fill?: CSSProperties }"
+   }
+  },
+  {
+   "id": "@wren/studio#captionY",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/finish"
+    ],
+    "file": "packages/studio/src/finish.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(place: CaptionPlace | undefined, which: \"long\" | \"short\"): number"
+   }
+  },
+  {
+   "id": "@wren/studio#changeAnswerOf",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/change"
+    ],
+    "file": "packages/studio/src/change.ts",
+    "kind": "function",
+    "sig": "(text: string): { changes: string[]; patch: Record<string, unknown> | null } | null"
+   }
+  },
+  {
+   "id": "@wren/studio#changePrompt",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/change"
+    ],
+    "file": "packages/studio/src/change.ts",
+    "kind": "function",
+    "sig": "(e: VideoEdit, sentence: string, o: { board?: Storyboard; beat?: Beat | null; refused?: string[] } = {}): string"
+   }
+  },
+  {
+   "id": "@wren/studio#changeSystem",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/change"
+    ],
+    "file": "packages/studio/src/change.ts",
+    "kind": "function",
+    "sig": "(): string"
+   }
+  },
+  {
+   "id": "@wren/studio#changedPaths",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/locks.ts",
+    "kind": "function",
+    "sig": "(before: object, after: object, fields: readonly string[]): string[]"
+   }
+  },
+  {
+   "id": "@wren/studio#changedSince",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/hash"
+    ],
+    "file": "packages/studio/src/render-hash.ts",
+    "kind": "function",
+    "sig": "(e: VideoEdit): string[] | null"
+   }
+  },
+  {
+   "id": "@wren/studio#checkChange",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/change"
+    ],
+    "file": "packages/studio/src/change.ts",
+    "kind": "function",
+    "sig": "(e: VideoEdit, raw: Record<string, unknown> | null): Checked"
+   }
+  },
+  {
+   "id": "@wren/studio#checkPatch",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/edit"
+    ],
+    "file": "packages/studio/src/edit.ts",
+    "kind": "function",
+    "sig": "(patch: EditPatch, durationS: number, cuts: readonly Cut[] = [], words: readonly Word[] = [], frame?: { width: number; height: number }, held: readonly { from: number; to: number }[] = []): string[]"
+   }
+  },
+  {
+   "id": "@wren/studio#checkPrompt",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/video-check.ts",
+    "kind": "function",
+    "sig": "(format: BarFormat, o: { durationS: number; every: number; cols: number; cuts: number[]; words: string }): string"
+   }
+  },
+  {
+   "id": "@wren/studio#checkRender",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/video-check.ts",
+    "kind": "function",
+    "sig": "(file: string, o: { format: BarFormat; durationS: number; words: readonly { w: string; s: number }[]; model: Model; ffmpeg: string; }): Promise<CheckResult>"
+   }
+  },
+  {
+   "id": "@wren/studio#checkStress",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/stress"
+    ],
+    "file": "packages/studio/src/stress.ts",
+    "kind": "function",
+    "sig": "(words: readonly Word[], stress: readonly number[]): string[]"
+   }
+  },
+  {
+   "id": "@wren/studio#clash",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/stress"
+    ],
+    "file": "packages/studio/src/stress.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(words: readonly Word[], beats: readonly number[], i: number, j: number): string | null"
+   }
+  },
+  {
+   "id": "@wren/studio#cohereLooker",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/look.ts",
+    "kind": "function",
+    "sig": "(keys: readonly string[], o: { ffmpeg?: string; fetchFn?: typeof fetch } = {}): Looker"
+   }
+  },
+  {
+   "id": "@wren/studio#cornerCam",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/finish"
+    ],
+    "file": "packages/studio/src/finish-look.ts",
+    "kind": "function",
+    "sig": "(w: number, h: number): CSSProperties"
+   }
+  },
+  {
+   "id": "@wren/studio#coverHash",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/hash"
+    ],
+    "file": "packages/studio/src/render-hash.ts",
+    "kind": "function",
+    "sig": "(output: string | undefined, at: number): string"
+   }
+  },
+  {
+   "id": "@wren/studio#coverMs",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/finish"
+    ],
+    "file": "packages/studio/src/finish.ts",
+    "kind": "function",
+    "sig": "(at: number, keep: readonly Span[]): number"
+   }
+  },
+  {
+   "id": "@wren/studio#covered",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/safe-zones.ts",
+    "kind": "function",
+    "sig": "(zone: Zone, rect: Rect, box: Rect): number"
+   }
+  },
+  {
+   "id": "@wren/studio#cropCentre",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/finish"
+    ],
+    "file": "packages/studio/src/finish.ts",
+    "kind": "function",
+    "sig": "(w: number, h: number, frame: readonly [number, number], centre: Point): Point"
+   }
+  },
+  {
+   "id": "@wren/studio#cropWindow",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/finish"
+    ],
+    "file": "packages/studio/src/finish.ts",
+    "kind": "function",
+    "sig": "(w: number, h: number, frame: readonly [number, number], centre: Point = { x: 0.5, y: 0.5 }): [number, number, number, number]"
+   }
+  },
+  {
+   "id": "@wren/studio#cropsSchema",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/finish"
+    ],
+    "file": "packages/studio/src/finish.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "z.ZodObject<{ vertical: z.ZodOptional<z.ZodObject<{ x: z.ZodNumber; y: z.ZodNumber; }, z.core.$strict>>; square: z.ZodOptional<z.ZodObject<{ x: z.ZodNumber; y: z.ZodNumber; }, z.core.$strict>>; portrait: z.ZodOptional<z.ZodObject<{ x: z.ZodNumber; y: z.ZodNumber; }, z.core.$strict>>; shorts: z.ZodOp…"
+   }
+  },
+  {
+   "id": "@wren/studio#cutHash",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/hash"
+    ],
+    "file": "packages/studio/src/render-hash.ts",
+    "kind": "function",
+    "sig": "(e: VideoEdit): string"
+   }
+  },
+  {
+   "id": "@wren/studio#cutKnobs",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/edit"
+    ],
+    "file": "packages/studio/src/edit.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, format: CutFormat = \"long\"): Promise<CutKnobs>"
+   }
+  },
+  {
+   "id": "@wren/studio#cutKnobsByFormat",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/cuts"
+    ],
+    "file": "packages/studio/src/cuts.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "z.ZodObject<{ long: z.ZodDefault<z.ZodObject<{ minGapS: z.ZodDefault<z.ZodNumber>; airS: z.ZodDefault<z.ZodNumber>; noiseMarginDb: z.ZodDefault<z.ZodNumber>; snapS: z.ZodDefault<z.ZodNumber>; }, z.core.$strip>>; short: z.ZodDefault<z.ZodObject<{ minGapS: z.ZodDefault<z.ZodNumber>; airS: z.ZodDefault…"
+   }
+  },
+  {
+   "id": "@wren/studio#cutKnobsSchema",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/cuts"
+    ],
+    "file": "packages/studio/src/cuts.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "z.ZodObject<{ minGapS: z.ZodDefault<z.ZodNumber>; airS: z.ZodDefault<z.ZodNumber>; noiseMarginDb: z.ZodDefault<z.ZodNumber>; snapS: z.ZodDefault<z.ZodNumber>; }, z.core.$strip>"
+   }
+  },
+  {
+   "id": "@wren/studio#cutSize",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/media.ts",
+    "kind": "function",
+    "sig": "(s: { width: number; height: number }): [number, number]"
+   }
+  },
+  {
+   "id": "@wren/studio#cutTracks",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/media.ts",
+    "kind": "function",
+    "sig": "(tracks: Tracks, keep: readonly Span[], dir: string, ffmpeg: string): Promise<Record<string, string>>"
+   }
+  },
+  {
+   "id": "@wren/studio#cutTranscript",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/look.ts",
+    "kind": "function",
+    "sig": "(words: readonly Word[], keep: readonly Span[]): string"
+   }
+  },
+  {
+   "id": "@wren/studio#digest",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/hash"
+    ],
+    "file": "packages/studio/src/render-hash.ts",
+    "kind": "function",
+    "sig": "(v: unknown): string"
+   }
+  },
+  {
+   "id": "@wren/studio#duckAt",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/duck.ts",
+    "kind": "function",
+    "sig": "(t: number, duck: readonly (readonly [number, number])[]): number"
+   }
+  },
+  {
+   "id": "@wren/studio#editField",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/edit"
+    ],
+    "file": "packages/studio/src/edit.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "(edit: VideoEdit, k: string) => unknown"
+   }
+  },
+  {
+   "id": "@wren/studio#editMattes",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/matte.ts",
+    "kind": "function",
+    "sig": "(pkgDir: string, edit: VideoEdit, o: { ffmpeg: string; at?: number; log?: (l: string) => void }): Promise<{ mattes: Matte[]; skipped: MattePlan[\"skipped\"] }>"
+   }
+  },
+  {
+   "id": "@wren/studio#editPatchSchema",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/edit"
+    ],
+    "file": "packages/studio/src/edit.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "z.ZodObject<{ title: z.ZodOptional<z.ZodString>; description: z.ZodOptional<z.ZodString>; tags: z.ZodOptional<z.ZodArray<z.ZodString>>; chapters: z.ZodOptional<z.ZodArray<z.ZodObject<{ at: z.ZodNumber; title: z.ZodString; }, z.core.$strict>>>; cuts: z.ZodOptional<z.ZodArray<z.ZodObject<{ why: z.ZodE…"
+   }
+  },
+  {
+   "id": "@wren/studio#ensureModel",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/matte.ts",
+    "kind": "function",
+    "sig": "(log: (l: string) => void = () => {}): Promise<string>"
+   }
+  },
+  {
+   "id": "@wren/studio#faceRect",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/props.ts",
+    "kind": "function",
+    "sig": "(face: Face, w: number, h: number, crop: Point | null = null): Rect"
+   }
+  },
+  {
+   "id": "@wren/studio#fillerProposals",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/cuts"
+    ],
+    "file": "packages/studio/src/cuts.ts",
+    "kind": "function",
+    "sig": "(words: readonly Word[]): Cut[]"
+   }
+  },
+  {
+   "id": "@wren/studio#filmAssets",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/film.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(e: Pick<VideoEdit, \"tracks\"> & Partial<Pick<VideoEdit, \"sounds\" | \"music\">>): { main: string; cam: string | null; sounds: string[]; }"
+   }
+  },
+  {
+   "id": "@wren/studio#filmHistory",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/film.ts",
+    "kind": "function",
+    "sig": "(now: VideoEdit, runs: readonly { run: string; command: string; by: string | null; at: string; before: object }[]): FilmChange[]"
+   }
+  },
+  {
+   "id": "@wren/studio#filmstrip",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/media.ts",
+    "kind": "function",
+    "sig": "(input: string, out: string, durationS: number, ffmpeg: string): Promise<string>"
+   }
+  },
+  {
+   "id": "@wren/studio#findCapProjects",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/cap.ts",
+    "kind": "function",
+    "sig": "(dir = CAP_RECORDINGS): Promise<string[]>"
+   }
+  },
+  {
+   "id": "@wren/studio#findRecordings",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/obs.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(dir: string, quietS = 60, now = Date.now()): Promise<string[]>"
+   }
+  },
+  {
+   "id": "@wren/studio#fitRect",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/safe-zones.ts",
+    "kind": "function",
+    "sig": "(src: [number, number], box: [number, number], fit: \"contain\" | \"cover\"): Rect"
+   }
+  },
+  {
+   "id": "@wren/studio#fitWords",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/cuts"
+    ],
+    "file": "packages/studio/src/cuts.ts",
+    "kind": "function",
+    "sig": "(words: readonly Word[], silences: readonly Span[]): Word[]"
+   }
+  },
+  {
+   "id": "@wren/studio#fixWordAt",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/words.ts",
+    "kind": "function",
+    "sig": "(words: readonly Word[], at: number, text: string): Fixed"
+   }
+  },
+  {
+   "id": "@wren/studio#fixWords",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/words.ts",
+    "kind": "function",
+    "sig": "(words: readonly Word[], wrong: string, right: string): Fixed"
+   }
+  },
+  {
+   "id": "@wren/studio#formatFor",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/finish"
+    ],
+    "file": "packages/studio/src/finish.ts",
+    "kind": "function",
+    "sig": "(platform: string, rendered: ReadonlySet<string>): CroppedFormat | null"
+   }
+  },
+  {
+   "id": "@wren/studio#formatsFor",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/edit"
+    ],
+    "file": "packages/studio/src/edit.ts",
+    "kind": "function",
+    "sig": "(main: Pick<Track, \"width\" | \"height\">): Format[]"
+   }
+  },
+  {
+   "id": "@wren/studio#frameAt",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/media.ts",
+    "kind": "function",
+    "sig": "(input: string, atS: number, out: string, ffmpeg: string): Promise<string>"
+   }
+  },
+  {
+   "id": "@wren/studio#framedPicture",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/props.ts",
+    "kind": "function",
+    "sig": "(edit: VideoEdit): { source: \"main\" | \"cam\"; size: [number, number]; centre: Point; }"
+   }
+  },
+  {
+   "id": "@wren/studio#framedProps",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/props.ts",
+    "kind": "function",
+    "sig": "(edit: VideoEdit, format: CroppedFormat, mattes: readonly Matte[] = [], o: { skip?: OnSkip } = {}): FramedProps"
+   }
+  },
+  {
+   "id": "@wren/studio#fromCutTime",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/cuts"
+    ],
+    "file": "packages/studio/src/cuts.ts",
+    "kind": "function",
+    "sig": "(t: number, keep: readonly Span[]): number"
+   }
+  },
+  {
+   "id": "@wren/studio#geminiLooker",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/look.ts",
+    "kind": "function",
+    "sig": "(keys: readonly string[], fetchFn: typeof fetch = fetch): Looker"
+   }
+  },
+  {
+   "id": "@wren/studio#getEdit",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/edit"
+    ],
+    "file": "packages/studio/src/edit.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, id: number): Promise<VideoEdit>"
+   }
+  },
+  {
+   "id": "@wren/studio#hasHashes",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/hash"
+    ],
+    "file": "packages/studio/src/render-hash.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(files: Record<string, string>): boolean"
+   }
+  },
+  {
+   "id": "@wren/studio#hashFiles",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/hash"
+    ],
+    "file": "packages/studio/src/render-hash.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(hashes: Record<string, string>, names: Iterable<string>): { [k: string]: string; }"
+   }
+  },
+  {
+   "id": "@wren/studio#hashKey",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/hash"
+    ],
+    "file": "packages/studio/src/render-hash.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(output: string): string"
+   }
+  },
+  {
+   "id": "@wren/studio#inOut",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/finish"
+    ],
+    "file": "packages/studio/src/finish.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(cuts: readonly Cut[], durationS: number, fps = FPS): { in: number; out: number; }"
+   }
+  },
+  {
+   "id": "@wren/studio#isCap",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/cap.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(path: string): boolean"
+   }
+  },
+  {
+   "id": "@wren/studio#isCaptionStyle",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/caption-styles.ts",
+    "kind": "function",
+    "sig": "(s: string): s is CaptionStyle"
+   }
+  },
+  {
+   "id": "@wren/studio#isCropped",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/finish"
+    ],
+    "file": "packages/studio/src/finish.ts",
+    "kind": "function",
+    "sig": "(f: Format): f is CroppedFormat"
+   }
+  },
+  {
+   "id": "@wren/studio#isEffect",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/sounds.ts",
+    "kind": "function",
+    "sig": "(id: string): id is Role"
+   }
+  },
+  {
+   "id": "@wren/studio#isLockPath",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/locks.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(p: string): boolean"
+   }
+  },
+  {
+   "id": "@wren/studio#isOpen",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/obs.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(file: string): Promise<boolean>"
+   }
+  },
+  {
+   "id": "@wren/studio#isWanted",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/hash"
+    ],
+    "file": "packages/studio/src/render-hash.ts",
+    "kind": "function",
+    "sig": "(e: Pick<VideoEdit, \"formats\">, output: string): boolean"
+   }
+  },
+  {
+   "id": "@wren/studio#keepCut",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/edit"
+    ],
+    "file": "packages/studio/src/edit.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, id: number, n: number, by: string): Promise<{ run: string; edit: VideoEdit; snapped: Moved[]; }>"
+   }
+  },
+  {
+   "id": "@wren/studio#keepSegments",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/cuts"
+    ],
+    "file": "packages/studio/src/cuts.ts",
+    "kind": "function",
+    "sig": "(cuts: readonly Cut[], durationS: number, fps = 30): Span[]"
+   }
+  },
+  {
+   "id": "@wren/studio#keptWords",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/sentences"
+    ],
+    "file": "packages/studio/src/sentences.ts",
+    "kind": "function",
+    "sig": "(words: readonly Word[], keep: readonly Span[]): Word[]"
+   }
+  },
+  {
+   "id": "@wren/studio#kitFiles",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/sounds.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(ids: Iterable<string>): string[]"
+   }
+  },
+  {
+   "id": "@wren/studio#lineAt",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/captions.ts",
+    "kind": "function",
+    "sig": "(lines: readonly Line[], t: number): { line: Line; word: number } | null"
+   }
+  },
+  {
+   "id": "@wren/studio#linesOf",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/edit"
+    ],
+    "file": "packages/studio/src/edit.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(e: Pick<VideoEdit, \"words\" | \"cuts\" | \"tracks\">): import(\"./finish.js\").CaptionLine[]"
+   }
+  },
+  {
+   "id": "@wren/studio#loadBeds",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/kit.ts",
+    "kind": "function",
+    "sig": "(pkgDir: string): Promise<Bed[]>"
+   }
+  },
+  {
+   "id": "@wren/studio#longCaption",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/finish"
+    ],
+    "file": "packages/studio/src/finish-look.ts",
+    "kind": "function",
+    "sig": "(w: number, h: number, place: number | undefined, font: string): { box: CSSProperties; text: CSSProperties; size: number }"
+   }
+  },
+  {
+   "id": "@wren/studio#longFilm",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/film.ts",
+    "kind": "function",
+    "sig": "(e: VideoEdit, o: FilmOptions = {}): Film"
+   }
+  },
+  {
+   "id": "@wren/studio#longProps",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/props.ts",
+    "kind": "function",
+    "sig": "(edit: VideoEdit, mattes: readonly Matte[] = [], o: { skip?: OnSkip } = {}): LongProps"
+   }
+  },
+  {
+   "id": "@wren/studio#longSrt",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/props.ts",
+    "kind": "function",
+    "sig": "(edit: VideoEdit): string"
+   }
+  },
+  {
+   "id": "@wren/studio#makeMattes",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/matte.ts",
+    "kind": "function",
+    "sig": "(pkgDir: string, dir: string, plan: MattePlan, sources: { main: MatteSource; cam?: MatteSource }, o: { fps: number; ffmpeg: string; log?: (l: string) => void }): Promise<Matte[]>"
+   }
+  },
+  {
+   "id": "@wren/studio#matteFile",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/matte.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(w: MatteWindow): string"
+   }
+  },
+  {
+   "id": "@wren/studio#measureFilter",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/loudness.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(): string"
+   }
+  },
+  {
+   "id": "@wren/studio#measureLoudness",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/loudness.ts",
+    "kind": "function",
+    "sig": "(file: string, ffmpeg: string): Promise<Loudness | null>"
+   }
+  },
+  {
+   "id": "@wren/studio#moveCutEdge",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/finish"
+    ],
+    "file": "packages/studio/src/finish.ts",
+    "kind": "function",
+    "sig": "(cuts: readonly Cut[], i: number, side: \"from\" | \"to\", t: number, durationS: number): Cut[]"
+   }
+  },
+  {
+   "id": "@wren/studio#musicSchema",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/sounds.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "z.ZodNullable<z.ZodObject<{ id: z.ZodString; gainDb: z.ZodOptional<z.ZodNumber>; duck: z.ZodOptional<z.ZodBoolean>; }, z.core.$strict>>"
+   }
+  },
+  {
+   "id": "@wren/studio#newOverlay",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/finish"
+    ],
+    "file": "packages/studio/src/finish.ts",
+    "kind": "function",
+    "sig": "(at: number, durationS: number, text = \"Your text\"): TextOverlay"
+   }
+  },
+  {
+   "id": "@wren/studio#noiseThresholdDb",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/cuts"
+    ],
+    "file": "packages/studio/src/cuts.ts",
+    "kind": "function",
+    "sig": "(pcm: Pcm, marginDb: number): number"
+   }
+  },
+  {
+   "id": "@wren/studio#normalizeLoudness",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/loudness.ts",
+    "kind": "function",
+    "sig": "(file: string, ffmpeg: string, o: { wav?: boolean; i?: number } = {}): Promise<Loudness | null>"
+   }
+  },
+  {
+   "id": "@wren/studio#obsRecordingDir",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/obs.ts",
+    "kind": "function",
+    "sig": "(home = homedir()): Promise<string | null>"
+   }
+  },
+  {
+   "id": "@wren/studio#onCut",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/cuts"
+    ],
+    "file": "packages/studio/src/cuts.ts",
+    "kind": "function",
+    "sig": "(t: number, keep: readonly Span[]): number"
+   }
+  },
+  {
+   "id": "@wren/studio#onScreen",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/finish"
+    ],
+    "file": "packages/studio/src/caption-styles.ts",
+    "kind": "function",
+    "sig": "(c: Captions, format: \"long\" | \"short\"): boolean"
+   }
+  },
+  {
+   "id": "@wren/studio#openStudio",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/remotion.ts",
+    "kind": "function",
+    "sig": "(pkgDir: string, dir: string, props: LongProps): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/studio#outputHashes",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/hash"
+    ],
+    "file": "packages/studio/src/render-hash.ts",
+    "kind": "function",
+    "sig": "(e: VideoEdit): Record<string, string>"
+   }
+  },
+  {
+   "id": "@wren/studio#overlayAt",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/finish"
+    ],
+    "file": "packages/studio/src/finish-look.ts",
+    "kind": "function",
+    "sig": "(o: TextOverlay, t: number, w: number, h: number): { x: number; y: number; size: number; width: number; opacity: number } | null"
+   }
+  },
+  {
+   "id": "@wren/studio#overlaySchema",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/finish"
+    ],
+    "file": "packages/studio/src/finish.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "z.ZodObject<{ text: z.ZodString; from: z.ZodNumber; to: z.ZodNumber; x: z.ZodNumber; y: z.ZodNumber; size: z.ZodEnum<{ m: \"m\"; s: \"s\"; l: \"l\"; }>; }, z.core.$strict>"
+   }
+  },
+  {
+   "id": "@wren/studio#overlaysOnCut",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/finish"
+    ],
+    "file": "packages/studio/src/finish.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(overlays: readonly TextOverlay[], keep: readonly Span[]): { from: number; to: number; text: string; x: number; y: number; size: import(\"./finish-look.js\").OverlaySize; }[]"
+   }
+  },
+  {
+   "id": "@wren/studio#overlaysSchema",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/finish"
+    ],
+    "file": "packages/studio/src/finish.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "z.ZodArray<z.ZodObject<{ text: z.ZodString; from: z.ZodNumber; to: z.ZodNumber; x: z.ZodNumber; y: z.ZodNumber; size: z.ZodEnum<{ m: \"m\"; s: \"s\"; l: \"l\"; }>; }, z.core.$strict>>"
+   }
+  },
+  {
+   "id": "@wren/studio#pages",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/captions.ts",
+    "kind": "function",
+    "sig": "(words: readonly W[]): W[][]"
+   }
+  },
+  {
+   "id": "@wren/studio#parseCheck",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/video-check.ts",
+    "kind": "function",
+    "sig": "(text: string): CheckResult"
+   }
+  },
+  {
+   "id": "@wren/studio#parseKeyboard",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/cap.ts",
+    "kind": "function",
+    "sig": "(bytes: Uint8Array): { key: string; timeMs: number; down: boolean }[]"
+   }
+  },
+  {
+   "id": "@wren/studio#parseLoudnorm",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/loudness.ts",
+    "kind": "function",
+    "sig": "(stderr: string): Loudness | null"
+   }
+  },
+  {
+   "id": "@wren/studio#parseStress",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/stress"
+    ],
+    "file": "packages/studio/src/stress.ts",
+    "kind": "function",
+    "sig": "(text: string, words: readonly Word[], from = 0, to = words.length): number[]"
+   }
+  },
+  {
+   "id": "@wren/studio#phrases",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/captions.ts",
+    "kind": "function",
+    "sig": "(words: readonly Word[], pauseS: number): Word[][]"
+   }
+  },
+  {
+   "id": "@wren/studio#pictureOf",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/finish"
+    ],
+    "file": "packages/studio/src/finish.ts",
+    "kind": "function",
+    "sig": "(tracks: Pick<Tracks, \"main\" | \"cam\" | \"camBox\">): { source: \"main\" | \"cam\"; centre: Point; }"
+   }
+  },
+  {
+   "id": "@wren/studio#pillLook",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/finish"
+    ],
+    "file": "packages/studio/src/finish-look.ts",
+    "kind": "function",
+    "sig": "(size: number, foreground: string): CSSProperties"
+   }
+  },
+  {
+   "id": "@wren/studio#placeEffects",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/sounds.ts",
+    "kind": "function",
+    "sig": "(cues: readonly (readonly [t: number, id: string, gainDb?: number | undefined])[], o: { fps: number; bed: number }): PlacedSound[]"
+   }
+  },
+  {
+   "id": "@wren/studio#placeWord",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/safe-zones.ts",
+    "kind": "function",
+    "sig": "(zone: Zone, rect: Rect, o: { frame: [number, number]; text: string; size: number; y: number }): Spot | null"
+   }
+  },
+  {
+   "id": "@wren/studio#planMattes",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/matte.ts",
+    "kind": "function",
+    "sig": "(o: { picks: readonly Pick[]; layout: readonly LayoutRange[]; cam: boolean; camBox: boolean; durationS: number; fps: number; }): MattePlan"
+   }
+  },
+  {
+   "id": "@wren/studio#playFrom",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/finish"
+    ],
+    "file": "packages/studio/src/finish.ts",
+    "kind": "function",
+    "sig": "(t: number, keep: readonly Span[]): number | null"
+   }
+  },
+  {
+   "id": "@wren/studio#portrait",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/media.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(s: { width: number; height: number }): boolean"
+   }
+  },
+  {
+   "id": "@wren/studio#preview",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/media.ts",
+    "kind": "function",
+    "sig": "(input: string, out: string, ffmpeg: string): Promise<string>"
+   }
+  },
+  {
+   "id": "@wren/studio#probe",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/media.ts",
+    "kind": "function",
+    "sig": "(path: string, ffmpeg: string): Promise<Track & { audio: boolean }>"
+   }
+  },
+  {
+   "id": "@wren/studio#promoProps",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/promo.ts",
+    "kind": "function",
+    "sig": "(script: PromoScript, sizes: Record<string, [number, number]> = {}, o: { musicLufs?: number; takes?: Record<string, Take> } = {}): PromoProps"
+   }
+  },
+  {
+   "id": "@wren/studio#promoScript",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/promo.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "z.ZodObject<{ format: z.ZodDefault<z.ZodEnum<{ wide: \"wide\"; tall: \"tall\"; }>>; theme: z.ZodDefault<z.ZodEnum<{ light: \"light\"; dark: \"dark\"; }>>; fps: z.ZodOptional<z.ZodUnion<z.ZodLiteral<60 | 30>[]>>; look: z.ZodDefault<z.ZodObject<{ background: z.ZodOptional<z.ZodString>; foreground: z.ZodOption…"
+   }
+  },
+  {
+   "id": "@wren/studio#proposeChange",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/change"
+    ],
+    "file": "packages/studio/src/change.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, id: number, sentence: string, model: ChangeModel, o: { by: string; beat?: string | null }): Promise<Proposal>"
+   }
+  },
+  {
+   "id": "@wren/studio#proposeStress",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/stress"
+    ],
+    "file": "packages/studio/src/stress.ts",
+    "kind": "function",
+    "sig": "(model: StressModel, cut: readonly { i: number; w: Word }[]): Promise<{ stress: number[]; asked: number; offered: number }>"
+   }
+  },
+  {
+   "id": "@wren/studio#proxy360",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/media.ts",
+    "kind": "function",
+    "sig": "(main: string, cam: string | undefined, out: string, ffmpeg: string): Promise<string>"
+   }
+  },
+  {
+   "id": "@wren/studio#punctuate",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/punctuate"
+    ],
+    "file": "packages/studio/src/punctuate.ts",
+    "kind": "function",
+    "sig": "(model: StressModel, words: readonly Word[]): Promise<{ words: Word[]; changed: number; asked: number }>"
+   }
+  },
+  {
+   "id": "@wren/studio#punctuatePrompt",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/punctuate"
+    ],
+    "file": "packages/studio/src/punctuate.ts",
+    "kind": "function",
+    "sig": "(words: readonly Word[]): string"
+   }
+  },
+  {
+   "id": "@wren/studio#readCutKnobs",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/cuts"
+    ],
+    "file": "packages/studio/src/cuts.ts",
+    "kind": "function",
+    "sig": "(raw: unknown): CutKnobsByFormat"
+   }
+  },
+  {
+   "id": "@wren/studio#readTake",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/take.ts",
+    "kind": "function",
+    "sig": "(root: string, dir: string): Promise<Take>"
+   }
+  },
+  {
+   "id": "@wren/studio#readyPatch",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/edit"
+    ],
+    "file": "packages/studio/src/edit.ts",
+    "kind": "function",
+    "sig": "(now: VideoEdit, input: unknown): { patch: EditPatch | null; snapped: Moved[]; issues: string[] }"
+   }
+  },
+  {
+   "id": "@wren/studio#redoSilence",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/edit"
+    ],
+    "file": "packages/studio/src/edit.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, id: number, ffmpeg: string, by: string): Promise<{ run: string; edit: VideoEdit; snapped: Moved[]; }>"
+   }
+  },
+  {
+   "id": "@wren/studio#reelCaption",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/finish"
+    ],
+    "file": "packages/studio/src/finish-look.ts",
+    "kind": "function",
+    "sig": "(w: number, y: number, chars: number, maxChars: number, font: string): { box: CSSProperties; size: number }"
+   }
+  },
+  {
+   "id": "@wren/studio#reelLines",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/captions.ts",
+    "kind": "function",
+    "sig": "(words: readonly Word[], o: LineRules = REEL): Line[]"
+   }
+  },
+  {
+   "id": "@wren/studio#reelY",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/finish"
+    ],
+    "file": "packages/studio/src/finish-look.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(h: number, place: { short?: number | undefined } | undefined): number"
+   }
+  },
+  {
+   "id": "@wren/studio#remapStress",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/stress"
+    ],
+    "file": "packages/studio/src/stress.ts",
+    "kind": "function",
+    "sig": "(before: readonly Word[], after: readonly Word[], stress: readonly number[]): number[]"
+   }
+  },
+  {
+   "id": "@wren/studio#renderAll",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/remotion.ts",
+    "kind": "function",
+    "sig": "(pkgDir: string, dir: string, job: RenderJob, log: (line: string) => void = () => {}, ffmpeg = \"ffmpeg\"): Promise<{ files: Record<string, string>; seconds: Record<string, number> }>"
+   }
+  },
+  {
+   "id": "@wren/studio#renderPromo",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/remotion.ts",
+    "kind": "function",
+    "sig": "(pkgDir: string, dir: string, props: PromoProps, stillS?: number, ffmpeg = \"ffmpeg\"): Promise<string>"
+   }
+  },
+  {
+   "id": "@wren/studio#renderStill",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/remotion.ts",
+    "kind": "function",
+    "sig": "(pkgDir: string, dir: string, props: LongProps, atS: number): Promise<string>"
+   }
+  },
+  {
+   "id": "@wren/studio#renderStills",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/remotion.ts",
+    "kind": "function",
+    "sig": "(pkgDir: string, dir: string, job: Omit<RenderJob, \"thumbnails\">, atS: number, label = String(Math.round(atS * 10) / 10)): Promise<Record<string, string>>"
+   }
+  },
+  {
+   "id": "@wren/studio#reviewCuts",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/cuts"
+    ],
+    "file": "packages/studio/src/cuts.ts",
+    "kind": "function",
+    "sig": "(cuts: readonly Cut[], words: readonly Word[]): CutRow[]"
+   }
+  },
+  {
+   "id": "@wren/studio#rewriteLine",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/finish"
+    ],
+    "file": "packages/studio/src/finish.ts",
+    "kind": "function",
+    "sig": "(words: readonly Word[], at: readonly number[], text: string): Word[]"
+   }
+  },
+  {
+   "id": "@wren/studio#sameJson",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/edit"
+    ],
+    "file": "packages/studio/src/edit.ts",
+    "kind": "function",
+    "sig": "(a: unknown, b: unknown): boolean"
+   }
+  },
+  {
+   "id": "@wren/studio#scaleFilter",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/media.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(s: { width: number; height: number }): \"scale=1080:-2:flags=lanczos\" | \"scale=-2:1080:flags=lanczos\""
+   }
+  },
+  {
+   "id": "@wren/studio#secondsOf",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/promo.ts",
+    "kind": "function",
+    "sig": "(s: PromoScene): number"
+   }
+  },
+  {
+   "id": "@wren/studio#sentenceEdges",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/sentences"
+    ],
+    "file": "packages/studio/src/sentences.ts",
+    "kind": "function",
+    "sig": "(words: readonly Word[]): { starts: Set<number>; ends: Set<number> }"
+   }
+  },
+  {
+   "id": "@wren/studio#setCut",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/edit"
+    ],
+    "file": "packages/studio/src/edit.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, id: number, span: { from: number; to: number }, state: \"cut\" | \"kept\", by: string): Promise<{ run: string; edit: VideoEdit; snapped: Moved[]; }>"
+   }
+  },
+  {
+   "id": "@wren/studio#setCutKnobs",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/edit"
+    ],
+    "file": "packages/studio/src/edit.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, patch: Partial<CutKnobs>, by: string, format: CutFormat = \"long\"): Promise<CutKnobs>"
+   }
+  },
+  {
+   "id": "@wren/studio#setEdit",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/edit"
+    ],
+    "file": "packages/studio/src/edit.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, id: number, input: unknown, o: { by: string; command?: string; run?: string; stats?: object; expect?: Record<string, unknown>; agent?: boolean; lock?: boolean; }): Promise<{ run: string; edit: VideoEdit; snapped: Moved[] }>"
+   }
+  },
+  {
+   "id": "@wren/studio#setFiles",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/edit"
+    ],
+    "file": "packages/studio/src/edit.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, id: number, files: Record<string, string>): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/studio#setKeys",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/edit"
+    ],
+    "file": "packages/studio/src/edit.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, id: number, keys: Record<string, string>): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/studio#setLine",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/edit"
+    ],
+    "file": "packages/studio/src/edit.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, id: number, line: { at: number[]; text: string; was: string }, by: string): Promise<{ run: string; edit: VideoEdit }>"
+   }
+  },
+  {
+   "id": "@wren/studio#setLocks",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/edit"
+    ],
+    "file": "packages/studio/src/edit.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, id: number, o: { lock?: readonly string[]; unlock?: readonly string[] }): Promise<string[]>"
+   }
+  },
+  {
+   "id": "@wren/studio#setLook",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/edit"
+    ],
+    "file": "packages/studio/src/edit.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, id: number, provider: string, look: Look): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/studio#setRender",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/edit"
+    ],
+    "file": "packages/studio/src/edit.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, id: number, render: RenderState | null): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/studio#setRendered",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/edit"
+    ],
+    "file": "packages/studio/src/edit.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, id: number, files: Record<string, string>, keys: Record<string, string>): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/studio#setStress",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/edit"
+    ],
+    "file": "packages/studio/src/edit.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, id: number, stress: number[], o: { by: string; stats?: object }): Promise<{ run: string; edit: VideoEdit; snapped: Moved[]; }>"
+   }
+  },
+  {
+   "id": "@wren/studio#setStudioWords",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/edit"
+    ],
+    "file": "packages/studio/src/edit.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Queryable, words: string[], by: string): Promise<string[]>"
+   }
+  },
+  {
+   "id": "@wren/studio#setWords",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/edit"
+    ],
+    "file": "packages/studio/src/edit.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, id: number, change: WordsFix | { words: unknown; stress?: unknown }, o: { by: string; command?: string }): Promise<{ run: string; n: number; edit: VideoEdit }>"
+   }
+  },
+  {
+   "id": "@wren/studio#sheetGrid",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/video-check.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(durationS: number): { every: number; n: number; cols: number; rows: number; }"
+   }
+  },
+  {
+   "id": "@wren/studio#shortCrop",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/finish"
+    ],
+    "file": "packages/studio/src/finish.ts",
+    "kind": "function",
+    "sig": "(crops: Crops | undefined, n: number): Point | null"
+   }
+  },
+  {
+   "id": "@wren/studio#shortCutsOver",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/cuts"
+    ],
+    "file": "packages/studio/src/cuts.ts",
+    "kind": "function",
+    "sig": "(cuts: readonly Cut[], shortCuts: readonly Cut[]): Cut[]"
+   }
+  },
+  {
+   "id": "@wren/studio#shortFilm",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/film.ts",
+    "kind": "function",
+    "sig": "(e: VideoEdit, n: number, o: FilmOptions = {}): Film"
+   }
+  },
+  {
+   "id": "@wren/studio#shortIssues",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/sentences"
+    ],
+    "file": "packages/studio/src/sentences.ts",
+    "kind": "function",
+    "sig": "(e: EditWords, shorts: readonly Pick<Short, \"from\" | \"to\">[], only: (s: Pick<Short, \"from\" | \"to\">, i: number) => boolean = () => true): string[]"
+   }
+  },
+  {
+   "id": "@wren/studio#shortProps",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/props.ts",
+    "kind": "function",
+    "sig": "(edit: VideoEdit, n: number, mattes: readonly Matte[] = [], o: { skip?: OnSkip } = {}): ShortProps"
+   }
+  },
+  {
+   "id": "@wren/studio#shownOf",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/stress"
+    ],
+    "file": "packages/studio/src/stress.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(w: Word): { from: number; to: number; }"
+   }
+  },
+  {
+   "id": "@wren/studio#silenceCuts",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/cuts"
+    ],
+    "file": "packages/studio/src/cuts.ts",
+    "kind": "function",
+    "sig": "(words: readonly Word[], silences: readonly Span[], pcm: Pcm, durationS: number, knobs: CutKnobs = CUT_DEFAULTS): Cut[]"
+   }
+  },
+  {
+   "id": "@wren/studio#snapFrame",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/finish"
+    ],
+    "file": "packages/studio/src/finish.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(t: number, fps = FPS): number"
+   }
+  },
+  {
+   "id": "@wren/studio#snapShorts",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/sentences"
+    ],
+    "file": "packages/studio/src/sentences.ts",
+    "kind": "function",
+    "sig": "(e: EditWords, shorts: readonly Short[]): { shorts: Short[]; moved: Moved[] }"
+   }
+  },
+  {
+   "id": "@wren/studio#snapTime",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/finish"
+    ],
+    "file": "packages/studio/src/finish.ts",
+    "kind": "function",
+    "sig": "(t: number, words: readonly Pick<Word, \"s\" | \"e\">[], durationS: number, magnetS = 4 / FPS): number"
+   }
+  },
+  {
+   "id": "@wren/studio#soundFile",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/sounds.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(id: string): string"
+   }
+  },
+  {
+   "id": "@wren/studio#soundsSchema",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/sounds.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "z.ZodArray<z.ZodObject<{ at: z.ZodNumber; id: z.ZodString & z.ZodType<\"text\" | \"key\" | \"pop\" | \"drop\" | \"click\" | \"tick\" | \"land\" | \"hit\" | \"tick.crisp\" | \"tock\" | \"land.light\" | \"whoosh.short\" | \"whoosh.long\" | \"riser\" | \"swell\" | \"key.space\" | \"key.return\" | \"click.confirm\" | \"snap\" | \"bell\", stri…"
+   }
+  },
+  {
+   "id": "@wren/studio#sourceProxy",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/media.ts",
+    "kind": "function",
+    "sig": "(input: string, out: string, ffmpeg: string, o: { shiftS?: number; audio?: boolean } = {}): Promise<string>"
+   }
+  },
+  {
+   "id": "@wren/studio#spaceStress",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/stress"
+    ],
+    "file": "packages/studio/src/stress.ts",
+    "kind": "function",
+    "sig": "(words: readonly Word[], picks: readonly number[], o: { perMinute?: number } = {}): number[]"
+   }
+  },
+  {
+   "id": "@wren/studio#speech",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/sounds.ts",
+    "kind": "function",
+    "sig": "(words: readonly Pick<Word, \"s\" | \"e\">[]): [number, number][]"
+   }
+  },
+  {
+   "id": "@wren/studio#srt",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/captions.ts",
+    "kind": "function",
+    "sig": "(words: readonly Word[], o: LineRules = SUBS): string"
+   }
+  },
+  {
+   "id": "@wren/studio#stageSounds",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/kit.ts",
+    "kind": "function",
+    "sig": "(dir: string, files: Iterable<string>, o: { pkgDir: string; cache?: string }): Promise<number>"
+   }
+  },
+  {
+   "id": "@wren/studio#storyboardOf",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/storyboard"
+    ],
+    "file": "packages/studio/src/storyboard.ts",
+    "kind": "function",
+    "sig": "(e: Edit): Storyboard"
+   }
+  },
+  {
+   "id": "@wren/studio#storyboardText",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/storyboard"
+    ],
+    "file": "packages/studio/src/storyboard.ts",
+    "kind": "function",
+    "sig": "(sb: Storyboard, o: { max?: number } = {}): string"
+   }
+  },
+  {
+   "id": "@wren/studio#stressCandidates",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/stress"
+    ],
+    "file": "packages/studio/src/stress.ts",
+    "kind": "function",
+    "sig": "(e: { words: readonly Word[]; cuts: readonly Cut[]; tracks: { main: { durationS: number } } }, fps = 30): { i: number; w: Word }[]"
+   }
+  },
+  {
+   "id": "@wren/studio#stressOnCut",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/edit"
+    ],
+    "file": "packages/studio/src/edit.ts",
+    "kind": "function",
+    "sig": "(words: readonly Word[], stress: readonly number[], keep: ReturnType<typeof keepSegments>): string[]"
+   }
+  },
+  {
+   "id": "@wren/studio#stressPrompt",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/stress"
+    ],
+    "file": "packages/studio/src/stress.ts",
+    "kind": "function",
+    "sig": "(words: readonly Word[], from: number, to: number): string"
+   }
+  },
+  {
+   "id": "@wren/studio#studioWords",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/edit"
+    ],
+    "file": "packages/studio/src/edit.ts",
+    "kind": "function",
+    "sig": "(db: Queryable): Promise<string[]>"
+   }
+  },
+  {
+   "id": "@wren/studio#takeVolume",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/sounds.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(role: Role, take: Take, bed: number, gainDb = 0): number"
+   }
+  },
+  {
+   "id": "@wren/studio#thumbnailProps",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/props.ts",
+    "kind": "function",
+    "sig": "(edit: VideoEdit): ThumbnailProps[] | null"
+   }
+  },
+  {
+   "id": "@wren/studio#toCutTime",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/cuts"
+    ],
+    "file": "packages/studio/src/cuts.ts",
+    "kind": "function",
+    "sig": "(t: number, keep: readonly Span[]): number | null"
+   }
+  },
+  {
+   "id": "@wren/studio#toRaw",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/look.ts",
+    "kind": "function",
+    "sig": "(look: Omit<Look, \"at\">, keep: readonly Span[]): Look"
+   }
+  },
+  {
+   "id": "@wren/studio#transcribe",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/whisper.ts",
+    "kind": "function",
+    "sig": "(wav: string, opts: { model?: string; bin?: string; language?: string; prompt?: string; align?: boolean; } = {}): Promise<Word[]>"
+   }
+  },
+  {
+   "id": "@wren/studio#trimCuts",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/finish"
+    ],
+    "file": "packages/studio/src/finish.ts",
+    "kind": "function",
+    "sig": "(cuts: readonly Cut[], durationS: number, to: { in?: number; out?: number }): Cut[]"
+   }
+  },
+  {
+   "id": "@wren/studio#twelvelabsFind",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/look.ts",
+    "kind": "function",
+    "sig": "(key: string | undefined, media: NonNullable<Look[\"media\"]>, words: string, fetchFn: typeof fetch = fetch): Promise<{ start: number; end: number; rank?: number }[]>"
+   }
+  },
+  {
+   "id": "@wren/studio#twelvelabsLooker",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/look.ts",
+    "kind": "function",
+    "sig": "(key: string | undefined, o: { usedMinutes: number; durationS: number; cut: string; fetchFn?: typeof fetch }): Looker"
+   }
+  },
+  {
+   "id": "@wren/studio#twelvelabsMinutes",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/edit"
+    ],
+    "file": "packages/studio/src/edit.ts",
+    "kind": "function",
+    "sig": "(db: Queryable): Promise<number>"
+   }
+  },
+  {
+   "id": "@wren/studio#unknownSounds",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/kit.ts",
+    "kind": "function",
+    "sig": "(beds: readonly Bed[], ids: Iterable<string>): string[]"
+   }
+  },
+  {
+   "id": "@wren/studio#unpunctuated",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/punctuate"
+    ],
+    "file": "packages/studio/src/punctuate.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(words: readonly Word[]): boolean"
+   }
+  },
+  {
+   "id": "@wren/studio#valueAt",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/locks.ts",
+    "kind": "function",
+    "sig": "(edit: object, path: string): unknown"
+   }
+  },
+  {
+   "id": "@wren/studio#verticalProps",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/props.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(edit: VideoEdit, mattes: readonly Matte[] = [], o: { skip?: OnSkip } = {}): FramedProps"
+   }
+  },
+  {
+   "id": "@wren/studio#verticalRect",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/safe-zones.ts",
+    "kind": "function",
+    "sig": "(picture: { size: [number, number]; window: [number, number, number, number] }, frame: readonly [number, number] = [1080, 1920]): Rect"
+   }
+  },
+  {
+   "id": "@wren/studio#verticalWindow",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/props.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(w: number, h: number, cx = w / 2): [number, number, number, number]"
+   }
+  },
+  {
+   "id": "@wren/studio#videoEdits",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/schema"
+    ],
+    "file": "packages/studio/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"video_edits\"; schema: undefined; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"video_edits\"; dataType: \"number\"; columnType: \"PgSerial\"; data: number; driverParam: number; notNull: true; hasDefault: true; isP…"
+   }
+  },
+  {
+   "id": "@wren/studio#wav16k",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/media.ts",
+    "kind": "function",
+    "sig": "(path: string, out: string, ffmpeg: string): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/studio#withCutChanges",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/change"
+    ],
+    "file": "packages/studio/src/change.ts",
+    "kind": "function",
+    "sig": "(cuts: readonly Cut[], changes: unknown): Cut[]"
+   }
+  },
+  {
+   "id": "@wren/studio#withFallback",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/stress"
+    ],
+    "file": "packages/studio/src/stress.ts",
+    "kind": "function",
+    "sig": "(primary: StressModel & { name: string }, backup: (StressModel & { name: string }) | null, when: RegExp = OUT_OF_FREE): StressModel & { answered: string[] }"
+   }
+  },
+  {
+   "id": "@wren/studio#withLocks",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/locks.ts",
+    "kind": "function",
+    "sig": "(locked: readonly string[], paths: readonly string[]): string[]"
+   }
+  },
+  {
+   "id": "@wren/studio#withPatch",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/edit"
+    ],
+    "file": "packages/studio/src/edit.ts",
+    "kind": "function",
+    "sig": "(now: VideoEdit, patch: EditPatch): VideoEdit"
+   }
+  },
+  {
+   "id": "@wren/studio#withSilence",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio/cuts"
+    ],
+    "file": "packages/studio/src/cuts.ts",
+    "kind": "function",
+    "sig": "(existing: readonly Cut[], silence: readonly Cut[]): Cut[]"
+   }
+  },
+  {
+   "id": "@wren/studio#wordAt",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/stress"
+    ],
+    "file": "packages/studio/src/stress.ts",
+    "kind": "function",
+    "sig": "(words: readonly Word[], at: number): number"
+   }
+  },
+  {
+   "id": "@wren/studio#wordBox",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/safe-zones.ts",
+    "kind": "function",
+    "sig": "(text: string, size: number, x: number, y: number): Rect"
+   }
+  },
+  {
+   "id": "@wren/studio#wordState",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio",
+     "@wren/studio/finish"
+    ],
+    "file": "packages/studio/src/caption-styles.ts",
+    "kind": "function",
+    "sig": "(style: string, w: { s: number; e: number }, t: number, until: number, o: { first?: boolean } = {}): WordState"
+   }
+  },
+  {
+   "id": "@wren/studio#wordsVtt",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/film.ts",
+    "kind": "function",
+    "sig": "(e: Pick<VideoEdit, \"words\" | \"cuts\" | \"tracks\">): string"
+   }
+  },
+  {
+   "id": "@wren/studio#zoneAcc",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/safe-zones.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(grid: number = ZONE.grid): Float32Array<ArrayBuffer>"
+   }
+  },
+  {
+   "id": "@wren/studio#zoneOf",
+   "role": "export",
+   "parent": "@wren/studio",
+   "group": "@wren/studio",
+   "attrs": {
+    "entries": [
+     "@wren/studio"
+    ],
+    "file": "packages/studio/src/safe-zones.ts",
+    "kind": "function",
+    "sig": "(acc: Float32Array): Zone"
+   }
+  }
+ ],
+ "edges": []
+}

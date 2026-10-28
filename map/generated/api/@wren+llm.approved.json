@@ -1,0 +1,627 @@
+{
+ "layer": "api",
+ "nodes": [
+  {
+   "id": "@wren/llm#CallRecord",
+   "role": "export",
+   "parent": "@wren/llm",
+   "group": "@wren/llm",
+   "attrs": {
+    "entries": [
+     "@wren/llm"
+    ],
+    "file": "packages/llm/src/audit.ts",
+    "kind": "interface",
+    "sig": "interface CallRecord { model: string; provider: string; usage: Usage | null; finish_reason: string | null; latency_ms: number | null; run_id: string | null; rejected: boolean; }"
+   }
+  },
+  {
+   "id": "@wren/llm#CompleteOptions",
+   "role": "export",
+   "parent": "@wren/llm",
+   "group": "@wren/llm",
+   "attrs": {
+    "entries": [
+     "@wren/llm"
+    ],
+    "file": "packages/llm/src/client.ts",
+    "kind": "interface",
+    "sig": "interface CompleteOptions { maxTokens?: number; effort?: Effort; system?: string; part?: string; }"
+   }
+  },
+  {
+   "id": "@wren/llm#EMBED_DIMS",
+   "role": "export",
+   "parent": "@wren/llm",
+   "group": "@wren/llm",
+   "attrs": {
+    "entries": [
+     "@wren/llm"
+    ],
+    "file": "packages/llm/src/embed.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "256"
+   }
+  },
+  {
+   "id": "@wren/llm#Effort",
+   "role": "export",
+   "parent": "@wren/llm",
+   "group": "@wren/llm",
+   "attrs": {
+    "entries": [
+     "@wren/llm"
+    ],
+    "file": "node_modules/.pnpm/@wrenautomation+models@0.8.2/node_modules/@wrenautomation/models/dist/types.d.ts",
+    "kind": "type",
+    "sig": "type Effort = \"low\" | \"medium\" | \"high\" | \"xhigh\" | \"max\";"
+   }
+  },
+  {
+   "id": "@wren/llm#Embed",
+   "role": "export",
+   "parent": "@wren/llm",
+   "group": "@wren/llm",
+   "attrs": {
+    "entries": [
+     "@wren/llm"
+    ],
+    "file": "packages/llm/src/embed.ts",
+    "kind": "type",
+    "sig": "type Embed = (texts: string[], task: EmbedTask) => Promise<number[][]>;"
+   }
+  },
+  {
+   "id": "@wren/llm#EnvMap",
+   "role": "export",
+   "parent": "@wren/llm",
+   "group": "@wren/llm",
+   "attrs": {
+    "entries": [
+     "@wren/llm"
+    ],
+    "file": "node_modules/.pnpm/@wrenautomation+models@0.8.2/node_modules/@wrenautomation/models/dist/keys.d.ts",
+    "kind": "type",
+    "sig": "type EnvMap = Readonly<Record<string, string | undefined>>;"
+   }
+  },
+  {
+   "id": "@wren/llm#Envelope",
+   "role": "export",
+   "parent": "@wren/llm",
+   "group": "@wren/llm",
+   "attrs": {
+    "entries": [
+     "@wren/llm"
+    ],
+    "file": "packages/llm/src/stage.ts",
+    "kind": "interface",
+    "sig": "interface Envelope { raw_text: string | null; parse_error: string | null; provider_rejected: string | null; api: Record<string, unknown> | null; call: CallRecord | null; [key: string]: unknown; }"
+   }
+  },
+  {
+   "id": "@wren/llm#FakeLlm",
+   "role": "export",
+   "parent": "@wren/llm",
+   "group": "@wren/llm",
+   "attrs": {
+    "entries": [
+     "@wren/llm"
+    ],
+    "file": "packages/llm/src/client.ts",
+    "kind": "class",
+    "sig": "readonly name: string; readonly provider: string; constructor(opts: { respond?: FakeResponder; default?: string } = {}); complete(prompt: string, opts: CompleteOptions = {}): Promise<LlmResponse>"
+   }
+  },
+  {
+   "id": "@wren/llm#LlmClient",
+   "role": "export",
+   "parent": "@wren/llm",
+   "group": "@wren/llm",
+   "attrs": {
+    "entries": [
+     "@wren/llm"
+    ],
+    "file": "packages/llm/src/client.ts",
+    "kind": "interface",
+    "sig": "interface LlmClient { readonly name: string; readonly provider: string; complete(prompt: string, opts?: CompleteOptions): Promise<LlmResponse>; }"
+   }
+  },
+  {
+   "id": "@wren/llm#LlmError",
+   "role": "export",
+   "parent": "@wren/llm",
+   "group": "@wren/llm",
+   "attrs": {
+    "entries": [
+     "@wren/llm"
+    ],
+    "file": "packages/llm/src/client.ts",
+    "kind": "class",
+    "sig": "override name; readonly status: number | null;; constructor(message: string, opts: { status?: number | null; cause?: unknown } = {})"
+   }
+  },
+  {
+   "id": "@wren/llm#LlmInputRejected",
+   "role": "export",
+   "parent": "@wren/llm",
+   "group": "@wren/llm",
+   "attrs": {
+    "entries": [
+     "@wren/llm"
+    ],
+    "file": "packages/llm/src/client.ts",
+    "kind": "class",
+    "sig": "override name"
+   }
+  },
+  {
+   "id": "@wren/llm#LlmResponse",
+   "role": "export",
+   "parent": "@wren/llm",
+   "group": "@wren/llm",
+   "attrs": {
+    "entries": [
+     "@wren/llm"
+    ],
+    "file": "packages/llm/src/client.ts",
+    "kind": "interface",
+    "sig": "interface LlmResponse { text: string; raw: Record<string, unknown>; latencyMs: number | null; }"
+   }
+  },
+  {
+   "id": "@wren/llm#NO_JSON_OBJECT",
+   "role": "export",
+   "parent": "@wren/llm",
+   "group": "@wren/llm",
+   "attrs": {
+    "entries": [
+     "@wren/llm"
+    ],
+    "file": "packages/llm/src/parsing.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"no JSON object in response\""
+   }
+  },
+  {
+   "id": "@wren/llm#NULL_TRACER",
+   "role": "export",
+   "parent": "@wren/llm",
+   "group": "@wren/llm",
+   "attrs": {
+    "entries": [
+     "@wren/llm"
+    ],
+    "file": "packages/llm/src/tracing.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "NullTracer"
+   }
+  },
+  {
+   "id": "@wren/llm#Outcome",
+   "role": "export",
+   "parent": "@wren/llm",
+   "group": "@wren/llm",
+   "attrs": {
+    "entries": [
+     "@wren/llm"
+    ],
+    "file": "packages/llm/src/stage.ts",
+    "kind": "class",
+    "sig": "constructor(readonly parsed: T | null, readonly parseError: string | null, readonly providerRejected: string | null, readonly rawText: string | null, readonly api: Record<string, unknown> | null, readonly call: CallRecord, readonly request: StageRequest | null = null); get ok(): boolean; envelope(payload: Record<string, unknown> = {}): Envelope"
+   }
+  },
+  {
+   "id": "@wren/llm#RecordingTracer",
+   "role": "export",
+   "parent": "@wren/llm",
+   "group": "@wren/llm",
+   "attrs": {
+    "entries": [
+     "@wren/llm"
+    ],
+    "file": "packages/llm/src/tracing.ts",
+    "kind": "class",
+    "sig": "readonly spans: RecordedSpan[]; flushed; start(name: string, opts: SpanStart): RecordedSpan; flush(): void"
+   }
+  },
+  {
+   "id": "@wren/llm#Span",
+   "role": "export",
+   "parent": "@wren/llm",
+   "group": "@wren/llm",
+   "attrs": {
+    "entries": [
+     "@wren/llm"
+    ],
+    "file": "packages/llm/src/tracing.ts",
+    "kind": "interface",
+    "sig": "interface Span { end(outcome: Outcome<unknown>): void; fail(err: unknown): void; }"
+   }
+  },
+  {
+   "id": "@wren/llm#SpanStart",
+   "role": "export",
+   "parent": "@wren/llm",
+   "group": "@wren/llm",
+   "attrs": {
+    "entries": [
+     "@wren/llm"
+    ],
+    "file": "packages/llm/src/tracing.ts",
+    "kind": "interface",
+    "sig": "interface SpanStart { prompt: string; llm: LlmClient; metadata?: Record<string, unknown> | undefined; }"
+   }
+  },
+  {
+   "id": "@wren/llm#Tracer",
+   "role": "export",
+   "parent": "@wren/llm",
+   "group": "@wren/llm",
+   "attrs": {
+    "entries": [
+     "@wren/llm"
+    ],
+    "file": "packages/llm/src/tracing.ts",
+    "kind": "interface",
+    "sig": "interface Tracer { start(name: string, opts: SpanStart): Span; flush(): void | Promise<void>; }"
+   }
+  },
+  {
+   "id": "@wren/llm#Usage",
+   "role": "export",
+   "parent": "@wren/llm",
+   "group": "@wren/llm",
+   "attrs": {
+    "entries": [
+     "@wren/llm"
+    ],
+    "file": "packages/llm/src/audit.ts",
+    "kind": "interface",
+    "sig": "interface Usage { input: number | null; output: number | null; total: number | null; reasoning: number | null; cache_read: number | null; cache_write: number | null; }"
+   }
+  },
+  {
+   "id": "@wren/llm#UsageReport",
+   "role": "export",
+   "parent": "@wren/llm",
+   "group": "@wren/llm",
+   "attrs": {
+    "entries": [
+     "@wren/llm"
+    ],
+    "file": "packages/llm/src/usage.ts",
+    "kind": "interface",
+    "sig": "interface UsageReport { model: string; provider: string; part: string; usage: Usage; }"
+   }
+  },
+  {
+   "id": "@wren/llm#bestEffortSpan",
+   "role": "export",
+   "parent": "@wren/llm",
+   "group": "@wren/llm",
+   "attrs": {
+    "entries": [
+     "@wren/llm"
+    ],
+    "file": "packages/llm/src/tracing.ts",
+    "kind": "function",
+    "sig": "(tracer: Tracer, name: string, opts: SpanStart): Span"
+   }
+  },
+  {
+   "id": "@wren/llm#callRecord",
+   "role": "export",
+   "parent": "@wren/llm",
+   "group": "@wren/llm",
+   "attrs": {
+    "entries": [
+     "@wren/llm"
+    ],
+    "file": "packages/llm/src/audit.ts",
+    "kind": "function",
+    "sig": "(raw: Raw, input: CallRecordInput): CallRecord"
+   }
+  },
+  {
+   "id": "@wren/llm#completeAndParse",
+   "role": "export",
+   "parent": "@wren/llm",
+   "group": "@wren/llm",
+   "attrs": {
+    "entries": [
+     "@wren/llm"
+    ],
+    "file": "packages/llm/src/stage.ts",
+    "kind": "function",
+    "sig": "(llm: LlmClient, prompt: string, schema: ZodType<T>, opts: StageOptions): Promise<Outcome<T>>"
+   }
+  },
+  {
+   "id": "@wren/llm#cosine",
+   "role": "export",
+   "parent": "@wren/llm",
+   "group": "@wren/llm",
+   "attrs": {
+    "entries": [
+     "@wren/llm"
+    ],
+    "file": "packages/llm/src/embed.ts",
+    "kind": "function",
+    "sig": "(a: readonly number[], b: readonly number[]): number"
+   }
+  },
+  {
+   "id": "@wren/llm#finishReasonFromRaw",
+   "role": "export",
+   "parent": "@wren/llm",
+   "group": "@wren/llm",
+   "attrs": {
+    "entries": [
+     "@wren/llm"
+    ],
+    "file": "packages/llm/src/audit.ts",
+    "kind": "function",
+    "sig": "(raw: Raw): string | null"
+   }
+  },
+  {
+   "id": "@wren/llm#firstJsonObject",
+   "role": "export",
+   "parent": "@wren/llm",
+   "group": "@wren/llm",
+   "attrs": {
+    "entries": [
+     "@wren/llm"
+    ],
+    "file": "packages/llm/src/parsing.ts",
+    "kind": "function",
+    "sig": "(text: string): Record<string, unknown> | string"
+   }
+  },
+  {
+   "id": "@wren/llm#fleetKeys",
+   "role": "export",
+   "parent": "@wren/llm",
+   "group": "@wren/llm",
+   "attrs": {
+    "entries": [
+     "@wren/llm"
+    ],
+    "file": "node_modules/.pnpm/@wrenautomation+models@0.8.2/node_modules/@wrenautomation/models/dist/keys.d.ts",
+    "kind": "function",
+    "sig": "(env: EnvMap, vendor: string): string[]"
+   }
+  },
+  {
+   "id": "@wren/llm#gatewayEmbed",
+   "role": "export",
+   "parent": "@wren/llm",
+   "group": "@wren/llm",
+   "attrs": {
+    "entries": [
+     "@wren/llm"
+    ],
+    "file": "packages/llm/src/embed.ts",
+    "kind": "function",
+    "sig": "(env: EnvMap, fetchFn: typeof fetch = fetch): Embed | null"
+   }
+  },
+  {
+   "id": "@wren/llm#gatewayGemini",
+   "role": "export",
+   "parent": "@wren/llm",
+   "group": "@wren/llm",
+   "attrs": {
+    "entries": [
+     "@wren/llm"
+    ],
+    "file": "packages/llm/src/gateway.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(gateway: string, token: string, fetchFn: typeof fetch = fetch): typeof fetch"
+   }
+  },
+  {
+   "id": "@wren/llm#keyProvider",
+   "role": "export",
+   "parent": "@wren/llm",
+   "group": "@wren/llm",
+   "attrs": {
+    "entries": [
+     "@wren/llm"
+    ],
+    "file": "packages/llm/src/client.ts",
+    "kind": "function",
+    "sig": "(raw: string): { provider: KeyProvider; key: string } | null"
+   }
+  },
+  {
+   "id": "@wren/llm#llmForKey",
+   "role": "export",
+   "parent": "@wren/llm",
+   "group": "@wren/llm",
+   "attrs": {
+    "entries": [
+     "@wren/llm"
+    ],
+    "file": "packages/llm/src/client.ts",
+    "kind": "function",
+    "sig": "(raw: string): LlmClient"
+   }
+  },
+  {
+   "id": "@wren/llm#loadLlmEnv",
+   "role": "export",
+   "parent": "@wren/llm",
+   "group": "@wren/llm",
+   "attrs": {
+    "entries": [
+     "@wren/llm"
+    ],
+    "file": "packages/llm/src/env.ts",
+    "kind": "function",
+    "sig": "(path = \"llm.env\", rootDir: string = process.cwd()): boolean"
+   }
+  },
+  {
+   "id": "@wren/llm#makeLlm",
+   "role": "export",
+   "parent": "@wren/llm",
+   "group": "@wren/llm",
+   "attrs": {
+    "entries": [
+     "@wren/llm"
+    ],
+    "file": "packages/llm/src/client.ts",
+    "kind": "function",
+    "sig": "(name: string, env: EnvMap = process.env, opts: MakeLlmOptions = {}): LlmClient"
+   }
+  },
+  {
+   "id": "@wren/llm#makeTracer",
+   "role": "export",
+   "parent": "@wren/llm",
+   "group": "@wren/llm",
+   "attrs": {
+    "entries": [
+     "@wren/llm"
+    ],
+    "file": "packages/llm/src/tracing.ts",
+    "kind": "function",
+    "sig": "(name: string): Tracer"
+   }
+  },
+  {
+   "id": "@wren/llm#modelLlm",
+   "role": "export",
+   "parent": "@wren/llm",
+   "group": "@wren/llm",
+   "attrs": {
+    "entries": [
+     "@wren/llm"
+    ],
+    "file": "packages/llm/src/client.ts",
+    "kind": "function",
+    "sig": "(model: Model): LlmClient"
+   }
+  },
+  {
+   "id": "@wren/llm#observeUsage",
+   "role": "export",
+   "parent": "@wren/llm",
+   "group": "@wren/llm",
+   "attrs": {
+    "entries": [
+     "@wren/llm"
+    ],
+    "file": "packages/llm/src/usage.ts",
+    "kind": "function",
+    "sig": "(llm: L, o: { part: string; record: (r: UsageReport) => Promise<unknown> | unknown; warn?: (line: string) => void; }): L"
+   }
+  },
+  {
+   "id": "@wren/llm#parseModel",
+   "role": "export",
+   "parent": "@wren/llm",
+   "group": "@wren/llm",
+   "attrs": {
+    "entries": [
+     "@wren/llm"
+    ],
+    "file": "packages/llm/src/parsing.ts",
+    "kind": "function",
+    "sig": "(text: string, schema: ZodType<T>): T | string"
+   }
+  },
+  {
+   "id": "@wren/llm#providerFromModel",
+   "role": "export",
+   "parent": "@wren/llm",
+   "group": "@wren/llm",
+   "attrs": {
+    "entries": [
+     "@wren/llm"
+    ],
+    "file": "packages/llm/src/audit.ts",
+    "kind": "function",
+    "sig": "(model: string, raw: Raw): string"
+   }
+  },
+  {
+   "id": "@wren/llm#recordFor",
+   "role": "export",
+   "parent": "@wren/llm",
+   "group": "@wren/llm",
+   "attrs": {
+    "entries": [
+     "@wren/llm"
+    ],
+    "file": "packages/llm/src/audit.ts",
+    "kind": "function",
+    "sig": "(llm: LlmClient, response: LlmResponse | null, opts: { runId: string | null; latencyMs?: number | null; rejected?: boolean }): CallRecord"
+   }
+  },
+  {
+   "id": "@wren/llm#tracingLog",
+   "role": "export",
+   "parent": "@wren/llm",
+   "group": "@wren/llm",
+   "attrs": {
+    "entries": [
+     "@wren/llm"
+    ],
+    "file": "packages/llm/src/tracing.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ warn: (message: string) => void; }"
+   }
+  },
+  {
+   "id": "@wren/llm#usageFromRaw",
+   "role": "export",
+   "parent": "@wren/llm",
+   "group": "@wren/llm",
+   "attrs": {
+    "entries": [
+     "@wren/llm"
+    ],
+    "file": "packages/llm/src/audit.ts",
+    "kind": "function",
+    "sig": "(raw: Raw): Usage | null"
+   }
+  },
+  {
+   "id": "@wren/llm#wellFormed",
+   "role": "export",
+   "parent": "@wren/llm",
+   "group": "@wren/llm",
+   "attrs": {
+    "entries": [
+     "@wren/llm"
+    ],
+    "file": "packages/llm/src/parsing.ts",
+    "kind": "function",
+    "sig": "(s: string): string"
+   }
+  },
+  {
+   "id": "@wren/llm#withPart",
+   "role": "export",
+   "parent": "@wren/llm",
+   "group": "@wren/llm",
+   "attrs": {
+    "entries": [
+     "@wren/llm"
+    ],
+    "file": "packages/llm/src/usage.ts",
+    "kind": "function",
+    "sig": "(llm: L, part: string): L"
+   }
+  }
+ ],
+ "edges": []
+}

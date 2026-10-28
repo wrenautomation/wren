@@ -1,0 +1,21 @@
+{
+ "layer": "imports",
+ "nodes": [
+  {
+   "id": "@wren/share",
+   "role": "package",
+   "parent": "repo:wren",
+   "group": "@wren/share",
+   "attrs": {
+    "dir": "apps/share/"
+   }
+  },
+  {
+   "id": "@wren/share/src/worker.ts",
+   "role": "file",
+   "parent": "@wren/share",
+   "group": "@wren/share"
+  }
+ ],
+ "edges": []
+}

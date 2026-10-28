@@ -1,0 +1,383 @@
+{
+ "layer": "api",
+ "nodes": [
+  {
+   "id": "@wren/experiments#AlleleCounts",
+   "role": "export",
+   "parent": "@wren/experiments",
+   "group": "@wren/experiments",
+   "attrs": {
+    "entries": [
+     "@wren/experiments"
+    ],
+    "file": "packages/experiments/src/engine.ts",
+    "kind": "interface",
+    "sig": "interface AlleleCounts { readonly exposures: number; readonly replies: number; readonly interested: number; readonly booked: number; readonly opens: number; readonly tracked: number; readonly negatives: number; }"
+   }
+  },
+  {
+   "id": "@wren/experiments#Beta",
+   "role": "export",
+   "parent": "@wren/experiments",
+   "group": "@wren/experiments",
+   "attrs": {
+    "entries": [
+     "@wren/experiments"
+    ],
+    "file": "packages/experiments/src/engine.ts",
+    "kind": "interface",
+    "sig": "interface Beta { readonly a: number; readonly b: number; }"
+   }
+  },
+  {
+   "id": "@wren/experiments#FITNESS",
+   "role": "export",
+   "parent": "@wren/experiments",
+   "group": "@wren/experiments",
+   "attrs": {
+    "entries": [
+     "@wren/experiments"
+    ],
+    "file": "packages/experiments/src/engine.ts",
+    "kind": "const",
+    "sig": "Readonly<Record<FitnessName, Fitness>>"
+   }
+  },
+  {
+   "id": "@wren/experiments#FITNESS_NAMES",
+   "role": "export",
+   "parent": "@wren/experiments",
+   "group": "@wren/experiments",
+   "attrs": {
+    "entries": [
+     "@wren/experiments",
+     "@wren/experiments/names"
+    ],
+    "file": "packages/experiments/src/names.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"replies\", \"interested\", \"booked\", \"opens\", \"weighted\", \"lexicographic\"]"
+   }
+  },
+  {
+   "id": "@wren/experiments#FitnessName",
+   "role": "export",
+   "parent": "@wren/experiments",
+   "group": "@wren/experiments",
+   "attrs": {
+    "entries": [
+     "@wren/experiments",
+     "@wren/experiments/names"
+    ],
+    "file": "packages/experiments/src/names.ts",
+    "kind": "type",
+    "sig": "type FitnessName = (typeof FITNESS_NAMES)[number];"
+   }
+  },
+  {
+   "id": "@wren/experiments#MUTATION_NAMES",
+   "role": "export",
+   "parent": "@wren/experiments",
+   "group": "@wren/experiments",
+   "attrs": {
+    "entries": [
+     "@wren/experiments",
+     "@wren/experiments/names"
+    ],
+    "file": "packages/experiments/src/names.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"rewrite_loser\", \"new_angle\", \"crossover\", \"retire_only\", \"manual\"]"
+   }
+  },
+  {
+   "id": "@wren/experiments#MutationName",
+   "role": "export",
+   "parent": "@wren/experiments",
+   "group": "@wren/experiments",
+   "attrs": {
+    "entries": [
+     "@wren/experiments",
+     "@wren/experiments/names"
+    ],
+    "file": "packages/experiments/src/names.ts",
+    "kind": "type",
+    "sig": "type MutationName = (typeof MUTATION_NAMES)[number];"
+   }
+  },
+  {
+   "id": "@wren/experiments#Rng",
+   "role": "export",
+   "parent": "@wren/experiments",
+   "group": "@wren/experiments",
+   "attrs": {
+    "entries": [
+     "@wren/experiments"
+    ],
+    "file": "packages/experiments/src/rng.ts",
+    "kind": "type",
+    "sig": "type Rng = () => number;"
+   }
+  },
+  {
+   "id": "@wren/experiments#SEEDING_NAMES",
+   "role": "export",
+   "parent": "@wren/experiments",
+   "group": "@wren/experiments",
+   "attrs": {
+    "entries": [
+     "@wren/experiments",
+     "@wren/experiments/names"
+    ],
+    "file": "packages/experiments/src/names.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"from_template\", \"llm_seed\", \"from_winners\"]"
+   }
+  },
+  {
+   "id": "@wren/experiments#SELECTION",
+   "role": "export",
+   "parent": "@wren/experiments",
+   "group": "@wren/experiments",
+   "attrs": {
+    "entries": [
+     "@wren/experiments"
+    ],
+    "file": "packages/experiments/src/engine.ts",
+    "kind": "const",
+    "sig": "Readonly<Record<SelectionName, Selection>>"
+   }
+  },
+  {
+   "id": "@wren/experiments#SELECTION_NAMES",
+   "role": "export",
+   "parent": "@wren/experiments",
+   "group": "@wren/experiments",
+   "attrs": {
+    "entries": [
+     "@wren/experiments",
+     "@wren/experiments/names"
+    ],
+    "file": "packages/experiments/src/names.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"even\", \"thompson\", \"epsilon\", \"ucb1\"]"
+   }
+  },
+  {
+   "id": "@wren/experiments#SeedingName",
+   "role": "export",
+   "parent": "@wren/experiments",
+   "group": "@wren/experiments",
+   "attrs": {
+    "entries": [
+     "@wren/experiments",
+     "@wren/experiments/names"
+    ],
+    "file": "packages/experiments/src/names.ts",
+    "kind": "type",
+    "sig": "type SeedingName = (typeof SEEDING_NAMES)[number];"
+   }
+  },
+  {
+   "id": "@wren/experiments#SelectionName",
+   "role": "export",
+   "parent": "@wren/experiments",
+   "group": "@wren/experiments",
+   "attrs": {
+    "entries": [
+     "@wren/experiments",
+     "@wren/experiments/names"
+    ],
+    "file": "packages/experiments/src/names.ts",
+    "kind": "type",
+    "sig": "type SelectionName = (typeof SELECTION_NAMES)[number];"
+   }
+  },
+  {
+   "id": "@wren/experiments#Settings",
+   "role": "export",
+   "parent": "@wren/experiments",
+   "group": "@wren/experiments",
+   "attrs": {
+    "entries": [
+     "@wren/experiments"
+    ],
+    "file": "packages/experiments/src/settings.ts",
+    "kind": "type",
+    "sig": "type Settings = z.infer<typeof settingsSchema>;"
+   }
+  },
+  {
+   "id": "@wren/experiments#StopReason",
+   "role": "export",
+   "parent": "@wren/experiments",
+   "group": "@wren/experiments",
+   "attrs": {
+    "entries": [
+     "@wren/experiments"
+    ],
+    "file": "packages/experiments/src/engine.ts",
+    "kind": "type",
+    "sig": "type StopReason = \"settled\" | \"budget\" | \"stopped\";"
+   }
+  },
+  {
+   "id": "@wren/experiments#Weights",
+   "role": "export",
+   "parent": "@wren/experiments",
+   "group": "@wren/experiments",
+   "attrs": {
+    "entries": [
+     "@wren/experiments"
+    ],
+    "file": "packages/experiments/src/engine.ts",
+    "kind": "type",
+    "sig": "type Weights = Settings[\"weights\"];"
+   }
+  },
+  {
+   "id": "@wren/experiments#betaDraw",
+   "role": "export",
+   "parent": "@wren/experiments",
+   "group": "@wren/experiments",
+   "attrs": {
+    "entries": [
+     "@wren/experiments"
+    ],
+    "file": "packages/experiments/src/rng.ts",
+    "kind": "function",
+    "sig": "(rng: Rng, a: number, b: number): number"
+   }
+  },
+  {
+   "id": "@wren/experiments#evaluateLocus",
+   "role": "export",
+   "parent": "@wren/experiments",
+   "group": "@wren/experiments",
+   "attrs": {
+    "entries": [
+     "@wren/experiments"
+    ],
+    "file": "packages/experiments/src/engine.ts",
+    "kind": "function",
+    "sig": "(input: LocusInput, settings: Settings): LocusResult"
+   }
+  },
+  {
+   "id": "@wren/experiments#pBest",
+   "role": "export",
+   "parent": "@wren/experiments",
+   "group": "@wren/experiments",
+   "attrs": {
+    "entries": [
+     "@wren/experiments"
+    ],
+    "file": "packages/experiments/src/engine.ts",
+    "kind": "function",
+    "sig": "(post: readonly Beta[]): number[]"
+   }
+  },
+  {
+   "id": "@wren/experiments#parseSettings",
+   "role": "export",
+   "parent": "@wren/experiments",
+   "group": "@wren/experiments",
+   "attrs": {
+    "entries": [
+     "@wren/experiments"
+    ],
+    "file": "packages/experiments/src/settings.ts",
+    "kind": "function",
+    "sig": "(raw: unknown): Settings"
+   }
+  },
+  {
+   "id": "@wren/experiments#posteriors",
+   "role": "export",
+   "parent": "@wren/experiments",
+   "group": "@wren/experiments",
+   "attrs": {
+    "entries": [
+     "@wren/experiments"
+    ],
+    "file": "packages/experiments/src/engine.ts",
+    "kind": "function",
+    "sig": "(arms: readonly Arm[], prior: number): Beta[]"
+   }
+  },
+  {
+   "id": "@wren/experiments#seeded",
+   "role": "export",
+   "parent": "@wren/experiments",
+   "group": "@wren/experiments",
+   "attrs": {
+    "entries": [
+     "@wren/experiments"
+    ],
+    "file": "packages/experiments/src/rng.ts",
+    "kind": "function",
+    "sig": "(seed: string | number): Rng"
+   }
+  },
+  {
+   "id": "@wren/experiments#settingsSchema",
+   "role": "export",
+   "parent": "@wren/experiments",
+   "group": "@wren/experiments",
+   "attrs": {
+    "entries": [
+     "@wren/experiments"
+    ],
+    "file": "packages/experiments/src/settings.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "z.ZodObject<{ selection: z.ZodDefault<z.ZodEnum<{ even: \"even\"; thompson: \"thompson\"; epsilon: \"epsilon\"; ucb1: \"ucb1\"; }>>; fitness: z.ZodDefault<z.ZodEnum<{ booked: \"booked\"; interested: \"interested\"; replies: \"replies\"; opens: \"opens\"; weighted: \"weighted\"; lexicographic: \"lexicographic\"; }>>; fi…"
+   }
+  },
+  {
+   "id": "@wren/experiments#simulate",
+   "role": "export",
+   "parent": "@wren/experiments",
+   "group": "@wren/experiments",
+   "attrs": {
+    "entries": [
+     "@wren/experiments"
+    ],
+    "file": "packages/experiments/src/simulate.ts",
+    "kind": "function",
+    "sig": "(opts: SimulateOptions): SimulateResult[]"
+   }
+  },
+  {
+   "id": "@wren/experiments#stopReason",
+   "role": "export",
+   "parent": "@wren/experiments",
+   "group": "@wren/experiments",
+   "attrs": {
+    "entries": [
+     "@wren/experiments"
+    ],
+    "file": "packages/experiments/src/engine.ts",
+    "kind": "function",
+    "sig": "(loci: readonly LocusResult[]): Exclude<StopReason, \"stopped\"> | null"
+   }
+  },
+  {
+   "id": "@wren/experiments#withFloor",
+   "role": "export",
+   "parent": "@wren/experiments",
+   "group": "@wren/experiments",
+   "attrs": {
+    "entries": [
+     "@wren/experiments"
+    ],
+    "file": "packages/experiments/src/engine.ts",
+    "kind": "function",
+    "sig": "(shares: readonly number[], floor: number): number[]"
+   }
+  }
+ ],
+ "edges": []
+}

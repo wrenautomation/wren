@@ -1,0 +1,302 @@
+{
+ "layer": "api",
+ "nodes": [
+  {
+   "id": "@wren/auth#AUDIENCE",
+   "role": "export",
+   "parent": "@wren/auth",
+   "group": "@wren/auth",
+   "attrs": {
+    "entries": [
+     "@wren/auth",
+     "@wren/auth/verify"
+    ],
+    "file": "packages/auth/src/verify.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"wren\""
+   }
+  },
+  {
+   "id": "@wren/auth#Auth",
+   "role": "export",
+   "parent": "@wren/auth",
+   "group": "@wren/auth",
+   "attrs": {
+    "entries": [
+     "@wren/auth"
+    ],
+    "file": "packages/auth/src/index.ts",
+    "kind": "type",
+    "sig": "type Auth = ReturnType<typeof makeAuth>;"
+   }
+  },
+  {
+   "id": "@wren/auth#AuthMail",
+   "role": "export",
+   "parent": "@wren/auth",
+   "group": "@wren/auth",
+   "attrs": {
+    "entries": [
+     "@wren/auth"
+    ],
+    "file": "packages/auth/src/index.ts",
+    "kind": "interface",
+    "sig": "interface AuthMail { to: string; subject: string; text: string; }"
+   }
+  },
+  {
+   "id": "@wren/auth#BACK_PATH",
+   "role": "export",
+   "parent": "@wren/auth",
+   "group": "@wren/auth",
+   "attrs": {
+    "entries": [
+     "@wren/auth",
+     "@wren/auth/handoff"
+    ],
+    "file": "packages/auth/src/handoff.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"/__auth/back\""
+   }
+  },
+  {
+   "id": "@wren/auth#Signed",
+   "role": "export",
+   "parent": "@wren/auth",
+   "group": "@wren/auth",
+   "attrs": {
+    "entries": [
+     "@wren/auth/verify"
+    ],
+    "file": "packages/auth/src/verify.ts",
+    "kind": "interface",
+    "sig": "interface Signed { email: string; name?: string; operator: boolean; sub: string; }"
+   }
+  },
+  {
+   "id": "@wren/auth#account",
+   "role": "export",
+   "parent": "@wren/auth",
+   "group": "@wren/auth",
+   "attrs": {
+    "entries": [
+     "@wren/auth/schema"
+    ],
+    "file": "packages/auth/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"account\"; schema: \"auth\"; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"account\"; dataType: \"string\"; columnType: \"PgText\"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey: t…"
+   }
+  },
+  {
+   "id": "@wren/auth#auth",
+   "role": "export",
+   "parent": "@wren/auth",
+   "group": "@wren/auth",
+   "attrs": {
+    "entries": [
+     "@wren/auth/schema"
+    ],
+    "file": "packages/auth/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgSchema<\"auth\">"
+   }
+  },
+  {
+   "id": "@wren/auth#bearer",
+   "role": "export",
+   "parent": "@wren/auth",
+   "group": "@wren/auth",
+   "attrs": {
+    "entries": [
+     "@wren/auth/verify"
+    ],
+    "file": "packages/auth/src/verify.ts",
+    "kind": "function",
+    "sig": "(req: Request): string | null"
+   }
+  },
+  {
+   "id": "@wren/auth#forgetKeys",
+   "role": "export",
+   "parent": "@wren/auth",
+   "group": "@wren/auth",
+   "attrs": {
+    "entries": [
+     "@wren/auth/verify"
+    ],
+    "file": "packages/auth/src/verify.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(): void"
+   }
+  },
+  {
+   "id": "@wren/auth#handoff",
+   "role": "export",
+   "parent": "@wren/auth",
+   "group": "@wren/auth",
+   "attrs": {
+    "entries": [
+     "@wren/auth/handoff"
+    ],
+    "file": "packages/auth/src/handoff.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(o: HandoffOptions): { id: \"wren-handoff\"; endpoints: { handoff: import(\"better-auth\").StrictEndpoint<\"/handoff\", { method: \"GET\"; query: z.ZodObject<{ to: z.ZodString; }, z.core.$strip>; use: import(\"better-auth\").Middleware<import(\"better-auth\").MiddlewareOptions, (inputContext: import(\"better-auth\").MiddlewareInputCo…"
+   }
+  },
+  {
+   "id": "@wren/auth#handoffTarget",
+   "role": "export",
+   "parent": "@wren/auth",
+   "group": "@wren/auth",
+   "attrs": {
+    "entries": [
+     "@wren/auth",
+     "@wren/auth/handoff"
+    ],
+    "file": "packages/auth/src/handoff.ts",
+    "kind": "function",
+    "sig": "(to: string): URL | null"
+   }
+  },
+  {
+   "id": "@wren/auth#jwks",
+   "role": "export",
+   "parent": "@wren/auth",
+   "group": "@wren/auth",
+   "attrs": {
+    "entries": [
+     "@wren/auth/schema"
+    ],
+    "file": "packages/auth/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"jwks\"; schema: \"auth\"; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"jwks\"; dataType: \"string\"; columnType: \"PgText\"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey: true; i…"
+   }
+  },
+  {
+   "id": "@wren/auth#makeAuth",
+   "role": "export",
+   "parent": "@wren/auth",
+   "group": "@wren/auth",
+   "attrs": {
+    "entries": [
+     "@wren/auth"
+    ],
+    "file": "packages/auth/src/index.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(o: AuthOptions): import(\"better-auth\").Auth<{ appName: string; baseURL: string; secret: string; trustedOrigins: string[]; database: (options: import(\"better-auth\").BetterAuthOptions) => import(\"better-auth\").DBAdapter<import(\"better-auth\").BetterAuthOptions>; telemetry: { enabled: false; }; session: { expiresIn: num…"
+   }
+  },
+  {
+   "id": "@wren/auth#passkey",
+   "role": "export",
+   "parent": "@wren/auth",
+   "group": "@wren/auth",
+   "attrs": {
+    "entries": [
+     "@wren/auth/schema"
+    ],
+    "file": "packages/auth/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"passkey\"; schema: \"auth\"; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"passkey\"; dataType: \"string\"; columnType: \"PgText\"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey: t…"
+   }
+  },
+  {
+   "id": "@wren/auth#rateLimit",
+   "role": "export",
+   "parent": "@wren/auth",
+   "group": "@wren/auth",
+   "attrs": {
+    "entries": [
+     "@wren/auth/schema"
+    ],
+    "file": "packages/auth/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"rate_limit\"; schema: \"auth\"; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"rate_limit\"; dataType: \"string\"; columnType: \"PgText\"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrimary…"
+   }
+  },
+  {
+   "id": "@wren/auth#schema",
+   "role": "export",
+   "parent": "@wren/auth",
+   "group": "@wren/auth",
+   "attrs": {
+    "entries": [
+     "@wren/auth"
+    ],
+    "file": "packages/auth/src/schema.ts",
+    "kind": "SourceFile",
+    "sig": ""
+   }
+  },
+  {
+   "id": "@wren/auth#session",
+   "role": "export",
+   "parent": "@wren/auth",
+   "group": "@wren/auth",
+   "attrs": {
+    "entries": [
+     "@wren/auth/schema"
+    ],
+    "file": "packages/auth/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"session\"; schema: \"auth\"; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"session\"; dataType: \"string\"; columnType: \"PgText\"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey: t…"
+   }
+  },
+  {
+   "id": "@wren/auth#user",
+   "role": "export",
+   "parent": "@wren/auth",
+   "group": "@wren/auth",
+   "attrs": {
+    "entries": [
+     "@wren/auth/schema"
+    ],
+    "file": "packages/auth/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"user\"; schema: \"auth\"; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"user\"; dataType: \"string\"; columnType: \"PgText\"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey: true; i…"
+   }
+  },
+  {
+   "id": "@wren/auth#verification",
+   "role": "export",
+   "parent": "@wren/auth",
+   "group": "@wren/auth",
+   "attrs": {
+    "entries": [
+     "@wren/auth/schema"
+    ],
+    "file": "packages/auth/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"verification\"; schema: \"auth\"; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"verification\"; dataType: \"string\"; columnType: \"PgText\"; data: string; driverParam: string; notNull: true; hasDefault: false; isPri…"
+   }
+  },
+  {
+   "id": "@wren/auth#verifyToken",
+   "role": "export",
+   "parent": "@wren/auth",
+   "group": "@wren/auth",
+   "attrs": {
+    "entries": [
+     "@wren/auth/verify"
+    ],
+    "file": "packages/auth/src/verify.ts",
+    "kind": "function",
+    "sig": "(token: string | null, check: TokenCheck, opts: { fetcher?: typeof fetch; now?: number } = {}): Promise<Signed | null>"
+   }
+  }
+ ],
+ "edges": []
+}

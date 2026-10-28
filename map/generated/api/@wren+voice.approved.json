@@ -1,0 +1,1958 @@
+{
+ "layer": "api",
+ "nodes": [
+  {
+   "id": "@wren/voice#ADAPTERS",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/dictation"
+    ],
+    "file": "packages/voice/src/dictation/route.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"browser\", \"server\", \"speech\"]"
+   }
+  },
+  {
+   "id": "@wren/voice#Adapter",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/dictation"
+    ],
+    "file": "packages/voice/src/dictation/route.ts",
+    "kind": "type",
+    "sig": "type Adapter = (typeof ADAPTERS)[number];"
+   }
+  },
+  {
+   "id": "@wren/voice#AgentSettings",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/agent.ts",
+    "kind": "type",
+    "sig": "type AgentSettings = z.infer<typeof agentSettingsSchema>;"
+   }
+  },
+  {
+   "id": "@wren/voice#Brain",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/types.ts",
+    "kind": "interface",
+    "sig": "interface Brain { readonly name: string; think(input: BrainInput, signal: AbortSignal): AsyncIterable<Thought>; }"
+   }
+  },
+  {
+   "id": "@wren/voice#BrainInput",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/types.ts",
+    "kind": "interface",
+    "sig": "interface BrainInput { system: string; lead: LeadContext | null; transcript: readonly Line[]; tools: readonly ToolSpec[]; }"
+   }
+  },
+  {
+   "id": "@wren/voice#BrowserTransport",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/transports/browser.ts",
+    "kind": "class",
+    "sig": "readonly name: string; readonly carries; readonly endpointing; constructor(private readonly call: CallStart, private readonly api: SpeechApi, private readonly callee: { said?(text: string, turn: number): void; ended(how: { transferredTo: string | null }): void; error?(why: string): void; }); open(on: (e: Incoming) => void): Promise<void>; send(out: Outgoing): void; clear(): void; leave(): void; transfer(to: string): Promise<void>; hangup(): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/voice#CALL_NOW",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/components",
+     "@wren/voice/node"
+    ],
+    "file": "packages/voice/src/components.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"voice.call_now\""
+   }
+  },
+  {
+   "id": "@wren/voice#CHOICES",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/dictation"
+    ],
+    "file": "packages/voice/src/dictation/route.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"auto\", \"browser\", \"server\", \"off\"]"
+   }
+  },
+  {
+   "id": "@wren/voice#CONSENT_SOURCES",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/schema"
+    ],
+    "file": "packages/voice/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"form\", \"manual\", \"import\"]"
+   }
+  },
+  {
+   "id": "@wren/voice#CalendarDeps",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/node"
+    ],
+    "file": "packages/voice/src/ports.ts",
+    "kind": "interface",
+    "sig": "interface CalendarDeps { calendar: string; settings: () => Promise<unknown>; busy: (account: string, from: Date, to: Date) => Promise<Span[]>; }"
+   }
+  },
+  {
+   "id": "@wren/voice#CallDetail",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/records"
+    ],
+    "file": "packages/voice/src/records.ts",
+    "kind": "interface",
+    "sig": "interface CallDetail { transcript: { who: string; text: string; tool?: string }[]; turns: { n: number; caller: string; agent: string; tools: string[]; speculative: boolean; barged: boolean; ms: Record<keyof typeof STAGES, number | null>; }[]; }"
+   }
+  },
+  {
+   "id": "@wren/voice#CallNowDeps",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/node"
+    ],
+    "file": "packages/voice/src/call-now.ts",
+    "kind": "interface",
+    "sig": "interface CallNowDeps { db: Db; bookings: Pick<Bookings, \"name\" | \"booked\"> | null; dialer: Dialer | null; }"
+   }
+  },
+  {
+   "id": "@wren/voice#CallResult",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/call.ts",
+    "kind": "interface",
+    "sig": "interface CallResult { call: CallStart; pipeline: string; outcome: Outcome; lead: LeadContext | null; transcript: Line[]; turns: Turn[]; booking: { id: number; start: Date } | null; message: string | null; startedAt: Date; endedAt: Date; }"
+   }
+  },
+  {
+   "id": "@wren/voice#CallStart",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/types.ts",
+    "kind": "interface",
+    "sig": "interface CallStart { id: string; from: string; to: string; direction: Direction; }"
+   }
+  },
+  {
+   "id": "@wren/voice#CallerLine",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/fakes.ts",
+    "kind": "interface",
+    "sig": "interface CallerLine { say: string; over?: number; }"
+   }
+  },
+  {
+   "id": "@wren/voice#Can",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/dictation"
+    ],
+    "file": "packages/voice/src/dictation/route.ts",
+    "kind": "interface",
+    "sig": "interface Can { webgpu: boolean; server: boolean; speech: boolean; fallback: boolean; failed?: readonly Adapter[]; }"
+   }
+  },
+  {
+   "id": "@wren/voice#Choice",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/dictation"
+    ],
+    "file": "packages/voice/src/dictation/route.ts",
+    "kind": "type",
+    "sig": "type Choice = (typeof CHOICES)[number];"
+   }
+  },
+  {
+   "id": "@wren/voice#ConsentSource",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/schema"
+    ],
+    "file": "packages/voice/src/schema.ts",
+    "kind": "type",
+    "sig": "type ConsentSource = (typeof CONSENT_SOURCES)[number];"
+   }
+  },
+  {
+   "id": "@wren/voice#DICTATION_RATE",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/dictation"
+    ],
+    "file": "packages/voice/src/dictation/transcriber.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "16000"
+   }
+  },
+  {
+   "id": "@wren/voice#DICTATION_STAGES",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/dictation"
+    ],
+    "file": "packages/voice/src/dictation/session.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly load: \"Model load\"; readonly mic: \"Mic open\"; readonly first: \"Talk to first words\"; readonly final: \"Release to last words\"; }"
+   }
+  },
+  {
+   "id": "@wren/voice#DIRECTIONS",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/types.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"inbound\", \"outbound\", \"test\"]"
+   }
+  },
+  {
+   "id": "@wren/voice#DialRefused",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/node"
+    ],
+    "file": "packages/voice/src/consent.ts",
+    "kind": "class",
+    "sig": "constructor(readonly verdict: Extract<DialVerdict, { ok: false }>)"
+   }
+  },
+  {
+   "id": "@wren/voice#Dialer",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/node"
+    ],
+    "file": "packages/voice/src/call-now.ts",
+    "kind": "interface",
+    "sig": "interface Dialer { control: TelnyxControl; agent: AgentSettings; whose: string; from: string; streamUrl: string; connectionId: string; }"
+   }
+  },
+  {
+   "id": "@wren/voice#Dictated",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/console"
+    ],
+    "file": "packages/voice/src/dictation-store.ts",
+    "kind": "type",
+    "sig": "type Dictated = z.infer<typeof dictatedSchema>;"
+   }
+  },
+  {
+   "id": "@wren/voice#DictationRun",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/dictation"
+    ],
+    "file": "packages/voice/src/dictation/session.ts",
+    "kind": "interface",
+    "sig": "interface DictationRun { micMs: number | null; firstMs: number | null; finalMs: number | null; words: number; audioMs: number; }"
+   }
+  },
+  {
+   "id": "@wren/voice#DictationStage",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/dictation"
+    ],
+    "file": "packages/voice/src/dictation/session.ts",
+    "kind": "type",
+    "sig": "type DictationStage = keyof typeof DICTATION_STAGES;"
+   }
+  },
+  {
+   "id": "@wren/voice#DictationStat",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/console"
+    ],
+    "file": "packages/voice/src/dictation-store.ts",
+    "kind": "interface",
+    "sig": "interface DictationStat { adapter: string; stage: DictationStage; p50: number | null; p95: number | null; n: number; }"
+   }
+  },
+  {
+   "id": "@wren/voice#Direction",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/types.ts",
+    "kind": "type",
+    "sig": "type Direction = (typeof DIRECTIONS)[number];"
+   }
+  },
+  {
+   "id": "@wren/voice#EarStream",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/types.ts",
+    "kind": "interface",
+    "sig": "interface EarStream { push(frame: Frame): void; close(): void; finish?(): Promise<void>; }"
+   }
+  },
+  {
+   "id": "@wren/voice#Ears",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/types.ts",
+    "kind": "interface",
+    "sig": "interface Ears { readonly name: string; open(on: (h: Heard) => void): EarStream; }"
+   }
+  },
+  {
+   "id": "@wren/voice#Effect",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/tools.ts",
+    "kind": "type",
+    "sig": "type Effect = | { kind: \"booked\"; id: number; start: Date } | { kind: \"transfer\"; to: string } | { kind: \"message\"; text: string } | { kind: \"lead\"; lead: LeadContext } | { kind: \"end\" };"
+   }
+  },
+  {
+   "id": "@wren/voice#FakeCalendar",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/fakes.ts",
+    "inferred": true,
+    "kind": "class",
+    "sig": "readonly booked:; open({ now, max }: { now: Date; max: number }): Promise<Date[]>; book(o: { start: Date; name: string; email: string }): Promise<{ id: number; start: Date; }>"
+   }
+  },
+  {
+   "id": "@wren/voice#FakeEars",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/fakes.ts",
+    "inferred": true,
+    "kind": "class",
+    "sig": "readonly name; constructor(private readonly o: { finalMs?: number } = {}); open(on: (h: Heard) => void): { push: (frame: Frame) => void; close: () => void; }"
+   }
+  },
+  {
+   "id": "@wren/voice#FakeLeads",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/fakes.ts",
+    "inferred": true,
+    "kind": "class",
+    "sig": "constructor(private readonly leads: Readonly<Record<string, LeadContext>> = SAMPLE_LEADS); byPhone(e164: string): Promise<LeadContext | null>"
+   }
+  },
+  {
+   "id": "@wren/voice#FakeMessages",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/fakes.ts",
+    "inferred": true,
+    "kind": "class",
+    "sig": "readonly taken:; take(o: { call: CallStart; text: string; callback: string | null }): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/voice#FakeMouth",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/fakes.ts",
+    "kind": "class",
+    "sig": "readonly name; constructor(private readonly o: { firstMs?: number; wordMs?: number } = {}); speak(text: string, signal: AbortSignal): AsyncIterable<Frame>"
+   }
+  },
+  {
+   "id": "@wren/voice#FakeTranscriber",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/dictation"
+    ],
+    "file": "packages/voice/src/dictation/transcriber.ts",
+    "kind": "class",
+    "sig": "readonly name; readonly model; readonly runs:; constructor(private readonly script: readonly string[], private readonly o: { ms?: number } = {}); transcribe(audio: Float32Array, o: { final: boolean }): Promise<string>"
+   }
+  },
+  {
+   "id": "@wren/voice#FakeTransport",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/fakes.ts",
+    "kind": "class",
+    "sig": "readonly name; readonly carries; readonly endpointing; readonly heard: string[]; cleared; transferredTo: string | null; hungUp; constructor(private readonly script: readonly CallerLine[], private readonly o: { call?: Partial<CallStart>; playMs?: number; gapMs?: number; wordMs?: number; } = {}); open(on: (e: Incoming) => void): Promise<void>; send(out: Outgoing): void; clear(): void; transfer(to: string): Promise<void>; hangup(): Promise<void>; get talking(): boolean"
+   }
+  },
+  {
+   "id": "@wren/voice#Frame",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/types.ts",
+    "kind": "interface",
+    "sig": "interface Frame { encoding: \"pcmu\" | \"pcm16\" | \"fake\"; rate: number; data: Uint8Array; }"
+   }
+  },
+  {
+   "id": "@wren/voice#Heard",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/types.ts",
+    "kind": "type",
+    "sig": "type Heard = | { kind: \"speech\" } | { kind: \"partial\"; text: string } | { kind: \"final\"; text: string } | { kind: \"silence\" };"
+   }
+  },
+  {
+   "id": "@wren/voice#Hosted",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/types.ts",
+    "kind": "interface",
+    "sig": "interface Hosted { readonly name: string; run(o: { agent: unknown; call: CallStart; signal: AbortSignal; }): Promise<{ transcript: Line[]; outcome: string; turnsMs: { heard: number | null }[] }>; }"
+   }
+  },
+  {
+   "id": "@wren/voice#Incoming",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/types.ts",
+    "kind": "type",
+    "sig": "type Incoming = | { kind: \"start\"; call: CallStart } | { kind: \"audio\"; frame: Frame } | { kind: \"words\"; text: string; final: boolean } | { kind: \"key\"; digit: string } | { kind: \"played\"; turn: number } | { kind: \"idle\" } | { kind: \"hangup\" };"
+   }
+  },
+  {
+   "id": "@wren/voice#LeadContext",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/types.ts",
+    "kind": "interface",
+    "sig": "interface LeadContext { name: string | null; company: string | null; email: string | null; zone: string | null; notes: string | null; }"
+   }
+  },
+  {
+   "id": "@wren/voice#LeadPort",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/tools.ts",
+    "kind": "interface",
+    "sig": "interface LeadPort { byPhone(e164: string): Promise<LeadContext | null>; }"
+   }
+  },
+  {
+   "id": "@wren/voice#Line",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/types.ts",
+    "kind": "interface",
+    "sig": "interface Line { who: \"caller\" | \"agent\" | \"tool\"; text: string; tool?: string; }"
+   }
+  },
+  {
+   "id": "@wren/voice#MediaSocket",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/node"
+    ],
+    "file": "packages/voice/src/transports/telnyx.ts",
+    "kind": "interface",
+    "sig": "interface MediaSocket { send(text: string): void; close(): void; onMessage(fn: (text: string) => void): void; onClose(fn: () => void): void; }"
+   }
+  },
+  {
+   "id": "@wren/voice#MessagePort",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/tools.ts",
+    "kind": "interface",
+    "sig": "interface MessagePort { take(o: { call: CallStart; lead: LeadContext | null; text: string; callback: string | null; }): Promise<void>; }"
+   }
+  },
+  {
+   "id": "@wren/voice#Mouth",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/types.ts",
+    "kind": "interface",
+    "sig": "interface Mouth { readonly name: string; speak(text: string, signal: AbortSignal): AsyncIterable<Frame>; }"
+   }
+  },
+  {
+   "id": "@wren/voice#OUTCOMES",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/types.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"booked\", \"transferred\", \"message\", \"ended\", \"hung_up\", \"timed_out\", \"failed\"]"
+   }
+  },
+  {
+   "id": "@wren/voice#Outcome",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/types.ts",
+    "kind": "type",
+    "sig": "type Outcome = (typeof OUTCOMES)[number];"
+   }
+  },
+  {
+   "id": "@wren/voice#Outgoing",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/types.ts",
+    "kind": "type",
+    "sig": "type Outgoing = | { kind: \"audio\"; frame: Frame; turn: number } | { kind: \"text\"; text: string; turn: number };"
+   }
+  },
+  {
+   "id": "@wren/voice#PhoneConsent",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/schema"
+    ],
+    "file": "packages/voice/src/schema.ts",
+    "kind": "type",
+    "sig": "type PhoneConsent = typeof phoneConsents.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/voice#Pipeline",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/call.ts",
+    "kind": "interface",
+    "sig": "interface Pipeline { transport: Transport; ears?: Ears | null; brain: Brain; mouth?: Mouth | null; }"
+   }
+  },
+  {
+   "id": "@wren/voice#Route",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/dictation"
+    ],
+    "file": "packages/voice/src/dictation/route.ts",
+    "kind": "type",
+    "sig": "type Route = { adapter: Adapter; why: null } | { adapter: null; why: string };"
+   }
+  },
+  {
+   "id": "@wren/voice#SAMPLE_LEADS",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/fakes.ts",
+    "kind": "const",
+    "sig": "Readonly<Record<string, LeadContext>>"
+   }
+  },
+  {
+   "id": "@wren/voice#STAGES",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/call.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly final: \"Words final\"; readonly end: \"Turn over\"; readonly token: \"First token\"; readonly audio: \"First audio out\"; readonly heard: \"Heard\"; }"
+   }
+  },
+  {
+   "id": "@wren/voice#ScriptedBrain",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/fakes.ts",
+    "kind": "class",
+    "sig": "readonly name: string; constructor(private readonly o: { tokenMs?: number; firstMs?: number } = {}); think(input: BrainInput, signal: AbortSignal): AsyncIterable<Thought>; decide(input: BrainInput): { say: string; tool?: { name: string; args: Record<string, unknown> }; }"
+   }
+  },
+  {
+   "id": "@wren/voice#SentenceCutter",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/sentences.ts",
+    "kind": "class",
+    "sig": "push(chunk: string): string[]; flush(): string | null"
+   }
+  },
+  {
+   "id": "@wren/voice#Speakers",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/reading"
+    ],
+    "file": "packages/voice/src/reading.ts",
+    "kind": "interface",
+    "sig": "interface Speakers { play(frames: Frame[], signal: AbortSignal): Promise<void>; }"
+   }
+  },
+  {
+   "id": "@wren/voice#SpeechApi",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/transports/browser.ts",
+    "kind": "interface",
+    "sig": "interface SpeechApi { listen(on: { partial(text: string): void; final(text: string): void; stopped(): void; error(why: string): void; }): { stop(): void }; speak(text: string, on: { start(): void; end(): void }): void; cancel(): void; }"
+   }
+  },
+  {
+   "id": "@wren/voice#Stage",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/call.ts",
+    "kind": "type",
+    "sig": "type Stage = keyof typeof STAGES;"
+   }
+  },
+  {
+   "id": "@wren/voice#TOOL_NAMES",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/agent.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"lookUpLead\", \"offerTimes\", \"book\", \"transfer\", \"takeMessage\", \"endCall\"]"
+   }
+  },
+  {
+   "id": "@wren/voice#TOOL_SPECS",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/tools.ts",
+    "kind": "const",
+    "sig": "Readonly<Record<ToolName, ToolSpec>>"
+   }
+  },
+  {
+   "id": "@wren/voice#TelnyxControl",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/node"
+    ],
+    "file": "packages/voice/src/transports/telnyx.ts",
+    "kind": "interface",
+    "sig": "interface TelnyxControl { transfer(callControlId: string, to: string): Promise<void>; hangup(callControlId: string): Promise<void>; dial(o: { from: string; to: string; streamUrl: string; clientState: string; connectionId: string; }): Promise<string>; }"
+   }
+  },
+  {
+   "id": "@wren/voice#TelnyxHttp",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/node"
+    ],
+    "file": "packages/voice/src/transports/telnyx.ts",
+    "inferred": true,
+    "kind": "class",
+    "sig": "constructor(private readonly apiKey: string); transfer(id: string, to: string): Promise<void>; hangup(id: string): Promise<void>; dial(o: { from: string; to: string; streamUrl: string; clientState: string; connectionId: string; }): Promise<string>"
+   }
+  },
+  {
+   "id": "@wren/voice#TelnyxTransport",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/node"
+    ],
+    "file": "packages/voice/src/transports/telnyx.ts",
+    "kind": "class",
+    "sig": "readonly name: string; readonly carries; readonly endpointing; constructor(private readonly socket: MediaSocket, private readonly control: TelnyxControl, private readonly clock: () => number = () => performance.now()); open(on: (e: Incoming) => void): Promise<void>; send(out: Outgoing): void; clear(): void; transfer(to: string): Promise<void>; hangup(): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/voice#TestCall",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/console"
+    ],
+    "file": "packages/voice/src/console.ts",
+    "kind": "type",
+    "sig": "type TestCall = z.infer<typeof testCallSchema>;"
+   }
+  },
+  {
+   "id": "@wren/voice#TextTransport",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/transports/text.ts",
+    "kind": "class",
+    "sig": "readonly name: string; readonly carries; readonly endpointing; constructor(private readonly call: CallStart, private readonly callee: TextCallee); open(on: (e: Incoming) => void): Promise<void>; type(text: string): void; typing(): void; leave(): void; send(out: Outgoing): void; clear(): void; transfer(to: string): Promise<void>; hangup(): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/voice#Thought",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/types.ts",
+    "kind": "type",
+    "sig": "type Thought = | { kind: \"text\"; text: string } | { kind: \"tool\"; name: string; args: Record<string, unknown> };"
+   }
+  },
+  {
+   "id": "@wren/voice#TimeTaken",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/tools.ts",
+    "kind": "class",
+    "sig": "constructor()"
+   }
+  },
+  {
+   "id": "@wren/voice#ToolName",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/agent.ts",
+    "kind": "type",
+    "sig": "type ToolName = (typeof TOOL_NAMES)[number];"
+   }
+  },
+  {
+   "id": "@wren/voice#ToolPorts",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/tools.ts",
+    "kind": "interface",
+    "sig": "interface ToolPorts { leads: LeadPort; calendar: VoiceCalendar; messages: MessagePort; }"
+   }
+  },
+  {
+   "id": "@wren/voice#ToolSpec",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/types.ts",
+    "kind": "interface",
+    "sig": "interface ToolSpec { name: string; says: string; args: Readonly<Record<string, string>>; }"
+   }
+  },
+  {
+   "id": "@wren/voice#Transcriber",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/dictation"
+    ],
+    "file": "packages/voice/src/dictation/transcriber.ts",
+    "kind": "interface",
+    "sig": "interface Transcriber { readonly name: string; readonly model: string; transcribe(audio: Float32Array, o: { final: boolean; signal?: AbortSignal }): Promise<string>; }"
+   }
+  },
+  {
+   "id": "@wren/voice#TranscriberEars",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/dictation"
+    ],
+    "file": "packages/voice/src/dictation/ears.ts",
+    "kind": "class",
+    "sig": "readonly name: string;; constructor(private readonly model: Transcriber, private readonly o: TranscriberEarsOptions = {}); open(on: (h: Heard) => void): EarStream"
+   }
+  },
+  {
+   "id": "@wren/voice#Transport",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/types.ts",
+    "kind": "interface",
+    "sig": "interface Transport { readonly name: string; readonly carries: \"audio\" | \"text\"; readonly endpointing: \"ours\" | \"theirs\"; open(on: (e: Incoming) => void): Promise<void>; send(out: Outgoing): void; clear(): void; transfer(to: string): Promise<void>; hangup(): Promise<void>; }"
+   }
+  },
+  {
+   "id": "@wren/voice#Turn",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/call.ts",
+    "kind": "interface",
+    "sig": "interface Turn { n: number; caller: string; agent: string; tools: string[]; speculative: boolean; barged: boolean; ms: Record<Stage, number | null>; }"
+   }
+  },
+  {
+   "id": "@wren/voice#VOICE_AGENT",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/agent.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"voice.agent\""
+   }
+  },
+  {
+   "id": "@wren/voice#VOICE_COMPONENTS",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/components"
+    ],
+    "file": "packages/voice/src/components.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"@wren/core/components\").Component[]"
+   }
+  },
+  {
+   "id": "@wren/voice#VOICE_CONSOLE_APPS",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/console-routes"
+    ],
+    "file": "packages/voice/src/console-routes.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly \"*\": { readonly app: \"voice\"; readonly channel: \"phone\"; }; }"
+   }
+  },
+  {
+   "id": "@wren/voice#VOICE_CONSOLE_ROUTES",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/console-routes"
+    ],
+    "file": "packages/voice/src/console-routes.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly saveTest: \"wren:act\"; readonly dictated: \"wren:read\"; readonly dictation: \"wren:read\"; }"
+   }
+  },
+  {
+   "id": "@wren/voice#VOICE_CONSOLE_WRITES",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/console-routes"
+    ],
+    "file": "packages/voice/src/console-routes.ts",
+    "kind": "const",
+    "sig": "readonly (keyof typeof VOICE_CONSOLE_ROUTES)[]"
+   }
+  },
+  {
+   "id": "@wren/voice#VOICE_RECORDS",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/records"
+    ],
+    "file": "packages/voice/src/records.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"@wren/core/records\").RecordType[]"
+   }
+  },
+  {
+   "id": "@wren/voice#VoiceCalendar",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/tools.ts",
+    "kind": "interface",
+    "sig": "interface VoiceCalendar { open(o: { now: Date; max: number }): Promise<Date[]>; book(o: { start: Date; name: string; email: string; zone: string; now: Date }): Promise<{ id: number; start: Date; }>; }"
+   }
+  },
+  {
+   "id": "@wren/voice#VoiceCall",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/schema"
+    ],
+    "file": "packages/voice/src/schema.ts",
+    "kind": "type",
+    "sig": "type VoiceCall = typeof voiceCalls.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/voice#agentOf",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/agent.ts",
+    "kind": "function",
+    "sig": "(settings: unknown): AgentSettings"
+   }
+  },
+  {
+   "id": "@wren/voice#agentSettingsSchema",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/agent.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "z.ZodObject<{ name: z.ZodDefault<z.ZodString>; firstLine: z.ZodDefault<z.ZodString>; prompt: z.ZodDefault<z.ZodString>; voice: z.ZodDefault<z.ZodString>; tools: z.ZodDefault<z.ZodArray<z.ZodEnum<{ book: \"book\"; transfer: \"transfer\"; lookUpLead: \"lookUpLead\"; offerTimes: \"offerTimes\"; takeMessage: \"t…"
+   }
+  },
+  {
+   "id": "@wren/voice#applyCommands",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/dictation"
+    ],
+    "file": "packages/voice/src/dictation/commands.ts",
+    "kind": "function",
+    "sig": "(text: string): string"
+   }
+  },
+  {
+   "id": "@wren/voice#calendarIn",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/node"
+    ],
+    "file": "packages/voice/src/ports.ts",
+    "kind": "function",
+    "sig": "(db: Db, deps: CalendarDeps): VoiceCalendar"
+   }
+  },
+  {
+   "id": "@wren/voice#callNow",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/node"
+    ],
+    "file": "packages/voice/src/call-now.ts",
+    "kind": "function",
+    "sig": "(d: CallNowDeps, id: number, now: Date): Promise<CallNow>"
+   }
+  },
+  {
+   "id": "@wren/voice#callNowStep",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/node"
+    ],
+    "file": "packages/voice/src/call-now.ts",
+    "kind": "function",
+    "sig": "(depsFor: (client: string | null) => CallNowDeps | Promise<CallNowDeps>): Step"
+   }
+  },
+  {
+   "id": "@wren/voice#callRecord",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/records"
+    ],
+    "file": "packages/voice/src/records.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"@wren/core/records\").RecordType"
+   }
+  },
+  {
+   "id": "@wren/voice#clientStateOf",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/node"
+    ],
+    "file": "packages/voice/src/transports/telnyx.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(o: { from: string; to: string; direction: Direction }): string"
+   }
+  },
+  {
+   "id": "@wren/voice#consentFor",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/node"
+    ],
+    "file": "packages/voice/src/consent.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, e164: string, whose: string): Promise<PhoneConsent | null>"
+   }
+  },
+  {
+   "id": "@wren/voice#dictationApi",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/console"
+    ],
+    "file": "packages/voice/src/console.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(deps: { db: Db }): { dictated: (req: DictatedRequest) => Promise<{ id: string; }>; dictation: (_req: PortalRequest) => Promise<{ rows: import(\"./dictation-store.js\").DictationStat[]; }>; }"
+   }
+  },
+  {
+   "id": "@wren/voice#fakePorts",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/fakes.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(): { leads: FakeLeads; calendar: FakeCalendar; messages: FakeMessages; }"
+   }
+  },
+  {
+   "id": "@wren/voice#inHours",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/agent.ts",
+    "kind": "function",
+    "sig": "(agent: AgentSettings, at: Date): boolean"
+   }
+  },
+  {
+   "id": "@wren/voice#incomingOf",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/node"
+    ],
+    "file": "packages/voice/src/transports/telnyx.ts",
+    "kind": "function",
+    "sig": "(raw: string): Incoming[]"
+   }
+  },
+  {
+   "id": "@wren/voice#leadsIn",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/node"
+    ],
+    "file": "packages/voice/src/ports.ts",
+    "kind": "function",
+    "sig": "(db: Db): LeadPort"
+   }
+  },
+  {
+   "id": "@wren/voice#levelOf",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/dictation"
+    ],
+    "file": "packages/voice/src/dictation/transcriber.ts",
+    "kind": "function",
+    "sig": "(samples: Float32Array): number"
+   }
+  },
+  {
+   "id": "@wren/voice#makeVoiceConsole",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/console"
+    ],
+    "file": "packages/voice/src/console.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(deps: { db: Db }): restate.ServiceDefinition<\"VoiceConsole\", { saveTest: (ctx: restate.Context, req: SaveTestRequest) => Promise<{ id: number; }>; dictated: (ctx: restate.Context, req: DictatedRequest) => Promise<{ id: string; }>; dictation: (ctx: restate.Context, req: PortalRequest) => Promise<{ rows: import(\"./dicta…"
+   }
+  },
+  {
+   "id": "@wren/voice#mayDial",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/node"
+    ],
+    "file": "packages/voice/src/consent.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, o: { to: string; agent: AgentSettings; whose: string; zone: string | null; now: Date }): Promise<DialVerdict>"
+   }
+  },
+  {
+   "id": "@wren/voice#messagesOnCall",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/node"
+    ],
+    "file": "packages/voice/src/ports.ts",
+    "kind": "const",
+    "sig": "MessagePort"
+   }
+  },
+  {
+   "id": "@wren/voice#muLaw",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/node"
+    ],
+    "file": "packages/voice/src/transports/telnyx.ts",
+    "kind": "function",
+    "sig": "(sample: number): number"
+   }
+  },
+  {
+   "id": "@wren/voice#muLawDecode",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/node"
+    ],
+    "file": "packages/voice/src/transports/telnyx.ts",
+    "kind": "function",
+    "sig": "(byte: number): number"
+   }
+  },
+  {
+   "id": "@wren/voice#openAiTranscriber",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/dictation"
+    ],
+    "file": "packages/voice/src/dictation/transcriber.ts",
+    "kind": "function",
+    "sig": "(o: { url: string; model: string; key?: string | undefined; fetch?: typeof fetch; language?: string; }): Transcriber"
+   }
+  },
+  {
+   "id": "@wren/voice#openingLine",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/agent.ts",
+    "kind": "function",
+    "sig": "(agent: AgentSettings, callerState: string | null = null): string"
+   }
+  },
+  {
+   "id": "@wren/voice#pcm16",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/reading"
+    ],
+    "file": "packages/voice/src/reading.ts",
+    "kind": "function",
+    "sig": "(audio: Float32Array, rate: number): Frame"
+   }
+  },
+  {
+   "id": "@wren/voice#pcmFrame",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/dictation"
+    ],
+    "file": "packages/voice/src/dictation/transcriber.ts",
+    "kind": "function",
+    "sig": "(samples: Float32Array, rate = DICTATION_RATE): Frame"
+   }
+  },
+  {
+   "id": "@wren/voice#phoneConsents",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/schema"
+    ],
+    "file": "packages/voice/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"phone_consents\"; schema: undefined; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"phone_consents\"; dataType: \"number\"; columnType: \"PgSerial\"; data: number; driverParam: number; notNull: true; hasDefault: tru…"
+   }
+  },
+  {
+   "id": "@wren/voice#pickAdapter",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/dictation"
+    ],
+    "file": "packages/voice/src/dictation/route.ts",
+    "kind": "function",
+    "sig": "(choice: Choice, can: Can): Route"
+   }
+  },
+  {
+   "id": "@wren/voice#placeCall",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/node"
+    ],
+    "file": "packages/voice/src/consent.ts",
+    "kind": "function",
+    "sig": "(db: Db, control: TelnyxControl, o: { agent: AgentSettings; whose: string; from: string; to: string; zone: string | null; streamUrl: string; connectionId: string; now: Date; }): Promise<string>"
+   }
+  },
+  {
+   "id": "@wren/voice#promptOf",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/brain.ts",
+    "kind": "function",
+    "sig": "(input: BrainInput): { system: string; prompt: string }"
+   }
+  },
+  {
+   "id": "@wren/voice#readAloud",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/reading"
+    ],
+    "file": "packages/voice/src/reading.ts",
+    "kind": "function",
+    "sig": "(mouth: Mouth, speakers: Speakers, text: string, signal: AbortSignal, on: ReadOn = {}): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/voice#readable",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/reading"
+    ],
+    "file": "packages/voice/src/reading.ts",
+    "kind": "function",
+    "sig": "(text: string): string"
+   }
+  },
+  {
+   "id": "@wren/voice#resample",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/dictation"
+    ],
+    "file": "packages/voice/src/dictation/transcriber.ts",
+    "kind": "function",
+    "sig": "(samples: Float32Array, from: number, to = DICTATION_RATE): Float32Array"
+   }
+  },
+  {
+   "id": "@wren/voice#runCall",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/call.ts",
+    "kind": "function",
+    "sig": "(o: CallOptions): Promise<CallResult>"
+   }
+  },
+  {
+   "id": "@wren/voice#runTool",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/tools.ts",
+    "kind": "function",
+    "sig": "(name: string, args: Record<string, unknown>, ports: ToolPorts, ctx: ToolContext): Promise<ToolResult>"
+   }
+  },
+  {
+   "id": "@wren/voice#samples",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/reading"
+    ],
+    "file": "packages/voice/src/reading.ts",
+    "kind": "function",
+    "sig": "(f: Frame): Float32Array"
+   }
+  },
+  {
+   "id": "@wren/voice#samplesOf",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/dictation"
+    ],
+    "file": "packages/voice/src/dictation/transcriber.ts",
+    "kind": "function",
+    "sig": "(frame: Frame): Float32Array"
+   }
+  },
+  {
+   "id": "@wren/voice#samplesOfWav",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/dictation"
+    ],
+    "file": "packages/voice/src/dictation/transcriber.ts",
+    "kind": "function",
+    "sig": "(bytes: Uint8Array): Float32Array | null"
+   }
+  },
+  {
+   "id": "@wren/voice#saveCall",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/node"
+    ],
+    "file": "packages/voice/src/store.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, r: CallResult, o: { whose: string; by: string | null }): Promise<number>"
+   }
+  },
+  {
+   "id": "@wren/voice#sentencesOf",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/reading"
+    ],
+    "file": "packages/voice/src/reading.ts",
+    "kind": "function",
+    "sig": "(text: string, max = 300): string[]"
+   }
+  },
+  {
+   "id": "@wren/voice#spoken",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/tools.ts",
+    "kind": "function",
+    "sig": "(at: Date, zone: string): string"
+   }
+  },
+  {
+   "id": "@wren/voice#startDictation",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/dictation"
+    ],
+    "file": "packages/voice/src/dictation/session.ts",
+    "kind": "function",
+    "sig": "(o: { ears: Ears; on: DictationEvents; now?: () => number; }): DictationSession"
+   }
+  },
+  {
+   "id": "@wren/voice#stretchesOf",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/agent.ts",
+    "kind": "function",
+    "sig": "(text: string): [number, number][] | null"
+   }
+  },
+  {
+   "id": "@wren/voice#systemOf",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/agent.ts",
+    "kind": "function",
+    "sig": "(agent: AgentSettings): string"
+   }
+  },
+  {
+   "id": "@wren/voice#thoughtsOf",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/brain.ts",
+    "kind": "function",
+    "sig": "(text: string): Thought[]"
+   }
+  },
+  {
+   "id": "@wren/voice#toPcmu",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/node"
+    ],
+    "file": "packages/voice/src/transports/telnyx.ts",
+    "kind": "function",
+    "sig": "(f: Frame): Uint8Array"
+   }
+  },
+  {
+   "id": "@wren/voice#toolsOf",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/tools.ts",
+    "kind": "function",
+    "sig": "(agent: AgentSettings): ToolSpec[]"
+   }
+  },
+  {
+   "id": "@wren/voice#transcriptText",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/fakes.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(lines: readonly Line[]): string"
+   }
+  },
+  {
+   "id": "@wren/voice#voiceCallRecords",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/schema"
+    ],
+    "file": "packages/voice/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgViewWithSelection<\"voice_call_records\", false, { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"voice_call_records\"; dataType: \"number\"; columnType: \"PgInteger\"; data: number; driverParam: string | number; notNull: false; hasDefault: false; isPri…"
+   }
+  },
+  {
+   "id": "@wren/voice#voiceCalls",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/schema"
+    ],
+    "file": "packages/voice/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"voice_calls\"; schema: undefined; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"voice_calls\"; dataType: \"number\"; columnType: \"PgSerial\"; data: number; driverParam: number; notNull: true; hasDefault: true; isP…"
+   }
+  },
+  {
+   "id": "@wren/voice#voiceLatency",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/schema"
+    ],
+    "file": "packages/voice/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgViewWithSelection<\"voice_latency\", false, { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"voice_latency\"; dataType: \"string\"; columnType: \"PgText\"; data: string; driverParam: string; notNull: false; hasDefault: false; isPrimaryKey: false; isAuto…"
+   }
+  },
+  {
+   "id": "@wren/voice#voiceTurns",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/schema"
+    ],
+    "file": "packages/voice/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"voice_turns\"; schema: undefined; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"voice_turns\"; dataType: \"number\"; columnType: \"PgSerial\"; data: number; driverParam: number; notNull: true; hasDefault: true; isP…"
+   }
+  },
+  {
+   "id": "@wren/voice#wavOf",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice/dictation"
+    ],
+    "file": "packages/voice/src/dictation/transcriber.ts",
+    "kind": "function",
+    "sig": "(samples: Float32Array, rate = DICTATION_RATE): Uint8Array"
+   }
+  },
+  {
+   "id": "@wren/voice#wordsOf",
+   "role": "export",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "entries": [
+     "@wren/voice"
+    ],
+    "file": "packages/voice/src/fakes.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(f: Frame): string"
+   }
+  }
+ ],
+ "edges": []
+}

@@ -1,0 +1,859 @@
+{
+ "layer": "routes",
+ "nodes": [
+  {
+   "id": "route:AutoReply/arrived",
+   "role": "route",
+   "parent": "service:AutoReply",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "Arrived",
+    "output": "{ asked: number | null; why: string }",
+    "wrap": "restate.handlers.object.exclusive"
+   }
+  },
+  {
+   "id": "route:Blog/audience",
+   "role": "route",
+   "parent": "service:Blog",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "{ slug: string }",
+    "output": "{ live: boolean; tally: Record<string, number>; sent: number; }",
+    "wrap": "sharedHandler"
+   }
+  },
+  {
+   "id": "route:Blog/email",
+   "role": "route",
+   "parent": "service:Blog",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "{ slug: string; test?: string }",
+    "output": "{ sending: boolean; test: string | null; }",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:Blog/posts",
+   "role": "route",
+   "parent": "service:Blog",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "void",
+    "output": "{ on: boolean; site: string; posts: { date: string; createdAt: Date; updatedAt: Date; description: string; title: string; body: string; draft: boolean; updatedBy: string | null; slug: string; publishedAt: Date | null; emailedAt: Date | null; commitSha: string | null; fromRef: string | null; }[]; }",
+    "wrap": "sharedHandler"
+   }
+  },
+  {
+   "id": "route:Blog/save",
+   "role": "route",
+   "parent": "service:Blog",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "{ slug?: string; title: string; description: string; body: string; publish: boolean; from?: string | null; viewer?: unknown; }",
+    "output": "{ post: { date: string; createdAt: Date; updatedAt: Date; description: string; title: string; body: string; draft: boolean; updatedBy: string | null; slug: string; publishedAt: Date | null; emailedAt: Date | null; commitSha: string | null; fromRef: string | null; }; url: string; }",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:Chat/read",
+   "role": "route",
+   "parent": "service:Chat",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "Req",
+    "output": "Answer",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:Chat/say",
+   "role": "route",
+   "parent": "service:Chat",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "Req",
+    "output": "Answer",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ClientReport/run",
+   "role": "route",
+   "parent": "service:ClientReport",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "{ chain?: string }",
+    "output": "{ state: \"stale\" | \"off\" | \"ran\" | \"waiting\"; nextAt: string | null }",
+    "wrap": "restate.handlers.object.exclusive"
+   }
+  },
+  {
+   "id": "route:DraftAsk/answer",
+   "role": "route",
+   "parent": "service:DraftAsk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "{ id: string }",
+    "output": "undefined",
+    "wrap": "restate.handlers.handler"
+   }
+  },
+  {
+   "id": "route:DraftAsk/ask",
+   "role": "route",
+   "parent": "service:DraftAsk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "Item & { message: string }",
+    "output": "{ id: string; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:DraftAsk/set",
+   "role": "route",
+   "parent": "service:DraftAsk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "Item & { text?: string; expect?: string | null; account?: string | null }",
+    "output": "{ run?: string; turn?: DraftTurn | null; version?: string | null; accounts?: AccountPick | null; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:DraftAsk/undo",
+   "role": "route",
+   "parent": "service:DraftAsk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "Item",
+    "output": "{ run: string; before: string | null; turn: DraftTurn | null; version: string | null; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:InboxDesk/approve",
+   "role": "route",
+   "parent": "service:InboxDesk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "Req & { id: number }",
+    "output": "{ sent: boolean; queued?: string; copy?: Copied }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:InboxDesk/ask",
+   "role": "route",
+   "parent": "service:InboxDesk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "Req & { thread: string; channel: InboxChannel; target: string; body: string }",
+    "output": "{ asked: number }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:InboxDesk/assign",
+   "role": "route",
+   "parent": "service:InboxDesk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "Req & { thread: string; assignee?: string | null }",
+    "output": "{ assignee: string | null }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:InboxDesk/autoReplies",
+   "role": "route",
+   "parent": "service:InboxDesk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "Req",
+    "output": "{ modes: Record<InboxChannel, AutoReplyMode>; held: boolean }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:InboxDesk/autoReplySet",
+   "role": "route",
+   "parent": "service:InboxDesk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "Req & { channel: InboxChannel; mode: AutoReplyMode }",
+    "output": "{ modes: Record<InboxChannel, AutoReplyMode>; held: boolean }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:InboxDesk/drop",
+   "role": "route",
+   "parent": "service:InboxDesk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "Req & { id: number }",
+    "output": "{ dropped: boolean }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:InboxDesk/note",
+   "role": "route",
+   "parent": "service:InboxDesk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "Req & { thread: string; body: string }",
+    "output": "{ id: string; mentioned: string[] }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:InboxDesk/release",
+   "role": "route",
+   "parent": "service:InboxDesk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "{ id: number; client?: string }",
+    "output": "{ state: \"sent\" | \"queued\" | \"failed\" | \"gone\" }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:InboxDesk/reply",
+   "role": "route",
+   "parent": "service:InboxDesk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "Req & { thread: string; channel: InboxChannel; target: string; body: string }",
+    "output": "{ sent: boolean; asked: number | null; why: string | null; copy?: Copied; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:InboxDesk/snooze",
+   "role": "route",
+   "parent": "service:InboxDesk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "Req & { thread: string; until?: string | null }",
+    "output": "{ until: string | null }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:InboxDesk/status",
+   "role": "route",
+   "parent": "service:InboxDesk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "Req & { thread: string; status: InboxStatus }",
+    "output": "{ status: InboxStatus }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:InboxDesk/suggest",
+   "role": "route",
+   "parent": "service:InboxDesk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "Req & { thread: string; channel: InboxChannel; target: string }",
+    "output": "{ text: string | null }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:InboxDesk/take",
+   "role": "route",
+   "parent": "service:InboxDesk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "Req & { thread: string }",
+    "output": "{ assignee: string }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:KeywordDm/add",
+   "role": "route",
+   "parent": "service:KeywordDm",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "z.infer<typeof ADD>",
+    "output": "restate.RestatePromise<{ id: number; keyword: string; }>",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:KeywordDm/remove",
+   "role": "route",
+   "parent": "service:KeywordDm",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "{ ids: unknown[] }",
+    "output": "{ done: number; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:KeywordDm/send",
+   "role": "route",
+   "parent": "service:KeywordDm",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "Send",
+    "output": "{ state: string }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:MailReply/send",
+   "role": "route",
+   "parent": "service:MailReply",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "{ client: string; mailId: number; body: string; by?: string | null }",
+    "output": "{ id: string | null }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Pieces/list",
+   "role": "route",
+   "parent": "service:Pieces",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "void",
+    "output": "{ pieces: import(\"../pieces.js\").Piece[]; }",
+    "wrap": "sharedHandler"
+   }
+  },
+  {
+   "id": "route:SocialCallback/land",
+   "role": "route",
+   "parent": "service:SocialCallback",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "z.infer<typeof SOCIAL_LANDING>",
+    "output": "{ ok: boolean; said: string; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SocialDesk/markAllSeen",
+   "role": "route",
+   "parent": "service:SocialDesk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "void",
+    "output": "{ seen: number }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SocialDesk/markSeen",
+   "role": "route",
+   "parent": "service:SocialDesk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "{ ids: number[] }",
+    "output": "{ seen: number }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SocialDesk/readAudience",
+   "role": "route",
+   "parent": "service:SocialDesk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "{ platform: Platform }",
+    "output": "{ platform: Platform; day: string; followers: number; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SocialDesk/readPost",
+   "role": "route",
+   "parent": "service:SocialDesk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "{ id: number }",
+    "output": "{ read: boolean; kept: number }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SocialInbox/answer",
+   "role": "route",
+   "parent": "service:SocialInbox",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "{ client: string; id: number; body: string; by?: string | null; again?: boolean }",
+    "output": "{ ok: true }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SocialInbox/read",
+   "role": "route",
+   "parent": "service:SocialInbox",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "{ client: string }",
+    "output": "{ accounts: number; threads: number; messages: number; errors: string[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SocialInbox/send",
+   "role": "route",
+   "parent": "service:SocialInbox",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "{ client: string; contactId: number; body: string; by?: string | null; again?: boolean; }",
+    "output": "{ ref: string | null }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SocialInbox/settle",
+   "role": "route",
+   "parent": "service:SocialInbox",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "{ client: string; item: string; outcome: SettleOutcome; by?: string | null }",
+    "output": "{ item: string; outcome: SettleOutcome }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SocialPush/gbp",
+   "role": "route",
+   "parent": "service:SocialPush",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "unknown",
+    "output": "PushResult",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SocialPush/meta",
+   "role": "route",
+   "parent": "service:SocialPush",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "unknown",
+    "output": "PushResult",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SocialPush/watch",
+   "role": "route",
+   "parent": "service:SocialPush",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "z.infer<typeof WATCH>",
+    "output": "PushResult",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SocialPushed/add",
+   "role": "route",
+   "parent": "service:SocialPushed",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "Pushed[]",
+    "output": "number",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:SocialPushed/alive",
+   "role": "route",
+   "parent": "service:SocialPushed",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "{ platform: string }",
+    "output": "void",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:SocialPushed/reach",
+   "role": "route",
+   "parent": "service:SocialPushed",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "void",
+    "output": "ReachView",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:SocialPushed/take",
+   "role": "route",
+   "parent": "service:SocialPushed",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "void",
+    "output": "Pushed[]",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:VideoDesk/answer",
+   "role": "route",
+   "parent": "service:VideoDesk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "{ run: string }",
+    "output": "undefined",
+    "wrap": "restate.handlers.handler"
+   }
+  },
+  {
+   "id": "route:VideoDesk/ask",
+   "role": "route",
+   "parent": "service:VideoDesk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "One & { message: string }",
+    "output": "{ run: string; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:VideoDesk/cut",
+   "role": "route",
+   "parent": "service:VideoDesk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "One & { from: number; to: number; state: \"cut\" | \"kept\" }",
+    "output": "{ run: string; view: import(\"../video.js\").VideoView; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:VideoDesk/edit",
+   "role": "route",
+   "parent": "service:VideoDesk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "One & { note?: string | null }",
+    "output": "{ run: string; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:VideoDesk/editing",
+   "role": "route",
+   "parent": "service:VideoDesk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "{ run: string }",
+    "output": "undefined",
+    "wrap": "restate.handlers.handler"
+   }
+  },
+  {
+   "id": "route:VideoDesk/line",
+   "role": "route",
+   "parent": "service:VideoDesk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "One & { at: number[]; text: string; was: string }",
+    "output": "{ run: string; view: import(\"../video.js\").VideoView; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:VideoDesk/propose",
+   "role": "route",
+   "parent": "service:VideoDesk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "One & { sentence: string; beat?: string | null }",
+    "output": "import(\"@wren/studio/change\").Proposal",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:VideoDesk/punctuate",
+   "role": "route",
+   "parent": "service:VideoDesk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "One",
+    "output": "{ n: number; run: string; view: import(\"../video.js\").VideoView; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:VideoDesk/reject",
+   "role": "route",
+   "parent": "service:VideoDesk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "One & { note?: string | null }",
+    "output": "{ run: string; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:VideoDesk/render",
+   "role": "route",
+   "parent": "service:VideoDesk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "One & { only?: string; again?: boolean }",
+    "output": "{ queued: boolean; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:VideoDesk/rendering",
+   "role": "route",
+   "parent": "service:VideoDesk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "{ id: number; only?: string; again?: boolean }",
+    "output": "void",
+    "wrap": "restate.handlers.handler"
+   }
+  },
+  {
+   "id": "route:VideoDesk/restore",
+   "role": "route",
+   "parent": "service:VideoDesk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "One",
+    "output": "{ run: string; state: string; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:VideoDesk/set",
+   "role": "route",
+   "parent": "service:VideoDesk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "One & { patch: unknown; expect?: Record<string, unknown>; proposal?: string }",
+    "output": "{ run: string; view: import(\"../video.js\").VideoView; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:VideoDesk/stress",
+   "role": "route",
+   "parent": "service:VideoDesk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "One",
+    "output": "{ n: number; run: string; view: import(\"../video.js\").VideoView; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:VideoDesk/swap",
+   "role": "route",
+   "parent": "service:VideoDesk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "One & { short?: number | null }",
+    "output": "{ run: string; swapped: number; missing: number; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:VideoDesk/undo",
+   "role": "route",
+   "parent": "service:VideoDesk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "One",
+    "output": "{ run: string; view: import(\"../video.js\").VideoView; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:VideoDesk/words",
+   "role": "route",
+   "parent": "service:VideoDesk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "One & { wrong?: string | null; right?: string | null; at?: number | null; text?: string | null; }",
+    "output": "{ n: number; run: string; view: import(\"../video.js\").VideoView; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "service:AutoReply",
+   "role": "service",
+   "parent": "@wren/content",
+   "group": "@wren/content",
+   "attrs": {
+    "file": "packages/content/src/restate/auto-reply.ts",
+    "kind": "object"
+   }
+  },
+  {
+   "id": "service:Blog",
+   "role": "service",
+   "parent": "@wren/content",
+   "group": "@wren/content",
+   "attrs": {
+    "file": "packages/content/src/restate/blog.ts",
+    "kind": "object"
+   }
+  },
+  {
+   "id": "service:Chat",
+   "role": "service",
+   "parent": "@wren/content",
+   "group": "@wren/content",
+   "attrs": {
+    "file": "packages/content/src/restate/chat.ts",
+    "kind": "service"
+   }
+  },
+  {
+   "id": "service:ClientReport",
+   "role": "service",
+   "parent": "@wren/content",
+   "group": "@wren/content",
+   "attrs": {
+    "file": "packages/content/src/restate/reports.ts",
+    "kind": "object"
+   }
+  },
+  {
+   "id": "service:ContentDesk",
+   "role": "service",
+   "parent": "@wren/content",
+   "group": "@wren/content",
+   "attrs": {
+    "file": "packages/content/src/restate/desk.ts",
+    "kind": "object"
+   }
+  },
+  {
+   "id": "service:DraftAsk",
+   "role": "service",
+   "parent": "@wren/content",
+   "group": "@wren/content",
+   "attrs": {
+    "file": "packages/content/src/restate/draft-ask.ts",
+    "kind": "service"
+   }
+  },
+  {
+   "id": "service:InboxDesk",
+   "role": "service",
+   "parent": "@wren/content",
+   "group": "@wren/content",
+   "attrs": {
+    "file": "packages/content/src/restate/inbox-desk.ts",
+    "kind": "service"
+   }
+  },
+  {
+   "id": "service:KeywordDm",
+   "role": "service",
+   "parent": "@wren/content",
+   "group": "@wren/content",
+   "attrs": {
+    "file": "packages/content/src/restate/keyword-dm.ts",
+    "kind": "service"
+   }
+  },
+  {
+   "id": "service:MailReply",
+   "role": "service",
+   "parent": "@wren/content",
+   "group": "@wren/content",
+   "attrs": {
+    "file": "packages/content/src/restate/mail-reply.ts",
+    "kind": "service"
+   }
+  },
+  {
+   "id": "service:Pieces",
+   "role": "service",
+   "parent": "@wren/content",
+   "group": "@wren/content",
+   "attrs": {
+    "file": "packages/content/src/restate/pieces.ts",
+    "kind": "object"
+   }
+  },
+  {
+   "id": "service:SocialCallback",
+   "role": "service",
+   "parent": "@wren/content",
+   "group": "@wren/content",
+   "attrs": {
+    "file": "packages/content/src/connect/console.ts",
+    "kind": "service"
+   }
+  },
+  {
+   "id": "service:SocialDesk",
+   "role": "service",
+   "parent": "@wren/content",
+   "group": "@wren/content",
+   "attrs": {
+    "file": "packages/content/src/restate/social.ts",
+    "kind": "service"
+   }
+  },
+  {
+   "id": "service:SocialInbox",
+   "role": "service",
+   "parent": "@wren/content",
+   "group": "@wren/content",
+   "attrs": {
+    "file": "packages/content/src/restate/social-inbox.ts",
+    "kind": "service"
+   }
+  },
+  {
+   "id": "service:SocialPush",
+   "role": "service",
+   "parent": "@wren/content",
+   "group": "@wren/content",
+   "attrs": {
+    "file": "packages/content/src/restate/social-push.ts",
+    "kind": "service"
+   }
+  },
+  {
+   "id": "service:SocialPushed",
+   "role": "service",
+   "parent": "@wren/content",
+   "group": "@wren/content",
+   "attrs": {
+    "file": "packages/content/src/restate/social-push.ts",
+    "kind": "object"
+   }
+  },
+  {
+   "id": "service:VideoDesk",
+   "role": "service",
+   "parent": "@wren/content",
+   "group": "@wren/content",
+   "attrs": {
+    "file": "packages/content/src/restate/video-desk.ts",
+    "kind": "service"
+   }
+  }
+ ],
+ "edges": []
+}

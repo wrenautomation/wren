@@ -1,0 +1,836 @@
+{
+ "layer": "imports",
+ "nodes": [
+  {
+   "id": "@wren/voice",
+   "role": "package",
+   "parent": "repo:wren",
+   "group": "@wren/voice",
+   "attrs": {
+    "dir": "packages/voice/",
+    "npm": [
+     "node:crypto",
+     "node:http",
+     "node:stream"
+    ]
+   }
+  },
+  {
+   "id": "@wren/voice/src/agent.ts",
+   "role": "file",
+   "parent": "@wren/voice",
+   "group": "@wren/voice"
+  },
+  {
+   "id": "@wren/voice/src/box/main.ts",
+   "role": "file",
+   "parent": "@wren/voice",
+   "group": "@wren/voice"
+  },
+  {
+   "id": "@wren/voice/src/box/server.ts",
+   "role": "file",
+   "parent": "@wren/voice",
+   "group": "@wren/voice"
+  },
+  {
+   "id": "@wren/voice/src/box/ws.ts",
+   "role": "file",
+   "parent": "@wren/voice",
+   "group": "@wren/voice"
+  },
+  {
+   "id": "@wren/voice/src/brain.ts",
+   "role": "file",
+   "parent": "@wren/voice",
+   "group": "@wren/voice"
+  },
+  {
+   "id": "@wren/voice/src/call-now.ts",
+   "role": "file",
+   "parent": "@wren/voice",
+   "group": "@wren/voice"
+  },
+  {
+   "id": "@wren/voice/src/call.ts",
+   "role": "file",
+   "parent": "@wren/voice",
+   "group": "@wren/voice"
+  },
+  {
+   "id": "@wren/voice/src/components.ts",
+   "role": "file",
+   "parent": "@wren/voice",
+   "group": "@wren/voice"
+  },
+  {
+   "id": "@wren/voice/src/consent.ts",
+   "role": "file",
+   "parent": "@wren/voice",
+   "group": "@wren/voice"
+  },
+  {
+   "id": "@wren/voice/src/console-routes.ts",
+   "role": "file",
+   "parent": "@wren/voice",
+   "group": "@wren/voice"
+  },
+  {
+   "id": "@wren/voice/src/console.ts",
+   "role": "file",
+   "parent": "@wren/voice",
+   "group": "@wren/voice"
+  },
+  {
+   "id": "@wren/voice/src/dictation-store.ts",
+   "role": "file",
+   "parent": "@wren/voice",
+   "group": "@wren/voice"
+  },
+  {
+   "id": "@wren/voice/src/dictation/commands.ts",
+   "role": "file",
+   "parent": "@wren/voice",
+   "group": "@wren/voice"
+  },
+  {
+   "id": "@wren/voice/src/dictation/ears.ts",
+   "role": "file",
+   "parent": "@wren/voice",
+   "group": "@wren/voice"
+  },
+  {
+   "id": "@wren/voice/src/dictation/index.ts",
+   "role": "file",
+   "parent": "@wren/voice",
+   "group": "@wren/voice"
+  },
+  {
+   "id": "@wren/voice/src/dictation/route.ts",
+   "role": "file",
+   "parent": "@wren/voice",
+   "group": "@wren/voice"
+  },
+  {
+   "id": "@wren/voice/src/dictation/session.ts",
+   "role": "file",
+   "parent": "@wren/voice",
+   "group": "@wren/voice"
+  },
+  {
+   "id": "@wren/voice/src/dictation/transcriber.ts",
+   "role": "file",
+   "parent": "@wren/voice",
+   "group": "@wren/voice"
+  },
+  {
+   "id": "@wren/voice/src/fakes.ts",
+   "role": "file",
+   "parent": "@wren/voice",
+   "group": "@wren/voice"
+  },
+  {
+   "id": "@wren/voice/src/index.ts",
+   "role": "file",
+   "parent": "@wren/voice",
+   "group": "@wren/voice"
+  },
+  {
+   "id": "@wren/voice/src/node.ts",
+   "role": "file",
+   "parent": "@wren/voice",
+   "group": "@wren/voice"
+  },
+  {
+   "id": "@wren/voice/src/ports.ts",
+   "role": "file",
+   "parent": "@wren/voice",
+   "group": "@wren/voice"
+  },
+  {
+   "id": "@wren/voice/src/reading.ts",
+   "role": "file",
+   "parent": "@wren/voice",
+   "group": "@wren/voice"
+  },
+  {
+   "id": "@wren/voice/src/records.ts",
+   "role": "file",
+   "parent": "@wren/voice",
+   "group": "@wren/voice"
+  },
+  {
+   "id": "@wren/voice/src/schema.ts",
+   "role": "file",
+   "parent": "@wren/voice",
+   "group": "@wren/voice"
+  },
+  {
+   "id": "@wren/voice/src/sentences.ts",
+   "role": "file",
+   "parent": "@wren/voice",
+   "group": "@wren/voice"
+  },
+  {
+   "id": "@wren/voice/src/store.ts",
+   "role": "file",
+   "parent": "@wren/voice",
+   "group": "@wren/voice"
+  },
+  {
+   "id": "@wren/voice/src/tools.ts",
+   "role": "file",
+   "parent": "@wren/voice",
+   "group": "@wren/voice"
+  },
+  {
+   "id": "@wren/voice/src/transports/browser.ts",
+   "role": "file",
+   "parent": "@wren/voice",
+   "group": "@wren/voice"
+  },
+  {
+   "id": "@wren/voice/src/transports/telnyx.ts",
+   "role": "file",
+   "parent": "@wren/voice",
+   "group": "@wren/voice"
+  },
+  {
+   "id": "@wren/voice/src/transports/text.ts",
+   "role": "file",
+   "parent": "@wren/voice",
+   "group": "@wren/voice"
+  },
+  {
+   "id": "@wren/voice/src/types.ts",
+   "role": "file",
+   "parent": "@wren/voice",
+   "group": "@wren/voice"
+  },
+  {
+   "id": "@wren/voice/vitest.config.ts",
+   "role": "file",
+   "parent": "@wren/voice",
+   "group": "@wren/voice"
+  }
+ ],
+ "edges": [
+  {
+   "from": "@wren/voice",
+   "to": "@wren/calendar",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice",
+   "to": "@wren/channel-sms",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice",
+   "to": "@wren/config",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice",
+   "to": "@wren/core",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice",
+   "to": "@wren/db",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/agent.ts",
+   "to": "@wren/core/src/time.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/box/main.ts",
+   "to": "@wren/calendar/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/box/main.ts",
+   "to": "@wren/config/src/ssm.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/box/main.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/box/main.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/box/main.ts",
+   "to": "@wren/voice/src/agent.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/box/main.ts",
+   "to": "@wren/voice/src/box/server.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/box/main.ts",
+   "to": "@wren/voice/src/ports.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/box/main.ts",
+   "to": "@wren/voice/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/box/main.ts",
+   "to": "@wren/voice/src/transports/telnyx.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/box/server.ts",
+   "to": "@wren/voice/src/agent.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/voice/src/box/server.ts",
+   "to": "@wren/voice/src/box/ws.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/box/server.ts",
+   "to": "@wren/voice/src/call.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/box/server.ts",
+   "to": "@wren/voice/src/tools.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/voice/src/box/server.ts",
+   "to": "@wren/voice/src/transports/telnyx.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/box/server.ts",
+   "to": "@wren/voice/src/types.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/voice/src/box/ws.ts",
+   "to": "@wren/voice/src/transports/telnyx.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/voice/src/brain.ts",
+   "to": "@wren/voice/src/types.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/voice/src/call-now.ts",
+   "to": "@wren/channel-sms/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/call-now.ts",
+   "to": "@wren/core/src/executor.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/voice/src/call-now.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/voice/src/call-now.ts",
+   "to": "@wren/voice/src/agent.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/voice/src/call-now.ts",
+   "to": "@wren/voice/src/components.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/call-now.ts",
+   "to": "@wren/voice/src/consent.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/call-now.ts",
+   "to": "@wren/voice/src/transports/telnyx.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/voice/src/call.ts",
+   "to": "@wren/voice/src/agent.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/call.ts",
+   "to": "@wren/voice/src/sentences.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/call.ts",
+   "to": "@wren/voice/src/tools.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/call.ts",
+   "to": "@wren/voice/src/types.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/voice/src/components.ts",
+   "to": "@wren/core/src/components.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/components.ts",
+   "to": "@wren/voice/src/agent.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/consent.ts",
+   "to": "@wren/channel-sms/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/consent.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/consent.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/voice/src/consent.ts",
+   "to": "@wren/voice/src/agent.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/voice/src/consent.ts",
+   "to": "@wren/voice/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/consent.ts",
+   "to": "@wren/voice/src/transports/telnyx.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/voice/src/console-routes.ts",
+   "to": "@wren/core/src/access.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/voice/src/console.ts",
+   "to": "@wren/core/src/portal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/console.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/console.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/console.ts",
+   "to": "@wren/voice/src/call.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/console.ts",
+   "to": "@wren/voice/src/console-routes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/console.ts",
+   "to": "@wren/voice/src/dictation-store.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/voice/src/console.ts",
+   "to": "@wren/voice/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/console.ts",
+   "to": "@wren/voice/src/types.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/dictation-store.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/dictation-store.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/voice/src/dictation-store.ts",
+   "to": "@wren/voice/src/dictation/route.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/dictation-store.ts",
+   "to": "@wren/voice/src/dictation/session.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/dictation/ears.ts",
+   "to": "@wren/voice/src/dictation/transcriber.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/dictation/ears.ts",
+   "to": "@wren/voice/src/types.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/voice/src/dictation/index.ts",
+   "to": "@wren/voice/src/dictation/commands.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/dictation/index.ts",
+   "to": "@wren/voice/src/dictation/ears.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/dictation/index.ts",
+   "to": "@wren/voice/src/dictation/route.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/dictation/index.ts",
+   "to": "@wren/voice/src/dictation/session.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/dictation/index.ts",
+   "to": "@wren/voice/src/dictation/transcriber.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/dictation/session.ts",
+   "to": "@wren/voice/src/dictation/commands.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/dictation/session.ts",
+   "to": "@wren/voice/src/types.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/voice/src/dictation/transcriber.ts",
+   "to": "@wren/voice/src/types.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/voice/src/fakes.ts",
+   "to": "@wren/voice/src/tools.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/fakes.ts",
+   "to": "@wren/voice/src/types.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/voice/src/index.ts",
+   "to": "@wren/voice/src/agent.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/index.ts",
+   "to": "@wren/voice/src/brain.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/index.ts",
+   "to": "@wren/voice/src/call.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/index.ts",
+   "to": "@wren/voice/src/fakes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/index.ts",
+   "to": "@wren/voice/src/sentences.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/index.ts",
+   "to": "@wren/voice/src/tools.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/index.ts",
+   "to": "@wren/voice/src/transports/browser.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/index.ts",
+   "to": "@wren/voice/src/transports/text.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/index.ts",
+   "to": "@wren/voice/src/types.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/node.ts",
+   "to": "@wren/voice/src/call-now.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/node.ts",
+   "to": "@wren/voice/src/consent.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/node.ts",
+   "to": "@wren/voice/src/ports.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/node.ts",
+   "to": "@wren/voice/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/node.ts",
+   "to": "@wren/voice/src/transports/telnyx.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/ports.ts",
+   "to": "@wren/calendar/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/ports.ts",
+   "to": "@wren/channel-sms/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/ports.ts",
+   "to": "@wren/core/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/ports.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/voice/src/ports.ts",
+   "to": "@wren/voice/src/tools.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/ports.ts",
+   "to": "@wren/voice/src/types.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/voice/src/reading.ts",
+   "to": "@wren/voice/src/sentences.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/reading.ts",
+   "to": "@wren/voice/src/types.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/voice/src/records.ts",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/records.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/voice/src/records.ts",
+   "to": "@wren/voice/src/call.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/records.ts",
+   "to": "@wren/voice/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/schema.ts",
+   "to": "@wren/channel-sms/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/schema.ts",
+   "to": "@wren/db/src/columns.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/schema.ts",
+   "to": "@wren/voice/src/types.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/store.ts",
+   "to": "@wren/channel-sms/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/store.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/store.ts",
+   "to": "@wren/voice/src/call.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/voice/src/store.ts",
+   "to": "@wren/voice/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/tools.ts",
+   "to": "@wren/voice/src/agent.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/voice/src/tools.ts",
+   "to": "@wren/voice/src/types.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/voice/src/transports/browser.ts",
+   "to": "@wren/voice/src/types.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/voice/src/transports/telnyx.ts",
+   "to": "@wren/voice/src/types.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/voice/src/transports/text.ts",
+   "to": "@wren/voice/src/types.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/voice/vitest.config.ts",
+   "to": "@wren/db/src/testing-vitest.ts",
+   "kind": "imports"
+  }
+ ]
+}

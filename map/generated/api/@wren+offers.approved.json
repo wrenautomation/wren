@@ -1,0 +1,444 @@
+{
+ "layer": "api",
+ "nodes": [
+  {
+   "id": "@wren/offers#AccessNeed",
+   "role": "export",
+   "parent": "@wren/offers",
+   "group": "@wren/offers",
+   "attrs": {
+    "entries": [
+     "@wren/offers"
+    ],
+    "file": "packages/offers/src/offer.ts",
+    "kind": "interface",
+    "sig": "interface AccessNeed { readonly system: string; readonly scope: string; readonly why: string; readonly revoke: string; }"
+   }
+  },
+  {
+   "id": "@wren/offers#Answers",
+   "role": "export",
+   "parent": "@wren/offers",
+   "group": "@wren/offers",
+   "attrs": {
+    "entries": [
+     "@wren/offers"
+    ],
+    "file": "packages/offers/src/offer.ts",
+    "kind": "type",
+    "sig": "type Answers = Readonly<Record<string, string | readonly string[]>>;"
+   }
+  },
+  {
+   "id": "@wren/offers#Application",
+   "role": "export",
+   "parent": "@wren/offers",
+   "group": "@wren/offers",
+   "attrs": {
+    "entries": [
+     "@wren/offers"
+    ],
+    "file": "packages/offers/src/offer.ts",
+    "kind": "interface",
+    "sig": "interface Application { readonly questions: readonly Question[]; readonly fit: readonly FitRule[]; }"
+   }
+  },
+  {
+   "id": "@wren/offers#Choice",
+   "role": "export",
+   "parent": "@wren/offers",
+   "group": "@wren/offers",
+   "attrs": {
+    "entries": [
+     "@wren/offers"
+    ],
+    "file": "packages/offers/src/offer.ts",
+    "kind": "interface",
+    "sig": "interface Choice { readonly id: string; readonly label: string; }"
+   }
+  },
+  {
+   "id": "@wren/offers#FitRule",
+   "role": "export",
+   "parent": "@wren/offers",
+   "group": "@wren/offers",
+   "attrs": {
+    "entries": [
+     "@wren/offers"
+    ],
+    "file": "packages/offers/src/offer.ts",
+    "kind": "interface",
+    "sig": "interface FitRule { readonly question: string; readonly anyOf: readonly string[]; }"
+   }
+  },
+  {
+   "id": "@wren/offers#Icp",
+   "role": "export",
+   "parent": "@wren/offers",
+   "group": "@wren/offers",
+   "attrs": {
+    "entries": [
+     "@wren/offers"
+    ],
+    "file": "packages/offers/src/offer.ts",
+    "kind": "interface",
+    "sig": "interface Icp { readonly who: string; readonly industries?: readonly string[]; readonly sizes?: readonly string[]; readonly roles?: readonly string[]; readonly regions?: readonly string[]; readonly must?: readonly string[]; readonly not?: readonly string[]; }"
+   }
+  },
+  {
+   "id": "@wren/offers#MEASURE_UNITS",
+   "role": "export",
+   "parent": "@wren/offers",
+   "group": "@wren/offers",
+   "attrs": {
+    "entries": [
+     "@wren/offers"
+    ],
+    "file": "packages/offers/src/offer.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"count\", \"usd\", \"hours\"]"
+   }
+  },
+  {
+   "id": "@wren/offers#Measure",
+   "role": "export",
+   "parent": "@wren/offers",
+   "group": "@wren/offers",
+   "attrs": {
+    "entries": [
+     "@wren/offers"
+    ],
+    "file": "packages/offers/src/offer.ts",
+    "kind": "interface",
+    "sig": "interface Measure { readonly key: string; readonly label: string; readonly unit: MeasureUnit; }"
+   }
+  },
+  {
+   "id": "@wren/offers#MeasureUnit",
+   "role": "export",
+   "parent": "@wren/offers",
+   "group": "@wren/offers",
+   "attrs": {
+    "entries": [
+     "@wren/offers"
+    ],
+    "file": "packages/offers/src/offer.ts",
+    "kind": "type",
+    "sig": "type MeasureUnit = (typeof MEASURE_UNITS)[number];"
+   }
+  },
+  {
+   "id": "@wren/offers#OFFERS",
+   "role": "export",
+   "parent": "@wren/offers",
+   "group": "@wren/offers",
+   "attrs": {
+    "entries": [
+     "@wren/offers"
+    ],
+    "file": "packages/offers/src/index.ts",
+    "kind": "const",
+    "sig": "readonly Offer[]"
+   }
+  },
+  {
+   "id": "@wren/offers#OFFER_IDS",
+   "role": "export",
+   "parent": "@wren/offers",
+   "group": "@wren/offers",
+   "attrs": {
+    "entries": [
+     "@wren/offers"
+    ],
+    "file": "packages/offers/src/index.ts",
+    "kind": "const",
+    "sig": "ReadonlySet<string>"
+   }
+  },
+  {
+   "id": "@wren/offers#OFFER_ID_MAX",
+   "role": "export",
+   "parent": "@wren/offers",
+   "group": "@wren/offers",
+   "attrs": {
+    "entries": [
+     "@wren/offers"
+    ],
+    "file": "packages/offers/src/offer.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "64"
+   }
+  },
+  {
+   "id": "@wren/offers#OFFER_PAGES",
+   "role": "export",
+   "parent": "@wren/offers",
+   "group": "@wren/offers",
+   "attrs": {
+    "entries": [
+     "@wren/offers"
+    ],
+    "file": "packages/offers/src/index.ts",
+    "kind": "const",
+    "sig": "ReadonlySet<string>"
+   }
+  },
+  {
+   "id": "@wren/offers#OFFER_STATUSES",
+   "role": "export",
+   "parent": "@wren/offers",
+   "group": "@wren/offers",
+   "attrs": {
+    "entries": [
+     "@wren/offers"
+    ],
+    "file": "packages/offers/src/offer.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"draft\", \"live\", \"paused\", \"retired\"]"
+   }
+  },
+  {
+   "id": "@wren/offers#Offer",
+   "role": "export",
+   "parent": "@wren/offers",
+   "group": "@wren/offers",
+   "attrs": {
+    "entries": [
+     "@wren/offers"
+    ],
+    "file": "packages/offers/src/offer.ts",
+    "kind": "interface",
+    "sig": "interface Offer { readonly id: string; readonly name: string; readonly status: OfferStatus; readonly audience: string; readonly promise: string; readonly price: Price; readonly slots: number | null; readonly days: number | null; readonly youGet: readonly string[]; readonly youGive: readonly string[]; readonly weGet: readonly string[]; readonly guarantee: string | null; readonly measures: readonly Measure[]; readonly next: readonly string[]; readonly page: string | null; readonly booking: string | null; readonly video?: string; readonly application: Application | null; readonly plan?: readonly Phase[]; readonly access?: readonly AccessNeed[]; readonly reviewAfterFirst?: readonly { readonly measure: string; readonly moment: string }[]; readonly upsell?: { readonly pitch: string }; readonly app?: string; readonly addOn?: string; readonly perUnitMeasure?: string; readonly target?: { readonly measure: string; readonly count: number; readonly fromDay: number }; readonly icp?: Icp; }"
+   }
+  },
+  {
+   "id": "@wren/offers#OfferStatus",
+   "role": "export",
+   "parent": "@wren/offers",
+   "group": "@wren/offers",
+   "attrs": {
+    "entries": [
+     "@wren/offers"
+    ],
+    "file": "packages/offers/src/offer.ts",
+    "kind": "type",
+    "sig": "type OfferStatus = (typeof OFFER_STATUSES)[number];"
+   }
+  },
+  {
+   "id": "@wren/offers#Phase",
+   "role": "export",
+   "parent": "@wren/offers",
+   "group": "@wren/offers",
+   "attrs": {
+    "entries": [
+     "@wren/offers"
+    ],
+    "file": "packages/offers/src/offer.ts",
+    "kind": "interface",
+    "sig": "interface Phase { readonly id: string; readonly name: string; readonly from: number; readonly to: number | null; readonly deliverables: readonly string[]; readonly asks: readonly string[]; }"
+   }
+  },
+  {
+   "id": "@wren/offers#Price",
+   "role": "export",
+   "parent": "@wren/offers",
+   "group": "@wren/offers",
+   "attrs": {
+    "entries": [
+     "@wren/offers"
+    ],
+    "file": "packages/offers/src/offer.ts",
+    "kind": "type",
+    "sig": "type Price = | { readonly kind: \"free\" } | { readonly kind: \"quoted\" } | { readonly kind: \"fixed\"; readonly upfront: UsdRange | null; readonly monthly: UsdRange | null; } | { readonly kind: \"performance\"; readonly upfront: number; readonly perUnit: number; readonly unit: string; readonly cap: number | null; readonly monthly: number | null; readonly flat: number | null; readonly until: number | null; readonly refundIfNone: { readonly minContacts: number } | null; };"
+   }
+  },
+  {
+   "id": "@wren/offers#Question",
+   "role": "export",
+   "parent": "@wren/offers",
+   "group": "@wren/offers",
+   "attrs": {
+    "entries": [
+     "@wren/offers"
+    ],
+    "file": "packages/offers/src/offer.ts",
+    "kind": "type",
+    "sig": "type Question = | { readonly id: string; readonly ask: string; readonly kind: \"one\" | \"many\"; readonly choices: readonly Choice[]; readonly required: boolean; } | { readonly id: string; readonly ask: string; readonly kind: \"text\"; readonly placeholder: string; readonly required: boolean; };"
+   }
+  },
+  {
+   "id": "@wren/offers#SNAPSHOT_VERSION",
+   "role": "export",
+   "parent": "@wren/offers",
+   "group": "@wren/offers",
+   "attrs": {
+    "entries": [
+     "@wren/offers"
+    ],
+    "file": "packages/offers/src/snapshot.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "1"
+   }
+  },
+  {
+   "id": "@wren/offers#Snapshot",
+   "role": "export",
+   "parent": "@wren/offers",
+   "group": "@wren/offers",
+   "attrs": {
+    "entries": [
+     "@wren/offers"
+    ],
+    "file": "packages/offers/src/snapshot.ts",
+    "kind": "interface",
+    "sig": "interface Snapshot { readonly version: number; readonly note: string; readonly offers: readonly Offer[]; }"
+   }
+  },
+  {
+   "id": "@wren/offers#Terms",
+   "role": "export",
+   "parent": "@wren/offers",
+   "group": "@wren/offers",
+   "attrs": {
+    "entries": [
+     "@wren/offers"
+    ],
+    "file": "packages/offers/src/terms.ts",
+    "kind": "interface",
+    "sig": "interface Terms { currency: string; setupCents: number; monthlyCents: number | null; perUnitCents: number | null; unit: string | null; capCents: number | null; days: number | null; until?: number | null; refundIfNone?: { minContacts: number } | null; payDays: number; shareBps?: number | null; floorCents?: number | null; installments?: { count: number; everyDays: number } | null; trialDays?: number | null; }"
+   }
+  },
+  {
+   "id": "@wren/offers#UsdRange",
+   "role": "export",
+   "parent": "@wren/offers",
+   "group": "@wren/offers",
+   "attrs": {
+    "entries": [
+     "@wren/offers"
+    ],
+    "file": "packages/offers/src/offer.ts",
+    "kind": "interface",
+    "sig": "interface UsdRange { readonly min: number; readonly max: number; }"
+   }
+  },
+  {
+   "id": "@wren/offers#defineOffer",
+   "role": "export",
+   "parent": "@wren/offers",
+   "group": "@wren/offers",
+   "attrs": {
+    "entries": [
+     "@wren/offers"
+    ],
+    "file": "packages/offers/src/offer.ts",
+    "kind": "function",
+    "sig": "(offer: Offer): Offer"
+   }
+  },
+  {
+   "id": "@wren/offers#fits",
+   "role": "export",
+   "parent": "@wren/offers",
+   "group": "@wren/offers",
+   "attrs": {
+    "entries": [
+     "@wren/offers"
+    ],
+    "file": "packages/offers/src/offer.ts",
+    "kind": "function",
+    "sig": "(offer: Offer, answers: Answers): boolean"
+   }
+  },
+  {
+   "id": "@wren/offers#invalidAnswers",
+   "role": "export",
+   "parent": "@wren/offers",
+   "group": "@wren/offers",
+   "attrs": {
+    "entries": [
+     "@wren/offers"
+    ],
+    "file": "packages/offers/src/offer.ts",
+    "kind": "function",
+    "sig": "(offer: Offer, answers: Answers): string | null"
+   }
+  },
+  {
+   "id": "@wren/offers#leadOffers",
+   "role": "export",
+   "parent": "@wren/offers",
+   "group": "@wren/offers",
+   "attrs": {
+    "entries": [
+     "@wren/offers"
+    ],
+    "file": "packages/offers/src/index.ts",
+    "kind": "function",
+    "sig": "(): { name: string; audience: string }[]"
+   }
+  },
+  {
+   "id": "@wren/offers#offerFacts",
+   "role": "export",
+   "parent": "@wren/offers",
+   "group": "@wren/offers",
+   "attrs": {
+    "entries": [
+     "@wren/offers"
+    ],
+    "file": "packages/offers/src/offer.ts",
+    "kind": "function",
+    "sig": "(offer: Offer): Readonly<Record<string, string>>"
+   }
+  },
+  {
+   "id": "@wren/offers#offerFor",
+   "role": "export",
+   "parent": "@wren/offers",
+   "group": "@wren/offers",
+   "attrs": {
+    "entries": [
+     "@wren/offers"
+    ],
+    "file": "packages/offers/src/index.ts",
+    "kind": "function",
+    "sig": "(id: string): Offer"
+   }
+  },
+  {
+   "id": "@wren/offers#registry",
+   "role": "export",
+   "parent": "@wren/offers",
+   "group": "@wren/offers",
+   "attrs": {
+    "entries": [
+     "@wren/offers"
+    ],
+    "file": "packages/offers/src/index.ts",
+    "kind": "function",
+    "sig": "(offers: readonly Offer[]): readonly Offer[]"
+   }
+  },
+  {
+   "id": "@wren/offers#snapshot",
+   "role": "export",
+   "parent": "@wren/offers",
+   "group": "@wren/offers",
+   "attrs": {
+    "entries": [
+     "@wren/offers"
+    ],
+    "file": "packages/offers/src/snapshot.ts",
+    "kind": "function",
+    "sig": "(offers: readonly Offer[]): Snapshot"
+   }
+  }
+ ],
+ "edges": []
+}

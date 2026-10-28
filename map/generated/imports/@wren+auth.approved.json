@@ -1,0 +1,79 @@
+{
+ "layer": "imports",
+ "nodes": [
+  {
+   "id": "@wren/auth",
+   "role": "package",
+   "parent": "repo:wren",
+   "group": "@wren/auth",
+   "attrs": {
+    "dir": "packages/auth/"
+   }
+  },
+  {
+   "id": "@wren/auth/src/handoff.ts",
+   "role": "file",
+   "parent": "@wren/auth",
+   "group": "@wren/auth"
+  },
+  {
+   "id": "@wren/auth/src/index.ts",
+   "role": "file",
+   "parent": "@wren/auth",
+   "group": "@wren/auth"
+  },
+  {
+   "id": "@wren/auth/src/schema.ts",
+   "role": "file",
+   "parent": "@wren/auth",
+   "group": "@wren/auth"
+  },
+  {
+   "id": "@wren/auth/src/verify.ts",
+   "role": "file",
+   "parent": "@wren/auth",
+   "group": "@wren/auth"
+  },
+  {
+   "id": "@wren/auth/vitest.config.ts",
+   "role": "file",
+   "parent": "@wren/auth",
+   "group": "@wren/auth"
+  }
+ ],
+ "edges": [
+  {
+   "from": "@wren/auth",
+   "to": "@wren/db",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/auth/src/index.ts",
+   "to": "@wren/auth/src/handoff.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/auth/src/index.ts",
+   "to": "@wren/auth/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/auth/src/index.ts",
+   "to": "@wren/auth/src/verify.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/auth/src/index.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/auth/vitest.config.ts",
+   "to": "@wren/db/src/testing-vitest.ts",
+   "kind": "imports"
+  }
+ ]
+}

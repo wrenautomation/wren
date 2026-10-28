@@ -1,0 +1,599 @@
+{
+ "layer": "routes",
+ "nodes": [
+  {
+   "id": "route:Ask/answer",
+   "role": "route",
+   "parent": "service:Ask",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "{ id: string }",
+    "output": "void",
+    "wrap": "restate.handlers.handler"
+   }
+  },
+  {
+   "id": "route:Ask/edit",
+   "role": "route",
+   "parent": "service:Ask",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "{ id: string }",
+    "output": "void",
+    "wrap": "restate.handlers.handler"
+   }
+  },
+  {
+   "id": "route:Broadcast/run",
+   "role": "route",
+   "parent": "service:Broadcast",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "{ gen: number }",
+    "output": "RunStats | { skipped: string; waiting?: never; } | { waiting: string; skipped?: never; }",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:Broadcast/schedule",
+   "role": "route",
+   "parent": "service:Broadcast",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "{ at: string }",
+    "output": "{ gen: number; at: string; }",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:Broadcast/status",
+   "role": "route",
+   "parent": "service:Broadcast",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "void",
+    "output": "{ key: string; gen: number; last: {} | null; }",
+    "wrap": "sharedHandler"
+   }
+  },
+  {
+   "id": "route:Content/accountInsights",
+   "role": "route",
+   "parent": "service:Content",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "{ platform: Platform } & ForClient",
+    "output": "AccountInsights | null",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Content/activity",
+   "role": "route",
+   "parent": "service:Content",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "{ platform: Platform; q?: ActivityQuery | null } & ForClient",
+    "output": "ActivityRow[] | null",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Content/arm",
+   "role": "route",
+   "parent": "service:Content",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "{ platform: Platform; commentId: string; postId?: string | null; text: string; } & ForClient",
+    "output": "{ armed: boolean }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Content/audience",
+   "role": "route",
+   "parent": "service:Content",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "{ platform: Platform } & ForClient",
+    "output": "Audience | null",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Content/commentCounts",
+   "role": "route",
+   "parent": "service:Content",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "{ platform: Platform; ids: string[] } & ForClient",
+    "output": "Record<string, number> | null",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Content/comments",
+   "role": "route",
+   "parent": "service:Content",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "{ platform: Platform; id: string; q?: ListQuery } & ForClient",
+    "output": "CommentRow[]",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Content/following",
+   "role": "route",
+   "parent": "service:Content",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "{ platform: Platform } & ForClient",
+    "output": "FollowingRow[] | null",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Content/insights",
+   "role": "route",
+   "parent": "service:Content",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "{ platform: Platform; id: string; published?: string | null; kind?: string | null; media?: \"image\" | \"video\" | null; read?: unknown; } & ForClient",
+    "output": "Insights | null",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Content/list",
+   "role": "route",
+   "parent": "service:Content",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "{ platform: Platform; q?: ListQuery } & ForClient",
+    "output": "import(\"./index.js\").PublishedRow[]",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Content/metrics",
+   "role": "route",
+   "parent": "service:Content",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "{ platform: Platform; id: string } & ForClient",
+    "output": "Metrics",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Content/metricsMany",
+   "role": "route",
+   "parent": "service:Content",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "{ platform: Platform; posts: { id: string; kind?: string | null }[] } & ForClient",
+    "output": "Metrics[] | null",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Content/ownComments",
+   "role": "route",
+   "parent": "service:Content",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "{ platform: Platform } & ForClient",
+    "output": "OwnCommentRow[] | null",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Content/platforms",
+   "role": "route",
+   "parent": "service:Content",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "void",
+    "output": "Platform[]",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Content/privateReply",
+   "role": "route",
+   "parent": "service:Content",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "{ platform: Platform; commentId: string; text: string } & ForClient & Keyed",
+    "output": "{ ref: string | null } | Delivery<{ ref: string | null }>",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Content/publish",
+   "role": "route",
+   "parent": "service:Content",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "{ platform: Platform; post: Post } & ForClient & AsAccount & Keyed",
+    "output": "Published | Delivery<Published>",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Content/reply",
+   "role": "route",
+   "parent": "service:Content",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "{ platform: Platform; commentId: string; postId?: string | null; text: string; } & ForClient & AsAccount & Keyed",
+    "output": "void | Delivery<void>",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Content/reportDays",
+   "role": "route",
+   "parent": "service:Content",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "{ platform: Platform; after?: string | null } & ForClient",
+    "output": "ReportDays | null",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Content/reviews",
+   "role": "route",
+   "parent": "service:Content",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "{ platform: Platform; q?: ActivityQuery | null } & ForClient",
+    "output": "CommentRow[] | null",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Content/update",
+   "role": "route",
+   "parent": "service:Content",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "{ platform: Platform; id: string; patch: PostPatch } & ForClient",
+    "output": "void",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Executor/door",
+   "role": "route",
+   "parent": "service:Executor",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "{ hook: string; payload: unknown }",
+    "output": "{ status: number; error: string; subject?: never; } | { status: number; subject: string; error?: never; }",
+    "wrap": "restate.handlers.handler"
+   }
+  },
+  {
+   "id": "route:Executor/emit",
+   "role": "route",
+   "parent": "service:Executor",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "EmitRequest",
+    "output": "Tally",
+    "wrap": "restate.handlers.handler"
+   }
+  },
+  {
+   "id": "route:Executor/fire",
+   "role": "route",
+   "parent": "service:Executor",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "Fired",
+    "output": "{ entered: number; resolved: number; }",
+    "wrap": "restate.handlers.handler"
+   }
+  },
+  {
+   "id": "route:Executor/hook",
+   "role": "route",
+   "parent": "service:Executor",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "{ token: string; payload: unknown }",
+    "output": "{ status: number; error: string; subject?: never; } | { status: number; subject: string; error?: never; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:Executor/release",
+   "role": "route",
+   "parent": "service:Executor",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "Target & { id: string; happened?: ExecutorEvent }",
+    "output": "Tally | null",
+    "wrap": "restate.handlers.handler"
+   }
+  },
+  {
+   "id": "route:Executor/retry",
+   "role": "route",
+   "parent": "service:Executor",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "Target & { id: string; auto?: number }",
+    "output": "Tally | null",
+    "wrap": "restate.handlers.handler"
+   }
+  },
+  {
+   "id": "route:Executor@packages/core/src/testing.ts/emit",
+   "role": "route",
+   "parent": "service:Executor@packages/core/src/testing.ts",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "(typeof emitted)[number]",
+    "output": "{ arrived: number; seen: number; waiting: number; failed: number; out: number; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ExecutorClock/start",
+   "role": "route",
+   "parent": "service:ExecutorClock",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "void",
+    "output": "{ next: string | null; }",
+    "wrap": "restate.handlers.object.exclusive"
+   }
+  },
+  {
+   "id": "route:ExecutorClock/stop",
+   "role": "route",
+   "parent": "service:ExecutorClock",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "void",
+    "output": "void",
+    "wrap": "restate.handlers.object.exclusive"
+   }
+  },
+  {
+   "id": "route:ExecutorClock/tick",
+   "role": "route",
+   "parent": "service:ExecutorClock",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "{ slot: string }",
+    "output": "void",
+    "wrap": "restate.handlers.object.exclusive"
+   }
+  },
+  {
+   "id": "route:PeopleMap/status",
+   "role": "route",
+   "parent": "service:PeopleMap",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "void",
+    "output": "{ key: string; last: {} | null; }",
+    "wrap": "sharedHandler"
+   }
+  },
+  {
+   "id": "route:PeopleMap/wake",
+   "role": "route",
+   "parent": "service:PeopleMap",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "void",
+    "output": "PeopleMapStats | { error: string; } | { skipped: string; }",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:Segments/status",
+   "role": "route",
+   "parent": "service:Segments",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "void",
+    "output": "{ key: string; cursor: SegmentCursor | null; last: {} | null; }",
+    "wrap": "sharedHandler"
+   }
+  },
+  {
+   "id": "route:Segments/wake",
+   "role": "route",
+   "parent": "service:Segments",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "void",
+    "output": "{ recomputed: number; entered: number; left: number; archived: number[]; told: number; more: boolean; cursor: SegmentCursor; } | { skipped: string; error?: never; } | { error: string; skipped?: never; }",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:SetupAgent/run",
+   "role": "route",
+   "parent": "service:SetupAgent",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "AgentJob",
+    "output": "AgentAnswer",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Tokens/check",
+   "role": "route",
+   "parent": "service:Tokens",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "{ token: string }",
+    "output": "restate.RestatePromise<TokenViewer | null>",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Webhooks/deliver",
+   "role": "route",
+   "parent": "service:Webhooks",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "{ id: string }",
+    "output": "{ state: string; }",
+    "wrap": "restate.handlers.handler"
+   }
+  },
+  {
+   "id": "route:Webhooks/publish",
+   "role": "route",
+   "parent": "service:Webhooks",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "Published",
+    "output": "{ queued: number; }",
+    "wrap": "restate.handlers.handler"
+   }
+  },
+  {
+   "id": "route:Webhooks/redeliver",
+   "role": "route",
+   "parent": "service:Webhooks",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "{ id: string }",
+    "output": "{ id: string; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "service:Ask",
+   "role": "service",
+   "parent": "@wren/core",
+   "group": "@wren/core",
+   "attrs": {
+    "file": "packages/core/src/ask.ts",
+    "kind": "service"
+   }
+  },
+  {
+   "id": "service:Broadcast",
+   "role": "service",
+   "parent": "@wren/core",
+   "group": "@wren/core",
+   "attrs": {
+    "file": "packages/core/src/broadcast-run.ts",
+    "kind": "object"
+   }
+  },
+  {
+   "id": "service:Content",
+   "role": "service",
+   "parent": "@wren/core",
+   "group": "@wren/core",
+   "attrs": {
+    "file": "packages/core/src/content/restate.ts",
+    "kind": "service"
+   }
+  },
+  {
+   "id": "service:Executor",
+   "role": "service",
+   "parent": "@wren/core",
+   "group": "@wren/core",
+   "attrs": {
+    "file": "packages/core/src/executor.ts",
+    "kind": "service"
+   }
+  },
+  {
+   "id": "service:Executor@packages/core/src/testing.ts",
+   "role": "service",
+   "parent": "@wren/core",
+   "group": "@wren/core",
+   "attrs": {
+    "file": "packages/core/src/testing.ts",
+    "kind": "service"
+   }
+  },
+  {
+   "id": "service:ExecutorClock",
+   "role": "service",
+   "parent": "@wren/core",
+   "group": "@wren/core",
+   "attrs": {
+    "file": "packages/core/src/executor.ts",
+    "kind": "object"
+   }
+  },
+  {
+   "id": "service:PeopleMap",
+   "role": "service",
+   "parent": "@wren/core",
+   "group": "@wren/core",
+   "attrs": {
+    "file": "packages/core/src/people-map-pass.ts",
+    "kind": "object"
+   }
+  },
+  {
+   "id": "service:Segments",
+   "role": "service",
+   "parent": "@wren/core",
+   "group": "@wren/core",
+   "attrs": {
+    "file": "packages/core/src/segments-pass.ts",
+    "kind": "object"
+   }
+  },
+  {
+   "id": "service:SetupAgent",
+   "role": "service",
+   "parent": "@wren/core",
+   "group": "@wren/core",
+   "attrs": {
+    "file": "packages/core/src/setup-agent.ts",
+    "kind": "service"
+   }
+  },
+  {
+   "id": "service:Tokens",
+   "role": "service",
+   "parent": "@wren/core",
+   "group": "@wren/core",
+   "attrs": {
+    "file": "packages/core/src/tokens.ts",
+    "kind": "service"
+   }
+  },
+  {
+   "id": "service:Webhooks",
+   "role": "service",
+   "parent": "@wren/core",
+   "group": "@wren/core",
+   "attrs": {
+    "file": "packages/core/src/webhooks.ts",
+    "kind": "service"
+   }
+  },
+  {
+   "id": "service:o.name",
+   "role": "service",
+   "parent": "@wren/core",
+   "group": "@wren/core",
+   "attrs": {
+    "file": "packages/core/src/portal.ts",
+    "kind": "service"
+   }
+  }
+ ],
+ "edges": []
+}

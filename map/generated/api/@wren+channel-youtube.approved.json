@@ -1,0 +1,106 @@
+{
+ "layer": "api",
+ "nodes": [
+  {
+   "id": "@wren/channel-youtube#ANALYTICS_PATH",
+   "role": "export",
+   "parent": "@wren/channel-youtube",
+   "group": "@wren/channel-youtube",
+   "attrs": {
+    "entries": [
+     "@wren/channel-youtube"
+    ],
+    "file": "packages/channel-youtube/src/content.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"/v2/reports\""
+   }
+  },
+  {
+   "id": "@wren/channel-youtube#REACH_REPORT",
+   "role": "export",
+   "parent": "@wren/channel-youtube",
+   "group": "@wren/channel-youtube",
+   "attrs": {
+    "entries": [
+     "@wren/channel-youtube"
+    ],
+    "file": "packages/channel-youtube/src/content.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"channel_reach_basic_a1\""
+   }
+  },
+  {
+   "id": "@wren/channel-youtube#isoSeconds",
+   "role": "export",
+   "parent": "@wren/channel-youtube",
+   "group": "@wren/channel-youtube",
+   "attrs": {
+    "entries": [
+     "@wren/channel-youtube"
+    ],
+    "file": "packages/channel-youtube/src/content.ts",
+    "kind": "function",
+    "sig": "(d: string | undefined): number | null"
+   }
+  },
+  {
+   "id": "@wren/channel-youtube#reachRows",
+   "role": "export",
+   "parent": "@wren/channel-youtube",
+   "group": "@wren/channel-youtube",
+   "attrs": {
+    "entries": [
+     "@wren/channel-youtube"
+    ],
+    "file": "packages/channel-youtube/src/content.ts",
+    "kind": "function",
+    "sig": "(csv: ReadonlyArray<Record<string, string>>): Array<{ id: string; day: string; impressions: number; clicks: number; rated: number }>"
+   }
+  },
+  {
+   "id": "@wren/channel-youtube#reportRows",
+   "role": "export",
+   "parent": "@wren/channel-youtube",
+   "group": "@wren/channel-youtube",
+   "attrs": {
+    "entries": [
+     "@wren/channel-youtube"
+    ],
+    "file": "packages/channel-youtube/src/content.ts",
+    "kind": "function",
+    "sig": "(r: Report): Array<Record<string, unknown>>"
+   }
+  },
+  {
+   "id": "@wren/channel-youtube#sharesOf",
+   "role": "export",
+   "parent": "@wren/channel-youtube",
+   "group": "@wren/channel-youtube",
+   "attrs": {
+    "entries": [
+     "@wren/channel-youtube"
+    ],
+    "file": "packages/channel-youtube/src/content.ts",
+    "kind": "function",
+    "sig": "(metric: string, rows: ReadonlyArray<Record<string, unknown>>, keyOf: (r: Record<string, unknown>) => string | null, col: string): InsightValue[]"
+   }
+  },
+  {
+   "id": "@wren/channel-youtube#youtubeContent",
+   "role": "export",
+   "parent": "@wren/channel-youtube",
+   "group": "@wren/channel-youtube",
+   "attrs": {
+    "entries": [
+     "@wren/channel-youtube"
+    ],
+    "file": "packages/channel-youtube/src/content.ts",
+    "kind": "function",
+    "sig": "(sites: SiteClient, o: YouTubeContentOptions = {}): ContentChannel"
+   }
+  }
+ ],
+ "edges": []
+}

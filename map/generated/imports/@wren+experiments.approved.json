@@ -1,0 +1,109 @@
+{
+ "layer": "imports",
+ "nodes": [
+  {
+   "id": "@wren/experiments",
+   "role": "package",
+   "parent": "repo:wren",
+   "group": "@wren/experiments",
+   "attrs": {
+    "dir": "packages/experiments/",
+    "npm": [
+     "node:crypto"
+    ]
+   }
+  },
+  {
+   "id": "@wren/experiments/src/engine.ts",
+   "role": "file",
+   "parent": "@wren/experiments",
+   "group": "@wren/experiments"
+  },
+  {
+   "id": "@wren/experiments/src/index.ts",
+   "role": "file",
+   "parent": "@wren/experiments",
+   "group": "@wren/experiments"
+  },
+  {
+   "id": "@wren/experiments/src/names.ts",
+   "role": "file",
+   "parent": "@wren/experiments",
+   "group": "@wren/experiments"
+  },
+  {
+   "id": "@wren/experiments/src/rng.ts",
+   "role": "file",
+   "parent": "@wren/experiments",
+   "group": "@wren/experiments"
+  },
+  {
+   "id": "@wren/experiments/src/settings.ts",
+   "role": "file",
+   "parent": "@wren/experiments",
+   "group": "@wren/experiments"
+  },
+  {
+   "id": "@wren/experiments/src/simulate.ts",
+   "role": "file",
+   "parent": "@wren/experiments",
+   "group": "@wren/experiments"
+  },
+  {
+   "id": "@wren/experiments/vitest.config.ts",
+   "role": "file",
+   "parent": "@wren/experiments",
+   "group": "@wren/experiments"
+  }
+ ],
+ "edges": [
+  {
+   "from": "@wren/experiments/src/engine.ts",
+   "to": "@wren/experiments/src/settings.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/experiments/src/index.ts",
+   "to": "@wren/experiments/src/engine.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/experiments/src/index.ts",
+   "to": "@wren/experiments/src/rng.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/experiments/src/index.ts",
+   "to": "@wren/experiments/src/settings.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/experiments/src/index.ts",
+   "to": "@wren/experiments/src/simulate.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/experiments/src/settings.ts",
+   "to": "@wren/experiments/src/names.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/experiments/src/simulate.ts",
+   "to": "@wren/experiments/src/engine.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/experiments/src/simulate.ts",
+   "to": "@wren/experiments/src/rng.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/experiments/src/simulate.ts",
+   "to": "@wren/experiments/src/settings.ts",
+   "kind": "imports"
+  }
+ ]
+}

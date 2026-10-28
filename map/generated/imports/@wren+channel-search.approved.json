@@ -1,0 +1,717 @@
+{
+ "layer": "imports",
+ "nodes": [
+  {
+   "id": "@wren/channel-search",
+   "role": "package",
+   "parent": "repo:wren",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "dir": "packages/channel-search/"
+   }
+  },
+  {
+   "id": "@wren/channel-search/src/answers.ts",
+   "role": "file",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search"
+  },
+  {
+   "id": "@wren/channel-search/src/apply.ts",
+   "role": "file",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search"
+  },
+  {
+   "id": "@wren/channel-search/src/brief.ts",
+   "role": "file",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search"
+  },
+  {
+   "id": "@wren/channel-search/src/citability.ts",
+   "role": "file",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search"
+  },
+  {
+   "id": "@wren/channel-search/src/components.ts",
+   "role": "file",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search"
+  },
+  {
+   "id": "@wren/channel-search/src/console.ts",
+   "role": "file",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search"
+  },
+  {
+   "id": "@wren/channel-search/src/experiments.ts",
+   "role": "file",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search"
+  },
+  {
+   "id": "@wren/channel-search/src/flag-days.ts",
+   "role": "file",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search"
+  },
+  {
+   "id": "@wren/channel-search/src/heat.ts",
+   "role": "file",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search"
+  },
+  {
+   "id": "@wren/channel-search/src/index.ts",
+   "role": "file",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search"
+  },
+  {
+   "id": "@wren/channel-search/src/keywords.ts",
+   "role": "file",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search"
+  },
+  {
+   "id": "@wren/channel-search/src/link-days.ts",
+   "role": "file",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search"
+  },
+  {
+   "id": "@wren/channel-search/src/propose.ts",
+   "role": "file",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search"
+  },
+  {
+   "id": "@wren/channel-search/src/records.ts",
+   "role": "file",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search"
+  },
+  {
+   "id": "@wren/channel-search/src/restate/index.ts",
+   "role": "file",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search"
+  },
+  {
+   "id": "@wren/channel-search/src/restate/watch.ts",
+   "role": "file",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search"
+  },
+  {
+   "id": "@wren/channel-search/src/schema.ts",
+   "role": "file",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search"
+  },
+  {
+   "id": "@wren/channel-search/src/setups.ts",
+   "role": "file",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search"
+  },
+  {
+   "id": "@wren/channel-search/src/site-days.ts",
+   "role": "file",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search"
+  },
+  {
+   "id": "@wren/channel-search/src/site.ts",
+   "role": "file",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search"
+  },
+  {
+   "id": "@wren/channel-search/src/survey-days.ts",
+   "role": "file",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search"
+  },
+  {
+   "id": "@wren/channel-search/src/sync.ts",
+   "role": "file",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search"
+  },
+  {
+   "id": "@wren/channel-search/vitest.config.ts",
+   "role": "file",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search"
+  }
+ ],
+ "edges": [
+  {
+   "from": "@wren/channel-search",
+   "to": "@wren/channel-email",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search",
+   "to": "@wren/core",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search",
+   "to": "@wren/db",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search",
+   "to": "@wren/experiments",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search",
+   "to": "@wren/llm",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search",
+   "to": "@wren/sites",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/answers.ts",
+   "to": "@wren/channel-search/src/keywords.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/answers.ts",
+   "to": "@wren/channel-search/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/answers.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-search/src/answers.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-search/src/apply.ts",
+   "to": "@wren/channel-search/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-search/src/brief.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-search/src/components.ts",
+   "to": "@wren/core/src/components.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/components.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/console.ts",
+   "to": "@wren/channel-search/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/experiments.ts",
+   "to": "@wren/core/src/experiment-store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/experiments.ts",
+   "to": "@wren/core/src/flags.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-search/src/experiments.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-search/src/experiments.ts",
+   "to": "@wren/experiments/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/flag-days.ts",
+   "to": "@wren/channel-email/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-search/src/flag-days.ts",
+   "to": "@wren/channel-search/src/site-days.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-search/src/flag-days.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/flag-days.ts",
+   "to": "@wren/core/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-search/src/heat.ts",
+   "to": "@wren/channel-email/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-search/src/heat.ts",
+   "to": "@wren/channel-search/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/heat.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/index.ts",
+   "to": "@wren/channel-search/src/answers.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/index.ts",
+   "to": "@wren/channel-search/src/apply.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/index.ts",
+   "to": "@wren/channel-search/src/brief.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/index.ts",
+   "to": "@wren/channel-search/src/citability.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/index.ts",
+   "to": "@wren/channel-search/src/console.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/index.ts",
+   "to": "@wren/channel-search/src/heat.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/index.ts",
+   "to": "@wren/channel-search/src/keywords.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/index.ts",
+   "to": "@wren/channel-search/src/propose.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/index.ts",
+   "to": "@wren/channel-search/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/index.ts",
+   "to": "@wren/channel-search/src/setups.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/index.ts",
+   "to": "@wren/channel-search/src/site-days.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/index.ts",
+   "to": "@wren/channel-search/src/site.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/index.ts",
+   "to": "@wren/channel-search/src/sync.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/keywords.ts",
+   "to": "@wren/channel-search/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/keywords.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-search/src/keywords.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/link-days.ts",
+   "to": "@wren/channel-email/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-search/src/link-days.ts",
+   "to": "@wren/channel-search/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/link-days.ts",
+   "to": "@wren/channel-search/src/site-days.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-search/src/link-days.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-search/src/propose.ts",
+   "to": "@wren/channel-search/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/propose.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-search/src/records.ts",
+   "to": "@wren/channel-email/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/records.ts",
+   "to": "@wren/channel-search/src/flag-days.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/records.ts",
+   "to": "@wren/channel-search/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-search/src/records.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/records.ts",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/records.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-search/src/restate/index.ts",
+   "to": "@wren/channel-search/src/restate/watch.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/restate/watch.ts",
+   "to": "@wren/channel-email/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/restate/watch.ts",
+   "to": "@wren/channel-search/src/answers.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/restate/watch.ts",
+   "to": "@wren/channel-search/src/components.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/restate/watch.ts",
+   "to": "@wren/channel-search/src/console.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/restate/watch.ts",
+   "to": "@wren/channel-search/src/experiments.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/restate/watch.ts",
+   "to": "@wren/channel-search/src/flag-days.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/restate/watch.ts",
+   "to": "@wren/channel-search/src/heat.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/restate/watch.ts",
+   "to": "@wren/channel-search/src/keywords.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/restate/watch.ts",
+   "to": "@wren/channel-search/src/link-days.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/restate/watch.ts",
+   "to": "@wren/channel-search/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/restate/watch.ts",
+   "to": "@wren/channel-search/src/site-days.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/restate/watch.ts",
+   "to": "@wren/channel-search/src/site.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/restate/watch.ts",
+   "to": "@wren/channel-search/src/survey-days.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/restate/watch.ts",
+   "to": "@wren/channel-search/src/sync.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/restate/watch.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/restate/watch.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/restate/watch.ts",
+   "to": "@wren/core/src/experiment-store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/restate/watch.ts",
+   "to": "@wren/core/src/flag-store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/restate/watch.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/restate/watch.ts",
+   "to": "@wren/core/src/notify.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-search/src/restate/watch.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/restate/watch.ts",
+   "to": "@wren/core/src/setup-alerts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/restate/watch.ts",
+   "to": "@wren/core/src/survey-store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/restate/watch.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-search/src/restate/watch.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-search/src/restate/watch.ts",
+   "to": "@wren/sites/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/schema.ts",
+   "to": "@wren/core/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/schema.ts",
+   "to": "@wren/db/src/columns.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/setups.ts",
+   "to": "@wren/channel-search/src/console.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/setups.ts",
+   "to": "@wren/core/src/setup.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-search/src/site-days.ts",
+   "to": "@wren/channel-email/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-search/src/site-days.ts",
+   "to": "@wren/channel-search/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/site-days.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/site-days.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-search/src/site.ts",
+   "to": "@wren/channel-search/src/console.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/survey-days.ts",
+   "to": "@wren/channel-email/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-search/src/survey-days.ts",
+   "to": "@wren/channel-search/src/flag-days.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/survey-days.ts",
+   "to": "@wren/core/src/surveys.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-search/src/sync.ts",
+   "to": "@wren/channel-search/src/console.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/sync.ts",
+   "to": "@wren/channel-search/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-search/src/sync.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-search/vitest.config.ts",
+   "to": "@wren/db/src/testing-vitest.ts",
+   "kind": "imports"
+  }
+ ]
+}

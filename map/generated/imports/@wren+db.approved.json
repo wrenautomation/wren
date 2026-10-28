@@ -1,0 +1,221 @@
+{
+ "layer": "imports",
+ "nodes": [
+  {
+   "id": "@wren/db",
+   "role": "package",
+   "parent": "repo:wren",
+   "group": "@wren/db",
+   "attrs": {
+    "dir": "packages/db/",
+    "npm": [
+     "node:async_hooks",
+     "node:crypto",
+     "node:fs",
+     "node:os",
+     "node:path",
+     "node:url"
+    ]
+   }
+  },
+  {
+   "id": "@wren/db/drizzle.config.ts",
+   "role": "file",
+   "parent": "@wren/db",
+   "group": "@wren/db"
+  },
+  {
+   "id": "@wren/db/drizzle.drift.config.ts",
+   "role": "file",
+   "parent": "@wren/db",
+   "group": "@wren/db"
+  },
+  {
+   "id": "@wren/db/src/audit/acting.ts",
+   "role": "file",
+   "parent": "@wren/db",
+   "group": "@wren/db"
+  },
+  {
+   "id": "@wren/db/src/audit/index.ts",
+   "role": "file",
+   "parent": "@wren/db",
+   "group": "@wren/db"
+  },
+  {
+   "id": "@wren/db/src/audit/install.ts",
+   "role": "file",
+   "parent": "@wren/db",
+   "group": "@wren/db"
+  },
+  {
+   "id": "@wren/db/src/audit/schema.ts",
+   "role": "file",
+   "parent": "@wren/db",
+   "group": "@wren/db"
+  },
+  {
+   "id": "@wren/db/src/clients.ts",
+   "role": "file",
+   "parent": "@wren/db",
+   "group": "@wren/db"
+  },
+  {
+   "id": "@wren/db/src/columns.ts",
+   "role": "file",
+   "parent": "@wren/db",
+   "group": "@wren/db"
+  },
+  {
+   "id": "@wren/db/src/index.ts",
+   "role": "file",
+   "parent": "@wren/db",
+   "group": "@wren/db"
+  },
+  {
+   "id": "@wren/db/src/isolation.ts",
+   "role": "file",
+   "parent": "@wren/db",
+   "group": "@wren/db"
+  },
+  {
+   "id": "@wren/db/src/listen.ts",
+   "role": "file",
+   "parent": "@wren/db",
+   "group": "@wren/db"
+  },
+  {
+   "id": "@wren/db/src/migrate-cli.ts",
+   "role": "file",
+   "parent": "@wren/db",
+   "group": "@wren/db"
+  },
+  {
+   "id": "@wren/db/src/testing-global-setup.ts",
+   "role": "file",
+   "parent": "@wren/db",
+   "group": "@wren/db"
+  },
+  {
+   "id": "@wren/db/src/testing-vitest.ts",
+   "role": "file",
+   "parent": "@wren/db",
+   "group": "@wren/db"
+  },
+  {
+   "id": "@wren/db/src/testing.ts",
+   "role": "file",
+   "parent": "@wren/db",
+   "group": "@wren/db"
+  },
+  {
+   "id": "@wren/db/vitest.config.ts",
+   "role": "file",
+   "parent": "@wren/db",
+   "group": "@wren/db"
+  }
+ ],
+ "edges": [
+  {
+   "from": "@wren/db",
+   "to": "@wren/config",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/db/drizzle.drift.config.ts",
+   "to": "@wren/db/drizzle.config.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/db/src/audit/index.ts",
+   "to": "@wren/db/src/audit/acting.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/db/src/audit/index.ts",
+   "to": "@wren/db/src/audit/install.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/db/src/audit/index.ts",
+   "to": "@wren/db/src/audit/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/db/src/audit/index.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/db/src/clients.ts",
+   "to": "@wren/db/src/audit/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/db/src/clients.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/db/src/index.ts",
+   "to": "@wren/db/src/audit/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/db/src/index.ts",
+   "to": "@wren/db/src/clients.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/db/src/index.ts",
+   "to": "@wren/db/src/isolation.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/db/src/index.ts",
+   "to": "@wren/db/src/listen.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/db/src/isolation.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/db/src/migrate-cli.ts",
+   "to": "@wren/config/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/db/src/migrate-cli.ts",
+   "to": "@wren/db/src/clients.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/db/src/migrate-cli.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/db/src/testing-global-setup.ts",
+   "to": "@wren/db/src/testing.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/db/src/testing.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/db/vitest.config.ts",
+   "to": "@wren/db/src/testing-vitest.ts",
+   "kind": "imports"
+  }
+ ]
+}

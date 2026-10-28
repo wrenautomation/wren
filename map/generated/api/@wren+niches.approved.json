@@ -1,0 +1,393 @@
+{
+ "layer": "api",
+ "nodes": [
+  {
+   "id": "@wren/niches#FACTS_VIEWS",
+   "role": "export",
+   "parent": "@wren/niches",
+   "group": "@wren/niches",
+   "attrs": {
+    "entries": [
+     "@wren/niches"
+    ],
+    "file": "packages/niches/src/index.ts",
+    "kind": "const",
+    "sig": "ReadonlyMap<string, string>"
+   }
+  },
+  {
+   "id": "@wren/niches#LANDERS_BY_NICHE",
+   "role": "export",
+   "parent": "@wren/niches",
+   "group": "@wren/niches",
+   "attrs": {
+    "entries": [
+     "@wren/niches"
+    ],
+    "file": "packages/niches/src/index.ts",
+    "kind": "const",
+    "sig": "ReadonlyMap<string, string>"
+   }
+  },
+  {
+   "id": "@wren/niches#LEAD_SOURCE_FORMATS",
+   "role": "export",
+   "parent": "@wren/niches",
+   "group": "@wren/niches",
+   "attrs": {
+    "entries": [
+     "@wren/niches"
+    ],
+    "file": "packages/niches/src/index.ts",
+    "kind": "const",
+    "sig": "ReadonlyMap<string, SourceFormat>"
+   }
+  },
+  {
+   "id": "@wren/niches#NICHES",
+   "role": "export",
+   "parent": "@wren/niches",
+   "group": "@wren/niches",
+   "attrs": {
+    "entries": [
+     "@wren/niches"
+    ],
+    "file": "packages/niches/src/index.ts",
+    "kind": "const",
+    "sig": "readonly Niche[]"
+   }
+  },
+  {
+   "id": "@wren/niches#NICHE_NAMES",
+   "role": "export",
+   "parent": "@wren/niches",
+   "group": "@wren/niches",
+   "attrs": {
+    "entries": [
+     "@wren/niches"
+    ],
+    "file": "packages/niches/src/index.ts",
+    "kind": "const",
+    "sig": "ReadonlySet<string>"
+   }
+  },
+  {
+   "id": "@wren/niches#NICHE_PLATFORM_DOMAINS",
+   "role": "export",
+   "parent": "@wren/niches",
+   "group": "@wren/niches",
+   "attrs": {
+    "entries": [
+     "@wren/niches"
+    ],
+    "file": "packages/niches/src/index.ts",
+    "kind": "const",
+    "sig": "ReadonlySet<string>"
+   }
+  },
+  {
+   "id": "@wren/niches#Niche",
+   "role": "export",
+   "parent": "@wren/niches",
+   "group": "@wren/niches",
+   "attrs": {
+    "entries": [
+     "@wren/niches"
+    ],
+    "file": "packages/niches/src/niche.ts",
+    "kind": "interface",
+    "sig": "interface Niche { readonly name: string; readonly label: string; readonly factsView: string | null; readonly lander: string; readonly crawlHints: ReadonlySet<string>; readonly discoveryGenericWords: ReadonlySet<string>; readonly sequences: ReadonlyMap<string, Sequence>; readonly smsSequences: ReadonlyMap<string, SmsSequence>; readonly offers: ReadonlyMap<string, string>; readonly offerFacts: ReadonlyMap<string, Readonly<Record<string, string>>>; readonly plan: readonly EnrollmentRule[]; readonly mailsRoleInboxes: boolean; readonly recontact: RecontactPolicy; readonly companyLocation: (company: Company) => string | null; readonly leadSourceFormats: readonly SourceFormat[]; readonly personSourceFormats: readonly PersonSourceFormat[]; readonly platformDomains: ReadonlySet<string>; readonly datasets: (dataDir: string) => readonly Dataset[]; readonly screen: CompanyScreen | null; readonly adKeywords: readonly string[]; readonly groupKeywords: readonly string[]; readonly exaQueries: readonly string[]; readonly exaCities: readonly string[]; readonly youtubeQueries: readonly string[]; readonly triggerWords: readonly string[]; }"
+   }
+  },
+  {
+   "id": "@wren/niches#NicheSpec",
+   "role": "export",
+   "parent": "@wren/niches",
+   "group": "@wren/niches",
+   "attrs": {
+    "entries": [
+     "@wren/niches"
+    ],
+    "file": "packages/niches/src/niche.ts",
+    "kind": "interface",
+    "sig": "interface NicheSpec { readonly name: string; readonly label: string; readonly factsView: string | null; readonly lander: string; readonly crawlHints: readonly string[]; readonly discoveryGenericWords: readonly string[]; readonly sequences: readonly Sequence[]; readonly smsSequences?: readonly SmsSequence[]; readonly offers: Readonly<Record<string, string>>; readonly plan: readonly EnrollmentRule[]; readonly mailsRoleInboxes: boolean; readonly recontact?: RecontactOverrides; readonly companyLocation: (company: Company) => string | null; readonly leadSourceFormats?: readonly SourceFormat[]; readonly personSourceFormats?: readonly PersonSourceFormat[]; readonly platformDomains?: Iterable<string>; readonly datasets?: (dataDir: string) => readonly Dataset[]; readonly screen?: CompanyScreen; readonly adKeywords?: readonly string[]; readonly groupKeywords?: readonly string[]; readonly exaQueries?: readonly string[]; readonly youtubeQueries?: readonly string[]; readonly exaCities?: readonly string[]; readonly triggerWords?: readonly string[]; }"
+   }
+  },
+  {
+   "id": "@wren/niches#PERSON_SOURCE_FORMATS",
+   "role": "export",
+   "parent": "@wren/niches",
+   "group": "@wren/niches",
+   "attrs": {
+    "entries": [
+     "@wren/niches"
+    ],
+    "file": "packages/niches/src/index.ts",
+    "kind": "const",
+    "sig": "ReadonlyMap<string, PersonSourceFormat>"
+   }
+  },
+  {
+   "id": "@wren/niches#SEQUENCES_BY_NICHE",
+   "role": "export",
+   "parent": "@wren/niches",
+   "group": "@wren/niches",
+   "attrs": {
+    "entries": [
+     "@wren/niches"
+    ],
+    "file": "packages/niches/src/index.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "Map<string, ReadonlyMap<string, import(\"@wren/channel-email\").Sequence>>"
+   }
+  },
+  {
+   "id": "@wren/niches#SMS_SEQUENCES",
+   "role": "export",
+   "parent": "@wren/niches",
+   "group": "@wren/niches",
+   "attrs": {
+    "entries": [
+     "@wren/niches"
+    ],
+    "file": "packages/niches/src/index.ts",
+    "kind": "const",
+    "sig": "ReadonlyMap<string, SmsSequence>"
+   }
+  },
+  {
+   "id": "@wren/niches#adLibraryFor",
+   "role": "export",
+   "parent": "@wren/niches",
+   "group": "@wren/niches",
+   "attrs": {
+    "entries": [
+     "@wren/niches"
+    ],
+    "file": "packages/niches/src/index.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(niche: string): { keywords: readonly string[]; platforms: ReadonlySet<string>; screen: import(\"@wren/core\").CompanyScreen | null; }"
+   }
+  },
+  {
+   "id": "@wren/niches#agencies",
+   "role": "export",
+   "parent": "@wren/niches",
+   "group": "@wren/niches",
+   "attrs": {
+    "entries": [
+     "@wren/niches"
+    ],
+    "file": "packages/niches/src/agencies.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"./niche.js\").Niche"
+   }
+  },
+  {
+   "id": "@wren/niches#crawlHintsFor",
+   "role": "export",
+   "parent": "@wren/niches",
+   "group": "@wren/niches",
+   "attrs": {
+    "entries": [
+     "@wren/niches"
+    ],
+    "file": "packages/niches/src/index.ts",
+    "kind": "function",
+    "sig": "(niche: string | null): ReadonlySet<string>"
+   }
+  },
+  {
+   "id": "@wren/niches#datasetsFor",
+   "role": "export",
+   "parent": "@wren/niches",
+   "group": "@wren/niches",
+   "attrs": {
+    "entries": [
+     "@wren/niches"
+    ],
+    "file": "packages/niches/src/index.ts",
+    "kind": "function",
+    "sig": "(dataDir: string): ReadonlyMap<string, { niche: string; dataset: Dataset }>"
+   }
+  },
+  {
+   "id": "@wren/niches#defineNiche",
+   "role": "export",
+   "parent": "@wren/niches",
+   "group": "@wren/niches",
+   "attrs": {
+    "entries": [
+     "@wren/niches"
+    ],
+    "file": "packages/niches/src/niche.ts",
+    "kind": "function",
+    "sig": "(spec: NicheSpec): Niche"
+   }
+  },
+  {
+   "id": "@wren/niches#discoveryWordsFor",
+   "role": "export",
+   "parent": "@wren/niches",
+   "group": "@wren/niches",
+   "attrs": {
+    "entries": [
+     "@wren/niches"
+    ],
+    "file": "packages/niches/src/index.ts",
+    "kind": "function",
+    "sig": "(niche: string | null): ReadonlySet<string>"
+   }
+  },
+  {
+   "id": "@wren/niches#exaSearchFor",
+   "role": "export",
+   "parent": "@wren/niches",
+   "group": "@wren/niches",
+   "attrs": {
+    "entries": [
+     "@wren/niches"
+    ],
+    "file": "packages/niches/src/index.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(niche: string): { queries: readonly string[]; cities: readonly string[]; platforms: ReadonlySet<string>; screen: import(\"@wren/core\").CompanyScreen | null; }"
+   }
+  },
+  {
+   "id": "@wren/niches#fbGroupsFor",
+   "role": "export",
+   "parent": "@wren/niches",
+   "group": "@wren/niches",
+   "attrs": {
+    "entries": [
+     "@wren/niches"
+    ],
+    "file": "packages/niches/src/index.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(niche: string): { keywords: readonly string[]; }"
+   }
+  },
+  {
+   "id": "@wren/niches#leadFormat",
+   "role": "export",
+   "parent": "@wren/niches",
+   "group": "@wren/niches",
+   "attrs": {
+    "entries": [
+     "@wren/niches"
+    ],
+    "file": "packages/niches/src/niche.ts",
+    "kind": "function",
+    "sig": "(niche: string, name: string, help: string, build: SourceFormat[\"build\"], opts: { directory?: boolean } = {}): SourceFormat"
+   }
+  },
+  {
+   "id": "@wren/niches#nicheFor",
+   "role": "export",
+   "parent": "@wren/niches",
+   "group": "@wren/niches",
+   "attrs": {
+    "entries": [
+     "@wren/niches"
+    ],
+    "file": "packages/niches/src/index.ts",
+    "kind": "function",
+    "sig": "(niche: string): Niche"
+   }
+  },
+  {
+   "id": "@wren/niches#rawLocation",
+   "role": "export",
+   "parent": "@wren/niches",
+   "group": "@wren/niches",
+   "attrs": {
+    "entries": [
+     "@wren/niches"
+    ],
+    "file": "packages/niches/src/niche.ts",
+    "kind": "function",
+    "sig": "(company: Company, key: string): string | null"
+   }
+  },
+  {
+   "id": "@wren/niches#recruiting",
+   "role": "export",
+   "parent": "@wren/niches",
+   "group": "@wren/niches",
+   "attrs": {
+    "entries": [
+     "@wren/niches"
+    ],
+    "file": "packages/niches/src/recruiting.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"./niche.js\").Niche"
+   }
+  },
+  {
+   "id": "@wren/niches#requireNiche",
+   "role": "export",
+   "parent": "@wren/niches",
+   "group": "@wren/niches",
+   "attrs": {
+    "entries": [
+     "@wren/niches"
+    ],
+    "file": "packages/niches/src/index.ts",
+    "kind": "function",
+    "sig": "(niche: string | null): string | null"
+   }
+  },
+  {
+   "id": "@wren/niches#secRia",
+   "role": "export",
+   "parent": "@wren/niches",
+   "group": "@wren/niches",
+   "attrs": {
+    "entries": [
+     "@wren/niches"
+    ],
+    "file": "packages/niches/src/sec-ria.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"./niche.js\").Niche"
+   }
+  },
+  {
+   "id": "@wren/niches#triggersFor",
+   "role": "export",
+   "parent": "@wren/niches",
+   "group": "@wren/niches",
+   "attrs": {
+    "entries": [
+     "@wren/niches"
+    ],
+    "file": "packages/niches/src/index.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(niche: string): { words: readonly string[]; screen: import(\"@wren/core\").CompanyScreen | null; }"
+   }
+  },
+  {
+   "id": "@wren/niches#youtubeSearchFor",
+   "role": "export",
+   "parent": "@wren/niches",
+   "group": "@wren/niches",
+   "attrs": {
+    "entries": [
+     "@wren/niches"
+    ],
+    "file": "packages/niches/src/index.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(niche: string): { queries: readonly string[]; platforms: ReadonlySet<string>; screen: import(\"@wren/core\").CompanyScreen | null; }"
+   }
+  }
+ ],
+ "edges": []
+}

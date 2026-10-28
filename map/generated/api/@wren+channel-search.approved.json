@@ -1,0 +1,1558 @@
+{
+ "layer": "api",
+ "nodes": [
+  {
+   "id": "@wren/channel-search#Answer",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search"
+    ],
+    "file": "packages/channel-search/src/answers.ts",
+    "kind": "interface",
+    "sig": "interface Answer { cited: boolean; rank: number | null; overview: boolean | null; sources: string[]; questions: string[]; }"
+   }
+  },
+  {
+   "id": "@wren/channel-search#Applied",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search"
+    ],
+    "file": "packages/channel-search/src/apply.ts",
+    "kind": "interface",
+    "sig": "interface Applied { files: SourceFile[]; applied: SearchProposal[]; byHand: Array<{ proposal: SearchProposal; reason: string }>; }"
+   }
+  },
+  {
+   "id": "@wren/channel-search#BookedCall",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search"
+    ],
+    "file": "packages/channel-search/src/site-days.ts",
+    "kind": "interface",
+    "sig": "interface BookedCall { day: string; code: string | null; email: string | null; }"
+   }
+  },
+  {
+   "id": "@wren/channel-search#Brief",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search"
+    ],
+    "file": "packages/channel-search/src/brief.ts",
+    "kind": "interface",
+    "sig": "interface Brief { since: string; keywords: KeywordLine[]; pages: PageLine[]; }"
+   }
+  },
+  {
+   "id": "@wren/channel-search#ENGINES",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search",
+     "@wren/channel-search/schema"
+    ],
+    "file": "packages/channel-search/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"google\", \"perplexity\"]"
+   }
+  },
+  {
+   "id": "@wren/channel-search#Engine",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search",
+     "@wren/channel-search/schema"
+    ],
+    "file": "packages/channel-search/src/schema.ts",
+    "kind": "type",
+    "sig": "type Engine = (typeof ENGINES)[number];"
+   }
+  },
+  {
+   "id": "@wren/channel-search#HEAT_WIDTHS",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search",
+     "@wren/channel-search/schema"
+    ],
+    "file": "packages/channel-search/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"phone\", \"tablet\", \"laptop\", \"wide\"]"
+   }
+  },
+  {
+   "id": "@wren/channel-search#Heat",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search/records"
+    ],
+    "file": "packages/channel-search/src/records.ts",
+    "kind": "interface",
+    "sig": "interface Heat { cells: { path: string; cell: number; clicks: number; rage: number }[]; bands: number[]; snapshot: { url: string; w: number } | null; }"
+   }
+  },
+  {
+   "id": "@wren/channel-search#HeatWidth",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search",
+     "@wren/channel-search/schema"
+    ],
+    "file": "packages/channel-search/src/schema.ts",
+    "kind": "type",
+    "sig": "type HeatWidth = (typeof HEAT_WIDTHS)[number];"
+   }
+  },
+  {
+   "id": "@wren/channel-search#INSPECTION_VERDICTS",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search",
+     "@wren/channel-search/schema"
+    ],
+    "file": "packages/channel-search/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"PASS\", \"PARTIAL\", \"FAIL\", \"NEUTRAL\", \"VERDICT_UNSPECIFIED\"]"
+   }
+  },
+  {
+   "id": "@wren/channel-search#InspectionVerdict",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search",
+     "@wren/channel-search/schema"
+    ],
+    "file": "packages/channel-search/src/schema.ts",
+    "kind": "type",
+    "sig": "type InspectionVerdict = (typeof INSPECTION_VERDICTS)[number];"
+   }
+  },
+  {
+   "id": "@wren/channel-search#KEYWORD_SOURCES",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search",
+     "@wren/channel-search/schema"
+    ],
+    "file": "packages/channel-search/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"seed\", \"fanout\", \"query\"]"
+   }
+  },
+  {
+   "id": "@wren/channel-search#KeywordSource",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search",
+     "@wren/channel-search/schema"
+    ],
+    "file": "packages/channel-search/src/schema.ts",
+    "kind": "type",
+    "sig": "type KeywordSource = (typeof KEYWORD_SOURCES)[number];"
+   }
+  },
+  {
+   "id": "@wren/channel-search#LinkDay",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search",
+     "@wren/channel-search/schema"
+    ],
+    "file": "packages/channel-search/src/schema.ts",
+    "kind": "type",
+    "sig": "type LinkDay = typeof linkDays.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/channel-search#PAGE_LIMIT_MS",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search"
+    ],
+    "file": "packages/channel-search/src/console.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "30000"
+   }
+  },
+  {
+   "id": "@wren/channel-search#PROPOSAL_KINDS",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search",
+     "@wren/channel-search/schema"
+    ],
+    "file": "packages/channel-search/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"title\", \"description\", \"heading\", \"copy\", \"faq\", \"page\"]"
+   }
+  },
+  {
+   "id": "@wren/channel-search#PROPOSAL_STATES",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search",
+     "@wren/channel-search/schema"
+    ],
+    "file": "packages/channel-search/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"open\", \"taken\", \"dropped\"]"
+   }
+  },
+  {
+   "id": "@wren/channel-search#PageLine",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search"
+    ],
+    "file": "packages/channel-search/src/brief.ts",
+    "kind": "type",
+    "sig": "type PageLine = { url: string; coverage: string | null; indexed: boolean; on: string; impressions: number; clicks: number; position: number | null; };"
+   }
+  },
+  {
+   "id": "@wren/channel-search#ProposalBatch",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search"
+    ],
+    "file": "packages/channel-search/src/propose.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "z.ZodUnion<readonly [z.ZodArray<z.ZodObject<{ page: z.ZodString; kind: z.ZodEnum<{ page: \"page\"; title: \"title\"; description: \"description\"; heading: \"heading\"; copy: \"copy\"; faq: \"faq\"; }>; current: z.ZodString; proposed: z.ZodString; why: z.ZodString; keywords: z.ZodDefault<z.ZodArray<z.ZodString>…"
+   }
+  },
+  {
+   "id": "@wren/channel-search#ProposalDraft",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search"
+    ],
+    "file": "packages/channel-search/src/propose.ts",
+    "kind": "type",
+    "sig": "type ProposalDraft = z.infer<typeof Proposal>;"
+   }
+  },
+  {
+   "id": "@wren/channel-search#ProposalKind",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search",
+     "@wren/channel-search/schema"
+    ],
+    "file": "packages/channel-search/src/schema.ts",
+    "kind": "type",
+    "sig": "type ProposalKind = (typeof PROPOSAL_KINDS)[number];"
+   }
+  },
+  {
+   "id": "@wren/channel-search#ProposalState",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search",
+     "@wren/channel-search/schema"
+    ],
+    "file": "packages/channel-search/src/schema.ts",
+    "kind": "type",
+    "sig": "type ProposalState = (typeof PROPOSAL_STATES)[number];"
+   }
+  },
+  {
+   "id": "@wren/channel-search#SEARCH_COMPONENT",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search/components"
+    ],
+    "file": "packages/channel-search/src/components.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"search.watch\""
+   }
+  },
+  {
+   "id": "@wren/channel-search#SEARCH_COMPONENTS",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search/components"
+    ],
+    "file": "packages/channel-search/src/components.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"@wren/core/components\").Component[]"
+   }
+  },
+  {
+   "id": "@wren/channel-search#SEARCH_KEY",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search/restate"
+    ],
+    "file": "packages/channel-search/src/restate/watch.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"default\""
+   }
+  },
+  {
+   "id": "@wren/channel-search#SEARCH_RECORDS",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search/records"
+    ],
+    "file": "packages/channel-search/src/records.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"@wren/core/records\").RecordType[]"
+   }
+  },
+  {
+   "id": "@wren/channel-search#SITE_CHANNELS",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search",
+     "@wren/channel-search/schema"
+    ],
+    "file": "packages/channel-search/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"email\", \"sms\", \"ads\", \"content\", \"search\", \"reach\", \"other\", \"direct\"]"
+   }
+  },
+  {
+   "id": "@wren/channel-search#STALE_DAYS",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search"
+    ],
+    "file": "packages/channel-search/src/sync.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "14"
+   }
+  },
+  {
+   "id": "@wren/channel-search#SearchAnswer",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search",
+     "@wren/channel-search/schema"
+    ],
+    "file": "packages/channel-search/src/schema.ts",
+    "kind": "type",
+    "sig": "type SearchAnswer = typeof searchAnswers.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/channel-search#SearchConsoleClient",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search"
+    ],
+    "file": "packages/channel-search/src/console.ts",
+    "kind": "interface",
+    "sig": "interface SearchConsoleClient { fetch: FetchLike; token: () => Promise<string>; }"
+   }
+  },
+  {
+   "id": "@wren/channel-search#SearchDay",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search",
+     "@wren/channel-search/schema"
+    ],
+    "file": "packages/channel-search/src/schema.ts",
+    "kind": "type",
+    "sig": "type SearchDay = typeof searchDays.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/channel-search#SearchKeyword",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search",
+     "@wren/channel-search/schema"
+    ],
+    "file": "packages/channel-search/src/schema.ts",
+    "kind": "type",
+    "sig": "type SearchKeyword = typeof searchKeywords.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/channel-search#SearchPage",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search",
+     "@wren/channel-search/schema"
+    ],
+    "file": "packages/channel-search/src/schema.ts",
+    "kind": "type",
+    "sig": "type SearchPage = typeof searchPages.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/channel-search#SearchProposal",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search",
+     "@wren/channel-search/schema"
+    ],
+    "file": "packages/channel-search/src/schema.ts",
+    "kind": "type",
+    "sig": "type SearchProposal = typeof searchProposals.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/channel-search#SearchWatch",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search/restate"
+    ],
+    "file": "packages/channel-search/src/restate/watch.ts",
+    "kind": "type",
+    "sig": "type SearchWatch = ReturnType<typeof makeSearchWatch>;"
+   }
+  },
+  {
+   "id": "@wren/channel-search#SearchWeek",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search/restate"
+    ],
+    "file": "packages/channel-search/src/restate/watch.ts",
+    "kind": "type",
+    "sig": "type SearchWeek = ReturnType<typeof makeSearchWeek>;"
+   }
+  },
+  {
+   "id": "@wren/channel-search#SiteChannel",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search",
+     "@wren/channel-search/schema"
+    ],
+    "file": "packages/channel-search/src/schema.ts",
+    "kind": "type",
+    "sig": "type SiteChannel = (typeof SITE_CHANNELS)[number];"
+   }
+  },
+  {
+   "id": "@wren/channel-search#SiteDay",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search",
+     "@wren/channel-search/schema"
+    ],
+    "file": "packages/channel-search/src/schema.ts",
+    "kind": "type",
+    "sig": "type SiteDay = typeof siteDays.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/channel-search#SyncStats",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search"
+    ],
+    "file": "packages/channel-search/src/sync.ts",
+    "kind": "interface",
+    "sig": "interface SyncStats { rows: number; window: [string, string]; inspected: number; indexed: number; changes: IndexChange[]; added: string[]; }"
+   }
+  },
+  {
+   "id": "@wren/channel-search#activeKeywords",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search"
+    ],
+    "file": "packages/channel-search/src/keywords.ts",
+    "kind": "function",
+    "sig": "(db: Db): Promise<SearchKeyword[]>"
+   }
+  },
+  {
+   "id": "@wren/channel-search#addKeywords",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search"
+    ],
+    "file": "packages/channel-search/src/keywords.ts",
+    "kind": "function",
+    "sig": "(db: Db, phrases: readonly string[], o: { source: KeywordSource; page?: string | null; parentId?: number | null; runId?: string | null; }): Promise<number>"
+   }
+  },
+  {
+   "id": "@wren/channel-search#applyProposals",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search"
+    ],
+    "file": "packages/channel-search/src/apply.ts",
+    "kind": "function",
+    "sig": "(sources: readonly SourceFile[], proposals: readonly SearchProposal[]): Applied"
+   }
+  },
+  {
+   "id": "@wren/channel-search#ask",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search"
+    ],
+    "file": "packages/channel-search/src/answers.ts",
+    "kind": "function",
+    "sig": "(sites: SiteClient, engine: Engine, phrase: string, host: string): Promise<Answer>"
+   }
+  },
+  {
+   "id": "@wren/channel-search#brief",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search"
+    ],
+    "file": "packages/channel-search/src/brief.ts",
+    "kind": "function",
+    "sig": "(db: Db, o: { today: string; days?: number }): Promise<Brief>"
+   }
+  },
+  {
+   "id": "@wren/channel-search#callsAndPaid",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search"
+    ],
+    "file": "packages/channel-search/src/site-days.ts",
+    "kind": "function",
+    "sig": "(db: Queryable): Promise<{ calls: BookedCall[]; paid: PaidEngagement[] }>"
+   }
+  },
+  {
+   "id": "@wren/channel-search#citability",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search"
+    ],
+    "file": "packages/channel-search/src/citability.ts",
+    "kind": "function",
+    "sig": "(markdown: string): Citability"
+   }
+  },
+  {
+   "id": "@wren/channel-search#clientSearch",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search/restate"
+    ],
+    "file": "packages/channel-search/src/restate/watch.ts",
+    "kind": "function",
+    "sig": "(main: Queryable, id: string): Promise<ClientSearch>"
+   }
+  },
+  {
+   "id": "@wren/channel-search#discoverKeywords",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search"
+    ],
+    "file": "packages/channel-search/src/keywords.ts",
+    "kind": "function",
+    "sig": "(db: Db, o: { today: string; days?: number; minImpressions?: number; runId: string | null }): Promise<number>"
+   }
+  },
+  {
+   "id": "@wren/channel-search#dueKeywords",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search"
+    ],
+    "file": "packages/channel-search/src/answers.ts",
+    "kind": "function",
+    "sig": "(db: Db, engine: Engine, today: string, limit: number): Promise<SearchKeyword[]>"
+   }
+  },
+  {
+   "id": "@wren/channel-search#fanOut",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search"
+    ],
+    "file": "packages/channel-search/src/keywords.ts",
+    "kind": "function",
+    "sig": "(db: Db, llm: LlmClient, o: { about: string; runId: string | null }): Promise<FanOutStats>"
+   }
+  },
+  {
+   "id": "@wren/channel-search#formatBrief",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search"
+    ],
+    "file": "packages/channel-search/src/brief.ts",
+    "kind": "function",
+    "sig": "(b: Brief): string[]"
+   }
+  },
+  {
+   "id": "@wren/channel-search#formatChanges",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search"
+    ],
+    "file": "packages/channel-search/src/sync.ts",
+    "kind": "function",
+    "sig": "(changes: readonly IndexChange[]): string[]"
+   }
+  },
+  {
+   "id": "@wren/channel-search#funnelRecord",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search/records"
+    ],
+    "file": "packages/channel-search/src/records.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"@wren/core/records\").RecordType"
+   }
+  },
+  {
+   "id": "@wren/channel-search#heatDays",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search",
+     "@wren/channel-search/schema"
+    ],
+    "file": "packages/channel-search/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"heat_days\"; schema: undefined; columns: { day: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"day\"; tableName: \"heat_days\"; dataType: \"string\"; columnType: \"PgDateString\"; data: string; driverParam: string; notNull: true; hasDefault: false; …"
+   }
+  },
+  {
+   "id": "@wren/channel-search#heatRecord",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search/records"
+    ],
+    "file": "packages/channel-search/src/records.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(src?: SessionSource): import(\"@wren/core/records\").RecordType"
+   }
+  },
+  {
+   "id": "@wren/channel-search#inspectUrl",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search"
+    ],
+    "file": "packages/channel-search/src/console.ts",
+    "kind": "function",
+    "sig": "(c: SearchConsoleClient, site: string, url: string): Promise<Inspection>"
+   }
+  },
+  {
+   "id": "@wren/channel-search#isSite",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search"
+    ],
+    "file": "packages/channel-search/src/answers.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(url: string | null | undefined, host: string): boolean"
+   }
+  },
+  {
+   "id": "@wren/channel-search#keywordRecord",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search/records"
+    ],
+    "file": "packages/channel-search/src/records.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"@wren/core/records\").RecordType"
+   }
+  },
+  {
+   "id": "@wren/channel-search#linkDays",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search",
+     "@wren/channel-search/schema"
+    ],
+    "file": "packages/channel-search/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"link_days\"; schema: undefined; columns: { day: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"day\"; tableName: \"link_days\"; dataType: \"string\"; columnType: \"PgDateString\"; data: string; driverParam: string; notNull: true; hasDefault: false; …"
+   }
+  },
+  {
+   "id": "@wren/channel-search#listSites",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search"
+    ],
+    "file": "packages/channel-search/src/console.ts",
+    "kind": "function",
+    "sig": "(c: SearchConsoleClient): Promise<SiteEntry[]>"
+   }
+  },
+  {
+   "id": "@wren/channel-search#makeSearchWatch",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search/restate"
+    ],
+    "file": "packages/channel-search/src/restate/watch.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(deps: SearchDeps): restate.VirtualObjectDefinition<string, Record<never, never> & Record<never, (ctx: restate.ObjectContext) => Promise<import(\"@wren/core/restate\").PassOutcome<WatchStats>>> & { sync: (ctx: restate.ObjectContext) => Promise<import(\"@wren/core/restate\").PassOutcome<WatchStats>>; start: (ctx: restate.Ob…"
+   }
+  },
+  {
+   "id": "@wren/channel-search#makeSearchWeek",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search/restate"
+    ],
+    "file": "packages/channel-search/src/restate/watch.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(deps: SearchWeekDeps): restate.ServiceDefinition<\"SearchWeek\", { run: (ctx: restate.Context, req: { today: string; }) => Promise<WeekStats>; }>"
+   }
+  },
+  {
+   "id": "@wren/channel-search#marketingAnswerRecords",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search",
+     "@wren/channel-search/schema"
+    ],
+    "file": "packages/channel-search/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgViewWithSelection<\"marketing_answer_records\", false, { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"marketing_answer_records\"; dataType: \"string\"; columnType: \"PgText\"; data: string; driverParam: string; notNull: false; hasDefault: false; isPri…"
+   }
+  },
+  {
+   "id": "@wren/channel-search#marketingFunnelRecords",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search",
+     "@wren/channel-search/schema"
+    ],
+    "file": "packages/channel-search/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgViewWithSelection<\"marketing_funnel_records\", false, { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"marketing_funnel_records\"; dataType: \"string\"; columnType: \"PgText\"; data: string; driverParam: string; notNull: false; hasDefault: false; isPri…"
+   }
+  },
+  {
+   "id": "@wren/channel-search#marketingHeatRecords",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search",
+     "@wren/channel-search/schema"
+    ],
+    "file": "packages/channel-search/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgViewWithSelection<\"marketing_heat_records\", false, { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"marketing_heat_records\"; dataType: \"string\"; columnType: \"PgText\"; data: string; driverParam: string; notNull: false; hasDefault: false; isPrimary…"
+   }
+  },
+  {
+   "id": "@wren/channel-search#marketingKeywordRecords",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search",
+     "@wren/channel-search/schema"
+    ],
+    "file": "packages/channel-search/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgViewWithSelection<\"marketing_keyword_records\", false, { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"marketing_keyword_records\"; dataType: \"number\"; columnType: \"PgInteger\"; data: number; driverParam: string | number; notNull: false; hasDefault…"
+   }
+  },
+  {
+   "id": "@wren/channel-search#marketingLinkDayRecords",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search",
+     "@wren/channel-search/schema"
+    ],
+    "file": "packages/channel-search/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgViewWithSelection<\"marketing_link_day_records\", false, { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"marketing_link_day_records\"; dataType: \"string\"; columnType: \"PgText\"; data: string; driverParam: string; notNull: false; hasDefault: false; i…"
+   }
+  },
+  {
+   "id": "@wren/channel-search#marketingSearchDayRecords",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search",
+     "@wren/channel-search/schema"
+    ],
+    "file": "packages/channel-search/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgViewWithSelection<\"marketing_search_day_records\", false, { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"marketing_search_day_records\"; dataType: \"string\"; columnType: \"PgText\"; data: string; driverParam: string; notNull: false; hasDefault: fals…"
+   }
+  },
+  {
+   "id": "@wren/channel-search#marketingSearchPageRecords",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search",
+     "@wren/channel-search/schema"
+    ],
+    "file": "packages/channel-search/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgViewWithSelection<\"marketing_search_page_records\", false, { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"marketing_search_page_records\"; dataType: \"string\"; columnType: \"PgText\"; data: string; driverParam: string; notNull: false; hasDefault: fa…"
+   }
+  },
+  {
+   "id": "@wren/channel-search#marketingSiteDayRecords",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search",
+     "@wren/channel-search/schema"
+    ],
+    "file": "packages/channel-search/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgViewWithSelection<\"marketing_site_day_records\", false, { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"marketing_site_day_records\"; dataType: \"string\"; columnType: \"PgText\"; data: string; driverParam: string; notNull: false; hasDefault: false; i…"
+   }
+  },
+  {
+   "id": "@wren/channel-search#originOf",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search/restate"
+    ],
+    "file": "packages/channel-search/src/restate/watch.ts",
+    "kind": "function",
+    "sig": "(property: string): string | null"
+   }
+  },
+  {
+   "id": "@wren/channel-search#passagesOf",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search"
+    ],
+    "file": "packages/channel-search/src/citability.ts",
+    "kind": "function",
+    "sig": "(markdown: string): { heading: string; text: string }[]"
+   }
+  },
+  {
+   "id": "@wren/channel-search#propertyOf",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search"
+    ],
+    "file": "packages/channel-search/src/setups.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(ref: string, sites: readonly T[]): T | null"
+   }
+  },
+  {
+   "id": "@wren/channel-search#pullRequestBody",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search"
+    ],
+    "file": "packages/channel-search/src/apply.ts",
+    "kind": "function",
+    "sig": "(a: Applied): string"
+   }
+  },
+  {
+   "id": "@wren/channel-search#recordAnswer",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search"
+    ],
+    "file": "packages/channel-search/src/answers.ts",
+    "kind": "function",
+    "sig": "(db: Db, k: SearchKeyword, engine: Engine, a: Answer, o: { today: string; runId: string | null }): Promise<number>"
+   }
+  },
+  {
+   "id": "@wren/channel-search#refusal",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search"
+    ],
+    "file": "packages/channel-search/src/propose.ts",
+    "kind": "function",
+    "sig": "(p: ProposalDraft, site: string): string | null"
+   }
+  },
+  {
+   "id": "@wren/channel-search#retireKeyword",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search"
+    ],
+    "file": "packages/channel-search/src/keywords.ts",
+    "kind": "function",
+    "sig": "(db: Db, phrase: string): Promise<boolean>"
+   }
+  },
+  {
+   "id": "@wren/channel-search#rollupHeat",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search"
+    ],
+    "file": "packages/channel-search/src/heat.ts",
+    "kind": "function",
+    "sig": "(events: readonly SiteEvent[]): { heat: HeatDayRow[]; scroll: ScrollDayRow[]; from: number | null; }"
+   }
+  },
+  {
+   "id": "@wren/channel-search#rollupSite",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search"
+    ],
+    "file": "packages/channel-search/src/site-days.ts",
+    "kind": "function",
+    "sig": "(hits: readonly SiteHit[], applications: readonly SiteApplication[], calls: readonly BookedCall[] = [], paid: readonly PaidEngagement[] = []): SiteDayRow[]"
+   }
+  },
+  {
+   "id": "@wren/channel-search#scorePassage",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search"
+    ],
+    "file": "packages/channel-search/src/citability.ts",
+    "kind": "function",
+    "sig": "(text: string, heading = \"\"): PassageScore"
+   }
+  },
+  {
+   "id": "@wren/channel-search#scrollDays",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search",
+     "@wren/channel-search/schema"
+    ],
+    "file": "packages/channel-search/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"scroll_days\"; schema: undefined; columns: { day: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"day\"; tableName: \"scroll_days\"; dataType: \"string\"; columnType: \"PgDateString\"; data: string; driverParam: string; notNull: true; hasDefault: fal…"
+   }
+  },
+  {
+   "id": "@wren/channel-search#searchAnalytics",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search"
+    ],
+    "file": "packages/channel-search/src/console.ts",
+    "kind": "function",
+    "sig": "(c: SearchConsoleClient, site: string, q: { startDate: string; endDate: string; dimensions: readonly string[] }): Promise<AnalyticsRow[]>"
+   }
+  },
+  {
+   "id": "@wren/channel-search#searchAnswers",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search",
+     "@wren/channel-search/schema"
+    ],
+    "file": "packages/channel-search/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"search_answers\"; schema: undefined; columns: { engine: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"engine\"; tableName: \"search_answers\"; dataType: \"string\"; columnType: \"PgVarchar\"; data: \"google\" | \"perplexity\"; driverParam: string; notN…"
+   }
+  },
+  {
+   "id": "@wren/channel-search#searchConsoleChecks",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search"
+    ],
+    "file": "packages/channel-search/src/setups.ts",
+    "kind": "function",
+    "sig": "(client: () => SearchConsoleClient): Record<string, SetupCheck>"
+   }
+  },
+  {
+   "id": "@wren/channel-search#searchConsoleClient",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search"
+    ],
+    "file": "packages/channel-search/src/console.ts",
+    "kind": "function",
+    "sig": "(key: ServiceAccountKey, fetch: FetchLike = (u, i) => globalThis.fetch(u, i)): SearchConsoleClient"
+   }
+  },
+  {
+   "id": "@wren/channel-search#searchDayRecord",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search/records"
+    ],
+    "file": "packages/channel-search/src/records.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"@wren/core/records\").RecordType"
+   }
+  },
+  {
+   "id": "@wren/channel-search#searchDays",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search",
+     "@wren/channel-search/schema"
+    ],
+    "file": "packages/channel-search/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"search_days\"; schema: undefined; columns: { day: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"day\"; tableName: \"search_days\"; dataType: \"string\"; columnType: \"PgDateString\"; data: string; driverParam: string; notNull: true; hasDefault: fal…"
+   }
+  },
+  {
+   "id": "@wren/channel-search#searchKeywords",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search",
+     "@wren/channel-search/schema"
+    ],
+    "file": "packages/channel-search/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"search_keywords\"; schema: undefined; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"search_keywords\"; dataType: \"number\"; columnType: \"PgSerial\"; data: number; driverParam: number; notNull: true; hasDefault: t…"
+   }
+  },
+  {
+   "id": "@wren/channel-search#searchPageRecord",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search/records"
+    ],
+    "file": "packages/channel-search/src/records.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"@wren/core/records\").RecordType"
+   }
+  },
+  {
+   "id": "@wren/channel-search#searchPages",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search",
+     "@wren/channel-search/schema"
+    ],
+    "file": "packages/channel-search/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"search_pages\"; schema: undefined; columns: { url: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"url\"; tableName: \"search_pages\"; dataType: \"string\"; columnType: \"PgText\"; data: string; driverParam: string; notNull: true; hasDefault: false; …"
+   }
+  },
+  {
+   "id": "@wren/channel-search#searchProposals",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search",
+     "@wren/channel-search/schema"
+    ],
+    "file": "packages/channel-search/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"search_proposals\"; schema: undefined; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"search_proposals\"; dataType: \"number\"; columnType: \"PgSerial\"; data: number; driverParam: number; notNull: true; hasDefault:…"
+   }
+  },
+  {
+   "id": "@wren/channel-search#searchSettingsSchema",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search/components"
+    ],
+    "file": "packages/channel-search/src/components.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "z.ZodObject<{ origin: z.ZodOptional<z.ZodURL>; }, z.core.$strict>"
+   }
+  },
+  {
+   "id": "@wren/channel-search#sessionRecord",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search/records"
+    ],
+    "file": "packages/channel-search/src/records.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(src: SessionSource): import(\"@wren/core/records\").RecordType"
+   }
+  },
+  {
+   "id": "@wren/channel-search#siteDays",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search",
+     "@wren/channel-search/schema"
+    ],
+    "file": "packages/channel-search/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"site_days\"; schema: undefined; columns: { day: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"day\"; tableName: \"site_days\"; dataType: \"string\"; columnType: \"PgDateString\"; data: string; driverParam: string; notNull: true; hasDefault: false; …"
+   }
+  },
+  {
+   "id": "@wren/channel-search#siteText",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search"
+    ],
+    "file": "packages/channel-search/src/site.ts",
+    "kind": "function",
+    "sig": "(fetch: FetchLike, origin: string, urls: readonly string[]): Promise<string>"
+   }
+  },
+  {
+   "id": "@wren/channel-search#sitemapUrls",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search"
+    ],
+    "file": "packages/channel-search/src/console.ts",
+    "kind": "function",
+    "sig": "(fetch: FetchLike, sitemap: string): Promise<string[]>"
+   }
+  },
+  {
+   "id": "@wren/channel-search#storeProposals",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search"
+    ],
+    "file": "packages/channel-search/src/propose.ts",
+    "kind": "function",
+    "sig": "(db: Db, drafts: readonly ProposalDraft[], o: { site: string; today: string; runId: string | null; dry?: boolean }): Promise<ProposeStats>"
+   }
+  },
+  {
+   "id": "@wren/channel-search#submitSitemap",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search"
+    ],
+    "file": "packages/channel-search/src/console.ts",
+    "kind": "function",
+    "sig": "(c: SearchConsoleClient, site: string, sitemap: string): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/channel-search#surveyAnswerRecord",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search/records"
+    ],
+    "file": "packages/channel-search/src/records.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(site: SessionSource[\"site\"]): import(\"@wren/core/records\").RecordType"
+   }
+  },
+  {
+   "id": "@wren/channel-search#syncSearch",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search"
+    ],
+    "file": "packages/channel-search/src/sync.ts",
+    "kind": "function",
+    "sig": "(db: Db, o: SyncOptions): Promise<SyncStats>"
+   }
+  },
+  {
+   "id": "@wren/channel-search#upsertSiteDays",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search"
+    ],
+    "file": "packages/channel-search/src/site-days.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, rows: readonly SiteDayRow[]): Promise<number>"
+   }
+  },
+  {
+   "id": "@wren/channel-search#weekOf",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search/restate"
+    ],
+    "file": "packages/channel-search/src/restate/watch.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(d: Date): string"
+   }
+  },
+  {
+   "id": "@wren/channel-search#widthOf",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search/records"
+    ],
+    "file": "packages/channel-search/src/records.ts",
+    "kind": "function",
+    "sig": "(w: number): HeatWidth"
+   }
+  },
+  {
+   "id": "@wren/channel-search#wordsChanged",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search"
+    ],
+    "file": "packages/channel-search/src/propose.ts",
+    "kind": "function",
+    "sig": "(a: string, b: string): number"
+   }
+  },
+  {
+   "id": "@wren/channel-search#writeHeatDays",
+   "role": "export",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "entries": [
+     "@wren/channel-search"
+    ],
+    "file": "packages/channel-search/src/heat.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, rows: { heat: readonly HeatDayRow[]; scroll: readonly ScrollDayRow[] }): Promise<number>"
+   }
+  }
+ ],
+ "edges": []
+}

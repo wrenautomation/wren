@@ -1,0 +1,278 @@
+{
+ "layer": "api",
+ "nodes": [
+  {
+   "id": "@wren/channel-reddit#Listing",
+   "role": "export",
+   "parent": "@wren/channel-reddit",
+   "group": "@wren/channel-reddit",
+   "attrs": {
+    "entries": [
+     "@wren/channel-reddit"
+    ],
+    "file": "packages/channel-reddit/src/content.ts",
+    "kind": "interface",
+    "sig": "interface Listing { kind?: string; data?: { children?: Array<{ kind: string; data: Thing }>; after?: string | null }; }"
+   }
+  },
+  {
+   "id": "@wren/channel-reddit#REACH_FULL_KARMA",
+   "role": "export",
+   "parent": "@wren/channel-reddit",
+   "group": "@wren/channel-reddit",
+   "attrs": {
+    "entries": [
+     "@wren/channel-reddit"
+    ],
+    "file": "packages/channel-reddit/src/warmup.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "50"
+   }
+  },
+  {
+   "id": "@wren/channel-reddit#REDDIT_SITE",
+   "role": "export",
+   "parent": "@wren/channel-reddit",
+   "group": "@wren/channel-reddit",
+   "attrs": {
+    "entries": [
+     "@wren/channel-reddit"
+    ],
+    "file": "packages/channel-reddit/src/content.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"reddit\""
+   }
+  },
+  {
+   "id": "@wren/channel-reddit#REDDIT_TOKEN_URL",
+   "role": "export",
+   "parent": "@wren/channel-reddit",
+   "group": "@wren/channel-reddit",
+   "attrs": {
+    "entries": [
+     "@wren/channel-reddit"
+    ],
+    "file": "packages/channel-reddit/src/api.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"https://www.reddit.com/api/v1/access_token\""
+   }
+  },
+  {
+   "id": "@wren/channel-reddit#STAGES",
+   "role": "export",
+   "parent": "@wren/channel-reddit",
+   "group": "@wren/channel-reddit",
+   "attrs": {
+    "entries": [
+     "@wren/channel-reddit"
+    ],
+    "file": "packages/channel-reddit/src/warmup.ts",
+    "kind": "const",
+    "sig": "Record<WarmupStage, { minDays: number; minKarma: number; caps: StageCaps }>"
+   }
+  },
+  {
+   "id": "@wren/channel-reddit#Thing",
+   "role": "export",
+   "parent": "@wren/channel-reddit",
+   "group": "@wren/channel-reddit",
+   "attrs": {
+    "entries": [
+     "@wren/channel-reddit"
+    ],
+    "file": "packages/channel-reddit/src/content.ts",
+    "kind": "interface",
+    "sig": "interface Thing { id: string; name: string; title?: string; selftext?: string; body?: string; author?: string; author_fullname?: string; permalink?: string; created_utc?: number; score?: number; num_comments?: number; num_crossposts?: number; view_count?: number | null; upvote_ratio?: number; link_id?: string; link_author?: string; parent_id?: string; }"
+   }
+  },
+  {
+   "id": "@wren/channel-reddit#Warmup",
+   "role": "export",
+   "parent": "@wren/channel-reddit",
+   "group": "@wren/channel-reddit",
+   "attrs": {
+    "entries": [
+     "@wren/channel-reddit"
+    ],
+    "file": "packages/channel-reddit/src/warmup.ts",
+    "kind": "interface",
+    "sig": "interface Warmup { stage: WarmupStage; caps: WarmupCaps; ageDays: number; karma: number; next: string; frozen: string | null; }"
+   }
+  },
+  {
+   "id": "@wren/channel-reddit#WarmupStage",
+   "role": "export",
+   "parent": "@wren/channel-reddit",
+   "group": "@wren/channel-reddit",
+   "attrs": {
+    "entries": [
+     "@wren/channel-reddit"
+    ],
+    "file": "packages/channel-reddit/src/warmup.ts",
+    "kind": "type",
+    "sig": "type WarmupStage = \"lurk\" | \"comment\" | \"post\" | \"reach\";"
+   }
+  },
+  {
+   "id": "@wren/channel-reddit#answerOf",
+   "role": "export",
+   "parent": "@wren/channel-reddit",
+   "group": "@wren/channel-reddit",
+   "attrs": {
+    "entries": [
+     "@wren/channel-reddit"
+    ],
+    "file": "packages/channel-reddit/src/content.ts",
+    "kind": "function",
+    "sig": "(path: string, a: JsonAnswer<T>): T"
+   }
+  },
+  {
+   "id": "@wren/channel-reddit#commentRef",
+   "role": "export",
+   "parent": "@wren/channel-reddit",
+   "group": "@wren/channel-reddit",
+   "attrs": {
+    "entries": [
+     "@wren/channel-reddit"
+    ],
+    "file": "packages/core/src/objects/canon.ts",
+    "kind": "function",
+    "sig": "(raw: string): string"
+   }
+  },
+  {
+   "id": "@wren/channel-reddit#parseFindQuery",
+   "role": "export",
+   "parent": "@wren/channel-reddit",
+   "group": "@wren/channel-reddit",
+   "attrs": {
+    "entries": [
+     "@wren/channel-reddit"
+    ],
+    "file": "packages/channel-reddit/src/outreach.ts",
+    "kind": "function",
+    "sig": "(query: string): { sr: string | null; words: string }"
+   }
+  },
+  {
+   "id": "@wren/channel-reddit#postOf",
+   "role": "export",
+   "parent": "@wren/channel-reddit",
+   "group": "@wren/channel-reddit",
+   "attrs": {
+    "entries": [
+     "@wren/channel-reddit"
+    ],
+    "file": "packages/channel-reddit/src/outreach.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(context: string | undefined): string | null"
+   }
+  },
+  {
+   "id": "@wren/channel-reddit#redditApi",
+   "role": "export",
+   "parent": "@wren/channel-reddit",
+   "group": "@wren/channel-reddit",
+   "attrs": {
+    "entries": [
+     "@wren/channel-reddit"
+    ],
+    "file": "packages/channel-reddit/src/api.ts",
+    "kind": "function",
+    "sig": "(o: RedditApiOptions): SiteClient"
+   }
+  },
+  {
+   "id": "@wren/channel-reddit#redditContent",
+   "role": "export",
+   "parent": "@wren/channel-reddit",
+   "group": "@wren/channel-reddit",
+   "attrs": {
+    "entries": [
+     "@wren/channel-reddit"
+    ],
+    "file": "packages/channel-reddit/src/content.ts",
+    "kind": "function",
+    "sig": "(sites: SiteClient, o: RedditContentOptions = {}): ContentChannel"
+   }
+  },
+  {
+   "id": "@wren/channel-reddit#redditOutreach",
+   "role": "export",
+   "parent": "@wren/channel-reddit",
+   "group": "@wren/channel-reddit",
+   "attrs": {
+    "entries": [
+     "@wren/channel-reddit"
+    ],
+    "file": "packages/channel-reddit/src/outreach.ts",
+    "kind": "function",
+    "sig": "(sites: import(\"@wren/core/content\").SiteClient, o: RedditOutreachOptions): RedditOutreach"
+   }
+  },
+  {
+   "id": "@wren/channel-reddit#redditUrl",
+   "role": "export",
+   "parent": "@wren/channel-reddit",
+   "group": "@wren/channel-reddit",
+   "attrs": {
+    "entries": [
+     "@wren/channel-reddit"
+    ],
+    "file": "packages/channel-reddit/src/content.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(permalink: string): string"
+   }
+  },
+  {
+   "id": "@wren/channel-reddit#threadOf",
+   "role": "export",
+   "parent": "@wren/channel-reddit",
+   "group": "@wren/channel-reddit",
+   "attrs": {
+    "entries": [
+     "@wren/channel-reddit"
+    ],
+    "file": "packages/channel-reddit/src/thread.ts",
+    "kind": "function",
+    "sig": "(post: string, answer: [Listing, Listing] | unknown, now: () => Date): ThreadRead"
+   }
+  },
+  {
+   "id": "@wren/channel-reddit#threadQuery",
+   "role": "export",
+   "parent": "@wren/channel-reddit",
+   "group": "@wren/channel-reddit",
+   "attrs": {
+    "entries": [
+     "@wren/channel-reddit"
+    ],
+    "file": "packages/channel-reddit/src/thread.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(focus?: string | null): { comment: string; context: number; raw_json: 1; limit: 500; depth: 10; sort: \"old\"; } | { raw_json: 1; limit: 500; depth: 10; sort: \"old\"; }"
+   }
+  },
+  {
+   "id": "@wren/channel-reddit#warmupOf",
+   "role": "export",
+   "parent": "@wren/channel-reddit",
+   "group": "@wren/channel-reddit",
+   "attrs": {
+    "entries": [
+     "@wren/channel-reddit"
+    ],
+    "file": "packages/channel-reddit/src/warmup.ts",
+    "kind": "function",
+    "sig": "(health: AccountHealth, now: Date): Warmup"
+   }
+  }
+ ],
+ "edges": []
+}

@@ -1,0 +1,69 @@
+{
+ "layer": "routes",
+ "nodes": [
+  {
+   "id": "route:Discovery/discover",
+   "role": "route",
+   "parent": "service:Discovery",
+   "group": "@wren/research",
+   "attrs": {
+    "input": "DiscoveryInput",
+    "output": "DiscoveryStats",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:Discovery/verify",
+   "role": "route",
+   "parent": "service:Discovery",
+   "group": "@wren/research",
+   "attrs": {
+    "input": "DiscoveryInput",
+    "output": "DomainVerificationStats",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:ProfileResearch/run",
+   "role": "route",
+   "parent": "service:ProfileResearch",
+   "group": "@wren/research",
+   "attrs": {
+    "input": "ProfileResearchInput",
+    "output": "ProfileResearchStats",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "service:Discovery",
+   "role": "service",
+   "parent": "@wren/research",
+   "group": "@wren/research",
+   "attrs": {
+    "file": "packages/research/src/restate/discovery.ts",
+    "kind": "object"
+   }
+  },
+  {
+   "id": "service:Enrichment",
+   "role": "service",
+   "parent": "@wren/research",
+   "group": "@wren/research",
+   "attrs": {
+    "file": "packages/research/src/restate/enrichment.ts",
+    "kind": "object"
+   }
+  },
+  {
+   "id": "service:ProfileResearch",
+   "role": "service",
+   "parent": "@wren/research",
+   "group": "@wren/research",
+   "attrs": {
+    "file": "packages/research/src/restate/profile-research.ts",
+    "kind": "object"
+   }
+  }
+ ],
+ "edges": []
+}

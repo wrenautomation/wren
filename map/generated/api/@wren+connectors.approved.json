@@ -1,0 +1,458 @@
+{
+ "layer": "api",
+ "nodes": [
+  {
+   "id": "@wren/connectors#APPS",
+   "role": "export",
+   "parent": "@wren/connectors",
+   "group": "@wren/connectors",
+   "attrs": {
+    "entries": [
+     "@wren/connectors",
+     "@wren/connectors/apps"
+    ],
+    "file": "packages/connectors/src/apps.ts",
+    "kind": "const",
+    "sig": "Record<ConnectorApp, AppSpec>"
+   }
+  },
+  {
+   "id": "@wren/connectors#AppView",
+   "role": "export",
+   "parent": "@wren/connectors",
+   "group": "@wren/connectors",
+   "attrs": {
+    "entries": [
+     "@wren/connectors"
+    ],
+    "file": "packages/connectors/src/connectors.ts",
+    "kind": "interface",
+    "sig": "interface AppView { app: ConnectorApp; label: string; reads: string; fires: string; state: ConnectorState; links: LinkView[]; }"
+   }
+  },
+  {
+   "id": "@wren/connectors#CONNECTORS_APPS",
+   "role": "export",
+   "parent": "@wren/connectors",
+   "group": "@wren/connectors",
+   "attrs": {
+    "entries": [
+     "@wren/connectors/console-routes"
+    ],
+    "file": "packages/connectors/src/console-routes.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly \"*\": \"account\"; }"
+   }
+  },
+  {
+   "id": "@wren/connectors#CONNECTORS_ROUTES",
+   "role": "export",
+   "parent": "@wren/connectors",
+   "group": "@wren/connectors",
+   "attrs": {
+    "entries": [
+     "@wren/connectors/console-routes"
+    ],
+    "file": "packages/connectors/src/console-routes.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly connectors: \"read\"; readonly connect: \"act\"; readonly syncNow: \"act\"; readonly disconnect: \"act\"; }"
+   }
+  },
+  {
+   "id": "@wren/connectors#CONNECTORS_WRITES",
+   "role": "export",
+   "parent": "@wren/connectors",
+   "group": "@wren/connectors",
+   "attrs": {
+    "entries": [
+     "@wren/connectors/console-routes"
+    ],
+    "file": "packages/connectors/src/console-routes.ts",
+    "kind": "const",
+    "sig": "readonly (keyof typeof CONNECTORS_ROUTES)[]"
+   }
+  },
+  {
+   "id": "@wren/connectors#CONNECTOR_APPS",
+   "role": "export",
+   "parent": "@wren/connectors",
+   "group": "@wren/connectors",
+   "attrs": {
+    "entries": [
+     "@wren/connectors",
+     "@wren/connectors/apps"
+    ],
+    "file": "packages/connectors/src/apps.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"hubspot\", \"quickbooks\", \"jobber\"]"
+   }
+  },
+  {
+   "id": "@wren/connectors#ConnectorAccess",
+   "role": "export",
+   "parent": "@wren/connectors",
+   "group": "@wren/connectors",
+   "attrs": {
+    "entries": [
+     "@wren/connectors"
+    ],
+    "file": "packages/connectors/src/connectors.ts",
+    "kind": "type",
+    "sig": "type ConnectorAccess = ReturnType<typeof connectorAccess>;"
+   }
+  },
+  {
+   "id": "@wren/connectors#ConnectorApp",
+   "role": "export",
+   "parent": "@wren/connectors",
+   "group": "@wren/connectors",
+   "attrs": {
+    "entries": [
+     "@wren/connectors",
+     "@wren/connectors/apps"
+    ],
+    "file": "packages/connectors/src/apps.ts",
+    "kind": "type",
+    "sig": "type ConnectorApp = (typeof CONNECTOR_APPS)[number];"
+   }
+  },
+  {
+   "id": "@wren/connectors#ConnectorLink",
+   "role": "export",
+   "parent": "@wren/connectors",
+   "group": "@wren/connectors",
+   "attrs": {
+    "entries": [
+     "@wren/connectors/schema"
+    ],
+    "file": "packages/connectors/src/schema.ts",
+    "kind": "type",
+    "sig": "type ConnectorLink = typeof connectorLinks.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/connectors#ConnectorsPageView",
+   "role": "export",
+   "parent": "@wren/connectors",
+   "group": "@wren/connectors",
+   "attrs": {
+    "entries": [
+     "@wren/connectors"
+    ],
+    "file": "packages/connectors/src/restate.ts",
+    "kind": "type",
+    "sig": "type ConnectorsPageView = Awaited< ReturnType<ReturnType<typeof connectorsConsoleApi>[\"connectors\"]> >;"
+   }
+  },
+  {
+   "id": "@wren/connectors#CrmLanding",
+   "role": "export",
+   "parent": "@wren/connectors",
+   "group": "@wren/connectors",
+   "attrs": {
+    "entries": [
+     "@wren/connectors"
+    ],
+    "file": "packages/connectors/src/sync.ts",
+    "kind": "interface",
+    "sig": "interface CrmLanding { land(db: Queryable, o: { format: ConnectorApp; ref: string; csv: Uint8Array }): Promise<void>; contacts( db: Queryable, format: ConnectorApp, ids: readonly string[], ): Promise<{ id: string; email: string | null; phone: string | null }[]>; }"
+   }
+  },
+  {
+   "id": "@wren/connectors#LINK_STATES",
+   "role": "export",
+   "parent": "@wren/connectors",
+   "group": "@wren/connectors",
+   "attrs": {
+    "entries": [
+     "@wren/connectors/schema"
+    ],
+    "file": "packages/connectors/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"connected\", \"broken\"]"
+   }
+  },
+  {
+   "id": "@wren/connectors#Landing",
+   "role": "export",
+   "parent": "@wren/connectors",
+   "group": "@wren/connectors",
+   "attrs": {
+    "entries": [
+     "@wren/connectors"
+    ],
+    "file": "packages/connectors/src/connectors.ts",
+    "kind": "interface",
+    "sig": "interface Landing { ok: boolean; said: string; link: number | null; }"
+   }
+  },
+  {
+   "id": "@wren/connectors#LinkCursor",
+   "role": "export",
+   "parent": "@wren/connectors",
+   "group": "@wren/connectors",
+   "attrs": {
+    "entries": [
+     "@wren/connectors/schema"
+    ],
+    "file": "packages/connectors/src/schema.ts",
+    "kind": "type",
+    "sig": "type LinkCursor = Record<string, string>;"
+   }
+  },
+  {
+   "id": "@wren/connectors#LinkExtra",
+   "role": "export",
+   "parent": "@wren/connectors",
+   "group": "@wren/connectors",
+   "attrs": {
+    "entries": [
+     "@wren/connectors/schema"
+    ],
+    "file": "packages/connectors/src/schema.ts",
+    "kind": "interface",
+    "sig": "interface LinkExtra { realm?: string; }"
+   }
+  },
+  {
+   "id": "@wren/connectors#LinkState",
+   "role": "export",
+   "parent": "@wren/connectors",
+   "group": "@wren/connectors",
+   "attrs": {
+    "entries": [
+     "@wren/connectors/schema"
+    ],
+    "file": "packages/connectors/src/schema.ts",
+    "kind": "type",
+    "sig": "type LinkState = (typeof LINK_STATES)[number];"
+   }
+  },
+  {
+   "id": "@wren/connectors#SYNC_EVERY_MS",
+   "role": "export",
+   "parent": "@wren/connectors",
+   "group": "@wren/connectors",
+   "attrs": {
+    "entries": [
+     "@wren/connectors"
+    ],
+    "file": "packages/connectors/src/restate.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "number"
+   }
+  },
+  {
+   "id": "@wren/connectors#SyncDeps",
+   "role": "export",
+   "parent": "@wren/connectors",
+   "group": "@wren/connectors",
+   "attrs": {
+    "entries": [
+     "@wren/connectors"
+    ],
+    "file": "packages/connectors/src/sync.ts",
+    "kind": "interface",
+    "sig": "interface SyncDeps { main: Db; clientDb: (client: string) => Queryable; crm: CrmLanding; access: ConnectorAccess; fetch: FetchLike; pullers?: Partial<Record<ConnectorApp, Puller>>; cap?: number; now?: () => Date; }"
+   }
+  },
+  {
+   "id": "@wren/connectors#WHO",
+   "role": "export",
+   "parent": "@wren/connectors",
+   "group": "@wren/connectors",
+   "attrs": {
+    "entries": [
+     "@wren/connectors"
+    ],
+    "file": "packages/connectors/src/connectors.ts",
+    "kind": "const",
+    "sig": "Record<ConnectorApp, WhoAmI>"
+   }
+  },
+  {
+   "id": "@wren/connectors#appKeyName",
+   "role": "export",
+   "parent": "@wren/connectors",
+   "group": "@wren/connectors",
+   "attrs": {
+    "entries": [
+     "@wren/connectors",
+     "@wren/connectors/apps"
+    ],
+    "file": "packages/connectors/src/apps.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(app: ConnectorApp, part: \"ID\" | \"SECRET\"): string"
+   }
+  },
+  {
+   "id": "@wren/connectors#connectorAccess",
+   "role": "export",
+   "parent": "@wren/connectors",
+   "group": "@wren/connectors",
+   "attrs": {
+    "entries": [
+     "@wren/connectors"
+    ],
+    "file": "packages/connectors/src/connectors.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(deps: ConnectorDeps): { link: (id: number) => Promise<{ id: number; client: string; app: \"hubspot\" | \"quickbooks\" | \"jobber\"; externalId: string; name: string | null; scopes: string; tokenRef: string; extra: LinkExtra; state: \"connected\" | \"broken\"; why: string | null; cursor: import(\"./schema.js\").LinkCursor; people: nu…"
+   }
+  },
+  {
+   "id": "@wren/connectors#connectorAppsFrom",
+   "role": "export",
+   "parent": "@wren/connectors",
+   "group": "@wren/connectors",
+   "attrs": {
+    "entries": [
+     "@wren/connectors"
+    ],
+    "file": "packages/connectors/src/connectors.ts",
+    "kind": "function",
+    "sig": "(keys: KeyStore | null, env: Record<string, string | undefined> = {}): () => Promise<ConnectorApps>"
+   }
+  },
+  {
+   "id": "@wren/connectors#connectorFired",
+   "role": "export",
+   "parent": "@wren/connectors",
+   "group": "@wren/connectors",
+   "attrs": {
+    "entries": [
+     "@wren/connectors/schema"
+    ],
+    "file": "packages/connectors/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"connector_fired\"; schema: undefined; columns: { linkId: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"link_id\"; tableName: \"connector_fired\"; dataType: \"number\"; columnType: \"PgInteger\"; data: number; driverParam: string | number; notNull: …"
+   }
+  },
+  {
+   "id": "@wren/connectors#connectorGrants",
+   "role": "export",
+   "parent": "@wren/connectors",
+   "group": "@wren/connectors",
+   "attrs": {
+    "entries": [
+     "@wren/connectors/schema"
+    ],
+    "file": "packages/connectors/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"connector_grants\"; schema: undefined; columns: { state: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"state\"; tableName: \"connector_grants\"; dataType: \"string\"; columnType: \"PgVarchar\"; data: string; driverParam: string; notNull: true; hasD…"
+   }
+  },
+  {
+   "id": "@wren/connectors#connectorLinks",
+   "role": "export",
+   "parent": "@wren/connectors",
+   "group": "@wren/connectors",
+   "attrs": {
+    "entries": [
+     "@wren/connectors/schema"
+    ],
+    "file": "packages/connectors/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"connector_links\"; schema: undefined; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"connector_links\"; dataType: \"number\"; columnType: \"PgSerial\"; data: number; driverParam: number; notNull: true; hasDefault: t…"
+   }
+  },
+  {
+   "id": "@wren/connectors#connectorsConsoleApi",
+   "role": "export",
+   "parent": "@wren/connectors",
+   "group": "@wren/connectors",
+   "attrs": {
+    "entries": [
+     "@wren/connectors"
+    ],
+    "file": "packages/connectors/src/restate.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(deps: ConnectorsDeps): { connectors(req: PortalRequest): Promise<{ owner: { id: null; name: string; }; wren: true; mayAct: boolean; } | { apps: import(\"./connectors.js\").AppView[]; ready: boolean; owner: { id: string; name: string; }; wren: false; mayAct: boolean; }>; connect(req: PortalRequest & { app: ConnectorApp; }): …"
+   }
+  },
+  {
+   "id": "@wren/connectors#makeConnectorCallback",
+   "role": "export",
+   "parent": "@wren/connectors",
+   "group": "@wren/connectors",
+   "attrs": {
+    "entries": [
+     "@wren/connectors"
+    ],
+    "file": "packages/connectors/src/restate.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(deps: ConnectorsDeps): restate.ServiceDefinition<\"ConnectorCallback\", { land: (ctx: restate.Context, q: z.infer<typeof CONNECTOR_LANDING>) => Promise<{ ok: boolean; said: string; }>; }>"
+   }
+  },
+  {
+   "id": "@wren/connectors#makeConnectorSync",
+   "role": "export",
+   "parent": "@wren/connectors",
+   "group": "@wren/connectors",
+   "attrs": {
+    "entries": [
+     "@wren/connectors"
+    ],
+    "file": "packages/connectors/src/restate.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(deps: ConnectorSyncDeps): restate.VirtualObjectDefinition<\"ConnectorSync\", { run: (ctx: restate.ObjectContext<restate.UntypedState>, input: { chain?: string; }) => Promise<{ state: string; people: number; fired: number; }>; }>"
+   }
+  },
+  {
+   "id": "@wren/connectors#makeConnectors",
+   "role": "export",
+   "parent": "@wren/connectors",
+   "group": "@wren/connectors",
+   "attrs": {
+    "entries": [
+     "@wren/connectors"
+    ],
+    "file": "packages/connectors/src/restate.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(deps: ConnectorsDeps): restate.ServiceDefinition<\"Connectors\", { connectors: (_: restate.Context, req: PortalRequest) => Promise<{ owner: { id: null; name: string; }; wren: true; mayAct: boolean; } | { apps: import(\"./connectors.js\").AppView[]; ready: boolean; owner: { id: string; name: string; }; wren: false; mayAct: boo…"
+   }
+  },
+  {
+   "id": "@wren/connectors#peopleCsv",
+   "role": "export",
+   "parent": "@wren/connectors",
+   "group": "@wren/connectors",
+   "attrs": {
+    "entries": [
+     "@wren/connectors"
+    ],
+    "file": "packages/connectors/src/sync.ts",
+    "kind": "function",
+    "sig": "(people: readonly PulledPerson[]): string"
+   }
+  },
+  {
+   "id": "@wren/connectors#syncLink",
+   "role": "export",
+   "parent": "@wren/connectors",
+   "group": "@wren/connectors",
+   "attrs": {
+    "entries": [
+     "@wren/connectors"
+    ],
+    "file": "packages/connectors/src/sync.ts",
+    "kind": "function",
+    "sig": "(deps: SyncDeps, id: number): Promise<SyncResult>"
+   }
+  }
+ ],
+ "edges": []
+}

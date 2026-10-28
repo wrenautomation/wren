@@ -1,0 +1,83 @@
+{
+ "layer": "imports",
+ "nodes": [
+  {
+   "id": "@wren/channel-linkedin",
+   "role": "package",
+   "parent": "repo:wren",
+   "group": "@wren/channel-linkedin",
+   "attrs": {
+    "dir": "packages/channel-linkedin/"
+   }
+  },
+  {
+   "id": "@wren/channel-linkedin/src/content.ts",
+   "role": "file",
+   "parent": "@wren/channel-linkedin",
+   "group": "@wren/channel-linkedin"
+  },
+  {
+   "id": "@wren/channel-linkedin/src/index.ts",
+   "role": "file",
+   "parent": "@wren/channel-linkedin",
+   "group": "@wren/channel-linkedin"
+  },
+  {
+   "id": "@wren/channel-linkedin/src/outreach.ts",
+   "role": "file",
+   "parent": "@wren/channel-linkedin",
+   "group": "@wren/channel-linkedin"
+  },
+  {
+   "id": "@wren/channel-linkedin/vitest.config.ts",
+   "role": "file",
+   "parent": "@wren/channel-linkedin",
+   "group": "@wren/channel-linkedin"
+  }
+ ],
+ "edges": [
+  {
+   "from": "@wren/channel-linkedin",
+   "to": "@wren/core",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-linkedin/src/content.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-linkedin/src/content.ts",
+   "to": "@wren/core/src/content/shapes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-linkedin/src/content.ts",
+   "to": "@wren/core/src/content/slides.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-linkedin/src/index.ts",
+   "to": "@wren/channel-linkedin/src/content.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-linkedin/src/index.ts",
+   "to": "@wren/channel-linkedin/src/outreach.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-linkedin/src/outreach.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-linkedin/src/outreach.ts",
+   "to": "@wren/core/src/outreach/index.ts",
+   "kind": "imports"
+  }
+ ]
+}

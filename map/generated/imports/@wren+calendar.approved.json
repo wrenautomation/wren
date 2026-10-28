@@ -1,0 +1,541 @@
+{
+ "layer": "imports",
+ "nodes": [
+  {
+   "id": "@wren/calendar",
+   "role": "package",
+   "parent": "repo:wren",
+   "group": "@wren/calendar",
+   "attrs": {
+    "dir": "packages/calendar/",
+    "npm": [
+     "node:crypto"
+    ]
+   }
+  },
+  {
+   "id": "@wren/calendar/src/book.ts",
+   "role": "file",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar"
+  },
+  {
+   "id": "@wren/calendar/src/components.ts",
+   "role": "file",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar"
+  },
+  {
+   "id": "@wren/calendar/src/console-routes.ts",
+   "role": "file",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar"
+  },
+  {
+   "id": "@wren/calendar/src/console.ts",
+   "role": "file",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar"
+  },
+  {
+   "id": "@wren/calendar/src/contact.ts",
+   "role": "file",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar"
+  },
+  {
+   "id": "@wren/calendar/src/google.ts",
+   "role": "file",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar"
+  },
+  {
+   "id": "@wren/calendar/src/index.ts",
+   "role": "file",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar"
+  },
+  {
+   "id": "@wren/calendar/src/links.ts",
+   "role": "file",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar"
+  },
+  {
+   "id": "@wren/calendar/src/mail.ts",
+   "role": "file",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar"
+  },
+  {
+   "id": "@wren/calendar/src/recorder.ts",
+   "role": "file",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar"
+  },
+  {
+   "id": "@wren/calendar/src/records.ts",
+   "role": "file",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar"
+  },
+  {
+   "id": "@wren/calendar/src/restate.ts",
+   "role": "file",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar"
+  },
+  {
+   "id": "@wren/calendar/src/rules.ts",
+   "role": "file",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar"
+  },
+  {
+   "id": "@wren/calendar/src/schema.ts",
+   "role": "file",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar"
+  },
+  {
+   "id": "@wren/calendar/src/setups.ts",
+   "role": "file",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar"
+  },
+  {
+   "id": "@wren/calendar/src/slots.ts",
+   "role": "file",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar"
+  },
+  {
+   "id": "@wren/calendar/src/sms.ts",
+   "role": "file",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar"
+  },
+  {
+   "id": "@wren/calendar/vitest.config.ts",
+   "role": "file",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar"
+  }
+ ],
+ "edges": [
+  {
+   "from": "@wren/calendar",
+   "to": "@wren/channel-email",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar",
+   "to": "@wren/channel-sms",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/calendar",
+   "to": "@wren/core",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar",
+   "to": "@wren/db",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar/src/book.ts",
+   "to": "@wren/calendar/src/rules.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/calendar/src/book.ts",
+   "to": "@wren/calendar/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar/src/book.ts",
+   "to": "@wren/calendar/src/slots.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar/src/book.ts",
+   "to": "@wren/channel-email/src/inbox/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar/src/book.ts",
+   "to": "@wren/channel-email/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar/src/book.ts",
+   "to": "@wren/core/src/calls.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/calendar/src/book.ts",
+   "to": "@wren/core/src/profiles-backfill.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar/src/book.ts",
+   "to": "@wren/core/src/profiles-link.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar/src/book.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar/src/components.ts",
+   "to": "@wren/calendar/src/rules.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar/src/components.ts",
+   "to": "@wren/core/src/components.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar/src/console-routes.ts",
+   "to": "@wren/core/src/access.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/calendar/src/console.ts",
+   "to": "@wren/calendar/src/book.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar/src/console.ts",
+   "to": "@wren/calendar/src/console-routes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar/src/console.ts",
+   "to": "@wren/calendar/src/recorder.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar/src/console.ts",
+   "to": "@wren/calendar/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar/src/console.ts",
+   "to": "@wren/calendar/src/restate.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar/src/console.ts",
+   "to": "@wren/calendar/src/rules.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar/src/console.ts",
+   "to": "@wren/calendar/src/slots.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar/src/console.ts",
+   "to": "@wren/channel-email/src/calls/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar/src/console.ts",
+   "to": "@wren/channel-email/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar/src/console.ts",
+   "to": "@wren/core/src/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar/src/console.ts",
+   "to": "@wren/core/src/calls.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/calendar/src/console.ts",
+   "to": "@wren/core/src/portal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar/src/console.ts",
+   "to": "@wren/core/src/records-serve.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar/src/console.ts",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar/src/console.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar/src/console.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar/src/google.ts",
+   "to": "@wren/calendar/src/slots.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/calendar/src/index.ts",
+   "to": "@wren/calendar/src/book.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar/src/index.ts",
+   "to": "@wren/calendar/src/google.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar/src/index.ts",
+   "to": "@wren/calendar/src/links.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar/src/index.ts",
+   "to": "@wren/calendar/src/mail.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar/src/index.ts",
+   "to": "@wren/calendar/src/rules.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar/src/index.ts",
+   "to": "@wren/calendar/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar/src/index.ts",
+   "to": "@wren/calendar/src/setups.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar/src/index.ts",
+   "to": "@wren/calendar/src/slots.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar/src/index.ts",
+   "to": "@wren/calendar/src/sms.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar/src/mail.ts",
+   "to": "@wren/calendar/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/calendar/src/mail.ts",
+   "to": "@wren/core/src/time.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar/src/recorder.ts",
+   "to": "@wren/core/src/portal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar/src/records.ts",
+   "to": "@wren/calendar/src/book.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar/src/records.ts",
+   "to": "@wren/channel-email/src/calls/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar/src/records.ts",
+   "to": "@wren/channel-email/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar/src/records.ts",
+   "to": "@wren/core/src/calls.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar/src/records.ts",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar/src/restate.ts",
+   "to": "@wren/calendar/src/book.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar/src/restate.ts",
+   "to": "@wren/calendar/src/contact.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar/src/restate.ts",
+   "to": "@wren/calendar/src/google.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar/src/restate.ts",
+   "to": "@wren/calendar/src/links.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar/src/restate.ts",
+   "to": "@wren/calendar/src/mail.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar/src/restate.ts",
+   "to": "@wren/calendar/src/rules.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar/src/restate.ts",
+   "to": "@wren/calendar/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar/src/restate.ts",
+   "to": "@wren/calendar/src/slots.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar/src/restate.ts",
+   "to": "@wren/channel-email/src/calls/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar/src/restate.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar/src/restate.ts",
+   "to": "@wren/core/src/executor.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar/src/restate.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar/src/restate.ts",
+   "to": "@wren/core/src/time.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar/src/restate.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/calendar/src/rules.ts",
+   "to": "@wren/calendar/src/contact.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar/src/rules.ts",
+   "to": "@wren/core/src/time.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar/src/schema.ts",
+   "to": "@wren/db/src/columns.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar/src/setups.ts",
+   "to": "@wren/calendar/src/google.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/calendar/src/setups.ts",
+   "to": "@wren/core/src/setup.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/calendar/src/slots.ts",
+   "to": "@wren/calendar/src/rules.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/calendar/src/slots.ts",
+   "to": "@wren/core/src/time.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar/src/sms.ts",
+   "to": "@wren/calendar/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/calendar/src/sms.ts",
+   "to": "@wren/channel-sms/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/calendar/src/sms.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/calendar/vitest.config.ts",
+   "to": "@wren/db/src/testing-vitest.ts",
+   "kind": "imports"
+  }
+ ]
+}

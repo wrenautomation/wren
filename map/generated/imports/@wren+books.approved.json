@@ -1,0 +1,818 @@
+{
+ "layer": "imports",
+ "nodes": [
+  {
+   "id": "@wren/books",
+   "role": "package",
+   "parent": "repo:wren",
+   "group": "@wren/books",
+   "attrs": {
+    "dir": "packages/books/",
+    "npm": [
+     "node:crypto",
+     "node:fs",
+     "node:path"
+    ]
+   }
+  },
+  {
+   "id": "@wren/books/src/alerts.ts",
+   "role": "file",
+   "parent": "@wren/books",
+   "group": "@wren/books"
+  },
+  {
+   "id": "@wren/books/src/bills.ts",
+   "role": "file",
+   "parent": "@wren/books",
+   "group": "@wren/books"
+  },
+  {
+   "id": "@wren/books/src/capture.ts",
+   "role": "file",
+   "parent": "@wren/books",
+   "group": "@wren/books"
+  },
+  {
+   "id": "@wren/books/src/card.ts",
+   "role": "file",
+   "parent": "@wren/books",
+   "group": "@wren/books"
+  },
+  {
+   "id": "@wren/books/src/chart.ts",
+   "role": "file",
+   "parent": "@wren/books",
+   "group": "@wren/books"
+  },
+  {
+   "id": "@wren/books/src/components.ts",
+   "role": "file",
+   "parent": "@wren/books",
+   "group": "@wren/books"
+  },
+  {
+   "id": "@wren/books/src/console-routes.ts",
+   "role": "file",
+   "parent": "@wren/books",
+   "group": "@wren/books"
+  },
+  {
+   "id": "@wren/books/src/console.ts",
+   "role": "file",
+   "parent": "@wren/books",
+   "group": "@wren/books"
+  },
+  {
+   "id": "@wren/books/src/daily.ts",
+   "role": "file",
+   "parent": "@wren/books",
+   "group": "@wren/books"
+  },
+  {
+   "id": "@wren/books/src/day.ts",
+   "role": "file",
+   "parent": "@wren/books",
+   "group": "@wren/books"
+  },
+  {
+   "id": "@wren/books/src/decrypts.ts",
+   "role": "file",
+   "parent": "@wren/books",
+   "group": "@wren/books"
+  },
+  {
+   "id": "@wren/books/src/economics.ts",
+   "role": "file",
+   "parent": "@wren/books",
+   "group": "@wren/books"
+  },
+  {
+   "id": "@wren/books/src/ground.ts",
+   "role": "file",
+   "parent": "@wren/books",
+   "group": "@wren/books"
+  },
+  {
+   "id": "@wren/books/src/index.ts",
+   "role": "file",
+   "parent": "@wren/books",
+   "group": "@wren/books"
+  },
+  {
+   "id": "@wren/books/src/mailbox.ts",
+   "role": "file",
+   "parent": "@wren/books",
+   "group": "@wren/books"
+  },
+  {
+   "id": "@wren/books/src/money.ts",
+   "role": "file",
+   "parent": "@wren/books",
+   "group": "@wren/books"
+  },
+  {
+   "id": "@wren/books/src/post.ts",
+   "role": "file",
+   "parent": "@wren/books",
+   "group": "@wren/books"
+  },
+  {
+   "id": "@wren/books/src/rates.ts",
+   "role": "file",
+   "parent": "@wren/books",
+   "group": "@wren/books"
+  },
+  {
+   "id": "@wren/books/src/read.ts",
+   "role": "file",
+   "parent": "@wren/books",
+   "group": "@wren/books"
+  },
+  {
+   "id": "@wren/books/src/records.ts",
+   "role": "file",
+   "parent": "@wren/books",
+   "group": "@wren/books"
+  },
+  {
+   "id": "@wren/books/src/report.ts",
+   "role": "file",
+   "parent": "@wren/books",
+   "group": "@wren/books"
+  },
+  {
+   "id": "@wren/books/src/restate.ts",
+   "role": "file",
+   "parent": "@wren/books",
+   "group": "@wren/books"
+  },
+  {
+   "id": "@wren/books/src/schema.ts",
+   "role": "file",
+   "parent": "@wren/books",
+   "group": "@wren/books"
+  },
+  {
+   "id": "@wren/books/src/store.ts",
+   "role": "file",
+   "parent": "@wren/books",
+   "group": "@wren/books"
+  },
+  {
+   "id": "@wren/books/src/text.ts",
+   "role": "file",
+   "parent": "@wren/books",
+   "group": "@wren/books"
+  },
+  {
+   "id": "@wren/books/src/usage-lines.ts",
+   "role": "file",
+   "parent": "@wren/books",
+   "group": "@wren/books"
+  },
+  {
+   "id": "@wren/books/src/usage.ts",
+   "role": "file",
+   "parent": "@wren/books",
+   "group": "@wren/books"
+  },
+  {
+   "id": "@wren/books/vitest.config.ts",
+   "role": "file",
+   "parent": "@wren/books",
+   "group": "@wren/books"
+  }
+ ],
+ "edges": [
+  {
+   "from": "@wren/books",
+   "to": "@wren/core",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books",
+   "to": "@wren/db",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books",
+   "to": "@wren/llm",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/alerts.ts",
+   "to": "@wren/books/src/day.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/alerts.ts",
+   "to": "@wren/books/src/money.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/alerts.ts",
+   "to": "@wren/books/src/report.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/alerts.ts",
+   "to": "@wren/books/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/alerts.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/books/src/bills.ts",
+   "to": "@wren/books/src/chart.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/bills.ts",
+   "to": "@wren/books/src/mailbox.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/bills.ts",
+   "to": "@wren/core/src/executor.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/books/src/capture.ts",
+   "to": "@wren/books/src/chart.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/capture.ts",
+   "to": "@wren/books/src/day.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/capture.ts",
+   "to": "@wren/books/src/mailbox.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/capture.ts",
+   "to": "@wren/books/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/capture.ts",
+   "to": "@wren/books/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/capture.ts",
+   "to": "@wren/books/src/text.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/capture.ts",
+   "to": "@wren/core/src/mail.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/capture.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/card.ts",
+   "to": "@wren/books/src/chart.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/card.ts",
+   "to": "@wren/books/src/day.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/card.ts",
+   "to": "@wren/books/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/card.ts",
+   "to": "@wren/books/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/card.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/card.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/chart.ts",
+   "to": "@wren/books/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/chart.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/books/src/chart.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/books/src/components.ts",
+   "to": "@wren/core/src/components.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/console-routes.ts",
+   "to": "@wren/core/src/access.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/books/src/console.ts",
+   "to": "@wren/books/src/console-routes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/console.ts",
+   "to": "@wren/books/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/console.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/console.ts",
+   "to": "@wren/core/src/portal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/console.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/console.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/daily.ts",
+   "to": "@wren/books/src/alerts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/daily.ts",
+   "to": "@wren/books/src/capture.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/daily.ts",
+   "to": "@wren/books/src/card.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/daily.ts",
+   "to": "@wren/books/src/chart.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/daily.ts",
+   "to": "@wren/books/src/day.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/daily.ts",
+   "to": "@wren/books/src/decrypts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/daily.ts",
+   "to": "@wren/books/src/mailbox.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/books/src/daily.ts",
+   "to": "@wren/books/src/post.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/daily.ts",
+   "to": "@wren/books/src/rates.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/books/src/daily.ts",
+   "to": "@wren/books/src/read.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/daily.ts",
+   "to": "@wren/books/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/books/src/daily.ts",
+   "to": "@wren/books/src/store.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/books/src/daily.ts",
+   "to": "@wren/books/src/usage-lines.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/daily.ts",
+   "to": "@wren/books/src/usage.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/daily.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/daily.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/books/src/daily.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/books/src/economics.ts",
+   "to": "@wren/books/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/ground.ts",
+   "to": "@wren/books/src/money.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/ground.ts",
+   "to": "@wren/books/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/books/src/index.ts",
+   "to": "@wren/books/src/alerts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/index.ts",
+   "to": "@wren/books/src/bills.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/index.ts",
+   "to": "@wren/books/src/capture.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/index.ts",
+   "to": "@wren/books/src/card.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/index.ts",
+   "to": "@wren/books/src/chart.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/index.ts",
+   "to": "@wren/books/src/daily.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/index.ts",
+   "to": "@wren/books/src/day.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/index.ts",
+   "to": "@wren/books/src/decrypts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/index.ts",
+   "to": "@wren/books/src/economics.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/index.ts",
+   "to": "@wren/books/src/ground.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/index.ts",
+   "to": "@wren/books/src/mailbox.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/index.ts",
+   "to": "@wren/books/src/money.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/index.ts",
+   "to": "@wren/books/src/post.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/index.ts",
+   "to": "@wren/books/src/rates.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/index.ts",
+   "to": "@wren/books/src/read.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/index.ts",
+   "to": "@wren/books/src/report.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/index.ts",
+   "to": "@wren/books/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/index.ts",
+   "to": "@wren/books/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/index.ts",
+   "to": "@wren/books/src/text.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/index.ts",
+   "to": "@wren/books/src/usage-lines.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/index.ts",
+   "to": "@wren/books/src/usage.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/mailbox.ts",
+   "to": "@wren/books/src/chart.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/books/src/mailbox.ts",
+   "to": "@wren/core/src/mailbox.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/post.ts",
+   "to": "@wren/books/src/chart.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/post.ts",
+   "to": "@wren/books/src/money.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/post.ts",
+   "to": "@wren/books/src/rates.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/post.ts",
+   "to": "@wren/books/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/post.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/rates.ts",
+   "to": "@wren/books/src/day.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/rates.ts",
+   "to": "@wren/books/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/rates.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/books/src/read.ts",
+   "to": "@wren/books/src/chart.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/read.ts",
+   "to": "@wren/books/src/ground.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/read.ts",
+   "to": "@wren/books/src/money.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/read.ts",
+   "to": "@wren/books/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/read.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/read.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/records.ts",
+   "to": "@wren/books/src/economics.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/records.ts",
+   "to": "@wren/core/src/in-house.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/records.ts",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/report.ts",
+   "to": "@wren/books/src/day.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/report.ts",
+   "to": "@wren/books/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/report.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/books/src/restate.ts",
+   "to": "@wren/books/src/console.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/restate.ts",
+   "to": "@wren/books/src/daily.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/restate.ts",
+   "to": "@wren/core/src/notify.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/books/src/restate.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/schema.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/schema.ts",
+   "to": "@wren/core/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/schema.ts",
+   "to": "@wren/db/src/columns.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/text.ts",
+   "to": "@wren/core/src/mail.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/books/src/usage-lines.ts",
+   "to": "@wren/books/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/usage-lines.ts",
+   "to": "@wren/core/src/vendor-schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/usage-lines.ts",
+   "to": "@wren/core/src/vendors.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/usage-lines.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/usage.ts",
+   "to": "@wren/books/src/day.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/usage.ts",
+   "to": "@wren/books/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/books/src/usage.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/books/vitest.config.ts",
+   "to": "@wren/db/src/testing-vitest.ts",
+   "kind": "imports"
+  }
+ ]
+}

@@ -1,0 +1,131 @@
+{
+ "layer": "imports",
+ "nodes": [
+  {
+   "id": "@wren/video",
+   "role": "package",
+   "parent": "repo:wren",
+   "group": "@wren/video",
+   "attrs": {
+    "dir": "packages/video/",
+    "npm": [
+     "node:child_process",
+     "node:crypto",
+     "node:fs",
+     "node:path"
+    ]
+   }
+  },
+  {
+   "id": "@wren/video/src/capture.ts",
+   "role": "file",
+   "parent": "@wren/video",
+   "group": "@wren/video"
+  },
+  {
+   "id": "@wren/video/src/encode.ts",
+   "role": "file",
+   "parent": "@wren/video",
+   "group": "@wren/video"
+  },
+  {
+   "id": "@wren/video/src/index.ts",
+   "role": "file",
+   "parent": "@wren/video",
+   "group": "@wren/video"
+  },
+  {
+   "id": "@wren/video/src/overlay.ts",
+   "role": "file",
+   "parent": "@wren/video",
+   "group": "@wren/video"
+  },
+  {
+   "id": "@wren/video/src/publish.ts",
+   "role": "file",
+   "parent": "@wren/video",
+   "group": "@wren/video"
+  },
+  {
+   "id": "@wren/video/src/recorder.ts",
+   "role": "file",
+   "parent": "@wren/video",
+   "group": "@wren/video"
+  },
+  {
+   "id": "@wren/video/src/timeline.ts",
+   "role": "file",
+   "parent": "@wren/video",
+   "group": "@wren/video"
+  },
+  {
+   "id": "@wren/video/vitest.config.ts",
+   "role": "file",
+   "parent": "@wren/video",
+   "group": "@wren/video"
+  }
+ ],
+ "edges": [
+  {
+   "from": "@wren/video",
+   "to": "@wren/db",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/video/src/encode.ts",
+   "to": "@wren/video/src/timeline.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/video/src/index.ts",
+   "to": "@wren/video/src/capture.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/video/src/index.ts",
+   "to": "@wren/video/src/encode.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/video/src/index.ts",
+   "to": "@wren/video/src/overlay.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/video/src/index.ts",
+   "to": "@wren/video/src/recorder.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/video/src/index.ts",
+   "to": "@wren/video/src/timeline.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/video/src/publish.ts",
+   "to": "@wren/video/src/encode.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/video/src/recorder.ts",
+   "to": "@wren/video/src/overlay.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/video/src/recorder.ts",
+   "to": "@wren/video/src/timeline.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/video/vitest.config.ts",
+   "to": "@wren/db/src/testing-vitest.ts",
+   "kind": "imports"
+  }
+ ]
+}

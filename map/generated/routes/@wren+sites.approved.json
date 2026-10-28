@@ -1,0 +1,71 @@
+{
+ "layer": "routes",
+ "nodes": [
+  {
+   "id": "route:Sites/form",
+   "role": "route",
+   "parent": "service:Sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "input": "FormRequest",
+    "output": "Answer",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Sites/hop",
+   "role": "route",
+   "parent": "service:Sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "input": "Parameters<typeof api.hop>[0]",
+    "output": "{ kept: boolean; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Sites/serve",
+   "role": "route",
+   "parent": "service:Sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "input": "Parameters<typeof api.serve>[0]",
+    "output": "Served",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Sites/serveForm",
+   "role": "route",
+   "parent": "service:Sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "input": "Parameters<typeof api.serveForm>[0]",
+    "output": "Served",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Sites/track",
+   "role": "route",
+   "parent": "service:Sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "input": "Parameters<typeof api.track>[0]",
+    "output": "{ kept: boolean; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "service:Sites",
+   "role": "service",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "file": "packages/sites/src/service.ts",
+    "kind": "service"
+   }
+  }
+ ],
+ "edges": []
+}

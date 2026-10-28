@@ -1,0 +1,143 @@
+{
+ "layer": "imports",
+ "nodes": [
+  {
+   "id": "@wren/offers",
+   "role": "package",
+   "parent": "repo:wren",
+   "group": "@wren/offers",
+   "attrs": {
+    "dir": "packages/offers/",
+    "npm": [
+     "node:fs",
+     "node:path"
+    ]
+   }
+  },
+  {
+   "id": "@wren/offers/src/catalog/growth-partner.ts",
+   "role": "file",
+   "parent": "@wren/offers",
+   "group": "@wren/offers"
+  },
+  {
+   "id": "@wren/offers/src/catalog/operations.ts",
+   "role": "file",
+   "parent": "@wren/offers",
+   "group": "@wren/offers"
+  },
+  {
+   "id": "@wren/offers/src/catalog/recruiting.ts",
+   "role": "file",
+   "parent": "@wren/offers",
+   "group": "@wren/offers"
+  },
+  {
+   "id": "@wren/offers/src/export-cli.ts",
+   "role": "file",
+   "parent": "@wren/offers",
+   "group": "@wren/offers"
+  },
+  {
+   "id": "@wren/offers/src/index.ts",
+   "role": "file",
+   "parent": "@wren/offers",
+   "group": "@wren/offers"
+  },
+  {
+   "id": "@wren/offers/src/offer.ts",
+   "role": "file",
+   "parent": "@wren/offers",
+   "group": "@wren/offers"
+  },
+  {
+   "id": "@wren/offers/src/snapshot.ts",
+   "role": "file",
+   "parent": "@wren/offers",
+   "group": "@wren/offers"
+  },
+  {
+   "id": "@wren/offers/src/terms.ts",
+   "role": "file",
+   "parent": "@wren/offers",
+   "group": "@wren/offers"
+  },
+  {
+   "id": "@wren/offers/vitest.config.ts",
+   "role": "file",
+   "parent": "@wren/offers",
+   "group": "@wren/offers"
+  }
+ ],
+ "edges": [
+  {
+   "from": "@wren/offers/src/catalog/growth-partner.ts",
+   "to": "@wren/offers/src/offer.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/offers/src/catalog/operations.ts",
+   "to": "@wren/offers/src/offer.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/offers/src/catalog/recruiting.ts",
+   "to": "@wren/offers/src/offer.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/offers/src/export-cli.ts",
+   "to": "@wren/offers/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/offers/src/export-cli.ts",
+   "to": "@wren/offers/src/snapshot.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/offers/src/index.ts",
+   "to": "@wren/offers/src/catalog/growth-partner.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/offers/src/index.ts",
+   "to": "@wren/offers/src/catalog/operations.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/offers/src/index.ts",
+   "to": "@wren/offers/src/catalog/recruiting.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/offers/src/index.ts",
+   "to": "@wren/offers/src/offer.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/offers/src/index.ts",
+   "to": "@wren/offers/src/snapshot.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/offers/src/index.ts",
+   "to": "@wren/offers/src/terms.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/offers/src/snapshot.ts",
+   "to": "@wren/offers/src/offer.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  }
+ ]
+}

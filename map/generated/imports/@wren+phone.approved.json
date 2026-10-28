@@ -1,0 +1,90 @@
+{
+ "layer": "imports",
+ "nodes": [
+  {
+   "id": "@wren/phone",
+   "role": "package",
+   "parent": "repo:wren",
+   "group": "@wren/phone",
+   "attrs": {
+    "dir": "apps/phone/"
+   }
+  },
+  {
+   "id": "@wren/phone/public/app.js",
+   "role": "file",
+   "parent": "@wren/phone",
+   "group": "@wren/phone"
+  },
+  {
+   "id": "@wren/phone/public/c.js",
+   "role": "file",
+   "parent": "@wren/phone",
+   "group": "@wren/phone"
+  },
+  {
+   "id": "@wren/phone/public/sw.js",
+   "role": "file",
+   "parent": "@wren/phone",
+   "group": "@wren/phone"
+  },
+  {
+   "id": "@wren/phone/public/u.js",
+   "role": "file",
+   "parent": "@wren/phone",
+   "group": "@wren/phone"
+  },
+  {
+   "id": "@wren/phone/src/env.ts",
+   "role": "file",
+   "parent": "@wren/phone",
+   "group": "@wren/phone"
+  },
+  {
+   "id": "@wren/phone/src/worker.ts",
+   "role": "file",
+   "parent": "@wren/phone",
+   "group": "@wren/phone"
+  }
+ ],
+ "edges": [
+  {
+   "from": "@wren/phone",
+   "to": "@wren/auth",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/phone",
+   "to": "@wren/channel-sms",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/phone",
+   "to": "@wren/core",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/phone/src/worker.ts",
+   "to": "@wren/auth/src/verify.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/phone/src/worker.ts",
+   "to": "@wren/channel-sms/src/webhook.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/phone/src/worker.ts",
+   "to": "@wren/core/src/http.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/phone/src/worker.ts",
+   "to": "@wren/phone/src/env.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  }
+ ]
+}

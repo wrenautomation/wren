@@ -1,0 +1,817 @@
+{
+ "layer": "api",
+ "nodes": [
+  {
+   "id": "@wren/db#AUDIT_SKIPPED",
+   "role": "export",
+   "parent": "@wren/db",
+   "group": "@wren/db",
+   "attrs": {
+    "entries": [
+     "@wren/db"
+    ],
+    "file": "packages/db/src/audit/index.ts",
+    "kind": "const",
+    "sig": "Readonly<Record<string, string>>"
+   }
+  },
+  {
+   "id": "@wren/db#AUDIT_SKIPPED_SCHEMAS",
+   "role": "export",
+   "parent": "@wren/db",
+   "group": "@wren/db",
+   "attrs": {
+    "entries": [
+     "@wren/db"
+    ],
+    "file": "packages/db/src/audit/index.ts",
+    "kind": "const",
+    "sig": "Readonly<Record<string, string>>"
+   }
+  },
+  {
+   "id": "@wren/db#AUDIT_TABLES",
+   "role": "export",
+   "parent": "@wren/db",
+   "group": "@wren/db",
+   "attrs": {
+    "entries": [
+     "@wren/db"
+    ],
+    "file": "packages/db/src/audit/index.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"audit_events\", \"audit_seals\", \"audit_eras\"]"
+   }
+  },
+  {
+   "id": "@wren/db#AuditCheck",
+   "role": "export",
+   "parent": "@wren/db",
+   "group": "@wren/db",
+   "attrs": {
+    "entries": [
+     "@wren/db"
+    ],
+    "file": "packages/db/src/audit/index.ts",
+    "kind": "interface",
+    "sig": "interface AuditCheck { seals: number; sealed: number; unsealed: number; broken: { seal: number; problem: string } | null; lastHash: string | null; }"
+   }
+  },
+  {
+   "id": "@wren/db#AuditEvent",
+   "role": "export",
+   "parent": "@wren/db",
+   "group": "@wren/db",
+   "attrs": {
+    "entries": [
+     "@wren/db"
+    ],
+    "file": "packages/db/src/audit/schema.ts",
+    "kind": "type",
+    "sig": "type AuditEvent = typeof auditEvents.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/db#AuditSealRow",
+   "role": "export",
+   "parent": "@wren/db",
+   "group": "@wren/db",
+   "attrs": {
+    "entries": [
+     "@wren/db"
+    ],
+    "file": "packages/db/src/audit/schema.ts",
+    "kind": "type",
+    "sig": "type AuditSealRow = typeof auditSeals.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/db#CLIENT_ID",
+   "role": "export",
+   "parent": "@wren/db",
+   "group": "@wren/db",
+   "attrs": {
+    "entries": [
+     "@wren/db"
+    ],
+    "file": "packages/db/src/clients.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "RegExp"
+   }
+  },
+  {
+   "id": "@wren/db#Db",
+   "role": "export",
+   "parent": "@wren/db",
+   "group": "@wren/db",
+   "attrs": {
+    "entries": [
+     "@wren/db"
+    ],
+    "file": "packages/db/src/index.ts",
+    "kind": "type",
+    "sig": "type Db = ReturnType<typeof drizzle>;"
+   }
+  },
+  {
+   "id": "@wren/db#DbHandle",
+   "role": "export",
+   "parent": "@wren/db",
+   "group": "@wren/db",
+   "attrs": {
+    "entries": [
+     "@wren/db"
+    ],
+    "file": "packages/db/src/index.ts",
+    "kind": "interface",
+    "sig": "interface DbHandle { db: Db; close(): Promise<void>; }"
+   }
+  },
+  {
+   "id": "@wren/db#Listening",
+   "role": "export",
+   "parent": "@wren/db",
+   "group": "@wren/db",
+   "attrs": {
+    "entries": [
+     "@wren/db"
+    ],
+    "file": "packages/db/src/listen.ts",
+    "kind": "interface",
+    "sig": "interface Listening { close(): Promise<void>; }"
+   }
+  },
+  {
+   "id": "@wren/db#Queryable",
+   "role": "export",
+   "parent": "@wren/db",
+   "group": "@wren/db",
+   "attrs": {
+    "entries": [
+     "@wren/db"
+    ],
+    "file": "packages/db/src/index.ts",
+    "kind": "type",
+    "sig": "type Queryable = Db | Tx;"
+   }
+  },
+  {
+   "id": "@wren/db#TEMPLATE_DATABASE",
+   "role": "export",
+   "parent": "@wren/db",
+   "group": "@wren/db",
+   "attrs": {
+    "entries": [
+     "@wren/db/testing"
+    ],
+    "file": "packages/db/src/testing.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"wren_template\""
+   }
+  },
+  {
+   "id": "@wren/db#TestPostgres",
+   "role": "export",
+   "parent": "@wren/db",
+   "group": "@wren/db",
+   "attrs": {
+    "entries": [
+     "@wren/db/testing"
+    ],
+    "file": "packages/db/src/testing.ts",
+    "kind": "interface",
+    "sig": "interface TestPostgres extends DbHandle { url: string; stop(): Promise<void>; }"
+   }
+  },
+  {
+   "id": "@wren/db#Tx",
+   "role": "export",
+   "parent": "@wren/db",
+   "group": "@wren/db",
+   "attrs": {
+    "entries": [
+     "@wren/db"
+    ],
+    "file": "packages/db/src/index.ts",
+    "kind": "type",
+    "sig": "type Tx = Parameters<Parameters<Db[\"transaction\"]>[0]>[0];"
+   }
+  },
+  {
+   "id": "@wren/db#actingAs",
+   "role": "export",
+   "parent": "@wren/db",
+   "group": "@wren/db",
+   "attrs": {
+    "entries": [
+     "@wren/db"
+    ],
+    "file": "packages/db/src/audit/acting.ts",
+    "kind": "function",
+    "sig": "(who: Acting, fn: () => T): T"
+   }
+  },
+  {
+   "id": "@wren/db#actingNow",
+   "role": "export",
+   "parent": "@wren/db",
+   "group": "@wren/db",
+   "attrs": {
+    "entries": [
+     "@wren/db"
+    ],
+    "file": "packages/db/src/audit/acting.ts",
+    "kind": "function",
+    "sig": "(): Acting | null"
+   }
+  },
+  {
+   "id": "@wren/db#atomic",
+   "role": "export",
+   "parent": "@wren/db",
+   "group": "@wren/db",
+   "attrs": {
+    "entries": [
+     "@wren/db",
+     "@wren/db/isolation"
+    ],
+    "file": "packages/db/src/isolation.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, fn: (tx: Tx) => Promise<T>): Promise<T>"
+   }
+  },
+  {
+   "id": "@wren/db#auditEras",
+   "role": "export",
+   "parent": "@wren/db",
+   "group": "@wren/db",
+   "attrs": {
+    "entries": [
+     "@wren/db"
+    ],
+    "file": "packages/db/src/audit/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"audit_eras\"; schema: undefined; columns: { era: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"era\"; tableName: \"audit_eras\"; dataType: \"number\"; columnType: \"PgInteger\"; data: number; driverParam: string | number; notNull: true; hasDefault:…"
+   }
+  },
+  {
+   "id": "@wren/db#auditEvents",
+   "role": "export",
+   "parent": "@wren/db",
+   "group": "@wren/db",
+   "attrs": {
+    "entries": [
+     "@wren/db"
+    ],
+    "file": "packages/db/src/audit/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"audit_events\"; schema: undefined; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"audit_events\"; dataType: \"number\"; columnType: \"PgBigInt53\"; data: number; driverParam: string | number; notNull: true; hasDefau…"
+   }
+  },
+  {
+   "id": "@wren/db#auditName",
+   "role": "export",
+   "parent": "@wren/db",
+   "group": "@wren/db",
+   "attrs": {
+    "entries": [
+     "@wren/db"
+    ],
+    "file": "packages/db/src/audit/index.ts",
+    "kind": "function",
+    "sig": "(schema: string, table: string): string"
+   }
+  },
+  {
+   "id": "@wren/db#auditSeals",
+   "role": "export",
+   "parent": "@wren/db",
+   "group": "@wren/db",
+   "attrs": {
+    "entries": [
+     "@wren/db"
+    ],
+    "file": "packages/db/src/audit/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"audit_seals\"; schema: undefined; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"audit_seals\"; dataType: \"number\"; columnType: \"PgInteger\"; data: number; driverParam: string | number; notNull: true; hasDefault:…"
+   }
+  },
+  {
+   "id": "@wren/db#baseColumns",
+   "role": "export",
+   "parent": "@wren/db",
+   "group": "@wren/db",
+   "attrs": {
+    "entries": [
+     "@wren/db/columns"
+    ],
+    "file": "packages/db/src/columns.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ id: import(\"drizzle-orm\").NotNull<import(\"drizzle-orm\").HasDefault<import(\"drizzle-orm/pg-core\").PgUUIDBuilderInitial<\"id\">>>; createdAt: import(\"drizzle-orm\").HasDefault<import(\"drizzle-orm\").NotNull<import(\"drizzle-orm/pg-core\").PgTimestampBuilderInitial<\"created_at\">>>; }"
+   }
+  },
+  {
+   "id": "@wren/db#cachedDb",
+   "role": "export",
+   "parent": "@wren/db",
+   "group": "@wren/db",
+   "attrs": {
+    "entries": [
+     "@wren/db"
+    ],
+    "file": "packages/db/src/index.ts",
+    "kind": "function",
+    "sig": "(databaseUrl: string, opts: Pick<DbOptions, \"app\"> = {}): Db"
+   }
+  },
+  {
+   "id": "@wren/db#clientAdminUrl",
+   "role": "export",
+   "parent": "@wren/db",
+   "group": "@wren/db",
+   "attrs": {
+    "entries": [
+     "@wren/db"
+    ],
+    "file": "packages/db/src/clients.ts",
+    "kind": "function",
+    "sig": "(mainUrl: string, database: string): string"
+   }
+  },
+  {
+   "id": "@wren/db#clientDatabaseName",
+   "role": "export",
+   "parent": "@wren/db",
+   "group": "@wren/db",
+   "attrs": {
+    "entries": [
+     "@wren/db"
+    ],
+    "file": "packages/db/src/clients.ts",
+    "kind": "function",
+    "sig": "(id: string): string"
+   }
+  },
+  {
+   "id": "@wren/db#clientDatabaseUrl",
+   "role": "export",
+   "parent": "@wren/db",
+   "group": "@wren/db",
+   "attrs": {
+    "entries": [
+     "@wren/db"
+    ],
+    "file": "packages/db/src/clients.ts",
+    "kind": "function",
+    "sig": "(mainUrl: string, database: string): string"
+   }
+  },
+  {
+   "id": "@wren/db#clientDatabases",
+   "role": "export",
+   "parent": "@wren/db",
+   "group": "@wren/db",
+   "attrs": {
+    "entries": [
+     "@wren/db"
+    ],
+    "file": "packages/db/src/clients.ts",
+    "kind": "function",
+    "sig": "(main: Db): Promise<string[]>"
+   }
+  },
+  {
+   "id": "@wren/db#clientLoginPassword",
+   "role": "export",
+   "parent": "@wren/db",
+   "group": "@wren/db",
+   "attrs": {
+    "entries": [
+     "@wren/db"
+    ],
+    "file": "packages/db/src/clients.ts",
+    "kind": "function",
+    "sig": "(mainUrl: string, database: string): string"
+   }
+  },
+  {
+   "id": "@wren/db#commentObjects",
+   "role": "export",
+   "parent": "@wren/db",
+   "group": "@wren/db",
+   "attrs": {
+    "entries": [
+     "@wren/db/testing"
+    ],
+    "file": "packages/db/src/testing.ts",
+    "kind": "function",
+    "sig": "(rows: ReadonlyArray<{ platform: string; ref: string; post: string; parent?: string | null | undefined; answerRef?: string | null | undefined; }>): SeedObject[]"
+   }
+  },
+  {
+   "id": "@wren/db#createDatabase",
+   "role": "export",
+   "parent": "@wren/db",
+   "group": "@wren/db",
+   "attrs": {
+    "entries": [
+     "@wren/db"
+    ],
+    "file": "packages/db/src/clients.ts",
+    "kind": "function",
+    "sig": "(main: Db, database: string): Promise<boolean>"
+   }
+  },
+  {
+   "id": "@wren/db#createDb",
+   "role": "export",
+   "parent": "@wren/db",
+   "group": "@wren/db",
+   "attrs": {
+    "entries": [
+     "@wren/db"
+    ],
+    "file": "packages/db/src/index.ts",
+    "kind": "function",
+    "sig": "(databaseUrl: string, opts: DbOptions = {}): DbHandle"
+   }
+  },
+  {
+   "id": "@wren/db#default",
+   "role": "export",
+   "parent": "@wren/db",
+   "group": "@wren/db",
+   "attrs": {
+    "entries": [
+     "@wren/db/testing/global-setup"
+    ],
+    "file": "packages/db/src/testing-global-setup.ts",
+    "kind": "function",
+    "sig": "(project: TestProject): Promise<(() => Promise<void>) | void>"
+   }
+  },
+  {
+   "id": "@wren/db#dropDatabase",
+   "role": "export",
+   "parent": "@wren/db",
+   "group": "@wren/db",
+   "attrs": {
+    "entries": [
+     "@wren/db"
+    ],
+    "file": "packages/db/src/clients.ts",
+    "kind": "function",
+    "sig": "(main: Db, database: string): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/db#formatAuditEvent",
+   "role": "export",
+   "parent": "@wren/db",
+   "group": "@wren/db",
+   "attrs": {
+    "entries": [
+     "@wren/db"
+    ],
+    "file": "packages/db/src/audit/index.ts",
+    "kind": "function",
+    "sig": "(e: AuditEvent, values = false): string"
+   }
+  },
+  {
+   "id": "@wren/db#installAudit",
+   "role": "export",
+   "parent": "@wren/db",
+   "group": "@wren/db",
+   "attrs": {
+    "entries": [
+     "@wren/db"
+    ],
+    "file": "packages/db/src/audit/index.ts",
+    "kind": "function",
+    "sig": "(db: Db): Promise<{ added: number; removed: number }>"
+   }
+  },
+  {
+   "id": "@wren/db#listen",
+   "role": "export",
+   "parent": "@wren/db",
+   "group": "@wren/db",
+   "attrs": {
+    "entries": [
+     "@wren/db"
+    ],
+    "file": "packages/db/src/listen.ts",
+    "kind": "function",
+    "sig": "(databaseUrl: string, channel: string, onPayload: (payload: string) => void, opts: { app?: string } = {}): Promise<Listening>"
+   }
+  },
+  {
+   "id": "@wren/db#migrate",
+   "role": "export",
+   "parent": "@wren/db",
+   "group": "@wren/db",
+   "attrs": {
+    "entries": [
+     "@wren/db"
+    ],
+    "file": "packages/db/src/index.ts",
+    "kind": "function",
+    "sig": "(db: Db): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/db#migrateClient",
+   "role": "export",
+   "parent": "@wren/db",
+   "group": "@wren/db",
+   "attrs": {
+    "entries": [
+     "@wren/db"
+    ],
+    "file": "packages/db/src/clients.ts",
+    "kind": "function",
+    "sig": "(mainUrl: string, database: string): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/db#migrateClients",
+   "role": "export",
+   "parent": "@wren/db",
+   "group": "@wren/db",
+   "attrs": {
+    "entries": [
+     "@wren/db"
+    ],
+    "file": "packages/db/src/clients.ts",
+    "kind": "function",
+    "sig": "(mainUrl: string, databases: string[], done?: (database: string) => void): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/db#migrateTemplate",
+   "role": "export",
+   "parent": "@wren/db",
+   "group": "@wren/db",
+   "attrs": {
+    "entries": [
+     "@wren/db/testing"
+    ],
+    "file": "packages/db/src/testing.ts",
+    "kind": "function",
+    "sig": "(adminUrl: string): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/db#nonNegative",
+   "role": "export",
+   "parent": "@wren/db",
+   "group": "@wren/db",
+   "attrs": {
+    "entries": [
+     "@wren/db/columns"
+    ],
+    "file": "packages/db/src/columns.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(table: string, cols: Record<string, { name: string }>): import(\"drizzle-orm/pg-core\").CheckBuilder[]"
+   }
+  },
+  {
+   "id": "@wren/db#oneOf",
+   "role": "export",
+   "parent": "@wren/db",
+   "group": "@wren/db",
+   "attrs": {
+    "entries": [
+     "@wren/db/columns"
+    ],
+    "file": "packages/db/src/columns.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(name: string, col: { name: string }, values: readonly string[]): import(\"drizzle-orm/pg-core\").CheckBuilder"
+   }
+  },
+  {
+   "id": "@wren/db#pgSafe",
+   "role": "export",
+   "parent": "@wren/db",
+   "group": "@wren/db",
+   "attrs": {
+    "entries": [
+     "@wren/db/columns"
+    ],
+    "file": "packages/db/src/columns.ts",
+    "kind": "function",
+    "sig": "(v: T): T"
+   }
+  },
+  {
+   "id": "@wren/db#recentAuditEvents",
+   "role": "export",
+   "parent": "@wren/db",
+   "group": "@wren/db",
+   "attrs": {
+    "entries": [
+     "@wren/db"
+    ],
+    "file": "packages/db/src/audit/index.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, opts: { table?: string; limit?: number } = {}): Promise<AuditEvent[]>"
+   }
+  },
+  {
+   "id": "@wren/db#scramVerifier",
+   "role": "export",
+   "parent": "@wren/db",
+   "group": "@wren/db",
+   "attrs": {
+    "entries": [
+     "@wren/db"
+    ],
+    "file": "packages/db/src/clients.ts",
+    "kind": "function",
+    "sig": "(password: string, salt = randomBytes(16), iterations = 4096): string"
+   }
+  },
+  {
+   "id": "@wren/db#sealAudit",
+   "role": "export",
+   "parent": "@wren/db",
+   "group": "@wren/db",
+   "attrs": {
+    "entries": [
+     "@wren/db"
+    ],
+    "file": "packages/db/src/audit/index.ts",
+    "kind": "function",
+    "sig": "(db: Db, opts: { lockWaitMs?: number } = {}): Promise<AuditSeal | null>"
+   }
+  },
+  {
+   "id": "@wren/db#seedObjects",
+   "role": "export",
+   "parent": "@wren/db",
+   "group": "@wren/db",
+   "attrs": {
+    "entries": [
+     "@wren/db/testing"
+    ],
+    "file": "packages/db/src/testing.ts",
+    "kind": "function",
+    "sig": "(db: DbHandle[\"db\"], objects: readonly SeedObject[]): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/db#selfRemoving",
+   "role": "export",
+   "parent": "@wren/db",
+   "group": "@wren/db",
+   "attrs": {
+    "entries": [
+     "@wren/db/testing"
+    ],
+    "file": "packages/db/src/testing.ts",
+    "kind": "function",
+    "sig": "(container: C, entrypoint: string[], command: string[] = [], lifetime = \"30m\"): C"
+   }
+  },
+  {
+   "id": "@wren/db#serializable",
+   "role": "export",
+   "parent": "@wren/db",
+   "group": "@wren/db",
+   "attrs": {
+    "entries": [
+     "@wren/db",
+     "@wren/db/isolation"
+    ],
+    "file": "packages/db/src/isolation.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, fn: (tx: Tx) => Promise<T>): Promise<T>"
+   }
+  },
+  {
+   "id": "@wren/db#setAuditActor",
+   "role": "export",
+   "parent": "@wren/db",
+   "group": "@wren/db",
+   "attrs": {
+    "entries": [
+     "@wren/db"
+    ],
+    "file": "packages/db/src/audit/index.ts",
+    "kind": "function",
+    "sig": "(tx: Queryable, actor: string): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/db#snapshot",
+   "role": "export",
+   "parent": "@wren/db",
+   "group": "@wren/db",
+   "attrs": {
+    "entries": [
+     "@wren/db",
+     "@wren/db/isolation"
+    ],
+    "file": "packages/db/src/isolation.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, fn: (tx: Tx) => Promise<T>): Promise<T>"
+   }
+  },
+  {
+   "id": "@wren/db#sqlState",
+   "role": "export",
+   "parent": "@wren/db",
+   "group": "@wren/db",
+   "attrs": {
+    "entries": [
+     "@wren/db",
+     "@wren/db/isolation"
+    ],
+    "file": "packages/db/src/isolation.ts",
+    "kind": "function",
+    "sig": "(err: unknown): string | undefined"
+   }
+  },
+  {
+   "id": "@wren/db#startPostgresContainer",
+   "role": "export",
+   "parent": "@wren/db",
+   "group": "@wren/db",
+   "attrs": {
+    "entries": [
+     "@wren/db/testing"
+    ],
+    "file": "packages/db/src/testing.ts",
+    "kind": "function",
+    "sig": "(maxConnections?: number, lifetime?: string): Promise<StartedPostgreSqlContainer>"
+   }
+  },
+  {
+   "id": "@wren/db#startTestPostgres",
+   "role": "export",
+   "parent": "@wren/db",
+   "group": "@wren/db",
+   "attrs": {
+    "entries": [
+     "@wren/db/testing"
+    ],
+    "file": "packages/db/src/testing.ts",
+    "kind": "function",
+    "sig": "(options: TestPostgresOptions = {}): Promise<TestPostgres>"
+   }
+  },
+  {
+   "id": "@wren/db#truncate",
+   "role": "export",
+   "parent": "@wren/db",
+   "group": "@wren/db",
+   "attrs": {
+    "entries": [
+     "@wren/db/testing"
+    ],
+    "file": "packages/db/src/testing.ts",
+    "kind": "function",
+    "sig": "(db: DbHandle[\"db\"], tables: string[]): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/db#verifyAudit",
+   "role": "export",
+   "parent": "@wren/db",
+   "group": "@wren/db",
+   "attrs": {
+    "entries": [
+     "@wren/db"
+    ],
+    "file": "packages/db/src/audit/index.ts",
+    "kind": "function",
+    "sig": "(db: Queryable): Promise<AuditCheck>"
+   }
+  },
+  {
+   "id": "@wren/db/testing/vitest#default",
+   "role": "export",
+   "parent": "@wren/db",
+   "group": "@wren/db",
+   "attrs": {
+    "entries": [
+     "@wren/db/testing/vitest"
+    ],
+    "file": "packages/db/src/testing-vitest.ts",
+    "kind": "CallExpression",
+    "sig": ""
+   }
+  }
+ ],
+ "edges": []
+}

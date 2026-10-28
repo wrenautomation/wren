@@ -1,0 +1,27 @@
+{
+ "layer": "routes",
+ "nodes": [
+  {
+   "id": "route:SearchWeek/run",
+   "role": "route",
+   "parent": "service:SearchWeek",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "input": "{ today: string }",
+    "output": "WeekStats",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "service:SearchWeek",
+   "role": "service",
+   "parent": "@wren/channel-search",
+   "group": "@wren/channel-search",
+   "attrs": {
+    "file": "packages/channel-search/src/restate/watch.ts",
+    "kind": "service"
+   }
+  }
+ ],
+ "edges": []
+}

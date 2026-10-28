@@ -1,0 +1,69 @@
+{
+ "layer": "imports",
+ "nodes": [
+  {
+   "id": "@wren/channel-tiktok",
+   "role": "package",
+   "parent": "repo:wren",
+   "group": "@wren/channel-tiktok",
+   "attrs": {
+    "dir": "packages/channel-tiktok/"
+   }
+  },
+  {
+   "id": "@wren/channel-tiktok/src/content.ts",
+   "role": "file",
+   "parent": "@wren/channel-tiktok",
+   "group": "@wren/channel-tiktok"
+  },
+  {
+   "id": "@wren/channel-tiktok/src/index.ts",
+   "role": "file",
+   "parent": "@wren/channel-tiktok",
+   "group": "@wren/channel-tiktok"
+  },
+  {
+   "id": "@wren/channel-tiktok/src/insights.ts",
+   "role": "file",
+   "parent": "@wren/channel-tiktok",
+   "group": "@wren/channel-tiktok"
+  }
+ ],
+ "edges": [
+  {
+   "from": "@wren/channel-tiktok",
+   "to": "@wren/core",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-tiktok/src/content.ts",
+   "to": "@wren/channel-tiktok/src/insights.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-tiktok/src/content.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-tiktok/src/content.ts",
+   "to": "@wren/core/src/content/shapes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-tiktok/src/content.ts",
+   "to": "@wren/core/src/content/tiktok.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-tiktok/src/index.ts",
+   "to": "@wren/channel-tiktok/src/content.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-tiktok/src/insights.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports"
+  }
+ ]
+}

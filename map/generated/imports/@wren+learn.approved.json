@@ -1,0 +1,1155 @@
+{
+ "layer": "imports",
+ "nodes": [
+  {
+   "id": "@wren/learn",
+   "role": "package",
+   "parent": "repo:wren",
+   "group": "@wren/learn",
+   "attrs": {
+    "dir": "packages/learn/",
+    "npm": [
+     "node:fs",
+     "node:path"
+    ]
+   }
+  },
+  {
+   "id": "@wren/learn/src/alerts.ts",
+   "role": "file",
+   "parent": "@wren/learn",
+   "group": "@wren/learn"
+  },
+  {
+   "id": "@wren/learn/src/breakdown.ts",
+   "role": "file",
+   "parent": "@wren/learn",
+   "group": "@wren/learn"
+  },
+  {
+   "id": "@wren/learn/src/calls.ts",
+   "role": "file",
+   "parent": "@wren/learn",
+   "group": "@wren/learn"
+  },
+  {
+   "id": "@wren/learn/src/catalog.ts",
+   "role": "file",
+   "parent": "@wren/learn",
+   "group": "@wren/learn"
+  },
+  {
+   "id": "@wren/learn/src/check.ts",
+   "role": "file",
+   "parent": "@wren/learn",
+   "group": "@wren/learn"
+  },
+  {
+   "id": "@wren/learn/src/components.ts",
+   "role": "file",
+   "parent": "@wren/learn",
+   "group": "@wren/learn"
+  },
+  {
+   "id": "@wren/learn/src/console-routes.ts",
+   "role": "file",
+   "parent": "@wren/learn",
+   "group": "@wren/learn"
+  },
+  {
+   "id": "@wren/learn/src/console.ts",
+   "role": "file",
+   "parent": "@wren/learn",
+   "group": "@wren/learn"
+  },
+  {
+   "id": "@wren/learn/src/creators.ts",
+   "role": "file",
+   "parent": "@wren/learn",
+   "group": "@wren/learn"
+  },
+  {
+   "id": "@wren/learn/src/decide.ts",
+   "role": "file",
+   "parent": "@wren/learn",
+   "group": "@wren/learn"
+  },
+  {
+   "id": "@wren/learn/src/drive.ts",
+   "role": "file",
+   "parent": "@wren/learn",
+   "group": "@wren/learn"
+  },
+  {
+   "id": "@wren/learn/src/embed.ts",
+   "role": "file",
+   "parent": "@wren/learn",
+   "group": "@wren/learn"
+  },
+  {
+   "id": "@wren/learn/src/feeds.ts",
+   "role": "file",
+   "parent": "@wren/learn",
+   "group": "@wren/learn"
+  },
+  {
+   "id": "@wren/learn/src/film.ts",
+   "role": "file",
+   "parent": "@wren/learn",
+   "group": "@wren/learn"
+  },
+  {
+   "id": "@wren/learn/src/findings.ts",
+   "role": "file",
+   "parent": "@wren/learn",
+   "group": "@wren/learn"
+  },
+  {
+   "id": "@wren/learn/src/hunt.ts",
+   "role": "file",
+   "parent": "@wren/learn",
+   "group": "@wren/learn"
+  },
+  {
+   "id": "@wren/learn/src/index.ts",
+   "role": "file",
+   "parent": "@wren/learn",
+   "group": "@wren/learn"
+  },
+  {
+   "id": "@wren/learn/src/items.ts",
+   "role": "file",
+   "parent": "@wren/learn",
+   "group": "@wren/learn"
+  },
+  {
+   "id": "@wren/learn/src/learnback.ts",
+   "role": "file",
+   "parent": "@wren/learn",
+   "group": "@wren/learn"
+  },
+  {
+   "id": "@wren/learn/src/links.ts",
+   "role": "file",
+   "parent": "@wren/learn",
+   "group": "@wren/learn"
+  },
+  {
+   "id": "@wren/learn/src/pictures.ts",
+   "role": "file",
+   "parent": "@wren/learn",
+   "group": "@wren/learn"
+  },
+  {
+   "id": "@wren/learn/src/read.ts",
+   "role": "file",
+   "parent": "@wren/learn",
+   "group": "@wren/learn"
+  },
+  {
+   "id": "@wren/learn/src/records.ts",
+   "role": "file",
+   "parent": "@wren/learn",
+   "group": "@wren/learn"
+  },
+  {
+   "id": "@wren/learn/src/schema.ts",
+   "role": "file",
+   "parent": "@wren/learn",
+   "group": "@wren/learn"
+  },
+  {
+   "id": "@wren/learn/src/score.ts",
+   "role": "file",
+   "parent": "@wren/learn",
+   "group": "@wren/learn"
+  },
+  {
+   "id": "@wren/learn/src/sops.ts",
+   "role": "file",
+   "parent": "@wren/learn",
+   "group": "@wren/learn"
+  },
+  {
+   "id": "@wren/learn/src/standard.ts",
+   "role": "file",
+   "parent": "@wren/learn",
+   "group": "@wren/learn"
+  },
+  {
+   "id": "@wren/learn/src/tell.ts",
+   "role": "file",
+   "parent": "@wren/learn",
+   "group": "@wren/learn"
+  },
+  {
+   "id": "@wren/learn/vitest.config.ts",
+   "role": "file",
+   "parent": "@wren/learn",
+   "group": "@wren/learn"
+  }
+ ],
+ "edges": [
+  {
+   "from": "@wren/learn",
+   "to": "@wren/core",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn",
+   "to": "@wren/db",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn",
+   "to": "@wren/llm",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn",
+   "to": "@wren/notes",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn",
+   "to": "@wren/research",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/alerts.ts",
+   "to": "@wren/core/src/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/alerts.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/alerts.ts",
+   "to": "@wren/core/src/grants.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/alerts.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/alerts.ts",
+   "to": "@wren/learn/src/decide.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/alerts.ts",
+   "to": "@wren/learn/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/breakdown.ts",
+   "to": "@wren/core/src/metered.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/breakdown.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/learn/src/breakdown.ts",
+   "to": "@wren/learn/src/feeds.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/breakdown.ts",
+   "to": "@wren/learn/src/film.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/breakdown.ts",
+   "to": "@wren/learn/src/findings.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/breakdown.ts",
+   "to": "@wren/learn/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/breakdown.ts",
+   "to": "@wren/learn/src/score.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/learn/src/breakdown.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/calls.ts",
+   "to": "@wren/core/src/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/calls.ts",
+   "to": "@wren/core/src/decide/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/calls.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/learn/src/calls.ts",
+   "to": "@wren/learn/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/calls.ts",
+   "to": "@wren/research/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/learn/src/catalog.ts",
+   "to": "@wren/db/src/columns.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/catalog.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/learn/src/catalog.ts",
+   "to": "@wren/learn/src/creators.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/catalog.ts",
+   "to": "@wren/learn/src/links.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/catalog.ts",
+   "to": "@wren/learn/src/read.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/catalog.ts",
+   "to": "@wren/learn/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/catalog.ts",
+   "to": "@wren/learn/src/score.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/check.ts",
+   "to": "@wren/learn/src/standard.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/components.ts",
+   "to": "@wren/core/src/components.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/components.ts",
+   "to": "@wren/core/src/workflows.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/console-routes.ts",
+   "to": "@wren/core/src/access.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/learn/src/console.ts",
+   "to": "@wren/core/src/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/console.ts",
+   "to": "@wren/core/src/executor.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/console.ts",
+   "to": "@wren/core/src/portal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/console.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/console.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/console.ts",
+   "to": "@wren/learn/src/alerts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/console.ts",
+   "to": "@wren/learn/src/calls.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/console.ts",
+   "to": "@wren/learn/src/console-routes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/console.ts",
+   "to": "@wren/learn/src/drive.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/console.ts",
+   "to": "@wren/learn/src/embed.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/console.ts",
+   "to": "@wren/learn/src/feeds.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/console.ts",
+   "to": "@wren/learn/src/items.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/console.ts",
+   "to": "@wren/learn/src/links.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/console.ts",
+   "to": "@wren/learn/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/console.ts",
+   "to": "@wren/learn/src/sops.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/console.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/learn/src/creators.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/learn/src/creators.ts",
+   "to": "@wren/db/src/columns.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/creators.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/learn/src/creators.ts",
+   "to": "@wren/learn/src/feeds.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/learn/src/creators.ts",
+   "to": "@wren/learn/src/links.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/creators.ts",
+   "to": "@wren/learn/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/decide.ts",
+   "to": "@wren/core/src/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/decide.ts",
+   "to": "@wren/core/src/decide/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/decide.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/learn/src/decide.ts",
+   "to": "@wren/learn/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/decide.ts",
+   "to": "@wren/learn/src/score.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/drive.ts",
+   "to": "@wren/db/src/columns.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/drive.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/learn/src/drive.ts",
+   "to": "@wren/learn/src/calls.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/drive.ts",
+   "to": "@wren/learn/src/decide.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/drive.ts",
+   "to": "@wren/learn/src/film.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/drive.ts",
+   "to": "@wren/learn/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/drive.ts",
+   "to": "@wren/learn/src/score.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/embed.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/learn/src/embed.ts",
+   "to": "@wren/learn/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/embed.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/feeds.ts",
+   "to": "@wren/core/src/executor.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/learn/src/feeds.ts",
+   "to": "@wren/core/src/html.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/feeds.ts",
+   "to": "@wren/db/src/columns.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/feeds.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/learn/src/feeds.ts",
+   "to": "@wren/learn/src/creators.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/feeds.ts",
+   "to": "@wren/learn/src/links.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/feeds.ts",
+   "to": "@wren/learn/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/film.ts",
+   "to": "@wren/learn/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/findings.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/learn/src/findings.ts",
+   "to": "@wren/learn/src/calls.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/findings.ts",
+   "to": "@wren/learn/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/findings.ts",
+   "to": "@wren/research/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/hunt.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/learn/src/hunt.ts",
+   "to": "@wren/learn/src/catalog.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/hunt.ts",
+   "to": "@wren/learn/src/creators.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/hunt.ts",
+   "to": "@wren/learn/src/drive.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/hunt.ts",
+   "to": "@wren/learn/src/feeds.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/hunt.ts",
+   "to": "@wren/learn/src/items.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/hunt.ts",
+   "to": "@wren/learn/src/links.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/hunt.ts",
+   "to": "@wren/learn/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/hunt.ts",
+   "to": "@wren/learn/src/standard.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/learn/src/index.ts",
+   "to": "@wren/learn/src/alerts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/index.ts",
+   "to": "@wren/learn/src/breakdown.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/index.ts",
+   "to": "@wren/learn/src/calls.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/index.ts",
+   "to": "@wren/learn/src/catalog.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/index.ts",
+   "to": "@wren/learn/src/check.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/index.ts",
+   "to": "@wren/learn/src/creators.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/index.ts",
+   "to": "@wren/learn/src/drive.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/index.ts",
+   "to": "@wren/learn/src/embed.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/index.ts",
+   "to": "@wren/learn/src/feeds.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/index.ts",
+   "to": "@wren/learn/src/film.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/index.ts",
+   "to": "@wren/learn/src/findings.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/index.ts",
+   "to": "@wren/learn/src/hunt.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/index.ts",
+   "to": "@wren/learn/src/items.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/index.ts",
+   "to": "@wren/learn/src/learnback.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/index.ts",
+   "to": "@wren/learn/src/links.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/index.ts",
+   "to": "@wren/learn/src/pictures.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/index.ts",
+   "to": "@wren/learn/src/read.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/index.ts",
+   "to": "@wren/learn/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/index.ts",
+   "to": "@wren/learn/src/score.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/index.ts",
+   "to": "@wren/learn/src/sops.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/index.ts",
+   "to": "@wren/learn/src/standard.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/index.ts",
+   "to": "@wren/learn/src/tell.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/items.ts",
+   "to": "@wren/db/src/columns.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/items.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/learn/src/items.ts",
+   "to": "@wren/learn/src/decide.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/items.ts",
+   "to": "@wren/learn/src/embed.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/items.ts",
+   "to": "@wren/learn/src/links.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/items.ts",
+   "to": "@wren/learn/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/items.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/learn/src/learnback.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/learnback.ts",
+   "to": "@wren/learn/src/items.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/learnback.ts",
+   "to": "@wren/learn/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/learnback.ts",
+   "to": "@wren/learn/src/standard.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/links.ts",
+   "to": "@wren/learn/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/learn/src/pictures.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/pictures.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/learn/src/pictures.ts",
+   "to": "@wren/learn/src/feeds.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/learn/src/pictures.ts",
+   "to": "@wren/learn/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/read.ts",
+   "to": "@wren/core/src/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/read.ts",
+   "to": "@wren/core/src/executor.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/learn/src/read.ts",
+   "to": "@wren/core/src/vendors.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/read.ts",
+   "to": "@wren/db/src/columns.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/read.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/learn/src/read.ts",
+   "to": "@wren/learn/src/feeds.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/read.ts",
+   "to": "@wren/learn/src/links.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/read.ts",
+   "to": "@wren/learn/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/read.ts",
+   "to": "@wren/learn/src/score.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/records.ts",
+   "to": "@wren/core/src/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/records.ts",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/records.ts",
+   "to": "@wren/learn/src/items.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/records.ts",
+   "to": "@wren/learn/src/sops.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/schema.ts",
+   "to": "@wren/db/src/columns.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/schema.ts",
+   "to": "@wren/research/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/score.ts",
+   "to": "@wren/core/src/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/score.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/score.ts",
+   "to": "@wren/core/src/executor.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/learn/src/score.ts",
+   "to": "@wren/core/src/keys.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/learn/src/score.ts",
+   "to": "@wren/core/src/metered.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/score.ts",
+   "to": "@wren/core/src/vendors.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/score.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/learn/src/score.ts",
+   "to": "@wren/learn/src/breakdown.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/score.ts",
+   "to": "@wren/learn/src/feeds.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/score.ts",
+   "to": "@wren/learn/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/score.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/sops.ts",
+   "to": "@wren/core/src/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/sops.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/learn/src/sops.ts",
+   "to": "@wren/learn/src/decide.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/sops.ts",
+   "to": "@wren/learn/src/read.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/sops.ts",
+   "to": "@wren/learn/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/sops.ts",
+   "to": "@wren/notes/src/doc.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/sops.ts",
+   "to": "@wren/notes/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/sops.ts",
+   "to": "@wren/notes/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/standard.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/learn/src/standard.ts",
+   "to": "@wren/learn/src/calls.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/standard.ts",
+   "to": "@wren/learn/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/tell.ts",
+   "to": "@wren/core/src/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/src/tell.ts",
+   "to": "@wren/core/src/notify.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/learn/src/tell.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/learn/src/tell.ts",
+   "to": "@wren/learn/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/learn/vitest.config.ts",
+   "to": "@wren/db/src/testing-vitest.ts",
+   "kind": "imports"
+  }
+ ]
+}

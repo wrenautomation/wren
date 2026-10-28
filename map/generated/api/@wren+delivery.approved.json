@@ -1,0 +1,4205 @@
+{
+ "layer": "api",
+ "nodes": [
+  {
+   "id": "@wren/delivery#ACCESS_STATUSES",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/schema"
+    ],
+    "file": "packages/delivery/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"open\", \"granted\", \"declined\", \"revoked\"]"
+   }
+  },
+  {
+   "id": "@wren/delivery#AccessRequest",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/schema"
+    ],
+    "file": "packages/delivery/src/schema.ts",
+    "kind": "type",
+    "sig": "type AccessRequest = typeof accessRequests.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/delivery#AccessStatus",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/schema"
+    ],
+    "file": "packages/delivery/src/schema.ts",
+    "kind": "type",
+    "sig": "type AccessStatus = (typeof ACCESS_STATUSES)[number];"
+   }
+  },
+  {
+   "id": "@wren/delivery#AccessView",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/restate"
+    ],
+    "file": "packages/delivery/src/views.ts",
+    "kind": "type",
+    "sig": "type AccessView = Pick< AccessRequest, \"id\" | \"system\" | \"scope\" | \"why\" | \"revoke\" | \"status\" | \"note\" | \"answeredBy\" > & { answeredAt: string | null };"
+   }
+  },
+  {
+   "id": "@wren/delivery#AccountView",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/restate"
+    ],
+    "file": "packages/delivery/src/service.ts",
+    "kind": "interface",
+    "sig": "interface AccountView { name: string; since: string; you: { email: string | null; role: RoleId | null; wren: boolean }; bought: Awaited<ReturnType<typeof boughtBy>>; people: number; owners: string[]; billing: { open: number; overdue: number } | null; }"
+   }
+  },
+  {
+   "id": "@wren/delivery#Agreement",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/schema"
+    ],
+    "file": "packages/delivery/src/schema.ts",
+    "kind": "type",
+    "sig": "type Agreement = typeof agreements.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/delivery#Ask",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/schema"
+    ],
+    "file": "packages/delivery/src/schema.ts",
+    "kind": "type",
+    "sig": "type Ask = typeof asks.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/delivery#AskView",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/restate"
+    ],
+    "file": "packages/delivery/src/views.ts",
+    "kind": "type",
+    "sig": "type AskView = Pick<Ask, \"id\" | \"text\" | \"dueOn\" | \"answer\" | \"answeredBy\"> & { step: string | null; file: string | null; answeredAt: string | null; overdue: boolean; };"
+   }
+  },
+  {
+   "id": "@wren/delivery#BANDS",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health"
+    ],
+    "file": "packages/delivery/src/health/score.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"healthy\", \"watch\", \"risk\", \"none\"]"
+   }
+  },
+  {
+   "id": "@wren/delivery#BILLING_CONSOLE_APPS",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/billing/console-routes"
+    ],
+    "file": "packages/delivery/src/billing/console-routes.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly \"*\": \"money\"; }"
+   }
+  },
+  {
+   "id": "@wren/delivery#BILLING_CONSOLE_ROUTES",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/billing/console-routes"
+    ],
+    "file": "packages/delivery/src/billing/console-routes.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly match: \"wren:money\"; readonly dismiss: \"wren:money\"; }"
+   }
+  },
+  {
+   "id": "@wren/delivery#BILLING_CONSOLE_WRITES",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/billing/console-routes"
+    ],
+    "file": "packages/delivery/src/billing/console-routes.ts",
+    "kind": "const",
+    "sig": "readonly (keyof typeof BILLING_CONSOLE_ROUTES)[]"
+   }
+  },
+  {
+   "id": "@wren/delivery#BILLING_KEY",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/billing"
+    ],
+    "file": "packages/delivery/src/billing/watch.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"fleet\""
+   }
+  },
+  {
+   "id": "@wren/delivery#BILLING_RECORDS",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/billing/records"
+    ],
+    "file": "packages/delivery/src/billing/records.ts",
+    "kind": "const",
+    "sig": "readonly RecordType[]"
+   }
+  },
+  {
+   "id": "@wren/delivery#BILLING_WATCH",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/billing"
+    ],
+    "file": "packages/delivery/src/billing/watch.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"BillingWatch\""
+   }
+  },
+  {
+   "id": "@wren/delivery#Band",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health"
+    ],
+    "file": "packages/delivery/src/health/score.ts",
+    "kind": "type",
+    "sig": "type Band = (typeof BANDS)[number];"
+   }
+  },
+  {
+   "id": "@wren/delivery#Bill",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/invoices.ts",
+    "kind": "interface",
+    "sig": "interface Bill { engagementId: number; clientId: string; period: string; monthlyCents: number; units: number; unitCents: number; unit: string | null; currency: string; payDays: number; usage: UsageItem[]; }"
+   }
+  },
+  {
+   "id": "@wren/delivery#BillingWatch",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/billing"
+    ],
+    "file": "packages/delivery/src/billing/watch.ts",
+    "kind": "type",
+    "sig": "type BillingWatch = ReturnType<typeof makeBillingWatch>;"
+   }
+  },
+  {
+   "id": "@wren/delivery#BoardRow",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/restate"
+    ],
+    "file": "packages/delivery/src/watch.ts",
+    "kind": "interface",
+    "sig": "interface BoardRow { clientId: string; name: string; engagementId: number | null; offer: string | null; path: string; status: Engagement[\"status\"] | null; startsOn: string | null; phase: string | null; stepsDone: number; steps: number; next: { name: string; dueOn: string } | null; lastUpdateAt: string | null; openAsks: number; lastSeenAt: string | null; pulse: number | null; risks: string[]; }"
+   }
+  },
+  {
+   "id": "@wren/delivery#CONTRACT_VERSION",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/contract.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"2026-10-01.4\""
+   }
+  },
+  {
+   "id": "@wren/delivery#CREDIT_STATUSES",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/schema"
+    ],
+    "file": "packages/delivery/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"matched\", \"review\", \"ignored\", \"dismissed\"]"
+   }
+  },
+  {
+   "id": "@wren/delivery#CREDIT_STATUSES_SHOWN",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/billing"
+    ],
+    "file": "packages/delivery/src/billing/credits.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"review\", \"matched\", \"dismissed\"]"
+   }
+  },
+  {
+   "id": "@wren/delivery#ClientFlag",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health"
+    ],
+    "file": "packages/delivery/src/health/schema.ts",
+    "kind": "type",
+    "sig": "type ClientFlag = typeof clientFlags.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/delivery#Comment",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/schema"
+    ],
+    "file": "packages/delivery/src/schema.ts",
+    "kind": "type",
+    "sig": "type Comment = typeof comments.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/delivery#CommentOn",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/work.ts",
+    "kind": "type",
+    "sig": "type CommentOn = { updateId: number } | { deliverableId: number };"
+   }
+  },
+  {
+   "id": "@wren/delivery#CommentView",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/restate"
+    ],
+    "file": "packages/delivery/src/views.ts",
+    "kind": "type",
+    "sig": "type CommentView = Pick<Comment, \"id\" | \"author\" | \"fromWren\" | \"body\"> & { at: string };"
+   }
+  },
+  {
+   "id": "@wren/delivery#ContractView",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/restate"
+    ],
+    "file": "packages/delivery/src/service.ts",
+    "kind": "interface",
+    "sig": "interface ContractView { engagementId: number; version: string; body: string; sha256: string; terms: Terms; issuedAt: string; signed: { name: string; title: string | null; email: string; at: string } | null; }"
+   }
+  },
+  {
+   "id": "@wren/delivery#CreditFacts",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/billing"
+    ],
+    "file": "packages/delivery/src/billing/match.ts",
+    "kind": "interface",
+    "sig": "interface CreditFacts { kind: string; currency: string; cents: number; feeCents: number; payer: string | null; memo: string | null; description: string | null; }"
+   }
+  },
+  {
+   "id": "@wren/delivery#CreditIn",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/billing"
+    ],
+    "file": "packages/delivery/src/billing/wise.ts",
+    "kind": "interface",
+    "sig": "interface CreditIn { wiseId: string; balanceId: string; currency: string; cents: number; feeCents: number; at: Date; kind: string; payer: string | null; memo: string | null; description: string | null; raw: Record<string, unknown>; }"
+   }
+  },
+  {
+   "id": "@wren/delivery#CreditStatus",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/schema"
+    ],
+    "file": "packages/delivery/src/schema.ts",
+    "kind": "type",
+    "sig": "type CreditStatus = (typeof CREDIT_STATUSES)[number];"
+   }
+  },
+  {
+   "id": "@wren/delivery#CreditView",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/billing"
+    ],
+    "file": "packages/delivery/src/billing/credits.ts",
+    "kind": "interface",
+    "sig": "interface CreditView { id: number; at: string; status: CreditStatus; currency: string; cents: number; feeCents: number; kind: string; payer: string | null; memo: string | null; why: string | null; invoice: string | null; client: string | null; clientName: string | null; decidedBy: string | null; }"
+   }
+  },
+  {
+   "id": "@wren/delivery#DELIVERABLE_KINDS",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/schema"
+    ],
+    "file": "packages/delivery/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"file\", \"link\", \"loom\", \"doc\"]"
+   }
+  },
+  {
+   "id": "@wren/delivery#DELIVERABLE_STATES",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/schema"
+    ],
+    "file": "packages/delivery/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"waiting\", \"approved\", \"changes\"]"
+   }
+  },
+  {
+   "id": "@wren/delivery#DELIVERY_APPS",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/routes"
+    ],
+    "file": "packages/delivery/src/routes.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly \"*\": \"work\"; readonly me: null; readonly mail: null; readonly recordsTypes: null; readonly recordsList: null; readonly recordsGet: null; readonly recordsExport: null; readonly recordsStats: null; readonly people: \"account\"; readonly account: \"account\"; readonly invite: \"account\"; readonly…"
+   }
+  },
+  {
+   "id": "@wren/delivery#DELIVERY_COMPONENTS",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/components"
+    ],
+    "file": "packages/delivery/src/components.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"@wren/core/components\").Component[]"
+   }
+  },
+  {
+   "id": "@wren/delivery#DELIVERY_ROUTES",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/restate",
+     "@wren/delivery/routes"
+    ],
+    "file": "packages/delivery/src/routes.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly me: \"read\"; readonly board: \"read\"; readonly home: \"read\"; readonly recordsTypes: \"read\"; readonly recordsList: \"read\"; readonly recordsGet: \"read\"; readonly recordsExport: \"read\"; readonly recordsStats: \"read\"; readonly updates: \"read\"; readonly answer: \"act\"; readonly decide: \"act\"; rea…"
+   }
+  },
+  {
+   "id": "@wren/delivery#DELIVERY_WORKFLOWS",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/components"
+    ],
+    "file": "packages/delivery/src/components.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"@wren/core/workflows\").Workflow[]"
+   }
+  },
+  {
+   "id": "@wren/delivery#DELIVERY_WRITES",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/restate",
+     "@wren/delivery/routes"
+    ],
+    "file": "packages/delivery/src/routes.ts",
+    "kind": "const",
+    "sig": "readonly DeliveryRoute[]"
+   }
+  },
+  {
+   "id": "@wren/delivery#DIGEST_HOUR",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health"
+    ],
+    "file": "packages/delivery/src/health/flags.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "9"
+   }
+  },
+  {
+   "id": "@wren/delivery#DROP",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health"
+    ],
+    "file": "packages/delivery/src/health/score.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "15"
+   }
+  },
+  {
+   "id": "@wren/delivery#Deliverable",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/schema"
+    ],
+    "file": "packages/delivery/src/schema.ts",
+    "kind": "type",
+    "sig": "type Deliverable = typeof deliverables.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/delivery#DeliverableKind",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/schema"
+    ],
+    "file": "packages/delivery/src/schema.ts",
+    "kind": "type",
+    "sig": "type DeliverableKind = (typeof DELIVERABLE_KINDS)[number];"
+   }
+  },
+  {
+   "id": "@wren/delivery#DeliverableState",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/schema"
+    ],
+    "file": "packages/delivery/src/schema.ts",
+    "kind": "type",
+    "sig": "type DeliverableState = (typeof DELIVERABLE_STATES)[number];"
+   }
+  },
+  {
+   "id": "@wren/delivery#DeliverableView",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/restate"
+    ],
+    "file": "packages/delivery/src/views.ts",
+    "kind": "type",
+    "sig": "type DeliverableView = Pick< Deliverable, \"id\" | \"title\" | \"kind\" | \"url\" | \"version\" | \"status\" | \"decidedBy\" | \"decisionNote\" > & { step: string | null; file: string | null; at: string; decidedAt: string | null; comments: CommentView[]; };"
+   }
+  },
+  {
+   "id": "@wren/delivery#DeliveryApi",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/restate"
+    ],
+    "file": "packages/delivery/src/service.ts",
+    "kind": "type",
+    "sig": "type DeliveryApi = ReturnType<typeof deliveryApi>;"
+   }
+  },
+  {
+   "id": "@wren/delivery#DeliveryHome",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/restate"
+    ],
+    "file": "packages/delivery/src/views.ts",
+    "kind": "interface",
+    "sig": "interface DeliveryHome { engagements: EngagementView[]; }"
+   }
+  },
+  {
+   "id": "@wren/delivery#DeliveryRefusal",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/rows.ts",
+    "kind": "class",
+    "sig": ""
+   }
+  },
+  {
+   "id": "@wren/delivery#DeliveryWatch",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/restate"
+    ],
+    "file": "packages/delivery/src/watch.ts",
+    "kind": "type",
+    "sig": "type DeliveryWatch = ReturnType<typeof makeDeliveryWatch>;"
+   }
+  },
+  {
+   "id": "@wren/delivery#DomainView",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/restate"
+    ],
+    "file": "packages/delivery/src/domains.ts",
+    "kind": "interface",
+    "sig": "interface DomainView { hostname: string; live: boolean; status: string; sslStatus: string; records: ClientDomain[\"records\"]; problem: string | null; checkedAt: string; }"
+   }
+  },
+  {
+   "id": "@wren/delivery#ENGAGEMENT_STATUSES",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/schema"
+    ],
+    "file": "packages/delivery/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"onboarding\", \"active\", \"paused\", \"done\"]"
+   }
+  },
+  {
+   "id": "@wren/delivery#Engagement",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/schema"
+    ],
+    "file": "packages/delivery/src/schema.ts",
+    "kind": "type",
+    "sig": "type Engagement = typeof engagements.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/delivery#EngagementStatus",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/schema"
+    ],
+    "file": "packages/delivery/src/schema.ts",
+    "kind": "type",
+    "sig": "type EngagementStatus = (typeof ENGAGEMENT_STATUSES)[number];"
+   }
+  },
+  {
+   "id": "@wren/delivery#EngagementView",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/restate"
+    ],
+    "file": "packages/delivery/src/views.ts",
+    "kind": "interface",
+    "sig": "interface EngagementView { id: number; offer: { id: string; name: string; app: string; promise: string; guarantee: string | null; youGet: readonly string[]; youGive: readonly string[]; }; paperwork: PaperworkView; startsOn: string; status: EngagementStatus; steps: StepView[]; updates: UpdateView[]; deliverables: DeliverableView[]; asks: AskView[]; results: ResultView[]; pulse: PulseView; moments: MomentView[]; next: NextView[]; }"
+   }
+  },
+  {
+   "id": "@wren/delivery#FILE_TYPES",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/files",
+     "@wren/delivery/routes"
+    ],
+    "file": "packages/delivery/src/routes.ts",
+    "kind": "const",
+    "sig": "Readonly<Record<string, string>>"
+   }
+  },
+  {
+   "id": "@wren/delivery#FLAG_SIDES",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health"
+    ],
+    "file": "packages/delivery/src/health/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"risk\", \"opportunity\"]"
+   }
+  },
+  {
+   "id": "@wren/delivery#FLAG_SOURCES",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health"
+    ],
+    "file": "packages/delivery/src/health/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"delivery\", \"health\", \"workflows\", \"person\"]"
+   }
+  },
+  {
+   "id": "@wren/delivery#FailedRun",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health"
+    ],
+    "file": "packages/delivery/src/health/flags.ts",
+    "kind": "interface",
+    "sig": "interface FailedRun { workflow: string; runs: number; top: string; }"
+   }
+  },
+  {
+   "id": "@wren/delivery#FileStore",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/files"
+    ],
+    "file": "packages/delivery/src/files.ts",
+    "kind": "interface",
+    "sig": "interface FileStore { putUrl(key: string, type: string, size: number): Promise<string>; getUrl(key: string): Promise<string>; put(key: string, bytes: Uint8Array, type: string): Promise<void>; }"
+   }
+  },
+  {
+   "id": "@wren/delivery#FlagFind",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health"
+    ],
+    "file": "packages/delivery/src/health/flags.ts",
+    "kind": "interface",
+    "sig": "interface FlagFind { clientId: string; engagementId: number | null; side: FlagSide; cause: string; what: string; how?: string | null; once?: boolean; urgent?: boolean; remindDays?: number; }"
+   }
+  },
+  {
+   "id": "@wren/delivery#FlagRefusal",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health"
+    ],
+    "file": "packages/delivery/src/health/flags.ts",
+    "kind": "class",
+    "sig": ""
+   }
+  },
+  {
+   "id": "@wren/delivery#FlagSide",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health"
+    ],
+    "file": "packages/delivery/src/health/schema.ts",
+    "kind": "type",
+    "sig": "type FlagSide = (typeof FLAG_SIDES)[number];"
+   }
+  },
+  {
+   "id": "@wren/delivery#FlagSource",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health"
+    ],
+    "file": "packages/delivery/src/health/schema.ts",
+    "kind": "type",
+    "sig": "type FlagSource = (typeof FLAG_SOURCES)[number];"
+   }
+  },
+  {
+   "id": "@wren/delivery#GOOGLE_REVIEW_URL",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/routes"
+    ],
+    "file": "packages/delivery/src/routes.ts",
+    "kind": "const",
+    "sig": "string | null"
+   }
+  },
+  {
+   "id": "@wren/delivery#HALFWAY",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/moments.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"halfway\""
+   }
+  },
+  {
+   "id": "@wren/delivery#HEALTH_CONSOLE_APPS",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health/console-routes"
+    ],
+    "file": "packages/delivery/src/health/console-routes.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly \"*\": \"clients\"; }"
+   }
+  },
+  {
+   "id": "@wren/delivery#HEALTH_CONSOLE_ROUTES",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health/console-routes"
+    ],
+    "file": "packages/delivery/src/health/console-routes.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly rate: \"wren:run\"; readonly override: \"wren:run\"; readonly clearOverride: \"wren:run\"; readonly flagRaise: \"wren:run\"; readonly flagTake: \"wren:run\"; readonly flagOwn: \"wren:run\"; readonly flagAddress: \"wren:run\"; readonly flagClear: \"wren:run\"; }"
+   }
+  },
+  {
+   "id": "@wren/delivery#HEALTH_CONSOLE_WRITES",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health/console-routes"
+    ],
+    "file": "packages/delivery/src/health/console-routes.ts",
+    "kind": "const",
+    "sig": "readonly (keyof typeof HEALTH_CONSOLE_ROUTES)[]"
+   }
+  },
+  {
+   "id": "@wren/delivery#HEALTH_RECORDS",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health"
+    ],
+    "file": "packages/delivery/src/health/records.ts",
+    "kind": "const",
+    "sig": "readonly RecordType[]"
+   }
+  },
+  {
+   "id": "@wren/delivery#HealthDay",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health"
+    ],
+    "file": "packages/delivery/src/health/schema.ts",
+    "kind": "type",
+    "sig": "type HealthDay = typeof healthDays.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/delivery#HealthInput",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health"
+    ],
+    "file": "packages/delivery/src/health/score.ts",
+    "kind": "interface",
+    "sig": "interface HealthInput { part: Part; what: string; value: string; at: string | null; href: string | null; }"
+   }
+  },
+  {
+   "id": "@wren/delivery#INVOICE_CHANGES",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/schema"
+    ],
+    "file": "packages/delivery/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"invoiced\", \"paid\", \"refunded\", \"late\"]"
+   }
+  },
+  {
+   "id": "@wren/delivery#INVOICE_DISPUTES",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/schema"
+    ],
+    "file": "packages/delivery/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"open\", \"won\", \"lost\"]"
+   }
+  },
+  {
+   "id": "@wren/delivery#INVOICE_STATUSES",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/schema"
+    ],
+    "file": "packages/delivery/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"open\", \"paid\", \"void\"]"
+   }
+  },
+  {
+   "id": "@wren/delivery#IdsRequest",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health/console"
+    ],
+    "file": "packages/delivery/src/health/console.ts",
+    "kind": "interface",
+    "sig": "interface IdsRequest extends PortalRequest { ids?: string[]; }"
+   }
+  },
+  {
+   "id": "@wren/delivery#Interest",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/schema"
+    ],
+    "file": "packages/delivery/src/schema.ts",
+    "kind": "type",
+    "sig": "type Interest = typeof interests.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/delivery#Invoice",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/schema"
+    ],
+    "file": "packages/delivery/src/schema.ts",
+    "kind": "type",
+    "sig": "type Invoice = typeof invoices.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/delivery#InvoiceChange",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/schema"
+    ],
+    "file": "packages/delivery/src/schema.ts",
+    "kind": "type",
+    "sig": "type InvoiceChange = (typeof INVOICE_CHANGES)[number];"
+   }
+  },
+  {
+   "id": "@wren/delivery#InvoiceDispute",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/schema"
+    ],
+    "file": "packages/delivery/src/schema.ts",
+    "kind": "type",
+    "sig": "type InvoiceDispute = (typeof INVOICE_DISPUTES)[number];"
+   }
+  },
+  {
+   "id": "@wren/delivery#InvoiceFacts",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/billing"
+    ],
+    "file": "packages/delivery/src/billing/match.ts",
+    "kind": "interface",
+    "sig": "interface InvoiceFacts { id: number; number: string; currency: string; cents: number; receivedCents: number; status: \"open\" | \"paid\" | \"void\"; clientName: string; }"
+   }
+  },
+  {
+   "id": "@wren/delivery#InvoiceLine",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/schema"
+    ],
+    "file": "packages/delivery/src/schema.ts",
+    "kind": "interface",
+    "sig": "interface InvoiceLine { what: string; cents: number; usage?: { vendor: string; month: string }; }"
+   }
+  },
+  {
+   "id": "@wren/delivery#InvoiceStatus",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/schema"
+    ],
+    "file": "packages/delivery/src/schema.ts",
+    "kind": "type",
+    "sig": "type InvoiceStatus = (typeof INVOICE_STATUSES)[number];"
+   }
+  },
+  {
+   "id": "@wren/delivery#InvoiceView",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/restate"
+    ],
+    "file": "packages/delivery/src/views.ts",
+    "kind": "type",
+    "sig": "type InvoiceView = Pick< Invoice, | \"id\" | \"number\" | \"description\" | \"cents\" | \"currency\" | \"issuedOn\" | \"dueOn\" | \"paidOn\" | \"refundedCents\" | \"dispute\" | \"receivedCents\" | \"lines\" > & { status: InvoiceStatus | \"overdue\"; offer: string; };"
+   }
+  },
+  {
+   "id": "@wren/delivery#LAST_WEEK",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/moments.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"last_week\""
+   }
+  },
+  {
+   "id": "@wren/delivery#MAIL_LEVELS",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/schema"
+    ],
+    "file": "packages/delivery/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"all\", \"digest\", \"off\"]"
+   }
+  },
+  {
+   "id": "@wren/delivery#MAX_FILE_BYTES",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/files",
+     "@wren/delivery/routes"
+    ],
+    "file": "packages/delivery/src/routes.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "number"
+   }
+  },
+  {
+   "id": "@wren/delivery#MailLevel",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/restate",
+     "@wren/delivery/schema"
+    ],
+    "file": "packages/delivery/src/schema.ts",
+    "kind": "type",
+    "sig": "type MailLevel = (typeof MAIL_LEVELS)[number];"
+   }
+  },
+  {
+   "id": "@wren/delivery#Match",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/billing"
+    ],
+    "file": "packages/delivery/src/billing/match.ts",
+    "kind": "type",
+    "sig": "type Match = | { status: \"matched\"; invoiceId: number; why: string; cents: number } | { status: \"review\"; invoiceId: number | null; why: string } | { status: \"ignored\"; invoiceId: null; why: string };"
+   }
+  },
+  {
+   "id": "@wren/delivery#Me",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/restate"
+    ],
+    "file": "packages/core/src/portal.ts",
+    "kind": "interface",
+    "sig": "interface Me { clients: { id: string; name: string; demo?: true; look?: unknown; installed: string[]; can: Permission[]; role?: RoleId; flags: Record<string, string>; grants?: Grant[]; }[]; demo: boolean; operator: boolean; team?: { role: RoleId; wren: Permission[]; flags: Record<string, string>; grants?: Grant[] }; as?: { client: string; name: string; who: string; role: RoleId; act: boolean; sandbox: boolean; }; }"
+   }
+  },
+  {
+   "id": "@wren/delivery#MemberMail",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/schema"
+    ],
+    "file": "packages/delivery/src/schema.ts",
+    "kind": "type",
+    "sig": "type MemberMail = typeof memberMail.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/delivery#MemberView",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/restate"
+    ],
+    "file": "packages/delivery/src/service.ts",
+    "kind": "interface",
+    "sig": "interface MemberView { email: string; role: RoleId; invitedBy: string | null; invitedAt: string; lastSeenAt: string | null; }"
+   }
+  },
+  {
+   "id": "@wren/delivery#Milestone",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/schema"
+    ],
+    "file": "packages/delivery/src/schema.ts",
+    "kind": "type",
+    "sig": "type Milestone = typeof milestones.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/delivery#MilestoneState",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/restate"
+    ],
+    "file": "packages/delivery/src/views.ts",
+    "kind": "type",
+    "sig": "type MilestoneState = \"done\" | \"late\" | \"now\" | \"next\";"
+   }
+  },
+  {
+   "id": "@wren/delivery#Moment",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/schema"
+    ],
+    "file": "packages/delivery/src/schema.ts",
+    "kind": "type",
+    "sig": "type Moment = typeof moments.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/delivery#MomentView",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/restate"
+    ],
+    "file": "packages/delivery/src/views.ts",
+    "kind": "interface",
+    "sig": "interface MomentView { moment: string; label: string; reachedOn: string; mine: ReviewView | null; reviews: ReviewView[]; }"
+   }
+  },
+  {
+   "id": "@wren/delivery#NextView",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/restate"
+    ],
+    "file": "packages/delivery/src/views.ts",
+    "kind": "interface",
+    "sig": "interface NextView { id: string; name: string; promise: string; pitch: string; interested: boolean; }"
+   }
+  },
+  {
+   "id": "@wren/delivery#OWN_KINDS",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/billing"
+    ],
+    "file": "packages/delivery/src/billing/wise.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "Set<string>"
+   }
+  },
+  {
+   "id": "@wren/delivery#PARTS",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health"
+    ],
+    "file": "packages/delivery/src/health/score.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"results\", \"engagement\", \"sentiment\", \"money\"]"
+   }
+  },
+  {
+   "id": "@wren/delivery#PULSE_WORDS",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/routes"
+    ],
+    "file": "packages/delivery/src/routes.ts",
+    "kind": "const",
+    "sig": "Readonly<Record<number, string>>"
+   }
+  },
+  {
+   "id": "@wren/delivery#PaperworkView",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/restate"
+    ],
+    "file": "packages/delivery/src/views.ts",
+    "kind": "interface",
+    "sig": "interface PaperworkView { contract: { issuedAt: string; signedBy: string | null; signedAt: string | null } | null; setupPaid: boolean | null; access: AccessView[]; }"
+   }
+  },
+  {
+   "id": "@wren/delivery#Part",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health"
+    ],
+    "file": "packages/delivery/src/health/score.ts",
+    "kind": "type",
+    "sig": "type Part = (typeof PARTS)[number];"
+   }
+  },
+  {
+   "id": "@wren/delivery#PartScore",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health"
+    ],
+    "file": "packages/delivery/src/health/score.ts",
+    "kind": "interface",
+    "sig": "interface PartScore { score: number | null; why: string; at: string | null; stale: boolean; }"
+   }
+  },
+  {
+   "id": "@wren/delivery#PortalMail",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/restate"
+    ],
+    "file": "packages/delivery/src/watch.ts",
+    "kind": "interface",
+    "sig": "interface PortalMail { to: string; subject: string; text: string; attachments?: readonly { filename: string; contentType: string; content: Uint8Array }[]; }"
+   }
+  },
+  {
+   "id": "@wren/delivery#Pulse",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/schema"
+    ],
+    "file": "packages/delivery/src/schema.ts",
+    "kind": "type",
+    "sig": "type Pulse = typeof pulses.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/delivery#PulseView",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/restate"
+    ],
+    "file": "packages/delivery/src/views.ts",
+    "kind": "interface",
+    "sig": "interface PulseView { week: string; mine: number | null; scores: number[]; }"
+   }
+  },
+  {
+   "id": "@wren/delivery#QUOTE_CONSENTS",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/schema"
+    ],
+    "file": "packages/delivery/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"private\", \"anonymous\", \"named\"]"
+   }
+  },
+  {
+   "id": "@wren/delivery#QuoteConsent",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/schema"
+    ],
+    "file": "packages/delivery/src/schema.ts",
+    "kind": "type",
+    "sig": "type QuoteConsent = (typeof QUOTE_CONSENTS)[number];"
+   }
+  },
+  {
+   "id": "@wren/delivery#REVIEW_WORDS",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/routes"
+    ],
+    "file": "packages/delivery/src/routes.ts",
+    "kind": "const",
+    "sig": "Readonly<Record<number, string>>"
+   }
+  },
+  {
+   "id": "@wren/delivery#ReceiveDetails",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/billing"
+    ],
+    "file": "packages/delivery/src/billing/receive.ts",
+    "kind": "type",
+    "sig": "type ReceiveDetails = Readonly<Record<string, ReceiveFields>>;"
+   }
+  },
+  {
+   "id": "@wren/delivery#Result",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/schema"
+    ],
+    "file": "packages/delivery/src/schema.ts",
+    "kind": "type",
+    "sig": "type Result = typeof results.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/delivery#ResultView",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/restate"
+    ],
+    "file": "packages/delivery/src/views.ts",
+    "kind": "interface",
+    "sig": "interface ResultView { key: string; label: string; unit: string; value: number | null; note: string | null; at: string | null; }"
+   }
+  },
+  {
+   "id": "@wren/delivery#Reversed",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/invoices.ts",
+    "kind": "interface",
+    "sig": "interface Reversed { invoice: Invoice; paused: boolean; }"
+   }
+  },
+  {
+   "id": "@wren/delivery#Review",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/schema"
+    ],
+    "file": "packages/delivery/src/schema.ts",
+    "kind": "type",
+    "sig": "type Review = typeof reviews.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/delivery#ReviewView",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/restate"
+    ],
+    "file": "packages/delivery/src/views.ts",
+    "kind": "interface",
+    "sig": "interface ReviewView { email: string; score: number | null; words: string | null; mayQuote: QuoteConsent; }"
+   }
+  },
+  {
+   "id": "@wren/delivery#SAMPLE_REFRESH_DAYS",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/sample"
+    ],
+    "file": "packages/delivery/src/sample.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "7"
+   }
+  },
+  {
+   "id": "@wren/delivery#STALE_DAYS",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health"
+    ],
+    "file": "packages/delivery/src/health/score.ts",
+    "kind": "const",
+    "sig": "Readonly<Partial<Record<Part, number>>>"
+   }
+  },
+  {
+   "id": "@wren/delivery#StepView",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/restate"
+    ],
+    "file": "packages/delivery/src/views.ts",
+    "kind": "interface",
+    "sig": "interface StepView extends Pick< Milestone, \"key\" | \"name\" | \"plannedFrom\" | \"plannedTo\" | \"dueOn\" | \"doneOn\" | \"slipReason\" | \"promised\" > { state: MilestoneState; }"
+   }
+  },
+  {
+   "id": "@wren/delivery#Taken",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/billing"
+    ],
+    "file": "packages/delivery/src/billing/credits.ts",
+    "kind": "interface",
+    "sig": "interface Taken { credit: WiseCredit; match: Match; invoice: (Invoice & { clientId: string; clientName: string }) | null; }"
+   }
+  },
+  {
+   "id": "@wren/delivery#Terms",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/schema"
+    ],
+    "file": "packages/offers/src/terms.ts",
+    "kind": "interface",
+    "sig": "interface Terms { currency: string; setupCents: number; monthlyCents: number | null; perUnitCents: number | null; unit: string | null; capCents: number | null; days: number | null; until?: number | null; refundIfNone?: { minContacts: number } | null; payDays: number; shareBps?: number | null; floorCents?: number | null; installments?: { count: number; everyDays: number } | null; trialDays?: number | null; }"
+   }
+  },
+  {
+   "id": "@wren/delivery#Update",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/schema"
+    ],
+    "file": "packages/delivery/src/schema.ts",
+    "kind": "type",
+    "sig": "type Update = typeof updates.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/delivery#UpdateView",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/restate"
+    ],
+    "file": "packages/delivery/src/views.ts",
+    "kind": "type",
+    "sig": "type UpdateView = Pick<Update, \"id\" | \"author\" | \"body\" | \"internal\"> & { step: string | null; at: string; hidden: boolean; comments: CommentView[]; };"
+   }
+  },
+  {
+   "id": "@wren/delivery#UsageItem",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/invoices.ts",
+    "kind": "interface",
+    "sig": "interface UsageItem { vendor: string; month: string; units: number; cents: number; }"
+   }
+  },
+  {
+   "id": "@wren/delivery#VISITS_WANTED",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health"
+    ],
+    "file": "packages/delivery/src/health/score.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "4"
+   }
+  },
+  {
+   "id": "@wren/delivery#WATCH",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/restate"
+    ],
+    "file": "packages/delivery/src/watch.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"DeliveryWatch\""
+   }
+  },
+  {
+   "id": "@wren/delivery#WATCH_KEY",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/restate"
+    ],
+    "file": "packages/delivery/src/watch.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"fleet\""
+   }
+  },
+  {
+   "id": "@wren/delivery#WEIGHTS",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health"
+    ],
+    "file": "packages/delivery/src/health/score.ts",
+    "kind": "const",
+    "sig": "Readonly<Record<Part, number>>"
+   }
+  },
+  {
+   "id": "@wren/delivery#WORK_APP",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/moments.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"work\""
+   }
+  },
+  {
+   "id": "@wren/delivery#WREN_PARTY",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/contract.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly name: \"William Jin, operating as Wren Automation\"; readonly place: \"Toronto, Ontario, Canada\"; readonly email: \"william@wrenautomation.com\"; }"
+   }
+  },
+  {
+   "id": "@wren/delivery#WatchDeps",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/restate"
+    ],
+    "file": "packages/delivery/src/watch.ts",
+    "kind": "interface",
+    "sig": "interface WatchDeps { main: Db; send: ((m: PortalMail) => Promise<void>) | null; app: string; zone: string; notifier?: Notifier; ops?: Notifier; fire?: FireTriggers; failures?: { of(client: string | null): Promise<FailedRun[]>; name(workflow: string): string; }; }"
+   }
+  },
+  {
+   "id": "@wren/delivery#WatchStats",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/restate"
+    ],
+    "file": "packages/delivery/src/watch.ts",
+    "kind": "interface",
+    "sig": "interface WatchStats { welcomed: number; contracts: number; told: number; digests: number; raised: number; cleared: number; alerted: number; scored: number; fired: Fired[]; moments: number; reminded: number; heard: number; failed: number; lastError: string | null; sample: boolean; }"
+   }
+  },
+  {
+   "id": "@wren/delivery#WiseCredit",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/schema"
+    ],
+    "file": "packages/delivery/src/schema.ts",
+    "kind": "type",
+    "sig": "type WiseCredit = typeof wiseCredits.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/delivery#WiseError",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/billing"
+    ],
+    "file": "packages/delivery/src/billing/wise.ts",
+    "kind": "class",
+    "sig": ""
+   }
+  },
+  {
+   "id": "@wren/delivery#WiseReader",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/billing"
+    ],
+    "file": "packages/delivery/src/billing/wise.ts",
+    "kind": "interface",
+    "sig": "interface WiseReader { credits(from: Date, to: Date): Promise<CreditIn[]>; }"
+   }
+  },
+  {
+   "id": "@wren/delivery#accessRequests",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/schema"
+    ],
+    "file": "packages/delivery/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"access_requests\"; schema: \"delivery\"; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"access_requests\"; dataType: \"number\"; columnType: \"PgSerial\"; data: number; driverParam: number; notNull: true; hasDefault: …"
+   }
+  },
+  {
+   "id": "@wren/delivery#addAsk",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/work.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, e: Engagement, input: { text: string; dueOn?: string | undefined; milestone?: string | undefined; by: string }): Promise<Ask>"
+   }
+  },
+  {
+   "id": "@wren/delivery#addComment",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/work.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, clientId: string, input: { on: CommentOn; body: string; by: string; fromWren: boolean }): Promise<Comment>"
+   }
+  },
+  {
+   "id": "@wren/delivery#addDays",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/rows.ts",
+    "kind": "function",
+    "sig": "(day: string, n: number): string"
+   }
+  },
+  {
+   "id": "@wren/delivery#addDeliverable",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/work.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, e: Engagement, input: { title: string; kind: DeliverableKind; url?: string | undefined; fileKey?: string | undefined; milestone?: string | undefined; replaces?: number | undefined; by: string; }): Promise<Deliverable>"
+   }
+  },
+  {
+   "id": "@wren/delivery#addInvoice",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/invoices.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, e: Engagement, input: { description: string; cents: number; currency?: string | undefined; issuedOn?: string | undefined; dueOn: string; setup?: boolean | undefined; period?: string | undefined; units?: number | undefined; by: string; }): Promise<Invoice>"
+   }
+  },
+  {
+   "id": "@wren/delivery#addressFlag",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health"
+    ],
+    "file": "packages/delivery/src/health/flags.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, id: number, by: string, note: string | null, now = new Date()): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/delivery#ageDays",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health"
+    ],
+    "file": "packages/delivery/src/health/score.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(at: string | Date, now: Date): number"
+   }
+  },
+  {
+   "id": "@wren/delivery#agreementOf",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/onboarding.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, e: Engagement): Promise<Agreement | null>"
+   }
+  },
+  {
+   "id": "@wren/delivery#agreements",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/schema"
+    ],
+    "file": "packages/delivery/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"agreements\"; schema: \"delivery\"; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"agreements\"; dataType: \"number\"; columnType: \"PgSerial\"; data: number; driverParam: number; notNull: true; hasDefault: true; isPr…"
+   }
+  },
+  {
+   "id": "@wren/delivery#amount",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/contract.ts",
+    "kind": "function",
+    "sig": "(cents: number, currency: string): string"
+   }
+  },
+  {
+   "id": "@wren/delivery#answerAccess",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/onboarding.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, clientId: string, input: { id: number; status: string; note?: string | undefined; by: string }): Promise<AccessRequest>"
+   }
+  },
+  {
+   "id": "@wren/delivery#answerAsk",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/work.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, clientId: string, input: { id: number; answer?: string | undefined; fileKey?: string | undefined; by: string }): Promise<Ask>"
+   }
+  },
+  {
+   "id": "@wren/delivery#appOf",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/moments.ts",
+    "kind": "function",
+    "sig": "(offerId: string): string"
+   }
+  },
+  {
+   "id": "@wren/delivery#asks",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/schema"
+    ],
+    "file": "packages/delivery/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"asks\"; schema: \"delivery\"; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"asks\"; dataType: \"number\"; columnType: \"PgSerial\"; data: number; driverParam: number; notNull: true; hasDefault: true; isPrimaryKey: fa…"
+   }
+  },
+  {
+   "id": "@wren/delivery#bandOf",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health"
+    ],
+    "file": "packages/delivery/src/health/score.ts",
+    "kind": "function",
+    "sig": "(score: number | null): Band"
+   }
+  },
+  {
+   "id": "@wren/delivery#billCents",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/invoices.ts",
+    "kind": "function",
+    "sig": "(b: Bill): number"
+   }
+  },
+  {
+   "id": "@wren/delivery#billLines",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/invoices.ts",
+    "kind": "function",
+    "sig": "(b: Bill): InvoiceLine[]"
+   }
+  },
+  {
+   "id": "@wren/delivery#billMonth",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/invoices.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, period: string, today: string, by: string): Promise<Invoice[]>"
+   }
+  },
+  {
+   "id": "@wren/delivery#billToOf",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/billing"
+    ],
+    "file": "packages/delivery/src/billing/mail.ts",
+    "kind": "function",
+    "sig": "(c: { name: string; products: Record<string, unknown>; }): BillTo & { name: string }"
+   }
+  },
+  {
+   "id": "@wren/delivery#billingConsoleApi",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/billing/console"
+    ],
+    "file": "packages/delivery/src/billing/console.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Db): { match: (req: CreditsRequest) => Promise<{ done: string[]; }>; dismiss: (req: CreditsRequest) => Promise<{ done: string[]; }>; }"
+   }
+  },
+  {
+   "id": "@wren/delivery#billingPass",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/billing"
+    ],
+    "file": "packages/delivery/src/billing/watch.ts",
+    "kind": "function",
+    "sig": "(deps: BillingDeps, now: Date): Promise<BillingStats>"
+   }
+  },
+  {
+   "id": "@wren/delivery#billsDue",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/invoices.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, period: string): Promise<Bill[]>"
+   }
+  },
+  {
+   "id": "@wren/delivery#boughtBy",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/views.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, clientId: string): Promise< { id: number; offerId: string; offer: string; app: string; addOn: string | null; startsOn: string; status: EngagementStatus; }[] >"
+   }
+  },
+  {
+   "id": "@wren/delivery#capText",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/messaging"
+    ],
+    "file": "packages/delivery/src/messaging.ts",
+    "kind": "function",
+    "sig": "(n: number | null): string"
+   }
+  },
+  {
+   "id": "@wren/delivery#claimInvoiceChanges",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/billing"
+    ],
+    "file": "packages/delivery/src/billing/tell.ts",
+    "kind": "function",
+    "sig": "(db: Db, token: string, today: string): Promise<Fired[]>"
+   }
+  },
+  {
+   "id": "@wren/delivery#clearFlag",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health"
+    ],
+    "file": "packages/delivery/src/health/flags.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, id: number, by: string, now = new Date()): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/delivery#clearOverride",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health"
+    ],
+    "file": "packages/delivery/src/health/hand.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, clientId: string, by: string, now = new Date()): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/delivery#clientFlags",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health"
+    ],
+    "file": "packages/delivery/src/health/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"flags\"; schema: \"delivery\"; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"flags\"; dataType: \"number\"; columnType: \"PgSerial\"; data: number; driverParam: number; notNull: true; hasDefault: true; isPrimaryKey: …"
+   }
+  },
+  {
+   "id": "@wren/delivery#combine",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health"
+    ],
+    "file": "packages/delivery/src/health/score.ts",
+    "kind": "function",
+    "sig": "(parts: Readonly<Record<Part, Pick<PartScore, \"score\">>>, weights: Readonly<Record<Part, number>> = WEIGHTS): { score: number | null; weights: Record<Part, number> }"
+   }
+  },
+  {
+   "id": "@wren/delivery#comments",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/schema"
+    ],
+    "file": "packages/delivery/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"comments\"; schema: \"delivery\"; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"comments\"; dataType: \"number\"; columnType: \"PgSerial\"; data: number; driverParam: number; notNull: true; hasDefault: true; isPrimar…"
+   }
+  },
+  {
+   "id": "@wren/delivery#consoleFlags",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health"
+    ],
+    "file": "packages/delivery/src/health/views.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgViewWithSelection<\"console_flags\", false, { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"console_flags\"; dataType: \"number\"; columnType: \"PgInteger\"; data: number; driverParam: string | number; notNull: false; hasDefault: false; isPrimaryKey: f…"
+   }
+  },
+  {
+   "id": "@wren/delivery#consoleHealth",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health"
+    ],
+    "file": "packages/delivery/src/health/views.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgViewWithSelection<\"console_health\", false, { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"console_health\"; dataType: \"string\"; columnType: \"PgText\"; data: string; driverParam: string; notNull: false; hasDefault: false; isPrimaryKey: false; isAu…"
+   }
+  },
+  {
+   "id": "@wren/delivery#consoleHealthDays",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health"
+    ],
+    "file": "packages/delivery/src/health/views.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgViewWithSelection<\"console_health_days\", false, { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"console_health_days\"; dataType: \"string\"; columnType: \"PgText\"; data: string; driverParam: string; notNull: false; hasDefault: false; isPrimaryKey: f…"
+   }
+  },
+  {
+   "id": "@wren/delivery#consoleHealthInputs",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health"
+    ],
+    "file": "packages/delivery/src/health/views.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgViewWithSelection<\"console_health_inputs\", false, { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"console_health_inputs\"; dataType: \"string\"; columnType: \"PgText\"; data: string; driverParam: string; notNull: false; hasDefault: false; isPrimaryKe…"
+   }
+  },
+  {
+   "id": "@wren/delivery#contractText",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/contract.ts",
+    "kind": "function",
+    "sig": "(input: { clientName: string; offer: Offer; terms: Terms }): string"
+   }
+  },
+  {
+   "id": "@wren/delivery#creditApprovalId",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/billing/console"
+    ],
+    "file": "packages/delivery/src/billing/console.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(id: number): string"
+   }
+  },
+  {
+   "id": "@wren/delivery#creditOf",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/billing"
+    ],
+    "file": "packages/delivery/src/billing/wise.ts",
+    "kind": "function",
+    "sig": "(balanceId: string, t: Record<string, unknown>): CreditIn | null"
+   }
+  },
+  {
+   "id": "@wren/delivery#creditsList",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/billing"
+    ],
+    "file": "packages/delivery/src/billing/credits.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, o: { status?: readonly CreditStatus[]; limit?: number } = {}): Promise<CreditView[]>"
+   }
+  },
+  {
+   "id": "@wren/delivery#datedPlan",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/work.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(offer: Offer, startsOn: string): { phase: import(\"@wren/offers\").Phase; position: number; plannedFrom: string; plannedTo: string | null; asksDue: string; }[]"
+   }
+  },
+  {
+   "id": "@wren/delivery#dayOf",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/rows.ts",
+    "kind": "function",
+    "sig": "(v: string, what = \"date\"): string"
+   }
+  },
+  {
+   "id": "@wren/delivery#decideDeliverable",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/work.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, clientId: string, input: { id: number; decision: Exclude<DeliverableState, \"waiting\">; note?: string | undefined; by: string; }): Promise<Deliverable>"
+   }
+  },
+  {
+   "id": "@wren/delivery#deliverables",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/schema"
+    ],
+    "file": "packages/delivery/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"deliverables\"; schema: \"delivery\"; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"deliverables\"; dataType: \"number\"; columnType: \"PgSerial\"; data: number; driverParam: number; notNull: true; hasDefault: true; …"
+   }
+  },
+  {
+   "id": "@wren/delivery#delivery",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/schema"
+    ],
+    "file": "packages/delivery/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgSchema<\"delivery\">"
+   }
+  },
+  {
+   "id": "@wren/delivery#deliveryApi",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/restate"
+    ],
+    "file": "packages/delivery/src/service.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(deps: DeliveryDeps): { me: (req: PortalRequest) => Promise<Me>; board: (req: PortalRequest) => Promise<BoardRow[]>; home: (req: PortalRequest) => Promise<DeliveryHome>; recordsTypes: (req: RecordsReq) => Promise<RecordMeta[]>; recordsList: (req: RecordsReq & ListAsk) => Promise<RecordsPage>; recordsGet: (req: RecordsReq…"
+   }
+  },
+  {
+   "id": "@wren/delivery#deliveryHome",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/views.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, clientId: string, opts: { operator: boolean; today?: string; email?: string | null }): Promise<DeliveryHome>"
+   }
+  },
+  {
+   "id": "@wren/delivery#deliveryRecords",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/records"
+    ],
+    "file": "packages/delivery/src/records.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, clientId: string, operator: boolean, app = WORK_APP, bills: () => Promise<boolean> = async () => operator, manages: () => Promise<boolean> = async () => operator, messaging?: () => Promise<MessageSettings & { senderReads?: boolean }>, receive: ReceiveDetails = {}): RecordType[]"
+   }
+  },
+  {
+   "id": "@wren/delivery#dismissCredit",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/billing"
+    ],
+    "file": "packages/delivery/src/billing/credits.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, creditId: number, by: string): Promise<WiseCredit>"
+   }
+  },
+  {
+   "id": "@wren/delivery#disputeInvoice",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/invoices.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, clientId: string, number: string, dispute: InvoiceDispute | null, by: string): Promise<Reversed>"
+   }
+  },
+  {
+   "id": "@wren/delivery#dueOf",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/billing"
+    ],
+    "file": "packages/delivery/src/billing/match.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(i: Pick<InvoiceFacts, \"cents\" | \"receivedCents\">): number"
+   }
+  },
+  {
+   "id": "@wren/delivery#engagementOf",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/rows.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, clientId: string, id?: number): Promise<Engagement>"
+   }
+  },
+  {
+   "id": "@wren/delivery#engagements",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/schema"
+    ],
+    "file": "packages/delivery/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"engagements\"; schema: \"delivery\"; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"engagements\"; dataType: \"number\"; columnType: \"PgSerial\"; data: number; driverParam: number; notNull: true; hasDefault: true; is…"
+   }
+  },
+  {
+   "id": "@wren/delivery#expectedBy",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health"
+    ],
+    "file": "packages/delivery/src/health/score.ts",
+    "kind": "function",
+    "sig": "(t: { count: number; fromDay: number }, days: number, day: number): number"
+   }
+  },
+  {
+   "id": "@wren/delivery#failedLines",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health"
+    ],
+    "file": "packages/delivery/src/health/flags.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(runs: readonly FailedRun[], name: (workflow: string) => string): string[]"
+   }
+  },
+  {
+   "id": "@wren/delivery#fileNameOf",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/files"
+    ],
+    "file": "packages/delivery/src/files.ts",
+    "kind": "function",
+    "sig": "(key: string): string"
+   }
+  },
+  {
+   "id": "@wren/delivery#flagDigests",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health"
+    ],
+    "file": "packages/delivery/src/health/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"flag_digests\"; schema: \"delivery\"; columns: { day: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"day\"; tableName: \"flag_digests\"; dataType: \"string\"; columnType: \"PgDateString\"; data: string; driverParam: string; notNull: true; hasDefault: …"
+   }
+  },
+  {
+   "id": "@wren/delivery#flagRecord",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health"
+    ],
+    "file": "packages/delivery/src/health/records.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "RecordType"
+   }
+  },
+  {
+   "id": "@wren/delivery#flagsToFire",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health"
+    ],
+    "file": "packages/delivery/src/health/flags.ts",
+    "kind": "function",
+    "sig": "(db: Db, now: Date): Promise<Fired[]>"
+   }
+  },
+  {
+   "id": "@wren/delivery#healthConsoleApi",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health/console"
+    ],
+    "file": "packages/delivery/src/health/console.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Db): { rate: (req: RateRequest) => Promise<{ done: string[]; }>; override: (req: OverrideRequest) => Promise<{ done: string[]; }>; clearOverride: (req: IdsRequest) => Promise<{ done: string[]; }>; flagRaise: (req: RaiseRequest) => Promise<{ done: string[]; id: string | undefined; }>; flagTake: (req: IdsR…"
+   }
+  },
+  {
+   "id": "@wren/delivery#healthDays",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health"
+    ],
+    "file": "packages/delivery/src/health/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"health_days\"; schema: \"delivery\"; columns: { clientId: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"client_id\"; tableName: \"health_days\"; dataType: \"string\"; columnType: \"PgVarchar\"; data: string; driverParam: string; notNull: true; hasDef…"
+   }
+  },
+  {
+   "id": "@wren/delivery#healthOverrides",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health"
+    ],
+    "file": "packages/delivery/src/health/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"health_overrides\"; schema: \"delivery\"; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"health_overrides\"; dataType: \"number\"; columnType: \"PgSerial\"; data: number; driverParam: number; notNull: true; hasDefault…"
+   }
+  },
+  {
+   "id": "@wren/delivery#healthPass",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health"
+    ],
+    "file": "packages/delivery/src/health/pass.ts",
+    "kind": "function",
+    "sig": "(main: Db, zone: string, now: Date): Promise<{ scored: number; flags: FlagFind[] }>"
+   }
+  },
+  {
+   "id": "@wren/delivery#healthRatings",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health"
+    ],
+    "file": "packages/delivery/src/health/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"health_ratings\"; schema: \"delivery\"; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"health_ratings\"; dataType: \"number\"; columnType: \"PgSerial\"; data: number; driverParam: number; notNull: true; hasDefault: tr…"
+   }
+  },
+  {
+   "id": "@wren/delivery#hideUpdate",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/work.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, clientId: string, id: number): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/delivery#interests",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/schema"
+    ],
+    "file": "packages/delivery/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"interests\"; schema: \"delivery\"; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"interests\"; dataType: \"number\"; columnType: \"PgSerial\"; data: number; driverParam: number; notNull: true; hasDefault: true; isPrim…"
+   }
+  },
+  {
+   "id": "@wren/delivery#invoiceFile",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/billing"
+    ],
+    "file": "packages/delivery/src/billing/mail.ts",
+    "kind": "function",
+    "sig": "(i: Pick< Invoice, \"number\" | \"issuedOn\" | \"dueOn\" | \"currency\" | \"cents\" | \"lines\" | \"description\" >, to: BillTo & { name: string }, receive: ReceiveDetails, taxNumber?: string): Promise<Uint8Array>"
+   }
+  },
+  {
+   "id": "@wren/delivery#invoiceFired",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/billing"
+    ],
+    "file": "packages/delivery/src/billing/tell.ts",
+    "kind": "function",
+    "sig": "(i: Invoice, change: InvoiceChange, who: { client: string; name: string; email: string | null }): Fired"
+   }
+  },
+  {
+   "id": "@wren/delivery#invoiceNumbers",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/schema"
+    ],
+    "file": "packages/delivery/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgSequence"
+   }
+  },
+  {
+   "id": "@wren/delivery#invoiceReached",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/billing"
+    ],
+    "file": "packages/delivery/src/billing/tell.ts",
+    "kind": "function",
+    "sig": "(i: Pick<Invoice, \"status\" | \"refundedCents\" | \"dueOn\">, today: string): InvoiceChange[]"
+   }
+  },
+  {
+   "id": "@wren/delivery#invoices",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/schema"
+    ],
+    "file": "packages/delivery/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"invoices\"; schema: \"delivery\"; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"invoices\"; dataType: \"number\"; columnType: \"PgSerial\"; data: number; driverParam: number; notNull: true; hasDefault: true; isPrimar…"
+   }
+  },
+  {
+   "id": "@wren/delivery#invoicesOf",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/views.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, clientId: string, today = todayUtc()): Promise<InvoiceView[]>"
+   }
+  },
+  {
+   "id": "@wren/delivery#keepSampleFresh",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/sample"
+    ],
+    "file": "packages/delivery/src/sample.ts",
+    "kind": "function",
+    "sig": "(db: Db, today: string): Promise<boolean>"
+   }
+  },
+  {
+   "id": "@wren/delivery#mailInvoices",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/billing"
+    ],
+    "file": "packages/delivery/src/billing/mail.ts",
+    "kind": "function",
+    "sig": "(main: Db, send: (m: PortalMail) => Promise<void>, receive: ReceiveDetails, app: string, now: Date, taxNumber?: string): Promise<MailStats & { sent: { number: string; client: string }[] }>"
+   }
+  },
+  {
+   "id": "@wren/delivery#mailLevelOf",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/moments.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, clientId: string, email: string): Promise<MailLevel>"
+   }
+  },
+  {
+   "id": "@wren/delivery#makeBillingConsole",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/billing/console"
+    ],
+    "file": "packages/delivery/src/billing/console.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Db): restate.ServiceDefinition<\"BillingConsole\", { match: (ctx: restate.Context, req: CreditsRequest) => Promise<{ done: string[]; }>; dismiss: (ctx: restate.Context, req: CreditsRequest) => Promise<{ done: string[]; }>; }>"
+   }
+  },
+  {
+   "id": "@wren/delivery#makeBillingWatch",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/billing"
+    ],
+    "file": "packages/delivery/src/billing/watch.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(deps: BillingDeps): restate.VirtualObjectDefinition<string, Record<never, never> & Record<never, (ctx: restate.ObjectContext) => Promise<import(\"@wren/core/restate\").PassOutcome<BillingStats>>> & { sync: (ctx: restate.ObjectContext) => Promise<import(\"@wren/core/restate\").PassOutcome<BillingStats>>; start: (ctx: restat…"
+   }
+  },
+  {
+   "id": "@wren/delivery#makeDeliveryPortal",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/restate"
+    ],
+    "file": "packages/delivery/src/service.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(deps: DeliveryDeps): restate.ServiceDefinition<\"DeliveryPortal\", { me: (_: restate.Context, req: PortalRequest) => Promise<Me>; board: (_: restate.Context, req: PortalRequest) => Promise<BoardRow[]>; home: (_: restate.Context, req: PortalRequest) => Promise<DeliveryHome>; recordsTypes: (_: restate.Context, req: RecordsR…"
+   }
+  },
+  {
+   "id": "@wren/delivery#makeDeliveryWatch",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/restate"
+    ],
+    "file": "packages/delivery/src/watch.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(deps: WatchDeps): restate.VirtualObjectDefinition<string, Record<never, never> & Record<never, (ctx: restate.ObjectContext) => Promise<import(\"@wren/core/restate\").PassOutcome<WatchStats>>> & { sync: (ctx: restate.ObjectContext) => Promise<import(\"@wren/core/restate\").PassOutcome<WatchStats>>; start: (ctx: restate.Ob…"
+   }
+  },
+  {
+   "id": "@wren/delivery#makeDomainsResolver",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/restate"
+    ],
+    "file": "packages/delivery/src/domains.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(deps: Pick<DomainsDeps, \"main\">): restate.ServiceDefinition<\"Domains\", { resolve: (_: restate.Context, req: { host: string; }) => Promise<{ client: string | null; }>; }>"
+   }
+  },
+  {
+   "id": "@wren/delivery#makeHealthConsole",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health/console"
+    ],
+    "file": "packages/delivery/src/health/console.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(db: Db): restate.ServiceDefinition<\"HealthConsole\", { rate: (ctx: restate.Context, req: RateRequest) => Promise<{ done: string[]; }>; override: (ctx: restate.Context, req: OverrideRequest) => Promise<{ done: string[]; }>; clearOverride: (ctx: restate.Context, req: IdsRequest) => Promise<{ done: string[]; }>;…"
+   }
+  },
+  {
+   "id": "@wren/delivery#markDone",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/work.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, e: Engagement, input: { milestone: string; on: string | null }): Promise<Milestone>"
+   }
+  },
+  {
+   "id": "@wren/delivery#markInvoice",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/invoices.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, clientId: string, number: string, status: string, on?: string): Promise<Invoice>"
+   }
+  },
+  {
+   "id": "@wren/delivery#matchByHand",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/billing"
+    ],
+    "file": "packages/delivery/src/billing/credits.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, creditId: number, number: string, by: string): Promise<Taken>"
+   }
+  },
+  {
+   "id": "@wren/delivery#matchCredit",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/billing"
+    ],
+    "file": "packages/delivery/src/billing/match.ts",
+    "kind": "function",
+    "sig": "(c: CreditFacts, invoices: readonly InvoiceFacts[]): Match"
+   }
+  },
+  {
+   "id": "@wren/delivery#meanOf",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health"
+    ],
+    "file": "packages/delivery/src/health/score.ts",
+    "kind": "function",
+    "sig": "(xs: readonly (number | null)[]): number | null"
+   }
+  },
+  {
+   "id": "@wren/delivery#memberMail",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/schema"
+    ],
+    "file": "packages/delivery/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"member_mail\"; schema: \"delivery\"; columns: { clientId: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"client_id\"; tableName: \"member_mail\"; dataType: \"string\"; columnType: \"PgVarchar\"; data: string; driverParam: string; notNull: true; hasDef…"
+   }
+  },
+  {
+   "id": "@wren/delivery#messagingApi",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/messaging"
+    ],
+    "file": "packages/delivery/src/messaging.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(deps: MessagingDeps): { messagingChange: (req: Change) => Promise<Done>; messagingSender: (req: Change) => Promise<Done>; messagingPostal: (req: Change) => Promise<Done>; messagingLinksOn: (req: Change) => Promise<Done>; messagingLinksOff: (req: Change) => Promise<Done>; }"
+   }
+  },
+  {
+   "id": "@wren/delivery#milestones",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/schema"
+    ],
+    "file": "packages/delivery/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"milestones\"; schema: \"delivery\"; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"milestones\"; dataType: \"number\"; columnType: \"PgSerial\"; data: number; driverParam: number; notNull: true; hasDefault: true; isPr…"
+   }
+  },
+  {
+   "id": "@wren/delivery#momentLabel",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/moments.ts",
+    "kind": "function",
+    "sig": "(offer: Offer, moment: string): string | null"
+   }
+  },
+  {
+   "id": "@wren/delivery#moments",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/schema"
+    ],
+    "file": "packages/delivery/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"moments\"; schema: \"delivery\"; columns: { engagementId: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"engagement_id\"; tableName: \"moments\"; dataType: \"number\"; columnType: \"PgInteger\"; data: number; driverParam: string | number; notNull: tru…"
+   }
+  },
+  {
+   "id": "@wren/delivery#momentsReached",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/moments.ts",
+    "kind": "function",
+    "sig": "(offer: Offer, e: Pick<Engagement, \"status\" | \"startsOn\">, values: ReadonlyMap<string, number | null>, today: string): string[]"
+   }
+  },
+  {
+   "id": "@wren/delivery#mondayOf",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/rows.ts",
+    "kind": "function",
+    "sig": "(day: string): string"
+   }
+  },
+  {
+   "id": "@wren/delivery#moneyScore",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health"
+    ],
+    "file": "packages/delivery/src/health/score.ts",
+    "kind": "function",
+    "sig": "(daysLate: number | null): number"
+   }
+  },
+  {
+   "id": "@wren/delivery#monthName",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/invoices.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(period: string): string"
+   }
+  },
+  {
+   "id": "@wren/delivery#nameKey",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/billing"
+    ],
+    "file": "packages/delivery/src/billing/match.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(s: string): string"
+   }
+  },
+  {
+   "id": "@wren/delivery#newFileKey",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/files"
+    ],
+    "file": "packages/delivery/src/files.ts",
+    "kind": "function",
+    "sig": "(clientId: string, name: string, now = new Date()): string"
+   }
+  },
+  {
+   "id": "@wren/delivery#nextOffers",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/moments.ts",
+    "kind": "function",
+    "sig": "(offer: Offer): Offer[]"
+   }
+  },
+  {
+   "id": "@wren/delivery#onboard",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/onboarding.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, input: { clientId: string; offerId: string; startsOn: string; terms?: Partial<Terms>; flat?: boolean; by: string; }): Promise<{ engagement: Engagement; agreement: Agreement }>"
+   }
+  },
+  {
+   "id": "@wren/delivery#overrideHealth",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health"
+    ],
+    "file": "packages/delivery/src/health/hand.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, r: { clientId: string; score: number; reason: string; by: string }, now = new Date()): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/delivery#ownFlag",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health"
+    ],
+    "file": "packages/delivery/src/health/flags.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, id: number, owner: string | null): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/delivery#pagePath",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/moments.ts",
+    "kind": "function",
+    "sig": "(offerIds: readonly string[], page: string): string"
+   }
+  },
+  {
+   "id": "@wren/delivery#parseBillTo",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/billing"
+    ],
+    "file": "packages/delivery/src/billing/mail.ts",
+    "kind": "function",
+    "sig": "(raw: unknown): BillTo"
+   }
+  },
+  {
+   "id": "@wren/delivery#parseReceive",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/billing"
+    ],
+    "file": "packages/delivery/src/billing/receive.ts",
+    "kind": "function",
+    "sig": "(raw: string | undefined): ReceiveDetails"
+   }
+  },
+  {
+   "id": "@wren/delivery#payFields",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/billing"
+    ],
+    "file": "packages/delivery/src/billing/receive.ts",
+    "kind": "function",
+    "sig": "(details: ReceiveDetails, currency: string): [string, string][]"
+   }
+  },
+  {
+   "id": "@wren/delivery#pdfName",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/billing"
+    ],
+    "file": "packages/delivery/src/billing/mail.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(i: Pick<Invoice, \"number\">): string"
+   }
+  },
+  {
+   "id": "@wren/delivery#planOf",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/onboarding.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(flat: boolean | undefined): \"flat\" | \"standard\""
+   }
+  },
+  {
+   "id": "@wren/delivery#postUpdate",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/work.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, e: Engagement, input: { body: string; author: string; milestone?: string | undefined; internal?: boolean | undefined; at?: Date | undefined; }): Promise<Update>"
+   }
+  },
+  {
+   "id": "@wren/delivery#pulses",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/schema"
+    ],
+    "file": "packages/delivery/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"pulses\"; schema: \"delivery\"; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"pulses\"; dataType: \"number\"; columnType: \"PgSerial\"; data: number; driverParam: number; notNull: true; hasDefault: true; isPrimaryKey…"
+   }
+  },
+  {
+   "id": "@wren/delivery#putLocalFile",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/files"
+    ],
+    "file": "packages/delivery/src/files.ts",
+    "kind": "function",
+    "sig": "(o: { bucket: string; region?: string }, key: string, path: string, type: string): Promise<number>"
+   }
+  },
+  {
+   "id": "@wren/delivery#raiseFlag",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health"
+    ],
+    "file": "packages/delivery/src/health/flags.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, r: { clientId: string; side: FlagSide; what: string; owner?: string | null; by: string }, now = new Date()): Promise<ClientFlag>"
+   }
+  },
+  {
+   "id": "@wren/delivery#rateClient",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health"
+    ],
+    "file": "packages/delivery/src/health/hand.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, r: { clientId: string; score: number; note?: string | null; by: string }, now = new Date()): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/delivery#ratingScore",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health"
+    ],
+    "file": "packages/delivery/src/health/score.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(rating: number): number"
+   }
+  },
+  {
+   "id": "@wren/delivery#readHealth",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health"
+    ],
+    "file": "packages/delivery/src/health/pass.ts",
+    "kind": "function",
+    "sig": "(main: Db, zone: string, now: Date, only?: string): Promise<HealthRead[]>"
+   }
+  },
+  {
+   "id": "@wren/delivery#recordInterest",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/moments.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, e: Engagement, input: { email: string; offerId: string }): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/delivery#recordPulse",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/work.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, e: Engagement, input: { email: string; score: number; note?: string | undefined; today?: string }): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/delivery#recordResult",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/work.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, e: Engagement, input: { key: string; value: number; note?: string | undefined; by: string }): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/delivery#recordReview",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/moments.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, e: Engagement, input: { email: string; moment: string; score: number | null; words?: string | undefined; mayQuote?: string | undefined; }): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/delivery#referencesIn",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/billing"
+    ],
+    "file": "packages/delivery/src/billing/match.ts",
+    "kind": "function",
+    "sig": "(text: string): string[]"
+   }
+  },
+  {
+   "id": "@wren/delivery#refundInvoice",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/invoices.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, clientId: string, number: string, refundedCents: number, by: string): Promise<Reversed>"
+   }
+  },
+  {
+   "id": "@wren/delivery#requestAccess",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/onboarding.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, e: Engagement, input: { system: string; scope: string; why: string; revoke: string; by: string }): Promise<AccessRequest>"
+   }
+  },
+  {
+   "id": "@wren/delivery#results",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/schema"
+    ],
+    "file": "packages/delivery/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"results\"; schema: \"delivery\"; columns: { engagementId: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"engagement_id\"; tableName: \"results\"; dataType: \"number\"; columnType: \"PgInteger\"; data: number; driverParam: string | number; notNull: tru…"
+   }
+  },
+  {
+   "id": "@wren/delivery#resultsScore",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health"
+    ],
+    "file": "packages/delivery/src/health/score.ts",
+    "kind": "function",
+    "sig": "(actual: number, expected: number): { score: number | null; why: string }"
+   }
+  },
+  {
+   "id": "@wren/delivery#reviews",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/schema"
+    ],
+    "file": "packages/delivery/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"reviews\"; schema: \"delivery\"; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"reviews\"; dataType: \"number\"; columnType: \"PgSerial\"; data: number; driverParam: number; notNull: true; hasDefault: true; isPrimaryK…"
+   }
+  },
+  {
+   "id": "@wren/delivery#s3Files",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/files"
+    ],
+    "file": "packages/delivery/src/files.ts",
+    "kind": "function",
+    "sig": "(o: { bucket: string; region?: string }): FileStore"
+   }
+  },
+  {
+   "id": "@wren/delivery#samePayer",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/billing"
+    ],
+    "file": "packages/delivery/src/billing/match.ts",
+    "kind": "function",
+    "sig": "(payer: string | null, client: string): boolean"
+   }
+  },
+  {
+   "id": "@wren/delivery#seedSample",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/sample"
+    ],
+    "file": "packages/delivery/src/sample.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, clientId: string, today: string): Promise<number>"
+   }
+  },
+  {
+   "id": "@wren/delivery#setBillTo",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/billing"
+    ],
+    "file": "packages/delivery/src/billing/mail.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, clientId: string, change: BillTo): Promise<BillTo & { name: string }>"
+   }
+  },
+  {
+   "id": "@wren/delivery#setEngagementSource",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/work.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, clientId: string, id: number, source: { channel: string | null; campaign: string | null }): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/delivery#setEngagementStatus",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/work.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, clientId: string, id: number, status: EngagementStatus): Promise<void>"
+   }
+  },
+  {
+   "id": "@wren/delivery#setMailLevel",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/moments.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, clientId: string, email: string, level: string): Promise<MailLevel>"
+   }
+  },
+  {
+   "id": "@wren/delivery#setupInvoice",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/invoices.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, e: Engagement, terms: Pick<Terms, \"setupCents\" | \"currency\" | \"payDays\">, by: string, today = todayUtc()): Promise<Invoice | null>"
+   }
+  },
+  {
+   "id": "@wren/delivery#shareScore",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health"
+    ],
+    "file": "packages/delivery/src/health/score.ts",
+    "kind": "function",
+    "sig": "(done: number, late: number): number | null"
+   }
+  },
+  {
+   "id": "@wren/delivery#shownScore",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health"
+    ],
+    "file": "packages/delivery/src/health/score.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(model: number | null, override: number | null): number | null"
+   }
+  },
+  {
+   "id": "@wren/delivery#signAgreement",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/onboarding.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, e: Engagement, input: { sha256: string; name: string; title?: string | undefined; email: string; agreed: boolean; ip?: string | undefined; agent?: string | undefined; }): Promise<Agreement>"
+   }
+  },
+  {
+   "id": "@wren/delivery#slipMilestone",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/work.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, e: Engagement, input: { milestone: string; to: string; reason: string }): Promise<Milestone>"
+   }
+  },
+  {
+   "id": "@wren/delivery#sourceHints",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/source.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, clientId: string, applications: readonly SiteApplicationTouch[]): Promise<SourceHint[]>"
+   }
+  },
+  {
+   "id": "@wren/delivery#staleOf",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health"
+    ],
+    "file": "packages/delivery/src/health/score.ts",
+    "kind": "function",
+    "sig": "(part: Part, at: string | null, now: Date): boolean"
+   }
+  },
+  {
+   "id": "@wren/delivery#startEngagement",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/work.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, input: { clientId: string; offerId: string; startsOn: string; by: string; status?: \"onboarding\" | \"active\"; }): Promise<Engagement>"
+   }
+  },
+  {
+   "id": "@wren/delivery#startIfReady",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/onboarding.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, e: Engagement, today = todayUtc()): Promise<boolean>"
+   }
+  },
+  {
+   "id": "@wren/delivery#stopIfReversed",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/invoices.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, e: Engagement, by: string): Promise<boolean>"
+   }
+  },
+  {
+   "id": "@wren/delivery#storedFile",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/views.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, clientId: string, of: { deliverableId: number } | { askId: number }): Promise<string | null>"
+   }
+  },
+  {
+   "id": "@wren/delivery#syncFlags",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health"
+    ],
+    "file": "packages/delivery/src/health/flags.ts",
+    "kind": "function",
+    "sig": "(db: Db, source: Exclude<FlagSource, \"person\">, found: readonly FlagFind[], now: Date): Promise<{ raised: number; cleared: number }>"
+   }
+  },
+  {
+   "id": "@wren/delivery#takeCredits",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/billing"
+    ],
+    "file": "packages/delivery/src/billing/credits.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, credits: readonly CreditIn[]): Promise<Taken[]>"
+   }
+  },
+  {
+   "id": "@wren/delivery#tellFlags",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health"
+    ],
+    "file": "packages/delivery/src/health/flags.ts",
+    "kind": "function",
+    "sig": "(db: Db, notifier: Notifier, today: string, hour: number, now: Date, wren: readonly string[] = [], ops?: Notifier): Promise<{ urgent: number; digest: number }>"
+   }
+  },
+  {
+   "id": "@wren/delivery#termsFor",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/onboarding.ts",
+    "kind": "function",
+    "sig": "(offer: Offer, over: Partial<Terms> = {}, flat = false, live?: Terms): Terms"
+   }
+  },
+  {
+   "id": "@wren/delivery#timeline",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/views.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, clientId: string, opts: { operator: boolean; engagementId?: number; before?: number; limit?: number }): Promise<{ updates: UpdateView[]; more: boolean }>"
+   }
+  },
+  {
+   "id": "@wren/delivery#todayUtc",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/rows.ts",
+    "kind": "function",
+    "sig": "(): string"
+   }
+  },
+  {
+   "id": "@wren/delivery#touchSource",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/source.ts",
+    "kind": "function",
+    "sig": "(raw: string): { channel: Channel; campaign: string | null } | null"
+   }
+  },
+  {
+   "id": "@wren/delivery#typeOfName",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/files",
+     "@wren/delivery/routes"
+    ],
+    "file": "packages/delivery/src/routes.ts",
+    "kind": "function",
+    "sig": "(name: string): string | undefined"
+   }
+  },
+  {
+   "id": "@wren/delivery#updates",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/schema"
+    ],
+    "file": "packages/delivery/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"updates\"; schema: \"delivery\"; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"updates\"; dataType: \"number\"; columnType: \"PgSerial\"; data: number; driverParam: number; notNull: true; hasDefault: true; isPrimaryK…"
+   }
+  },
+  {
+   "id": "@wren/delivery#visitsScore",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health"
+    ],
+    "file": "packages/delivery/src/health/score.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(days: number): number"
+   }
+  },
+  {
+   "id": "@wren/delivery#webhooksApi",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/webhooks"
+    ],
+    "file": "packages/delivery/src/webhooks.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(deps: { main: Db }): { webhooks: (req: PortalRequest) => Promise<{ webhooks: import(\"@wren/core/webhooks\").SubscriptionView[]; deliveries: import(\"@wren/core/webhooks\").DeliveryView[]; events: { id: string; says: \"A lead came in through a door\" | \"A form was filled\" | \"A lead replied by email, text or DM\" | \"A call was …"
+   }
+  },
+  {
+   "id": "@wren/delivery#weekday",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery"
+    ],
+    "file": "packages/delivery/src/rows.ts",
+    "kind": "function",
+    "sig": "(day: string): number"
+   }
+  },
+  {
+   "id": "@wren/delivery#wiseCredits",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery",
+     "@wren/delivery/schema"
+    ],
+    "file": "packages/delivery/src/schema.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "import(\"drizzle-orm/pg-core\").PgTableWithColumns<{ name: \"wise_credits\"; schema: \"delivery\"; columns: { id: import(\"drizzle-orm/pg-core\").PgColumn<{ name: \"id\"; tableName: \"wise_credits\"; dataType: \"number\"; columnType: \"PgSerial\"; data: number; driverParam: number; notNull: true; hasDefault: true; …"
+   }
+  },
+  {
+   "id": "@wren/delivery#wiseReader",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/billing"
+    ],
+    "file": "packages/delivery/src/billing/wise.ts",
+    "kind": "function",
+    "sig": "(o: { token: string; profileId: string; fetch?: typeof fetch; base?: string; }): WiseReader"
+   }
+  },
+  {
+   "id": "@wren/delivery#workflowFlags",
+   "role": "export",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "entries": [
+     "@wren/delivery/health"
+    ],
+    "file": "packages/delivery/src/health/flags.ts",
+    "kind": "function",
+    "sig": "(clientId: string, runs: readonly FailedRun[], name: (workflow: string) => string): FlagFind[]"
+   }
+  }
+ ],
+ "edges": []
+}

@@ -1,0 +1,220 @@
+{
+ "layer": "imports",
+ "nodes": [
+  {
+   "id": "@wren/auth-app",
+   "role": "package",
+   "parent": "repo:wren",
+   "group": "@wren/auth-app",
+   "attrs": {
+    "dir": "apps/auth/",
+    "npm": [
+     "node:child_process",
+     "node:crypto",
+     "node:fs",
+     "node:path",
+     "node:url"
+    ]
+   }
+  },
+  {
+   "id": "@wren/auth-app/lambda/build.mjs",
+   "role": "file",
+   "parent": "@wren/auth-app",
+   "group": "@wren/auth-app"
+  },
+  {
+   "id": "@wren/auth-app/lambda/http.ts",
+   "role": "file",
+   "parent": "@wren/auth-app",
+   "group": "@wren/auth-app"
+  },
+  {
+   "id": "@wren/auth-app/lambda/index.ts",
+   "role": "file",
+   "parent": "@wren/auth-app",
+   "group": "@wren/auth-app"
+  },
+  {
+   "id": "@wren/auth-app/lambda/keys.ts",
+   "role": "file",
+   "parent": "@wren/auth-app",
+   "group": "@wren/auth-app"
+  },
+  {
+   "id": "@wren/auth-app/src/headers.ts",
+   "role": "file",
+   "parent": "@wren/auth-app",
+   "group": "@wren/auth-app"
+  },
+  {
+   "id": "@wren/auth-app/src/worker.ts",
+   "role": "file",
+   "parent": "@wren/auth-app",
+   "group": "@wren/auth-app"
+  },
+  {
+   "id": "@wren/auth-app/web/src/App.tsx",
+   "role": "file",
+   "parent": "@wren/auth-app",
+   "group": "@wren/auth-app"
+  },
+  {
+   "id": "@wren/auth-app/web/src/app.css",
+   "role": "file",
+   "parent": "@wren/auth-app",
+   "group": "@wren/auth-app"
+  },
+  {
+   "id": "@wren/auth-app/web/src/main.tsx",
+   "role": "file",
+   "parent": "@wren/auth-app",
+   "group": "@wren/auth-app"
+  },
+  {
+   "id": "@wren/auth-app/web/src/next.ts",
+   "role": "file",
+   "parent": "@wren/auth-app",
+   "group": "@wren/auth-app"
+  },
+  {
+   "id": "@wren/auth-app/web/vite.config.ts",
+   "role": "file",
+   "parent": "@wren/auth-app",
+   "group": "@wren/auth-app"
+  }
+ ],
+ "edges": [
+  {
+   "from": "@wren/auth-app",
+   "to": "@wren/auth",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/auth-app",
+   "to": "@wren/channel-email",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/auth-app",
+   "to": "@wren/config",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/auth-app",
+   "to": "@wren/core",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/auth-app",
+   "to": "@wren/db",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/auth-app",
+   "to": "@wren/ui",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/auth-app/lambda/http.ts",
+   "to": "@wren/auth-app/src/headers.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/auth-app/lambda/index.ts",
+   "to": "@wren/auth-app/lambda/http.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/auth-app/lambda/index.ts",
+   "to": "@wren/auth-app/lambda/keys.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/auth-app/lambda/index.ts",
+   "to": "@wren/auth-app/src/headers.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/auth-app/lambda/index.ts",
+   "to": "@wren/auth/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/auth-app/lambda/index.ts",
+   "to": "@wren/channel-email/src/send/gmail.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/auth-app/lambda/index.ts",
+   "to": "@wren/config/src/ssm.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/auth-app/lambda/index.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/auth-app/lambda/index.ts",
+   "to": "@wren/core/src/keys.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/auth-app/lambda/index.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/auth-app/lambda/keys.ts",
+   "to": "@wren/auth-app/lambda/http.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/auth-app/lambda/keys.ts",
+   "to": "@wren/core/src/key-refs.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/auth-app/lambda/keys.ts",
+   "to": "@wren/core/src/keys.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/auth-app/lambda/keys.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/auth-app/src/worker.ts",
+   "to": "@wren/auth-app/src/headers.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/auth-app/web/src/App.tsx",
+   "to": "@wren/auth-app/web/src/next.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/auth-app/web/src/App.tsx",
+   "to": "@wren/ui/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/auth-app/web/src/main.tsx",
+   "to": "@wren/auth-app/web/src/App.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/auth-app/web/src/main.tsx",
+   "to": "@wren/auth-app/web/src/app.css",
+   "kind": "imports"
+  }
+ ]
+}

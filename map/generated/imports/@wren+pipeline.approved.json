@@ -1,0 +1,2002 @@
+{
+ "layer": "imports",
+ "nodes": [
+  {
+   "id": "@wren/pipeline",
+   "role": "package",
+   "parent": "repo:wren",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "dir": "packages/pipeline/",
+    "npm": [
+     "node:crypto",
+     "node:fs"
+    ]
+   }
+  },
+  {
+   "id": "@wren/pipeline/src/attach.ts",
+   "role": "file",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline"
+  },
+  {
+   "id": "@wren/pipeline/src/attribution.ts",
+   "role": "file",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline"
+  },
+  {
+   "id": "@wren/pipeline/src/blame.ts",
+   "role": "file",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline"
+  },
+  {
+   "id": "@wren/pipeline/src/carry.ts",
+   "role": "file",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline"
+  },
+  {
+   "id": "@wren/pipeline/src/chain-methods.ts",
+   "role": "file",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline"
+  },
+  {
+   "id": "@wren/pipeline/src/chain.ts",
+   "role": "file",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline"
+  },
+  {
+   "id": "@wren/pipeline/src/collect.ts",
+   "role": "file",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline"
+  },
+  {
+   "id": "@wren/pipeline/src/components.ts",
+   "role": "file",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline"
+  },
+  {
+   "id": "@wren/pipeline/src/console-routes.ts",
+   "role": "file",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline"
+  },
+  {
+   "id": "@wren/pipeline/src/console.ts",
+   "role": "file",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline"
+  },
+  {
+   "id": "@wren/pipeline/src/convert-shape.ts",
+   "role": "file",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline"
+  },
+  {
+   "id": "@wren/pipeline/src/convert.ts",
+   "role": "file",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline"
+  },
+  {
+   "id": "@wren/pipeline/src/diff.ts",
+   "role": "file",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline"
+  },
+  {
+   "id": "@wren/pipeline/src/drafts.ts",
+   "role": "file",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline"
+  },
+  {
+   "id": "@wren/pipeline/src/edit.ts",
+   "role": "file",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline"
+  },
+  {
+   "id": "@wren/pipeline/src/entry.ts",
+   "role": "file",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline"
+  },
+  {
+   "id": "@wren/pipeline/src/history.ts",
+   "role": "file",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline"
+  },
+  {
+   "id": "@wren/pipeline/src/icp.ts",
+   "role": "file",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline"
+  },
+  {
+   "id": "@wren/pipeline/src/journeys.ts",
+   "role": "file",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline"
+  },
+  {
+   "id": "@wren/pipeline/src/lines.ts",
+   "role": "file",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline"
+  },
+  {
+   "id": "@wren/pipeline/src/map-read.ts",
+   "role": "file",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline"
+  },
+  {
+   "id": "@wren/pipeline/src/metro-blame.ts",
+   "role": "file",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline"
+  },
+  {
+   "id": "@wren/pipeline/src/metro-diff.ts",
+   "role": "file",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline"
+  },
+  {
+   "id": "@wren/pipeline/src/metro-edit.ts",
+   "role": "file",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline"
+  },
+  {
+   "id": "@wren/pipeline/src/metro-file.ts",
+   "role": "file",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline"
+  },
+  {
+   "id": "@wren/pipeline/src/metro-merge.ts",
+   "role": "file",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline"
+  },
+  {
+   "id": "@wren/pipeline/src/metro-ops.ts",
+   "role": "file",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline"
+  },
+  {
+   "id": "@wren/pipeline/src/metro-parts.ts",
+   "role": "file",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline"
+  },
+  {
+   "id": "@wren/pipeline/src/metro.ts",
+   "role": "file",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline"
+  },
+  {
+   "id": "@wren/pipeline/src/mirror.ts",
+   "role": "file",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline"
+  },
+  {
+   "id": "@wren/pipeline/src/model.ts",
+   "role": "file",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline"
+  },
+  {
+   "id": "@wren/pipeline/src/moves.ts",
+   "role": "file",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline"
+  },
+  {
+   "id": "@wren/pipeline/src/numbers.ts",
+   "role": "file",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline"
+  },
+  {
+   "id": "@wren/pipeline/src/records.ts",
+   "role": "file",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline"
+  },
+  {
+   "id": "@wren/pipeline/src/refused.ts",
+   "role": "file",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline"
+  },
+  {
+   "id": "@wren/pipeline/src/research.ts",
+   "role": "file",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline"
+  },
+  {
+   "id": "@wren/pipeline/src/restate.ts",
+   "role": "file",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline"
+  },
+  {
+   "id": "@wren/pipeline/src/schedule.ts",
+   "role": "file",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline"
+  },
+  {
+   "id": "@wren/pipeline/src/schema.ts",
+   "role": "file",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline"
+  },
+  {
+   "id": "@wren/pipeline/src/shape-file.ts",
+   "role": "file",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline"
+  },
+  {
+   "id": "@wren/pipeline/src/sourced.ts",
+   "role": "file",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline"
+  },
+  {
+   "id": "@wren/pipeline/src/starter.ts",
+   "role": "file",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline"
+  },
+  {
+   "id": "@wren/pipeline/src/steps.ts",
+   "role": "file",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline"
+  },
+  {
+   "id": "@wren/pipeline/src/store.ts",
+   "role": "file",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline"
+  },
+  {
+   "id": "@wren/pipeline/src/stored.ts",
+   "role": "file",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline"
+  },
+  {
+   "id": "@wren/pipeline/src/tags.ts",
+   "role": "file",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline"
+  },
+  {
+   "id": "@wren/pipeline/src/undo.ts",
+   "role": "file",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline"
+  },
+  {
+   "id": "@wren/pipeline/src/views.ts",
+   "role": "file",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline"
+  },
+  {
+   "id": "@wren/pipeline/src/workflow.ts",
+   "role": "file",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline"
+  },
+  {
+   "id": "@wren/pipeline/test/fixtures.ts",
+   "role": "file",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline"
+  },
+  {
+   "id": "@wren/pipeline/vitest.config.ts",
+   "role": "file",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline"
+  }
+ ],
+ "edges": [
+  {
+   "from": "@wren/pipeline",
+   "to": "@wren/core",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline",
+   "to": "@wren/db",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline",
+   "to": "@wren/offers",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline",
+   "to": "@wren/research",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/attach.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/attach.ts",
+   "to": "@wren/pipeline/src/metro-ops.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/attach.ts",
+   "to": "@wren/pipeline/src/metro.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/attach.ts",
+   "to": "@wren/pipeline/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/attach.ts",
+   "to": "@wren/pipeline/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/attach.ts",
+   "to": "@wren/pipeline/src/stored.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/attribution.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/attribution.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/attribution.ts",
+   "to": "@wren/pipeline/src/entry.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/blame.ts",
+   "to": "@wren/pipeline/src/diff.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/blame.ts",
+   "to": "@wren/pipeline/src/history.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/blame.ts",
+   "to": "@wren/pipeline/src/model.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/carry.ts",
+   "to": "@wren/core/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/carry.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/carry.ts",
+   "to": "@wren/pipeline/src/model.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/carry.ts",
+   "to": "@wren/pipeline/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/carry.ts",
+   "to": "@wren/pipeline/src/stored.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/carry.ts",
+   "to": "@wren/pipeline/src/workflow.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/chain-methods.ts",
+   "to": "@wren/pipeline/src/chain.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/chain-methods.ts",
+   "to": "@wren/pipeline/src/model.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/chain.ts",
+   "to": "@wren/pipeline/src/model.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/collect.ts",
+   "to": "@wren/core/src/components.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/collect.ts",
+   "to": "@wren/core/src/executor.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/collect.ts",
+   "to": "@wren/core/src/ids.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/collect.ts",
+   "to": "@wren/core/src/profiles-schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/collect.ts",
+   "to": "@wren/core/src/workflows.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/collect.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/collect.ts",
+   "to": "@wren/pipeline/src/journeys.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/collect.ts",
+   "to": "@wren/pipeline/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/components.ts",
+   "to": "@wren/core/src/components.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/components.ts",
+   "to": "@wren/pipeline/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/console-routes.ts",
+   "to": "@wren/core/src/access.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/console.ts",
+   "to": "@wren/core/src/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/console.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/console.ts",
+   "to": "@wren/core/src/custom-fields.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/console.ts",
+   "to": "@wren/core/src/github.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/console.ts",
+   "to": "@wren/core/src/logic.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/console.ts",
+   "to": "@wren/core/src/portal.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/console.ts",
+   "to": "@wren/core/src/records-serve.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/console.ts",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/console.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/console.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/console.ts",
+   "to": "@wren/offers/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/console.ts",
+   "to": "@wren/pipeline/src/attach.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/console.ts",
+   "to": "@wren/pipeline/src/console-routes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/console.ts",
+   "to": "@wren/pipeline/src/drafts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/console.ts",
+   "to": "@wren/pipeline/src/history.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/console.ts",
+   "to": "@wren/pipeline/src/map-read.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/console.ts",
+   "to": "@wren/pipeline/src/metro-ops.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/console.ts",
+   "to": "@wren/pipeline/src/metro.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/console.ts",
+   "to": "@wren/pipeline/src/mirror.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/console.ts",
+   "to": "@wren/pipeline/src/model.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/console.ts",
+   "to": "@wren/pipeline/src/moves.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/console.ts",
+   "to": "@wren/pipeline/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/console.ts",
+   "to": "@wren/pipeline/src/restate.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/console.ts",
+   "to": "@wren/pipeline/src/shape-file.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/console.ts",
+   "to": "@wren/pipeline/src/starter.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/console.ts",
+   "to": "@wren/pipeline/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/console.ts",
+   "to": "@wren/pipeline/src/stored.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/console.ts",
+   "to": "@wren/pipeline/src/tags.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/console.ts",
+   "to": "@wren/pipeline/src/undo.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/convert-shape.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/convert-shape.ts",
+   "to": "@wren/pipeline/src/convert.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/convert-shape.ts",
+   "to": "@wren/pipeline/src/diff.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/convert-shape.ts",
+   "to": "@wren/pipeline/src/metro.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/convert-shape.ts",
+   "to": "@wren/pipeline/src/model.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/convert-shape.ts",
+   "to": "@wren/pipeline/src/numbers.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/convert-shape.ts",
+   "to": "@wren/pipeline/src/refused.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/convert-shape.ts",
+   "to": "@wren/pipeline/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/convert-shape.ts",
+   "to": "@wren/pipeline/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/convert-shape.ts",
+   "to": "@wren/pipeline/src/stored.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/convert-shape.ts",
+   "to": "@wren/pipeline/src/workflow.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/convert.ts",
+   "to": "@wren/pipeline/src/metro.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/convert.ts",
+   "to": "@wren/pipeline/src/model.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/diff.ts",
+   "to": "@wren/pipeline/src/model.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/drafts.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/drafts.ts",
+   "to": "@wren/pipeline/src/carry.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/drafts.ts",
+   "to": "@wren/pipeline/src/history.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/drafts.ts",
+   "to": "@wren/pipeline/src/metro-merge.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/drafts.ts",
+   "to": "@wren/pipeline/src/metro-ops.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/drafts.ts",
+   "to": "@wren/pipeline/src/metro.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/drafts.ts",
+   "to": "@wren/pipeline/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/drafts.ts",
+   "to": "@wren/pipeline/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/drafts.ts",
+   "to": "@wren/pipeline/src/stored.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/edit.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/edit.ts",
+   "to": "@wren/pipeline/src/carry.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/edit.ts",
+   "to": "@wren/pipeline/src/diff.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/edit.ts",
+   "to": "@wren/pipeline/src/metro-diff.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/edit.ts",
+   "to": "@wren/pipeline/src/metro-edit.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/edit.ts",
+   "to": "@wren/pipeline/src/metro.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/edit.ts",
+   "to": "@wren/pipeline/src/model.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/edit.ts",
+   "to": "@wren/pipeline/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/edit.ts",
+   "to": "@wren/pipeline/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/edit.ts",
+   "to": "@wren/pipeline/src/stored.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/entry.ts",
+   "to": "@wren/pipeline/src/model.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/history.ts",
+   "to": "@wren/pipeline/src/carry.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/history.ts",
+   "to": "@wren/pipeline/src/metro-diff.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/history.ts",
+   "to": "@wren/pipeline/src/metro.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/history.ts",
+   "to": "@wren/pipeline/src/model.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/history.ts",
+   "to": "@wren/pipeline/src/stored.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/icp.ts",
+   "to": "@wren/offers/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/journeys.ts",
+   "to": "@wren/core/src/components.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/journeys.ts",
+   "to": "@wren/core/src/executor.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/journeys.ts",
+   "to": "@wren/core/src/profiles-schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/journeys.ts",
+   "to": "@wren/core/src/profiles.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/journeys.ts",
+   "to": "@wren/core/src/workflows.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/journeys.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/journeys.ts",
+   "to": "@wren/pipeline/src/model.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/journeys.ts",
+   "to": "@wren/pipeline/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/journeys.ts",
+   "to": "@wren/pipeline/src/stored.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/journeys.ts",
+   "to": "@wren/pipeline/src/workflow.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/lines.ts",
+   "to": "@wren/core/src/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/lines.ts",
+   "to": "@wren/core/src/executor.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/lines.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/lines.ts",
+   "to": "@wren/pipeline/src/entry.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/lines.ts",
+   "to": "@wren/pipeline/src/journeys.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/lines.ts",
+   "to": "@wren/pipeline/src/model.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/lines.ts",
+   "to": "@wren/pipeline/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/lines.ts",
+   "to": "@wren/pipeline/src/stored.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/lines.ts",
+   "to": "@wren/pipeline/src/workflow.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/map-read.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/map-read.ts",
+   "to": "@wren/pipeline/src/history.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/map-read.ts",
+   "to": "@wren/pipeline/src/metro.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/map-read.ts",
+   "to": "@wren/pipeline/src/model.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/map-read.ts",
+   "to": "@wren/pipeline/src/numbers.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/map-read.ts",
+   "to": "@wren/pipeline/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/metro-blame.ts",
+   "to": "@wren/pipeline/src/blame.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/metro-blame.ts",
+   "to": "@wren/pipeline/src/history.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/metro-blame.ts",
+   "to": "@wren/pipeline/src/metro-diff.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/metro-blame.ts",
+   "to": "@wren/pipeline/src/metro.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/metro-diff.ts",
+   "to": "@wren/pipeline/src/diff.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/metro-diff.ts",
+   "to": "@wren/pipeline/src/metro.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/metro-edit.ts",
+   "to": "@wren/pipeline/src/diff.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/metro-edit.ts",
+   "to": "@wren/pipeline/src/metro-diff.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/metro-edit.ts",
+   "to": "@wren/pipeline/src/metro.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/metro-edit.ts",
+   "to": "@wren/pipeline/src/refused.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/metro-file.ts",
+   "to": "@wren/pipeline/src/metro.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/metro-file.ts",
+   "to": "@wren/pipeline/src/refused.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/metro-merge.ts",
+   "to": "@wren/pipeline/src/diff.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/metro-merge.ts",
+   "to": "@wren/pipeline/src/metro-diff.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/metro-merge.ts",
+   "to": "@wren/pipeline/src/metro.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/metro-ops.ts",
+   "to": "@wren/pipeline/src/convert.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/metro-ops.ts",
+   "to": "@wren/pipeline/src/metro-diff.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/metro-ops.ts",
+   "to": "@wren/pipeline/src/metro-edit.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/metro-ops.ts",
+   "to": "@wren/pipeline/src/metro-file.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/metro-ops.ts",
+   "to": "@wren/pipeline/src/metro.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/metro-ops.ts",
+   "to": "@wren/pipeline/src/model.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/metro-ops.ts",
+   "to": "@wren/pipeline/src/refused.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/metro-ops.ts",
+   "to": "@wren/pipeline/src/stored.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/metro-parts.ts",
+   "to": "@wren/pipeline/src/metro.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/metro.ts",
+   "to": "@wren/pipeline/src/model.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/mirror.ts",
+   "to": "@wren/core/src/github.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/mirror.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/mirror.ts",
+   "to": "@wren/pipeline/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/mirror.ts",
+   "to": "@wren/pipeline/src/shape-file.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/mirror.ts",
+   "to": "@wren/pipeline/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/model.ts",
+   "to": "@wren/core/src/logic.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/moves.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/moves.ts",
+   "to": "@wren/core/src/executor.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/moves.ts",
+   "to": "@wren/core/src/ids.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/moves.ts",
+   "to": "@wren/core/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/moves.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/moves.ts",
+   "to": "@wren/pipeline/src/entry.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/moves.ts",
+   "to": "@wren/pipeline/src/journeys.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/moves.ts",
+   "to": "@wren/pipeline/src/model.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/moves.ts",
+   "to": "@wren/pipeline/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/moves.ts",
+   "to": "@wren/pipeline/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/moves.ts",
+   "to": "@wren/pipeline/src/stored.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/moves.ts",
+   "to": "@wren/pipeline/src/workflow.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/numbers.ts",
+   "to": "@wren/core/src/profiles-schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/numbers.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/numbers.ts",
+   "to": "@wren/pipeline/src/chain-methods.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/numbers.ts",
+   "to": "@wren/pipeline/src/chain.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/numbers.ts",
+   "to": "@wren/pipeline/src/metro.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/numbers.ts",
+   "to": "@wren/pipeline/src/model.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/numbers.ts",
+   "to": "@wren/pipeline/src/schedule.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/numbers.ts",
+   "to": "@wren/pipeline/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/numbers.ts",
+   "to": "@wren/pipeline/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/numbers.ts",
+   "to": "@wren/pipeline/src/stored.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/numbers.ts",
+   "to": "@wren/pipeline/src/views.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/records.ts",
+   "to": "@wren/core/src/profiles-schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/records.ts",
+   "to": "@wren/core/src/profiles.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/records.ts",
+   "to": "@wren/core/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/records.ts",
+   "to": "@wren/core/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/records.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/records.ts",
+   "to": "@wren/offers/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/records.ts",
+   "to": "@wren/pipeline/src/history.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/records.ts",
+   "to": "@wren/pipeline/src/icp.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/records.ts",
+   "to": "@wren/pipeline/src/metro.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/records.ts",
+   "to": "@wren/pipeline/src/model.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/records.ts",
+   "to": "@wren/pipeline/src/moves.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/records.ts",
+   "to": "@wren/pipeline/src/numbers.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/records.ts",
+   "to": "@wren/pipeline/src/schedule.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/records.ts",
+   "to": "@wren/pipeline/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/records.ts",
+   "to": "@wren/pipeline/src/stored.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/research.ts",
+   "to": "@wren/core/src/profiles-schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/research.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/research.ts",
+   "to": "@wren/offers/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/research.ts",
+   "to": "@wren/pipeline/src/icp.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/research.ts",
+   "to": "@wren/pipeline/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/restate.ts",
+   "to": "@wren/core/src/executor.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/restate.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/restate.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/restate.ts",
+   "to": "@wren/pipeline/src/journeys.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/restate.ts",
+   "to": "@wren/pipeline/src/moves.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/restate.ts",
+   "to": "@wren/pipeline/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/restate.ts",
+   "to": "@wren/pipeline/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/schedule.ts",
+   "to": "@wren/offers/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/schema.ts",
+   "to": "@wren/core/src/profiles-schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/schema.ts",
+   "to": "@wren/db/src/columns.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/schema.ts",
+   "to": "@wren/offers/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/schema.ts",
+   "to": "@wren/pipeline/src/carry.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/schema.ts",
+   "to": "@wren/pipeline/src/history.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/schema.ts",
+   "to": "@wren/pipeline/src/model.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/schema.ts",
+   "to": "@wren/pipeline/src/stored.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/schema.ts",
+   "to": "@wren/research/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/shape-file.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/shape-file.ts",
+   "to": "@wren/offers/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/shape-file.ts",
+   "to": "@wren/pipeline/src/carry.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/shape-file.ts",
+   "to": "@wren/pipeline/src/metro-file.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/shape-file.ts",
+   "to": "@wren/pipeline/src/metro.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/shape-file.ts",
+   "to": "@wren/pipeline/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/shape-file.ts",
+   "to": "@wren/pipeline/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/shape-file.ts",
+   "to": "@wren/pipeline/src/stored.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/sourced.ts",
+   "to": "@wren/core/src/executor.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/sourced.ts",
+   "to": "@wren/core/src/logic.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/sourced.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/sourced.ts",
+   "to": "@wren/pipeline/src/entry.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/sourced.ts",
+   "to": "@wren/pipeline/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/sourced.ts",
+   "to": "@wren/pipeline/src/stored.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/starter.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/starter.ts",
+   "to": "@wren/pipeline/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/starter.ts",
+   "to": "@wren/pipeline/src/shape-file.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/starter.ts",
+   "to": "@wren/pipeline/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/steps.ts",
+   "to": "@wren/core/src/executor.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/steps.ts",
+   "to": "@wren/core/src/people-map-schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/steps.ts",
+   "to": "@wren/core/src/profiles-schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/steps.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/steps.ts",
+   "to": "@wren/pipeline/src/attribution.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/steps.ts",
+   "to": "@wren/pipeline/src/entry.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/steps.ts",
+   "to": "@wren/pipeline/src/journeys.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/steps.ts",
+   "to": "@wren/pipeline/src/model.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/steps.ts",
+   "to": "@wren/pipeline/src/moves.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/steps.ts",
+   "to": "@wren/pipeline/src/research.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/steps.ts",
+   "to": "@wren/pipeline/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/steps.ts",
+   "to": "@wren/pipeline/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/steps.ts",
+   "to": "@wren/pipeline/src/workflow.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/store.ts",
+   "to": "@wren/core/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/store.ts",
+   "to": "@wren/core/src/segments-schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/store.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/store.ts",
+   "to": "@wren/offers/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/store.ts",
+   "to": "@wren/pipeline/src/carry.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/store.ts",
+   "to": "@wren/pipeline/src/diff.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/store.ts",
+   "to": "@wren/pipeline/src/metro.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/store.ts",
+   "to": "@wren/pipeline/src/model.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/store.ts",
+   "to": "@wren/pipeline/src/refused.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/store.ts",
+   "to": "@wren/pipeline/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/store.ts",
+   "to": "@wren/pipeline/src/stored.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/stored.ts",
+   "to": "@wren/pipeline/src/blame.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/stored.ts",
+   "to": "@wren/pipeline/src/convert.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/stored.ts",
+   "to": "@wren/pipeline/src/diff.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/stored.ts",
+   "to": "@wren/pipeline/src/history.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/stored.ts",
+   "to": "@wren/pipeline/src/metro-blame.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/stored.ts",
+   "to": "@wren/pipeline/src/metro-diff.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/stored.ts",
+   "to": "@wren/pipeline/src/metro.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/stored.ts",
+   "to": "@wren/pipeline/src/model.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/stored.ts",
+   "to": "@wren/pipeline/src/refused.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/tags.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/tags.ts",
+   "to": "@wren/pipeline/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/tags.ts",
+   "to": "@wren/pipeline/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/undo.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/undo.ts",
+   "to": "@wren/pipeline/src/edit.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/undo.ts",
+   "to": "@wren/pipeline/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/undo.ts",
+   "to": "@wren/pipeline/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/undo.ts",
+   "to": "@wren/pipeline/src/stored.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/views.ts",
+   "to": "@wren/pipeline/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/workflow.ts",
+   "to": "@wren/core/src/components.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/workflow.ts",
+   "to": "@wren/core/src/logic.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/workflow.ts",
+   "to": "@wren/core/src/workflows.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/workflow.ts",
+   "to": "@wren/pipeline/src/model.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/test/fixtures.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/test/fixtures.ts",
+   "to": "@wren/pipeline/src/convert.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/test/fixtures.ts",
+   "to": "@wren/pipeline/src/metro.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/test/fixtures.ts",
+   "to": "@wren/pipeline/src/model.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/test/fixtures.ts",
+   "to": "@wren/pipeline/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/test/fixtures.ts",
+   "to": "@wren/pipeline/src/starter.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/test/fixtures.ts",
+   "to": "@wren/pipeline/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/vitest.config.ts",
+   "to": "@wren/db/src/testing-vitest.ts",
+   "kind": "imports"
+  }
+ ]
+}
