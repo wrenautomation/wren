@@ -27,7 +27,7 @@ import {
   writeSopFiles,
   youtubeSearch,
 } from "@wren/learn";
-import { ClaudeCodeLlm } from "@wren/llm";
+import { modelLlm } from "@wren/llm";
 import {
   addSource,
   buildSop,
@@ -44,6 +44,7 @@ import {
   writeSkill,
   youtubeSource,
 } from "@wren/research/sops";
+import { claudeCode } from "@wrenautomation/models/command";
 import type { Command } from "commander";
 import { inArray } from "drizzle-orm";
 import { learnReaders } from "./learn-readers.js";
@@ -277,7 +278,7 @@ export function registerSop(
             `sync skipped: ${err instanceof Error ? err.message.split("\n")[0] : String(err)}; building from standard.md and calls.md on disk`,
           ),
         );
-      const llm = new ClaudeCodeLlm(opts.model, { timeoutMs: 1_800_000 });
+      const llm = modelLlm(claudeCode(opts.model, { timeoutMs: 1_800_000 }));
       const text = await buildSop(dir, llm);
       console.log(`${join(dir, "SOP.md")} (${text.split(/\s+/).length} words)`);
     });
@@ -289,7 +290,7 @@ export function registerSop(
     )
     .option("--model <model>", "Claude Code model", "opus")
     .action(async (name: string, source: string | undefined, opts: { model: string }) => {
-      const llm = new ClaudeCodeLlm(opts.model, { timeoutMs: 1_800_000 });
+      const llm = modelLlm(claudeCode(opts.model, { timeoutMs: 1_800_000 }));
       for (const f of await extractPoints(join(sopsDir, name), llm, source)) console.log(f);
     });
 

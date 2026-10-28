@@ -67,8 +67,9 @@ const itemKindOf = (raw: string): ItemKind => {
   throw new Error(`--kind is one of ${ITEM_KINDS.join(", ")}`);
 };
 
-import { ClaudeCodeLlm, gatewayEmbed } from "@wren/llm";
+import { gatewayEmbed, modelLlm } from "@wren/llm";
 import { addSource, extractPoints } from "@wren/research/sops";
+import { claudeCode } from "@wrenautomation/models/command";
 import type { Command } from "commander";
 import { and, desc, eq, inArray, isNotNull, isNull } from "drizzle-orm";
 import { learnReaders } from "./learn-readers.js";
@@ -121,7 +122,7 @@ export function registerLearn(
   const sopsDir = resolve(rootDir, settings.sopsDir);
   const { reader, judgeFor, catalogReader } = learnReaders(settings, rootDir);
   const writer = (model: string) => {
-    const llm = new ClaudeCodeLlm(model, { timeoutMs: 1_800_000 });
+    const llm = modelLlm(claudeCode(model, { timeoutMs: 1_800_000 }));
     return {
       add: (dir: string, source: { name: string; md: string }) => addSource(dir, source),
       extract: async (dir: string, stem: string) => {

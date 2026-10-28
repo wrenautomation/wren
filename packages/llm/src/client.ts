@@ -4,24 +4,35 @@
  * persisted by the caller: a paid token is bought once) and the wall-clock latency,
  * which no provider body reports.
  *
- * Real providers ride the Vercel AI SDK: Anthropic natively, everything else through
- * the OpenAI-compatible provider. `name` records provider AND model
- * ("groq:openai/gpt-oss-120b") so enrichment provenance survives a provider swap;
- * `provider` names the vendor alone so usage can be summed per vendor.
+ * Real providers are `@wrenautomation/models` models; `modelLlm` adapts one. `name`
+ * records provider AND model ("groq:openai/gpt-oss-120b") so enrichment provenance
+ * survives a provider swap; `provider` names the vendor alone so usage can be summed
+ * per vendor.
  *
  * Keys travel in headers and never into error text.
  */
-import { createAnthropic } from "@ai-sdk/anthropic";
-import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import {
-  APICallError,
-  generateText,
-  type LanguageModel,
-  RetryError,
-  type SystemModelMessage,
-} from "ai";
-import { ClaudeCodeLlm, DEFAULT_CLAUDE_CODE_MODEL } from "./claude-code.js";
-import { wellFormed } from "./parsing.js";
+  anthropic,
+  COMPATIBLE,
+  type CompatibleVendor,
+  cohere,
+  compatible,
+  type Effort,
+  type EnvMap,
+  fleetKeys,
+  gateway,
+  isCompatible,
+  isCut,
+  isFiltered,
+  isInputRejected,
+  type Model,
+  type RotateOptions,
+  rotating,
+  type Usage,
+} from "@wrenautomation/models";
+import { claudeCode } from "@wrenautomation/models/command";
+
+export { type Effort, type EnvMap, fleetKeys };
 
 export interface LlmResponse {
   text: string;
@@ -30,9 +41,6 @@ export interface LlmResponse {
   /** Wall-clock milliseconds for the round trip, measured by the adapter. */
   latencyMs: number | null;
 }
-
-/** How hard a Claude model thinks: Anthropic's effort levels. Other vendors ignore it. */
-export type Effort = "low" | "medium" | "high" | "xhigh" | "max";
 
 export interface CompleteOptions {
   maxTokens?: number;
@@ -63,8 +71,8 @@ export interface LlmClient {
  * length: the prompt says how long ("at most 4 sentences"), and a lower cap only cuts it off.
  */
 const DEFAULT_MAX_TOKENS = 2048;
-/** The gateway's Gemini spends output tokens thinking first; 400 asked came back as 27 chars. */
-const GATEWAY_THINKING = 4096;
+/** Three tries a call: a busy answer (429, 5xx) waits 2 s, then 4 s, as the SDK's own retries did. */
+const RETRY: RotateOptions = { passes: 3 };
 
 /**
  * API-level failure (bad key, quota, malformed response): the caller should stop
@@ -81,15 +89,13 @@ export class LlmError extends Error {
 }
 
 /**
- * The provider refused THIS input (HTTP 400/422: too long, filtered). A fact about
+ * The provider refused THIS input (HTTP 400/413/422: too long, filtered). A fact about
  * the document, not the provider: callers record it against the unit and continue.
  * Deliberately NOT a subclass of LlmError so a `catch LlmError` cannot swallow it.
  */
 export class LlmInputRejected extends Error {
   override name = "LlmInputRejected";
 }
-
-const INPUT_REJECTED_STATUSES: ReadonlySet<number> = new Set([400, 422]);
 
 type FakeResponder = (prompt: string, system?: string) => string | Promise<string>;
 
@@ -112,207 +118,115 @@ export class FakeLlm implements LlmClient {
   }
 }
 
-/** Unwrap the AI SDK's retry wrapper so the status of the last attempt is visible. */
-function rootCause(err: unknown): unknown {
-  return RetryError.isInstance(err) ? err.lastError : err;
+const isRecord = (v: unknown): v is Record<string, unknown> =>
+  v !== null && typeof v === "object" && !Array.isArray(v);
+
+/**
+ * `raw` in Anthropic's vocabulary (input_tokens/output_tokens/stop_reason), so audit reads every
+ * provider with one code path. The model's own body stays beside it; `cost` is its priced USD.
+ */
+function rawOf(
+  m: Model,
+  r: { stop?: string | undefined; usage: Usage; raw?: unknown },
+): Record<string, unknown> {
+  const body = isRecord(r.raw) ? r.raw : {};
+  const tokens = isRecord(body.usage) ? body.usage : {};
+  const u = r.usage;
+  return {
+    ...body,
+    provider: m.provider,
+    model: body.model ?? m.id,
+    stop_reason: r.stop ?? null,
+    usage: {
+      reasoning_tokens: null,
+      ...tokens,
+      input_tokens: u.input ?? null,
+      output_tokens: u.output ?? null,
+      cache_read_tokens: u.cacheRead ?? tokens.cache_read_tokens ?? null,
+      cache_write_tokens: u.cacheWrite ?? tokens.cache_write_tokens ?? null,
+    },
+    cost: { usd: u.usd ?? null, free: u.free ?? false, list_usd: u.listUsd ?? null },
+  };
 }
 
 /**
- * One AI SDK language model as an LlmClient. `raw` is a normalized summary in
- * Anthropic's vocabulary (input_tokens/output_tokens/stop_reason) plus the response
- * ids, so audit reads it with the same code path as legacy rows.
+ * One model as an LlmClient. A cut or filtered answer keeps its text, as before: the parse step
+ * says what is missing, and an empty one is an LlmError. A refused input is LlmInputRejected;
+ * every other failure is an LlmError with the HTTP status when there was one.
  */
-/** One completion, the SDK's own retries included: a long draft takes a minute or two. */
-const LLM_LIMIT_MS = 5 * 60_000;
-
-export class AiSdkLlm implements LlmClient {
-  readonly name: string;
-  constructor(
-    readonly provider: string,
-    readonly modelId: string,
-    private readonly model: LanguageModel,
-    /**
-     * Tokens added to every `maxTokens` for a model that thinks inside its output budget (the
-     * gateway's Gemini): a caller's budget is for the answer, so a 400-token draft isn't cut off
-     * mid-JSON by its own reasoning.
-     */
-    private readonly thinking = 0,
-  ) {
-    this.name = provider === "anthropic" ? modelId : `${provider}:${modelId}`;
-  }
-
-  /**
-   * The system prompt is the standing part of a call, the same across a day's drafts. On
-   * Anthropic it carries a cache breakpoint, so the repeat reads at a tenth of the price. A short
-   * one (under the model's minimum, 1024 to 2048 tokens) is simply not cached: no error, no cost.
-   * Other vendors take the plain string; the breakpoint would be an ignored option there.
-   */
-  private input(
-    prompt: string,
-    system?: string,
-  ): { prompt: string; system?: string | SystemModelMessage } {
-    if (!system) return { prompt: wellFormed(prompt) };
-    if (this.provider !== "anthropic")
-      return { system: wellFormed(system), prompt: wellFormed(prompt) };
-    return {
-      system: {
-        role: "system",
-        content: wellFormed(system),
-        providerOptions: { anthropic: { cacheControl: { type: "ephemeral" } } },
-      },
-      prompt: wellFormed(prompt),
-    };
-  }
-
-  async complete(prompt: string, opts: CompleteOptions = {}): Promise<LlmResponse> {
-    const started = performance.now();
-    let result: Awaited<ReturnType<typeof generateText>>;
-    try {
-      result = await generateText({
-        model: this.model,
-        ...this.input(prompt, opts.system),
-        maxOutputTokens: Math.max(opts.maxTokens ?? 0, DEFAULT_MAX_TOKENS) + this.thinking,
-        ...(opts.effort && this.provider === "anthropic"
-          ? { providerOptions: { anthropic: { effort: opts.effort } } }
-          : {}),
-        // Its retries included: a model that never answers would hold the caller's step.
-        abortSignal: AbortSignal.timeout(LLM_LIMIT_MS),
-      });
-    } catch (err) {
-      const cause = rootCause(err);
-      const status = APICallError.isInstance(cause) ? (cause.statusCode ?? null) : null;
-      if (status !== null && INPUT_REJECTED_STATUSES.has(status))
-        throw new LlmInputRejected(`HTTP ${status}`);
-      const label = cause instanceof Error ? `${cause.name}: ${cause.message}` : String(cause);
-      throw new LlmError(label, { status, cause });
-    }
-    const latencyMs = Math.round(performance.now() - started);
-    const usage = result.usage;
-    const raw: Record<string, unknown> = {
-      provider: this.provider,
-      model: this.modelId,
-      stop_reason: result.rawFinishReason ?? result.finishReason,
-      finish_reason_unified: result.finishReason,
-      usage: {
-        input_tokens: usage.inputTokens ?? null,
-        output_tokens: usage.outputTokens ?? null,
-        reasoning_tokens: usage.outputTokenDetails?.reasoningTokens ?? null,
-        cache_read_tokens: usage.inputTokenDetails?.cacheReadTokens ?? null,
-        cache_write_tokens: usage.inputTokenDetails?.cacheWriteTokens ?? null,
-      },
-      response: {
-        id: result.response.id,
-        model_id: result.response.modelId,
-        timestamp: result.response.timestamp.toISOString(),
-      },
-      provider_metadata: result.providerMetadata ?? null,
-      warnings: result.warnings ?? [],
-    };
-    if (!result.text) {
-      // Anthropic's "refusal" lands here: the raw reason says so, the unified one is "other".
-      throw new LlmError(`no text content in response (stop_reason=${raw.stop_reason})`);
-    }
-    return { text: result.text, raw, latencyMs };
-  }
-}
-
-const ROTATE_STATUSES: ReadonlySet<number> = new Set([401, 402, 403, 429]);
-
-/**
- * Round-robin over one client per API key (the llm.env key fleets). A key that
- * answers 401/402/403/429 hands the same prompt to the next key; only when every
- * key has failed does the error surface.
- */
-export class RotatingLlm implements LlmClient {
-  readonly name: string;
-  readonly provider: string;
-  private next = 0;
-  constructor(private readonly clients: readonly LlmClient[]) {
-    const first = clients[0];
-    if (!first) throw new Error("RotatingLlm needs at least one client");
-    this.name = first.name;
-    this.provider = first.provider;
-  }
-  async complete(prompt: string, opts?: CompleteOptions): Promise<LlmResponse> {
-    let lastError: LlmError | null = null;
-    for (let attempt = 0; attempt < this.clients.length; attempt++) {
-      const client = this.clients[this.next % this.clients.length] as LlmClient;
-      this.next = (this.next + 1) % this.clients.length;
+export function modelLlm(model: Model): LlmClient {
+  return {
+    name: model.id,
+    provider: model.provider,
+    async complete(prompt, opts = {}) {
+      const started = performance.now();
       try {
-        return await client.complete(prompt, opts);
+        const reply = await model.complete({
+          prompt,
+          maxTokens: opts.maxTokens ?? DEFAULT_MAX_TOKENS,
+          ...(opts.system ? { system: opts.system } : {}),
+          ...(opts.effort ? { effort: opts.effort } : {}),
+          ...(opts.part ? { purpose: opts.part } : {}),
+        });
+        return { text: reply.text, raw: rawOf(model, reply), latencyMs: reply.ms };
       } catch (err) {
-        if (err instanceof LlmError && err.status !== null && ROTATE_STATUSES.has(err.status)) {
-          lastError = err;
-          continue;
-        }
-        throw err;
+        const latencyMs = Math.round(performance.now() - started);
+        if (isCut(err) && err.partial)
+          return {
+            text: err.partial,
+            raw: rawOf(model, { stop: "length", usage: err.usage ?? {} }),
+            latencyMs,
+          };
+        if (isFiltered(err) && err.partial)
+          return {
+            text: err.partial,
+            raw: rawOf(model, { stop: err.stop, usage: err.usage ?? {} }),
+            latencyMs,
+          };
+        if (isInputRejected(err)) throw new LlmInputRejected(err.message);
+        const status = isRecord(err) && typeof err.status === "number" ? err.status : null;
+        throw new LlmError(err instanceof Error ? err.message : String(err), {
+          status,
+          cause: err,
+        });
       }
-    }
-    throw lastError ?? new LlmError("no clients");
-  }
-}
-
-/** OpenAI-compatible providers: base URL and the default model per vendor. */
-export const COMPATIBLE_PROVIDERS = {
-  groq: { baseURL: "https://api.groq.com/openai/v1", defaultModel: "openai/gpt-oss-120b" },
-  openrouter: {
-    baseURL: "https://openrouter.ai/api/v1",
-    defaultModel: "google/gemma-4-31b-it:free",
-  },
-  cohere: { baseURL: "https://api.cohere.ai/compatibility/v1", defaultModel: "command-a-03-2025" },
-  mistral: { baseURL: "https://api.mistral.ai/v1", defaultModel: "mistral-small-latest" },
-  cerebras: { baseURL: "https://api.cerebras.ai/v1", defaultModel: "gpt-oss-120b" },
-  openai: { baseURL: "https://api.openai.com/v1", defaultModel: "gpt-5-mini" },
-} as const;
-type CompatibleProvider = keyof typeof COMPATIBLE_PROVIDERS;
-
-/** Haiku 5.5: the cheapest Claude 5 model, with vision and adaptive thinking. */
-const DEFAULT_ANTHROPIC_MODEL = "claude-haiku-5-5";
-/** Short names for the current Claude models. A full id passes through untouched. */
-export const ANTHROPIC_MODELS: Readonly<Record<string, string>> = {
-  haiku: "claude-haiku-5-5",
-  sonnet: "claude-sonnet-5-5",
-  opus: "claude-opus-5-5",
-};
-/** `haiku` is `claude-haiku-5-5`; anything else is taken as a model id. */
-export const anthropicModelId = (name: string): string => ANTHROPIC_MODELS[name] ?? name;
-
-export type EnvMap = Readonly<Record<string, string | undefined>>;
-
-/**
- * The provider's API keys from the environment, llm.env style: `NUM_<P>` plus
- * `<P>_API_KEY_1..N` (gaps tolerated), else a single `<P>_API_KEY`.
- */
-export function fleetKeys(env: EnvMap, provider: string): string[] {
-  const upper = provider.toUpperCase();
-  const count = Number.parseInt(env[`NUM_${upper}`] ?? "0", 10);
-  const keys: string[] = [];
-  for (let n = 1; n <= count; n++) {
-    // A line may carry an inline `# account` note after the key.
-    const key = env[`${upper}_API_KEY_${n}`]?.trim().split(/\s/)[0];
-    if (key) keys.push(key);
-  }
-  const single = env[`${upper}_API_KEY`]?.trim().split(/\s/)[0];
-  if (!keys.length && single) keys.push(single);
-  return keys;
+    },
+  };
 }
 
 interface MakeLlmOptions {
-  /** Anthropic model id or short name; falls back to WREN_LLM_MODEL, then DEFAULT_ANTHROPIC_MODEL. */
+  /** Anthropic model id or short name; falls back to WREN_LLM_MODEL, then Haiku 5.5. */
   anthropicModel?: string | null;
+  /** The wire, for a test. */
+  fetch?: typeof fetch;
 }
 
-/** The gateway's default: its best free chain (see apps/llm-gateway). */
-const DEFAULT_GATEWAY_MODEL = "free";
+/** Vendors on a key ring: Cohere natively, the rest OpenAI-compatible. */
+type RingVendor = CompatibleVendor | "cohere";
+const RING_VENDORS: readonly RingVendor[] = [
+  "cohere",
+  ...(Object.keys(COMPATIBLE) as CompatibleVendor[]),
+];
+
+/** The vendor's model on `keys`, `model` or the vendor's default. */
+function ringModel(
+  vendor: RingVendor,
+  keys: string | readonly string[],
+  model: string,
+  wire: { fetch?: typeof fetch },
+): Model {
+  const o = { key: keys, rotate: RETRY, ...(model ? { model } : {}), ...wire };
+  return vendor === "cohere" ? cohere(o) : compatible(vendor, o);
+}
 
 /**
  * "fake" | "claude-code[:model]" | "anthropic[:haiku|sonnet|opus|model-id]" | "gateway[:model]" |
- * "<provider>[:model-id]" for provider in COMPATIBLE_PROVIDERS. The optional :model suffix
- * picks a specific model per run without touching config. anthropic is Wren's own key on the
- * current Claude models (default Haiku 5.5): `anthropic:sonnet` for a draft, `anthropic` for a
- * fill. claude-code needs no key: the Claude Code login pays. gateway is llm.wrenautomation.com,
- * which holds every free key and shares one ledger across processes; its model is an alias
- * ("free", "cohere") or "<provider>/<model>".
+ * "cohere[:model]" | "<vendor>[:model-id]" for a vendor in models' COMPATIBLE. The optional
+ * :model suffix picks a specific model per run without touching config. anthropic is Wren's own
+ * key on the current Claude models (default Haiku 5.5): `anthropic:sonnet` for a draft,
+ * `anthropic` for a fill. claude-code needs no key: the Claude Code login pays. gateway is
+ * llm.wrenautomation.com, which holds every free key and shares one ledger across processes; its
+ * model is an alias ("free", "cohere") or "<provider>/<model>".
  */
 export function makeLlm(
   name: string,
@@ -320,67 +234,44 @@ export function makeLlm(
   opts: MakeLlmOptions = {},
 ): LlmClient {
   if (name === "fake") return new FakeLlm();
-  if (name === "claude-code" || name.startsWith("claude-code:"))
-    return new ClaudeCodeLlm(name.slice("claude-code:".length) || DEFAULT_CLAUDE_CODE_MODEL);
-  if (name === "anthropic" || name.startsWith("anthropic:")) {
-    const apiKey = env.WREN_ANTHROPIC_API_KEY ?? env.ANTHROPIC_API_KEY;
-    if (!apiKey) throw new Error("anthropic needs WREN_ANTHROPIC_API_KEY in the environment");
-    const modelId = anthropicModelId(
-      name.slice("anthropic:".length) ||
-        (opts.anthropicModel ?? env.WREN_LLM_MODEL ?? DEFAULT_ANTHROPIC_MODEL),
-    );
-    return new AiSdkLlm("anthropic", modelId, createAnthropic({ apiKey })(modelId));
+  const [vendor = "", ...rest] = name.split(":");
+  const model = rest.join(":");
+  const wire = opts.fetch ? { fetch: opts.fetch } : {};
+  if (vendor === "claude-code") return modelLlm(claudeCode(model || "sonnet"));
+  if (vendor === "anthropic") {
+    const key = env.WREN_ANTHROPIC_API_KEY ?? env.ANTHROPIC_API_KEY;
+    if (!key) throw new Error("anthropic needs WREN_ANTHROPIC_API_KEY in the environment");
+    const chosen = model || opts.anthropicModel || env.WREN_LLM_MODEL || "haiku";
+    return modelLlm(anthropic({ key, model: chosen, rotate: RETRY, ...wire }));
   }
-  if (name === "gateway" || name.startsWith("gateway:")) {
-    const baseURL = env.WREN_LLM_GATEWAY_URL;
-    const apiKey = env.WREN_LLM_GATEWAY_TOKEN;
-    if (!baseURL || !apiKey)
+  if (vendor === "gateway") {
+    const url = env.WREN_LLM_GATEWAY_URL;
+    const token = env.WREN_LLM_GATEWAY_TOKEN;
+    if (!url || !token)
       throw new Error(
         "gateway needs WREN_LLM_GATEWAY_URL and WREN_LLM_GATEWAY_TOKEN in the environment",
       );
-    const modelId = name.slice("gateway:".length) || DEFAULT_GATEWAY_MODEL;
-    return new AiSdkLlm(
-      "gateway",
-      modelId,
-      createOpenAICompatible({ name: "gateway", baseURL, apiKey })(modelId),
-      GATEWAY_THINKING,
-    );
+    return modelLlm(rotating([gateway({ url, token, model: model || "free", ...wire })], RETRY));
   }
-  const [provider, ...rest] = name.split(":");
-  const spec = COMPATIBLE_PROVIDERS[provider as CompatibleProvider];
-  if (!provider || !spec) {
-    const expected = Object.keys(COMPATIBLE_PROVIDERS)
-      .map((p) => `${p}[:model]`)
-      .join(", ");
+  if (vendor !== "cohere" && !isCompatible(vendor)) {
+    const expected = RING_VENDORS.map((p) => `${p}[:model]`).join(", ");
     throw new Error(
-      `unknown llm '${name}'; expected 'fake', 'anthropic', 'gateway', or one of: ${expected}`,
+      `unknown llm '${name}'; expected 'fake', 'claude-code', 'anthropic', 'gateway', or one of: ${expected}`,
     );
   }
-  const modelId = rest.join(":") || spec.defaultModel;
-  const keys = fleetKeys(env, provider);
+  const keys = fleetKeys(env, vendor);
   if (!keys.length) {
-    const upper = provider.toUpperCase();
+    const upper = vendor.toUpperCase();
     throw new Error(
-      `no API keys for ${provider}: set NUM_${upper} + ${upper}_API_KEY_N in llm.env, or ${upper}_API_KEY`,
+      `no API keys for ${vendor}: set NUM_${upper} + ${upper}_API_KEY_N in llm.env, or ${upper}_API_KEY`,
     );
   }
-  const clients = keys.map(
-    (apiKey) =>
-      new AiSdkLlm(
-        provider,
-        modelId,
-        createOpenAICompatible({ name: provider, baseURL: spec.baseURL, apiKey })(modelId),
-      ),
-  );
-  return clients.length === 1 ? (clients[0] as LlmClient) : new RotatingLlm(clients);
+  return modelLlm(ringModel(vendor, keys, model, wire));
 }
 
 /** Providers a client's own model key may be for: the store keeps one key, `MODEL_API_KEY`. */
-type KeyProvider = CompatibleProvider | "anthropic";
-const KEY_PROVIDERS: readonly KeyProvider[] = [
-  "anthropic",
-  ...(Object.keys(COMPATIBLE_PROVIDERS) as CompatibleProvider[]),
-];
+type KeyProvider = RingVendor | "anthropic";
+const KEY_PROVIDERS: readonly KeyProvider[] = ["anthropic", ...RING_VENDORS];
 
 /** Each provider's key prefix, most specific first. Cohere and Mistral keys have none. */
 const KEY_PREFIXES: readonly (readonly [string, KeyProvider])[] = [
@@ -417,18 +308,6 @@ export function llmForKey(raw: string): LlmClient {
     throw new LlmError(
       "Can't tell which provider this model key is for. Save it as provider:key (cohere:..., mistral:...).",
     );
-  if (p.provider === "anthropic")
-    return new AiSdkLlm(
-      "anthropic",
-      DEFAULT_ANTHROPIC_MODEL,
-      createAnthropic({ apiKey: p.key })(DEFAULT_ANTHROPIC_MODEL),
-    );
-  const spec = COMPATIBLE_PROVIDERS[p.provider];
-  return new AiSdkLlm(
-    p.provider,
-    spec.defaultModel,
-    createOpenAICompatible({ name: p.provider, baseURL: spec.baseURL, apiKey: p.key })(
-      spec.defaultModel,
-    ),
-  );
+  if (p.provider === "anthropic") return modelLlm(anthropic({ key: p.key, rotate: RETRY }));
+  return modelLlm(ringModel(p.provider, p.key, "", {}));
 }

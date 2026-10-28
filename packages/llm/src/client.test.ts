@@ -1,56 +1,52 @@
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { APICallError } from "ai";
-import { MockLanguageModelV3 } from "ai/test";
-import { describe, expect, it } from "vitest";
+import {
+  Cut,
+  Filtered,
+  fakeModel,
+  InputRejected,
+  Refused,
+  Transient,
+} from "@wrenautomation/models";
+import { claudeChildEnv, claudeCode } from "@wrenautomation/models/command";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { usageFromRaw } from "./audit.js";
 import {
-  AiSdkLlm,
   FakeLlm,
   fleetKeys,
   keyProvider,
-  type LlmClient,
   LlmError,
   LlmInputRejected,
-  type LlmResponse,
   llmForKey,
   makeLlm,
-  RotatingLlm,
+  modelLlm,
 } from "./client.js";
 import { loadLlmEnv } from "./env.js";
 
-const textModel = (text: string, finishReason: "stop" | "length" = "stop") =>
-  new MockLanguageModelV3({
-    provider: "groq",
-    modelId: "m",
-    doGenerate: {
-      content: [{ type: "text", text }],
-      finishReason: { unified: finishReason, raw: finishReason },
-      usage: {
-        inputTokens: { total: 10, noCache: 10, cacheRead: 0, cacheWrite: 0 },
-        outputTokens: { total: 4, text: 3, reasoning: 1 },
-      },
-      warnings: [],
-      response: { id: "r1", modelId: "m", timestamp: new Date(0) },
-    },
+/** An OpenAI-compatible chat reply, as Groq sends it. */
+const chat = (text: string) =>
+  Response.json({
+    id: "r1",
+    object: "chat.completion",
+    created: 0,
+    model: "m",
+    choices: [{ index: 0, message: { role: "assistant", content: text }, finish_reason: "stop" }],
+    usage: { prompt_tokens: 10, completion_tokens: 4, total_tokens: 14 },
   });
 
-const failingModel = (statusCode: number) =>
-  new MockLanguageModelV3({
-    provider: "groq",
-    modelId: "m",
-    doGenerate: async () => {
-      throw new APICallError({
-        message: "nope",
-        url: "https://api.example/v1",
-        requestBodyValues: {},
-        statusCode,
-        responseBody: "{}",
-        isRetryable: false,
-      });
-    },
-  });
+/** A wire that answers each call from `steps` in turn and keeps each request body. */
+const wire = (...steps: (() => Response)[]) => {
+  const bodies: Record<string, unknown>[] = [];
+  const fetchFn = (async (_url: string, init?: RequestInit) => {
+    bodies.push(JSON.parse(String(init?.body)) as Record<string, unknown>);
+    const step = steps[Math.min(bodies.length - 1, steps.length - 1)] as () => Response;
+    return step();
+  }) as unknown as typeof fetch;
+  return { fetchFn, bodies };
+};
+
+const groq = { NUM_GROQ: "1", GROQ_API_KEY_1: "k-0000000001" };
 
 describe("FakeLlm", () => {
   it("answers from the default or a responder", async () => {
@@ -66,116 +62,149 @@ describe("FakeLlm", () => {
   });
 });
 
-describe("AiSdkLlm", () => {
-  it("names provider and model, times calls, and normalizes usage", async () => {
-    const llm = new AiSdkLlm("groq", "openai/gpt-oss-120b", textModel("answer"));
+describe("modelLlm", () => {
+  it("names provider and model, asks for 2048 tokens by default, and normalizes usage", async () => {
+    const w = wire(() => chat("answer"));
+    const llm = makeLlm("groq:openai/gpt-oss-120b", groq, { fetch: w.fetchFn });
     expect(llm.name).toBe("groq:openai/gpt-oss-120b");
     expect(llm.provider).toBe("groq");
-    const res = await llm.complete("hi", { maxTokens: 123 });
+    const res = await llm.complete("hi");
     expect(res.text).toBe("answer");
     expect(res.latencyMs).not.toBeNull();
     expect(res.raw.stop_reason).toBe("stop");
-    expect(usageFromRaw(res.raw)).toEqual({
-      input: 10,
-      output: 4,
-      total: 14,
-      reasoning: 1,
-      cache_read: 0,
-      cache_write: 0,
+    expect(w.bodies[0]?.max_tokens).toBe(2048);
+    expect(usageFromRaw(res.raw)).toMatchObject({ input: 10, output: 4, total: 14 });
+    expect(res.raw.cost).toMatchObject({ usd: 0, free: true });
+  });
+
+  it("passes system, effort and the part on as the model's request", async () => {
+    let seen: unknown = null;
+    const llm = modelLlm(
+      fakeModel((_p, req) => {
+        seen = req;
+        return "ok";
+      }),
+    );
+    await llm.complete("hi", { system: "rules", effort: "low", part: "drafts", maxTokens: 500 });
+    expect(seen).toMatchObject({
+      prompt: "hi",
+      system: "rules",
+      effort: "low",
+      purpose: "drafts",
+      maxTokens: 500,
     });
   });
 
-  it("asks for at least 2048 tokens, plus a thinking model's room", async () => {
-    const plain = textModel("x");
-    await new AiSdkLlm("groq", "m", plain).complete("hi", { maxTokens: 400 });
-    expect(plain.doGenerateCalls[0]?.maxOutputTokens).toBe(2048);
-    const thinks = textModel("x");
-    await new AiSdkLlm("gateway", "m", thinks, 4096).complete("hi", { maxTokens: 400 });
-    expect(thinks.doGenerateCalls[0]?.maxOutputTokens).toBe(2048 + 4096);
+  it("keeps a cut answer's text for the parse step; an empty one is an LlmError", async () => {
+    const cut = modelLlm(
+      fakeModel(() => {
+        throw new Cut("cut", '{"a": 1, "b"', { input: 5, output: 2048 });
+      }),
+    );
+    const res = await cut.complete("hi");
+    expect(res.text).toBe('{"a": 1, "b"');
+    expect(res.raw.stop_reason).toBe("length");
+    expect(usageFromRaw(res.raw)).toMatchObject({ input: 5, output: 2048 });
+    const empty = modelLlm(
+      fakeModel(() => {
+        throw new Filtered("stopped", "refusal", "");
+      }),
+    );
+    await expect(empty.complete("hi")).rejects.toBeInstanceOf(LlmError);
   });
 
-  it("anthropic caches the system prompt; other vendors send it plain", async () => {
-    const claude = textModel("x");
-    await new AiSdkLlm("anthropic", "claude-test", claude).complete("hi", { system: "rules" });
-    const [sys, user] = claude.doGenerateCalls[0]?.prompt ?? [];
-    expect(sys).toMatchObject({
-      role: "system",
-      content: "rules",
-      providerOptions: { anthropic: { cacheControl: { type: "ephemeral" } } },
+  it("a refused input is LlmInputRejected; other failures are LlmError with the status", async () => {
+    const throwing = (err: Error) =>
+      modelLlm(
+        fakeModel(() => {
+          throw err;
+        }),
+      );
+    await expect(throwing(new InputRejected("too long", 413)).complete("x")).rejects.toBeInstanceOf(
+      LlmInputRejected,
+    );
+    for (const [err, status] of [
+      [new Transient("busy", { status: 503 }), 503],
+      [new Refused("bad key", 401), 401],
+      [new Error("no text in the reply"), null],
+    ] as const) {
+      const e = await throwing(err)
+        .complete("x")
+        .catch((x: unknown) => x);
+      expect(e).toBeInstanceOf(LlmError);
+      expect((e as LlmError).status).toBe(status);
+    }
+  });
+
+  it("HTTP 400 from the wire is an input rejection", async () => {
+    const w = wire(() => Response.json({ error: { message: "bad" } }, { status: 400 }));
+    await expect(makeLlm("groq", groq, { fetch: w.fetchFn }).complete("hi")).rejects.toBeInstanceOf(
+      LlmInputRejected,
+    );
+  });
+
+  describe("tries again", () => {
+    afterEach(() => vi.useRealTimers());
+
+    it("a busy answer on a single key, after a wait", async () => {
+      vi.useFakeTimers();
+      const w = wire(
+        () => Response.json({ error: { message: "slow down" } }, { status: 429 }),
+        () => chat("ok"),
+      );
+      const call = makeLlm("groq", groq, { fetch: w.fetchFn }).complete("hi");
+      await vi.advanceTimersByTimeAsync(2_000);
+      expect((await call).text).toBe("ok");
+      expect(w.bodies).toHaveLength(2);
     });
-    expect(user).toMatchObject({ role: "user" });
-    const groq = textModel("x");
-    await new AiSdkLlm("groq", "m", groq).complete("hi", { system: "rules" });
-    expect(groq.doGenerateCalls[0]?.prompt[0]).toEqual({ role: "system", content: "rules" });
-    const bare = textModel("x");
-    await new AiSdkLlm("anthropic", "claude-test", bare).complete("hi");
-    expect(bare.doGenerateCalls[0]?.prompt[0]).toMatchObject({ role: "user" });
-  });
 
-  it("anthropic names the bare model id", () => {
-    expect(new AiSdkLlm("anthropic", "claude-test", textModel("x")).name).toBe("claude-test");
-  });
-
-  it("effort reaches Anthropic as a provider option and no one else", async () => {
-    const claude = textModel("x");
-    await new AiSdkLlm("anthropic", "claude-test", claude).complete("hi", { effort: "low" });
-    expect(claude.doGenerateCalls[0]?.providerOptions).toEqual({ anthropic: { effort: "low" } });
-    const plain = textModel("x");
-    await new AiSdkLlm("anthropic", "claude-test", plain).complete("hi");
-    expect(plain.doGenerateCalls[0]?.providerOptions).toBeUndefined();
-    const groq = textModel("x");
-    await new AiSdkLlm("groq", "m", groq).complete("hi", { effort: "low" });
-    expect(groq.doGenerateCalls[0]?.providerOptions).toBeUndefined();
-  });
-
-  it("raises LlmError on empty content", async () => {
-    const llm = new AiSdkLlm("groq", "m", textModel("", "length"));
-    await expect(llm.complete("hi")).rejects.toBeInstanceOf(LlmError);
-  });
-
-  it.each([400, 422])("HTTP %s is an input rejection", async (status) => {
-    const llm = new AiSdkLlm("groq", "m", failingModel(status));
-    await expect(llm.complete("hi")).rejects.toBeInstanceOf(LlmInputRejected);
-  });
-
-  it("wraps other provider failures with the status", async () => {
-    const llm = new AiSdkLlm("groq", "m", failingModel(500));
-    const err = await llm.complete("hi").catch((e: unknown) => e);
-    expect(err).toBeInstanceOf(LlmError);
-    expect((err as LlmError).status).toBe(500);
-    expect((err as LlmError).message).toMatch(/AI_APICallError/);
+    it("hands a refused key's prompt to the next key at once", async () => {
+      const w = wire(
+        () => Response.json({ error: { message: "revoked" } }, { status: 401 }),
+        () => chat("ok"),
+      );
+      const env = { NUM_GROQ: "2", GROQ_API_KEY_1: "k-1", GROQ_API_KEY_2: "k-2" };
+      expect((await makeLlm("groq", env, { fetch: w.fetchFn }).complete("hi")).text).toBe("ok");
+      expect(w.bodies).toHaveLength(2);
+    });
   });
 });
 
-describe("RotatingLlm", () => {
-  class Scripted implements LlmClient {
-    readonly name = "groq:m";
-    readonly provider = "groq";
-    calls = 0;
-    constructor(private readonly status: number | null) {}
-    async complete(): Promise<LlmResponse> {
-      this.calls++;
-      if (this.status !== null) throw new LlmError("no", { status: this.status });
-      return { text: "ok", raw: {}, latencyMs: 1 };
-    }
-  }
-  it("hands a rate-limited prompt to the next key", async () => {
-    const a = new Scripted(429);
-    const b = new Scripted(null);
-    const llm = new RotatingLlm([a, b]);
-    expect((await llm.complete("p")).text).toBe("ok");
-    expect(a.calls).toBe(1);
-    expect(b.calls).toBe(1);
+describe("claude-code", () => {
+  it("is what makeLlm builds for claude-code[:model], sonnet by default", () => {
+    expect(makeLlm("claude-code", {}).name).toBe("claude-code:sonnet");
+    expect(makeLlm("claude-code:opus", {}).name).toBe("claude-code:opus");
   });
-  it("surfaces the error once every key failed", async () => {
-    const llm = new RotatingLlm([new Scripted(401), new Scripted(429)]);
-    await expect(llm.complete("p")).rejects.toBeInstanceOf(LlmError);
+
+  it("reports the headless run's tokens and its list price, at no cost", async () => {
+    const llm = modelLlm(
+      claudeCode("opus", {
+        run: async () =>
+          JSON.stringify({
+            subtype: "success",
+            result: '{"ok": true}',
+            total_cost_usd: 0.12,
+            usage: { input_tokens: 900, output_tokens: 40, cache_read_input_tokens: 10 },
+          }),
+      }),
+    );
+    const out = await llm.complete("hello");
+    expect(out.text).toBe('{"ok": true}');
+    expect(out.raw).toMatchObject({
+      provider: "claude-code",
+      usage: { input_tokens: 910, output_tokens: 40, cache_read_tokens: 10 },
+      cost: { usd: 0, free: true, list_usd: 0.12 },
+    });
   });
-  it("does not rotate on non-key failures", async () => {
-    const a = new Scripted(500);
-    const b = new Scripted(null);
-    await expect(new RotatingLlm([a, b]).complete("p")).rejects.toBeInstanceOf(LlmError);
-    expect(b.calls).toBe(0);
+
+  it("an error result is an LlmError, and the child never sees an API key", async () => {
+    const llm = modelLlm(
+      claudeCode("sonnet", {
+        run: async () => JSON.stringify({ subtype: "error_max_turns", is_error: true, result: "" }),
+      }),
+    );
+    await expect(llm.complete("x")).rejects.toBeInstanceOf(LlmError);
+    expect(claudeChildEnv({ ANTHROPIC_API_KEY: "k", PATH: "/bin" })).toEqual({ PATH: "/bin" });
   });
 });
 
@@ -183,19 +212,18 @@ describe("makeLlm", () => {
   it("knows the vocabulary", () => {
     expect(makeLlm("fake", {})).toBeInstanceOf(FakeLlm);
     expect(() => makeLlm("anthropic", {})).toThrow(/WREN_ANTHROPIC_API_KEY/);
-    expect(() => makeLlm("nope", {})).toThrow(/fake.*anthropic.*groq/);
+    expect(() => makeLlm("nope", {})).toThrow(/fake.*anthropic.*cohere.*groq/);
   });
   it("routes each provider to its default model and the model suffix overrides", () => {
-    const env = { NUM_GROQ: "1", GROQ_API_KEY_1: "k1" };
-    expect(makeLlm("groq", env).name).toBe("groq:openai/gpt-oss-120b");
-    expect(makeLlm("groq:llama-3.3-70b-versatile", env).name).toBe("groq:llama-3.3-70b-versatile");
-    expect(() => makeLlm("mistral", env)).toThrow(/NUM_MISTRAL/);
-    expect(() => makeLlm("gemini", env)).toThrow(/unknown llm/);
+    expect(makeLlm("groq", groq).name).toBe("groq:openai/gpt-oss-120b");
+    expect(makeLlm("groq:llama-3.3-70b-versatile", groq).name).toBe("groq:llama-3.3-70b-versatile");
+    expect(makeLlm("cohere", { COHERE_API_KEY: "c" }).name).toBe("cohere:command-a-03-2025");
+    expect(() => makeLlm("mistral", groq)).toThrow(/NUM_MISTRAL/);
+    expect(() => makeLlm("gemini", groq)).toThrow(/unknown llm/);
   });
-  it("rotates over a key fleet", () => {
+  it("reads a key fleet", () => {
     const env = { NUM_GROQ: "3", GROQ_API_KEY_1: "a", GROQ_API_KEY_3: "c" };
     expect(fleetKeys(env, "groq")).toEqual(["a", "c"]);
-    expect(makeLlm("groq", env)).toBeInstanceOf(RotatingLlm);
     expect(fleetKeys({ GROQ_API_KEY: "solo" }, "groq")).toEqual(["solo"]);
     expect(fleetKeys({ NUM_GROQ: "1", GROQ_API_KEY_1: "a #an account" }, "groq")).toEqual(["a"]);
   });
@@ -258,6 +286,7 @@ describe("llmForKey: a client's own model key", () => {
     expect(llmForKey("gsk_synthetic0000").name).toBe("groq:openai/gpt-oss-120b");
     expect(llmForKey("sk-ant-api03-synthetic0000").provider).toBe("anthropic");
     expect(llmForKey("mistral:synthetic0000").provider).toBe("mistral");
+    expect(llmForKey("cohere:synthetic0000").name).toBe("cohere:command-a-03-2025");
   });
 
   it("refuses a key it can't place, without saying it", () => {
