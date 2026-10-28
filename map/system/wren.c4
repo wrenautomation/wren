@@ -1,0 +1,147 @@
+// wren and the systems around it. Hosts from docs/restate-operations.md, seams from the
+// Seams table in ../CLAUDE.md. Kestrel's systems layer reads this; `kestrel check` fails when a
+// `code`, `here` or `there` path is gone. Paths are from the wren repo root; `../<repo>/` is a
+// sibling repo, so each seam names its code on both sides.
+specification {
+  element system
+  element app
+  element store
+  element vendor
+  relationship uses
+}
+
+model {
+  wren = system 'wren' {
+    description 'Campaigns, channels and client products'
+
+    restate = store 'Restate server' {
+      technology 'restate 1.7 in Docker on EC2 wren-prod-pg'
+      description 'Every loop journal, timer and object state; the only always-on piece'
+      metadata { code 'deploy/scripts/box-restate.sh' }
+    }
+    worker = app 'Lambda worker' {
+      technology 'Node 22 arm64, Lambda wren-prod-worker'
+      description 'Every service except the box ones'
+      metadata { code 'apps/worker' }
+    }
+    box = app 'Box worker' {
+      technology 'Node on EC2 wren-prod-pg'
+      description 'PoolScheduler, Discovery, Enrichment, Resolution, PageArchive, Books, Watch, SocialWatch'
+      metadata { code 'apps/worker/src/box.ts' }
+    }
+    postgres = store 'Postgres 17' {
+      technology 'EC2 wren-prod-pg, PgBouncer 6432'
+      metadata { code 'packages/db' }
+    }
+    valkey = store 'Valkey cache' {
+      technology 'EC2 wren-prod-pg, 6380'
+    }
+    browserless = app 'browserless Chromium' {
+      technology 'Docker on EC2 wren-prod-pg'
+    }
+    auth = app 'Sign-in' {
+      technology 'Lambda wren-prod-auth'
+      metadata { code 'apps/auth' }
+    }
+    portal = app 'Portal' {
+      technology 'Cloudflare Worker'
+      metadata { code 'apps/portal' }
+    }
+    phone = app 'Phone' {
+      technology 'Cloudflare Worker'
+      metadata { code 'apps/phone' }
+    }
+    gateway = app 'LLM gateway' {
+      technology 'Cloudflare Worker + Durable Object'
+      description 'Every free Gemini, OpenRouter and Cohere key behind one endpoint'
+      metadata { code 'apps/llm-gateway' }
+    }
+    cli = app 'wren CLI' {
+      metadata { code 'apps/cli' }
+    }
+  }
+
+  autobrowse = system 'autobrowse' {
+    description 'Browser and account automation; the desk worker on the Mac'
+    metadata { code '../autobrowse/src/sites/service.ts' }
+  }
+  lander = system 'lander' {
+    description 'wrenautomation.com on Cloudflare Pages'
+  }
+  credvault = system 'credvault' {
+    description 'Credentials at rest, shared via SSM, every use audited'
+    metadata { code '../credvault/src/env-store.ts' }
+  }
+  mailifier = system 'mailifier' {
+    description 'SMTP address prober on the RackNerd VPSs'
+    metadata { code '../mailifier/src/server.ts' }
+  }
+  engine = system 'engine' {
+    description 'models, raven, falcon, weaver on npm; wren pins exact'
+  }
+  platforms = vendor 'Platforms' {
+    description 'Meta, LinkedIn, YouTube, X, TikTok, Instagram'
+  }
+  gmail = vendor 'Gmail API'
+  ssm = vendor 'AWS SSM'
+
+  wren.restate -> wren.worker 'invokes'
+  wren.restate -> wren.box 'invokes'
+  wren.restate -> autobrowse 'invokes the desk worker over cloudflared'
+  wren.worker -> wren.postgres 'reads and writes'
+  wren.box -> wren.postgres 'reads and writes'
+  wren.worker -> wren.valkey 'cache'
+  wren.worker -> wren.browserless 'CDP'
+  wren.box -> wren.browserless 'CDP'
+  wren.cli -> wren.restate 'ingress'
+
+  wren.worker -> autobrowse 'platform calls' {
+    metadata {
+      here 'packages/core/src/content/restate.ts'
+      there '../autobrowse/src/sites/service.ts'
+    }
+  }
+  autobrowse -> platforms 'post and read'
+  wren.worker -> ssm 'tokens and credentials' {
+    metadata {
+      here 'packages/core/src/content/renewal.ts'
+      there '../credvault/src/env-store.ts'
+    }
+  }
+  autobrowse -> ssm 'tokens and credentials'
+  wren -> lander 'offers snapshot' {
+    metadata {
+      here 'packages/offers'
+      there '../lander/src/data/offers.json'
+    }
+  }
+  wren.worker -> lander 'clicks and visits' {
+    metadata {
+      here 'packages/channel-email/src/inbox/clicks.ts'
+      there '../lander/functions/api/export.ts'
+    }
+  }
+  wren.worker -> lander 'demo videos' {
+    metadata {
+      here 'packages/video/src/publish.ts'
+      there '../lander/functions/v/[id].ts'
+    }
+  }
+  wren.box -> autobrowse 'fetch ladder' {
+    metadata {
+      here 'packages/research/src/restate/enrichment.ts'
+      there '../autobrowse/src/sites/web.ts'
+    }
+  }
+  wren.box -> mailifier 'address probes' {
+    metadata {
+      here 'packages/channel-email/src/verification/verifier.ts'
+      there '../mailifier/src/server.ts'
+    }
+  }
+  wren.worker -> gmail 'mail read and send' {
+    metadata { here 'packages/channel-email/src/access/mailbox.ts' }
+  }
+  wren -[uses]-> autobrowse 'vendor pieces on npm: mail, google, oauth'
+  wren -[uses]-> engine 'the read layer on npm: weaver, falcon, models'
+}
