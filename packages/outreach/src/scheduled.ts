@@ -318,10 +318,14 @@ export async function unschedule(
 
 /** What a failed slot writes on a post, so a second failure can tell it is the second. */
 const SEND_FAILED = "send failed: ";
+/** The platform's standing no: forbidden (comments off), not found, gone. */
+const CLOSED = [403, 404, 410];
 
 /**
  * A slot's send failed for good. The row leaves the schedule so the next pass slots it again;
- * a post failing its second slot is skipped. A thread retries until it goes stale. A send that
+ * a post failing its second slot is skipped. A post the platform says is gone or closed (403,
+ * 404, 410: comments off, post deleted) is skipped at once: a retry cannot help it. A thread
+ * retries until it goes stale. A send that
  * may have gone out never comes here: it waits unsure in To approve (`send_attempts`), and
  * the scheduler leaves it alone.
  */
@@ -330,6 +334,7 @@ export async function sendFailed(
   kind: "post" | "thread",
   id: string,
   why: string,
+  status?: number,
 ): Promise<"retry" | "skipped"> {
   if (kind === "thread") {
     await db.update(redditThreads).set({ sendAt: null }).where(eq(redditThreads.id, id));
@@ -339,8 +344,8 @@ export async function sendFailed(
     .select({ reason: reachPosts.stateReason })
     .from(reachPosts)
     .where(eq(reachPosts.id, Number(id)));
-  // One retry for a send that failed.
-  const again = r?.reason?.startsWith(SEND_FAILED) ?? false;
+  // One retry for a send that failed, none for a post that will never take it.
+  const again = CLOSED.includes(status ?? 0) || (r?.reason?.startsWith(SEND_FAILED) ?? false);
   await db
     .update(reachPosts)
     .set({

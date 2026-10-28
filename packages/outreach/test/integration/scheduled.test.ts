@@ -98,6 +98,15 @@ describe("schedulePosts", () => {
     expect(await read()).toMatchObject({ state: "skipped", stateReason: "send failed: HTTP 426" });
   });
 
+  it("a post with comments off is skipped at its first failed slot", async () => {
+    const [p] = await db().insert(reachPosts).values(row(1)).returning({ id: reachPosts.id });
+    const id = p?.id ?? 0;
+    await schedulePosts(db(), "linkedin", settings, { now, rand: () => 0 });
+    expect(await sendFailed(db(), "post", String(id), "comments are off", 403)).toBe("skipped");
+    const r = (await db().select().from(reachPosts)).find((x) => x.id === id);
+    expect(r).toMatchObject({ state: "skipped", stateReason: "send failed: comments are off" });
+  });
+
   it("with autoSend, a draft whose post went cold is skipped, not left for a click", async () => {
     const old = new Date(now.getTime() - 30 * 86_400_000);
     await db()

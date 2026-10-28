@@ -142,7 +142,7 @@ export function postsHandlers(desk: DeskContext) {
           // A slot that fails for good leaves the schedule, or it would sit queued forever.
           if (at && err instanceof restate.TerminalError)
             await ctx.run("send failed", () =>
-              sendFailed(deps.db, "post", String(req.id), err.message),
+              sendFailed(deps.db, "post", String(req.id), err.message, err.code),
             );
           throw err;
         }
