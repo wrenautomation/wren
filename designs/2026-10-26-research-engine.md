@@ -835,3 +835,21 @@ Repair (William's yes): a check that says no can give a fix, a narrower sentence
 backs. weaver gates it like any finding, checks it again with Claude, and writes it as a new
 finding with `fixes` naming the old one. Still open: a live Jev trial on a runs-session ledger
 (agreement per question), then the DOUBT bar.
+
+### 10-28 evening: the tree's reads cap, depth a guard rail, engine 0.21.0
+
+The first judged run (birdwatch runs, 178 Jev calls, $0.0088): hits agree 48 of 71; class
+guesses 13 of 15 (8 of 8 at 0.8 or more, 2 of 7 under it); checks doubted 49 of 49, 6 failed,
+4 repaired. `backs` against the check: AUC 0.71, but one fail sat at 0.71, so no bar that
+skips checks is safe. Kept: DOUBT 0.8, every doubted finding checked. `serves` against the
+agent's keep: AUC 0.75, and it ranks vendor pages high on a buyer survey: the skill now says no
+high keep bar. A facet whose read pages lack its `needs` is no longer `enough`.
+Depth: the runs session hit the depth cap (2) at once and made a sibling to get round it. The
+2 was a guess. Options: (a) keep 2 hard, (b) raise it, (c) a guard rail only, (d) a guard rail
+plus one hard cap on the whole tree's reads, with the lineage in the brief. Ranked by: cost
+stays bounded, then the agent's reach, then few knobs. (a) makes workarounds; (b) moves the
+guess; (c) leaves cost open. Picked (d), William's yes. `runs.depth` warns and asks the why to
+say why deeper beats a sibling; the children per round still stop; `runs.reads` (or the root's
+reads × rounds × (children + 1)) pins as `treeReads` on the root's snapshot, and `open` stops
+or cuts its hits there. `brief.lineage` and `brief.treeRoom`. A facet retried needs no child:
+a try in `tree.json` or the next round.
