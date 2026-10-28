@@ -1,6 +1,6 @@
 # @wren/outreach: interface
 
-Exports: 519. Files: 49.
+Exports: 524. Files: 55.
 
 ## packages/channel-reddit/src/warmup.ts
 
@@ -346,25 +346,8 @@ Exports: 519. Files: 49.
 - **proofsSince** (function) `(db: Queryable, since: Date): Promise<CommentProofRow[]>`
 - **warningOf** (function) `(item: string, platform: string, proof: Proof): { title: string; body: string; }`
 
-## packages/outreach/src/reach-posts.ts
+## packages/outreach/src/reach-posts/acts.ts
 
-- **momentum** (function) `(p: Pick<FeedPost, "reactions" | "comments">, ageH: number | null, halfLifeHours: number): number`
-- **commentsSettings** (function) `(db: Queryable, platform: ReachPostPlatform): Promise<CommentsSettings>`
-- **allCommentsSettings** (function) `(db: Queryable): Promise<Record<ReachPostPlatform, CommentsSettings>>`
-- **shortcodeAt** (function) `(code: string): Date | null`
-- **phrase** (function) `(keywords: string): string`
-- **postReader** (function) `(sites: SiteClient, platform: ReachPostPlatform, account: string, o: { authorTitle?: string; now: Date }): PostReader`
-- **jobPost** (function) `(text: string, headline = ""): JobPost | null`
-- **authorFit** (function) `(headline: string, audience: readonly string[]): { points: number; kind: "buyer" | "seller" | "owner" | "manager" | null }`
-- **rankPost** (function) `(p: FeedPost, o: { topics: readonly string[]; audience?: readonly string[]; key: boolean; foundBy: string; halfLifeHours: number; now: Date; }): { fit: number; why: string; off: string | null }`
-- **topicCore** (function) `(topic: string): string`
-- **keepPosts** (function) `(db: Queryable, posts: readonly FeedPost[], o: { platform: ReachPostPlatform; foundBy: string; account: string; topics: readonly string[]; audience?: readonly string[]; key?: boolean; ours: readonly string[]; halfLifeHours: number; maxAgeHours: number; now: Date; }): Promise<{ found: number[]; dropped: number }>`
-- **draftPost** (function) `(db: Queryable, llm: LlmClient, id: number, o: CommentDraftOptions & { now: Date }): Promise<"queued" | "dropped" | "gone">`
-- **redraftPosts** (function) `(db: Queryable, llm: LlmClient, ids: readonly number[], o: CommentDraftOptions & { settings: Readonly<Record<ReachPostPlatform, CommentsSettings>>; why?: string; now: Date; }): Promise<RedraftResult>`
-- **topicYields** (function) `(db: Queryable, o: { platform: ReachPostPlatform; minFit: number; now: Date }): Promise<TopicYield[]>`
-- **planTopics** (function) `(own: readonly string[], yields: readonly TopicYield[], fresh: readonly string[], extra: number, audience?: readonly string[]): { topics: string[]; rested: string[] }`
-- **proposeTopics** (function) `(llm: LlmClient, o: { platform?: ReachPostPlatform; about: string; n: number; yields: readonly TopicYield[]; known: readonly string[]; audience?: readonly string[]; }): Promise<string[]>`
-- **postsPass** (function) `(db: Queryable, o: { platform: ReachPostPlatform; settings: CommentsSettings; read: PostReader; llm: LlmClient | null; guide?: () => Promise<string>; voice?: string; facts?: () => Promise<readonly string[]>; ours?: () => Promise<readonly OurPost[]>; now: Date; step: <T>(name: string, fn: () => Promise<T>) => Promise<T>; capped?: (err: unknown) => boolean; }): Promise<PostsStats>`
 - **planPostComment** (function) `(db: Queryable, id: number): Promise<ReachPost>`
 - **planPostAct** (function) `(db: Queryable, id: number, act: "like" | "follow"): Promise<ReachPost>`
 - **markPostCommented** (function) `(db: Queryable, post: ReachPost, r: { body: string; by: string; now: Date }): Promise<void>`
@@ -375,24 +358,64 @@ Exports: 519. Files: 49.
 - **markPostActed** (function) `(db: Queryable, id: number, act: "like" | "follow", now: Date): Promise<void>`
 - **skipPost** (function) `(db: Queryable, ids: readonly number[], o: { by?: string; reason?: RejectReason | null; note?: string | null } = {}): Promise<number[]>`
 - **listPosts** (function) `(db: Queryable, o: { state?: string; limit?: number } = {}): Promise<{ id: number; platform: "linkedin" | "youtube" | "x" | "tiktok" | "instagram" | "threads"; state: "dropped" | "skipped" | "queued" | "found" | "commented"; author: string; fit: number | null; why: string | null; draft: string | null; url: string; foundBy: string; }[]>`
-- **COMMENTS_COMPONENTS** (const) `Readonly<Record<ReachPostPlatform, string>>`
-- **COMMENT_MAX** (const) `Readonly<Record<ReachPostPlatform, number>>`
-- **MIN_FIT** (const) `70`
-- **DEFAULT_AUDIENCE** (const) `readonly ["business", "compan", "firm", "agency", "founder", "owner", "ceo", "b2b", "startup", "client", "customer"]`
-- **COMMENTS_SETTINGS** (const) `Record<"linkedin" | "youtube" | "x" | "tiktok" | "instagram" | "threads", z.ZodObject<{ account: z.ZodDefault<z.ZodString>; perDay: z.ZodDefault<z.ZodNumber>; autoSend: z.ZodDefault<z.ZodBoolean>; topics: z.ZodDefault<z.ZodArray<z.ZodString>>; pages: z.ZodDefault<z.ZodArray<z.ZodString>>; people: z.…`
-- **CommentsSettings** (type) `type CommentsSettings = z.infer<ReturnType<typeof commentsSettingsSchemaFor>>;`
+- **ACTS_PER_PASS** (const) `5`
+- **ActsStats** (interface) `interface ActsStats { liked: number; followed: number; held: string[]; errors: string[]; }`
+
+## packages/outreach/src/reach-posts/draft.ts
+
+- **draftPost** (function) `(db: Queryable, llm: LlmClient, id: number, o: CommentDraftOptions & { now: Date }): Promise<"queued" | "dropped" | "gone">`
+- **redraftPosts** (function) `(db: Queryable, llm: LlmClient, ids: readonly number[], o: CommentDraftOptions & { settings: Readonly<Record<ReachPostPlatform, CommentsSettings>>; why?: string; now: Date; }): Promise<RedraftResult>`
+- **RedraftResult** (interface) `interface RedraftResult { redrafted: number[]; dropped: { id: number; why: string }[]; skipped: { id: number; why: string }[]; }`
+
+## packages/outreach/src/reach-posts/pass.ts
+
+- **keepPosts** (function) `(db: Queryable, posts: readonly FeedPost[], o: { platform: ReachPostPlatform; foundBy: string; account: string; topics: readonly string[]; audience?: readonly string[]; key?: boolean; ours: readonly string[]; halfLifeHours: number; maxAgeHours: number; now: Date; }): Promise<{ found: number[]; dropped: number }>`
+- **postsPass** (function) `(db: Queryable, o: { platform: ReachPostPlatform; settings: CommentsSettings; read: PostReader; llm: LlmClient | null; guide?: () => Promise<string>; voice?: string; facts?: () => Promise<readonly string[]>; ours?: () => Promise<readonly OurPost[]>; now: Date; step: <T>(name: string, fn: () => Promise<T>) => Promise<T>; capped?: (err: unknown) => boolean; }): Promise<PostsStats>`
+- **PostsStats** (interface) `interface PostsStats { platform: ReachPostPlatform; account: string; reads: number; kept: number; dropped: number; queued: number; scheduled?: number; acts?: ActsStats; capped: boolean; topics: string[]; rested: string[]; errors: string[]; }`
+
+## packages/outreach/src/reach-posts/rank.ts
+
+- **momentum** (function) `(p: Pick<FeedPost, "reactions" | "comments">, ageH: number | null, halfLifeHours: number): number`
+- **jobPost** (function) `(text: string, headline = ""): JobPost | null`
+- **authorFit** (function) `(headline: string, audience: readonly string[]): { points: number; kind: "buyer" | "seller" | "owner" | "manager" | null }`
+- **rankPost** (function) `(p: FeedPost, o: { topics: readonly string[]; audience?: readonly string[]; key: boolean; foundBy: string; halfLifeHours: number; now: Date; }): { fit: number; why: string; off: string | null }`
+- **topicCore** (function) `(topic: string): string`
+- **MOMENTUM_MAX** (const) `14`
+- **isJobAd** (function) `(text: string, headline = ""): boolean`
+
+## packages/outreach/src/reach-posts/read.ts
+
+- **shortcodeAt** (function) `(code: string): Date | null`
+- **phrase** (function) `(keywords: string): string`
+- **postReader** (function) `(sites: SiteClient, platform: ReachPostPlatform, account: string, o: { authorTitle?: string; now: Date }): PostReader`
 - **FeedPost** (interface) `interface FeedPost { ref: string; author: string; authorUrl: string | null; handle?: string | null; headline?: string; text: string; age?: string; at?: string; approx?: true; reactions: number; comments: number; url: string; off?: string; raw?: unknown; }`
 - **Since** (type) `type Since = "past-24h" | "past-week" | "past-month";`
+- **KeyPerson** (interface) `interface KeyPerson { handle: string; name: string; }`
+- **PostReader** (interface) `interface PostReader { search(keywords: string, since: Since): Promise<FeedPost[]>; page(handle: string): Promise<FeedPost[]>; person(k: KeyPerson, since: Since): Promise<FeedPost[]>; one(ref: string): Promise<FeedPost | null>; feed(): Promise<FeedPost[]>; }`
 - **YtVideo** (interface) `interface YtVideo { id: string; snippet?: { title?: string; description?: string; channelId?: string; channelTitle?: string; publishedAt?: string; categoryId?: string; defaultAudioLanguage?: string; }; statistics?: { likeCount?: string; commentCount?: string }; }`
 - **ytPostOf** (function) `(v: YtVideo): FeedPost | null`
 - **nameOfVanity** (function) `(vanity: string): string`
 - **vanityOf** (function) `(url: string | null | undefined): string | null`
-- **isJobAd** (function) `(text: string, headline = ""): boolean`
-- **RedraftResult** (interface) `interface RedraftResult { redrafted: number[]; dropped: { id: number; why: string }[]; skipped: { id: number; why: string }[]; }`
+
+## packages/outreach/src/reach-posts/settings.ts
+
+- **commentsSettings** (function) `(db: Queryable, platform: ReachPostPlatform): Promise<CommentsSettings>`
+- **allCommentsSettings** (function) `(db: Queryable): Promise<Record<ReachPostPlatform, CommentsSettings>>`
+- **COMMENTS_COMPONENTS** (const) `Readonly<Record<ReachPostPlatform, string>>`
+- **PLATFORM_NAME** (const) `Readonly<Record<ReachPostPlatform, string>>`
+- **COMMENT_MAX** (const) `Readonly<Record<ReachPostPlatform, number>>`
+- **COMMENT_LENGTH** (const) `Readonly<Record<ReachPostPlatform, string>>`
+- **MIN_FIT** (const) `70`
+- **DEFAULT_AUDIENCE** (const) `readonly ["business", "compan", "firm", "agency", "founder", "owner", "ceo", "b2b", "startup", "client", "customer"]`
+- **COMMENTS_SETTINGS** (const) `Record<"linkedin" | "youtube" | "x" | "tiktok" | "instagram" | "threads", z.ZodObject<{ account: z.ZodDefault<z.ZodString>; perDay: z.ZodDefault<z.ZodNumber>; autoSend: z.ZodDefault<z.ZodBoolean>; topics: z.ZodDefault<z.ZodArray<z.ZodString>>; pages: z.ZodDefault<z.ZodArray<z.ZodString>>; people: z.…`
+- **CommentsSettings** (type) `type CommentsSettings = z.infer<ReturnType<typeof commentsSettingsSchemaFor>>;`
+
+## packages/outreach/src/reach-posts/topics.ts
+
+- **topicYields** (function) `(db: Queryable, o: { platform: ReachPostPlatform; minFit: number; now: Date }): Promise<TopicYield[]>`
+- **planTopics** (function) `(own: readonly string[], yields: readonly TopicYield[], fresh: readonly string[], extra: number, audience?: readonly string[]): { topics: string[]; rested: string[] }`
+- **proposeTopics** (function) `(llm: LlmClient, o: { platform?: ReachPostPlatform; about: string; n: number; yields: readonly TopicYield[]; known: readonly string[]; audience?: readonly string[]; }): Promise<string[]>`
 - **REST_AFTER** (const) `15`
-- **PostsStats** (interface) `interface PostsStats { platform: ReachPostPlatform; account: string; reads: number; kept: number; dropped: number; queued: number; scheduled?: number; acts?: ActsStats; capped: boolean; topics: string[]; rested: string[]; errors: string[]; }`
-- **ACTS_PER_PASS** (const) `5`
-- **ActsStats** (interface) `interface ActsStats { liked: number; followed: number; held: string[]; errors: string[]; }`
 
 ## packages/outreach/src/records.ts
 

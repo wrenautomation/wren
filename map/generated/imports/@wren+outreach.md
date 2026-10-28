@@ -1,6 +1,6 @@
 # @wren/outreach
 
-Role: package. Files: 68.
+Role: package. Files: 74.
 
 ## Uses
 
@@ -37,7 +37,7 @@ flowchart LR
   nexamples_ts["examples.ts"]
   npacing_ts["pacing.ts"]
   npasses_ts["passes.ts"]
-  nreach_posts_ts["reach-posts.ts"]
+  nreach_posts_["reach-posts/ (7)"]
   ntouches_ts["touches.ts"]
   ntick_ts["tick.ts"]
   nsend_attempts_ts["send-attempts.ts"]
@@ -83,7 +83,7 @@ flowchart LR
   nindex_ts --> npasses_ts
   nindex_ts --> npolicy_ts
   nindex_ts --> nproofs_ts
-  nindex_ts --> nreach_posts_ts
+  nindex_ts --> nreach_posts_
   nindex_ts --> nrefusal_ts
   nindex_ts --> nreplies_ts
   nindex_ts --> nreply_drafts_ts
@@ -130,14 +130,11 @@ flowchart LR
   nexamples_ts --> nschema_ts
   npasses_ts --> ncomments_ts
   npasses_ts --> ndiscovery_
-  npasses_ts --> nreach_posts_ts
+  npasses_ts --> nreach_posts_
   npasses_ts --> nschema_ts
-  nreach_posts_ts --> ndraft_llm_ts
-  nreach_posts_ts --> nexamples_ts
-  nreach_posts_ts --> npasses_ts
-  nreach_posts_ts --> nrefusal_ts
-  nreach_posts_ts --> nschema_ts
-  nreach_posts_ts --> ntouches_ts
+  nreach_posts_ --> nrefusal_ts
+  nreach_posts_ --> nschema_ts
+  nreach_posts_ --> ntouches_ts
   ntouches_ts --> ndraft_accounts_ts
   ntouches_ts --> nschema_ts
   ntick_ts --> naccounts_ts
@@ -187,6 +184,9 @@ flowchart LR
   nfollow_ts --> ntick_ts
   nproofs_ts --> ndiscovery_
   nproofs_ts --> nschema_ts
+  nreach_posts_ --> ndraft_llm_ts
+  nreach_posts_ --> nexamples_ts
+  nreach_posts_ --> npasses_ts
   nreplies_ts --> ncontacts_ts
   nreplies_ts --> nschema_ts
   nreplies_ts --> ntouches_ts
@@ -195,7 +195,7 @@ flowchart LR
   nsettle_send_ts --> ncomments_ts
   nsettle_send_ts --> ncontacts_ts
   nsettle_send_ts --> ndiscovery_
-  nsettle_send_ts --> nreach_posts_ts
+  nsettle_send_ts --> nreach_posts_
   nsettle_send_ts --> nrefusal_ts
   nsettle_send_ts --> nschema_ts
   nsettle_send_ts --> nsend_attempts_ts
@@ -224,7 +224,7 @@ flowchart LR
   ncomponents_ts --> ndiscovery_
   ncomponents_ts --> nfollow_ups_ts
   ncomponents_ts --> ninvites_ts
-  ncomponents_ts --> nreach_posts_ts
+  ncomponents_ts --> nreach_posts_
   nrestate_ --> nschema_ts
   nrestate_ --> nclients_ts
   nrestate_ --> ndrafts_ts
@@ -241,7 +241,7 @@ flowchart LR
   nrestate_ --> nfollow_ups_ts
   nrestate_ --> ninvite_notes_ts
   nrestate_ --> nlimits_ts
-  nrestate_ --> nreach_posts_ts
+  nrestate_ --> nreach_posts_
   nrestate_ --> nreplies_ts
   nrestate_ --> nscheduled_ts
   ninvite_notes_ts --> ndraft_llm_ts
@@ -252,7 +252,7 @@ flowchart LR
   nlimits_ts -.-> nschema_ts
   nscheduled_ts --> ndiscovery_
   nscheduled_ts --> npacing_ts
-  nscheduled_ts -.-> nreach_posts_ts
+  nscheduled_ts -.-> nreach_posts_
   nscheduled_ts --> nschema_ts
   nscheduled_ts --> nsend_attempts_ts
   nrestate_ --> ndraft_accounts_ts
@@ -268,12 +268,12 @@ flowchart LR
   nrestate_ --> nintercept_ts
   ncreator_search_ts --> ndiscovery_
   nintercept_ts --> ndiscovery_
-  nintercept_ts --> nreach_posts_ts
+  nintercept_ts --> nreach_posts_
   nintercept_ts --> nrefusal_ts
   nintercept_ts --> nschema_ts
   nrestate_ --> ntick_ts
   npain_ts --> npasses_ts
-  npain_ts --> nreach_posts_ts
+  npain_ts --> nreach_posts_
   npain_ts --> nschema_ts
 ```
 
@@ -306,7 +306,7 @@ flowchart LR
 - passes.ts
 - policy.ts
 - proofs.ts
-- reach-posts.ts
+- reach-posts/: src/reach-posts/acts.ts, src/reach-posts/draft.ts, src/reach-posts/pass.ts, src/reach-posts/rank.ts, src/reach-posts/read.ts, src/reach-posts/settings.ts, src/reach-posts/topics.ts
 - records.ts
 - refusal.ts
 - replies.ts

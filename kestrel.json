@@ -7,7 +7,8 @@
       "migrate": "pnpm -s db:migrate",
       "migrateUrlEnv": "WREN_DATABASE_URL",
       "migrations": "packages/db/drizzle"
-    }
+    },
+    "systems": {}
   },
   "cards": {
     "require": [
