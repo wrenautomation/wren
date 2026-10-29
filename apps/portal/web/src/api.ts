@@ -525,7 +525,7 @@ export async function putSigned(
 }
 
 /** A file's SHA-256, hex: the media store keys and checks bytes by it. */
-export async function sha256Of(file: Blob): Promise<string> {
+async function sha256Of(file: Blob): Promise<string> {
   const d = new Uint8Array(await crypto.subtle.digest("SHA-256", await file.arrayBuffer()));
   return Array.from(d, (b) => b.toString(16).padStart(2, "0")).join("");
 }
