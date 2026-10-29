@@ -24,8 +24,8 @@
     "@wren/core": "workspace:*",
     "@wren/db": "workspace:*",
     "@wren/llm": "workspace:*",
-    "@wrenautomation/falcon": "0.8.2",
-    "@wrenautomation/weaver": "0.8.2",
+    "@wrenautomation/falcon": "0.28.0",
+    "@wrenautomation/weaver": "0.28.0",
     "drizzle-orm": "0.45.2",
     "zod": "4.6.5"
   },

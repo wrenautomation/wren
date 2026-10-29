@@ -15,7 +15,7 @@
  */
 import { createHash } from "node:crypto";
 import { type Company, companies, inPlay } from "@wren/core";
-import type { SiteClient } from "@wren/core/content";
+import type { SiteClient, SiteMethod } from "@wren/core/content";
 import { atomic, type Queryable } from "@wren/db";
 import { looksLikeJsShell, readPage } from "@wrenautomation/falcon/text";
 import {
@@ -24,6 +24,7 @@ import {
   fetchLadder,
   isLadderTier,
   LADDER_TIERS,
+  type LadderClient,
   type RobotsCache,
 } from "@wrenautomation/weaver/fetch";
 import {
@@ -340,6 +341,12 @@ export async function renderCompany(
   return stats;
 }
 
+/** weaver's client shape: account in an options bag, not positional. */
+const ladderOf = (sites: SiteClient): LadderClient => ({
+  call: (site, method, path, input, o) =>
+    sites.call(site, method as SiteMethod, path, input as Record<string, unknown>, o?.account),
+});
+
 /** What a blocked company's pass needs from the ladder side: autobrowse, and this run's budget. */
 interface LadderRun {
   sites: SiteClient;
@@ -398,7 +405,7 @@ export async function climbCompany(
   const call = async (url: string, tier: typeof from) => {
     ladder.budget.left -= 1;
     stats.ladder_requests += 1;
-    const got = await fetchLadder(ladder.sites, url, tier);
+    const got = await fetchLadder(ladderOf(ladder.sites), url, tier);
     if ("failed" in got) {
       if (got.failed === "cap") ladder.budget.left = 0;
       stats.render_errors += 1;
