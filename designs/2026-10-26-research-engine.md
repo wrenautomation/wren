@@ -953,3 +953,9 @@ one positive; read as direction only:
   A criterion most sources pass is a weak router.
 - `code` ranked badly (0.25): release of code does not predict a rich page for this ask.
 Not done: the 30-paper side by side of full-text Jev, abstract Jev and Claude. More runs first.
+Follow-up, engine 0.26.0: the runner's triage saw neither the criteria nor Jev's answers (the
+agent path sorts by them in `brief`; the runner did not). Now every prompt shows the person's
+tests in the steer slot (no plan file version bump: stored files take it), and each triage hit
+carries Jev's yes odds (serves, each test) marked as a hint. Haiku still makes the call. One
+paused round on the same ask: reads under 0.3 on `research_task` went from 2 of 6 to 0 of 6;
+rich reads from 1 to 2. Direction only.
