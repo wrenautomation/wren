@@ -12,6 +12,7 @@
     "blurb": "Everything Wren can run for a client, and what each part needs.",
     "file": "apps/portal/web/src/modules/marketplace/index.ts",
     "name": "Marketplace",
+    "path": "/marketplace",
     "workspace": "wren"
    }
   },
@@ -64,7 +65,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/marketplace/Map.tsx"
-    ]
+    ],
+    "path": "console/recordsList"
    }
   }
  ]

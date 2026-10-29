@@ -12,6 +12,7 @@
     "blurb": "How each node, edge and offer of the shape converts, and what a client costs and earns.",
     "file": "apps/portal/web/src/modules/numbers/index.ts",
     "name": "Numbers",
+    "path": "/numbers",
     "workspace": "wren"
    }
   },

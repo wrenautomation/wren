@@ -10,6 +10,7 @@
     "file": "apps/portal/web/src/modules/learn/index.ts",
     "name": "Learn",
     "parked": true,
+    "path": "/learn",
     "workspace": "wren"
    }
   },
@@ -187,7 +188,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/alerts"
    }
   },
   {
@@ -197,7 +199,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/bell"
    }
   },
   {
@@ -207,7 +210,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/bellSeen"
    }
   },
   {
@@ -217,7 +221,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/browse"
    }
   },
   {
@@ -227,7 +232,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/home"
    }
   },
   {
@@ -237,7 +243,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/item"
    }
   },
   {
@@ -247,7 +254,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/open"
    }
   },
   {
@@ -257,7 +265,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/progress"
    }
   },
   {
@@ -267,7 +276,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/rail"
    }
   },
   {
@@ -277,7 +287,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/learn.tsx"
-    ]
+    ],
+    "path": "learn/save"
    }
   },
   {
@@ -287,7 +298,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/learn.tsx"
-    ]
+    ],
+    "path": "learn/search"
    }
   },
   {
@@ -297,7 +309,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/seen"
    }
   },
   {
@@ -307,7 +320,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/today"
    }
   },
   {
@@ -317,7 +331,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/unseen"
    }
   },
   {
@@ -332,7 +347,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/alerts"
    }
   },
   {
@@ -342,7 +358,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/bell"
    }
   },
   {
@@ -352,7 +369,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/bellSeen"
    }
   },
   {
@@ -362,7 +380,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/browse"
    }
   },
   {
@@ -372,7 +391,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/home"
    }
   },
   {
@@ -382,7 +402,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/item"
    }
   },
   {
@@ -392,7 +413,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/open"
    }
   },
   {
@@ -402,7 +424,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/progress"
    }
   },
   {
@@ -412,7 +435,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/rail"
    }
   },
   {
@@ -422,7 +446,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/learn.tsx"
-    ]
+    ],
+    "path": "learn/save"
    }
   },
   {
@@ -432,7 +457,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/learn.tsx"
-    ]
+    ],
+    "path": "learn/search"
    }
   },
   {
@@ -442,7 +468,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/seen"
    }
   },
   {
@@ -452,7 +479,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/today"
    }
   },
   {
@@ -462,7 +490,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/unseen"
    }
   },
   {
@@ -472,7 +501,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/alerts"
    }
   },
   {
@@ -482,7 +512,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/bell"
    }
   },
   {
@@ -492,7 +523,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/bellSeen"
    }
   },
   {
@@ -502,7 +534,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/browse"
    }
   },
   {
@@ -512,7 +545,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/home"
    }
   },
   {
@@ -522,7 +556,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/item"
    }
   },
   {
@@ -532,7 +567,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/open"
    }
   },
   {
@@ -542,7 +578,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/progress"
    }
   },
   {
@@ -552,7 +589,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/rail"
    }
   },
   {
@@ -562,7 +600,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/seen"
    }
   },
   {
@@ -572,7 +611,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/today"
    }
   },
   {
@@ -582,7 +622,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/unseen"
    }
   },
   {
@@ -597,7 +638,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/alerts"
    }
   },
   {
@@ -607,7 +649,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/bell"
    }
   },
   {
@@ -617,7 +660,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/bellSeen"
    }
   },
   {
@@ -627,7 +671,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/browse"
    }
   },
   {
@@ -637,7 +682,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/home"
    }
   },
   {
@@ -647,7 +693,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/item"
    }
   },
   {
@@ -657,7 +704,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/open"
    }
   },
   {
@@ -667,7 +715,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/progress"
    }
   },
   {
@@ -677,7 +726,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/rail"
    }
   },
   {
@@ -687,7 +737,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/learn.tsx"
-    ]
+    ],
+    "path": "learn/save"
    }
   },
   {
@@ -697,7 +748,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/learn.tsx"
-    ]
+    ],
+    "path": "learn/search"
    }
   },
   {
@@ -707,7 +759,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/seen"
    }
   },
   {
@@ -717,7 +770,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/today"
    }
   },
   {
@@ -727,7 +781,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/unseen"
    }
   },
   {
@@ -767,7 +822,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/find.tsx"
-    ]
+    ],
+    "path": "console/call"
    }
   },
   {
@@ -777,7 +833,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/alerts"
    }
   },
   {
@@ -787,7 +844,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/bell"
    }
   },
   {
@@ -797,7 +855,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/bellSeen"
    }
   },
   {
@@ -807,7 +866,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/browse"
    }
   },
   {
@@ -817,7 +877,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/home"
    }
   },
   {
@@ -827,7 +888,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/item"
    }
   },
   {
@@ -837,7 +899,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/open"
    }
   },
   {
@@ -847,7 +910,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/progress"
    }
   },
   {
@@ -857,7 +921,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/rail"
    }
   },
   {
@@ -867,7 +932,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/seen"
    }
   },
   {
@@ -877,7 +943,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/today"
    }
   },
   {
@@ -887,7 +954,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/unseen"
    }
   },
   {
@@ -897,7 +965,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/alerts"
    }
   },
   {
@@ -907,7 +976,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/bell"
    }
   },
   {
@@ -917,7 +987,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/bellSeen"
    }
   },
   {
@@ -927,7 +998,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/browse"
    }
   },
   {
@@ -937,7 +1009,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/home"
    }
   },
   {
@@ -947,7 +1020,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/item"
    }
   },
   {
@@ -957,7 +1031,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/open"
    }
   },
   {
@@ -967,7 +1042,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/progress"
    }
   },
   {
@@ -977,7 +1053,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/rail"
    }
   },
   {
@@ -987,7 +1064,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/seen"
    }
   },
   {
@@ -997,7 +1075,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/today"
    }
   },
   {
@@ -1007,7 +1086,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/unseen"
    }
   }
  ]

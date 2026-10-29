@@ -12,6 +12,7 @@
     "blurb": "Your layout, your themes and colors, and a guide to every app and key.",
     "file": "apps/portal/web/src/modules/settings/index.ts",
     "name": "Settings",
+    "path": "/settings",
     "workspace": "wren"
    }
   },
@@ -94,7 +95,8 @@
     "at": [
      "apps/portal/web/src/modules/account/Accounts.tsx",
      "apps/portal/web/src/modules/account/summary.tsx"
-    ]
+    ],
+    "path": "accounts/accounts"
    }
   },
   {
@@ -104,7 +106,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/account/Limits.tsx"
-    ]
+    ],
+    "path": "accounts/limits"
    }
   },
   {
@@ -114,7 +117,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/account/Now.tsx"
-    ]
+    ],
+    "path": "accounts/now"
    }
   },
   {
@@ -124,7 +128,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/account/summary.tsx"
-    ]
+    ],
+    "path": "accounts/usage"
    }
   },
   {
@@ -134,7 +139,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/account/Vendors.tsx"
-    ]
+    ],
+    "path": "accounts/vendors"
    }
   },
   {
@@ -144,7 +150,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/calendar/schedule.tsx"
-    ]
+    ],
+    "path": "calendar/range"
    }
   },
   {
@@ -154,7 +161,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/calendar/recorder.tsx"
-    ]
+    ],
+    "path": "calendar/recorder"
    }
   },
   {
@@ -164,7 +172,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/account/Connectors.tsx"
-    ]
+    ],
+    "path": "connectors/connectors"
    }
   },
   {
@@ -174,7 +183,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/wren/Agents.tsx"
-    ]
+    ],
+    "path": "console/agents"
    }
   },
   {
@@ -184,7 +194,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/marketplace/Catalog.tsx"
-    ]
+    ],
+    "path": "console/ask"
    }
   },
   {
@@ -201,7 +212,8 @@
      "apps/portal/web/src/modules/marketing/pieces.tsx",
      "apps/portal/web/src/modules/outreach/engage.tsx",
      "apps/portal/web/src/modules/wren/handlers.ts"
-    ]
+    ],
+    "path": "console/call"
    }
   },
   {
@@ -211,7 +223,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/marketplace/Catalog.tsx"
-    ]
+    ],
+    "path": "console/connect"
    }
   },
   {
@@ -221,7 +234,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/wren/decisions.tsx"
-    ]
+    ],
+    "path": "console/decisions"
    }
   },
   {
@@ -231,7 +245,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/wren/doors.tsx"
-    ]
+    ],
+    "path": "console/doorReveal"
    }
   },
   {
@@ -241,7 +256,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/wren/doors.tsx"
-    ]
+    ],
+    "path": "console/doorRotate"
    }
   },
   {
@@ -251,7 +267,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/wren/Agents.tsx"
-    ]
+    ],
+    "path": "console/loops"
    }
   },
   {
@@ -261,7 +278,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/wren/ask.tsx"
-    ]
+    ],
+    "path": "console/question"
    }
   },
   {
@@ -272,7 +290,8 @@
     "at": [
      "apps/portal/web/src/modules/marketing/facts.tsx",
      "apps/portal/web/src/modules/marketing/plan.tsx"
-    ]
+    ],
+    "path": "console/recordsEdit"
    }
   },
   {
@@ -292,7 +311,8 @@
      "apps/portal/web/src/modules/wren/playback.tsx",
      "apps/portal/web/src/modules/wren/replies.ts",
      "apps/portal/web/src/modules/wren/workflows.tsx"
-    ]
+    ],
+    "path": "console/recordsGet"
    }
   },
   {
@@ -313,7 +333,8 @@
      "apps/portal/web/src/modules/wren/infra.tsx",
      "apps/portal/web/src/modules/wren/playback.tsx",
      "apps/portal/web/src/modules/wren/workflows.tsx"
-    ]
+    ],
+    "path": "console/recordsList"
    }
   },
   {
@@ -326,7 +347,8 @@
      "apps/portal/web/src/modules/wren/Agents.tsx",
      "apps/portal/web/src/modules/wren/heads.tsx",
      "apps/portal/web/src/modules/wren/workflows.tsx"
-    ]
+    ],
+    "path": "console/recordsStats"
    }
   },
   {
@@ -336,7 +358,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/wren/workflows.tsx"
-    ]
+    ],
+    "path": "console/recordsTypes"
    }
   },
   {
@@ -346,7 +369,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/marketing/facts.tsx"
-    ]
+    ],
+    "path": "console/recordsUndo"
    }
   },
   {
@@ -356,7 +380,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/wren/executions.tsx"
-    ]
+    ],
+    "path": "console/replay"
    }
   },
   {
@@ -366,7 +391,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/wren/executions.tsx"
-    ]
+    ],
+    "path": "console/retryEvent"
    }
   },
   {
@@ -376,7 +402,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/account/Look.tsx"
-    ]
+    ],
+    "path": "console/setLook"
    }
   },
   {
@@ -386,7 +413,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/marketplace/Installed.tsx"
-    ]
+    ],
+    "path": "console/templateInstalls"
    }
   },
   {
@@ -396,7 +424,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/marketplace/Template.tsx"
-    ]
+    ],
+    "path": "console/templatePlan"
    }
   },
   {
@@ -406,7 +435,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/marketplace/Template.tsx"
-    ]
+    ],
+    "path": "console/templatePublish"
    }
   },
   {
@@ -416,7 +446,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/marketplace/Template.tsx"
-    ]
+    ],
+    "path": "console/templateUninstall"
    }
   },
   {
@@ -426,7 +457,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/account/AiTools.tsx"
-    ]
+    ],
+    "path": "console/tokens"
    }
   },
   {
@@ -436,7 +468,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/marketplace/Catalog.tsx"
-    ]
+    ],
+    "path": "console/uninstall"
    }
   },
   {
@@ -446,7 +479,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/view-as-picker.tsx"
-    ]
+    ],
+    "path": "console/viewAsList"
    }
   },
   {
@@ -456,7 +490,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/wren/editor.tsx"
-    ]
+    ],
+    "path": "console/workflowAnswer"
    }
   },
   {
@@ -466,7 +501,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/wren/editor.tsx"
-    ]
+    ],
+    "path": "console/workflowAsk"
    }
   },
   {
@@ -476,7 +512,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/wren/workflows.tsx"
-    ]
+    ],
+    "path": "console/workflowDelete"
    }
   },
   {
@@ -486,7 +523,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/wren/workflows.tsx"
-    ]
+    ],
+    "path": "console/workflowDiscard"
    }
   },
   {
@@ -496,7 +534,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/wren/doors.tsx"
-    ]
+    ],
+    "path": "console/workflowDoors"
    }
   },
   {
@@ -506,7 +545,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/wren/workflows.tsx"
-    ]
+    ],
+    "path": "console/workflowSave"
    }
   },
   {
@@ -516,7 +556,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/marketplace/delete-saved.tsx"
-    ]
+    ],
+    "path": "console/workflowTemplateDelete"
    }
   },
   {
@@ -526,7 +567,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/wren/tester.tsx"
-    ]
+    ],
+    "path": "console/workflowTest"
    }
   },
   {
@@ -536,7 +578,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/wren/made.tsx"
-    ]
+    ],
+    "path": "console/workflowsMade"
    }
   },
   {
@@ -546,7 +589,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/work/Contract.tsx"
-    ]
+    ],
+    "path": "delivery/contract"
    }
   },
   {
@@ -556,7 +600,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/account/Domain.tsx"
-    ]
+    ],
+    "path": "delivery/domains"
    }
   },
   {
@@ -569,7 +614,8 @@
      "apps/portal/web/src/modules/account/Included.tsx",
      "apps/portal/web/src/modules/account/Look.tsx",
      "apps/portal/web/src/modules/marketplace/Template.tsx"
-    ]
+    ],
+    "path": "delivery/me"
    }
   },
   {
@@ -579,7 +625,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/work/Contract.tsx"
-    ]
+    ],
+    "path": "delivery/sign"
    }
   },
   {
@@ -589,7 +636,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/account/Webhooks.tsx"
-    ]
+    ],
+    "path": "delivery/webhooks"
    }
   },
   {
@@ -599,7 +647,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/documents/documents.tsx"
-    ]
+    ],
+    "path": "documents/create"
    }
   },
   {
@@ -609,7 +658,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/documents/documents.tsx"
-    ]
+    ],
+    "path": "documents/send"
    }
   },
   {
@@ -619,7 +669,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/documents/documents.tsx"
-    ]
+    ],
+    "path": "documents/templateSave"
    }
   },
   {
@@ -629,7 +680,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/documents/documents.tsx"
-    ]
+    ],
+    "path": "documents/templates"
    }
   },
   {
@@ -639,7 +691,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/wren/dossier.tsx"
-    ]
+    ],
+    "path": "email/dossier"
    }
   },
   {
@@ -649,7 +702,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/alerts"
    }
   },
   {
@@ -659,7 +713,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/bell"
    }
   },
   {
@@ -669,7 +724,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/bellSeen"
    }
   },
   {
@@ -679,7 +735,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/browse"
    }
   },
   {
@@ -689,7 +746,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/home"
    }
   },
   {
@@ -699,7 +757,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/item"
    }
   },
   {
@@ -709,7 +768,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/open"
    }
   },
   {
@@ -719,7 +779,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/progress"
    }
   },
   {
@@ -729,7 +790,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/rail"
    }
   },
   {
@@ -739,7 +801,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/learn.tsx"
-    ]
+    ],
+    "path": "learn/save"
    }
   },
   {
@@ -749,7 +812,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/learn.tsx"
-    ]
+    ],
+    "path": "learn/search"
    }
   },
   {
@@ -759,7 +823,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/seen"
    }
   },
   {
@@ -769,7 +834,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/today"
    }
   },
   {
@@ -779,7 +845,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/unseen"
    }
   },
   {
@@ -789,7 +856,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/account/Mail.tsx"
-    ]
+    ],
+    "path": "mail/mail"
    }
   },
   {
@@ -799,7 +867,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/marketing/reports.tsx"
-    ]
+    ],
+    "path": "marketing/reports"
    }
   },
   {
@@ -809,7 +878,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/notes/turn.tsx"
-    ]
+    ],
+    "path": "notes/toDraft"
    }
   },
   {
@@ -819,7 +889,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/notes/turn.tsx"
-    ]
+    ],
+    "path": "notes/toSop"
    }
   },
   {
@@ -829,7 +900,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/payments/stripe.tsx"
-    ]
+    ],
+    "path": "payments/connect"
    }
   },
   {
@@ -839,7 +911,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/payments/stripe.tsx"
-    ]
+    ],
+    "path": "payments/status"
    }
   },
   {
@@ -849,7 +922,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/people/broadcasts.tsx"
-    ]
+    ],
+    "path": "people/broadcastContext"
    }
   },
   {
@@ -859,7 +933,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/people/broadcasts.tsx"
-    ]
+    ],
+    "path": "people/broadcastMonth"
    }
   },
   {
@@ -869,7 +944,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/people/broadcasts.tsx"
-    ]
+    ],
+    "path": "people/broadcastPreview"
    }
   },
   {
@@ -879,7 +955,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/people/broadcasts.tsx"
-    ]
+    ],
+    "path": "people/broadcastSave"
    }
   },
   {
@@ -889,7 +966,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/people/channels.tsx"
-    ]
+    ],
+    "path": "people/channelPeople"
    }
   },
   {
@@ -899,7 +977,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/people/channels.tsx"
-    ]
+    ],
+    "path": "people/channelStats"
    }
   },
   {
@@ -910,7 +989,8 @@
     "at": [
      "apps/portal/web/src/modules/people/channels.tsx",
      "apps/portal/web/src/modules/people/segments.tsx"
-    ]
+    ],
+    "path": "people/segmentContext"
    }
   },
   {
@@ -920,7 +1000,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/people/segments.tsx"
-    ]
+    ],
+    "path": "people/segmentDescribe"
    }
   },
   {
@@ -930,7 +1011,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/people/segments.tsx"
-    ]
+    ],
+    "path": "people/segmentPreview"
    }
   },
   {
@@ -940,7 +1022,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/people/segments.tsx"
-    ]
+    ],
+    "path": "people/segmentSave"
    }
   },
   {
@@ -950,7 +1033,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/people/segments.tsx"
-    ]
+    ],
+    "path": "people/segmentVersions"
    }
   },
   {
@@ -960,7 +1044,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/deals/board.tsx"
-    ]
+    ],
+    "path": "pipeline/journeysDrop"
    }
   },
   {
@@ -970,7 +1055,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/deals/board.tsx"
-    ]
+    ],
+    "path": "pipeline/journeysMove"
    }
   },
   {
@@ -981,7 +1067,8 @@
     "at": [
      "apps/portal/web/src/map/stations.ts",
      "apps/portal/web/src/modules/deals/board.tsx"
-    ]
+    ],
+    "path": "pipeline/recordsGet"
    }
   },
   {
@@ -991,7 +1078,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/deals/board.tsx"
-    ]
+    ],
+    "path": "pipeline/recordsList"
    }
   },
   {
@@ -1001,7 +1089,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/people/import.tsx"
-    ]
+    ],
+    "path": "reactivation/importPreview"
    }
   },
   {
@@ -1011,7 +1100,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/people/import.tsx"
-    ]
+    ],
+    "path": "reactivation/importRun"
    }
   },
   {
@@ -1022,7 +1112,8 @@
     "at": [
      "apps/portal/web/src/modules/reactivation/Glance.tsx",
      "apps/portal/web/src/modules/reactivation/Run.tsx"
-    ]
+    ],
+    "path": "reactivation/overview"
    }
   },
   {
@@ -1032,7 +1123,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/reactivation/Run.tsx"
-    ]
+    ],
+    "path": "reactivation/run"
    }
   },
   {
@@ -1042,7 +1134,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/reactivation/Run.tsx"
-    ]
+    ],
+    "path": "reactivation/work"
    }
   },
   {
@@ -1052,7 +1145,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/sites/links.tsx"
-    ]
+    ],
+    "path": "sites/linkCreate"
    }
   },
   {
@@ -1062,7 +1156,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/sites/links.tsx"
-    ]
+    ],
+    "path": "sites/linkTargets"
    }
   },
   {
@@ -1072,7 +1167,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/texts/ask.tsx"
-    ]
+    ],
+    "path": "sms/askReview"
    }
   },
   {
@@ -1082,7 +1178,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/account/OwnSocial.tsx"
-    ]
+    ],
+    "path": "social/ownCheck"
    }
   },
   {
@@ -1092,7 +1189,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/account/Social.tsx"
-    ]
+    ],
+    "path": "social/social"
    }
   },
   {
@@ -1102,7 +1200,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/library/templates.tsx"
-    ]
+    ],
+    "path": "templates/detail"
    }
   },
   {
@@ -1112,7 +1211,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/find.ts"
-    ]
+    ],
+    "path": "templates/list"
    }
   },
   {
@@ -1122,7 +1222,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/library/templates.tsx"
-    ]
+    ],
+    "path": "templates/move"
    }
   },
   {
@@ -1132,7 +1233,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/library/templates.tsx"
-    ]
+    ],
+    "path": "templates/preview"
    }
   },
   {
@@ -1142,7 +1244,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/library/templates.tsx"
-    ]
+    ],
+    "path": "templates/publish"
    }
   },
   {
@@ -1152,7 +1255,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/library/templates.tsx"
-    ]
+    ],
+    "path": "templates/renameFolder"
    }
   },
   {
@@ -1162,7 +1266,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/library/templates.tsx"
-    ]
+    ],
+    "path": "templates/reset"
    }
   },
   {
@@ -1172,7 +1277,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/library/templates.tsx"
-    ]
+    ],
+    "path": "templates/restore"
    }
   },
   {
@@ -1182,7 +1288,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/library/templates.tsx"
-    ]
+    ],
+    "path": "templates/save"
    }
   },
   {
@@ -1192,7 +1299,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/voice/dictation.tsx"
-    ]
+    ],
+    "path": "voice/dictation"
    }
   },
   {
@@ -1202,7 +1310,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/voice/test.tsx"
-    ]
+    ],
+    "path": "voice/saveTest"
    }
   },
   {
@@ -1212,7 +1321,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/deals/board.tsx"
-    ]
+    ],
+    "path": "pipeline/journeysDrop"
    }
   },
   {
@@ -1222,7 +1332,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/deals/board.tsx"
-    ]
+    ],
+    "path": "pipeline/journeysMove"
    }
   },
   {
@@ -1233,7 +1344,8 @@
     "at": [
      "apps/portal/web/src/map/stations.ts",
      "apps/portal/web/src/modules/deals/board.tsx"
-    ]
+    ],
+    "path": "pipeline/recordsGet"
    }
   },
   {
@@ -1243,7 +1355,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/deals/board.tsx"
-    ]
+    ],
+    "path": "pipeline/recordsList"
    }
   }
  ]

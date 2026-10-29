@@ -430,5 +430,1192 @@
    }
   }
  ],
- "edges": []
+ "edges": [
+  {
+   "from": "story:pages-client",
+   "to": "ui:account/overview",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-client--account"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-client",
+   "to": "ui:calls/overview",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-client--calls"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-client",
+   "to": "ui:clientCalendar/schedule",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-client--calendar",
+     "pages-client--calendar-agenda"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-client",
+   "to": "ui:clientDeals/board",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-client--pipelines"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-client",
+   "to": "ui:clientLearn/overview",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-client--learn"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-client",
+   "to": "ui:clientNotes/home",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-client--notes"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-client",
+   "to": "ui:clientNotes/mentions",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-client--note-mentions"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-client",
+   "to": "ui:clientPeople/people",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-client--people",
+     "pages-client--people-list",
+     "pages-client--person-peek"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-client",
+   "to": "ui:clientSettings/systems",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-client--settings"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-client",
+   "to": "ui:clientSites/pages",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-client--sites"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-client",
+   "to": "ui:documents/all",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-client--documents"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-client",
+   "to": "ui:leads/overview",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-client--leads"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-client",
+   "to": "ui:marketing/inbox",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-client--marketing"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-client",
+   "to": "ui:marketplace/catalog",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-client--marketplace"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-client",
+   "to": "ui:payments/links",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-client--payments"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-client",
+   "to": "ui:reactivation/overview",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-client--reactivation"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-client",
+   "to": "ui:texts/overview",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-client--texts"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-client",
+   "to": "ui:work/overview",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-client--work"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-journeys",
+   "to": "ui:pipelines/board",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-journeys--board",
+     "pages-journeys--board-drops-with-reason",
+     "pages-journeys--board-empty",
+     "pages-journeys--board-from-nav",
+     "pages-journeys--board-ghost",
+     "pages-journeys--board-moves-forward",
+     "pages-journeys--board-on-metro-shape",
+     "pages-journeys--board-refuses-backward",
+     "pages-journeys--board-rolls-back"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-learn",
+   "to": "ui:learn/items",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-learn--item-facts",
+     "pages-learn--item-shots"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-learn",
+   "to": "ui:learn/overview",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-learn--home-sops"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-learn",
+   "to": "ui:learn/search",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-learn--search"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-learn",
+   "to": "ui:learn/sources",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-learn--find-follow-fast",
+     "pages-learn--find-people",
+     "pages-learn--sources",
+     "pages-learn--sources-pick-two-fast",
+     "pages-learn--sources-stop"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-learn",
+   "to": "ui:learn/today",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-learn--today"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren",
+   "to": "ui:ads/sets",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren--ads"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren",
+   "to": "ui:analytics/visits",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren--analytics"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren",
+   "to": "ui:ask/questions",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren--ask"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren",
+   "to": "ui:calendar/schedule",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren--calendar"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren",
+   "to": "ui:clients/overview",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren--clients"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren",
+   "to": "ui:content/plan",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren--content"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren",
+   "to": "ui:engage/engage",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren--engage"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren",
+   "to": "ui:handlers/all",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren--handlers"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren",
+   "to": "ui:inbox/mail",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren--inbox-mail"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren",
+   "to": "ui:inbox/overview",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren--inbox"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren",
+   "to": "ui:learn/items",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren--learn-list"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren",
+   "to": "ui:learn/overview",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren--learn"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren",
+   "to": "ui:library/templates",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren--library"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren",
+   "to": "ui:loops/overview",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren--loops"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren",
+   "to": "ui:money/overview",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren--money"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren",
+   "to": "ui:notes/home",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren--notes"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren",
+   "to": "ui:numbers/channels",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren--numbers-channels"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren",
+   "to": "ui:numbers/cohorts",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren--numbers-cohorts"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren",
+   "to": "ui:numbers/economics",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren--numbers-economics"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren",
+   "to": "ui:numbers/funnels",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren--numbers-funnels"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren",
+   "to": "ui:numbers/months",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren--numbers-months"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren",
+   "to": "ui:numbers/offers",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren--numbers-offers"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren",
+   "to": "ui:offers/all",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren--offers-all"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren",
+   "to": "ui:offers/terms",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren--offers-terms",
+     "pages-wren--offers-terms-failed",
+     "pages-wren--offers-terms-propose"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren",
+   "to": "ui:outbound/overview",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren--outbound"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren",
+   "to": "ui:people/groups",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren--groups-journey"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren",
+   "to": "ui:people/people",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren--people"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren",
+   "to": "ui:pipelines/board",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren--pipelines"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren",
+   "to": "ui:pipelines/calls",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren--pipelines-calls"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren",
+   "to": "ui:pipelines/deals",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren--pipelines-deals"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren",
+   "to": "ui:pipelines/entries",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren--pipelines-entries"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren",
+   "to": "ui:review/overview",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren--review"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren",
+   "to": "ui:settings/guide",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren--settings-guide"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren",
+   "to": "ui:settings/systems",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren--settings-systems",
+     "pages-wren--settings-systems-pending"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren",
+   "to": "ui:sites/pages",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren--sites"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren",
+   "to": "ui:team/all",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren--team"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren",
+   "to": "ui:workflows/all",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren--workflows"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren",
+   "to": "ui:workflows/canvas",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren--canvas-failed"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren",
+   "to": "ui:wrenMarketplace/catalog",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren--marketplace"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren-apps",
+   "to": "ui:ads/formats",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren-apps--ads-formats"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren-apps",
+   "to": "ui:ads/sets",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren-apps--ads-sets"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren-apps",
+   "to": "ui:analytics/answers",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren-apps--analytics-answers"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren-apps",
+   "to": "ui:analytics/experiments",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren-apps--analytics-experiments"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren-apps",
+   "to": "ui:analytics/funnel",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren-apps--analytics-funnel"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren-apps",
+   "to": "ui:analytics/heatmaps",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren-apps--analytics-heatmaps"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren-apps",
+   "to": "ui:analytics/keywords",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren-apps--analytics-keywords"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren-apps",
+   "to": "ui:analytics/search",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren-apps--analytics-search"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren-apps",
+   "to": "ui:analytics/sessions",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren-apps--analytics-sessions"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren-apps",
+   "to": "ui:analytics/survey-answers",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren-apps--analytics-survey-answers"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren-apps",
+   "to": "ui:analytics/surveys",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren-apps--analytics-surveys"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren-apps",
+   "to": "ui:analytics/visits",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren-apps--analytics-visits"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren-apps",
+   "to": "ui:content/content",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren-apps--content-content"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren-apps",
+   "to": "ui:content/facts",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren-apps--content-facts"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren-apps",
+   "to": "ui:content/feed",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren-apps--content-feed"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren-apps",
+   "to": "ui:content/overview",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren-apps--content-overview"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren-apps",
+   "to": "ui:content/pieces",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren-apps--content-pieces"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren-apps",
+   "to": "ui:content/plan",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren-apps--content-plan"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren-apps",
+   "to": "ui:content/studio",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren-apps--content-studio",
+     "pages-wren-apps--content-studio-approve",
+     "pages-wren-apps--content-studio-compose",
+     "pages-wren-apps--content-studio-open"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren-apps",
+   "to": "ui:content/topics",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren-apps--content-topics"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren-apps",
+   "to": "ui:engage/accounts",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren-apps--engage-accounts"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren-apps",
+   "to": "ui:engage/approve",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren-apps--engage-approve"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren-apps",
+   "to": "ui:engage/auto-reply",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren-apps--engage-auto-reply"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren-apps",
+   "to": "ui:engage/comments",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren-apps--engage-comments",
+     "pages-wren-apps--engage-comments-open"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren-apps",
+   "to": "ui:engage/conversation",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren-apps--engage-conversation"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren-apps",
+   "to": "ui:engage/dm-copy",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren-apps--engage-dm-copy"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren-apps",
+   "to": "ui:engage/dms",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren-apps--engage-dms"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren-apps",
+   "to": "ui:engage/engage",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren-apps--engage-engage"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren-apps",
+   "to": "ui:engage/followers",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren-apps--engage-followers"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren-apps",
+   "to": "ui:engage/inbox",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren-apps--engage-inbox",
+     "pages-wren-apps--engage-inbox-by-type"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren-apps",
+   "to": "ui:engage/invites",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren-apps--engage-invites",
+     "pages-wren-apps--engage-invites-long",
+     "pages-wren-apps--engage-invites-long-open"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren-apps",
+   "to": "ui:engage/keyword-dms",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren-apps--engage-keyword-dms"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren-apps",
+   "to": "ui:engage/keywords",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren-apps--engage-keywords"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren-apps",
+   "to": "ui:engage/people",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren-apps--engage-people"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren-apps",
+   "to": "ui:engage/places",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren-apps--engage-places"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren-apps",
+   "to": "ui:engage/reviews",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren-apps--engage-reviews"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren-apps",
+   "to": "ui:engage/subscribers",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren-apps--engage-subscribers"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren-apps",
+   "to": "ui:engage/threads",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren-apps--engage-threads"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren-apps",
+   "to": "ui:outbound/campaigns",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren-apps--outbound-campaigns"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren-apps",
+   "to": "ui:outbound/companies",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren-apps--outbound-companies"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren-apps",
+   "to": "ui:outbound/inboxes",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren-apps--outbound-inboxes"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren-apps",
+   "to": "ui:outbound/overview",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren-apps--outbound-overview"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren-apps",
+   "to": "ui:outbound/sheet",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren-apps--outbound-sheet"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren-apps",
+   "to": "ui:outbound/signals",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren-apps--outbound-signals"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren-apps",
+   "to": "ui:outbound/stalls",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren-apps--outbound-stalls"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren-apps",
+   "to": "ui:outbound/text-copy",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren-apps--outbound-text-copy"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren-apps",
+   "to": "ui:outbound/texts",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren-apps--outbound-texts"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren-apps",
+   "to": "ui:pipelines/board",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren-apps--pipelines-board"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren-apps",
+   "to": "ui:pipelines/journeys",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren-apps--pipelines-journeys"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren-rows",
+   "to": "ui:ask/questions",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren-rows--ask-questions"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren-rows",
+   "to": "ui:outbound/companies",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren-rows--dossier"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren-rows",
+   "to": "ui:workflows/canvas",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren-rows--executions-pane"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren-rows",
+   "to": "ui:workflows/new",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren-rows--made-workflows"
+    ]
+   }
+  }
+ ]
 }

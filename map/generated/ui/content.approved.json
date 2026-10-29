@@ -12,6 +12,7 @@
     "blurb": "Every platform's posts: plan, make, and how each did.",
     "file": "apps/portal/web/src/modules/marketing/index.ts",
     "name": "Content",
+    "path": "/content",
     "workspace": "wren"
    }
   },
@@ -327,7 +328,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/marketing/facts.tsx"
-    ]
+    ],
+    "path": "console/recordsEdit"
    }
   },
   {
@@ -337,7 +339,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/marketing/facts.tsx"
-    ]
+    ],
+    "path": "console/recordsGet"
    }
   },
   {
@@ -347,7 +350,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/marketing/facts.tsx"
-    ]
+    ],
+    "path": "console/recordsUndo"
    }
   },
   {
@@ -358,7 +362,8 @@
     "at": [
      "apps/portal/web/src/modules/learn/find.tsx",
      "apps/portal/web/src/modules/marketing/feed.tsx"
-    ]
+    ],
+    "path": "console/call"
    }
   },
   {
@@ -368,7 +373,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/alerts"
    }
   },
   {
@@ -378,7 +384,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/bell"
    }
   },
   {
@@ -388,7 +395,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/bellSeen"
    }
   },
   {
@@ -398,7 +406,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/browse"
    }
   },
   {
@@ -408,7 +417,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/home"
    }
   },
   {
@@ -418,7 +428,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/item"
    }
   },
   {
@@ -428,7 +439,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/open"
    }
   },
   {
@@ -438,7 +450,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/progress"
    }
   },
   {
@@ -448,7 +461,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/rail"
    }
   },
   {
@@ -458,7 +472,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/seen"
    }
   },
   {
@@ -468,7 +483,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/today"
    }
   },
   {
@@ -478,7 +494,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/unseen"
    }
   },
   {
@@ -518,7 +535,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/marketing/pieces.tsx"
-    ]
+    ],
+    "path": "console/call"
    }
   },
   {
@@ -528,7 +546,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/marketing/pieces.tsx"
-    ]
+    ],
+    "path": "console/call"
    }
   },
   {
@@ -538,7 +557,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/marketing/plan.tsx"
-    ]
+    ],
+    "path": "console/recordsEdit"
    }
   },
   {
@@ -548,7 +568,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/marketing/reports.tsx"
-    ]
+    ],
+    "path": "marketing/reports"
    }
   },
   {
@@ -559,7 +580,8 @@
     "at": [
      "apps/portal/web/src/modules/marketing/desk.ts",
      "apps/portal/web/src/modules/marketing/pieces.tsx"
-    ]
+    ],
+    "path": "console/call"
    }
   },
   {
@@ -570,7 +592,8 @@
     "at": [
      "apps/portal/web/src/modules/marketing/facts.tsx",
      "apps/portal/web/src/modules/marketing/plan.tsx"
-    ]
+    ],
+    "path": "console/recordsEdit"
    }
   },
   {
@@ -580,7 +603,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/marketing/facts.tsx"
-    ]
+    ],
+    "path": "console/recordsGet"
    }
   },
   {
@@ -590,7 +614,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/marketing/facts.tsx"
-    ]
+    ],
+    "path": "console/recordsUndo"
    }
   },
   {
@@ -600,7 +625,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/deals/board.tsx"
-    ]
+    ],
+    "path": "pipeline/journeysDrop"
    }
   },
   {
@@ -610,7 +636,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/deals/board.tsx"
-    ]
+    ],
+    "path": "pipeline/journeysMove"
    }
   },
   {
@@ -621,7 +648,8 @@
     "at": [
      "apps/portal/web/src/map/stations.ts",
      "apps/portal/web/src/modules/deals/board.tsx"
-    ]
+    ],
+    "path": "pipeline/recordsGet"
    }
   },
   {
@@ -631,7 +659,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/deals/board.tsx"
-    ]
+    ],
+    "path": "pipeline/recordsList"
    }
   },
   {
@@ -677,7 +706,8 @@
     "at": [
      "apps/portal/web/src/modules/marketing/desk.ts",
      "apps/portal/web/src/modules/marketing/pieces.tsx"
-    ]
+    ],
+    "path": "console/call"
    }
   },
   {
@@ -688,7 +718,8 @@
     "at": [
      "apps/portal/web/src/modules/marketing/facts.tsx",
      "apps/portal/web/src/modules/marketing/plan.tsx"
-    ]
+    ],
+    "path": "console/recordsEdit"
    }
   },
   {
@@ -698,7 +729,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/marketing/facts.tsx"
-    ]
+    ],
+    "path": "console/recordsGet"
    }
   },
   {
@@ -708,7 +740,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/marketing/facts.tsx"
-    ]
+    ],
+    "path": "console/recordsUndo"
    }
   },
   {
@@ -718,7 +751,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/deals/board.tsx"
-    ]
+    ],
+    "path": "pipeline/journeysDrop"
    }
   },
   {
@@ -728,7 +762,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/deals/board.tsx"
-    ]
+    ],
+    "path": "pipeline/journeysMove"
    }
   },
   {
@@ -739,7 +774,8 @@
     "at": [
      "apps/portal/web/src/map/stations.ts",
      "apps/portal/web/src/modules/deals/board.tsx"
-    ]
+    ],
+    "path": "pipeline/recordsGet"
    }
   },
   {
@@ -749,7 +785,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/deals/board.tsx"
-    ]
+    ],
+    "path": "pipeline/recordsList"
    }
   }
  ]

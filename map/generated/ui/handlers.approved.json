@@ -12,6 +12,7 @@
     "blurb": "Run any handler from a form built from its input, or from your AI tools with the wren CLI.",
     "file": "apps/portal/web/src/modules/wren/handlers.ts",
     "name": "Handlers",
+    "path": "/handlers",
     "workspace": "wren"
    }
   },
@@ -51,7 +52,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/account/AiTools.tsx"
-    ]
+    ],
+    "path": "console/tokens"
    }
   },
   {
@@ -61,7 +63,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/account/Webhooks.tsx"
-    ]
+    ],
+    "path": "delivery/webhooks"
    }
   }
  ]

@@ -12,6 +12,7 @@
     "blurb": "Everything said with other people: comments, DMs, invites, replies and reviews.",
     "file": "apps/portal/web/src/modules/outreach/index.ts",
     "name": "Engage",
+    "path": "/engage",
     "workspace": "wren"
    }
   },
@@ -492,7 +493,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/marketing/auto-reply.tsx"
-    ]
+    ],
+    "path": "console/call"
    }
   },
   {

@@ -12,6 +12,7 @@
     "blurb": "Booked calls, a brief before each, and how each went.",
     "file": "apps/portal/web/src/modules/calls/index.ts",
     "name": "Calls",
+    "path": "/calls",
     "workspace": "client"
    }
   },

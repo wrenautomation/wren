@@ -12,6 +12,7 @@
     "blurb": "Calls booked on your page, a brief before each, and how each went.",
     "file": "apps/portal/web/src/modules/calendar/index.ts",
     "name": "Calendar",
+    "path": "/calendar",
     "workspace": "wren"
    }
   },
@@ -93,7 +94,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/calendar/schedule.tsx"
-    ]
+    ],
+    "path": "calendar/range"
    }
   },
   {
@@ -103,7 +105,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/calendar/recorder.tsx"
-    ]
+    ],
+    "path": "calendar/recorder"
    }
   }
  ]

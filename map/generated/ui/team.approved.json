@@ -12,6 +12,7 @@
     "blurb": "Who on Wren's team signs in, their role, which clients they see, and who changed what.",
     "file": "apps/portal/web/src/modules/wren/index.ts",
     "name": "Team",
+    "path": "/team",
     "workspace": "wren"
    }
   },

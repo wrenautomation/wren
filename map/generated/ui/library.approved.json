@@ -12,6 +12,7 @@
     "blurb": "Every template, sequence, snippet, video and SOP, with its numbers and where it's used.",
     "file": "apps/portal/web/src/modules/library/index.ts",
     "name": "Library",
+    "path": "/library",
     "workspace": "wren"
    }
   },
@@ -156,7 +157,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/library/templates.tsx"
-    ]
+    ],
+    "path": "console/recordsGet"
    }
   },
   {
@@ -166,7 +168,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/library/templates.tsx"
-    ]
+    ],
+    "path": "templates/detail"
    }
   },
   {
@@ -176,7 +179,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/library/templates.tsx"
-    ]
+    ],
+    "path": "templates/move"
    }
   },
   {
@@ -186,7 +190,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/library/templates.tsx"
-    ]
+    ],
+    "path": "templates/preview"
    }
   },
   {
@@ -196,7 +201,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/library/templates.tsx"
-    ]
+    ],
+    "path": "templates/publish"
    }
   },
   {
@@ -206,7 +212,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/library/templates.tsx"
-    ]
+    ],
+    "path": "templates/renameFolder"
    }
   },
   {
@@ -216,7 +223,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/library/templates.tsx"
-    ]
+    ],
+    "path": "templates/reset"
    }
   },
   {
@@ -226,7 +234,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/library/templates.tsx"
-    ]
+    ],
+    "path": "templates/restore"
    }
   },
   {
@@ -236,7 +245,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/library/templates.tsx"
-    ]
+    ],
+    "path": "templates/save"
    }
   },
   {

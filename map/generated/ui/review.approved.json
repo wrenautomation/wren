@@ -12,6 +12,7 @@
     "blurb": "Every parked idea, what unparks it, and a live check. Read it on Fridays.",
     "file": "apps/portal/web/src/modules/wren/index.ts",
     "name": "Review",
+    "path": "/review",
     "workspace": "wren"
    }
   },

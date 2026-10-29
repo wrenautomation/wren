@@ -12,6 +12,7 @@
     "blurb": "Visits, recordings, search and the funnel from first visit to booking.",
     "file": "apps/portal/web/src/modules/analytics/index.ts",
     "name": "Analytics",
+    "path": "/analytics",
     "workspace": "wren"
    }
   },

@@ -12,6 +12,7 @@
     "blurb": "Everyone Wren knows, by every address they use, with all they did and got.",
     "file": "apps/portal/web/src/modules/people/index.ts",
     "name": "People",
+    "path": "/people",
     "workspace": "wren"
    }
   },
@@ -221,7 +222,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/people/channels.tsx"
-    ]
+    ],
+    "path": "people/channelPeople"
    }
   },
   {
@@ -231,7 +233,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/people/channels.tsx"
-    ]
+    ],
+    "path": "people/channelStats"
    }
   },
   {
@@ -242,7 +245,8 @@
     "at": [
      "apps/portal/web/src/modules/people/channels.tsx",
      "apps/portal/web/src/modules/people/segments.tsx"
-    ]
+    ],
+    "path": "people/segmentContext"
    }
   },
   {
@@ -252,7 +256,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/people/segments.tsx"
-    ]
+    ],
+    "path": "people/segmentDescribe"
    }
   },
   {
@@ -262,7 +267,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/people/segments.tsx"
-    ]
+    ],
+    "path": "people/segmentPreview"
    }
   },
   {
@@ -272,7 +278,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/people/segments.tsx"
-    ]
+    ],
+    "path": "people/segmentSave"
    }
   },
   {
@@ -282,7 +289,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/people/segments.tsx"
-    ]
+    ],
+    "path": "people/segmentVersions"
    }
   },
   {

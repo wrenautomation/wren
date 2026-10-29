@@ -12,6 +12,7 @@
     "blurb": "Wren's own people by node of the shape: who is booked, who is signed, who has stalled.",
     "file": "apps/portal/web/src/modules/deals/index.ts",
     "name": "Pipelines",
+    "path": "/pipelines",
     "workspace": "wren"
    }
   },
@@ -93,7 +94,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/deals/board.tsx"
-    ]
+    ],
+    "path": "pipeline/journeysDrop"
    }
   },
   {
@@ -103,7 +105,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/deals/board.tsx"
-    ]
+    ],
+    "path": "pipeline/journeysMove"
    }
   },
   {
@@ -113,7 +116,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/deals/board.tsx"
-    ]
+    ],
+    "path": "pipeline/recordsGet"
    }
   },
   {
@@ -123,7 +127,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/deals/board.tsx"
-    ]
+    ],
+    "path": "pipeline/recordsList"
    }
   },
   {

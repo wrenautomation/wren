@@ -10,6 +10,7 @@
     "file": "apps/portal/web/src/modules/account/index.ts",
     "menu": true,
     "name": "Account",
+    "path": "/account",
     "workspace": "client"
    }
   },
@@ -338,7 +339,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/account/Accounts.tsx"
-    ]
+    ],
+    "path": "accounts/accounts"
    }
   },
   {
@@ -348,7 +350,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/account/AiTools.tsx"
-    ]
+    ],
+    "path": "console/tokens"
    }
   },
   {
@@ -358,7 +361,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/account/Webhooks.tsx"
-    ]
+    ],
+    "path": "delivery/webhooks"
    }
   },
   {
@@ -408,7 +412,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/account/Connectors.tsx"
-    ]
+    ],
+    "path": "connectors/connectors"
    }
   },
   {
@@ -418,7 +423,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/account/Domain.tsx"
-    ]
+    ],
+    "path": "delivery/domains"
    }
   },
   {
@@ -428,7 +434,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/view-as-picker.tsx"
-    ]
+    ],
+    "path": "console/viewAsList"
    }
   },
   {
@@ -438,7 +445,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/access/PersonAccess.tsx"
-    ]
+    ],
+    "path": "delivery/me"
    }
   },
   {
@@ -448,7 +456,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/view-as-picker.tsx"
-    ]
+    ],
+    "path": "console/viewAsList"
    }
   },
   {
@@ -458,7 +467,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/access/PersonAccess.tsx"
-    ]
+    ],
+    "path": "delivery/me"
    }
   },
   {
@@ -478,7 +488,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/account/Look.tsx"
-    ]
+    ],
+    "path": "console/setLook"
    }
   },
   {
@@ -488,7 +499,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/account/Look.tsx"
-    ]
+    ],
+    "path": "delivery/me"
    }
   },
   {
@@ -498,7 +510,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/account/Mail.tsx"
-    ]
+    ],
+    "path": "mail/mail"
    }
   },
   {
@@ -508,7 +521,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/view-as-picker.tsx"
-    ]
+    ],
+    "path": "console/viewAsList"
    }
   },
   {
@@ -518,7 +532,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/access/PersonAccess.tsx"
-    ]
+    ],
+    "path": "delivery/me"
    }
   },
   {
@@ -578,7 +593,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/account/OwnSocial.tsx"
-    ]
+    ],
+    "path": "social/ownCheck"
    }
   },
   {
@@ -588,7 +604,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/account/Social.tsx"
-    ]
+    ],
+    "path": "social/social"
    }
   },
   {
@@ -598,7 +615,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/account/Accounts.tsx"
-    ]
+    ],
+    "path": "accounts/accounts"
    }
   },
   {
@@ -608,7 +626,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/account/Limits.tsx"
-    ]
+    ],
+    "path": "accounts/limits"
    }
   },
   {
@@ -618,7 +637,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/account/Vendors.tsx"
-    ]
+    ],
+    "path": "accounts/vendors"
    }
   },
   {
@@ -628,7 +648,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/account/Webhooks.tsx"
-    ]
+    ],
+    "path": "delivery/webhooks"
    }
   }
  ]

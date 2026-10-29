@@ -12,6 +12,7 @@
     "blurb": "Every lander, listicle, funnel page and hosted form, with its visits, submits and bookings.",
     "file": "apps/portal/web/src/modules/sites/index.ts",
     "name": "Sites",
+    "path": "/sites",
     "workspace": "wren"
    }
   },
@@ -112,7 +113,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/sites/funnel-graph.tsx"
-    ]
+    ],
+    "path": "console/recordsList"
    }
   },
   {

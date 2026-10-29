@@ -12,6 +12,7 @@
     "blurb": "Checks your past clients for a reason to call now. Each gets a brief and an email that waits for your OK.",
     "file": "apps/portal/web/src/modules/reactivation/index.ts",
     "name": "Reactivation",
+    "path": "/reactivation",
     "workspace": "client"
    }
   },
@@ -248,7 +249,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/work/Contract.tsx"
-    ]
+    ],
+    "path": "delivery/contract"
    }
   },
   {
@@ -258,7 +260,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/work/Contract.tsx"
-    ]
+    ],
+    "path": "delivery/sign"
    }
   },
   {
@@ -453,7 +456,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/reactivation/Run.tsx"
-    ]
+    ],
+    "path": "reactivation/overview"
    }
   },
   {
@@ -463,7 +467,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/reactivation/Run.tsx"
-    ]
+    ],
+    "path": "reactivation/run"
    }
   },
   {
@@ -473,7 +478,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/reactivation/Run.tsx"
-    ]
+    ],
+    "path": "reactivation/work"
    }
   },
   {

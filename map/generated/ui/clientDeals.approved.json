@@ -12,6 +12,7 @@
     "blurb": "Every person by node of the shape, and how long they have been there.",
     "file": "apps/portal/web/src/modules/deals/index.ts",
     "name": "Journeys",
+    "path": "/pipelines",
     "workspace": "client"
    }
   },
@@ -51,7 +52,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/deals/board.tsx"
-    ]
+    ],
+    "path": "pipeline/journeysDrop"
    }
   },
   {
@@ -61,7 +63,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/deals/board.tsx"
-    ]
+    ],
+    "path": "pipeline/journeysMove"
    }
   },
   {
@@ -71,7 +74,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/deals/board.tsx"
-    ]
+    ],
+    "path": "pipeline/recordsGet"
    }
   },
   {
@@ -81,7 +85,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/deals/board.tsx"
-    ]
+    ],
+    "path": "pipeline/recordsList"
    }
   },
   {

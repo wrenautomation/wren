@@ -12,6 +12,7 @@
     "blurb": "Ask Claude Code about the system. It reads the code and prod; it changes nothing.",
     "file": "apps/portal/web/src/modules/wren/index.ts",
     "name": "Ask",
+    "path": "/ask",
     "workspace": "wren"
    }
   },
@@ -37,7 +38,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/wren/ask.tsx"
-    ]
+    ],
+    "path": "console/question"
    }
   },
   {
@@ -47,7 +49,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/wren/ask.tsx"
-    ]
+    ],
+    "path": "console/recordsList"
    }
   }
  ]

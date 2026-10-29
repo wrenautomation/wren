@@ -12,6 +12,7 @@
     "blurb": "Every client, how each is doing, and what needs a look.",
     "file": "apps/portal/web/src/modules/wren/index.ts",
     "name": "Clients",
+    "path": "/clients",
     "workspace": "wren"
    }
   },
@@ -147,7 +148,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/account/summary.tsx"
-    ]
+    ],
+    "path": "accounts/accounts"
    }
   },
   {
@@ -157,7 +159,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/account/summary.tsx"
-    ]
+    ],
+    "path": "accounts/usage"
    }
   }
  ]

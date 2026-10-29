@@ -12,6 +12,7 @@
     "blurb": "Every ad set by day: spend, reach, leads and what each one cost.",
     "file": "apps/portal/web/src/modules/marketing/index.ts",
     "name": "Ads",
+    "path": "/ads",
     "workspace": "wren"
    }
   },

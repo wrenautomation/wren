@@ -12,6 +12,7 @@
     "blurb": "Your landing pages, their copy, tracked links, visits, forms, bookings and ads.",
     "file": "apps/portal/web/src/modules/sites/index.ts",
     "name": "Sites",
+    "path": "/sites",
     "workspace": "client"
    }
   },

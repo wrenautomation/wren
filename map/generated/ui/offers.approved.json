@@ -12,6 +12,7 @@
     "blurb": "Each offer Wren sells, its versions, and the terms it sells on.",
     "file": "apps/portal/web/src/modules/offers/index.ts",
     "name": "Offers",
+    "path": "/offers",
     "workspace": "wren"
    }
   },

@@ -12,6 +12,7 @@
     "blurb": "Your team's notes and docs, with versions and sharing.",
     "file": "apps/portal/web/src/modules/notes/index.ts",
     "name": "Notes",
+    "path": "/notes",
     "workspace": "client"
    }
   },

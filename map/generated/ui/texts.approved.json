@@ -12,6 +12,7 @@
     "blurb": "Texts to leads and their replies, sorted.",
     "file": "apps/portal/web/src/modules/texts/index.tsx",
     "name": "Texts",
+    "path": "/texts",
     "workspace": "client"
    }
   },

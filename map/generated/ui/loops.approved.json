@@ -12,6 +12,7 @@
     "blurb": "Every scheduled job, which ones fail, and Wren's own settings.",
     "file": "apps/portal/web/src/modules/wren/index.ts",
     "name": "Loops",
+    "path": "/loops",
     "workspace": "wren"
    }
   },
@@ -105,7 +106,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/wren/Agents.tsx"
-    ]
+    ],
+    "path": "console/agents"
    }
   },
   {
@@ -115,7 +117,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/wren/decisions.tsx"
-    ]
+    ],
+    "path": "console/decisions"
    }
   },
   {
@@ -125,7 +128,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/wren/Agents.tsx"
-    ]
+    ],
+    "path": "console/loops"
    }
   },
   {
@@ -135,7 +139,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/wren/Agents.tsx"
-    ]
+    ],
+    "path": "console/recordsStats"
    }
   },
   {
@@ -150,7 +155,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/wren/infra.tsx"
-    ]
+    ],
+    "path": "console/recordsList"
    }
   },
   {

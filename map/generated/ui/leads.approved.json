@@ -12,6 +12,7 @@
     "blurb": "Companies from found to verified lead, and where they stall.",
     "file": "apps/portal/web/src/modules/wren/index.ts",
     "name": "Pipeline",
+    "path": "/leads",
     "workspace": "client"
    }
   },

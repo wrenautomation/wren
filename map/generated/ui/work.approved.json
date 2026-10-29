@@ -12,6 +12,7 @@
     "blurb": "Your contract, the plan, how far along it is, and what we need from you next.",
     "file": "apps/portal/web/src/modules/work/index.ts",
     "name": "Your project",
+    "path": "/work",
     "workspace": "client"
    }
   },
@@ -149,7 +150,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/work/Contract.tsx"
-    ]
+    ],
+    "path": "delivery/contract"
    }
   },
   {
@@ -159,7 +161,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/work/Contract.tsx"
-    ]
+    ],
+    "path": "delivery/sign"
    }
   },
   {

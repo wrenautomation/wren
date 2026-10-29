@@ -12,6 +12,7 @@
     "blurb": "Every app in your workspace, and where it sits on your shape.",
     "file": "apps/portal/web/src/modules/settings/index.ts",
     "name": "Admin",
+    "path": "/settings",
     "workspace": "client"
    }
   },
@@ -37,7 +38,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/deals/board.tsx"
-    ]
+    ],
+    "path": "pipeline/journeysDrop"
    }
   },
   {
@@ -47,7 +49,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/deals/board.tsx"
-    ]
+    ],
+    "path": "pipeline/journeysMove"
    }
   },
   {
@@ -58,7 +61,8 @@
     "at": [
      "apps/portal/web/src/map/stations.ts",
      "apps/portal/web/src/modules/deals/board.tsx"
-    ]
+    ],
+    "path": "pipeline/recordsGet"
    }
   },
   {
@@ -68,7 +72,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/deals/board.tsx"
-    ]
+    ],
+    "path": "pipeline/recordsList"
    }
   }
  ]

@@ -12,6 +12,7 @@
     "blurb": "Send an estimate or a contract to sign. See who signed and who paid the deposit.",
     "file": "apps/portal/web/src/modules/documents/index.ts",
     "name": "Documents",
+    "path": "/documents",
     "workspace": "client"
    }
   },

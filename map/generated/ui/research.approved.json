@@ -12,6 +12,7 @@
     "blurb": "Birdwatch runs as they go: the tree, the back and forth, and every source to check.",
     "file": "apps/portal/web/src/modules/research/index.ts",
     "name": "Research",
+    "path": "/research",
     "workspace": "wren"
    }
   },

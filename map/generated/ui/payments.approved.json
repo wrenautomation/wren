@@ -12,6 +12,7 @@
     "blurb": "Send a pay link by text or email. See who paid.",
     "file": "apps/portal/web/src/modules/payments/index.ts",
     "name": "Payments",
+    "path": "/payments",
     "workspace": "client"
    }
   },

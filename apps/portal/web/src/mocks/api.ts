@@ -161,6 +161,11 @@ async function counted(answer: () => Promise<Response>) {
   }
 }
 
+/** Each call's path to the frame that holds the story: kestrel's view marks the calls that ran. */
+const told = (path: string) => {
+  if (window.parent !== window) window.parent.postMessage({ kestrel: "call", key: path }, "*");
+};
+
 /** The MSW handlers for `answers`. A story overrides one path with its own table on top. */
 export function fakeApi(answers: Answers, mode: Mode = "answer") {
   return [
@@ -173,6 +178,7 @@ export function fakeApi(answers: Answers, mode: Mode = "answer") {
     }),
     http.post("/api/pulse", async ({ request }) => {
       const { calls } = (await request.json()) as { calls: Call[] };
+      for (const c of calls) told(c.path);
       const each = calls.map((c) => answerOf(answers, c.path, c.body ?? {}, mode));
       if (each.some((a) => a === null)) return delay("infinite").then(() => HttpResponse.json({}));
       return counted(async () => HttpResponse.json({ answers: each }));
@@ -180,6 +186,7 @@ export function fakeApi(answers: Answers, mode: Mode = "answer") {
     http.post("/api/*", async ({ request, params }) => {
       const path = String((params as Record<string, string[] | string>)[0] ?? "");
       const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+      told(path);
       const a = answerOf(answers, path, body, mode);
       if (!a) return delay("infinite").then(() => HttpResponse.json({}));
       return counted(async () => HttpResponse.json(a.body as never, { status: a.status }));

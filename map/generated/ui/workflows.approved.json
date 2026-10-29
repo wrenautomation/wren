@@ -12,6 +12,7 @@
     "blurb": "How Wren wins clients and runs, drawn with live numbers.",
     "file": "apps/portal/web/src/modules/wren/index.ts",
     "name": "Workflows",
+    "path": "/workflows",
     "workspace": "wren"
    }
   },
@@ -124,7 +125,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/wren/automations.tsx"
-    ]
+    ],
+    "path": "console/recordsList"
    }
   },
   {
@@ -134,7 +136,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/wren/made.tsx"
-    ]
+    ],
+    "path": "console/workflowsMade"
    }
   },
   {
@@ -144,7 +147,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/account/summary.tsx"
-    ]
+    ],
+    "path": "accounts/accounts"
    }
   },
   {
@@ -154,7 +158,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/account/summary.tsx"
-    ]
+    ],
+    "path": "accounts/usage"
    }
   },
   {
@@ -164,7 +169,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/wren/Agents.tsx"
-    ]
+    ],
+    "path": "console/agents"
    }
   },
   {
@@ -179,7 +185,8 @@
      "apps/portal/web/src/modules/marketing/feed.tsx",
      "apps/portal/web/src/modules/marketing/pieces.tsx",
      "apps/portal/web/src/modules/wren/handlers.ts"
-    ]
+    ],
+    "path": "console/call"
    }
   },
   {
@@ -189,7 +196,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/wren/decisions.tsx"
-    ]
+    ],
+    "path": "console/decisions"
    }
   },
   {
@@ -199,7 +207,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/wren/doors.tsx"
-    ]
+    ],
+    "path": "console/doorReveal"
    }
   },
   {
@@ -209,7 +218,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/wren/doors.tsx"
-    ]
+    ],
+    "path": "console/doorRotate"
    }
   },
   {
@@ -219,7 +229,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/wren/Agents.tsx"
-    ]
+    ],
+    "path": "console/loops"
    }
   },
   {
@@ -229,7 +240,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/wren/ask.tsx"
-    ]
+    ],
+    "path": "console/question"
    }
   },
   {
@@ -240,7 +252,8 @@
     "at": [
      "apps/portal/web/src/modules/marketing/facts.tsx",
      "apps/portal/web/src/modules/marketing/plan.tsx"
-    ]
+    ],
+    "path": "console/recordsEdit"
    }
   },
   {
@@ -258,7 +271,8 @@
      "apps/portal/web/src/modules/wren/playback.tsx",
      "apps/portal/web/src/modules/wren/replies.ts",
      "apps/portal/web/src/modules/wren/workflows.tsx"
-    ]
+    ],
+    "path": "console/recordsGet"
    }
   },
   {
@@ -276,7 +290,8 @@
      "apps/portal/web/src/modules/wren/infra.tsx",
      "apps/portal/web/src/modules/wren/playback.tsx",
      "apps/portal/web/src/modules/wren/workflows.tsx"
-    ]
+    ],
+    "path": "console/recordsList"
    }
   },
   {
@@ -289,7 +304,8 @@
      "apps/portal/web/src/modules/wren/Agents.tsx",
      "apps/portal/web/src/modules/wren/heads.tsx",
      "apps/portal/web/src/modules/wren/workflows.tsx"
-    ]
+    ],
+    "path": "console/recordsStats"
    }
   },
   {
@@ -299,7 +315,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/wren/workflows.tsx"
-    ]
+    ],
+    "path": "console/recordsTypes"
    }
   },
   {
@@ -309,7 +326,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/marketing/facts.tsx"
-    ]
+    ],
+    "path": "console/recordsUndo"
    }
   },
   {
@@ -319,7 +337,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/wren/executions.tsx"
-    ]
+    ],
+    "path": "console/replay"
    }
   },
   {
@@ -329,7 +348,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/wren/executions.tsx"
-    ]
+    ],
+    "path": "console/retryEvent"
    }
   },
   {
@@ -339,7 +359,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/account/Look.tsx"
-    ]
+    ],
+    "path": "console/setLook"
    }
   },
   {
@@ -349,7 +370,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/marketplace/Installed.tsx"
-    ]
+    ],
+    "path": "console/templateInstalls"
    }
   },
   {
@@ -359,7 +381,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/account/AiTools.tsx"
-    ]
+    ],
+    "path": "console/tokens"
    }
   },
   {
@@ -369,7 +392,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/view-as-picker.tsx"
-    ]
+    ],
+    "path": "console/viewAsList"
    }
   },
   {
@@ -379,7 +403,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/wren/editor.tsx"
-    ]
+    ],
+    "path": "console/workflowAnswer"
    }
   },
   {
@@ -389,7 +414,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/wren/editor.tsx"
-    ]
+    ],
+    "path": "console/workflowAsk"
    }
   },
   {
@@ -399,7 +425,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/wren/workflows.tsx"
-    ]
+    ],
+    "path": "console/workflowDelete"
    }
   },
   {
@@ -409,7 +436,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/wren/workflows.tsx"
-    ]
+    ],
+    "path": "console/workflowDiscard"
    }
   },
   {
@@ -419,7 +447,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/wren/doors.tsx"
-    ]
+    ],
+    "path": "console/workflowDoors"
    }
   },
   {
@@ -429,7 +458,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/wren/workflows.tsx"
-    ]
+    ],
+    "path": "console/workflowSave"
    }
   },
   {
@@ -439,7 +469,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/wren/tester.tsx"
-    ]
+    ],
+    "path": "console/workflowTest"
    }
   },
   {
@@ -449,7 +480,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/wren/made.tsx"
-    ]
+    ],
+    "path": "console/workflowsMade"
    }
   },
   {
@@ -459,7 +491,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/account/Domain.tsx"
-    ]
+    ],
+    "path": "delivery/domains"
    }
   },
   {
@@ -470,7 +503,8 @@
     "at": [
      "apps/portal/web/src/modules/access/PersonAccess.tsx",
      "apps/portal/web/src/modules/account/Look.tsx"
-    ]
+    ],
+    "path": "delivery/me"
    }
   },
   {
@@ -480,7 +514,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/account/Webhooks.tsx"
-    ]
+    ],
+    "path": "delivery/webhooks"
    }
   },
   {
@@ -490,7 +525,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/documents/documents.tsx"
-    ]
+    ],
+    "path": "documents/create"
    }
   },
   {
@@ -500,7 +536,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/documents/documents.tsx"
-    ]
+    ],
+    "path": "documents/send"
    }
   },
   {
@@ -510,7 +547,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/documents/documents.tsx"
-    ]
+    ],
+    "path": "documents/templateSave"
    }
   },
   {
@@ -520,7 +558,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/documents/documents.tsx"
-    ]
+    ],
+    "path": "documents/templates"
    }
   },
   {
@@ -530,7 +569,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/wren/dossier.tsx"
-    ]
+    ],
+    "path": "email/dossier"
    }
   },
   {
@@ -540,7 +580,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/alerts"
    }
   },
   {
@@ -550,7 +591,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/bell"
    }
   },
   {
@@ -560,7 +602,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/bellSeen"
    }
   },
   {
@@ -570,7 +613,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/browse"
    }
   },
   {
@@ -580,7 +624,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/home"
    }
   },
   {
@@ -590,7 +635,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/item"
    }
   },
   {
@@ -600,7 +646,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/open"
    }
   },
   {
@@ -610,7 +657,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/progress"
    }
   },
   {
@@ -620,7 +668,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/rail"
    }
   },
   {
@@ -630,7 +679,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/seen"
    }
   },
   {
@@ -640,7 +690,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/today"
    }
   },
   {
@@ -650,7 +701,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/learn/api.ts"
-    ]
+    ],
+    "path": "learn/unseen"
    }
   },
   {
@@ -660,7 +712,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/marketing/reports.tsx"
-    ]
+    ],
+    "path": "marketing/reports"
    }
   },
   {
@@ -670,7 +723,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/payments/stripe.tsx"
-    ]
+    ],
+    "path": "payments/connect"
    }
   },
   {
@@ -680,7 +734,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/payments/stripe.tsx"
-    ]
+    ],
+    "path": "payments/status"
    }
   },
   {
@@ -690,7 +745,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/people/broadcasts.tsx"
-    ]
+    ],
+    "path": "people/broadcastContext"
    }
   },
   {
@@ -700,7 +756,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/people/broadcasts.tsx"
-    ]
+    ],
+    "path": "people/broadcastMonth"
    }
   },
   {
@@ -710,7 +767,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/people/broadcasts.tsx"
-    ]
+    ],
+    "path": "people/broadcastPreview"
    }
   },
   {
@@ -720,7 +778,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/people/broadcasts.tsx"
-    ]
+    ],
+    "path": "people/broadcastSave"
    }
   },
   {
@@ -730,7 +789,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/people/segments.tsx"
-    ]
+    ],
+    "path": "people/segmentContext"
    }
   },
   {
@@ -740,7 +800,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/people/segments.tsx"
-    ]
+    ],
+    "path": "people/segmentDescribe"
    }
   },
   {
@@ -750,7 +811,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/people/segments.tsx"
-    ]
+    ],
+    "path": "people/segmentPreview"
    }
   },
   {
@@ -760,7 +822,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/people/segments.tsx"
-    ]
+    ],
+    "path": "people/segmentSave"
    }
   },
   {
@@ -770,7 +833,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/people/segments.tsx"
-    ]
+    ],
+    "path": "people/segmentVersions"
    }
   },
   {
@@ -780,7 +844,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/deals/board.tsx"
-    ]
+    ],
+    "path": "pipeline/journeysDrop"
    }
   },
   {
@@ -790,7 +855,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/deals/board.tsx"
-    ]
+    ],
+    "path": "pipeline/journeysMove"
    }
   },
   {
@@ -801,7 +867,8 @@
     "at": [
      "apps/portal/web/src/map/stations.ts",
      "apps/portal/web/src/modules/deals/board.tsx"
-    ]
+    ],
+    "path": "pipeline/recordsGet"
    }
   },
   {
@@ -811,7 +878,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/deals/board.tsx"
-    ]
+    ],
+    "path": "pipeline/recordsList"
    }
   },
   {
@@ -821,7 +889,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/find.ts"
-    ]
+    ],
+    "path": "templates/list"
    }
   },
   {
@@ -846,7 +915,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/wren/automations.tsx"
-    ]
+    ],
+    "path": "console/recordsList"
    }
   },
   {
@@ -856,7 +926,8 @@
    "attrs": {
     "at": [
      "apps/portal/web/src/modules/wren/made.tsx"
-    ]
+    ],
+    "path": "console/workflowsMade"
    }
   },
   {
