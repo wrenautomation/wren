@@ -45,8 +45,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/ui
       '@wrenautomation/autobrowse':
-        specifier: 0.5.0
-        version: 0.5.0(@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.1))
+        specifier: 0.8.4
+        version: 0.8.4(@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.1))
       react:
         specifier: 19.3.0
         version: 19.3.0
@@ -175,8 +175,8 @@ importers:
         specifier: workspace:*
         version: link:../worker
       '@wrenautomation/autobrowse':
-        specifier: 0.5.0
-        version: 0.5.0(@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.1))
+        specifier: 0.8.4
+        version: 0.8.4(@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.1))
       '@wrenautomation/falcon':
         specifier: 0.28.0
         version: 0.28.0
@@ -598,8 +598,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/watch
       '@wrenautomation/autobrowse':
-        specifier: 0.5.0
-        version: 0.5.0(@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.1))
+        specifier: 0.8.4
+        version: 0.8.4(@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.1))
       '@wrenautomation/falcon':
         specifier: 0.28.0
         version: 0.28.0
@@ -718,8 +718,8 @@ importers:
         specifier: workspace:*
         version: link:../db
       '@wrenautomation/autobrowse':
-        specifier: 0.5.0
-        version: 0.5.0(@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.1))
+        specifier: 0.8.4
+        version: 0.8.4(@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.1))
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
@@ -770,8 +770,8 @@ importers:
         specifier: workspace:*
         version: link:../research
       '@wrenautomation/autobrowse':
-        specifier: 0.5.0
-        version: 0.5.0(@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.1))
+        specifier: 0.8.4
+        version: 0.8.4(@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.1))
       '@wrenautomation/falcon':
         specifier: 0.28.0
         version: 0.28.0
@@ -912,8 +912,8 @@ importers:
         specifier: workspace:*
         version: link:../sites
       '@wrenautomation/autobrowse':
-        specifier: 0.5.0
-        version: 0.5.0(@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.1))
+        specifier: 0.8.4
+        version: 0.8.4(@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.1))
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
@@ -1050,8 +1050,8 @@ importers:
         specifier: workspace:*
         version: link:../db
       '@wrenautomation/autobrowse':
-        specifier: 0.5.0
-        version: 0.5.0(@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.1))
+        specifier: 0.8.4
+        version: 0.8.4(@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.1))
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
@@ -1120,8 +1120,8 @@ importers:
         specifier: workspace:*
         version: link:../studio
       '@wrenautomation/autobrowse':
-        specifier: 0.5.0
-        version: 0.5.0(@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.1))
+        specifier: 0.8.4
+        version: 0.8.4(@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.1))
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
@@ -1960,8 +1960,8 @@ importers:
         specifier: 5.0.1
         version: 5.0.1(msw@2.15.0(@types/node@26.6.4)(typescript@5.9.3))(playwright@1.63.0)(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))(vitest@5.0.1)
       '@wrenautomation/autobrowse':
-        specifier: 0.7.0
-        version: 0.7.0(@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.1))
+        specifier: 0.8.4
+        version: 0.8.4(@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.1))
       agentation:
         specifier: 3.1.2
         version: 3.1.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -5787,13 +5787,8 @@ packages:
   '@workflow/serde@4.1.0':
     resolution: {integrity: sha512-pav4F2BoirECWR7Nf1TKt+2eETcBj7jj4cBefQ8VXQCA6NPkaKeLfj/zMgi+3zYV5ZIBT4GuUiphsj0/b9hPQQ==}
 
-  '@wrenautomation/autobrowse@0.5.0':
-    resolution: {integrity: sha512-8WKnrGykdtNnnQgXbKn3XB+gs39t7P7RTJpVu2nKJmgFGe4XSiyTvA4WCy74KttquU2lhJoySO6lt9YJETO5OQ==}
-    engines: {node: '>=24'}
-    hasBin: true
-
-  '@wrenautomation/autobrowse@0.7.0':
-    resolution: {integrity: sha512-ZKPd7BVevdjKqO/Aa713zbO2KeB7Myy81lW4OzS1oITgxZXIwb7lHoMpQNWuiUdd/fuEwivQNbgn1yJw7N6Ehw==}
+  '@wrenautomation/autobrowse@0.8.4':
+    resolution: {integrity: sha512-17FRMdKyltfttDRJBBqWePjVH2fEURn/ELePC2NdDXsmGJ1uXibVHur+oID6CZMrOACpXvjovQ+l/h8mBUVJzA==}
     engines: {node: '>=24'}
     hasBin: true
 
@@ -9234,6 +9229,10 @@ packages:
 
   undici-types@8.9.0:
     resolution: {integrity: sha512-KTDyRTYX8sWmKXAikPHHSyc63CRPETMctyjKFupcC6OBLXT3xsN0e9aF7m+mIXutFWpUXuedtowG7iLOzp0kQg==}
+
+  undici@7.16.0:
+    resolution: {integrity: sha512-QEg3HPMll0o3t2ourKwOeUAZ159Kn9mx5pnzHRQO8+Wixmh88YdZRiIwat0iNzNNXn0yoEtXJqFpyW7eM8BV7g==}
+    engines: {node: '>=20.18.1'}
 
   undici@7.29.0:
     resolution: {integrity: sha512-IDxfleLmmbSskfWSUATiN1nfn2rDuvnMOqb5CWR92iIfojA0Ud+ulOAAEQ57LPr9rWmsreUyf5lwyao+7GNNVw==}
@@ -13300,7 +13299,7 @@ snapshots:
 
   '@workflow/serde@4.1.0': {}
 
-  '@wrenautomation/autobrowse@0.5.0(@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.1))':
+  '@wrenautomation/autobrowse@0.8.4(@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.1))':
     dependencies:
       '@aws-sdk/client-acm': 3.1136.0
       '@aws-sdk/client-cloudfront': 3.1136.0
@@ -13317,6 +13316,7 @@ snapshots:
       commander: 15.0.0
       credvault: 0.13.0
       entities: 8.1.0
+      fflate: 0.8.3
       hono: 4.13.8
       imapflow: 2.2.4
       impit: 0.14.5
@@ -13332,48 +13332,7 @@ snapshots:
       smol-toml: 1.8.0
       tldts: 7.4.16
       tsx: 4.23.13
-      unpdf: 1.8.1
-      zod: 4.6.5
-    transitivePeerDependencies:
-      - '@napi-rs/canvas'
-      - '@opentelemetry/core'
-      - '@opentelemetry/exporter-trace-otlp-http'
-      - bufferutil
-      - supports-color
-      - utf-8-validate
-
-  '@wrenautomation/autobrowse@0.7.0(@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.1))':
-    dependencies:
-      '@aws-sdk/client-acm': 3.1136.0
-      '@aws-sdk/client-cloudfront': 3.1136.0
-      '@aws-sdk/client-ec2': 3.1136.0
-      '@aws-sdk/client-iam': 3.1136.0
-      '@aws-sdk/client-route-53': 3.1136.0
-      '@aws-sdk/client-s3': 3.1136.0
-      '@aws-sdk/client-ssm': 3.1136.0
-      '@hono/node-server': 2.1.1(hono@4.13.8)
-      '@restatedev/restate-sdk': 1.17.1
-      '@restatedev/restate-sdk-clients': 1.17.1
-      '@restatedev/restate-sdk-tunnel': 1.17.1(@restatedev/restate-sdk@1.17.1)
-      '@sentry/node': 10.75.0(@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.1))
-      commander: 15.0.0
-      credvault: 0.13.0
-      entities: 8.1.0
-      hono: 4.13.8
-      imapflow: 2.2.4
-      impit: 0.14.5
-      libmime: 5.4.7
-      mammoth: 1.13.0
-      nodemailer: 10.0.15
-      obs-websocket-js: 5.0.8
-      patchright: 1.63.0
-      pino: 10.3.1
-      playwright: 1.63.0
-      react: 19.3.0
-      react-dom: 19.3.0(react@19.3.0)
-      smol-toml: 1.8.0
-      tldts: 7.4.16
-      tsx: 4.23.13
+      undici: 7.16.0
       unpdf: 1.8.1
       zod: 4.6.5
     transitivePeerDependencies:
@@ -16870,6 +16829,8 @@ snapshots:
   undici-types@6.21.0: {}
 
   undici-types@8.9.0: {}
+
+  undici@7.16.0: {}
 
   undici@7.29.0: {}
 

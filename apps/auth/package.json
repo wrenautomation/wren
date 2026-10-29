@@ -19,7 +19,7 @@
     "@wren/core": "workspace:*",
     "@wren/db": "workspace:*",
     "@wren/ui": "workspace:*",
-    "@wrenautomation/autobrowse": "0.5.0",
+    "@wrenautomation/autobrowse": "0.8.4",
     "react": "19.3.0",
     "react-dom": "19.3.0"
   },
