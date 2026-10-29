@@ -9,8 +9,20 @@
    "attrs": {
     "dir": "packages/pipeline/",
     "npm": [
+     "@restatedev/restate-sdk",
+     "drizzle-orm",
+     "ml-matrix",
      "node:crypto",
-     "node:fs"
+     "node:fs",
+     "yaml",
+     "zod"
+    ],
+    "versions": [
+     "@restatedev/restate-sdk@1.17.1",
+     "drizzle-orm@0.45.2",
+     "ml-matrix@6.15.0",
+     "yaml@2.9.1",
+     "zod@4.6.5"
     ]
    }
   },

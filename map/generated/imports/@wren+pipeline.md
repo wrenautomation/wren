@@ -11,7 +11,7 @@ Role: package. Files: 51.
 
 ## Outside packages
 
-node:crypto, node:fs
+@restatedev/restate-sdk@1.17.1, drizzle-orm@0.45.2, ml-matrix@6.15.0, node:crypto, node:fs, yaml@2.9.1, zod@4.6.5
 
 ## Folders
 

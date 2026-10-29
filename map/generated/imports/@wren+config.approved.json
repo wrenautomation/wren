@@ -9,8 +9,14 @@
    "attrs": {
     "dir": "packages/config/",
     "npm": [
+     "@aws-sdk/client-ssm",
      "node:fs",
-     "node:path"
+     "node:path",
+     "zod"
+    ],
+    "versions": [
+     "@aws-sdk/client-ssm@3.1136.0",
+     "zod@4.6.5"
     ]
    }
   },

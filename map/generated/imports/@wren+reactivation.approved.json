@@ -9,9 +9,19 @@
    "attrs": {
     "dir": "packages/reactivation/",
     "npm": [
+     "@restatedev/restate-sdk",
+     "@wrenautomation/weaver",
+     "drizzle-orm",
      "node:crypto",
      "node:fs",
-     "node:path"
+     "node:path",
+     "zod"
+    ],
+    "versions": [
+     "@restatedev/restate-sdk@1.17.1",
+     "@wrenautomation/weaver@0.8.2",
+     "drizzle-orm@0.45.2",
+     "zod@4.6.5"
     ]
    }
   },

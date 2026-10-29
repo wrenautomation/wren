@@ -9,8 +9,16 @@
    "attrs": {
     "dir": "packages/llm/",
     "npm": [
+     "@wrenautomation/models",
      "node:fs",
-     "node:path"
+     "node:path",
+     "vitest",
+     "zod"
+    ],
+    "versions": [
+     "@wrenautomation/models@0.8.2",
+     "vitest@5.0.1",
+     "zod@4.6.5"
     ]
    }
   },

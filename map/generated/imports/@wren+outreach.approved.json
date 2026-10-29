@@ -9,7 +9,15 @@
    "attrs": {
     "dir": "packages/outreach/",
     "npm": [
-     "node:crypto"
+     "@restatedev/restate-sdk",
+     "drizzle-orm",
+     "node:crypto",
+     "zod"
+    ],
+    "versions": [
+     "@restatedev/restate-sdk@1.17.1",
+     "drizzle-orm@0.45.2",
+     "zod@4.6.5"
     ]
    }
   },

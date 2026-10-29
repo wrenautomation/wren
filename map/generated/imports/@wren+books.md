@@ -10,7 +10,7 @@ Role: package. Files: 28.
 
 ## Outside packages
 
-node:crypto, node:fs, node:path
+@aws-sdk/client-cloudtrail@3.1136.0, @aws-sdk/client-cost-explorer@3.1136.0, @aws-sdk/client-s3@3.1136.0, @restatedev/restate-sdk@1.17.1, @wrenautomation/falcon@0.8.2, drizzle-orm@0.45.2, node:crypto, node:fs, node:path, zod@4.6.5
 
 ## Folders
 

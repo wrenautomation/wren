@@ -11,7 +11,7 @@ Role: package. Files: 12.
 
 ## Outside packages
 
-node:crypto
+@restatedev/restate-sdk@1.17.1, drizzle-orm@0.45.2, node:crypto, pdf-lib@1.17.1, zod@4.6.5
 
 ## Folders
 

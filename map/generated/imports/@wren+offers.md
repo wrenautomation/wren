@@ -4,7 +4,7 @@ Role: package. Files: 9.
 
 ## Outside packages
 
-node:fs, node:path
+node:fs, node:path, vitest@5.0.1
 
 ## Folders
 

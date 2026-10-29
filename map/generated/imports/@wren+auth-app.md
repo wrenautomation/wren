@@ -13,7 +13,7 @@ Role: package. Files: 11.
 
 ## Outside packages
 
-node:child_process, node:crypto, node:fs, node:path, node:url
+@simplewebauthn/browser@13.3.0, @tailwindcss/vite@4.3.3, @vitejs/plugin-react@6.1.1, @wrenautomation/autobrowse@0.5.0, esbuild@0.28.2, node:child_process, node:crypto, node:fs, node:path, node:url, react-dom@19.3.0, react@19.3.0, vite@8.3.0
 
 ## Folders
 

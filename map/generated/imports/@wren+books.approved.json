@@ -9,9 +9,25 @@
    "attrs": {
     "dir": "packages/books/",
     "npm": [
+     "@aws-sdk/client-cloudtrail",
+     "@aws-sdk/client-cost-explorer",
+     "@aws-sdk/client-s3",
+     "@restatedev/restate-sdk",
+     "@wrenautomation/falcon",
+     "drizzle-orm",
      "node:crypto",
      "node:fs",
-     "node:path"
+     "node:path",
+     "zod"
+    ],
+    "versions": [
+     "@aws-sdk/client-cloudtrail@3.1136.0",
+     "@aws-sdk/client-cost-explorer@3.1136.0",
+     "@aws-sdk/client-s3@3.1136.0",
+     "@restatedev/restate-sdk@1.17.1",
+     "@wrenautomation/falcon@0.8.2",
+     "drizzle-orm@0.45.2",
+     "zod@4.6.5"
     ]
    }
   },

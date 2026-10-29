@@ -4,7 +4,7 @@ Role: package. Files: 7.
 
 ## Outside packages
 
-node:crypto
+node:crypto, vitest@5.0.1, zod@4.6.5
 
 ## Folders
 

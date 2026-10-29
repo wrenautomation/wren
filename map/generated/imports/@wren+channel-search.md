@@ -11,6 +11,10 @@ Role: package. Files: 23.
 - @wren/llm
 - @wren/sites
 
+## Outside packages
+
+@restatedev/restate-sdk@1.17.1, @wrenautomation/autobrowse@0.5.0, drizzle-orm@0.45.2, zod@4.6.5
+
 ## Folders
 
 Dotted: types only.

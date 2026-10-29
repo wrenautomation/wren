@@ -12,7 +12,7 @@ Role: package. Files: 132.
 
 ## Outside packages
 
-node:child_process, node:crypto, node:dns, node:fs, node:util
+@restatedev/restate-sdk@1.17.1, @wrenautomation/autobrowse@0.5.0, @wrenautomation/falcon@0.8.2, drizzle-orm@0.45.2, imapflow@2.2.4, libmime@5.4.7, mailifier@0.3.9, node:child_process, node:crypto, node:dns, node:fs, node:util, nodemailer@10.0.14, smol-toml@1.8.0, zod@4.6.5
 
 ## Folders
 

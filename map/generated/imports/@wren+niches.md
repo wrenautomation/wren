@@ -13,7 +13,7 @@ Role: package. Files: 16.
 
 ## Outside packages
 
-node:crypto, node:fs, node:path, node:zlib
+@wrenautomation/weaver@0.8.2, fflate@0.8.3, node:crypto, node:fs, node:path, node:zlib, saxes@6.0.0
 
 ## Folders
 

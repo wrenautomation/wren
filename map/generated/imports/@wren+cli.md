@@ -32,7 +32,7 @@ Role: package. Files: 67.
 
 ## Outside packages
 
-node:child_process, node:crypto, node:fs, node:os, node:path, node:url, node:util
+@duckdb/node-api@1.5.6-r.1, @restatedev/restate-sdk-clients@1.17.1, @wrenautomation/autobrowse@0.5.0, @wrenautomation/falcon@0.8.2, @wrenautomation/models@0.8.2, @wrenautomation/weaver@0.8.2, commander@15.0.0, drizzle-orm@0.45.2, esbuild@0.28.2, node:child_process, node:crypto, node:fs, node:os, node:path, node:url, node:util
 
 ## Folders
 

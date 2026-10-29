@@ -6,11 +6,47 @@ Signals, not a gate. Package layers and package cycles are the repo's own gate.
 |---|---|
 | File cycles | 16 |
 | Flat folders (over 40 boxes) | 10 |
-| Inferred exports | 2632 |
-| Duplicated lines | 4549 (0.97%, 498 clones) |
+| Inferred exports | 2633 |
+| Duplicated lines | 4556 (0.97%, 499 clones) |
 | Unused exports | 162 |
 | Unused types | 65 |
 | Unused dependencies | 10 |
+| Pins behind | 30 |
+
+## Pins behind
+
+| Package | Pin | Latest | Behind |
+|---|---|---|---|
+| `@wren/books` | `@wrenautomation/falcon@0.8.2` | 0.28.0 | 27 |
+| `@wren/channel-email` | `@wrenautomation/falcon@0.8.2` | 0.28.0 | 27 |
+| `@wren/cli` | `@wrenautomation/falcon@0.8.2` | 0.28.0 | 27 |
+| `@wren/cli` | `@wrenautomation/models@0.8.2` | 0.28.0 | 27 |
+| `@wren/cli` | `@wrenautomation/weaver@0.8.2` | 0.28.0 | 27 |
+| `@wren/core` | `@wrenautomation/models@0.8.2` | 0.28.0 | 27 |
+| `@wren/learn` | `@wrenautomation/falcon@0.8.2` | 0.28.0 | 27 |
+| `@wren/learn` | `@wrenautomation/weaver@0.8.2` | 0.28.0 | 27 |
+| `@wren/llm` | `@wrenautomation/models@0.8.2` | 0.28.0 | 27 |
+| `@wren/niches` | `@wrenautomation/weaver@0.8.2` | 0.28.0 | 27 |
+| `@wren/reactivation` | `@wrenautomation/weaver@0.8.2` | 0.28.0 | 27 |
+| `@wren/research` | `@wrenautomation/falcon@0.8.2` | 0.28.0 | 27 |
+| `@wren/research` | `@wrenautomation/models@0.8.2` | 0.28.0 | 27 |
+| `@wren/research` | `@wrenautomation/weaver@0.8.2` | 0.28.0 | 27 |
+| `@wren/studio` | `@wrenautomation/falcon@0.8.2` | 0.28.0 | 27 |
+| `@wren/studio` | `@wrenautomation/models@0.8.2` | 0.28.0 | 27 |
+| `@wren/studio` | `@wrenautomation/weaver@0.8.2` | 0.28.0 | 27 |
+| `@wren/voice` | `@wrenautomation/models@0.8.2` | 0.28.0 | 27 |
+| `@wren/worker` | `@wrenautomation/falcon@0.8.2` | 0.28.0 | 27 |
+| `@wren/worker` | `@wrenautomation/weaver@0.8.2` | 0.28.0 | 27 |
+| `@wren/auth-app` | `@wrenautomation/autobrowse@0.5.0` | 0.8.4 | 8 |
+| `@wren/calendar` | `@wrenautomation/autobrowse@0.5.0` | 0.8.4 | 8 |
+| `@wren/channel-email` | `@wrenautomation/autobrowse@0.5.0` | 0.8.4 | 8 |
+| `@wren/channel-search` | `@wrenautomation/autobrowse@0.5.0` | 0.8.4 | 8 |
+| `@wren/cli` | `@wrenautomation/autobrowse@0.5.0` | 0.8.4 | 8 |
+| `@wren/connectors` | `@wrenautomation/autobrowse@0.5.0` | 0.8.4 | 8 |
+| `@wren/content` | `@wrenautomation/autobrowse@0.5.0` | 0.8.4 | 8 |
+| `@wren/worker` | `@wrenautomation/autobrowse@0.5.0` | 0.8.4 | 8 |
+| `@wren/ui` | `@wrenautomation/autobrowse@0.7.0` | 0.8.4 | 5 |
+| `@wren/ui` | `@wrenautomation/orrery@0.24.1` | 0.28.0 | 5 |
 
 ## File cycles
 
@@ -58,7 +94,7 @@ Each line is one set of files that import each other in a loop.
 | `@wren/core/src/clients/index.ts` | 144 |
 | `@wren/core/src/content/index.ts` | 137 |
 | `@wren/core/src/restate/index.ts` | 129 |
-| `@wren/portal/web/src/api.ts` | 124 |
+| `@wren/portal/web/src/api.ts` | 126 |
 | `@wren/core/src/index.ts` | 121 |
 | `@wren/core/src/records.ts` | 120 |
 | `@wren/core/src/access.ts` | 107 |
@@ -96,7 +132,7 @@ No declared type: a weak interface.
 |---|---|---|
 | `@wren/core` | 577 | 2340 |
 | `@wren/ui` | 283 | 704 |
-| `@wren/content` | 209 | 632 |
+| `@wren/content` | 210 | 636 |
 | `@wren/channel-email` | 200 | 840 |
 | `@wren/outreach` | 146 | 524 |
 | `@wren/research` | 126 | 646 |
@@ -142,7 +178,7 @@ No declared type: a weak interface.
 | 19 | `packages/delivery/src/service.ts:38-56` | `packages/reactivation/src/portal/service.ts:20-38` |
 | 19 | `packages/offers/src/catalog/operations.ts:49-67` | `packages/offers/src/catalog/recruiting.ts:25-43` |
 | 19 | `packages/ui/src/edit-form.tsx:307-325` | `packages/ui/src/edit-form.tsx:341-359` |
-| 18 | `packages/channel-sms/src/restate/console.ts:170-187` | `packages/content/src/restate/marketing-console.ts:452-469` |
+| 18 | `packages/channel-sms/src/restate/console.ts:170-187` | `packages/content/src/restate/marketing-console.ts:461-478` |
 | 18 | `packages/channel-sms/src/restate/console.ts:170-187` | `packages/documents/src/console.ts:469-486` |
 | 18 | `packages/channel-sms/src/restate/console.ts:170-187` | `packages/payments/src/console.ts:485-502` |
 | 18 | `packages/content/src/restate/video-desk.ts:489-506` | `packages/content/src/restate/video-desk.ts:542-559` |

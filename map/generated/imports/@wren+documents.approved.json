@@ -9,7 +9,17 @@
    "attrs": {
     "dir": "packages/documents/",
     "npm": [
-     "node:crypto"
+     "@restatedev/restate-sdk",
+     "drizzle-orm",
+     "node:crypto",
+     "pdf-lib",
+     "zod"
+    ],
+    "versions": [
+     "@restatedev/restate-sdk@1.17.1",
+     "drizzle-orm@0.45.2",
+     "pdf-lib@1.17.1",
+     "zod@4.6.5"
     ]
    }
   },

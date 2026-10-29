@@ -9,7 +9,13 @@
    "attrs": {
     "dir": "packages/experiments/",
     "npm": [
-     "node:crypto"
+     "node:crypto",
+     "vitest",
+     "zod"
+    ],
+    "versions": [
+     "vitest@5.0.1",
+     "zod@4.6.5"
     ]
    }
   },

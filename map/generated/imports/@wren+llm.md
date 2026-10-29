@@ -4,7 +4,7 @@ Role: package. Files: 11.
 
 ## Outside packages
 
-node:fs, node:path
+@wrenautomation/models@0.8.2, node:fs, node:path, vitest@5.0.1, zod@4.6.5
 
 ## Folders
 

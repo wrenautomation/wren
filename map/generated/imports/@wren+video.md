@@ -8,7 +8,7 @@ Role: package. Files: 8.
 
 ## Outside packages
 
-node:child_process, node:crypto, node:fs, node:path
+@aws-sdk/client-s3@3.1136.0, node:child_process, node:crypto, node:fs, node:path, playwright@1.63.0
 
 ## Folders
 

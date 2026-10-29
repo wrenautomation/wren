@@ -10,7 +10,7 @@ Role: package. Files: 42.
 
 ## Outside packages
 
-node:child_process, node:crypto, node:fs, node:module, node:os, node:path, node:stream, node:url, node:util
+@remotion/google-fonts@4.0.533, @wrenautomation/falcon@0.8.2, @wrenautomation/models@0.8.2, @wrenautomation/weaver@0.8.2, diff@8.0.4, drizzle-orm@0.45.2, node:child_process, node:crypto, node:fs, node:module, node:os, node:path, node:stream, node:url, node:util, onnxruntime-node@1.30.0, react@19.3.0, remotion@4.0.533, vitest@5.0.1, zod@4.6.5
 
 ## Folders
 

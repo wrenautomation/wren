@@ -7,7 +7,17 @@
    "parent": "repo:wren",
    "group": "@wren/watch",
    "attrs": {
-    "dir": "packages/watch/"
+    "dir": "packages/watch/",
+    "npm": [
+     "@restatedev/restate-sdk",
+     "drizzle-orm",
+     "zod"
+    ],
+    "versions": [
+     "@restatedev/restate-sdk@1.17.1",
+     "drizzle-orm@0.45.2",
+     "zod@4.6.5"
+    ]
    }
   },
   {

@@ -10,7 +10,7 @@ Role: package. Files: 12.
 
 ## Outside packages
 
-node:crypto
+@restatedev/restate-sdk@1.17.1, drizzle-orm@0.45.2, node:crypto, stripe@22.6.2, zod@4.6.5
 
 ## Folders
 

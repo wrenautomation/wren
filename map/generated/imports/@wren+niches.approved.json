@@ -9,10 +9,18 @@
    "attrs": {
     "dir": "packages/niches/",
     "npm": [
+     "@wrenautomation/weaver",
+     "fflate",
      "node:crypto",
      "node:fs",
      "node:path",
-     "node:zlib"
+     "node:zlib",
+     "saxes"
+    ],
+    "versions": [
+     "@wrenautomation/weaver@0.8.2",
+     "fflate@0.8.3",
+     "saxes@6.0.0"
     ]
    }
   },

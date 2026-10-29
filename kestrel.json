@@ -107,5 +107,8 @@
       "aws:Tax": "system:wren",
       "anthropic:llm": "@wren/llm"
     }
+  },
+  "health": {
+    "pins": ["@wrenautomation/"]
   }
 }

@@ -7,6 +7,10 @@ Role: package. Files: 33.
 - @wren/core
 - @wren/db
 
+## Outside packages
+
+@restatedev/restate-sdk@1.17.1, docx@9.9.0, drizzle-orm@0.45.2, y-protocols@1.0.7, yjs@13.6.33, zod@4.6.5
+
 ## Folders
 
 Dotted: types only.

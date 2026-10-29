@@ -10,11 +10,29 @@
     "description": "Every Restate service, served from Lambda and the box.",
     "dir": "apps/worker/",
     "npm": [
+     "@restatedev/restate-sdk",
+     "@restatedev/restate-sdk-tunnel",
+     "@wrenautomation/autobrowse",
+     "@wrenautomation/falcon",
+     "@wrenautomation/weaver",
+     "drizzle-orm",
+     "esbuild",
      "node:child_process",
      "node:fs",
      "node:http2",
      "node:path",
-     "node:url"
+     "node:url",
+     "pino"
+    ],
+    "versions": [
+     "@restatedev/restate-sdk-tunnel@1.17.1",
+     "@restatedev/restate-sdk@1.17.1",
+     "@wrenautomation/autobrowse@0.5.0",
+     "@wrenautomation/falcon@0.8.2",
+     "@wrenautomation/weaver@0.8.2",
+     "drizzle-orm@0.45.2",
+     "esbuild@0.28.2",
+     "pino@10.3.1"
     ]
    }
   },

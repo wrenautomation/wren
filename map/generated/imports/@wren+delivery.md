@@ -13,7 +13,7 @@ Role: package. Files: 42.
 
 ## Outside packages
 
-node:crypto, node:fs
+@aws-sdk/client-s3@3.1136.0, @aws-sdk/s3-request-presigner@3.1136.0, @restatedev/restate-sdk@1.17.1, drizzle-orm@0.45.2, node:crypto, node:fs, zod@4.6.5
 
 ## Folders
 

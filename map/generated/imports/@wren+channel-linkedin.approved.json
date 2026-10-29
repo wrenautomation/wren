@@ -7,7 +7,13 @@
    "parent": "repo:wren",
    "group": "@wren/channel-linkedin",
    "attrs": {
-    "dir": "packages/channel-linkedin/"
+    "dir": "packages/channel-linkedin/",
+    "npm": [
+     "vitest"
+    ],
+    "versions": [
+     "vitest@5.0.1"
+    ]
    }
   },
   {

@@ -4,7 +4,7 @@ Role: package. Files: 3.
 
 ## Outside packages
 
-node:fs, node:path
+@aws-sdk/client-ssm@3.1136.0, node:fs, node:path, zod@4.6.5
 
 ## Folders
 

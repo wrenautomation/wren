@@ -9,12 +9,24 @@
    "attrs": {
     "dir": "packages/db/",
     "npm": [
+     "@testcontainers/postgresql",
+     "drizzle-kit",
+     "drizzle-orm",
      "node:async_hooks",
      "node:crypto",
      "node:fs",
      "node:os",
      "node:path",
-     "node:url"
+     "node:url",
+     "postgres",
+     "vitest"
+    ],
+    "versions": [
+     "@testcontainers/postgresql@12.1.0",
+     "drizzle-kit@0.31.10",
+     "drizzle-orm@0.45.2",
+     "postgres@3.4.9",
+     "vitest@5.0.1"
     ]
    }
   },

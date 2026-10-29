@@ -9,9 +9,25 @@
    "attrs": {
     "dir": "packages/content/",
     "npm": [
+     "@aws-sdk/client-s3",
+     "@aws-sdk/s3-request-presigner",
+     "@restatedev/restate-sdk",
+     "@wrenautomation/autobrowse",
+     "drizzle-orm",
      "node:crypto",
      "node:fs",
-     "node:path"
+     "node:path",
+     "playwright-core",
+     "zod"
+    ],
+    "versions": [
+     "@aws-sdk/client-s3@3.1136.0",
+     "@aws-sdk/s3-request-presigner@3.1136.0",
+     "@restatedev/restate-sdk@1.17.1",
+     "@wrenautomation/autobrowse@0.5.0",
+     "drizzle-orm@0.45.2",
+     "playwright-core@1.63.0",
+     "zod@4.6.5"
     ]
    }
   },
@@ -3882,6 +3898,11 @@
   {
    "from": "@wren/content/src/restate/desk-formats.ts",
    "to": "@wren/content/src/restate/desk-context.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/content/src/restate/desk-formats.ts",
+   "to": "@wren/content/src/restate/desk-edits.ts",
    "kind": "imports"
   },
   {

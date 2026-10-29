@@ -12,7 +12,7 @@ Role: package. Files: 46.
 
 ## Outside packages
 
-node:crypto
+@restatedev/restate-sdk@1.17.1, drizzle-orm@0.45.2, libphonenumber-js@1.13.14, node:crypto, web-push@3.6.7, zod@4.6.5
 
 ## Folders
 

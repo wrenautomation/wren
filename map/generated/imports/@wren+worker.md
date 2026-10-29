@@ -38,7 +38,7 @@ Role: package. Files: 40.
 
 ## Outside packages
 
-node:child_process, node:fs, node:http2, node:path, node:url
+@restatedev/restate-sdk-tunnel@1.17.1, @restatedev/restate-sdk@1.17.1, @wrenautomation/autobrowse@0.5.0, @wrenautomation/falcon@0.8.2, @wrenautomation/weaver@0.8.2, drizzle-orm@0.45.2, esbuild@0.28.2, node:child_process, node:fs, node:http2, node:path, node:url, pino@10.3.1
 
 ## Folders
 

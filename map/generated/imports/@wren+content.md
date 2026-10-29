@@ -20,7 +20,7 @@ Role: package. Files: 125.
 
 ## Outside packages
 
-node:crypto, node:fs, node:path
+@aws-sdk/client-s3@3.1136.0, @aws-sdk/s3-request-presigner@3.1136.0, @restatedev/restate-sdk@1.17.1, @wrenautomation/autobrowse@0.5.0, drizzle-orm@0.45.2, node:crypto, node:fs, node:path, playwright-core@1.63.0, zod@4.6.5
 
 ## Folders
 

@@ -10,7 +10,11 @@
     "dir": "packages/offers/",
     "npm": [
      "node:fs",
-     "node:path"
+     "node:path",
+     "vitest"
+    ],
+    "versions": [
+     "vitest@5.0.1"
     ]
    }
   },

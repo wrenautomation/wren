@@ -6,6 +6,10 @@ Role: package. Files: 4.
 
 - @wren/core
 
+## Outside packages
+
+vitest@5.0.1
+
 ## Folders
 
 Dotted: types only.

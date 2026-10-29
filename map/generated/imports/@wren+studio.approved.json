@@ -9,6 +9,12 @@
    "attrs": {
     "dir": "packages/studio/",
     "npm": [
+     "@remotion/google-fonts",
+     "@wrenautomation/falcon",
+     "@wrenautomation/models",
+     "@wrenautomation/weaver",
+     "diff",
+     "drizzle-orm",
      "node:child_process",
      "node:crypto",
      "node:fs",
@@ -17,7 +23,25 @@
      "node:path",
      "node:stream",
      "node:url",
-     "node:util"
+     "node:util",
+     "onnxruntime-node",
+     "react",
+     "remotion",
+     "vitest",
+     "zod"
+    ],
+    "versions": [
+     "@remotion/google-fonts@4.0.533",
+     "@wrenautomation/falcon@0.8.2",
+     "@wrenautomation/models@0.8.2",
+     "@wrenautomation/weaver@0.8.2",
+     "diff@8.0.4",
+     "drizzle-orm@0.45.2",
+     "onnxruntime-node@1.30.0",
+     "react@19.3.0",
+     "remotion@4.0.533",
+     "vitest@5.0.1",
+     "zod@4.6.5"
     ]
    }
   },

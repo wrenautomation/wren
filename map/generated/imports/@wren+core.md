@@ -8,7 +8,7 @@ Role: package. Files: 255.
 
 ## Outside packages
 
-node:async_hooks, node:crypto, node:dns, node:fs, node:https, node:net, node:path, node:process, node:tls, node:url
+@aws-sdk/client-ec2@3.1136.0, @jitl/quickjs-singlefile-mjs-release-sync@0.32.0, @restatedev/restate-sdk-clients@1.17.1, @restatedev/restate-sdk-testcontainers@1.17.1, @restatedev/restate-sdk@1.17.1, @typesafe-ai/sdk@0.6.0, @wrenautomation/models@0.8.2, csv-parse@7.0.2, drizzle-orm@0.45.2, entities@8.1.0, free-email-domains@1.12.20, node:async_hooks, node:crypto, node:dns, node:fs, node:https, node:net, node:path, node:process, node:tls, node:url, postal-mime@4.0.4, quickjs-emscripten-core@0.32.0, tldts@7.4.16, zod@4.6.5
 
 ## Folders
 

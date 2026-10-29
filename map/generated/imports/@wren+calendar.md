@@ -11,7 +11,7 @@ Role: package. Files: 18.
 
 ## Outside packages
 
-node:crypto
+@restatedev/restate-sdk@1.17.1, @wrenautomation/autobrowse@0.5.0, drizzle-orm@0.45.2, node:crypto, zod@4.6.5
 
 ## Folders
 

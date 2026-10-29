@@ -8,7 +8,7 @@ Role: package. Files: 16.
 
 ## Outside packages
 
-node:async_hooks, node:crypto, node:fs, node:os, node:path, node:url
+@testcontainers/postgresql@12.1.0, drizzle-kit@0.31.10, drizzle-orm@0.45.2, node:async_hooks, node:crypto, node:fs, node:os, node:path, node:url, postgres@3.4.9, vitest@5.0.1
 
 ## Folders
 

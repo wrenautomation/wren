@@ -12,7 +12,7 @@ Role: package. Files: 33.
 
 ## Outside packages
 
-node:crypto, node:http, node:stream
+@restatedev/restate-sdk@1.17.1, @wrenautomation/models@0.8.2, drizzle-orm@0.45.2, node:crypto, node:http, node:stream, zod@4.6.5
 
 ## Folders
 

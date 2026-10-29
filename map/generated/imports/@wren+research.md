@@ -10,7 +10,7 @@ Role: package. Files: 99.
 
 ## Outside packages
 
-node:crypto, node:dns, node:fs, node:path, node:stream, node:util, node:zlib
+@aws-sdk/client-s3@3.1136.0, @duckdb/node-api@1.5.6-r.1, @restatedev/restate-sdk@1.17.1, @wrenautomation/falcon@0.8.2, @wrenautomation/models@0.8.2, @wrenautomation/weaver@0.8.2, csv-parse@7.0.2, drizzle-orm@0.45.2, libphonenumber-js@1.13.14, node:crypto, node:dns, node:fs, node:path, node:stream, node:util, node:zlib, playwright-core@1.63.0, playwright@1.63.0, tldts@7.4.16, zod@4.6.5
 
 ## Folders
 

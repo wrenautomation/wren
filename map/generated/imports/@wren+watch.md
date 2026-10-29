@@ -9,6 +9,10 @@ Role: package. Files: 12.
 - @wren/learn
 - @wren/llm
 
+## Outside packages
+
+@restatedev/restate-sdk@1.17.1, drizzle-orm@0.45.2, zod@4.6.5
+
 ## Folders
 
 Dotted: types only.
