@@ -8,25 +8,25 @@ Exports: 27. Files: 5.
 
 ## packages/niches/src/index.ts
 
-- **requireNiche** (function) `(niche: string | null): string | null`
-- **nicheFor** (function) `(niche: string): Niche`
-- **adLibraryFor** (function) `(niche: string): { keywords: readonly string[]; platforms: ReadonlySet<string>; screen: import("@wren/core").CompanyScreen | null; }`
-- **fbGroupsFor** (function) `(niche: string): { keywords: readonly string[]; }`
-- **exaSearchFor** (function) `(niche: string): { queries: readonly string[]; cities: readonly string[]; platforms: ReadonlySet<string>; screen: import("@wren/core").CompanyScreen | null; }`
-- **triggersFor** (function) `(niche: string): { words: readonly string[]; screen: import("@wren/core").CompanyScreen | null; }`
-- **youtubeSearchFor** (function) `(niche: string): { queries: readonly string[]; platforms: ReadonlySet<string>; screen: import("@wren/core").CompanyScreen | null; }`
-- **discoveryWordsFor** (function) `(niche: string | null): ReadonlySet<string>`
-- **crawlHintsFor** (function) `(niche: string | null): ReadonlySet<string>`
-- **datasetsFor** (function) `(dataDir: string): ReadonlyMap<string, { niche: string; dataset: Dataset }>`
-- **NICHES** (const) `readonly Niche[]`
-- **NICHE_NAMES** (const) `ReadonlySet<string>`
 - **FACTS_VIEWS** (const) `ReadonlyMap<string, string>`
 - **LANDERS_BY_NICHE** (const) `ReadonlyMap<string, string>`
+- **LEAD_SOURCE_FORMATS** (const) `ReadonlyMap<string, SourceFormat>`
+- **NICHES** (const) `readonly Niche[]`
+- **NICHE_NAMES** (const) `ReadonlySet<string>`
+- **NICHE_PLATFORM_DOMAINS** (const) `ReadonlySet<string>`
+- **PERSON_SOURCE_FORMATS** (const) `ReadonlyMap<string, PersonSourceFormat>`
 - **SEQUENCES_BY_NICHE** (const) `Map<string, ReadonlyMap<string, import("@wren/channel-email").Sequence>>`
 - **SMS_SEQUENCES** (const) `ReadonlyMap<string, SmsSequence>`
-- **LEAD_SOURCE_FORMATS** (const) `ReadonlyMap<string, SourceFormat>`
-- **PERSON_SOURCE_FORMATS** (const) `ReadonlyMap<string, PersonSourceFormat>`
-- **NICHE_PLATFORM_DOMAINS** (const) `ReadonlySet<string>`
+- **adLibraryFor** (function) `(niche: string): { keywords: readonly string[]; platforms: ReadonlySet<string>; screen: import("@wren/core").CompanyScreen | null; }`
+- **crawlHintsFor** (function) `(niche: string | null): ReadonlySet<string>`
+- **datasetsFor** (function) `(dataDir: string): ReadonlyMap<string, { niche: string; dataset: Dataset }>`
+- **discoveryWordsFor** (function) `(niche: string | null): ReadonlySet<string>`
+- **exaSearchFor** (function) `(niche: string): { queries: readonly string[]; cities: readonly string[]; platforms: ReadonlySet<string>; screen: import("@wren/core").CompanyScreen | null; }`
+- **fbGroupsFor** (function) `(niche: string): { keywords: readonly string[]; }`
+- **nicheFor** (function) `(niche: string): Niche`
+- **requireNiche** (function) `(niche: string | null): string | null`
+- **triggersFor** (function) `(niche: string): { words: readonly string[]; screen: import("@wren/core").CompanyScreen | null; }`
+- **youtubeSearchFor** (function) `(niche: string): { queries: readonly string[]; platforms: ReadonlySet<string>; screen: import("@wren/core").CompanyScreen | null; }`
 
 ## packages/niches/src/niche.ts
 

@@ -12,8 +12,8 @@ Dotted: types only.
 
 ```mermaid
 flowchart LR
-  nindex_ts["index.ts"]
   nhandoff_ts["handoff.ts"]
+  nindex_ts["index.ts"]
   nschema_ts["schema.ts"]
   nverify_ts["verify.ts"]
   nvitest_config_ts["vitest.config.ts"]

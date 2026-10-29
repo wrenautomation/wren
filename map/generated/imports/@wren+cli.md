@@ -4,31 +4,31 @@ Role: package. Files: 67.
 
 ## Uses
 
+- @wren/books
+- @wren/calendar
+- @wren/channel-email
+- @wren/channel-meta
+- @wren/channel-search
+- @wren/channel-sms
 - @wren/config
+- @wren/content
 - @wren/core
 - @wren/db
-- @wren/outreach
-- @wren/channel-meta
-- @wren/content
-- @wren/channel-email
-- @wren/books
-- @wren/llm
-- @wren/calendar
 - @wren/delivery
-- @wren/studio
-- @wren/worker
-- @wren/reactivation
 - @wren/learn
-- @wren/offers
+- @wren/llm
 - @wren/niches
-- @wren/research
-- @wren/channel-sms
-- @wren/pipeline
 - @wren/notes
-- @wren/channel-search
+- @wren/offers
+- @wren/outreach
+- @wren/pipeline
+- @wren/reactivation
+- @wren/research
 - @wren/sites
+- @wren/studio
 - @wren/video
 - @wren/watch
+- @wren/worker
 
 ## Outside packages
 
@@ -47,12 +47,10 @@ flowchart LR
   napp_reviews_ts["app-reviews.ts"]
   nargs_ts["args.ts"]
   nbooks_ts["books.ts"]
-  nsites_ts["sites.ts"]
   ncalendar_ts["calendar.ts"]
   ncalls_ts["calls.ts"]
   nclient_scope_ts["client-scope.ts"]
   nclients_ts["clients.ts"]
-  nproducts_ts["products.ts"]
   ncontent_ts["content.ts"]
   ncrm_ts["crm.ts"]
   ndecide_ts["decide.ts"]
@@ -72,7 +70,6 @@ flowchart LR
   nlake_track_ts["lake-track.ts"]
   nlake_ts["lake.ts"]
   nlearn_readers_ts["learn-readers.ts"]
-  nvideo_watch_ts["video-watch.ts"]
   nlearn_ts["learn.ts"]
   nlimits_ts["limits.ts"]
   nlistmonk_ts["listmonk.ts"]
@@ -84,24 +81,27 @@ flowchart LR
   npages_ts["pages.ts"]
   npeople_ts["people.ts"]
   npipeline_ts["pipeline.ts"]
-  nreach_ts["reach.ts"]
   npoll_ts["poll.ts"]
+  nproducts_ts["products.ts"]
+  nreach_ts["reach.ts"]
   nreview_ts["review.ts"]
   nsearch_ts["search.ts"]
   nshape_ts["shape.ts"]
   nsite_pages_ts["site-pages.ts"]
+  nsites_ts["sites.ts"]
   nsms_ts["sms.ts"]
   nsocial_ts["social.ts"]
   nsop_ts["sop.ts"]
+  nstudio_ts["studio.ts"]
   nstudy_ts["study.ts"]
   ntasks_ts["tasks.ts"]
-  ntemplates_ts["templates.ts"]
   ntemplate_prune_ts["template-prune.ts"]
+  ntemplates_ts["templates.ts"]
   ntouches_ts["touches.ts"]
   ntrain_ts["train.ts"]
-  nvideo_ts["video.ts"]
-  nstudio_ts["studio.ts"]
   nvideo_ask_ts["video-ask.ts"]
+  nvideo_watch_ts["video-watch.ts"]
+  nvideo_ts["video.ts"]
   nwatch_ts["watch.ts"]
   nwebhooks_ts["webhooks.ts"]
   nworkflows_ts["workflows.ts"]
@@ -182,14 +182,14 @@ flowchart LR
   nsocial_ts --> nsites_ts
   nsop_ts --> nlearn_readers_ts
   nsop_ts --> nvideo_watch_ts
-  nstudy_ts --> nargs_ts
-  nstudy_ts --> nsites_ts
-  ntemplates_ts --> ntemplate_prune_ts
-  nvideo_ts --> nstudio_ts
   nstudio_ts --> ncontent_ts
   nstudio_ts --> nsop_ts
   nstudio_ts --> nvideo_ask_ts
   nstudio_ts --> nvideo_watch_ts
+  nstudy_ts --> nargs_ts
+  nstudy_ts --> nsites_ts
+  ntemplates_ts --> ntemplate_prune_ts
+  nvideo_ts --> nstudio_ts
   nwrite_ts --> ncontent_ts
 ```
 

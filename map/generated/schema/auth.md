@@ -4,19 +4,19 @@ Tables and views: 7.
 
 ## auth.account (table)
 
-- `id text`
-- `user_id text`
-- `provider_id text`
-- `account_id text`
 - `access_token text null`
-- `refresh_token text null`
-- `id_token text null`
 - `access_token_expires_at timestamp with time zone null`
+- `account_id text`
+- `created_at timestamp with time zone = now()`
+- `id text`
+- `id_token text null`
+- `password text null`
+- `provider_id text`
+- `refresh_token text null`
 - `refresh_token_expires_at timestamp with time zone null`
 - `scope text null`
-- `password text null`
-- `created_at timestamp with time zone = now()`
 - `updated_at timestamp with time zone = now()`
+- `user_id text`
 
 References:
 
@@ -29,40 +29,64 @@ Indexes:
 
 ## auth.jwks (table)
 
-- `id text`
-- `public_key text`
-- `private_key text`
 - `alg text null`
-- `crv text null`
 - `created_at timestamp with time zone = now()`
+- `crv text null`
 - `expires_at timestamp with time zone null`
+- `id text`
+- `private_key text`
+- `public_key text`
 
 Indexes:
 
 - `CREATE UNIQUE INDEX jwks_pkey ON auth.jwks USING btree (id)`
 
+## auth.passkey (table)
+
+- `aaguid text null`
+- `backed_up boolean`
+- `counter integer`
+- `created_at timestamp with time zone null = now()`
+- `credential_id text`
+- `device_type text`
+- `id text`
+- `name text null`
+- `public_key text`
+- `transports text null`
+- `user_id text`
+
+References:
+
+- auth.user (user_id → id)
+
+Indexes:
+
+- `CREATE INDEX ix_auth_passkey_user ON auth.passkey USING btree (user_id)`
+- `CREATE UNIQUE INDEX passkey_credential_id_unique ON auth.passkey USING btree (credential_id)`
+- `CREATE UNIQUE INDEX passkey_pkey ON auth.passkey USING btree (id)`
+
 ## auth.rate_limit (table)
 
+- `count integer`
 - `id text`
 - `key text`
-- `count integer`
 - `last_request bigint`
 
 Indexes:
 
-- `CREATE UNIQUE INDEX rate_limit_pkey ON auth.rate_limit USING btree (id)`
 - `CREATE UNIQUE INDEX rate_limit_key_unique ON auth.rate_limit USING btree (key)`
+- `CREATE UNIQUE INDEX rate_limit_pkey ON auth.rate_limit USING btree (id)`
 
 ## auth.session (table)
 
-- `id text`
-- `token text`
-- `user_id text`
-- `expires_at timestamp with time zone`
-- `ip_address text null`
-- `user_agent text null`
 - `created_at timestamp with time zone = now()`
+- `expires_at timestamp with time zone`
+- `id text`
+- `ip_address text null`
+- `token text`
 - `updated_at timestamp with time zone = now()`
+- `user_agent text null`
+- `user_id text`
 
 References:
 
@@ -70,59 +94,35 @@ References:
 
 Indexes:
 
+- `CREATE INDEX ix_auth_session_user ON auth.session USING btree (user_id)`
 - `CREATE UNIQUE INDEX session_pkey ON auth.session USING btree (id)`
 - `CREATE UNIQUE INDEX session_token_unique ON auth.session USING btree (token)`
-- `CREATE INDEX ix_auth_session_user ON auth.session USING btree (user_id)`
 
 ## auth.user (table)
 
-- `id text`
-- `name text`
+- `created_at timestamp with time zone = now()`
 - `email text`
 - `email_verified boolean = false`
+- `id text`
 - `image text null`
-- `created_at timestamp with time zone = now()`
+- `name text`
 - `updated_at timestamp with time zone = now()`
 
 Indexes:
 
-- `CREATE UNIQUE INDEX user_pkey ON auth."user" USING btree (id)`
 - `CREATE UNIQUE INDEX user_email_unique ON auth."user" USING btree (email)`
+- `CREATE UNIQUE INDEX user_pkey ON auth."user" USING btree (id)`
 
 ## auth.verification (table)
 
+- `created_at timestamp with time zone = now()`
+- `expires_at timestamp with time zone`
 - `id text`
 - `identifier text`
-- `value text`
-- `expires_at timestamp with time zone`
-- `created_at timestamp with time zone = now()`
 - `updated_at timestamp with time zone = now()`
+- `value text`
 
 Indexes:
 
-- `CREATE UNIQUE INDEX verification_pkey ON auth.verification USING btree (id)`
 - `CREATE INDEX ix_auth_verification_identifier ON auth.verification USING btree (identifier)`
-
-## auth.passkey (table)
-
-- `id text`
-- `name text null`
-- `public_key text`
-- `user_id text`
-- `credential_id text`
-- `counter integer`
-- `device_type text`
-- `backed_up boolean`
-- `transports text null`
-- `created_at timestamp with time zone null = now()`
-- `aaguid text null`
-
-References:
-
-- auth.user (user_id → id)
-
-Indexes:
-
-- `CREATE UNIQUE INDEX passkey_pkey ON auth.passkey USING btree (id)`
-- `CREATE UNIQUE INDEX passkey_credential_id_unique ON auth.passkey USING btree (credential_id)`
-- `CREATE INDEX ix_auth_passkey_user ON auth.passkey USING btree (user_id)`
+- `CREATE UNIQUE INDEX verification_pkey ON auth.verification USING btree (id)`

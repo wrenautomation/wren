@@ -12,18 +12,18 @@ Dotted: types only.
 
 ```mermaid
 flowchart LR
-  nindex_ts["index.ts"]
   nengine_ts["engine.ts"]
-  nsettings_ts["settings.ts"]
+  nindex_ts["index.ts"]
   nnames_ts["names.ts"]
   nrng_ts["rng.ts"]
+  nsettings_ts["settings.ts"]
   nsimulate_ts["simulate.ts"]
   nvitest_config_ts["vitest.config.ts"]
+  nengine_ts -.-> nsettings_ts
   nindex_ts --> nengine_ts
   nindex_ts --> nrng_ts
   nindex_ts --> nsettings_ts
   nindex_ts --> nsimulate_ts
-  nengine_ts -.-> nsettings_ts
   nsettings_ts --> nnames_ts
   nsimulate_ts --> nengine_ts
   nsimulate_ts --> nrng_ts

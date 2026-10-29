@@ -2,53 +2,53 @@
 
 Tables and views: 2.
 
+## calendar.booking_records (view)
+
+- `booked timestamp with time zone null`
+- `calendar text null`
+- `cancelled_at timestamp with time zone null`
+- `code text null`
+- `email text null`
+- `id integer null`
+- `marked timestamp with time zone null`
+- `marked_by text null`
+- `meet text null`
+- `name text null`
+- `offer text null`
+- `outcome_reason text null`
+- `reason text null`
+- `source text null`
+- `start timestamp with time zone null`
+- `status text null`
+- `zone text null`
+
 ## calendar.bookings (table)
 
-- `id integer = nextval('calendar.bookings_id_seq'::regclass)`
-- `calendar varchar(64) = 'wren'::character varying`
-- `state varchar(16) = 'booked'::character varying`
-- `start timestamp with time zone`
-- `end timestamp with time zone`
-- `name text`
-- `email varchar(320)`
-- `zone varchar(64)`
-- `offer varchar(64) null`
-- `code varchar(40) null`
 - `application varchar(64) null`
-- `source jsonb = '{}'::jsonb`
-- `google_event_id varchar(1024) null`
-- `meet_url text null`
-- `reminded_day_at timestamp with time zone null`
-- `reminded_hour_at timestamp with time zone null`
+- `calendar varchar(64) = 'wren'::character varying`
 - `cancelled_at timestamp with time zone null`
 - `cancelled_by varchar(320) null`
-- `reason text null`
+- `code varchar(40) null`
 - `created_at timestamp with time zone = now()`
+- `email varchar(320)`
+- `end timestamp with time zone`
+- `google_event_id varchar(1024) null`
+- `id integer = nextval('calendar.bookings_id_seq'::regclass)`
+- `meet_url text null`
+- `name text`
+- `offer varchar(64) null`
+- `reason text null`
+- `reminded_day_at timestamp with time zone null`
+- `reminded_hour_at timestamp with time zone null`
+- `source jsonb = '{}'::jsonb`
+- `start timestamp with time zone`
+- `state varchar(16) = 'booked'::character varying`
 - `updated_at timestamp with time zone = now()`
+- `zone varchar(64)`
 
 Indexes:
 
-- `CREATE UNIQUE INDEX pk_bookings ON calendar.bookings USING btree (id)`
-- `CREATE UNIQUE INDEX uq_calendar_bookings_slot ON calendar.bookings USING btree (calendar, start) WHERE ((state)::text = 'booked'::text)`
 - `CREATE INDEX ix_calendar_bookings_email ON calendar.bookings USING btree (lower((email)::text))`
 - `CREATE INDEX ix_calendar_bookings_start ON calendar.bookings USING btree (start)`
-
-## calendar.booking_records (view)
-
-- `id integer null`
-- `calendar text null`
-- `name text null`
-- `email text null`
-- `status text null`
-- `start timestamp with time zone null`
-- `zone text null`
-- `offer text null`
-- `code text null`
-- `source text null`
-- `meet text null`
-- `booked timestamp with time zone null`
-- `cancelled_at timestamp with time zone null`
-- `reason text null`
-- `outcome_reason text null`
-- `marked_by text null`
-- `marked timestamp with time zone null`
+- `CREATE UNIQUE INDEX pk_bookings ON calendar.bookings USING btree (id)`
+- `CREATE UNIQUE INDEX uq_calendar_bookings_slot ON calendar.bookings USING btree (calendar, start) WHERE ((state)::text = 'booked'::text)`

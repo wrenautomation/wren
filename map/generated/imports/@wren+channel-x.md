@@ -12,8 +12,8 @@ Dotted: types only.
 
 ```mermaid
 flowchart LR
-  nindex_ts["index.ts"]
   ncontent_ts["content.ts"]
+  nindex_ts["index.ts"]
   nindex_ts --> ncontent_ts
 ```
 

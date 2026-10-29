@@ -2,11 +2,12 @@
 
 Services: 11.
 
-## MailCallback (service)
+## CallBookings (service)
 
-File: packages/channel-email/src/access/console.ts
+File: packages/channel-email/src/restate/call-bookings.ts
 
-- **land** `z.infer<typeof LANDING>` → `{ ok: boolean; said: string; }` (serviceHandler)
+- **ingest** `unknown` → `BookingOutcome | null` (plain)
+- **ingestFor** `{ client: string; body: unknown }` → `BookingOutcome | null` (plain)
 
 ## CallBriefs (service)
 
@@ -15,22 +16,15 @@ File: packages/channel-email/src/calls/restate.ts
 - **build** `{ client?: string | null; id: number }` → `{ built: boolean; }` (serviceHandler)
 - **send** `SendAsk` → `{ sent: boolean; why: string; } | { sent: boolean; why?: never; }` (serviceHandler)
 
-## CallBookings (service)
-
-File: packages/channel-email/src/restate/call-bookings.ts
-
-- **ingest** `unknown` → `BookingOutcome | null` (plain)
-- **ingestFor** `{ client: string; body: unknown }` → `BookingOutcome | null` (plain)
-
 ## Disposition (object)
 
 File: packages/channel-email/src/restate/disposition.ts
 
-- **classify** `void` → `ClassifyOutcome` (exclusiveHandler)
 - **approve** `{ id: number; body?: string | null }` → `ApproveOutcome` (exclusiveHandler)
-- **reply** `{ threadEventId: number; body: string }` → `{ ok: boolean; reason: string | null }` (exclusiveHandler)
-- **followUp** `{ enrollmentId: number; body: string; campaign?: string | null }` → `{ ok: boolean; reason: string | null; until: string | null }` (exclusiveHandler)
+- **classify** `void` → `ClassifyOutcome` (exclusiveHandler)
 - **drop** `{ id: number }` → `{ state: string }` (exclusiveHandler)
+- **followUp** `{ enrollmentId: number; body: string; campaign?: string | null }` → `{ ok: boolean; reason: string | null; until: string | null }` (exclusiveHandler)
+- **reply** `{ threadEventId: number; body: string }` → `{ ok: boolean; reason: string | null }` (exclusiveHandler)
 - **status** `void` → `ClassifyOutcome | null` (sharedHandler)
 
 ## InboxPush (object)
@@ -41,26 +35,32 @@ File: packages/channel-email/src/restate/inbox-scheduler.ts
 - **listen** `PushListener` → `void` (exclusiveHandler)
 - **notify** `void` → `void` (sharedHandler)
 
-## ListmonkMail (object)
-
-File: packages/channel-email/src/restate/listmonk.ts
-
-- **send** `ListmonkMessage` → `IssueSent` (exclusiveHandler)
-
 ## ListmonkIntake (service)
 
 File: packages/channel-email/src/restate/listmonk.ts
 
 - **post** `ListmonkMessage` → `{ ok: true }` (serviceHandler)
 
+## ListmonkMail (object)
+
+File: packages/channel-email/src/restate/listmonk.ts
+
+- **send** `ListmonkMessage` → `IssueSent` (exclusiveHandler)
+
+## MailCallback (service)
+
+File: packages/channel-email/src/access/console.ts
+
+- **land** `z.infer<typeof LANDING>` → `{ ok: boolean; said: string; }` (serviceHandler)
+
 ## Marketing (service)
 
 File: packages/channel-email/src/restate/marketing.ts
 
-- **signUp** `SignUpRequest` → `{ ok: true }` (serviceHandler)
 - **confirm** `Visit & { token: string }` → `{ ok: boolean; prefs: { channel: "email" | "sms"; topic: string | null; named: string | null; from: string | null; address: string; everything: boolean; frequency: "as_sent" | "weekly" | "monthly"; pausedUntil: Date | null; topics: { name: string; publicName: string; line: string; cadence: string; on: boolean; }[]; }; }` (serviceHandler)
 - **prefs** `{ token: string }` → `{ channel: "email" | "sms"; topic: string | null; named: string | null; from: string | null; address: string; everything: boolean; frequency: "as_sent" | "weekly" | "monthly"; pausedUntil: Date | null; topics: { name: string; publicName: string; line: string; cadence: string; on: boolean; }[]; }` (serviceHandler)
 - **set** `Visit & { token: string; change: Change }` → `{ prefs: { channel: "email" | "sms"; topic: string | null; named: string | null; from: string | null; address: string; everything: boolean; frequency: "as_sent" | "weekly" | "monthly"; pausedUntil: Date | null; topics: { name: string; publicName: string; line: string; cadence: string; on: boolean; }[]; }; event: number | null; }` (serviceHandler)
+- **signUp** `SignUpRequest` → `{ ok: true }` (serviceHandler)
 
 ## Newsletter (object)
 

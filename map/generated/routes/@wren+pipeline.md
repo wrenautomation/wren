@@ -6,8 +6,8 @@ Services: 1.
 
 File: packages/pipeline/src/restate.ts
 
-- **open** `OpenRequest` → `{ journey: string; node: string; }` (serviceHandler)
-- **move** `MoveRequest` → `{ journey: string; from: string; to: string; status: "open" | "dropped" | "done"; }` (serviceHandler)
-- **drop** `DropRequest` → `{ journey: string; node: string; }` (serviceHandler)
 - **assign** `AssignRequest` → `restate.RestatePromise<{ journey: string; owner: string | null; }>` (serviceHandler)
+- **drop** `DropRequest` → `{ journey: string; node: string; }` (serviceHandler)
+- **move** `MoveRequest` → `{ journey: string; from: string; to: string; status: "open" | "dropped" | "done"; }` (serviceHandler)
+- **open** `OpenRequest` → `{ journey: string; node: string; }` (serviceHandler)
 - **rebuild** `RebuildRequest` → `restate.RestatePromise<import("./moves.js").Rebuilt>` (serviceHandler)

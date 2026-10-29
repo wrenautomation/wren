@@ -4,11 +4,11 @@ Role: package. Files: 132.
 
 ## Uses
 
+- @wren/config
 - @wren/core
 - @wren/db
-- @wren/research
-- @wren/config
 - @wren/llm
+- @wren/research
 
 ## Outside packages
 
@@ -20,36 +20,54 @@ Dotted: types only.
 
 ```mermaid
 flowchart LR
-  nsend_["send/ (19)"]
-  nindex_ts["index.ts"]
-  nconcurrent_ts["concurrent.ts"]
-  ndossier_ts["dossier.ts"]
-  nschema_ts["schema.ts"]
-  nfollow_ts["follow.ts"]
-  ncomponents_ts["components.ts"]
-  ncalls_["calls/ (7)"]
-  nsequences_settings_ts["sequences-settings.ts"]
-  nguards_ts["guards.ts"]
-  noutreach_["outreach/ (15)"]
-  ninbox_["inbox/ (16)"]
-  nstate_ts["state.ts"]
-  nviews_ts["views.ts"]
-  nfetch_like_ts["fetch-like.ts"]
-  nrecontact_ts["recontact.ts"]
-  nverification_["verification/ (11)"]
-  nresolution_["resolution/ (3)"]
-  nreport_["report/ (6)"]
-  nsequences_ts["sequences.ts"]
-  nrestate_["restate/ (20)"]
-  nsetups_ts["setups.ts"]
-  nconsole_routes_ts["console-routes.ts"]
-  nrecords_ts["records.ts"]
-  nlistmonk_["listmonk/ (5)"]
-  nspam_["spam/ (3)"]
   naccess_["access/ (7)"]
+  ncalls_["calls/ (7)"]
+  ncomponents_ts["components.ts"]
+  nconcurrent_ts["concurrent.ts"]
+  nconsole_routes_ts["console-routes.ts"]
+  ndossier_ts["dossier.ts"]
+  nfetch_like_ts["fetch-like.ts"]
+  nfollow_ts["follow.ts"]
+  nguards_ts["guards.ts"]
+  ninbox_["inbox/ (16)"]
+  nindex_ts["index.ts"]
+  nlistmonk_["listmonk/ (5)"]
+  noutreach_["outreach/ (15)"]
+  nrecontact_ts["recontact.ts"]
   nrecord_views_ts["record-views.ts"]
+  nrecords_ts["records.ts"]
+  nreport_["report/ (6)"]
+  nresolution_["resolution/ (3)"]
+  nrestate_["restate/ (20)"]
+  nschema_ts["schema.ts"]
+  nsend_["send/ (19)"]
+  nsequences_settings_ts["sequences-settings.ts"]
+  nsequences_ts["sequences.ts"]
+  nsetups_ts["setups.ts"]
+  nspam_["spam/ (3)"]
+  nstate_ts["state.ts"]
+  nverification_["verification/ (11)"]
+  nviews_ts["views.ts"]
   ntest_["test/ (2)"]
   nvitest_config_ts["vitest.config.ts"]
+  naccess_ -.-> nfetch_like_ts
+  naccess_ --> nsend_
+  ncalls_ --> nschema_ts
+  ncalls_ --> ninbox_
+  ncomponents_ts --> ncalls_
+  ncomponents_ts --> nsequences_settings_ts
+  ndossier_ts --> nschema_ts
+  nfollow_ts --> ncomponents_ts
+  nfollow_ts --> nguards_ts
+  nfollow_ts --> noutreach_
+  nfollow_ts --> nschema_ts
+  ninbox_ --> nsend_
+  ninbox_ --> nschema_ts
+  ninbox_ -.-> nfetch_like_ts
+  ninbox_ --> nviews_ts
+  ninbox_ --> nguards_ts
+  ninbox_ --> nstate_ts
+  ninbox_ --> noutreach_
   nindex_ts --> nconcurrent_ts
   nindex_ts --> ndossier_ts
   nindex_ts --> nfollow_ts
@@ -67,28 +85,7 @@ flowchart LR
   nindex_ts --> nstate_ts
   nindex_ts --> nverification_
   nindex_ts --> nviews_ts
-  ndossier_ts --> nschema_ts
-  nfollow_ts --> ncomponents_ts
-  nfollow_ts --> nguards_ts
-  nfollow_ts --> noutreach_
-  nfollow_ts --> nschema_ts
-  ncomponents_ts --> ncalls_
-  ncomponents_ts --> nsequences_settings_ts
-  ninbox_ --> nschema_ts
-  ninbox_ --> nsend_
-  nsend_ --> nguards_ts
-  nsend_ --> noutreach_
-  nsend_ --> nschema_ts
-  nsend_ --> nstate_ts
-  nsend_ --> nviews_ts
-  nstate_ts -.-> nschema_ts
-  ninbox_ -.-> nfetch_like_ts
-  ninbox_ --> nguards_ts
-  ninbox_ --> nviews_ts
-  nsend_ --> nfollow_ts
-  nsend_ --> ninbox_
-  ninbox_ --> nstate_ts
-  ninbox_ --> noutreach_
+  nlistmonk_ -.-> nfetch_like_ts
   noutreach_ --> nguards_ts
   noutreach_ --> nrecontact_ts
   noutreach_ --> nschema_ts
@@ -96,49 +93,52 @@ flowchart LR
   noutreach_ --> nstate_ts
   noutreach_ --> nconcurrent_ts
   noutreach_ --> nverification_
-  nverification_ --> nconcurrent_ts
-  nverification_ --> nrecontact_ts
-  nverification_ --> nresolution_
-  nverification_ --> nschema_ts
-  nverification_ --> nviews_ts
-  nresolution_ --> nschema_ts
+  nrecords_ts --> ncalls_
+  nrecords_ts --> ninbox_
+  nrecords_ts --> nsend_
   nreport_ --> nsend_
   nreport_ --> nschema_ts
+  nresolution_ --> nschema_ts
   nresolution_ --> nguards_ts
   nresolution_ --> nstate_ts
   nresolution_ --> nverification_
-  nsequences_ts -.-> nguards_ts
-  nsequences_ts -.-> nrestate_
-  nsequences_ts --> nsend_
-  nsequences_ts --> nsequences_settings_ts
+  nrestate_ --> ninbox_
+  nrestate_ --> ncalls_
+  nrestate_ -.-> nfetch_like_ts
   nrestate_ -.-> nguards_ts
   nrestate_ --> noutreach_
   nrestate_ --> nrecontact_ts
   nrestate_ --> nsend_
   nrestate_ --> nsequences_ts
-  nrestate_ --> ncomponents_ts
-  nrestate_ --> ninbox_
-  nsetups_ts --> ninbox_
-  nverification_ --> nsend_
-  nrestate_ --> ncalls_
-  ncalls_ --> nschema_ts
-  nrestate_ -.-> nfetch_like_ts
   nrestate_ --> nconsole_routes_ts
   nrestate_ --> nrecords_ts
   nrestate_ --> nsequences_settings_ts
-  nrecords_ts --> ncalls_
-  nrecords_ts --> ninbox_
-  nrecords_ts --> nsend_
   nrestate_ --> nverification_
-  nrestate_ --> nschema_ts
   nrestate_ --> nlistmonk_
-  nlistmonk_ -.-> nfetch_like_ts
+  nrestate_ --> nschema_ts
+  nrestate_ --> ncomponents_ts
+  nrestate_ --> nreport_
   nrestate_ --> nconcurrent_ts
   nrestate_ --> nresolution_
-  nrestate_ --> nreport_
-  ncalls_ --> ninbox_
-  naccess_ -.-> nfetch_like_ts
-  naccess_ --> nsend_
+  nsend_ --> nschema_ts
+  nsend_ --> nguards_ts
+  nsend_ --> noutreach_
+  nsend_ --> nstate_ts
+  nsend_ --> nviews_ts
+  nsend_ --> nfollow_ts
+  nsend_ --> ninbox_
+  nsequences_ts -.-> nguards_ts
+  nsequences_ts -.-> nrestate_
+  nsequences_ts --> nsend_
+  nsequences_ts --> nsequences_settings_ts
+  nsetups_ts --> ninbox_
+  nstate_ts -.-> nschema_ts
+  nverification_ --> nschema_ts
+  nverification_ --> nsend_
+  nverification_ --> nconcurrent_ts
+  nverification_ --> nrecontact_ts
+  nverification_ --> nresolution_
+  nverification_ --> nviews_ts
   ntest_ --> noutreach_
   ntest_ --> nschema_ts
 ```

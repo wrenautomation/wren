@@ -4,11 +4,11 @@ Role: package. Files: 33.
 
 ## Uses
 
+- @wren/calendar
+- @wren/channel-sms
+- @wren/config
 - @wren/core
 - @wren/db
-- @wren/channel-sms
-- @wren/calendar
-- @wren/config
 
 ## Outside packages
 
@@ -20,49 +20,59 @@ Dotted: types only.
 
 ```mermaid
 flowchart LR
-  ncomponents_ts["components.ts"]
   nagent_ts["agent.ts"]
-  nconsole_routes_ts["console-routes.ts"]
-  nrecords_ts["records.ts"]
+  nbox_["box/ (3)"]
+  nbrain_ts["brain.ts"]
+  ncall_now_ts["call-now.ts"]
   ncall_ts["call.ts"]
-  nsentences_ts["sentences.ts"]
-  ntools_ts["tools.ts"]
-  ntypes_ts["types.ts"]
-  nschema_ts["schema.ts"]
-  ndictation_["dictation/ (6)"]
+  ncomponents_ts["components.ts"]
+  nconsent_ts["consent.ts"]
+  nconsole_routes_ts["console-routes.ts"]
   nconsole_ts["console.ts"]
   ndictation_store_ts["dictation-store.ts"]
-  nstore_ts["store.ts"]
-  nindex_ts["index.ts"]
-  nbrain_ts["brain.ts"]
+  ndictation_["dictation/ (6)"]
   nfakes_ts["fakes.ts"]
-  ntransports_["transports/ (3)"]
-  nreading_ts["reading.ts"]
+  nindex_ts["index.ts"]
   nnode_ts["node.ts"]
-  ncall_now_ts["call-now.ts"]
-  nconsent_ts["consent.ts"]
   nports_ts["ports.ts"]
-  nbox_["box/ (3)"]
+  nreading_ts["reading.ts"]
+  nrecords_ts["records.ts"]
+  nschema_ts["schema.ts"]
+  nsentences_ts["sentences.ts"]
+  nstore_ts["store.ts"]
+  ntools_ts["tools.ts"]
+  ntransports_["transports/ (3)"]
+  ntypes_ts["types.ts"]
   nvitest_config_ts["vitest.config.ts"]
-  ncomponents_ts --> nagent_ts
-  nrecords_ts --> ncall_ts
-  nrecords_ts --> nschema_ts
+  nbox_ --> nagent_ts
+  nbox_ --> nports_ts
+  nbox_ --> nstore_ts
+  nbox_ --> ntransports_
+  nbox_ --> ncall_ts
+  nbox_ -.-> ntools_ts
+  nbox_ -.-> ntypes_ts
+  nbrain_ts -.-> ntypes_ts
+  ncall_now_ts -.-> nagent_ts
+  ncall_now_ts --> ncomponents_ts
+  ncall_now_ts --> nconsent_ts
+  ncall_now_ts -.-> ntransports_
   ncall_ts --> nagent_ts
   ncall_ts --> nsentences_ts
   ncall_ts --> ntools_ts
-  ncall_ts --> ntypes_ts
-  ntools_ts --> nagent_ts
-  ntools_ts -.-> ntypes_ts
-  nschema_ts --> ntypes_ts
-  ndictation_ -.-> ntypes_ts
+  ncall_ts -.-> ntypes_ts
+  ncomponents_ts --> nagent_ts
+  nconsent_ts -.-> nagent_ts
+  nconsent_ts --> nschema_ts
+  nconsent_ts -.-> ntransports_
   nconsole_ts --> ncall_ts
   nconsole_ts --> nconsole_routes_ts
-  nconsole_ts --> ndictation_store_ts
+  nconsole_ts -.-> ndictation_store_ts
   nconsole_ts --> nstore_ts
   nconsole_ts --> ntypes_ts
   ndictation_store_ts --> ndictation_
-  nstore_ts -.-> ncall_ts
-  nstore_ts --> nschema_ts
+  ndictation_ -.-> ntypes_ts
+  nfakes_ts --> ntools_ts
+  nfakes_ts -.-> ntypes_ts
   nindex_ts --> nagent_ts
   nindex_ts --> nbrain_ts
   nindex_ts --> ncall_ts
@@ -71,33 +81,23 @@ flowchart LR
   nindex_ts --> ntools_ts
   nindex_ts --> ntransports_
   nindex_ts --> ntypes_ts
-  nbrain_ts -.-> ntypes_ts
-  nfakes_ts --> ntools_ts
-  nfakes_ts -.-> ntypes_ts
-  ntransports_ -.-> ntypes_ts
-  nreading_ts --> nsentences_ts
-  nreading_ts -.-> ntypes_ts
   nnode_ts --> ncall_now_ts
   nnode_ts --> nconsent_ts
   nnode_ts --> nports_ts
   nnode_ts --> nstore_ts
   nnode_ts --> ntransports_
-  ncall_now_ts -.-> nagent_ts
-  ncall_now_ts --> ncomponents_ts
-  ncall_now_ts --> nconsent_ts
-  ncall_now_ts -.-> ntransports_
-  nconsent_ts -.-> nagent_ts
-  nconsent_ts --> nschema_ts
-  nconsent_ts --> ntransports_
   nports_ts --> ntools_ts
   nports_ts -.-> ntypes_ts
-  nbox_ --> nagent_ts
-  nbox_ --> nports_ts
-  nbox_ --> nstore_ts
-  nbox_ --> ntransports_
-  nbox_ --> ncall_ts
-  nbox_ -.-> ntools_ts
-  nbox_ -.-> ntypes_ts
+  nreading_ts --> nsentences_ts
+  nreading_ts -.-> ntypes_ts
+  nrecords_ts --> ncall_ts
+  nrecords_ts --> nschema_ts
+  nschema_ts --> ntypes_ts
+  nstore_ts -.-> ncall_ts
+  nstore_ts --> nschema_ts
+  ntools_ts --> nagent_ts
+  ntools_ts -.-> ntypes_ts
+  ntransports_ -.-> ntypes_ts
 ```
 
 ## Files

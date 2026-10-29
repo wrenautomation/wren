@@ -12,9 +12,9 @@ Dotted: types only.
 
 ```mermaid
 flowchart LR
-  nssm_ts["ssm.ts"]
-  nindex_ts["index.ts"]
   nenv_file_ts["env-file.ts"]
+  nindex_ts["index.ts"]
+  nssm_ts["ssm.ts"]
   nindex_ts --> nenv_file_ts
 ```
 

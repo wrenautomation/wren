@@ -163,7 +163,7 @@ Wren Automation: campaigns, channels and client products.
   - in `packages/db/src/index.ts`, `packages/db/src/listen.ts`, `packages/voice/src/box/main.ts`
 - wren uses autobrowse: npm `@wrenautomation/autobrowse`
   - in `apps/auth/package.json`, `apps/cli/package.json`, `apps/worker/package.json`, `packages/calendar/package.json`, `packages/channel-email/package.json`, `packages/channel-search/package.json`, `packages/connectors/package.json`, `packages/content/package.json`
-- wren uses engine: npm `@wrenautomation/falcon`, npm `@wrenautomation/models`, npm `@wrenautomation/weaver`
-  - in `apps/cli/package.json`, `apps/worker/package.json`, `packages/books/package.json`, `packages/channel-email/package.json`, `packages/core/package.json`, `packages/learn/package.json`, `packages/llm/package.json`, `packages/niches/package.json`, `packages/reactivation/package.json`, `packages/research/package.json`, `packages/studio/package.json`, `packages/voice/package.json`
+- wren uses engine: npm `@wrenautomation/falcon`, npm `@wrenautomation/models`, npm `@wrenautomation/orrery`, npm `@wrenautomation/weaver`
+  - in `apps/cli/package.json`, `apps/worker/package.json`, `packages/books/package.json`, `packages/channel-email/package.json`, `packages/core/package.json`, `packages/learn/package.json`, `packages/llm/package.json`, `packages/niches/package.json`, `packages/reactivation/package.json`, `packages/research/package.json`, `packages/studio/package.json`, `packages/ui/package.json`, `packages/voice/package.json`
 - wren uses mailifier: npm `mailifier`
   - in `packages/channel-email/package.json`

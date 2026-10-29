@@ -4,32 +4,32 @@ Role: package. Files: 423.
 
 ## Uses
 
-- @wren/ui
-- @wren/pipeline
+- @wren/auth
 - @wren/books
 - @wren/calendar
 - @wren/channel-email
 - @wren/channel-sms
+- @wren/config
 - @wren/connectors
 - @wren/content
 - @wren/core
+- @wren/db
 - @wren/delivery
 - @wren/documents
 - @wren/learn
+- @wren/llm
 - @wren/notes
+- @wren/offers
+- @wren/outreach
 - @wren/payments
+- @wren/pipeline
 - @wren/reactivation
 - @wren/sites
+- @wren/studio
+- @wren/ui
 - @wren/voice
 - @wren/watch
 - @wren/worker
-- @wren/config
-- @wren/db
-- @wren/llm
-- @wren/outreach
-- @wren/studio
-- @wren/auth
-- @wren/offers
 
 ## Outside packages
 
@@ -42,30 +42,30 @@ Dotted: types only.
 ```mermaid
 flowchart LR
   n_storybook_[".storybook/ (4)"]
-  nweb_["web/ (388)"]
   nscripts_["scripts/ (9)"]
-  nservices_ts["services.ts"]
-  ndictate_ts["dictate.ts"]
-  nmedia_ts["media.ts"]
-  npulse_ts["pulse.ts"]
   nagent_ts["agent.ts"]
+  nbook_ts["book.ts"]
+  nbuild_ts["build.ts"]
+  ndev_ts["dev.ts"]
+  ndictate_ts["dictate.ts"]
+  ndocs_ts["docs.ts"]
   nedge_ts["edge.ts"]
   nenv_ts["env.ts"]
   nhosts_ts["hosts.ts"]
   nkeys_ts["keys.ts"]
-  nbook_ts["book.ts"]
-  nturnstile_ts["turnstile.ts"]
-  nbuild_ts["build.ts"]
-  ndev_ts["dev.ts"]
-  nwatch_ts["watch.ts"]
-  nworker_ts["worker.ts"]
-  ndocs_ts["docs.ts"]
   nlimit_ts["limit.ts"]
   nlive_ts["live.ts"]
+  nmedia_ts["media.ts"]
   noauth_landing_ts["oauth-landing.ts"]
   npay_ts["pay.ts"]
+  npulse_ts["pulse.ts"]
+  nservices_ts["services.ts"]
   nsites_ts["sites.ts"]
+  nturnstile_ts["turnstile.ts"]
+  nwatch_ts["watch.ts"]
+  nworker_ts["worker.ts"]
   nwrites_ts["writes.ts"]
+  nweb_["web/ (388)"]
   n_storybook_ --> nweb_
   nscripts_ --> nservices_ts
   nscripts_ --> ndictate_ts
@@ -75,15 +75,9 @@ flowchart LR
   nagent_ts -.-> nenv_ts
   nagent_ts -.-> nhosts_ts
   nagent_ts --> nkeys_ts
-  nedge_ts -.-> nenv_ts
-  nhosts_ts -.-> nenv_ts
-  nkeys_ts --> nedge_ts
-  nkeys_ts -.-> nenv_ts
-  nkeys_ts -.-> nhosts_ts
   nbook_ts -.-> nenv_ts
   nbook_ts -.-> nhosts_ts
   nbook_ts --> nturnstile_ts
-  nturnstile_ts -.-> nenv_ts
   ndev_ts --> nagent_ts
   ndev_ts --> nedge_ts
   ndev_ts -.-> nenv_ts
@@ -91,6 +85,28 @@ flowchart LR
   ndev_ts --> npulse_ts
   ndev_ts --> nservices_ts
   ndev_ts --> nwatch_ts
+  ndocs_ts -.-> nenv_ts
+  ndocs_ts -.-> nhosts_ts
+  ndocs_ts --> nturnstile_ts
+  nedge_ts -.-> nenv_ts
+  nhosts_ts -.-> nenv_ts
+  nkeys_ts --> nedge_ts
+  nkeys_ts -.-> nenv_ts
+  nkeys_ts -.-> nhosts_ts
+  nlimit_ts -.-> nenv_ts
+  nlive_ts --> nedge_ts
+  nlive_ts -.-> nenv_ts
+  nlive_ts -.-> nhosts_ts
+  nlive_ts --> nservices_ts
+  nlive_ts -.-> nworker_ts
+  noauth_landing_ts --> nedge_ts
+  noauth_landing_ts -.-> nenv_ts
+  npay_ts -.-> nenv_ts
+  npay_ts -.-> nhosts_ts
+  nsites_ts -.-> nenv_ts
+  nsites_ts -.-> nhosts_ts
+  nsites_ts --> nturnstile_ts
+  nturnstile_ts -.-> nenv_ts
   nwatch_ts --> nedge_ts
   nwatch_ts -.-> nenv_ts
   nwatch_ts -.-> nhosts_ts
@@ -116,22 +132,6 @@ flowchart LR
   nworker_ts --> nsites_ts
   nworker_ts --> nwatch_ts
   nworker_ts --> nwrites_ts
-  ndocs_ts -.-> nenv_ts
-  ndocs_ts -.-> nhosts_ts
-  ndocs_ts --> nturnstile_ts
-  nlimit_ts -.-> nenv_ts
-  nlive_ts --> nedge_ts
-  nlive_ts -.-> nenv_ts
-  nlive_ts -.-> nhosts_ts
-  nlive_ts --> nservices_ts
-  nlive_ts -.-> nworker_ts
-  noauth_landing_ts --> nedge_ts
-  noauth_landing_ts -.-> nenv_ts
-  npay_ts -.-> nenv_ts
-  npay_ts -.-> nhosts_ts
-  nsites_ts -.-> nenv_ts
-  nsites_ts -.-> nhosts_ts
-  nsites_ts --> nturnstile_ts
   nwrites_ts --> nedge_ts
   nwrites_ts -.-> nenv_ts
   nwrites_ts -.-> nhosts_ts

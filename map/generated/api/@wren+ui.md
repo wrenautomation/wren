@@ -10,6 +10,20 @@ Exports: 704. Files: 124.
 
 - **onlineManager** (const) `OnlineManager`
 
+## node_modules/.pnpm/@wrenautomation+orrery@0.24.1/node_modules/@wrenautomation/orrery/dist/tree.d.ts
+
+- **Fold** (interface) `interface Fold { depth: number; open: OpenMap; }`
+- **FoldNode** (interface) `interface FoldNode { id: string; parent?: string | undefined; label: string; hand?: boolean | undefined; }`
+- **OpenMap** (type) `type OpenMap = Readonly<Record<string, boolean>>;`
+- **allOpen** (const) `(nodes: readonly FoldNode[]) => Set<string>`
+- **fullDepth** (function) `(nodes: readonly FoldNode[]): number`
+- **openKey** (const) `(open: ReadonlySet<string>) => string`
+- **openSet** (function) `(nodes: readonly FoldNode[], fold: Fold): Set<string>`
+- **pathTo** (function) `(nodes: readonly FoldNode[], id: string): FoldNode[]`
+- **reveal** (function) `(nodes: readonly FoldNode[], id: string | undefined): Fold`
+- **stepDepth** (function) `(nodes: readonly FoldNode[], depth: number, d: number): Fold`
+- **toggle** (function) `(nodes: readonly FoldNode[], fold: Fold, id: string, on: boolean): Fold`
+
 ## node_modules/.pnpm/sonner@2.0.8_@types+react@19.3.0_react-dom@19.3.0_react@19.3.0__react@19.3.0/node_modules/sonner/dist/index.d.ts
 
 - **toast** (const) `((message: titleT, data?: ExternalToast) => string | number) & { success: (message: titleT | React.ReactNode, data?: ExternalToast) => string | number; info: (message: titleT | React.ReactNode, data?: ExternalToast) => string | number; warning: (message: titleT | React.ReactNode, data?: ExternalToast) => string | number; error: (message: titleT | React.ReactNode, data?: ExternalToast) => string | number; custom: (jsx: (id: number | string) => React.ReactElement, data?: ExternalToast) => string | number; message: (message: titleT | React.ReactNode, data?: ExternalToast) => string | number; promise: <ToastData>(promise: PromiseT<ToastData>, data?: PromiseData<ToastData>) => (string & { unwrap: () => Promise<ToastData>; }) | (number & { unwrap: () => Promise<ToastData>; }) | { unwrap: () => Promise<ToastData>; }; dismiss: (id?: number | string) => string | number; loading: (message: titleT | React.ReactNode, data?: ExternalToast) => string | number; } & { getHistory: () => (ToastT | ToastToDismiss)[]; getToasts: () => (ToastT | ToastToDismiss)[]; }`
@@ -29,9 +43,9 @@ Exports: 704. Files: 124.
 ## packages/ui/src/access.ts
 
 - **Access** (interface) `interface Access { audience?: "team" | "client" | "demo"; role?: "owner"; feature?: string; needs?: Permission; flag?: string; at?: Target; }`
+- **Viewer** (interface) `interface Viewer { team: boolean; demo: boolean; role?: "owner" | "member" | "viewer"; features?: readonly string[]; can?: readonly string[]; flags?: Readonly<Record<string, string>>; who?: Who; }`
 - **can** (function) `(viewer: Viewer, access: Access | undefined): boolean`
 - **canAt** (function) `(viewer: Viewer, verb: Permission, at: Target = {}): boolean`
-- **Viewer** (interface) `interface Viewer { team: boolean; demo: boolean; role?: "owner" | "member" | "viewer"; features?: readonly string[]; can?: readonly string[]; flags?: Readonly<Record<string, string>>; who?: Who; }`
 
 ## packages/ui/src/accounts.tsx
 
@@ -46,15 +60,15 @@ Exports: 704. Files: 124.
 - **Action** (interface) `interface Action { id: string; label: string; icon?: IconName; handler: string; input?: unknown; requires?: Access; confirm?: string; ask?: { field: string; label: string; from?: string; preview?: MessageKind | ((id: string | number) => Promise<MessageKind | null>); }; form?: readonly FormField[]; each?: true; done?: (answer: unknown) => string; optimistic?: string; key?: string; bulk?: true; undo?: string; when?: Readonly<Record<string, readonly string[]>>; blocked?: Readonly<Record<string, Readonly<Record<string, string>>>>; sets?: Readonly<Record<string, string>>; inline?: true; expect?: true; }`
 - **Call** (type) `type Call = (handler: string, input: Record<string, unknown>) => Promise<unknown>;`
 - **Copied** (interface) `interface Copied { text: string; url: string; }`
+- **FormField** (interface) `interface FormField { field: string; label: string; type?: | "long" | "date" | "number" | "url" | "file" | "switch" | "select" | "lines" | "numbers" | "pick" | "combo" | "json"; optional?: true; options?: readonly string[]; choices?: { handler: string; list: (answer: unknown) => readonly string[] }; labels?: Readonly<Record<string, string>>; hint?: string; pattern?: string; from?: (values: Record<string, string>) => string; }`
+- **Runner** (class) `opened; constructor(private deps: RunnerDeps); update(deps: RunnerDeps): void; readonly subscribe; readonly snapshot; get busy(); run(action: Action, ids: Ids, start = ""): "asked" | "held" | "sent" | null; close(): void; submit(input: Record<string, unknown>): Promise<boolean>; refuse(why: string): void; send(action: Action, ids: Ids, input: Record<string, unknown>): Promise<boolean>; go(action: Action, ids: Ids, given: Record<string, unknown>): Promise<boolean>`
+- **Toasts** (function) `(): import("react").JSX.Element`
 - **callOnce** (function) `(call: Call, handler: string, ids: readonly (string | number)[], input: Record<string, unknown>, press: Omit<PressOptions, "key"> = {}, writes: Writes = WRITES): Promise<unknown>`
 - **copiedIn** (function) `(answer: unknown): Copied | null`
 - **copyAndOpen** (function) `(c: Copied): void`
-- **FormField** (interface) `interface FormField { field: string; label: string; type?: | "long" | "date" | "number" | "url" | "file" | "switch" | "select" | "lines" | "numbers" | "pick" | "combo" | "json"; optional?: true; options?: readonly string[]; choices?: { handler: string; list: (answer: unknown) => readonly string[] }; labels?: Readonly<Record<string, string>>; hint?: string; pattern?: string; from?: (values: Record<string, string>) => string; }`
 - **holdWithUndo** (function) `(o: { press: PressOptions; commit: (requestId: string) => Promise<unknown>; line: string; writes?: Writes | undefined; toast?: ToastFns | undefined; }): boolean`
-- **Runner** (class) `opened; constructor(private deps: RunnerDeps); update(deps: RunnerDeps): void; readonly subscribe; readonly snapshot; get busy(); run(action: Action, ids: Ids, start = ""): "asked" | "held" | "sent" | null; close(): void; submit(input: Record<string, unknown>): Promise<boolean>; refuse(why: string): void; send(action: Action, ids: Ids, input: Record<string, unknown>): Promise<boolean>; go(action: Action, ids: Ids, given: Record<string, unknown>): Promise<boolean>`
 - **said** (function) `(line: string): () => string`
 - **say** (const) `{ done: (line: string) => undefined; failed: (err: unknown) => undefined; stale: (line: string) => undefined; }`
-- **Toasts** (function) `(): import("react").JSX.Element`
 - **useHeld** (function) `(many: string, writes: Writes = WRITES): { ids: ReadonlySet<string>; going: ReadonlyMap<string, string | null>; landed: number; }`
 - **useLastWrite** (function) `(record: string | null | undefined, what?: readonly string[], writes: Writes = WRITES): Write | null`
 
@@ -111,18 +125,18 @@ Exports: 704. Files: 124.
 
 - **COPIED_MS** (const) `1500`
 - **CodeBlock** (function) `({ label, code }: { label: string; code: string }): import("react").JSX.Element`
-- **Copyable** (function) `({ text, className }: { text: string; className?: string }): import("react").JSX.Element`
 - **CopyButton** (function) `({ text, label = "Copy", tone = "quiet", size = "sm", className, }: { text: string; label?: string; tone?: ButtonTone; size?: "sm" | "dense"; className?: string; }): import("react").JSX.Element`
+- **Copyable** (function) `({ text, className }: { text: string; className?: string }): import("react").JSX.Element`
 - **useCopy** (function) `(): { copied: string | null; copy: (text: string, key?: string) => void }`
 
 ## packages/ui/src/customize.tsx
 
-- **moved** (function) `(list: readonly T[], from: number, to: number): T[]`
 - **PinLine** (interface) `interface PinLine { href: string; label: string; icon: IconName; }`
 - **PinnedRow** (function) `({ pins }: { pins: PinLine[] }): import("react").JSX.Element | null`
 - **Pref** (interface) `interface Pref<T> { value: T | undefined; ready: boolean; set: (value: T | null) => void; }`
 - **RAIL_PREF** (const) `"rail"`
 - **RailPref** (interface) `interface RailPref { pins: string[]; }`
+- **moved** (function) `(list: readonly T[], from: number, to: number): T[]`
 - **togglePin** (function) `(pins: readonly string[], href: string): string[]`
 - **usePref** (function) `(keep: KeepApi | undefined, key: string): Pref<T>`
 
@@ -142,40 +156,40 @@ Exports: 704. Files: 124.
 
 ## packages/ui/src/data/local.ts
 
-- **dropLocalCopy** (function) `(storage: KeyValue | null = store ?? indexedStore()): Promise<void>`
-- **indexedStore** (function) `(idb: IDBFactory | undefined = globalThis.indexedDB, name = DB): KeyValue | null`
 - **KeyValue** (interface) `interface KeyValue extends AsyncStore { clear(): Promise<void>; entries(prefix: string): Promise<[string, string][]>; }`
 - **LocalCopy** (interface) `interface LocalCopy { owner: string | null; storage?: KeyValue | null; tabs?: boolean; }`
+- **dropLocalCopy** (function) `(storage: KeyValue | null = store ?? indexedStore()): Promise<void>`
+- **indexedStore** (function) `(idb: IDBFactory | undefined = globalThis.indexedDB, name = DB): KeyValue | null`
 - **startLocalCopy** (function) `({ owner, storage = indexedStore(), tabs = true, }: LocalCopy): Promise<void>`
 - **tellTabsLanded** (function) `(): void`
 
 ## packages/ui/src/data/query.ts
 
+- **FOCUS_STALE_MS** (const) `60000`
+- **Load** (type) `type Load<T> = { data: T | null; error: Error | null; loading: boolean; pending: boolean; placeholder: boolean; retry: () => void; at: number; };`
+- **Patch** (type) `type Patch = (key: string, data: unknown) => unknown;`
+- **QUERIES** (const) `QueryClient`
 - **cachedOf** (function) `(scope: object, key: string): T | undefined`
 - **dropCached** (function) `(scope: object, key: string): void`
-- **FOCUS_STALE_MS** (const) `60000`
 - **keyOf** (function) `(scope: object, key: string): QueryKey`
 - **nameScope** (function) `(scope: S, name: string): S`
-- **QUERIES** (const) `QueryClient`
+- **patchedSince** (function) `(scope: object, key: string, data: unknown, left: number): unknown`
 - **readCached** (function) `(scope: object, key: string, fn: () => Promise<T>, freshMs = FOCUS_STALE_MS): Promise<T>`
 - **readTogether** (function) `(fn: <T>(run: () => T) => T): void`
 - **refreshAll** (function) `(): Promise<void>`
 - **refreshing** (function) `(l: Pick<Load<unknown>, "loading" | "data" | "placeholder">): boolean`
 - **stampOf** (function) `(data: unknown): number`
-- **Load** (type) `type Load<T> = { data: T | null; error: Error | null; loading: boolean; pending: boolean; placeholder: boolean; retry: () => void; at: number; };`
 - **useLoad** (function) `(key: string | null, fn: (before: T | undefined) => Promise<T>, scope?: object, o: { freshMs?: number } = {}): Load<T>`
-- **Patch** (type) `type Patch = (key: string, data: unknown) => unknown;`
-- **patchedSince** (function) `(scope: object, key: string, data: unknown, left: number): unknown`
 - **writeThrough** (function) `(scope: object, patch: Patch, now = Date.now()): void`
 
 ## packages/ui/src/data/status.tsx
 
-- **indicatorOf** (function) `(online: boolean, pending: number): string | null`
 - **SendLine** (type) `type SendLine = { tone: "info" | "bad"; text: string } | null;`
 - **SendStatus** (function) `({ write, done, className, }: { write: Write | null; done?: string | null; className?: string; }): import("react").JSX.Element | null`
+- **WritesIndicator** (function) `({ className }: { className?: string }): import("react").JSX.Element | null`
+- **indicatorOf** (function) `(online: boolean, pending: number): string | null`
 - **sendLineOf** (function) `(w: Write | null, done: string | null = "Sent."): SendLine`
 - **useWritesState** (function) `(writes: Writes = WRITES): { online: boolean; pending: number }`
-- **WritesIndicator** (function) `({ className }: { className?: string }): import("react").JSX.Element | null`
 
 ## packages/ui/src/data/use-edit.tsx
 
@@ -240,14 +254,11 @@ Exports: 704. Files: 124.
 - **AccountField** (function) `({ form, name, pick, }: Omit<FieldBase<V>, "label" | "hint" | "className"> & { pick: Omit<AccountPick, "current" | "picked">; }): import("react").JSX.Element`
 - **CheckField** (function) `({ form, name, label, className, disabled, required, }: FieldBase<V> & { disabled?: boolean | undefined; required?: boolean | undefined }): import("react").JSX.Element`
 - **ChecksField** (function) `({ form, name, label, className, options, }: FieldBase<V> & { options: readonly (readonly [string, ReactNode])[] }): import("react").JSX.Element`
-- **centsOf** (function) `(text: string): number | null`
-- **changedFrom** (function) `(from: Values, values: Values): Values`
 - **DateField** (function) `(p: FieldBase<V> & Omit<ComponentProps<typeof Input>, "form" | "name" | "value" | "type">): import("react").JSX.Element`
 - **EditForm** (interface) `interface EditForm<V extends FieldValues> extends UseFormReturn<V> { restored: boolean; conflict: { mine: Partial<V>; theirs: Partial<V> } | null; keepMine: () => void; takeTheirs: () => void; unsent: boolean; onSend: ( send: (values: V) => Promise<unknown> | unknown, o?: { clear?: boolean }, ) => (e?: BaseSyntheticEvent) => Promise<void>; forget: (next?: V) => void; error: string | null; }`
 - **EditFormOptions** (interface) `interface EditFormOptions<V extends FieldValues> { key: string | null; defaults: V; schema?: z.ZodType<V> | undefined; base?: string | undefined; }`
 - **FIELD_CLASS** (const) `"flex min-w-0 flex-col gap-1.5 text-[13px] text-(--ui-ink-2)"`
 - **FormKept** (function) `({ form, what = "changes", labels, }: { form: Pick<EditForm<V>, "restored" | "conflict" | "unsent" | "keepMine" | "takeTheirs">; what?: string; labels?: Partial<Record<keyof V, string>>; }): import("react").JSX.Element | null`
-- **forgetKept** (function) `(key: string): void`
 - **HINT_CLASS** (const) `"text-[12px] text-(--ui-ink-3)"`
 - **LABEL_CLASS** (const) `"text-[13px] font-medium text-(--ui-ink-2)"`
 - **MoneyField** (function) `(p: FieldBase<V> & Omit<ComponentProps<typeof Input>, "form" | "name" | "value" | "type" | "inputMode">): import("react").JSX.Element`
@@ -256,6 +267,9 @@ Exports: 704. Files: 124.
 - **SelectField** (function) `({ form, name, label, hint, className, box: boxClass, options, ...box }: FieldBase<V> & { options: readonly (readonly [string, string] | readonly [string, string, boolean])[]; } & Omit<ComponentProps<"select">, "form" | "name" | "value" | "defaultValue" | "children">): import("react").JSX.Element`
 - **TextAreaField** (function) `({ form, name, label, hint, className, box: boxClass, ref, onChange, ...box }: FieldBase<V> & Omit<ComponentProps<typeof Textarea>, "form" | "name" | "value" | "defaultValue">): import("react").JSX.Element`
 - **TextField** (function) `({ form, name, label, hint, className, box: boxClass, ref, onChange, ...box }: FieldBase<V> & Omit<ComponentProps<typeof Input>, "form" | "name" | "value" | "defaultValue">): import("react").JSX.Element`
+- **centsOf** (function) `(text: string): number | null`
+- **changedFrom** (function) `(from: Values, values: Values): Values`
+- **forgetKept** (function) `(key: string): void`
 - **useEditForm** (function) `(o: EditFormOptions<V>): EditForm<V>`
 
 ## packages/ui/src/feedback.tsx
@@ -263,30 +277,30 @@ Exports: 704. Files: 124.
 - **Alert** (function) `({ onRetry, className, children, }: { onRetry?: (() => void) | undefined; className?: string | undefined; children: ReactNode; }): import("react").JSX.Element`
 - **Callout** (function) `({ tone, className, children, }: { tone?: "warn" | undefined; className?: string | undefined; children: ReactNode; }): import("react").JSX.Element`
 - **Empty** (function) `({ title, action, className, children, }: { title?: ReactNode; action?: ReactNode; className?: string | undefined; children: ReactNode; }): import("react").JSX.Element`
-- **failureOf** (function) `(err: unknown, what?: string): { line: string; again: boolean; raw: string }`
 - **InDevelopment** (function) `({ className, children, }: { className?: string | undefined; children?: ReactNode; }): import("react").JSX.Element`
 - **LoadFailed** (function) `({ error, onRetry, what, className, }: { error: unknown; onRetry?: (() => void) | undefined; what?: string | undefined; className?: string | undefined; }): import("react").JSX.Element`
 - **Loading** (function) `({ lines = 5, shape = "lines", heading = false, label = "Loading", className, }: { lines?: number; shape?: "lines" | "rows" | "cards"; heading?: boolean; label?: string; className?: string | undefined; }): import("react").JSX.Element`
-- **messageOf** (function) `(err: unknown): string`
 - **ShowRawErrors** (const) `import("react").Provider<boolean>`
+- **failureOf** (function) `(err: unknown, what?: string): { line: string; again: boolean; raw: string }`
+- **messageOf** (function) `(err: unknown): string`
 
 ## packages/ui/src/fields.tsx
 
 - **CiteTo** (interface) `interface CiteTo { order: string[]; lit: string | null; pick: PickSource; }`
 - **Cue** (function) `({ state, mono, size }: { state: State; mono?: boolean; size?: number }): import("react").JSX.Element`
-- **cueOf** (function) `(f: FieldMeta | undefined, value: string): State | null`
-- **dateOf** (function) `(s: string): Date | null`
-- **dateTip** (function) `(d: Date, now = Date.now()): import("./hint.js").TipProps`
-- **exact** (function) `(d: Date): string`
 - **FieldCell** (function) `({ field: f, cell: c }: { field: FieldMeta; cell: Cell | undefined }): import("react").JSX.Element | null`
 - **FieldFilter** (function) `({ field: f, value, onChange, counts, }: { field: FieldMeta; value: string | null; onChange: (next: string | null) => void; counts?: Readonly<Record<string, number>> | undefined; }): import("react").JSX.Element | null`
 - **FieldLine** (function) `({ field: f, cell: c, cite, }: { field: FieldMeta; cell: Cell | undefined; cite?: CiteTo | undefined; }): import("react").JSX.Element | null`
 - **FieldTotal** (function) `({ field: f, total: t, to, }: { field: FieldMeta; total: Total | undefined; to: (change: Record<string, string | null>) => string; }): import("react").JSX.Element | null`
+- **StateMark** (function) `({ state, mono }: { state: State; mono?: boolean }): import("react").JSX.Element`
+- **cueOf** (function) `(f: FieldMeta | undefined, value: string): State | null`
+- **dateOf** (function) `(s: string): Date | null`
+- **dateTip** (function) `(d: Date, now = Date.now()): import("./hint.js").TipProps`
+- **exact** (function) `(d: Date): string`
 - **filterParts** (function) `(f: FieldMeta, s: string, now = new Date()): { op: string; value: string }`
 - **filterShape** (function) `(f: FieldMeta): "states" | "range" | "words" | "set" | null`
 - **readFilter** (function) `(f: FieldMeta, s: string | null, now = new Date()): Filter | undefined`
 - **relative** (function) `(d: Date, now = Date.now()): string`
-- **StateMark** (function) `({ state, mono }: { state: State; mono?: boolean }): import("react").JSX.Element`
 - **wilson** (function) `(n: number, of: number): [number, number]`
 
 ## packages/ui/src/fixtures/graph.ts
@@ -319,12 +333,12 @@ Exports: 704. Files: 124.
 ## packages/ui/src/flow.ts
 
 - **Box** (interface) `interface Box { x: number; y: number; w: number; h: number; }`
-- **edgePath** (function) `(a: Box, b: Box, span: number, axis: FlowAxis, gutter = 6, near?: "from" | "to"): string`
 - **FlowAxis** (type) `type FlowAxis = "across" | "down";`
 - **FlowEdge** (interface) `interface FlowEdge { from: string; to: string; span: number; }`
 - **FlowGraph** (interface) `interface FlowGraph { nodes: FlowNode[]; edges: FlowEdge[]; cols: number; rows: number; }`
 - **FlowNode** (interface) `interface FlowNode { id: string; col: number; index: number; of: number; }`
 - **FlowStep** (interface) `interface FlowStep { id: string; after?: string[] | undefined; }`
+- **edgePath** (function) `(a: Box, b: Box, span: number, axis: FlowAxis, gutter = 6, near?: "from" | "to"): string`
 - **flowOf** (function) `(steps: readonly FlowStep[], keep: (id: string) => boolean, ends: { input: boolean; output: boolean } = { input: false, output: false }, late = false): FlowGraph`
 
 ## packages/ui/src/fold.tsx
@@ -377,8 +391,8 @@ Exports: 704. Files: 124.
 
 ## packages/ui/src/graph/journey.ts
 
-- **journeyOf** (function) `(touches: readonly Touch[], zone?: string): { nodes: GraphNode[]; edges: GraphEdge[] }`
 - **Touch** (interface) `interface Touch { at: string; channel: string; kind: string; label: string; note?: string | undefined; }`
+- **journeyOf** (function) `(touches: readonly Touch[], zone?: string): { nodes: GraphNode[]; edges: GraphEdge[] }`
 
 ## packages/ui/src/graph/layout.ts
 
@@ -391,7 +405,6 @@ Exports: 704. Files: 124.
 
 ## packages/ui/src/graph/model.ts
 
-- **edgeId** (function) `(e: Pick<GraphEdge, "from" | "to">): string`
 - **GRAPH_DROP** (const) `"application/x-wren-node"`
 - **GraphEdge** (interface) `interface GraphEdge { from: string; to: string; fromPort?: string | undefined; toPort?: string | undefined; kind?: string | undefined; label?: string | undefined; count?: { value: number; today?: number | undefined } | undefined; rate?: { from: number; to: number } | undefined; when?: string | undefined; wait?: string | undefined; notes?: readonly string[] | undefined; mark?: GraphMark | undefined; weight?: number | undefined; loop?: true | undefined; }`
 - **GraphKind** (type) `type GraphKind = "part" | "workflow" | "account" | "step" | "record" | "host";`
@@ -399,8 +412,9 @@ Exports: 704. Files: 124.
 - **GraphNode** (interface) `interface GraphNode { id: string; kind: GraphKind; label: string; note?: string | undefined; state?: { label: string; tone: GraphTone } | undefined; number?: GraphNumber | undefined; more?: GraphNumber | undefined; lines?: { text: string; sign?: "+" | "−" | undefined }[] | undefined; hover?: readonly string[] | undefined; href?: string | undefined; dim?: boolean | undefined; dashed?: boolean | undefined; stacked?: boolean | undefined; role?: GraphRole | undefined; tint?: string | undefined; ins?: readonly GraphPort[] | undefined; outs?: readonly GraphPort[] | undefined; lane?: string | undefined; facets?: Readonly<Record<string, string>> | undefined; mark?: GraphMark | undefined; }`
 - **GraphNumber** (interface) `interface GraphNumber { value: number; label: string; today?: number | undefined; href?: string | undefined; }`
 - **GraphTone** (type) `type GraphTone = "good" | "warn" | "bad" | "accent" | "neutral";`
-- **percent** (function) `(part: number, whole: number): string`
 - **RIBBON** (const) `{ readonly min: 2; readonly max: 48; }`
+- **edgeId** (function) `(e: Pick<GraphEdge, "from" | "to">): string`
+- **percent** (function) `(part: number, whole: number): string`
 - **ribbonMax** (function) `(edges: readonly GraphEdge[]): number`
 - **ribbonWidth** (function) `(weight: number, max: number): number`
 - **wireLines** (function) `(e: GraphEdge): string[]`
@@ -458,11 +472,11 @@ Exports: 704. Files: 124.
 
 - **ABOUT** (const) `"max-w-[70ch] text-[13.5px] leading-[1.55] text-pretty text-(--ui-ink-2)"`
 - **AboutProvider** (const) `import("react").Provider<string | undefined>`
-- **Fieldset** (function) `({ legend, note, className, children, }: { legend: string; note?: ReactNode; className?: string | undefined; children: ReactNode; }): import("react").JSX.Element`
 - **FLAT_HEAD** (const) `"flex flex-wrap items-center justify-between gap-x-6 gap-y-2"`
 - **FRAME** (const) `"relative rounded-(--ui-leaf-panel) bg-(--ui-paper) shadow-(--ui-raise)"`
 - **FRAME_BODY** (const) `"p-5 [.ui-head+&]:pt-3 [&>:is(ul,ol,dl):first-child]:border-t-0 [&>:is(ul,ol,dl):last-child>:last-child]:border-b-0"`
 - **FRAME_HEAD** (const) `"ui-head flex flex-wrap items-center justify-between gap-x-6 gap-y-2 px-5 pt-[18px]"`
+- **Fieldset** (function) `({ legend, note, className, children, }: { legend: string; note?: ReactNode; className?: string | undefined; children: ReactNode; }): import("react").JSX.Element`
 - **GROUP_LABEL** (const) `"text-[12.5px] leading-4 font-semibold tracking-(--ui-label-tracking) text-(--ui-ink-3) [text-transform:var(--ui-label-case)]"`
 - **PAGE_TITLE** (const) `"font-(family-name:--ui-font-display) text-[22px] leading-[1.55] font-semibold tracking-[calc(-0.02em*var(--ui-display-squeeze))] text-balance"`
 - **PageHeader** (function) `({ title, lede, kicker, hero, actions, className, }: { title: ReactNode; lede?: ReactNode; kicker?: ReactNode; hero?: boolean | undefined; actions?: ReactNode; className?: string | undefined; }): import("react").JSX.Element`
@@ -502,48 +516,48 @@ Exports: 704. Files: 124.
 
 - **Look** (type) `type Look = string | Record<string, unknown> | null;`
 - **LookEditor** (function) `({ look, onSave, showcase, }: { look: unknown; onSave: (look: Look) => Promise<unknown>; showcase?: boolean; }): import("react").JSX.Element`
-- **lookOf** (function) `(raw: unknown): Look`
 - **ThemeGallery** (function) `({ current, onPick, showcase, }: { current: unknown; onPick: (look: Look) => Promise<unknown>; showcase?: boolean; }): import("react").JSX.Element`
+- **lookOf** (function) `(raw: unknown): Look`
 
 ## packages/ui/src/marks.tsx
 
-- **hostMark** (function) `(site: string): "reddit" | "google" | "email" | "text" | "dm" | "web" | "linkedin" | "meta" | "youtube" | "x" | "tiktok" | "instagram" | "call" | "facebook" | "threads" | "whatsapp" | "discord" | "podcast" | undefined`
-- **lineColor** (function) `(line: number): string`
-- **markName** (function) `(mark: Mark): string`
 - **PlatformMark** (function) `({ mark, size = 14, mono = false, label, className, }: { mark: string; size?: number; mono?: boolean; label?: string; className?: string; }): import("react").JSX.Element | null`
 - **PlatformTile** (function) `({ mark, className }: { mark: string; className?: string }): import("react").JSX.Element`
 - **StageSquare** (function) `({ line, className }: { line: number; className?: string }): import("react").JSX.Element`
 - **TintSwatch** (function) `({ tint, className }: { tint: number; className?: string }): import("react").JSX.Element`
+- **hostMark** (function) `(site: string): "reddit" | "google" | "email" | "text" | "dm" | "web" | "linkedin" | "meta" | "youtube" | "x" | "tiktok" | "instagram" | "call" | "facebook" | "threads" | "whatsapp" | "discord" | "podcast" | undefined`
+- **lineColor** (function) `(line: number): string`
+- **markName** (function) `(mark: Mark): string`
 - **tintColor** (function) `(tint: number): "var(--ui-cue-1)" | "var(--ui-cue-2)" | "var(--ui-cue-3)" | "var(--ui-cue-4)" | "var(--ui-cue-5)" | "var(--ui-cue-6)" | "var(--ui-cue-7)" | "var(--ui-cue-8)"`
 - **tintWash** (function) `(tint: number): string`
 
 ## packages/ui/src/metro/draw.tsx
 
-- **landTimes** (function) `(scene: MetroScene): (x: number) => number`
 - **MetroSvg** (function) `({ scene, still, bare, intro, selected, lit, width, ref }: MetroSvgProps): import("react").JSX.Element`
 - **MetroSvgProps** (interface) `interface MetroSvgProps { scene: MetroScene; still?: boolean | undefined; bare?: boolean | undefined; selected?: string | null | undefined; intro?: boolean | undefined; lit?: string | null | undefined; width?: number | undefined; ref?: Ref<SVGSVGElement>; }`
+- **landTimes** (function) `(scene: MetroScene): (x: number) => number`
 
 ## packages/ui/src/metro/focus.ts
 
 - **FocusSpec** (type) `type FocusSpec = MetroPart | readonly MetroPart[];`
+- **STUB** (const) `{ readonly reach: 90; readonly gap: 26; readonly pad: 24; }`
 - **focusScene** (function) `(scene: MetroScene, spec: FocusSpec): MetroScene`
 - **inPart** (function) `(s: SceneStation, spec: MetroPart): boolean`
 - **nameOf** (function) `(scene: MetroScene, part: MetroPart): string`
 - **partOf** (function) `(s: SceneStation, kind: MetroPart["kind"]): MetroPart`
 - **partsOfSpec** (function) `(spec: FocusSpec): readonly MetroPart[]`
-- **STUB** (const) `{ readonly reach: 90; readonly gap: 26; readonly pad: 24; }`
 - **specKey** (function) `(spec: FocusSpec): string`
 - **stubsOf** (function) `(scene: MetroScene): import("./types.js").StubSpec[]`
 
 ## packages/ui/src/metro/fold.ts
 
-- **autoZoom** (function) `(scene: MetroScene): MetroZoom`
 - **Flags** (type) `type Flags = Readonly<Record<string, boolean | undefined>>;`
+- **MetroZoom** (interface) `interface MetroZoom { nodes: readonly FoldNode[]; scene(open: ReadonlySet<string>): MetroScene | Promise<MetroScene>; foldId?: Readonly<Record<string, string>>; total: number; }`
+- **TWIN_OUTLIER** (const) `{ readonly margin: 0.25; readonly people: 5; }`
+- **autoZoom** (function) `(scene: MetroScene): MetroZoom`
 - **flagZoom** (function) `(o: { nodes: readonly FoldNode[]; compose: (g: Flags) => MetroScene; total: number; foldId?: MetroZoom["foldId"]; }): MetroZoom`
 - **foldScene** (function) `(scene: MetroScene, open: ReadonlySet<string>): MetroScene`
 - **foldTwins** (function) `(view: MetroView): MetroView`
-- **MetroZoom** (interface) `interface MetroZoom { nodes: readonly FoldNode[]; scene(open: ReadonlySet<string>): MetroScene | Promise<MetroScene>; foldId?: Readonly<Record<string, string>>; total: number; }`
-- **TWIN_OUTLIER** (const) `{ readonly margin: 0.25; readonly people: 5; }`
 - **twinRuns** (function) `(view: MetroView): Map<string, Run>`
 - **viewScene** (function) `(view: MetroView, open: ReadonlySet<string>, step?: number): Promise<MetroScene>`
 - **viewTree** (function) `(view: MetroView): ViewTree`
@@ -551,10 +565,10 @@ Exports: 704. Files: 124.
 
 ## packages/ui/src/metro/geometry.ts
 
-- **Box** (interface) `interface Box { x0: number; y0: number; x1: number; y1: number; }`
 - **Boxed** (interface) `interface Boxed { id: string; box: Box; room?: true; }`
-- **boxAt** (function) `(cx: number, cy: number, w: number, h: number): Box`
 - **CHIP_ROOM** (const) `12`
+- **SceneBoxes** (interface) `interface SceneBoxes { labels: Boxed[]; marks: Boxed[]; hub: Boxed[]; chips: Boxed[]; tracks: Boxed[]; }`
+- **boxAt** (function) `(cx: number, cy: number, w: number, h: number): Box`
 - **crossingsOf** (function) `(scene: Pick<MetroScene, "st" | "tr">): number`
 - **labelBoxes** (function) `(s: LabelStation): Box[]`
 - **markBoxes** (function) `(s: LabelStation): Box[]`
@@ -564,16 +578,16 @@ Exports: 704. Files: 124.
 - **rounded** (function) `(points: Point[], r = 18): string`
 - **routeHits** (function) `(pts: readonly Point[], box: Box): boolean`
 - **routeOf** (function) `(r: MetroTrack, a: Point, c: Point): Point[]`
-- **SceneBoxes** (interface) `interface SceneBoxes { labels: Boxed[]; marks: Boxed[]; hub: Boxed[]; chips: Boxed[]; tracks: Boxed[]; }`
 - **sceneBoxes** (function) `(scene: Pick<MetroScene, "st" | "tr">): SceneBoxes`
 - **sceneClashes** (function) `(scene: Pick<MetroScene, "st" | "tr" | "zones">): string[]`
 - **textWidth** (function) `(t: string, px = 14, bold = false): number`
 - **xferGeometry** (function) `(a: Point, c: Point, f = 0.62): { d: string; m: Point; pts: Point[]; }`
+- **Box** (interface) `interface Box { x0: number; y0: number; x1: number; y1: number; }`
 
 ## packages/ui/src/metro/layout.ts
 
-- **lineKeyOf** (function) `(view: Pick<MetroView, "lines">, lineId: string): string`
 - **SPACE** (const) `{ readonly exit: 70; readonly foot: 34; }`
+- **lineKeyOf** (function) `(view: Pick<MetroView, "lines">, lineId: string): string`
 
 ## packages/ui/src/metro/map.tsx
 
@@ -595,40 +609,26 @@ Exports: 704. Files: 124.
 - **Leaf** (function) `({ x, y, w, h, a, b, className, }: { x: number; y: number; w: number; h: number; a: number; b: number; className?: string; }): import("react").JSX.Element`
 - **MARK_GLYPH** (const) `Record<Mark, string>`
 - **MARK_WORD** (const) `Record<Mark, string>`
-- **Marker** (function) `({ s, click, selected, l, on, at, fold, }: { s: MarkStation; click?: boolean | undefined; selected?: boolean | undefined; l?: string | undefined; on?: boolean | undefined; at?: number | undefined; fold?: Pick<CapsuleStation, "steps"> | undefined; }): import("react").JSX.Element`
 - **MarkTag** (function) `({ x, y, mark, l, named, label, }: { x: number; y: number; mark: Mark; l?: string | undefined; named?: boolean | undefined; label?: string | undefined; }): import("react").JSX.Element`
-- **Pill** (function) `({ x, y, who, late, id, mark, }: { x: number; y: number; who: string; late?: boolean | undefined; mark?: Mark | undefined; id?: string | undefined; }): import("react").JSX.Element`
-- **Ring** (function) `({ c, colours, selected, on, still, }: { c: RingStation; colours: Colours; selected?: boolean | undefined; on?: boolean | undefined; still?: boolean | undefined; }): import("react").JSX.Element`
+- **Marker** (function) `({ s, click, selected, l, on, at, fold, }: { s: MarkStation; click?: boolean | undefined; selected?: boolean | undefined; l?: string | undefined; on?: boolean | undefined; at?: number | undefined; fold?: Pick<CapsuleStation, "steps"> | undefined; }): import("react").JSX.Element`
 - **RuleTag** (function) `({ x, y, t }: { x: number; y: number; t: string }): import("react").JSX.Element`
 - **STATION_GLYPH** (const) `Record<Exclude<StationKind, "par">, IconName>`
 - **XferLabel** (function) `({ m, lab, colour, l, on, id, mark, }: { m: Point; lab: string; colour: string; l: string; on?: boolean | undefined; id?: string | undefined; mark?: Mark | undefined; }): import("react").JSX.Element`
+- **Pill** (function) `({ x, y, who, late, id, mark, }: { x: number; y: number; who: string; late?: boolean | undefined; mark?: Mark | undefined; id?: string | undefined; }): import("react").JSX.Element`
+- **Ring** (function) `({ c, colours, selected, on, still, }: { c: RingStation; colours: Colours; selected?: boolean | undefined; on?: boolean | undefined; still?: boolean | undefined; }): import("react").JSX.Element`
 
 ## packages/ui/src/metro/place.ts
 
 - **Frame** (type) `type Frame = [number, number, number, number];`
-- **layoutView** (function) `(view: MetroView, step?: number): Promise<MetroScene>`
 - **PlaceBox** (interface) `interface PlaceBox { id: string; parent?: string | undefined; stations: readonly string[]; }`
 - **Placed** (interface) `interface Placed { scene: MetroScene; frames: Map<string, Frame>; }`
-- **placeMetro** (function) `(view: MetroView, o: { boxes?: readonly PlaceBox[]; step?: number } = {}): Promise<Placed>`
 - **STEP** (const) `120`
+- **layoutView** (function) `(view: MetroView, step?: number): Promise<MetroScene>`
+- **placeMetro** (function) `(view: MetroView, o: { boxes?: readonly PlaceBox[]; step?: number } = {}): Promise<Placed>`
 
 ## packages/ui/src/metro/skeleton.tsx
 
 - **MetroSkeleton** (function) `({ className, label = "Loading your map", }: { className?: string | undefined; label?: string; }): import("react").JSX.Element`
-
-## packages/ui/src/metro/tree.ts
-
-- **allOpen** (function) `(nodes: readonly FoldNode[]): Set<string>`
-- **Fold** (interface) `interface Fold { depth: number; open: OpenMap; }`
-- **FoldNode** (interface) `interface FoldNode { id: string; parent?: string | undefined; label: string; hand?: boolean | undefined; }`
-- **fullDepth** (function) `(nodes: readonly FoldNode[]): number`
-- **OpenMap** (type) `type OpenMap = Readonly<Record<string, boolean>>;`
-- **openKey** (function) `(open: ReadonlySet<string>): string`
-- **openSet** (function) `(nodes: readonly FoldNode[], fold: Fold): Set<string>`
-- **pathTo** (function) `(nodes: readonly FoldNode[], id: string): FoldNode[]`
-- **reveal** (function) `(nodes: readonly FoldNode[], id: string | undefined): Fold`
-- **stepDepth** (function) `(nodes: readonly FoldNode[], depth: number, d: number): Fold`
-- **toggle** (function) `(nodes: readonly FoldNode[], fold: Fold, id: string, on: boolean): Fold`
 
 ## packages/ui/src/metro/types.ts
 
@@ -638,12 +638,7 @@ Exports: 704. Files: 124.
 - **DEFAULT_COLOURS** (const) `Record<string, number>`
 - **FoldSpec** (interface) `interface FoldSpec { x: number; y: number; t: string; grp: string; }`
 - **FrameSpec** (interface) `interface FrameSpec { x: number; y: number; w: number; h: number; }`
-- **isBadge** (function) `(s: SceneStation): s is BadgeStation`
-- **isCapsule** (function) `(s: SceneStation): s is CapsuleStation`
-- **isMark** (function) `(s: SceneStation): s is MarkStation`
-- **isRing** (function) `(s: SceneStation): s is RingStation`
 - **LineKey** (type) `type LineKey = string;`
-- **lineColour** (function) `(scene: Pick<MetroScene, "colours">, l: LineKey): string`
 - **Mark** (type) `type Mark = "added" | "changed" | "removed";`
 - **MarkStation** (interface) `interface MarkStation { id: string; t: StationKind; x: number; y: number; r?: number; n?: string; s?: string; was?: string; icon?: IconName; p?: Side; bad?: boolean; bundle?: boolean; rule?: string; rep?: string; repGlyph?: IconName | null; plans?: string; ln?: string; g?: string; flow?: string; now?: number; arrived?: number; mark?: Mark; }`
 - **MetroPart** (interface) `interface MetroPart { kind: "line" | "group" | "station" | "flow"; id: string; }`
@@ -657,6 +652,11 @@ Exports: 704. Files: 124.
 - **WEIGHT** (const) `Record<Weight, number>`
 - **Weight** (type) `type Weight = "out" | "front" | "core";`
 - **Zone** (type) `type Zone = [number, number, string];`
+- **isBadge** (function) `(s: SceneStation): s is BadgeStation`
+- **isCapsule** (function) `(s: SceneStation): s is CapsuleStation`
+- **isMark** (function) `(s: SceneStation): s is MarkStation`
+- **isRing** (function) `(s: SceneStation): s is RingStation`
+- **lineColour** (function) `(scene: Pick<MetroScene, "colours">, l: LineKey): string`
 
 ## packages/ui/src/metro/view.ts
 
@@ -692,15 +692,15 @@ Exports: 704. Files: 124.
 ## packages/ui/src/palette-brand.ts
 
 - **BrandInput** (interface) `interface BrandInput { color: string; variant: Variant; harmony: Harmony; contrast: number; scheme: "light" | "dark"; }`
-- **brandColorsOf** (function) `(rgba: ArrayLike<number>): string[]`
-- **brandTheme** (function) `(brand: BrandInput): { theme: Theme; report: ContrastLine[] }`
 - **CONTRASTS** (const) `readonly [0, 0.5, 1]`
 - **ContrastLine** (interface) `interface ContrastLine { text: Token; on: Ground; need: number; ratio: number; was?: string; }`
 - **HARMONIES** (const) `("split" | "analogous" | "complementary" | "triadic" | "tetradic")[]`
 - **Harmony** (type) `type Harmony = keyof typeof HARMONY;`
-- **readBrand** (function) `(raw: unknown): BrandInput | null`
 - **VARIANTS** (const) `("content" | "neutral" | "tonal_spot" | "vibrant" | "expressive" | "fidelity" | "monochrome")[]`
 - **Variant** (type) `type Variant = keyof typeof SCHEMES;`
+- **brandColorsOf** (function) `(rgba: ArrayLike<number>): string[]`
+- **brandTheme** (function) `(brand: BrandInput): { theme: Theme; report: ContrastLine[] }`
+- **readBrand** (function) `(raw: unknown): BrandInput | null`
 
 ## packages/ui/src/palette-scope.ts
 
@@ -710,9 +710,9 @@ Exports: 704. Files: 124.
 
 ## packages/ui/src/palette.tsx
 
+- **CommandPalette** (function) `({ items, onPick, open, onOpenChange, ask, capture, card, find, recentKey, }: { items: PaletteItem[]; onPick: (href: string) => void; open: boolean; onOpenChange: (open: boolean) => void; ask?: ((question: string) => void) | undefined; capture?: ((words: string) => void) | undefined; card?: ((title: string) => void) | undefined; find?: ((q: string) => Promise<PaletteItem[]>) | undefined; recentKey?: string | undefined; }): import("react").JSX.Element`
 - **PaletteItem** (interface) `interface PaletteItem { label: string; group: string; href: string; icon?: IconName | undefined; hint?: string | undefined; }`
 - **byRecent** (function) `(found: readonly PaletteItem[], recent: readonly string[]): PaletteItem[]`
-- **CommandPalette** (function) `({ items, onPick, open, onOpenChange, ask, capture, card, find, recentKey, }: { items: PaletteItem[]; onPick: (href: string) => void; open: boolean; onOpenChange: (open: boolean) => void; ask?: ((question: string) => void) | undefined; capture?: ((words: string) => void) | undefined; card?: ((title: string) => void) | undefined; find?: ((q: string) => Promise<PaletteItem[]>) | undefined; recentKey?: string | undefined; }): import("react").JSX.Element`
 
 ## packages/ui/src/peek.tsx
 
@@ -761,10 +761,10 @@ Exports: 704. Files: 124.
 - **ReadAloud** (function) `({ text, label = "Read aloud", className, }: { text: string | (() => string); label?: string | undefined; className?: string | undefined; }): import("react").JSX.Element | null`
 - **ReadEvents** (interface) `interface ReadEvents { phase(p: ReadPhase): void; error(message: string): void; done(): void; }`
 - **ReadHandle** (interface) `interface ReadHandle { stop(): void; }`
-- **ReadingEngine** (interface) `interface ReadingEngine { status(): ReadStatus; subscribe(fn: () => void): () => void; read(text: string, on: ReadEvents): ReadHandle; }`
-- **ReadingProvider** (function) `({ engine, children, }: { engine: ReadingEngine | null; children: ReactNode; }): import("react").JSX.Element`
 - **ReadPhase** (type) `type ReadPhase = | { kind: "loading"; progress: number | null } | { kind: "reading"; at: number; of: number };`
 - **ReadStatus** (type) `type ReadStatus = | { state: "ready" } | { state: "unavailable"; why: string } | { state: "off" };`
+- **ReadingEngine** (interface) `interface ReadingEngine { status(): ReadStatus; subscribe(fn: () => void): () => void; read(text: string, on: ReadEvents): ReadHandle; }`
+- **ReadingProvider** (function) `({ engine, children, }: { engine: ReadingEngine | null; children: ReactNode; }): import("react").JSX.Element`
 - **useReadAloud** (function) `(): ((text: string) => void) | null`
 - **useReadStatus** (function) `(): ReadStatus`
 
@@ -776,18 +776,18 @@ Exports: 704. Files: 124.
 
 ## packages/ui/src/record-patch.ts
 
+- **Twin** (type) `type Twin = ( id: string, fields: Record<string, unknown>, ) => { record: string; id: string; fields: Record<string, unknown> } | null;`
 - **detailPatch** (function) `(record: string, id: string | number, fn: (detail: unknown) => { detail?: unknown; row?: Record<string, unknown> } | null): Patch`
 - **patchRecord** (function) `(api: object, record: string, id: string | number, fields: Record<string, unknown>, edit?: EditMoved): void`
 - **recordPatch** (function) `(record: string, id: string | number, fields: Record<string, unknown>, edit: EditMoved = {}): Patch`
-- **Twin** (type) `type Twin = ( id: string, fields: Record<string, unknown>, ) => { record: string; id: string; fields: Record<string, unknown> } | null;`
 - **twinRecord** (function) `(record: string, twin: Twin): void`
 
 ## packages/ui/src/records-list.tsx
 
-- **pageAskOf** (function) `(meta: RecordMeta, params: URLSearchParams): ListAsk`
-- **prefetchList** (function) `(api: RecordsApi, record: string, params: URLSearchParams): Promise<void>`
 - **RecordList** (function) `(props: RecordTemplateProps): import("react").JSX.Element`
 - **TierLabel** (function) `({ needs, n }: { needs: boolean; n: number }): import("react").JSX.Element`
+- **pageAskOf** (function) `(meta: RecordMeta, params: URLSearchParams): ListAsk`
+- **prefetchList** (function) `(api: RecordsApi, record: string, params: URLSearchParams): Promise<void>`
 
 ## packages/ui/src/records-local.ts
 
@@ -800,8 +800,8 @@ Exports: 704. Files: 124.
 
 ## packages/ui/src/records-panel.tsx
 
-- **RecordPanel** (function) `({ meta, types, id, api, place, extras, acts, index, count, step, rev, onActed, peek, listRow, docked = false, }: { meta: RecordMeta; types: RecordMeta[]; id: string; api: RecordsApi; place: Place; extras: RecordTemplateProps["extras"]; acts: RecordActs | undefined; index: number; count: number; step: (by: number) => void; rev: number; onActed: (changed: (string | number)[]) => void; peek?: PeekWire | undefined; listRow?: Row | undefined; docked?: boolean; }): import("react").JSX.Element`
 - **PeekWire** (interface) `interface PeekWire { fields: FieldMeta[]; reply: RowReplyBox | undefined; replyOn: (row: Row) => boolean; actsOf: (row: Row) => { main: Action[]; more: Action[] }; press: (action: Action, row: Row) => void; ask: (action: Action, row: Row, close: () => void) => ReactNode; busyOn: (action: Action, row: Row) => boolean; }`
+- **RecordPanel** (function) `({ meta, types, id, api, place, extras, acts, index, count, step, rev, onActed, peek, listRow, docked = false, }: { meta: RecordMeta; types: RecordMeta[]; id: string; api: RecordsApi; place: Place; extras: RecordTemplateProps["extras"]; acts: RecordActs | undefined; index: number; count: number; step: (by: number) => void; rev: number; onActed: (changed: (string | number)[]) => void; peek?: PeekWire | undefined; listRow?: Row | undefined; docked?: boolean; }): import("react").JSX.Element`
 
 ## packages/ui/src/records-types.ts
 
@@ -809,14 +809,14 @@ Exports: 704. Files: 124.
 - **EntryKeep** (interface) `interface EntryKeep { get(key: string): unknown; set(key: string, value: unknown): void; }`
 - **Needs** (type) `type Needs = Readonly<Record<string, readonly string[]>>;`
 - **Place** (interface) `interface Place { params: URLSearchParams; link(change: Record<string, string | null>): string; page(id: string | number): string; list: string; go(to: string, replace?: boolean): void; entry?: EntryKeep; }`
-- **pressAct** (function) `(call: Call, a: Action, id: string | number, record: string, input: Record<string, unknown>): Promise<unknown>`
 - **RecordAct** (type) `type RecordAct = (( action: string, input?: Record<string, unknown>, o?: { patch?: ActPatch | undefined }, ) => Promise<unknown>) & { readonly record?: string; };`
 - **RecordActs** (interface) `interface RecordActs { actions: readonly Action[]; viewer: Viewer; call: Call; }`
 - **RecordExtras** (interface) `interface RecordExtras { hero?: ReactNode; lead?: ReactNode; top?: ReactNode; facts?: [string, ReactNode][]; sections?: [string, ReactNode][]; drawn?: readonly string[]; sources?: RecordSource[]; recent?: PeekLine[]; poll?: number; draft?: RecordDraft; form?: ReactNode; aside?: ReactNode; }`
 - **RecordSource** (interface) `interface RecordSource { mark: string; kind: string; meta?: string; title?: string | null; sure?: number | null; detail?: [string, string][]; link?: { href: string | null; label: string } | null; }`
-- **RecordsApi** (interface) `interface RecordsApi { types(): Promise<RecordMeta[]>; list(ask: ListAsk): Promise<RecordsPage>; get(ask: GetAsk): Promise<RecordAnswer>; export(ask: ExportAsk): Promise<RecordsFile>; stats?(ask: StatsAsk): Promise<RecordsStat>; edit?(ask: EditAsk): Promise<Edited>; undo?(ask: UndoAsk): Promise<Edited>; ask?(ask: RecordAskAsk): Promise<{ id: string }>; keep?: KeepApi; access?: AccessApi; }`
 - **RecordTemplateProps** (interface) `interface RecordTemplateProps { record: string; title?: string | undefined; api: RecordsApi; place: Place; empty?: string | Readonly<Record<string, string>> | undefined; example?: ReactNode; columns?: string[] | undefined; sections?: ShopSections | undefined; art?: ((row: Row) => ReactNode) | undefined; extras?: | ((detail: unknown, row: Row, act: RecordAct, readAt: number) => RecordExtras) | undefined; acts?: RecordActs | undefined; head?: ((meta: RecordMeta, reload: () => void) => ReactNode) | undefined; reply?: RowReplyBox | undefined; needs?: Needs | undefined; late?: Late | undefined; peek?: false | PeekSpec | undefined; display?: ReactNode; }`
+- **RecordsApi** (interface) `interface RecordsApi { types(): Promise<RecordMeta[]>; list(ask: ListAsk): Promise<RecordsPage>; get(ask: GetAsk): Promise<RecordAnswer>; export(ask: ExportAsk): Promise<RecordsFile>; stats?(ask: StatsAsk): Promise<RecordsStat>; edit?(ask: EditAsk): Promise<Edited>; undo?(ask: UndoAsk): Promise<Edited>; ask?(ask: RecordAskAsk): Promise<{ id: string }>; keep?: KeepApi; access?: AccessApi; }`
 - **ShopSections** (interface) `interface ShopSections { field: string; order: readonly string[]; names: Readonly<Record<string, string>>; blurbs?: Readonly<Record<string, string>>; }`
+- **pressAct** (function) `(call: Call, a: Action, id: string | number, record: string, input: Record<string, unknown>): Promise<unknown>`
 - **useTypes** (function) `(api: RecordsApi): Load<RecordMeta[]>`
 - **waitsOn** (function) `(needs: Needs, row: Row): boolean`
 
@@ -828,8 +828,6 @@ Exports: 704. Files: 124.
 ## packages/ui/src/rows.tsx
 
 - **Age** (function) `({ hours, late, className }: RowsWait & { className?: string }): import("react").JSX.Element`
-- **avatarOf** (function) `(title: string): string | null`
-- **drawnOf** (function) `(lines: readonly RowsLine<T>[], folded: ReadonlySet<string> | undefined, wait: ((row: T) => RowsWait | null) | undefined): Drawn<T>[]`
 - **KIND_ICON** (const) `Record<FieldMeta["kind"], IconName>`
 - **Pill** (function) `({ color, className, children, }: { color?: string | undefined; className?: string | undefined; children: ReactNode; }): import("react").JSX.Element`
 - **Rows** (function) `(p: RowsProps<T>): import("react").JSX.Element`
@@ -840,15 +838,14 @@ Exports: 704. Files: 124.
 - **RowsPick** (interface) `interface RowsPick { picked: (id: string) => boolean; toggle: (id: string, range?: boolean) => void; all: boolean; some: boolean; toggleAll: () => void; count: number; }`
 - **RowsProps** (interface) `interface RowsProps<T> { label: string; noun?: string | undefined; columns: RowsColumn<T>[]; name: RowsName<T>; lines: RowsLine<T>[]; loading?: boolean | undefined; empty?: boolean | undefined; pick?: RowsPick | undefined; act?: ((row: T) => RowsAct | null) | undefined; end?: ((row: T) => ReactNode) | undefined; open?: { id: string | null; onOpen: (row: T, index: number) => void } | undefined; cursor?: number | undefined; rowState?: | ((row: T) => { going?: string | undefined; changed?: boolean | undefined }) | undefined; onSettled?: (() => void) | undefined; wait?: ((row: T) => RowsWait | null) | undefined; group?: { folded: ReadonlySet<string>; toggle: (key: string) => void } | undefined; scroller: HTMLElement | null | "window"; narrow: boolean; swipes?: ((row: T) => Swipes | null) | undefined; rowProps?: ((row: T, index: number) => RowAttrs) | undefined; className?: string | undefined; }`
 - **RowsWait** (interface) `interface RowsWait { hours: number; late: boolean; }`
+- **WaitStats** (interface) `interface WaitStats { n: number; late: number; oldest: RowsWait | null; }`
+- **avatarOf** (function) `(title: string): string | null`
+- **drawnOf** (function) `(lines: readonly RowsLine<T>[], folded: ReadonlySet<string> | undefined, wait: ((row: T) => RowsWait | null) | undefined): Drawn<T>[]`
 - **stateColor** (function) `(s: State | undefined): string`
 - **statsOf** (function) `(waits: readonly (RowsWait | null)[]): WaitStats`
-- **WaitStats** (interface) `interface WaitStats { n: number; late: number; oldest: RowsWait | null; }`
 
 ## packages/ui/src/run.tsx
 
-- **dwellOf** (function) `(line: RunLine | undefined, behind: number, live: boolean): number`
-- **expectedOf** (function) `(lines: readonly RunLine[]): Record<string, number>`
-- **mixOf** (function) `(v: RunStepView, expected: number): RunMix`
 - **RUN_DWELL** (const) `Record<RunLineKind, number>`
 - **RUN_MAX_SPEEDUP** (const) `2`
 - **RunEnd** (interface) `interface RunEnd { label: string; note?: string; }`
@@ -860,6 +857,9 @@ Exports: 704. Files: 124.
 - **RunStepState** (type) `type RunStepState = "idle" | "active" | "done" | "waiting";`
 - **RunStepView** (interface) `interface RunStepView { state: RunStepState; handled: number; found: number; failed: number; waiting: number; }`
 - **RunView** (function) `({ steps, lines, live = false, label, results, input, output, pace = 1, work, className, }: { steps: RunStep[]; lines: RunLine[]; live?: boolean; label: ReactNode; results?: ReactNode; input?: RunEnd; output?: RunEnd; pace?: number; work?: ((line: RunLine) => ReactNode) | undefined; className?: string | undefined; }): import("react").JSX.Element`
+- **dwellOf** (function) `(line: RunLine | undefined, behind: number, live: boolean): number`
+- **expectedOf** (function) `(lines: readonly RunLine[]): Record<string, number>`
+- **mixOf** (function) `(v: RunStepView, expected: number): RunMix`
 - **stepsAt** (function) `(steps: readonly RunStep[], lines: readonly RunLine[], shown: number): Record<string, RunStepView>`
 
 ## packages/ui/src/save/clock.ts
@@ -869,18 +869,18 @@ Exports: 704. Files: 124.
 ## packages/ui/src/save/engine.ts
 
 - **Conflict** (interface) `interface Conflict<T> { mine: T; theirs: T | null; }`
-- **conflictOf** (function) `(err: unknown): boolean`
 - **Failure** (type) `type Failure = "transient" | "conflict" | "refused";`
-- **failureKind** (function) `(err: unknown, conflict: (err: unknown) => boolean = conflictOf): Failure`
 - **SAVE_DELAY_MS** (const) `1200`
 - **SaveAnswer** (interface) `interface SaveAnswer<T> { value?: T | undefined; version?: string | null | undefined; }`
 - **SaveContext** (interface) `interface SaveContext<T> { expect: string | T | null; base: T; version: string | null; request: string; }`
 - **SaveFn** (type) `type SaveFn<T> = ( value: T, ctx: SaveContext<T>, ) => Promise<SaveAnswer<T> | undefined | Answerless>;`
-- **Saver** (class) `readonly key: string | null;; constructor(o: SaverOptions<T>); update(o: Partial<Pick<SaverOptions<T>, "save" | "onSaved" | "onConflict" | "conflictOf">>): void; readonly subscribe; readonly snapshot; open(): void; close(): void; set(value: T): void; flush(): Promise<boolean>; retry; keepMine(): Promise<boolean>; takeTheirs(): void; read(server: T, o: { version?: string | null | undefined; at?: number | undefined } = {}): void`
-- **SaverOptions** (interface) `interface SaverOptions<T> { key: string | null; server: T; version?: string | null | undefined; at?: number | undefined; save: SaveFn<T>; same?: ((a: T, b: T) => boolean) | undefined; delay?: number | null | undefined; timeout?: number | undefined; conflictOf?: ((err: unknown) => boolean) | undefined; onSaved?: ((value: T, answer: SaveAnswer<T>) => void) | undefined; onConflict?: (() => void) | undefined; env?: Partial<SaveEnv> | undefined; }`
 - **SaveState** (interface) `interface SaveState<T> { value: T; base: T; status: Status; error: string | null; conflict: Conflict<T> | null; dirty: boolean; restored: boolean; }`
 - **SaveStatusName** (type) `type Status = "clean" | "edited" | "saving" | "saved" | "waiting" | "conflict" | "failed";`
 - **SaveTimeout** (class) `constructor()`
+- **Saver** (class) `readonly key: string | null;; constructor(o: SaverOptions<T>); update(o: Partial<Pick<SaverOptions<T>, "save" | "onSaved" | "onConflict" | "conflictOf">>): void; readonly subscribe; readonly snapshot; open(): void; close(): void; set(value: T): void; flush(): Promise<boolean>; retry; keepMine(): Promise<boolean>; takeTheirs(): void; read(server: T, o: { version?: string | null | undefined; at?: number | undefined } = {}): void`
+- **SaverOptions** (interface) `interface SaverOptions<T> { key: string | null; server: T; version?: string | null | undefined; at?: number | undefined; save: SaveFn<T>; same?: ((a: T, b: T) => boolean) | undefined; delay?: number | null | undefined; timeout?: number | undefined; conflictOf?: ((err: unknown) => boolean) | undefined; onSaved?: ((value: T, answer: SaveAnswer<T>) => void) | undefined; onConflict?: (() => void) | undefined; env?: Partial<SaveEnv> | undefined; }`
+- **conflictOf** (function) `(err: unknown): boolean`
+- **failureKind** (function) `(err: unknown, conflict: (err: unknown) => boolean = conflictOf): Failure`
 
 ## packages/ui/src/save/env.ts
 
@@ -903,25 +903,25 @@ Exports: 704. Files: 124.
 ## packages/ui/src/save/react.tsx
 
 - **SaveConflict** (function) `({ conflict, show, onKeepMine, onTakeTheirs, }: { conflict: Conflict<T>; show?: ((theirs: T) => ReactNode) | undefined; onKeepMine: () => void; onTakeTheirs: () => void; }): import("react").JSX.Element`
-- **Saved** (interface) `interface Saved<T> extends SaveState<T> { set: (value: T) => void; flush: () => Promise<boolean>; keepMine: () => Promise<boolean>; takeTheirs: () => void; retry: () => Promise<boolean>; }`
 - **SaveScope** (function) `({ page, children }: { page: SavePage; children: ReactNode }): import("react").JSX.Element`
 - **SaveStatus** (function) `({ state, onRetry, idle, }: { state: Pick<SaveState<unknown>, "status" | "error">; onRetry?: (() => void) | undefined; idle?: ReactNode; }): import("react").JSX.Element`
+- **Saved** (interface) `interface Saved<T> extends SaveState<T> { set: (value: T) => void; flush: () => Promise<boolean>; keepMine: () => Promise<boolean>; takeTheirs: () => void; retry: () => Promise<boolean>; }`
 - **statusWords** (function) `(status: Status, error: string | null): string | null`
-- **useSaved** (function) `(o: SaverOptions<T>): Saved<T>`
 - **useSavePage** (function) `(): SavePage`
+- **useSaved** (function) `(o: SaverOptions<T>): Saved<T>`
 
 ## packages/ui/src/save/writes.ts
 
 - **PressOptions** (interface) `interface PressOptions { key: string; what?: string | null | undefined; label?: string | null | undefined; records?: readonly string[] | undefined; input?: Record<string, unknown> | null | undefined; hide?: boolean | undefined; }`
 - **Retry** (interface) `interface Retry { count: number; reason: string; }`
-- **recordKey** (function) `(scope: string, id: string | number): string`
-- **stableKey** (function) `(v: unknown): string`
-- **WireState** (type) `type WireState = | { state: "sending"; retry?: Retry } | { state: "sent"; answer?: unknown } | { state: "failed"; error: string } | { state: "unknown" };`
 - **WRITES** (const) `Writes`
+- **WireState** (type) `type WireState = | { state: "sending"; retry?: Retry } | { state: "sent"; answer?: unknown } | { state: "failed"; error: string } | { state: "unknown" };`
 - **Write** (interface) `interface Write { id: string; key: string; what: string | null; label: string | null; records: string[]; input: Record<string, unknown> | null; status: WriteStatus; error: string | null; at: number; settled: number | null; due: number | null; hide: boolean; read: boolean; told: boolean; page: string; retried: boolean; accepted: boolean; retry?: Retry | null; calls: WireCall[]; }`
 - **WriteHooks** (interface) `interface WriteHooks { send?: (path: string, body: Record<string, unknown>) => Promise<unknown>; status?: (path: string, id: string) => Promise<WireState>; reread?: () => Promise<void>; tell?: (w: Write) => void; landed?: (records: string[]) => void; }`
 - **WriteStatus** (type) `type WriteStatus = "held" | "sending" | "unsure" | "sent" | "failed";`
 - **Writes** (class) `constructor(private readonly env: WriteEnv); use(hooks: WriteHooks): void; start(): void; stop(): void; readonly subscribe; readonly snapshot; lastOn(record: string, what?: readonly string[]): Write | null; goingIn(scope: string): { what: string; ids: string[] } | null; hiddenIn(scope: string): Set<string>; sendingIn(scope: string): Map<string, string | null>; landed(): number; showing(): boolean; get pending(): number; dismiss(id: string): void; press(o: PressOptions, fn: (requestId: string) => Promise<R>): Promise<R>; busy(key: string): boolean; hold(o: PressOptions & { ms: number }, commit: (requestId: string) => Promise<unknown>): { id: string; undo: () => boolean } | null; undo(id: string): boolean; call(path: string, body: Record<string, unknown>, send: (body: Record<string, unknown>) => Promise<R>): Promise<R>; back(first = false): Promise<void>; gone(): void; due(): Promise<void>; pushed(on: boolean): void; heard(id: string, got: WireState): undefined`
+- **recordKey** (function) `(scope: string, id: string | number): string`
+- **stableKey** (function) `(v: unknown): string`
 
 ## packages/ui/src/settings.ts
 
@@ -965,17 +965,17 @@ Exports: 704. Files: 124.
 - **Cite** (function) `({ n, label, href, on = false, onPick, className, }: { n: number; label?: string | undefined; href?: string | undefined; on?: boolean | undefined; onPick?: (() => void) | undefined; className?: string | undefined; }): import("react").JSX.Element`
 - **Cited** (function) `({ text, order, lit, onPick, }: { text: string; order: string[]; lit?: string | null | undefined; onPick: PickSource; }): import("react").JSX.Element`
 - **MARKS** (const) `RegExp`
-- **marksOf** (function) `(text: string): string[]`
 - **PickSource** (type) `type PickSource = (mark: string) => void;`
+- **SURE_LEVELS** (const) `SureLevel[]`
 - **SourceCard** (function) `({ id, n, kind, meta, title, sure, detail = [], link, lit = false, className, }: { id?: string | undefined; n?: number | undefined; kind: ReactNode; meta?: ReactNode; title?: ReactNode; sure?: number | null | undefined; detail?: [label: string, value: ReactNode][] | undefined; link?: { href: string | null; label: string } | null | undefined; lit?: boolean | undefined; className?: string | undefined; }): import("react").JSX.Element`
 - **SourceList** (function) `({ className, children, }: { className?: string | undefined; children: ReactNode; }): import("react").JSX.Element`
-- **SURE_LEVELS** (const) `SureLevel[]`
 - **Sure** (function) `({ value, levels = SURE_LEVELS, className, }: { value: number; levels?: SureLevel[] | undefined; className?: string | undefined; }): import("react").JSX.Element`
 - **SureLevel** (interface) `interface SureLevel { min: number; label: string; }`
-- **stripMarks** (function) `(s: string): string`
 - **Traced** (function) `({ onTrace, label = "Why", title = "Why this line", on = false, className, children, }: { onTrace: () => void; label?: string | undefined; title?: string | undefined; on?: boolean | undefined; className?: string | undefined; children: ReactNode; }): import("react").JSX.Element`
 - **Trail** (function) `({ steps, className, }: { steps: TrailStep[]; className?: string | undefined; }): import("react").JSX.Element`
 - **TrailStep** (interface) `interface TrailStep { id: string; label: ReactNode; children: ReactNode; }`
+- **marksOf** (function) `(text: string): string[]`
+- **stripMarks** (function) `(s: string): string`
 - **useSourcePick** (function) `(): [string | null, PickSource]`
 
 ## packages/ui/src/split.tsx
@@ -1008,39 +1008,39 @@ Exports: 704. Files: 124.
 
 ## packages/ui/src/table.tsx
 
-- **cellsOf** (function) `(head: readonly (string | readonly [string, "r"])[], rows: readonly ReactNode[][]): { columns: TableColumn<ReactNode[]>[]; data: readonly ReactNode[][] }`
 - **DataTable** (function) `({ columns, data, rowKey, stack = false, look = "plain", rowProps, className, }: { columns: TableColumn<T>[]; data: readonly T[]; rowKey?: (row: T, index: number) => string | number; stack?: boolean; look?: keyof typeof LOOKS; rowProps?: (row: T, index: number) => RowAttrs; className?: string; }): import("react").JSX.Element`
 - **FactsTable** (function) `({ head, rows, stack = false, }: { head: readonly (string | readonly [string, "r"])[]; rows: readonly ReactNode[][]; stack?: boolean; }): import("react").JSX.Element`
 - **ListLine** (type) `type ListLine = | { kind: "group"; key: string; field: FieldMeta; value: string; first: Row; n: number } | { kind: "tier"; key: string; needs: boolean; n: number } | { kind: "row"; key: string; row: Row; index: number };`
 - **ListTable** (interface) `interface ListTable { cols: FieldMeta[]; rows: Row[]; lines: ListLine[]; sorted: (key: string) => false | "asc" | "desc"; all: boolean; some: boolean; toggleAll: () => void; picked: (id: string) => boolean; toggle: (id: string) => void; }`
 - **RowAttrs** (type) `type RowAttrs = HTMLAttributes<HTMLTableRowElement> & { [data: 'data-${string}']: string | number | boolean | undefined; };`
-- **sortingOf** (function) `(sort: string | undefined): { id: string; desc: boolean }[]`
 - **TABLE_FEATURES** (const) `{ rowSortingFeature: import("@tanstack/react-table").TableFeature; columnVisibilityFeature: import("@tanstack/react-table").TableFeature; columnOrderingFeature: import("@tanstack/react-table").TableFeature; columnGroupingFeature: import("@tanstack/react-table").TableFeature; rowExpandingFeature: imp…`
 - **TableColumn** (interface) `interface TableColumn<T extends RowData> { key: string; label: ReactNode; end?: boolean; className?: string; cell: (row: T, index: number) => ReactNode; }`
+- **VIRTUAL_FROM** (const) `120`
+- **cellsOf** (function) `(head: readonly (string | readonly [string, "r"])[], rows: readonly ReactNode[][]): { columns: TableColumn<ReactNode[]>[]; data: readonly ReactNode[][] }`
+- **sortingOf** (function) `(sort: string | undefined): { id: string; desc: boolean }[]`
 - **useLines** (function) `({ count, scroller, root, estimate, }: { count: number; scroller: HTMLElement | null | "window"; root: () => HTMLElement | null; estimate: number; }): Lines`
 - **useListTable** (function) `({ meta, rows, cols, sort, group, split, picked, onPicked, }: { meta: Pick<RecordMeta, "fields">; rows: Row[]; cols: FieldMeta[]; sort: string | undefined; group: FieldMeta | null; split: number; picked: ReadonlySet<string>; onPicked: (next: Set<string>) => void; }): ListTable`
-- **VIRTUAL_FROM** (const) `120`
 
 ## packages/ui/src/theme.tsx
 
-- **applyTheme** (function) `(theme: Theme, el: HTMLElement = document.documentElement): () => void`
 - **BASE** (const) `Theme`
-- **dropPreloadedLook** (function) `(root: HTMLElement = document.documentElement): void`
-- **isShowcase** (function) `(name: unknown): name is ShowcaseName`
 - **LOOK_NOTES** (const) `Readonly<Record<PresetName | ShowcaseName, string>>`
+- **NIGHT_CHARTS** (const) `{ "chart-2": string; "chart-3": string; "chart-4": string; "chart-5": string; }`
+- **NIGHT_LINES** (const) `{ "line-0": string; "line-1": string; "line-2": string; "line-3": string; "line-4": string; "line-5": string; "line-6": string; "line-7": string; "line-out": string; }`
 - **PRESETS** (const) `{ wren: {}; night: { "chart-2": string; "chart-3": string; "chart-4": string; "chart-5": string; "line-0": string; "line-1": string; "line-2": string; "line-3": string; "line-4": string; "line-5": string; "line-6": string; "line-7": string; "line-out": string; scheme: string; canvas: string; paper: …`
 - **PresetName** (type) `type PresetName = keyof typeof PRESETS;`
-- **readTheme** (function) `(raw: unknown): Theme`
 - **SHOWCASE** (const) `{ aurora: { scheme: string; canvas: string; paper: string; tile: string; ink: string; "ink-2": string; "ink-3": string; accent: string; "on-accent": string; good: string; "good-ink": string; bad: string; warn: string; "warn-ink": string; shade: string; scrim: string; font: string; "display-weight": …`
 - **ShowcaseName** (type) `type ShowcaseName = keyof typeof SHOWCASE;`
-- **Theme** (type) `type Theme = Partial<Record<Token, string>>;`
 - **TOKENS** (const) `readonly ["scheme", "canvas", "paper", "ink", "ink-2", "ink-3", "accent", "on-accent", "good", "good-ink", "bad", "warn", "warn-ink", "shade", "font", "font-display", "display-weight", "display-squeeze", "label-case", "label-tracking", "button-case", "button-tracking", "button-weight", "radius", "le…`
+- **Theme** (type) `type Theme = Partial<Record<Token, string>>;`
 - **Token** (type) `type Token = (typeof TOKENS)[number];`
+- **applyTheme** (function) `(theme: Theme, el: HTMLElement = document.documentElement): () => void`
+- **dropPreloadedLook** (function) `(root: HTMLElement = document.documentElement): void`
+- **isShowcase** (function) `(name: unknown): name is ShowcaseName`
+- **readTheme** (function) `(raw: unknown): Theme`
 - **themeVars** (function) `(theme: Theme): Record<string, string>`
 - **usePageTheme** (function) `(theme: Theme | undefined): void`
 - **wholeVars** (function) `(look: Theme): Record<string, string>`
-- **NIGHT_LINES** (const) `{ "line-0": string; "line-1": string; "line-2": string; "line-3": string; "line-4": string; "line-5": string; "line-6": string; "line-7": string; "line-out": string; }`
-- **NIGHT_CHARTS** (const) `{ "chart-2": string; "chart-3": string; "chart-4": string; "chart-5": string; }`
 
 ## packages/ui/src/timeline.tsx
 
@@ -1052,9 +1052,9 @@ Exports: 704. Files: 124.
 
 ## packages/ui/src/vendor-marks.tsx
 
-- **vendorOf** (function) `(key: string): string | null`
-- **vendorName** (function) `(key: string): string`
 - **VendorMark** (function) `({ vendor, size = 16, mono = false, label, className, }: { vendor: string; size?: number; mono?: boolean; label?: string; className?: string; }): import("react").JSX.Element | null`
+- **vendorName** (function) `(key: string): string`
+- **vendorOf** (function) `(key: string): string | null`
 
 ## packages/ui/src/view-says.ts
 

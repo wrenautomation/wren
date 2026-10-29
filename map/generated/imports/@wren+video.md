@@ -16,23 +16,23 @@ Dotted: types only.
 
 ```mermaid
 flowchart LR
-  nindex_ts["index.ts"]
   ncapture_ts["capture.ts"]
   nencode_ts["encode.ts"]
-  ntimeline_ts["timeline.ts"]
+  nindex_ts["index.ts"]
   noverlay_ts["overlay.ts"]
-  nrecorder_ts["recorder.ts"]
   npublish_ts["publish.ts"]
+  nrecorder_ts["recorder.ts"]
+  ntimeline_ts["timeline.ts"]
   nvitest_config_ts["vitest.config.ts"]
+  nencode_ts --> ntimeline_ts
   nindex_ts --> ncapture_ts
   nindex_ts --> nencode_ts
   nindex_ts --> noverlay_ts
   nindex_ts --> nrecorder_ts
   nindex_ts --> ntimeline_ts
-  nencode_ts --> ntimeline_ts
+  npublish_ts -.-> nencode_ts
   nrecorder_ts --> noverlay_ts
   nrecorder_ts -.-> ntimeline_ts
-  npublish_ts -.-> nencode_ts
 ```
 
 ## Files

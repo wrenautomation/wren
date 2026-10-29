@@ -4,8 +4,8 @@ Role: package. Files: 28.
 
 ## Uses
 
-- @wren/db
 - @wren/core
+- @wren/db
 - @wren/llm
 
 ## Outside packages
@@ -18,34 +18,70 @@ Dotted: types only.
 
 ```mermaid
 flowchart LR
-  nindex_ts["index.ts"]
   nalerts_ts["alerts.ts"]
-  nday_ts["day.ts"]
-  nmoney_ts["money.ts"]
-  nreport_ts["report.ts"]
-  nschema_ts["schema.ts"]
   nbills_ts["bills.ts"]
-  nchart_ts["chart.ts"]
-  nmailbox_ts["mailbox.ts"]
   ncapture_ts["capture.ts"]
-  nstore_ts["store.ts"]
-  ntext_ts["text.ts"]
   ncard_ts["card.ts"]
+  nchart_ts["chart.ts"]
+  ncomponents_ts["components.ts"]
+  nconsole_routes_ts["console-routes.ts"]
+  nconsole_ts["console.ts"]
   ndaily_ts["daily.ts"]
+  nday_ts["day.ts"]
   ndecrypts_ts["decrypts.ts"]
+  neconomics_ts["economics.ts"]
+  nground_ts["ground.ts"]
+  nindex_ts["index.ts"]
+  nmailbox_ts["mailbox.ts"]
+  nmoney_ts["money.ts"]
   npost_ts["post.ts"]
   nrates_ts["rates.ts"]
   nread_ts["read.ts"]
-  nground_ts["ground.ts"]
+  nrecords_ts["records.ts"]
+  nreport_ts["report.ts"]
+  nrestate_ts["restate.ts"]
+  nschema_ts["schema.ts"]
+  nstore_ts["store.ts"]
+  ntext_ts["text.ts"]
   nusage_lines_ts["usage-lines.ts"]
   nusage_ts["usage.ts"]
-  neconomics_ts["economics.ts"]
-  nrestate_ts["restate.ts"]
-  nconsole_ts["console.ts"]
-  nconsole_routes_ts["console-routes.ts"]
-  ncomponents_ts["components.ts"]
-  nrecords_ts["records.ts"]
   nvitest_config_ts["vitest.config.ts"]
+  nalerts_ts --> nday_ts
+  nalerts_ts --> nmoney_ts
+  nalerts_ts --> nreport_ts
+  nalerts_ts --> nschema_ts
+  nbills_ts --> nchart_ts
+  nbills_ts --> nmailbox_ts
+  ncapture_ts --> nchart_ts
+  ncapture_ts --> nday_ts
+  ncapture_ts --> nmailbox_ts
+  ncapture_ts --> nschema_ts
+  ncapture_ts --> nstore_ts
+  ncapture_ts --> ntext_ts
+  ncard_ts --> nchart_ts
+  ncard_ts --> nday_ts
+  ncard_ts --> nschema_ts
+  ncard_ts --> nstore_ts
+  nchart_ts --> nschema_ts
+  nconsole_ts --> nconsole_routes_ts
+  nconsole_ts --> nschema_ts
+  ndaily_ts --> nalerts_ts
+  ndaily_ts --> ncapture_ts
+  ndaily_ts --> ncard_ts
+  ndaily_ts --> nchart_ts
+  ndaily_ts --> nday_ts
+  ndaily_ts --> ndecrypts_ts
+  ndaily_ts -.-> nmailbox_ts
+  ndaily_ts --> npost_ts
+  ndaily_ts -.-> nrates_ts
+  ndaily_ts --> nread_ts
+  ndaily_ts -.-> nschema_ts
+  ndaily_ts -.-> nstore_ts
+  ndaily_ts --> nusage_lines_ts
+  ndaily_ts --> nusage_ts
+  neconomics_ts --> nschema_ts
+  nground_ts --> nmoney_ts
+  nground_ts -.-> nschema_ts
   nindex_ts --> nalerts_ts
   nindex_ts --> nbills_ts
   nindex_ts --> ncapture_ts
@@ -67,40 +103,7 @@ flowchart LR
   nindex_ts --> ntext_ts
   nindex_ts --> nusage_lines_ts
   nindex_ts --> nusage_ts
-  nalerts_ts --> nday_ts
-  nalerts_ts --> nmoney_ts
-  nalerts_ts --> nreport_ts
-  nalerts_ts --> nschema_ts
-  nreport_ts --> nday_ts
-  nreport_ts --> nschema_ts
-  nbills_ts --> nchart_ts
-  nbills_ts --> nmailbox_ts
-  nchart_ts --> nschema_ts
   nmailbox_ts -.-> nchart_ts
-  ncapture_ts --> nchart_ts
-  ncapture_ts --> nday_ts
-  ncapture_ts --> nmailbox_ts
-  ncapture_ts --> nschema_ts
-  ncapture_ts --> nstore_ts
-  ncapture_ts --> ntext_ts
-  ncard_ts --> nchart_ts
-  ncard_ts --> nday_ts
-  ncard_ts --> nschema_ts
-  ncard_ts --> nstore_ts
-  ndaily_ts --> nalerts_ts
-  ndaily_ts --> ncapture_ts
-  ndaily_ts --> ncard_ts
-  ndaily_ts --> nchart_ts
-  ndaily_ts --> nday_ts
-  ndaily_ts --> ndecrypts_ts
-  ndaily_ts -.-> nmailbox_ts
-  ndaily_ts --> npost_ts
-  ndaily_ts -.-> nrates_ts
-  ndaily_ts --> nread_ts
-  ndaily_ts -.-> nschema_ts
-  ndaily_ts -.-> nstore_ts
-  ndaily_ts --> nusage_lines_ts
-  ndaily_ts --> nusage_ts
   npost_ts --> nchart_ts
   npost_ts --> nmoney_ts
   npost_ts --> nrates_ts
@@ -111,17 +114,14 @@ flowchart LR
   nread_ts --> nground_ts
   nread_ts --> nmoney_ts
   nread_ts --> nschema_ts
-  nground_ts --> nmoney_ts
-  nground_ts -.-> nschema_ts
+  nrecords_ts --> neconomics_ts
+  nreport_ts --> nday_ts
+  nreport_ts --> nschema_ts
+  nrestate_ts --> nconsole_ts
+  nrestate_ts --> ndaily_ts
   nusage_lines_ts --> nschema_ts
   nusage_ts --> nday_ts
   nusage_ts --> nschema_ts
-  neconomics_ts --> nschema_ts
-  nrestate_ts --> nconsole_ts
-  nrestate_ts --> ndaily_ts
-  nconsole_ts --> nconsole_routes_ts
-  nconsole_ts --> nschema_ts
-  nrecords_ts --> neconomics_ts
 ```
 
 ## Files

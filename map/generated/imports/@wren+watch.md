@@ -6,8 +6,8 @@ Role: package. Files: 12.
 
 - @wren/core
 - @wren/db
-- @wren/llm
 - @wren/learn
+- @wren/llm
 
 ## Folders
 
@@ -15,32 +15,32 @@ Dotted: types only.
 
 ```mermaid
 flowchart LR
+  nclients_ts["clients.ts"]
   ncomponents_ts["components.ts"]
+  nconsole_routes_ts["console-routes.ts"]
+  nconsole_ts["console.ts"]
   nindex_ts["index.ts"]
-  nread_ts["read.ts"]
   nlinks_ts["links.ts"]
+  nread_ts["read.ts"]
+  nrecords_ts["records.ts"]
+  nrestate_ts["restate.ts"]
   nschema_ts["schema.ts"]
   ntriage_ts["triage.ts"]
-  nrestate_ts["restate.ts"]
-  nconsole_ts["console.ts"]
-  nconsole_routes_ts["console-routes.ts"]
-  nrecords_ts["records.ts"]
-  nclients_ts["clients.ts"]
   nvitest_config_ts["vitest.config.ts"]
+  nclients_ts --> nread_ts
+  nclients_ts --> ntriage_ts
+  nconsole_ts --> nconsole_routes_ts
+  nconsole_ts --> nschema_ts
+  nconsole_ts --> ntriage_ts
   nindex_ts --> nread_ts
   nindex_ts --> nschema_ts
   nindex_ts --> ntriage_ts
   nread_ts --> nlinks_ts
   nread_ts --> nschema_ts
-  ntriage_ts --> nschema_ts
   nrestate_ts --> nconsole_ts
   nrestate_ts --> nread_ts
   nrestate_ts --> ntriage_ts
-  nconsole_ts --> nconsole_routes_ts
-  nconsole_ts --> nschema_ts
-  nconsole_ts --> ntriage_ts
-  nclients_ts --> nread_ts
-  nclients_ts --> ntriage_ts
+  ntriage_ts --> nschema_ts
 ```
 
 ## Files

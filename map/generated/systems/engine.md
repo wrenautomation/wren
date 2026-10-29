@@ -1,3 +1,3 @@
 # engine: system
 
-The research engine: models, raven, falcon and weaver, one npm package each.
+The research engine (models, raven, falcon, weaver) and the map engine (orrery), one npm package each.

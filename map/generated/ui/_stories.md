@@ -10,6 +10,7 @@
 | Revamp/Account/Limits | `apps/portal/web/src/pages-limits.stories.tsx` |  |
 | Done/Map | `apps/portal/web/src/pages-map.stories.tsx` | `apps/portal/web/src/map/TodayTasks.tsx`, `apps/portal/web/src/map/view.ts` |
 | Revamp/Player | `apps/portal/web/src/pages-player.stories.tsx` | `apps/portal/web/src/player/index.ts` |
+| Revamp/Research | `apps/portal/web/src/pages-research.stories.tsx` | `apps/portal/web/src/modules/research/serve.ts` |
 | Done/Wren | `apps/portal/web/src/pages-wren-done.stories.tsx` |  |
 | Ready to build/Engage and Outbound home | `apps/portal/web/src/pages-wren-port.stories.tsx` |  |
 | Revamp/Wren rows | `apps/portal/web/src/pages-wren-rows.stories.tsx` |  |
@@ -34,7 +35,7 @@
 | Parts/Steps | `packages/ui/src/steps.stories.tsx` | `packages/ui/src/steps.tsx` |
 | Parts/Leaf and sweep | `packages/ui/src/sweep.stories.tsx` | `packages/ui/src/controls.tsx`, `packages/ui/src/layout.tsx`, `packages/ui/src/sweep.tsx` |
 | Lists/Table | `packages/ui/src/table.stories.tsx` | `packages/ui/src/controls.tsx`, `packages/ui/src/table.tsx` |
-| Metro | `packages/ui/src/metro/metro.stories.tsx` | `packages/ui/src/metro/draw.tsx`, `packages/ui/src/metro/map.tsx`, `packages/ui/src/metro/place.ts`, `packages/ui/src/metro/samples.ts`, `packages/ui/src/metro/tree.ts`, `packages/ui/src/table.tsx` |
+| Metro | `packages/ui/src/metro/metro.stories.tsx` | `packages/ui/src/metro/draw.tsx`, `packages/ui/src/metro/map.tsx`, `packages/ui/src/metro/place.ts`, `packages/ui/src/metro/samples.ts`, `packages/ui/src/table.tsx` |
 | Metro/Money models | `packages/ui/src/metro/money-models.stories.tsx` | `packages/ui/src/metro/map.tsx`, `packages/ui/src/metro/money-models.ts` |
 | Metro/Lab | `packages/ui/src/metro/lab/lab.stories.tsx` | `packages/ui/src/metro/draw.tsx`, `packages/ui/src/metro/fold.ts`, `packages/ui/src/metro/lab/cases.ts`, `packages/ui/src/metro/lab/engines.ts`, `packages/ui/src/metro/lab/generate.ts`, `packages/ui/src/metro/lab/score.ts`, `packages/ui/src/metro/map.tsx`, `packages/ui/src/table.tsx` |
 | Charts/Ribbons | `packages/ui/src/graph/ribbons.stories.tsx` | `packages/ui/src/graph/index.tsx`, `packages/ui/src/theme.tsx` |

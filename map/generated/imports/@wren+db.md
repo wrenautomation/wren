@@ -16,32 +16,32 @@ Dotted: types only.
 
 ```mermaid
 flowchart LR
-  ncolumns_ts["columns.ts"]
-  nindex_ts["index.ts"]
-  naudit_["audit/ (4)"]
-  nclients_ts["clients.ts"]
-  nisolation_ts["isolation.ts"]
-  nlisten_ts["listen.ts"]
-  ntesting_vitest_ts["testing-vitest.ts"]
-  ntesting_ts["testing.ts"]
   ndrizzle_config_ts["drizzle.config.ts"]
   ndrizzle_drift_config_ts["drizzle.drift.config.ts"]
+  naudit_["audit/ (4)"]
+  nclients_ts["clients.ts"]
+  ncolumns_ts["columns.ts"]
+  nindex_ts["index.ts"]
+  nisolation_ts["isolation.ts"]
+  nlisten_ts["listen.ts"]
   nmigrate_cli_ts["migrate-cli.ts"]
   ntesting_global_setup_ts["testing-global-setup.ts"]
+  ntesting_vitest_ts["testing-vitest.ts"]
+  ntesting_ts["testing.ts"]
   nvitest_config_ts["vitest.config.ts"]
+  ndrizzle_drift_config_ts --> ndrizzle_config_ts
+  naudit_ -.-> nindex_ts
+  nclients_ts --> naudit_
+  nclients_ts --> nindex_ts
   nindex_ts --> naudit_
   nindex_ts --> nclients_ts
   nindex_ts --> nisolation_ts
   nindex_ts --> nlisten_ts
-  naudit_ -.-> nindex_ts
-  nclients_ts --> naudit_
-  nclients_ts --> nindex_ts
   nisolation_ts -.-> nindex_ts
-  ntesting_ts --> nindex_ts
-  ndrizzle_drift_config_ts --> ndrizzle_config_ts
   nmigrate_cli_ts --> nclients_ts
   nmigrate_cli_ts --> nindex_ts
   ntesting_global_setup_ts --> ntesting_ts
+  ntesting_ts --> nindex_ts
   nvitest_config_ts --> ntesting_vitest_ts
 ```
 

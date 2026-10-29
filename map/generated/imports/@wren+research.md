@@ -18,66 +18,67 @@ Dotted: types only.
 
 ```mermaid
 flowchart LR
-  nschema_ts["schema.ts"]
-  ndossier_ts["dossier.ts"]
   ncompanies_["companies/ (8)"]
-  npeople_["people/ (10)"]
-  nfindings_ts["findings.ts"]
-  npacing_ts["pacing.ts"]
-  nlinkedin_reads_ts["linkedin-reads.ts"]
-  nenrichment_["enrichment/ (26)"]
-  npages_ts["pages.ts"]
   ncomponents_ts["components.ts"]
+  ndiscovery_["discovery/ (6)"]
+  ndossier_ts["dossier.ts"]
+  nenrichment_["enrichment/ (26)"]
+  nfetch_["fetch/ (6)"]
+  nfindings_ts["findings.ts"]
+  nindex_ts["index.ts"]
+  nlimits_ts["limits.ts"]
+  nlinkedin_reads_ts["linkedin-reads.ts"]
+  npacing_ts["pacing.ts"]
+  npages_ts["pages.ts"]
+  npeople_["people/ (10)"]
+  nphones_ts["phones.ts"]
+  nrecords_ts["records.ts"]
+  nrestate_["restate/ (12)"]
+  nschema_ts["schema.ts"]
   nsignals_["signals/ (11)"]
   nsocial_schema_ts["social-schema.ts"]
-  nfetch_["fetch/ (6)"]
-  nphones_ts["phones.ts"]
-  nlimits_ts["limits.ts"]
-  nrestate_["restate/ (12)"]
-  ndiscovery_["discovery/ (6)"]
-  nindex_ts["index.ts"]
   nsops_["sops/ (2)"]
   nstudies_["studies/ (4)"]
-  nrecords_ts["records.ts"]
   ntest_["test/"]
   nvitest_config_ts["vitest.config.ts"]
-  ndossier_ts --> nschema_ts
   ncompanies_ --> npeople_
   ncompanies_ --> nfindings_ts
   ncompanies_ --> npacing_ts
-  nfindings_ts --> nschema_ts
-  ncompanies_ --> nschema_ts
   ncompanies_ -.-> nlinkedin_reads_ts
-  npeople_ --> npacing_ts
-  npeople_ --> nenrichment_
-  npeople_ --> nfindings_ts
-  npeople_ -.-> nlinkedin_reads_ts
-  nenrichment_ --> ncompanies_
-  nenrichment_ -.-> nlinkedin_reads_ts
+  ncompanies_ --> nschema_ts
+  ncomponents_ts --> nsignals_
+  ndiscovery_ --> npeople_
+  ndiscovery_ --> nschema_ts
+  ndossier_ts --> nschema_ts
   nenrichment_ --> npacing_ts
+  nenrichment_ --> nschema_ts
+  nenrichment_ --> ncompanies_
   nenrichment_ --> npages_ts
   nenrichment_ --> npeople_
-  nenrichment_ --> nschema_ts
-  npages_ts --> nschema_ts
-  npeople_ --> nschema_ts
-  ncomponents_ts --> nsignals_
-  nsignals_ --> nenrichment_
-  nsignals_ --> npacing_ts
-  nsignals_ --> nschema_ts
+  nenrichment_ --> nphones_ts
+  nenrichment_ --> nfetch_
   nenrichment_ --> nfindings_ts
   nenrichment_ --> nsocial_schema_ts
-  nsignals_ --> nfindings_ts
-  nsignals_ --> npages_ts
-  nsignals_ --> npeople_
-  nsignals_ --> ncompanies_
-  nsignals_ --> nlinkedin_reads_ts
-  nenrichment_ --> nfetch_
+  nenrichment_ -.-> nlinkedin_reads_ts
   nfetch_ --> nschema_ts
-  nenrichment_ --> nphones_ts
+  nfindings_ts --> nschema_ts
+  nindex_ts --> ndiscovery_
+  nindex_ts --> nenrichment_
+  nindex_ts --> nfetch_
+  nindex_ts --> nfindings_ts
+  nindex_ts --> npacing_ts
+  nindex_ts --> nschema_ts
+  nindex_ts --> nsocial_schema_ts
   nlimits_ts --> nenrichment_
   nlimits_ts --> nsignals_
+  npages_ts --> nschema_ts
+  npeople_ --> npacing_ts
+  npeople_ --> nfindings_ts
+  npeople_ --> nschema_ts
+  npeople_ --> nenrichment_
+  npeople_ -.-> nlinkedin_reads_ts
+  nrecords_ts --> nschema_ts
   nrestate_ --> ndiscovery_
-  ndiscovery_ --> nschema_ts
   nrestate_ --> nenrichment_
   nrestate_ --> nfetch_
   nrestate_ --> npages_ts
@@ -87,18 +88,17 @@ flowchart LR
   nrestate_ --> nsignals_
   nrestate_ --> ncomponents_ts
   nrestate_ --> npeople_
-  nindex_ts --> ndiscovery_
-  nindex_ts --> nenrichment_
-  nindex_ts --> nfetch_
-  nindex_ts --> nfindings_ts
-  nindex_ts --> npacing_ts
-  nindex_ts --> nschema_ts
-  nindex_ts --> nsocial_schema_ts
-  ndiscovery_ --> npeople_
+  nsignals_ --> nenrichment_
+  nsignals_ --> npacing_ts
+  nsignals_ --> nschema_ts
+  nsignals_ --> npeople_
+  nsignals_ --> ncompanies_
+  nsignals_ --> nfindings_ts
+  nsignals_ --> nlinkedin_reads_ts
+  nsignals_ --> npages_ts
   nstudies_ --> nfindings_ts
   nstudies_ --> npacing_ts
   nstudies_ --> nschema_ts
-  nrecords_ts --> nschema_ts
 ```
 
 ## Files

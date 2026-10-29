@@ -12,11 +12,11 @@ Dotted: types only.
 
 ```mermaid
 flowchart LR
-  nindex_ts["index.ts"]
   ncontent_ts["content.ts"]
+  nindex_ts["index.ts"]
   ninsights_ts["insights.ts"]
-  nindex_ts --> ncontent_ts
   ncontent_ts --> ninsights_ts
+  nindex_ts --> ncontent_ts
 ```
 
 ## Files

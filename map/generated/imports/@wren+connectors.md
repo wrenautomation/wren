@@ -17,28 +17,28 @@ Dotted: types only.
 
 ```mermaid
 flowchart LR
-  nindex_ts["index.ts"]
   napps_ts["apps.ts"]
   nconnectors_ts["connectors.ts"]
-  npull_["pull/ (4)"]
-  nschema_ts["schema.ts"]
-  nrestate_ts["restate.ts"]
   nconsole_routes_ts["console-routes.ts"]
+  nindex_ts["index.ts"]
+  npull_["pull/ (4)"]
+  nrestate_ts["restate.ts"]
+  nschema_ts["schema.ts"]
   nsync_ts["sync.ts"]
   nvitest_config_ts["vitest.config.ts"]
+  nconnectors_ts --> napps_ts
+  nconnectors_ts --> npull_
+  nconnectors_ts --> nschema_ts
   nindex_ts --> napps_ts
   nindex_ts --> nconnectors_ts
   nindex_ts --> nrestate_ts
   nindex_ts --> nsync_ts
-  nconnectors_ts --> napps_ts
-  nconnectors_ts --> npull_
-  nconnectors_ts --> nschema_ts
   npull_ -.-> nschema_ts
-  nschema_ts --> napps_ts
   nrestate_ts --> napps_ts
   nrestate_ts -.-> nconnectors_ts
   nrestate_ts --> nconsole_routes_ts
   nrestate_ts --> nsync_ts
+  nschema_ts --> napps_ts
   nsync_ts -.-> napps_ts
   nsync_ts -.-> nconnectors_ts
   nsync_ts --> npull_
