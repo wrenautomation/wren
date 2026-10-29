@@ -994,3 +994,20 @@ rich reads from 1 to 2. Direction only.
   weaker, 0.89 and 0.72. So the 0.25.0 "code AUC 0.25" was not a Jev miss: code was read right
   and does not predict a rich page. Jev stays a hint and a router; its fact answers on full text
   are good enough to sort by.
+
+### 10-28 late: openers never search, call flips, engine 0.27.1
+
+The runs session saw arxiv add about 35 off-topic hits to an accounting ask. Cause: the CLI's
+allow-list let in every source that opens, and arxiv also searches. youtube did the same on
+web runs.
+
+Options weighed:
+- Let in only openers that do not search. Simple, but a web run then cannot read an arxiv or
+  YouTube page well without `open --with`.
+- Turn arxiv off unless the ask names papers. A code rule on the ask; the agent should decide.
+- Split the list (taken). The snapshot keeps `sources` (search, open, follow) and adds
+  `opens` (open and follow only). The other openers join `opens` unless `--sources` was given.
+  `open --with` and `follow --with` join `opens`. Older runs keep their lists.
+
+Call flips: the last call still wins. A flip now warns with who, round and why. An agent call
+that flips a person's call fails: a person outranks the agent.
