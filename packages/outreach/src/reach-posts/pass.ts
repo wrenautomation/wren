@@ -314,6 +314,8 @@ export async function postsPass(
     now: Date;
     step: <T>(name: string, fn: () => Promise<T>) => Promise<T>;
     capped?: (err: unknown) => boolean;
+    /** A cap still held from an earlier pass: no reads; drafts of kept posts go on. */
+    held?: boolean;
   },
 ): Promise<PostsStats> {
   const s = o.settings;
@@ -325,7 +327,7 @@ export async function postsPass(
     kept: 0,
     dropped: 0,
     queued: 0,
-    capped: false,
+    capped: o.held ?? false,
     topics: [],
     rested: [],
     errors: [],

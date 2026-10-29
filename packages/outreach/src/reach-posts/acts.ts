@@ -198,6 +198,13 @@ export const ACT_BREAK = 3;
 /** autobrowse's answer when the profile is busy: nothing reached the site. */
 const PROFILE_BUSY = 503;
 
+/** The HTTP status of a site call's failure, also when Restate carried it as words. */
+const statusOf = (err: unknown): number | null => {
+  if (err instanceof SiteCallError) return err.status;
+  const m = /: (\d{3}) /.exec(err instanceof Error ? err.message : String(err));
+  return m ? Number(m[1]) : null;
+};
+
 export interface ActsStats {
   liked: number;
   followed: number;
@@ -307,7 +314,13 @@ export async function autoActs(
         }
         const message = err instanceof Error ? err.message : String(err);
         stats.errors.push(`${what} ${p.id}: ${message}`);
-        if (err instanceof SiteCallError && err.status === PROFILE_BUSY) continue;
+        const status = statusOf(err);
+        if (status === PROFILE_BUSY) continue;
+        // a pace or other refusal: nothing reached the site, and the next post meets it too
+        if (status === 429) {
+          on[what] = false;
+          continue;
+        }
         await o.step(`${what} failed ${p.id}`, () => markActFailed(db, p.id, what, message));
         if (what === "follow") followed.add(who);
         // a sign-in wall or a block is the account's, not this post's

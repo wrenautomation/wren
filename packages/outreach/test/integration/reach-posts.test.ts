@@ -1059,6 +1059,32 @@ describe("likes and follows with no yes", () => {
     expect(sent).toEqual([]);
   });
 
+  it("a short refusal (pace) ends the act for the pass and counts on no post", async () => {
+    for (let i = 0; i < 4; i++) await row(`77${i}`, `lee${i}`, 90);
+    const pace = new SiteCallError(
+      "x",
+      "POST",
+      "/2/users/me/likes",
+      429,
+      "x pace: too many calls queued; retry after 124s",
+    );
+    const asked: string[] = [];
+    const r = await run(
+      {
+        fail: (path) => {
+          if (!path.endsWith("/likes")) return null;
+          asked.push(path);
+          return pace;
+        },
+      },
+      {},
+    );
+    expect(asked).toHaveLength(1);
+    expect(r).toMatchObject({ liked: 0, followed: 4, held: [] });
+    const fails = await db().select({ n: reachPosts.likeFails }).from(reachPosts);
+    expect(fails.every((f) => f.n === 0)).toBe(true);
+  });
+
   it("ACT_BREAK failures in a row hold the act for the day; a busy profile counts nothing", async () => {
     for (let i = 0; i < ACT_BREAK + 1; i++) await row(`75${i}`, `hal${i}`, 90);
     const holds: Record<string, number> = {};

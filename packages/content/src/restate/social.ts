@@ -107,6 +107,10 @@ const ACTIVITY_READS = "activityReads";
  * `<platform> counts`: no pass asks them before then (X's search cap is 50 a day).
  */
 const CAP_HOLDS = "capHolds";
+/** Object state: posts Graph says have no comments to read (gone, or no such edge), ms, by `platform:id`. */
+const GONE = "gone";
+/** Graph's answer for a post with no comments edge: code 100 nonexisting field, or 33 no such object. */
+const GONE_ANSWER = /graph code (100: \(#100\) Tried accessing nonexisting field|33\b)/;
 /** Object state: the last Google Maps review read, ms. */
 const MAPS_READ = "mapsRead";
 /** Platforms whose activity is read less often than every pass: LinkedIn's 12 reads a day. */
@@ -385,9 +389,16 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
     const reads: Record<string, number> = {};
     const counts: Record<string, number> = {};
     const fulls: Record<string, number> = {};
+    const goneBefore = (await ctx.get<Record<string, number>>(GONE)) ?? {};
+    const gone: Record<string, number> = {};
     const due: { p: (typeof posts)[number]; key: string; wasPushed: boolean }[] = [];
     for (const p of posts) {
       const key = `${p.platform}:${p.id}`;
+      const dead = goneBefore[key];
+      if (dead !== undefined) {
+        gone[key] = dead;
+        continue;
+      }
       const last = before[key];
       if (last !== undefined) reads[key] = last;
       const count = countsBefore[key];
@@ -449,10 +460,12 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
           stats.posts -= 1;
           if (before[key] === undefined) delete reads[key];
           else reads[key] = before[key];
-        } else stats.errors.push(`${key}: ${errorText(err)}`);
+        } else if (GONE_ANSWER.test(errorText(err))) gone[key] = now.getTime();
+        else stats.errors.push(`${key}: ${errorText(err)}`);
       }
     }
     ctx.set(CAP_HOLDS, holds);
+    ctx.set(GONE, gone);
     // Posts past the window drop out of state.
     ctx.set(READS, reads);
     ctx.set(COUNTS, counts);
@@ -541,7 +554,7 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
         pushedActivity.has(platform) || now.getTime() - (lastActivity[platform] ?? 0) >= every;
       if (due) lastActivity[platform] = now.getTime();
       // Rows with no time (YouTube's subscribers) pass any `since`; the unique ref keeps them once.
-      if (due && go(`activity ${platform}`, platform))
+      if (due && !held(`${platform} activity`) && go(`activity ${platform}`, platform))
         try {
           const since = await ctx.run(`since ${platform}`, () => newestActivityAt(db, platform));
           const rows = await limits.within(
@@ -556,7 +569,8 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
               )),
             );
         } catch (err) {
-          stats.errors.push(`${platform} activity: ${errorText(err)}`);
+          if (held(`${platform} activity`, err)) ctx.set(CAP_HOLDS, holds);
+          else stats.errors.push(`${platform} activity: ${errorText(err)}`);
         }
       // A count that fails is no reading this pass, never a failed pass: the next pass asks again.
       if (AUDIENCE_ON_DEMAND.includes(platform)) continue;

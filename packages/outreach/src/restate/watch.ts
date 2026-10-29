@@ -9,7 +9,7 @@
  */
 import type * as restate from "@restatedev/restate-sdk";
 import { sendsOn } from "@wren/core/clients";
-import { type CapHolds, capWaitMs, liveHolds } from "@wren/core/content";
+import { type CapHolds, capHeld, capWaitMs, holdCap, liveHolds } from "@wren/core/content";
 import { executorEmit, replyFired } from "@wren/core/executor";
 import { isVendorStop } from "@wren/core/metered";
 import type { OutreachChannel } from "@wren/core/outreach";
@@ -236,7 +236,9 @@ export async function postsFor(
     ...(deps.drafts?.ours ? { ours: deps.drafts.ours } : {}),
     now,
     step: (name, fn) => ctx.run(name, fn),
-    capped: (err) => capWaitMs(err) !== null,
+    // a used or switched-off cap holds the platform's reads till it resets, not one pass
+    capped: (err) => holdCap(holds, `${platform} posts`, err, now.getTime()),
+    held: capHeld(holds, `${platform} posts`, now.getTime()),
   });
   const sites = deps.sitesFor(ctx);
   const account = settings.account;

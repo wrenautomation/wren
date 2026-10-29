@@ -28,3 +28,16 @@ Ranked by: no repeated sends to one person, then a broken flow stops the same da
 ## Decision log
 
 - 2026-10-29: chose A (William). No text match on "needs a person": autobrowse sends a write's failure as a 502 with no code, so 2 tries park any failure.
+- 2026-10-29: a 429 that is not a long cap (LinkedIn's pace, "too many calls queued") ends that act for the pass and counts on no post. Before, only a success counted toward `ACTS_PER_PASS`, so one pass sent a like to every due post: 711 refused LinkedIn likes in 34 h.
+
+## Other repeated calls, same day
+
+Desk ledger, 10-28 12:00 to 10-29 22:00.
+
+| Calls | What | Fix |
+|---|---|---|
+| ~600 | Meta comments on stories: Graph code 100 "nonexisting field (comments)" | `recentPosts` leaves stories out. A post Graph answers code 100 or 33 is kept in `SocialWatch` state `gone` and never read again in its window |
+| 22 | A Facebook Page post id `<page>_<n>` refused as "a numeric Graph id" | autobrowse `meta` comments route takes a Graph id |
+| ~300 | LinkedIn comments and activity reads against `cap 0` | `capWaitMs` holds `cap 0` till the UTC day turns; `SocialWatch` now holds activity too |
+| 81 | LinkedIn post search against `cap 0` | the posts pass keeps `<platform> posts` in its holds, across passes |
+| ~100 | LinkedIn sign-ins refused, a new password try on every read | autobrowse holds a credential 12 h after a refused sign-in and sends one note |

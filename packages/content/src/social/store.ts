@@ -65,6 +65,8 @@ export async function recentPosts(
       and(
         inArray(contentDrafts.platform, [...platforms]),
         isNotNull(contentDrafts.publishedId),
+        // a story takes no comments: Graph answers code 100 on every read
+        sql`coalesce(${contentDrafts.extra}->>'kind', '') <> 'story'`,
         talking ? or(fresh, talking) : fresh,
       ),
     )
