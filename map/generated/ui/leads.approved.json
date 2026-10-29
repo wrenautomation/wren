@@ -52,6 +52,9 @@
     "about": "Leads stuck before a send, and why.",
     "file": "apps/portal/web/src/records.tsx",
     "label": "Stalls",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 2,
     "record": "email.stall",
     "template": "list"

@@ -40,6 +40,9 @@
     "file": "apps/portal/web/src/records.tsx",
     "hidden": true,
     "label": "Deliverables",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 12,
     "record": "delivery.deliverable",
     "template": "queue"
@@ -82,6 +85,9 @@
     "about": "Questions and files we need from you.",
     "file": "apps/portal/web/src/records.tsx",
     "label": "Needs you",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 10,
     "record": "delivery.ask",
     "template": "queue"
@@ -109,6 +115,9 @@
     "about": "Your contract, the setup fee and the access we need.",
     "file": "apps/portal/web/src/records.tsx",
     "label": "Paperwork",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 11,
     "record": "delivery.paperwork",
     "template": "list"
@@ -137,6 +146,9 @@
     "about": "Every step of your project, with its dates.",
     "file": "apps/portal/web/src/records.tsx",
     "label": "Plan",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 8,
     "record": "delivery.step",
     "template": "list"
@@ -180,6 +192,9 @@
     "file": "apps/portal/web/src/records.tsx",
     "hidden": true,
     "label": "Results",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 13,
     "record": "delivery.result",
     "template": "list"
@@ -207,6 +222,10 @@
     "about": "Who your campaign writes to, and how.",
     "file": "apps/portal/web/src/records.tsx",
     "label": "Setup",
+    "npm": [
+     "drizzle-orm",
+     "zod"
+    ],
     "order": 6,
     "record": "reactivation.setting",
     "template": "form"
@@ -221,6 +240,9 @@
     "about": "What we've done on your project, as we post it.",
     "file": "apps/portal/web/src/records.tsx",
     "label": "Updates",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 9,
     "record": "delivery.update",
     "template": "list"
@@ -265,6 +287,86 @@
    }
   },
   {
+   "from": "ui:reactivation/deliverables",
+   "to": "table:delivery.access_requests",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/deliverables",
+   "to": "table:delivery.agreements",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/deliverables",
+   "to": "table:delivery.asks",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/deliverables",
+   "to": "table:delivery.comments",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/deliverables",
+   "to": "table:delivery.deliverables",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/deliverables",
+   "to": "table:delivery.engagements",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/deliverables",
+   "to": "table:delivery.interests",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/deliverables",
+   "to": "table:delivery.invoices",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/deliverables",
+   "to": "table:delivery.milestones",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/deliverables",
+   "to": "table:delivery.moments",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/deliverables",
+   "to": "table:delivery.pulses",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/deliverables",
+   "to": "table:delivery.results",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/deliverables",
+   "to": "table:delivery.reviews",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/deliverables",
+   "to": "table:delivery.updates",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/deliverables",
+   "to": "table:pipeline.terms_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/deliverables",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
    "from": "ui:reactivation/emails",
    "to": "table:public.reactivation_emails",
    "kind": "reads"
@@ -272,6 +374,86 @@
   {
    "from": "ui:reactivation/keep",
    "to": "table:public.reactivation_keep",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/needs-you",
+   "to": "table:delivery.access_requests",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/needs-you",
+   "to": "table:delivery.agreements",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/needs-you",
+   "to": "table:delivery.asks",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/needs-you",
+   "to": "table:delivery.comments",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/needs-you",
+   "to": "table:delivery.deliverables",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/needs-you",
+   "to": "table:delivery.engagements",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/needs-you",
+   "to": "table:delivery.interests",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/needs-you",
+   "to": "table:delivery.invoices",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/needs-you",
+   "to": "table:delivery.milestones",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/needs-you",
+   "to": "table:delivery.moments",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/needs-you",
+   "to": "table:delivery.pulses",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/needs-you",
+   "to": "table:delivery.results",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/needs-you",
+   "to": "table:delivery.reviews",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/needs-you",
+   "to": "table:delivery.updates",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/needs-you",
+   "to": "table:pipeline.terms_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/needs-you",
+   "to": "table:public.clients",
    "kind": "reads"
   },
   {
@@ -362,6 +544,86 @@
   {
    "from": "ui:reactivation/people",
    "to": "table:public.reactivation_person_activity",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/plan",
+   "to": "table:delivery.access_requests",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/plan",
+   "to": "table:delivery.agreements",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/plan",
+   "to": "table:delivery.asks",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/plan",
+   "to": "table:delivery.comments",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/plan",
+   "to": "table:delivery.deliverables",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/plan",
+   "to": "table:delivery.engagements",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/plan",
+   "to": "table:delivery.interests",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/plan",
+   "to": "table:delivery.invoices",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/plan",
+   "to": "table:delivery.milestones",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/plan",
+   "to": "table:delivery.moments",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/plan",
+   "to": "table:delivery.pulses",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/plan",
+   "to": "table:delivery.results",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/plan",
+   "to": "table:delivery.reviews",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/plan",
+   "to": "table:delivery.updates",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/plan",
+   "to": "table:pipeline.terms_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/plan",
+   "to": "table:public.clients",
    "kind": "reads"
   },
   {

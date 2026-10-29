@@ -7,6 +7,10 @@
    "parent": "service:Sites",
    "group": "@wren/sites",
    "attrs": {
+    "deps": [
+     "main",
+     "open"
+    ],
     "input": "FormRequest",
     "output": "Answer",
     "wrap": "serviceHandler"
@@ -18,6 +22,9 @@
    "parent": "service:Sites",
    "group": "@wren/sites",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "Parameters<typeof api.hop>[0]",
     "output": "{ kept: boolean; }",
     "wrap": "serviceHandler"
@@ -29,6 +36,10 @@
    "parent": "service:Sites",
    "group": "@wren/sites",
    "attrs": {
+    "deps": [
+     "main",
+     "shareKey"
+    ],
     "input": "Parameters<typeof api.serve>[0]",
     "output": "Served",
     "wrap": "serviceHandler"
@@ -40,6 +51,10 @@
    "parent": "service:Sites",
    "group": "@wren/sites",
    "attrs": {
+    "deps": [
+     "main",
+     "open"
+    ],
     "input": "Parameters<typeof api.serveForm>[0]",
     "output": "Served",
     "wrap": "serviceHandler"
@@ -51,6 +66,9 @@
    "parent": "service:Sites",
    "group": "@wren/sites",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "Parameters<typeof api.track>[0]",
     "output": "{ kept: boolean; }",
     "wrap": "serviceHandler"
@@ -62,6 +80,10 @@
    "parent": "service:SitesConsole",
    "group": "@wren/sites",
    "attrs": {
+    "deps": [
+     "db",
+     "write"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -73,6 +95,10 @@
    "parent": "service:SitesConsole",
    "group": "@wren/sites",
    "attrs": {
+    "deps": [
+     "db",
+     "write"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -84,6 +110,10 @@
    "parent": "service:SitesConsole",
    "group": "@wren/sites",
    "attrs": {
+    "deps": [
+     "db",
+     "write"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -95,6 +125,10 @@
    "parent": "service:SitesConsole",
    "group": "@wren/sites",
    "attrs": {
+    "deps": [
+     "db",
+     "write"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -106,6 +140,10 @@
    "parent": "service:SitesConsole",
    "group": "@wren/sites",
    "attrs": {
+    "deps": [
+     "db",
+     "write"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -117,6 +155,9 @@
    "parent": "service:SitesConsole",
    "group": "@wren/sites",
    "attrs": {
+    "deps": [
+     "db"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -128,6 +169,10 @@
    "parent": "service:SitesConsole",
    "group": "@wren/sites",
    "attrs": {
+    "deps": [
+     "db",
+     "write"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -139,6 +184,10 @@
    "parent": "service:SitesConsole",
    "group": "@wren/sites",
    "attrs": {
+    "deps": [
+     "db",
+     "write"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -150,6 +199,10 @@
    "parent": "service:SitesConsole",
    "group": "@wren/sites",
    "attrs": {
+    "deps": [
+     "db",
+     "write"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -161,6 +214,9 @@
    "parent": "service:SitesConsole",
    "group": "@wren/sites",
    "attrs": {
+    "deps": [
+     "db"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -172,6 +228,10 @@
    "parent": "service:SitesConsole",
    "group": "@wren/sites",
    "attrs": {
+    "deps": [
+     "db",
+     "write"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -183,6 +243,10 @@
    "parent": "service:SitesConsole",
    "group": "@wren/sites",
    "attrs": {
+    "deps": [
+     "db",
+     "write"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -194,6 +258,10 @@
    "parent": "service:SitesConsole",
    "group": "@wren/sites",
    "attrs": {
+    "deps": [
+     "db",
+     "write"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -205,6 +273,10 @@
    "parent": "service:SitesConsole",
    "group": "@wren/sites",
    "attrs": {
+    "deps": [
+     "db",
+     "write"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -216,6 +288,10 @@
    "parent": "service:SitesConsole",
    "group": "@wren/sites",
    "attrs": {
+    "deps": [
+     "db",
+     "write"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -227,6 +303,10 @@
    "parent": "service:SitesConsole",
    "group": "@wren/sites",
    "attrs": {
+    "deps": [
+     "db",
+     "write"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -238,6 +318,10 @@
    "parent": "service:SitesConsole",
    "group": "@wren/sites",
    "attrs": {
+    "deps": [
+     "db",
+     "write"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -249,6 +333,10 @@
    "parent": "service:SitesConsole",
    "group": "@wren/sites",
    "attrs": {
+    "deps": [
+     "db",
+     "write"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -260,6 +348,9 @@
    "parent": "service:SitesConsole",
    "group": "@wren/sites",
    "attrs": {
+    "deps": [
+     "db"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -271,6 +362,10 @@
    "parent": "service:SitesConsole",
    "group": "@wren/sites",
    "attrs": {
+    "deps": [
+     "db",
+     "write"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -282,6 +377,9 @@
    "parent": "service:SitesConsole",
    "group": "@wren/sites",
    "attrs": {
+    "deps": [
+     "db"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -293,6 +391,10 @@
    "parent": "service:SitesConsole",
    "group": "@wren/sites",
    "attrs": {
+    "deps": [
+     "db",
+     "write"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -304,6 +406,10 @@
    "parent": "service:SitesConsole",
    "group": "@wren/sites",
    "attrs": {
+    "deps": [
+     "db",
+     "write"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -315,6 +421,9 @@
    "parent": "service:SitesConsole",
    "group": "@wren/sites",
    "attrs": {
+    "deps": [
+     "db"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -326,6 +435,9 @@
    "parent": "service:SitesConsole",
    "group": "@wren/sites",
    "attrs": {
+    "deps": [
+     "db"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -337,6 +449,9 @@
    "parent": "service:SitesConsole",
    "group": "@wren/sites",
    "attrs": {
+    "deps": [
+     "db"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -348,6 +463,9 @@
    "parent": "service:SitesConsole",
    "group": "@wren/sites",
    "attrs": {
+    "deps": [
+     "db"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -359,6 +477,9 @@
    "parent": "service:SitesConsole",
    "group": "@wren/sites",
    "attrs": {
+    "deps": [
+     "db"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -370,6 +491,10 @@
    "parent": "service:SitesConsole",
    "group": "@wren/sites",
    "attrs": {
+    "deps": [
+     "db",
+     "write"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -381,6 +506,10 @@
    "parent": "service:SitesConsole",
    "group": "@wren/sites",
    "attrs": {
+    "deps": [
+     "db",
+     "write"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -392,6 +521,10 @@
    "parent": "service:SitesConsole",
    "group": "@wren/sites",
    "attrs": {
+    "deps": [
+     "db",
+     "write"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -403,6 +536,10 @@
    "parent": "service:SitesConsole",
    "group": "@wren/sites",
    "attrs": {
+    "deps": [
+     "db",
+     "write"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -414,6 +551,11 @@
    "parent": "service:SitesConsole",
    "group": "@wren/sites",
    "attrs": {
+    "deps": [
+     "db",
+     "shareKey",
+     "write"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -425,6 +567,10 @@
    "parent": "service:SitesConsole",
    "group": "@wren/sites",
    "attrs": {
+    "deps": [
+     "db",
+     "write"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -436,6 +582,10 @@
    "parent": "service:SitesConsole",
    "group": "@wren/sites",
    "attrs": {
+    "deps": [
+     "db",
+     "write"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -447,6 +597,10 @@
    "parent": "service:SitesConsole",
    "group": "@wren/sites",
    "attrs": {
+    "deps": [
+     "db",
+     "write"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -458,6 +612,10 @@
    "parent": "service:SitesConsole",
    "group": "@wren/sites",
    "attrs": {
+    "deps": [
+     "db",
+     "write"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -469,6 +627,7 @@
    "parent": "@wren/sites",
    "group": "@wren/sites",
    "attrs": {
+    "factory": "makeSites",
     "file": "packages/sites/src/service.ts",
     "kind": "service"
    }
@@ -479,6 +638,7 @@
    "parent": "@wren/sites",
    "group": "@wren/sites",
    "attrs": {
+    "factory": "makeSitesConsole",
     "file": "packages/sites/src/console.ts",
     "kind": "service",
     "via": "portalService"

@@ -25,6 +25,9 @@
     "about": "Calls nobody picked up, and the text each caller got back.",
     "file": "apps/portal/web/src/records.tsx",
     "label": "Missed calls",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 3,
     "record": "sms.call",
     "template": "list"
@@ -52,6 +55,9 @@
     "about": "Customers we asked for a review, and who left one.",
     "file": "apps/portal/web/src/records.tsx",
     "label": "Reviews",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 4,
     "record": "sms.review",
     "template": "list"
@@ -66,6 +72,9 @@
     "about": "Each new lead and how fast they got a text and a call.",
     "file": "apps/portal/web/src/records.tsx",
     "label": "Speed to lead",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 2,
     "record": "sms.speed",
     "template": "list"
@@ -80,6 +89,9 @@
     "about": "Text conversations waiting on a reply.",
     "file": "apps/portal/web/src/records.tsx",
     "label": "Threads",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 1,
     "record": "sms.thread",
     "template": "list"

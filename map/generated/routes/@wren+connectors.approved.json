@@ -7,6 +7,10 @@
    "parent": "service:ConnectorCallback",
    "group": "@wren/connectors",
    "attrs": {
+    "deps": [
+     "access",
+     "main"
+    ],
     "input": "z.infer<typeof CONNECTOR_LANDING>",
     "npm": [
      "@wrenautomation/autobrowse"
@@ -21,6 +25,17 @@
    "parent": "service:ConnectorSync",
    "group": "@wren/connectors",
    "attrs": {
+    "deps": [
+     "access",
+     "cap",
+     "clientDb",
+     "crm",
+     "fetch",
+     "fire",
+     "main",
+     "now",
+     "pullers"
+    ],
     "input": "{ chain?: string }",
     "npm": [
      "@wrenautomation/autobrowse"
@@ -35,6 +50,10 @@
    "parent": "service:Connectors",
    "group": "@wren/connectors",
    "attrs": {
+    "deps": [
+     "access",
+     "main"
+    ],
     "input": "?",
     "npm": [
      "@wrenautomation/autobrowse"
@@ -49,6 +68,10 @@
    "parent": "service:Connectors",
    "group": "@wren/connectors",
    "attrs": {
+    "deps": [
+     "access",
+     "main"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -60,6 +83,10 @@
    "parent": "service:Connectors",
    "group": "@wren/connectors",
    "attrs": {
+    "deps": [
+     "access",
+     "main"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -71,6 +98,10 @@
    "parent": "service:Connectors",
    "group": "@wren/connectors",
    "attrs": {
+    "deps": [
+     "access",
+     "main"
+    ],
     "input": "PortalRequest & { id: number }",
     "npm": [
      "@wrenautomation/autobrowse"
@@ -85,6 +116,7 @@
    "parent": "@wren/connectors",
    "group": "@wren/connectors",
    "attrs": {
+    "factory": "makeConnectorCallback",
     "file": "packages/connectors/src/restate.ts",
     "kind": "service"
    }
@@ -95,6 +127,7 @@
    "parent": "@wren/connectors",
    "group": "@wren/connectors",
    "attrs": {
+    "factory": "makeConnectorSync",
     "file": "packages/connectors/src/restate.ts",
     "kind": "object"
    }
@@ -105,6 +138,7 @@
    "parent": "@wren/connectors",
    "group": "@wren/connectors",
    "attrs": {
+    "factory": "makeConnectors",
     "file": "packages/connectors/src/restate.ts",
     "kind": "service",
     "via": "portalService"

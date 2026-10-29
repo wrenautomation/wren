@@ -25,6 +25,9 @@
     "about": "Estimates and contracts you sent, and whether they're signed.",
     "file": "apps/portal/web/src/records.tsx",
     "label": "Documents",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 0,
     "record": "documents.document",
     "template": "list"
@@ -39,6 +42,9 @@
     "about": "Saved documents to start an estimate or contract from.",
     "file": "apps/portal/web/src/records.tsx",
     "label": "Templates",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 1,
     "record": "documents.template",
     "template": "list"

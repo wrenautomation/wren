@@ -14,6 +14,58 @@
  ],
  "edges": [
   {
+   "from": "route:ConsolePortal/addClient",
+   "to": "system:restate",
+   "kind": "calls",
+   "attrs": {
+    "here": [
+     "apps/worker/src/services/platform.ts"
+    ],
+    "title": [
+     "`WREN_RESTATE_ADMIN_URL`"
+    ]
+   }
+  },
+  {
+   "from": "route:ConsolePortal/call",
+   "to": "system:restate",
+   "kind": "calls",
+   "attrs": {
+    "here": [
+     "apps/worker/src/services/platform.ts"
+    ],
+    "title": [
+     "`WREN_RESTATE_ADMIN_URL`"
+    ]
+   }
+  },
+  {
+   "from": "route:ConsolePortal/sandboxMake",
+   "to": "system:restate",
+   "kind": "calls",
+   "attrs": {
+    "here": [
+     "apps/worker/src/services/platform.ts"
+    ],
+    "title": [
+     "`WREN_RESTATE_ADMIN_URL`"
+    ]
+   }
+  },
+  {
+   "from": "route:ConsolePortal/sandboxReset",
+   "to": "system:restate",
+   "kind": "calls",
+   "attrs": {
+    "here": [
+     "apps/worker/src/services/platform.ts"
+    ],
+    "title": [
+     "`WREN_RESTATE_ADMIN_URL`"
+    ]
+   }
+  },
+  {
    "from": "system:restate",
    "to": "system:wren.container:worker",
    "kind": "invokes",

@@ -25,6 +25,9 @@
     "about": "Your team, and when each person last signed in.",
     "file": "apps/portal/web/src/records.tsx",
     "label": "Team",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 0,
     "record": "console.team",
     "template": "list"
@@ -53,6 +56,9 @@
     "about": "Extra access given to someone beyond their role.",
     "file": "apps/portal/web/src/records.tsx",
     "label": "Grants",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 2,
     "record": "access.grant",
     "template": "list"
@@ -67,6 +73,9 @@
     "about": "Who can reach what, to check it's still right.",
     "file": "apps/portal/web/src/records.tsx",
     "label": "Access review",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 3,
     "record": "access.review",
     "template": "list"
@@ -81,6 +90,9 @@
     "about": "The roles people can hold, and what each one may do.",
     "file": "apps/portal/web/src/records.tsx",
     "label": "Roles",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 1,
     "record": "access.role",
     "template": "list"

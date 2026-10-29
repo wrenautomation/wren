@@ -7,6 +7,15 @@
    "parent": "service:Payments",
    "group": "@wren/payments",
    "attrs": {
+    "deps": [
+     "fetch",
+     "keys",
+     "mailer",
+     "main",
+     "open",
+     "stripeBase",
+     "stripeRetry"
+    ],
     "input": "{ id: string }",
     "npm": [
      "libphonenumber-js",
@@ -22,6 +31,12 @@
    "parent": "service:Payments",
    "group": "@wren/payments",
    "attrs": {
+    "deps": [
+     "fire",
+     "keys",
+     "main",
+     "open"
+    ],
     "input": "{ client: string; raw: string; signature?: string | null }",
     "npm": [
      "stripe"
@@ -36,6 +51,13 @@
    "parent": "service:PaymentsConsole",
    "group": "@wren/payments",
    "attrs": {
+    "deps": [
+     "fetch",
+     "keys",
+     "main",
+     "open",
+     "stripeBase"
+    ],
     "input": "IdsRequest",
     "npm": [
      "libphonenumber-js",
@@ -51,6 +73,13 @@
    "parent": "service:PaymentsConsole",
    "group": "@wren/payments",
    "attrs": {
+    "deps": [
+     "fetch",
+     "keys",
+     "main",
+     "open",
+     "stripeBase"
+    ],
     "input": "IdsRequest",
     "npm": [
      "libphonenumber-js",
@@ -66,6 +95,13 @@
    "parent": "service:PaymentsConsole",
    "group": "@wren/payments",
    "attrs": {
+    "deps": [
+     "fetch",
+     "keys",
+     "main",
+     "portal",
+     "stripeBase"
+    ],
     "input": "ConnectRequest",
     "npm": [
      "stripe"
@@ -80,6 +116,13 @@
    "parent": "service:PaymentsConsole",
    "group": "@wren/payments",
    "attrs": {
+    "deps": [
+     "fetch",
+     "keys",
+     "main",
+     "open",
+     "stripeBase"
+    ],
     "input": "CreateRequest",
     "npm": [
      "libphonenumber-js",
@@ -95,6 +138,9 @@
    "parent": "service:PaymentsConsole",
    "group": "@wren/payments",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "IdsRequest",
     "output": "{ done: string[]; }",
     "wrap": "serviceHandler"
@@ -106,6 +152,13 @@
    "parent": "service:PaymentsConsole",
    "group": "@wren/payments",
    "attrs": {
+    "deps": [
+     "fetch",
+     "keys",
+     "main",
+     "open",
+     "stripeBase"
+    ],
     "input": "FromThreadRequest",
     "npm": [
      "libphonenumber-js",
@@ -121,6 +174,11 @@
    "parent": "service:PaymentsConsole",
    "group": "@wren/payments",
    "attrs": {
+    "deps": [
+     "keys",
+     "main",
+     "open"
+    ],
     "input": "PortalRequest & ExportAsk",
     "output": "import(\"@wren/core/records/serve\").RecordsFile",
     "wrap": "serviceHandler"
@@ -132,6 +190,11 @@
    "parent": "service:PaymentsConsole",
    "group": "@wren/payments",
    "attrs": {
+    "deps": [
+     "keys",
+     "main",
+     "open"
+    ],
     "input": "PortalRequest & GetAsk",
     "output": "import(\"@wren/core/records/serve\").RecordAnswer",
     "wrap": "serviceHandler"
@@ -143,6 +206,11 @@
    "parent": "service:PaymentsConsole",
    "group": "@wren/payments",
    "attrs": {
+    "deps": [
+     "keys",
+     "main",
+     "open"
+    ],
     "input": "PortalRequest & ListAsk",
     "output": "import(\"@wren/core/records/serve\").RecordsPage",
     "wrap": "serviceHandler"
@@ -154,6 +222,11 @@
    "parent": "service:PaymentsConsole",
    "group": "@wren/payments",
    "attrs": {
+    "deps": [
+     "keys",
+     "main",
+     "open"
+    ],
     "input": "PortalRequest & StatsAsk",
     "output": "import(\"@wren/core/records/serve\").RecordsStat",
     "wrap": "serviceHandler"
@@ -165,6 +238,10 @@
    "parent": "service:PaymentsConsole",
    "group": "@wren/payments",
    "attrs": {
+    "deps": [
+     "keys",
+     "main"
+    ],
     "input": "PortalRequest",
     "output": "import(\"@wren/core/records\").RecordMeta[]",
     "wrap": "serviceHandler"
@@ -176,6 +253,11 @@
    "parent": "service:PaymentsConsole",
    "group": "@wren/payments",
    "attrs": {
+    "deps": [
+     "keys",
+     "main",
+     "portal"
+    ],
     "input": "PortalRequest",
     "output": "{ connected: boolean; live: boolean | null; webhook: string | null; url: string; keyStore: boolean; last4: string | null; managed: string; approves: boolean; note: string | null; drift: number; }",
     "wrap": "serviceHandler"
@@ -187,6 +269,7 @@
    "parent": "@wren/payments",
    "group": "@wren/payments",
    "attrs": {
+    "factory": "makePayments",
     "file": "packages/payments/src/service.ts",
     "kind": "service"
    }
@@ -197,6 +280,7 @@
    "parent": "@wren/payments",
    "group": "@wren/payments",
    "attrs": {
+    "factory": "makePaymentsConsole",
     "file": "packages/payments/src/console.ts",
     "kind": "service",
     "via": "portalService"

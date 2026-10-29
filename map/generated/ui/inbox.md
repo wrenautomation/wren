@@ -14,5 +14,5 @@ Registered in `apps/portal/web/src/modules/wren/index.ts`.
 | Mail rules | list of `watch.rule` | `apps/portal/web/src/records.tsx` | `watch.rule_records` | Rules that hide email you don't need to see. |
 | Issues (link only) | list of `access.issue` | `apps/portal/web/src/records.tsx` | `public.issues` | Problems raised on a record, waiting on a fix. |
 | Access asks (link only) | list of `access.ask` | `apps/portal/web/src/records.tsx` | `public.access_asks`, `public.grants` | Requests for access, waiting on an answer. |
-| Mentions (link only) | list of `notes.mention` | `apps/portal/web/src/records.tsx` |  | Notes where someone tagged you with @. |
+| Mentions (link only) | list of `notes.mention` | `apps/portal/web/src/records.tsx` | `public.board_shares`, `public.boards`, `public.inbox_notes`, `public.note_comments`, `public.note_mentions`, `public.note_shares`, `public.notes` | Notes where someone tagged you with @. |
 | Email replies (link only) | queue of `email.reply` | `apps/portal/web/src/records.tsx` | `public.email_reply_records`, `public.email_reply_thread` | Warm email replies, each with a drafted answer. |

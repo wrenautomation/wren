@@ -66,6 +66,9 @@
     "about": "Each node and edge: who arrived, who went on, and how long it took.",
     "file": "apps/portal/web/src/records.tsx",
     "label": "Shape",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 0,
     "record": "pipeline.number",
     "template": "list"
@@ -94,6 +97,9 @@
     "about": "Each offer's journeys, deals and what was collected.",
     "file": "apps/portal/web/src/records.tsx",
     "label": "Offers",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 1,
     "record": "pipeline.number",
     "template": "list"

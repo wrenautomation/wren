@@ -41,6 +41,9 @@
     "file": "apps/portal/web/src/records.tsx",
     "group": "Visitors",
     "label": "Experiments",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 3,
     "record": "marketing.experiment",
     "template": "list"
@@ -176,6 +179,9 @@
     "file": "apps/portal/web/src/records.tsx",
     "group": "Visitors",
     "label": "Surveys",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 4,
     "record": "marketing.survey",
     "template": "list"

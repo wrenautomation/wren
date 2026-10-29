@@ -52,6 +52,9 @@
     "file": "apps/portal/web/src/records.tsx",
     "group": "People",
     "label": "Access asks",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 6,
     "record": "access.ask",
     "template": "list"
@@ -66,6 +69,9 @@
     "about": "Your invoices from Wren, paid and due.",
     "file": "apps/portal/web/src/records.tsx",
     "label": "Billing",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 19,
     "record": "delivery.invoice",
     "template": "list"
@@ -81,6 +87,9 @@
     "file": "apps/portal/web/src/records.tsx",
     "group": "Activity",
     "label": "Changes",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 21,
     "record": "delivery.change",
     "template": "list"
@@ -152,6 +161,9 @@
     "file": "apps/portal/web/src/records.tsx",
     "group": "People",
     "label": "Grants",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 4,
     "record": "access.grant",
     "template": "list"
@@ -167,6 +179,9 @@
     "file": "apps/portal/web/src/records.tsx",
     "group": "Activity",
     "label": "Issues",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 20,
     "record": "access.issue",
     "template": "list"
@@ -252,6 +267,9 @@
     "file": "apps/portal/web/src/records.tsx",
     "group": "People",
     "label": "Access review",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 5,
     "record": "access.review",
     "template": "list"
@@ -267,6 +285,9 @@
     "file": "apps/portal/web/src/records.tsx",
     "group": "People",
     "label": "Roles",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 3,
     "record": "access.role",
     "template": "list"

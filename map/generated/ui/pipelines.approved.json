@@ -38,6 +38,9 @@
     "about": "Sales calls booked with you, past and coming up.",
     "file": "apps/portal/web/src/records.tsx",
     "label": "Calls",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 3,
     "record": "email.call",
     "template": "list"
@@ -52,6 +55,9 @@
     "about": "Every deal, open, won and lost, with its signed terms.",
     "file": "apps/portal/web/src/records.tsx",
     "label": "Deals",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 2,
     "record": "pipeline.deal",
     "template": "list"
@@ -66,6 +72,9 @@
     "about": "Each source of the shape: what opens a journey, and when one last did.",
     "file": "apps/portal/web/src/records.tsx",
     "label": "Entries",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 4,
     "record": "pipeline.entry",
     "template": "list"
@@ -80,6 +89,9 @@
     "about": "Every journey, open, done and dropped.",
     "file": "apps/portal/web/src/records.tsx",
     "label": "Journeys",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 1,
     "record": "pipeline.journey",
     "template": "list"

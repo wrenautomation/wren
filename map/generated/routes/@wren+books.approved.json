@@ -7,6 +7,12 @@
    "parent": "service:BooksConsole",
    "group": "@wren/books",
    "attrs": {
+    "deps": [
+     "_",
+     "execute",
+     "transaction",
+     "update"
+    ],
     "input": "AccountRequest",
     "output": "{ done: string[]; }",
     "wrap": "serviceHandler"
@@ -18,6 +24,7 @@
    "parent": "@wren/books",
    "group": "@wren/books",
    "attrs": {
+    "factory": "makeBooksConsole",
     "file": "packages/books/src/console.ts",
     "kind": "service",
     "via": "portalService"

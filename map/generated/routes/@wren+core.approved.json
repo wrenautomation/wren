@@ -7,6 +7,15 @@
    "parent": "service:AccountsConsole",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "agent",
+     "checks",
+     "db",
+     "keys",
+     "now",
+     "parts",
+     "setups"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -18,6 +27,10 @@
    "parent": "service:AccountsConsole",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "db",
+     "now"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -29,6 +42,11 @@
    "parent": "service:AccountsConsole",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "db",
+     "now",
+     "setups"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -40,6 +58,11 @@
    "parent": "service:AccountsConsole",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "db",
+     "limits",
+     "now"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -51,6 +74,13 @@
    "parent": "service:AccountsConsole",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "db",
+     "keys",
+     "now",
+     "parts",
+     "setups"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -62,6 +92,10 @@
    "parent": "service:AccountsConsole",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "db",
+     "now"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -73,6 +107,11 @@
    "parent": "service:AccountsConsole",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "db",
+     "limits",
+     "now"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -84,6 +123,11 @@
    "parent": "service:AccountsConsole",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "db",
+     "keys",
+     "now"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -95,6 +139,11 @@
    "parent": "service:AccountsConsole",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "db",
+     "now",
+     "setups"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -106,6 +155,10 @@
    "parent": "service:AccountsConsole",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "db",
+     "now"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -117,6 +170,11 @@
    "parent": "service:AccountsConsole",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "db",
+     "keys",
+     "now"
+    ],
     "input": "?",
     "npm": [
      "@wrenautomation/models"
@@ -131,6 +189,10 @@
    "parent": "service:Ask",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "select",
+     "update"
+    ],
     "input": "{ id: string }",
     "output": "void",
     "wrap": "restate.handlers.handler"
@@ -142,6 +204,10 @@
    "parent": "service:Ask",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "select",
+     "update"
+    ],
     "input": "{ id: string }",
     "output": "void",
     "wrap": "restate.handlers.handler"
@@ -153,6 +219,11 @@
    "parent": "service:Broadcast",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "clientDb",
+     "mail",
+     "main"
+    ],
     "input": "{ gen: number }",
     "output": "RunStats | { skipped: string; waiting?: never; } | { waiting: string; skipped?: never; }",
     "wrap": "exclusiveHandler"
@@ -186,6 +257,9 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "write"
@@ -197,6 +271,11 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "admin",
+     "main",
+     "mainUrl"
+    ],
     "input": "AddClientRequest",
     "npm": [
      "postgres"
@@ -211,6 +290,9 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "components"
+    ],
     "input": "PortalRequest",
     "output": "import(\"./loops.js\").AgentLine[]",
     "wrap": "plain"
@@ -222,6 +304,11 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "asked",
+     "components",
+     "main"
+    ],
     "input": "ComponentRequest",
     "output": "{ component: string; }",
     "wrap": "plain"
@@ -233,6 +320,9 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "write"
@@ -244,6 +334,9 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "write"
@@ -255,6 +348,9 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "Input",
     "output": "{ value: string; key: string; id: string; createdAt: Date; label: string; updatedAt: Date; owner: string | null; createdBy: string; updatedBy: string; }[]",
     "wrap": "plain"
@@ -266,6 +362,10 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "adminGet",
+     "main"
+    ],
     "input": "CallRequest",
     "output": "unknown",
     "wrap": "plain"
@@ -277,6 +377,12 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "bound",
+     "components",
+     "main",
+     "mainUrl"
+    ],
     "input": "InstallRequest",
     "npm": [
      "postgres"
@@ -291,6 +397,10 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "components",
+     "main"
+    ],
     "input": "ConnectRequest",
     "output": "{ client: string; site: string; set: boolean; }",
     "wrap": "plain"
@@ -302,6 +412,9 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "write"
@@ -313,6 +426,9 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "write"
@@ -324,6 +440,10 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "main",
+     "records"
+    ],
     "input": "Input",
     "output": "FieldsView",
     "wrap": "plain"
@@ -335,6 +455,9 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "PortalRequest",
     "output": "import(\"../decide/stats.js\").KindStats[]",
     "wrap": "plain"
@@ -346,6 +469,10 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "main",
+     "workflows"
+    ],
     "input": "DoorRequest",
     "output": "{ token: string; }",
     "wrap": "plain"
@@ -357,6 +484,10 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "main",
+     "workflows"
+    ],
     "input": "DoorRequest",
     "output": "{ token: string; }",
     "wrap": "plain"
@@ -368,6 +499,9 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "PortalRequest & ExperimentInput",
     "output": "{ flag: string; }",
     "wrap": "plain"
@@ -379,6 +513,9 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "PortalRequest & { ids?: unknown }",
     "output": "{ done: string[]; }",
     "wrap": "plain"
@@ -390,6 +527,10 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "edge",
+     "main"
+    ],
     "input": "PortalRequest & { ids?: unknown }",
     "output": "{ done: string[]; }",
     "wrap": "plain"
@@ -401,6 +542,10 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "edge",
+     "main"
+    ],
     "input": "PortalRequest & { ids?: unknown }",
     "output": "{ done: string[]; }",
     "wrap": "plain"
@@ -412,6 +557,10 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "edge",
+     "main"
+    ],
     "input": "PortalRequest & { ids?: unknown }",
     "output": "{ done: string[]; }",
     "wrap": "plain"
@@ -423,6 +572,10 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "edge",
+     "main"
+    ],
     "input": "PortalRequest & FlagInput",
     "output": "{ key: string; }",
     "wrap": "plain"
@@ -434,6 +587,10 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "edge",
+     "main"
+    ],
     "input": "PortalRequest & { ids?: unknown }",
     "output": "{ done: string[]; }",
     "wrap": "plain"
@@ -445,6 +602,9 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "write"
@@ -456,6 +616,9 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "write"
@@ -467,6 +630,12 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "bound",
+     "components",
+     "main",
+     "mainUrl"
+    ],
     "input": "InstallRequest",
     "npm": [
      "postgres"
@@ -481,6 +650,9 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "write"
@@ -492,6 +664,9 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "write"
@@ -503,6 +678,9 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "Input",
     "output": "IssueView[]",
     "wrap": "plain"
@@ -525,6 +703,9 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "KeepRequest",
     "output": "import(\"../saved-views.js\").SavedViewLine[]",
     "wrap": "plain"
@@ -536,6 +717,9 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "KeepRequest",
     "output": "Record<string, unknown>",
     "wrap": "plain"
@@ -547,6 +731,10 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "askContext",
+     "main"
+    ],
     "input": "QuestionRequest",
     "output": "{ id: string; }",
     "wrap": "plain"
@@ -558,6 +746,12 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "asked",
+     "main",
+     "records",
+     "views"
+    ],
     "input": "AskRequest",
     "output": "{ id: string; }",
     "wrap": "plain"
@@ -569,6 +763,12 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "asked",
+     "main",
+     "records",
+     "views"
+    ],
     "input": "PortalRequest & { asks?: unknown }",
     "output": "{ totals: number[]; }",
     "wrap": "plain"
@@ -580,6 +780,9 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "EditRequest",
     "output": "import(\"../edits.js\").Edited",
     "wrap": "plain"
@@ -591,6 +794,12 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "asked",
+     "main",
+     "records",
+     "views"
+    ],
     "input": "PortalRequest & ExportAsk",
     "output": "import(\"../records-serve.js\").RecordsFile",
     "wrap": "plain"
@@ -602,6 +811,12 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "asked",
+     "main",
+     "records",
+     "views"
+    ],
     "input": "PortalRequest & GetAsk",
     "output": "import(\"../records-serve.js\").RecordAnswer",
     "wrap": "plain"
@@ -613,6 +828,12 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "asked",
+     "main",
+     "records",
+     "views"
+    ],
     "input": "PortalRequest & ListAsk",
     "output": "import(\"../records-serve.js\").RecordsPage",
     "wrap": "plain"
@@ -624,6 +845,12 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "asked",
+     "main",
+     "records",
+     "views"
+    ],
     "input": "PortalRequest & StatsAsk",
     "output": "import(\"../records-serve.js\").RecordsStat",
     "wrap": "plain"
@@ -635,6 +862,10 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "main",
+     "views"
+    ],
     "input": "PortalRequest",
     "output": "import(\"@wren/reactivation/restate\").RecordMeta[]",
     "wrap": "plain"
@@ -646,6 +877,9 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "UndoRequest",
     "output": "import(\"../edits.js\").Edited",
     "wrap": "plain"
@@ -657,6 +891,9 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "PortalRequest & { id?: unknown }",
     "output": "{ done: number[]; }",
     "wrap": "plain"
@@ -668,6 +905,9 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "KeepRequest",
     "output": "{ removed: unknown; }",
     "wrap": "plain"
@@ -679,6 +919,9 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "PortalRequest & { ids?: unknown }",
     "output": "{ done: string[]; replayed: number; }",
     "wrap": "plain"
@@ -701,6 +944,9 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "write"
@@ -712,6 +958,9 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "write"
@@ -723,6 +972,9 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "write"
@@ -734,6 +986,9 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "write"
@@ -745,6 +1000,11 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "admin",
+     "main",
+     "mainUrl"
+    ],
     "input": "PortalRequest",
     "npm": [
      "postgres"
@@ -759,6 +1019,13 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "admin",
+     "bound",
+     "components",
+     "main",
+     "mainUrl"
+    ],
     "input": "PortalRequest",
     "npm": [
      "postgres"
@@ -773,6 +1040,9 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "KeepRequest",
     "output": "import(\"../saved-views.js\").SavedViewLine",
     "wrap": "plain"
@@ -784,6 +1054,9 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "KeepRequest",
     "output": "import(\"../saved-views.js\").SavedViewLine[]",
     "wrap": "plain"
@@ -795,6 +1068,9 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "SetLookRequest",
     "output": "{ client: string; look: unknown; }",
     "wrap": "plain"
@@ -817,6 +1093,9 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "KeepRequest",
     "output": "{ key: string; }",
     "wrap": "plain"
@@ -828,6 +1107,9 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "PortalRequest & SnippetInput",
     "output": "import(\"../library.js\").SnippetLine",
     "wrap": "plain"
@@ -839,6 +1121,9 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "PortalRequest & { ids?: unknown }",
     "output": "{ done: number[]; }",
     "wrap": "plain"
@@ -850,6 +1135,9 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "PortalRequest",
     "output": "import(\"../library.js\").SnippetLine[]",
     "wrap": "plain"
@@ -861,6 +1149,9 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "PortalRequest & SurveyInput",
     "output": "{ key: string; }",
     "wrap": "plain"
@@ -872,6 +1163,9 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "PortalRequest & { survey?: unknown; value?: unknown }",
     "output": "{ saved: boolean; }",
     "wrap": "plain"
@@ -883,6 +1177,10 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "edge",
+     "main"
+    ],
     "input": "PortalRequest & { ids?: unknown }",
     "output": "{ done: string[]; }",
     "wrap": "plain"
@@ -894,6 +1192,9 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "PortalRequest & { ids?: unknown }",
     "output": "{ done: string[]; }",
     "wrap": "plain"
@@ -905,6 +1206,10 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "edge",
+     "main"
+    ],
     "input": "PortalRequest & { ids?: unknown }",
     "output": "{ done: string[]; }",
     "wrap": "plain"
@@ -916,6 +1221,9 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "PortalRequest",
     "output": "import(\"../surveys.js\").SurveyDef[]",
     "wrap": "plain"
@@ -927,6 +1235,9 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "TeamSeatRequest",
     "output": "{ removed: string; }",
     "wrap": "plain"
@@ -938,6 +1249,9 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "TeamSeatRequest",
     "output": "{ email: string; role: import(\"../access.js\").RoleId; clients: string[] | null; }",
     "wrap": "plain"
@@ -949,6 +1263,12 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "bound",
+     "components",
+     "main",
+     "workflows"
+    ],
     "input": "IdsRequest",
     "output": "{ start: LoopKey[]; stop: LoopKey[]; }",
     "wrap": "plain"
@@ -960,6 +1280,9 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "IdsRequest",
     "output": "{ done: string[]; }",
     "wrap": "plain"
@@ -971,6 +1294,12 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "asked",
+     "components",
+     "main",
+     "setups"
+    ],
     "input": "TemplateRequest",
     "output": "import(\"../template-install.js\").Installed",
     "wrap": "plain"
@@ -982,6 +1311,9 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "PortalRequest",
     "output": "{ template: string; name: string; state: \"draft\" | \"live\" | \"waiting\" | \"off\"; current: boolean; parts: number; at: string; by: string; }[]",
     "wrap": "plain"
@@ -993,6 +1325,10 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "main",
+     "setups"
+    ],
     "input": "TemplateRequest",
     "output": "import(\"../template-install.js\").Plan",
     "wrap": "plain"
@@ -1004,6 +1340,9 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "TemplateRequest",
     "output": "{ id: string; state: import(\"../schema.js\").InstallState; }",
     "wrap": "plain"
@@ -1015,6 +1354,12 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "bound",
+     "components",
+     "main",
+     "workflows"
+    ],
     "input": "TemplateRequest",
     "output": "{ start: LoopKey[]; stop: LoopKey[]; }",
     "wrap": "plain"
@@ -1026,6 +1371,10 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "asked",
+     "main"
+    ],
     "input": "PortalRequest & { name?: unknown; pin?: unknown; days?: unknown }",
     "output": "import(\"../tokens.js\").TokenRow & { token: string; }",
     "wrap": "plain"
@@ -1037,6 +1386,9 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "PortalRequest & { id?: unknown }",
     "output": "{ revoked: string; }",
     "wrap": "plain"
@@ -1048,6 +1400,9 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "PortalRequest",
     "output": "import(\"../tokens.js\").TokenRow[]",
     "wrap": "plain"
@@ -1059,6 +1414,12 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "bound",
+     "components",
+     "main",
+     "mainUrl"
+    ],
     "input": "ComponentRequest",
     "npm": [
      "postgres"
@@ -1073,6 +1434,9 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "ViewRequest",
     "output": "import(\"./console-api.js\").ViewAnswer",
     "wrap": "plain"
@@ -1084,6 +1448,9 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "PortalRequest",
     "output": "ViewAsChoices",
     "wrap": "plain"
@@ -1095,6 +1462,9 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "PortalRequest & { id?: unknown }",
     "output": "{ state: \"thinking\"; error?: never; reply?: never; patch?: never; } | { state: \"failed\"; error: string; reply?: never; patch?: never; } | { state: \"done\"; reply: string; patch: import(\"../workflows.js\").WorkflowEdits | null; error?: never; }",
     "wrap": "plain"
@@ -1106,6 +1476,11 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "components",
+     "main",
+     "workflows"
+    ],
     "input": "WorkflowSaveRequest & { message?: unknown }",
     "output": "{ id: string; }",
     "wrap": "plain"
@@ -1117,6 +1492,11 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "components",
+     "main",
+     "workflows"
+    ],
     "input": "PortalRequest & { message?: unknown; name?: unknown }",
     "output": "{ workflow: string; ask: string | null; }",
     "wrap": "plain"
@@ -1128,6 +1508,10 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "main",
+     "workflows"
+    ],
     "input": "WorkflowSaveRequest",
     "output": "{ done: number; }",
     "wrap": "plain"
@@ -1139,6 +1523,10 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "main",
+     "workflows"
+    ],
     "input": "WorkflowSaveRequest",
     "output": "{ done: number; }",
     "wrap": "plain"
@@ -1150,6 +1538,10 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "main",
+     "workflows"
+    ],
     "input": "DoorRequest",
     "output": "import(\"../doors.js\").Door[]",
     "wrap": "plain"
@@ -1161,6 +1553,12 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "asked",
+     "components",
+     "main",
+     "workflows"
+    ],
     "input": "WorkflowSaveRequest",
     "output": "{ start: LoopKey[]; stop: LoopKey[]; }",
     "wrap": "plain"
@@ -1172,6 +1570,11 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "components",
+     "main",
+     "workflows"
+    ],
     "input": "WorkflowSaveRequest",
     "output": "{ id: number; problems: string[]; }",
     "wrap": "plain"
@@ -1183,6 +1586,11 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "components",
+     "main",
+     "workflows"
+    ],
     "input": "WorkflowSaveRequest & { on?: unknown }",
     "output": "{ start: LoopKey[]; stop: LoopKey[]; }",
     "wrap": "plain"
@@ -1194,6 +1602,9 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "PortalRequest & { template?: unknown }",
     "output": "{ id: string; name: string; }",
     "wrap": "plain"
@@ -1205,6 +1616,11 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "components",
+     "main",
+     "workflows"
+    ],
     "input": "WorkflowSaveRequest & { name?: unknown; blurb?: unknown }",
     "output": "{ id: string; name: string; updated: boolean; }",
     "wrap": "plain"
@@ -1216,6 +1632,11 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "components",
+     "main",
+     "workflows"
+    ],
     "input": "WorkflowTestRequest",
     "output": "import(\"../dry.js\").DryResult & { entered?: import(\"../executor.js\").ExecutorEvent; }",
     "wrap": "plain"
@@ -1227,6 +1648,9 @@
    "parent": "service:ConsolePortal",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "PortalRequest",
     "output": "import(\"../executor.js\").MadeWorkflow[]",
     "wrap": "plain"
@@ -1447,6 +1871,14 @@
    "parent": "service:Executor",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "components",
+     "main",
+     "publish",
+     "shapes",
+     "steps",
+     "workflows"
+    ],
     "input": "{ hook: string; payload: unknown }",
     "output": "{ status: number; error: string; subject?: never; } | { status: number; subject: string; error?: never; }",
     "wrap": "restate.handlers.handler"
@@ -1458,6 +1890,16 @@
    "parent": "service:Executor",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "clientDb",
+     "components",
+     "main",
+     "publish",
+     "rule",
+     "shapes",
+     "steps",
+     "workflows"
+    ],
     "input": "EmitRequest",
     "output": "Tally",
     "wrap": "restate.handlers.handler"
@@ -1469,6 +1911,15 @@
    "parent": "service:Executor",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "clientDb",
+     "components",
+     "main",
+     "publish",
+     "shapes",
+     "steps",
+     "workflows"
+    ],
     "input": "Fired",
     "output": "{ entered: number; resolved: number; }",
     "wrap": "restate.handlers.handler"
@@ -1480,6 +1931,14 @@
    "parent": "service:Executor",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "components",
+     "main",
+     "publish",
+     "shapes",
+     "steps",
+     "workflows"
+    ],
     "input": "{ token: string; payload: unknown }",
     "output": "{ status: number; error: string; subject?: never; } | { status: number; subject: string; error?: never; }",
     "wrap": "plain"
@@ -1491,6 +1950,15 @@
    "parent": "service:Executor",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "clientDb",
+     "components",
+     "main",
+     "rule",
+     "shapes",
+     "steps",
+     "workflows"
+    ],
     "input": "Target & { id: string; happened?: ExecutorEvent }",
     "output": "Tally | null",
     "wrap": "restate.handlers.handler"
@@ -1502,6 +1970,15 @@
    "parent": "service:Executor",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "clientDb",
+     "components",
+     "main",
+     "rule",
+     "shapes",
+     "steps",
+     "workflows"
+    ],
     "input": "Target & { id: string; auto?: number }",
     "output": "Tally | null",
     "wrap": "restate.handlers.handler"
@@ -1524,6 +2001,11 @@
    "parent": "service:ExecutorClock",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "components",
+     "main",
+     "workflows"
+    ],
     "input": "void",
     "output": "{ next: string | null; }",
     "wrap": "restate.handlers.object.exclusive"
@@ -1546,6 +2028,11 @@
    "parent": "service:ExecutorClock",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "components",
+     "main",
+     "workflows"
+    ],
     "input": "{ slot: string }",
     "output": "void",
     "wrap": "restate.handlers.object.exclusive"
@@ -1557,6 +2044,11 @@
    "parent": "service:PeopleConsole",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "db",
+     "now",
+     "open"
+    ],
     "input": "BroadcastIdsRequest",
     "output": "{ done: number[]; }",
     "wrap": "serviceHandler"
@@ -1568,6 +2060,11 @@
    "parent": "service:PeopleConsole",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "db",
+     "now",
+     "open"
+    ],
     "input": "BroadcastIdsRequest",
     "output": "{ done: number[]; }",
     "wrap": "serviceHandler"
@@ -1579,6 +2076,11 @@
    "parent": "service:PeopleConsole",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "db",
+     "now",
+     "open"
+    ],
     "input": "BroadcastIdsRequest",
     "output": "{ done: number[]; }",
     "wrap": "serviceHandler"
@@ -1590,6 +2092,13 @@
    "parent": "service:PeopleConsole",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "db",
+     "mail",
+     "now",
+     "open",
+     "testPhone"
+    ],
     "input": "PortalRequest",
     "output": "{ email: boolean; emailUnset: string | null; text: boolean; testDomain: string | null; testPhone: string | null; segments: { id: number; name: string; size: number; }[]; topics: { id: number; name: string; publicName: string; channel: \"email\" | \"sms\"; }[]; fields: (\"name\" | \"first_name\")[]; textMost: number; }",
     "wrap": "serviceHandler"
@@ -1601,6 +2110,11 @@
    "parent": "service:PeopleConsole",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "db",
+     "now",
+     "open"
+    ],
     "input": "BroadcastIdsRequest",
     "output": "{ done: number[]; }",
     "wrap": "serviceHandler"
@@ -1612,6 +2126,11 @@
    "parent": "service:PeopleConsole",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "db",
+     "now",
+     "open"
+    ],
     "input": "PortalRequest & { from?: string; to?: string }",
     "output": "{ broadcasts: { id: number; name: string; channel: import(\"./broadcasts-schema.js\").BroadcastChannel; state: import(\"./broadcasts-schema.js\").BroadcastState; at: string; }[]; }",
     "wrap": "serviceHandler"
@@ -1623,6 +2142,11 @@
    "parent": "service:PeopleConsole",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "db",
+     "now",
+     "open"
+    ],
     "input": "BroadcastSaveRequest",
     "output": "{ subject: string | null; body: string; people: number; yes: number; }",
     "wrap": "serviceHandler"
@@ -1634,6 +2158,11 @@
    "parent": "service:PeopleConsole",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "db",
+     "now",
+     "open"
+    ],
     "input": "BroadcastIdsRequest",
     "output": "{ done: number[]; }",
     "wrap": "serviceHandler"
@@ -1645,6 +2174,12 @@
    "parent": "service:PeopleConsole",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "db",
+     "mail",
+     "now",
+     "open"
+    ],
     "input": "BroadcastSaveRequest",
     "output": "{ broadcast: { name: string; id: number; channel: \"email\" | \"sms\"; createdAt: Date; state: \"draft\" | \"sending\" | \"sent\" | \"scheduled\" | \"waiting\" | \"declined\" | \"canceled\"; zone: string; updatedAt: Date; subject: string | null; body: string; startedAt: Date | null; finishedAt: Date | null; by: string; note: string | null; topicId: number; segmentId: number; sendAt: Date | null; local: boolean; askedBy: string | null; askedAt: Date | null; decidedBy: string | null; decidedAt: Date | null; testedTo: string | null; testedAt: Date | null; }; }",
     "wrap": "serviceHandler"
@@ -1656,6 +2191,13 @@
    "parent": "service:PeopleConsole",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "db",
+     "mail",
+     "now",
+     "open",
+     "testPhone"
+    ],
     "input": "BroadcastTestRequest",
     "output": "{ sent: string; }",
     "wrap": "serviceHandler"
@@ -1667,6 +2209,11 @@
    "parent": "service:PeopleConsole",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "db",
+     "now",
+     "open"
+    ],
     "input": "PortalRequest & StatsQuery & { key?: string; step?: string }",
     "output": "{ people: import(\"./channel-stats.js\").StepPerson[]; }",
     "wrap": "serviceHandler"
@@ -1678,6 +2225,11 @@
    "parent": "service:PeopleConsole",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "db",
+     "now",
+     "open"
+    ],
     "input": "PortalRequest & StatsQuery",
     "output": "import(\"./channel-stats.js\").ChannelStats",
     "wrap": "serviceHandler"
@@ -1689,6 +2241,11 @@
    "parent": "service:PeopleConsole",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "db",
+     "now",
+     "open"
+    ],
     "input": "ResearchRequest",
     "output": "{ done: number[]; }",
     "wrap": "serviceHandler"
@@ -1700,6 +2257,11 @@
    "parent": "service:PeopleConsole",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "db",
+     "now",
+     "open"
+    ],
     "input": "ResearchRequest",
     "output": "{ done: number[]; keys: number; }",
     "wrap": "serviceHandler"
@@ -1711,6 +2273,12 @@
    "parent": "service:PeopleConsole",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "db",
+     "model",
+     "now",
+     "open"
+    ],
     "input": "LeadRequest",
     "output": "{ done: number[]; }",
     "wrap": "serviceHandler"
@@ -1722,6 +2290,11 @@
    "parent": "service:PeopleConsole",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "db",
+     "now",
+     "open"
+    ],
     "input": "LeadRequest",
     "output": "{ done: number[]; label: string; }",
     "wrap": "serviceHandler"
@@ -1733,6 +2306,11 @@
    "parent": "service:PeopleConsole",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "db",
+     "now",
+     "open"
+    ],
     "input": "LeadRequest",
     "output": "{ done: number[]; label: string; }",
     "wrap": "serviceHandler"
@@ -1744,6 +2322,11 @@
    "parent": "service:PeopleConsole",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "db",
+     "now",
+     "open"
+    ],
     "input": "MemberAddRequest",
     "output": "{ done: number[]; group: string; made: boolean; }",
     "wrap": "serviceHandler"
@@ -1755,6 +2338,11 @@
    "parent": "service:PeopleConsole",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "db",
+     "now",
+     "open"
+    ],
     "input": "PortalRequest & { ids?: string[] }",
     "output": "{ done: string[]; }",
     "wrap": "serviceHandler"
@@ -1766,6 +2354,13 @@
    "parent": "service:PeopleConsole",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "db",
+     "model",
+     "now",
+     "open",
+     "records"
+    ],
     "input": "PortalRequest & ExportAsk",
     "output": "import(\"./records-serve.js\").RecordsFile",
     "wrap": "serviceHandler"
@@ -1777,6 +2372,13 @@
    "parent": "service:PeopleConsole",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "db",
+     "model",
+     "now",
+     "open",
+     "records"
+    ],
     "input": "PortalRequest & GetAsk",
     "output": "import(\"./records-serve.js\").RecordAnswer",
     "wrap": "serviceHandler"
@@ -1788,6 +2390,13 @@
    "parent": "service:PeopleConsole",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "db",
+     "model",
+     "now",
+     "open",
+     "records"
+    ],
     "input": "PortalRequest & ListAsk",
     "output": "import(\"./records-serve.js\").RecordsPage",
     "wrap": "serviceHandler"
@@ -1799,6 +2408,13 @@
    "parent": "service:PeopleConsole",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "db",
+     "model",
+     "now",
+     "open",
+     "records"
+    ],
     "input": "PortalRequest & StatsAsk",
     "output": "import(\"./records-serve.js\").RecordsStat",
     "wrap": "serviceHandler"
@@ -1810,6 +2426,11 @@
    "parent": "service:PeopleConsole",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "db",
+     "now",
+     "records"
+    ],
     "input": "PortalRequest",
     "output": "import(\"./records.js\").RecordMeta[]",
     "wrap": "serviceHandler"
@@ -1821,6 +2442,11 @@
    "parent": "service:PeopleConsole",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "db",
+     "now",
+     "open"
+    ],
     "input": "ResearchRequest",
     "output": "{ done: number[]; }",
     "wrap": "serviceHandler"
@@ -1832,6 +2458,11 @@
    "parent": "service:PeopleConsole",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "db",
+     "now",
+     "open"
+    ],
     "input": "SegmentIdsRequest",
     "output": "{ done: number[]; }",
     "wrap": "serviceHandler"
@@ -1843,6 +2474,12 @@
    "parent": "service:PeopleConsole",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "db",
+     "model",
+     "now",
+     "open"
+    ],
     "input": "PortalRequest",
     "output": "{ traits: string[]; segments: { id: number; name: string; kind: \"manual\" | \"live\" | \"snapshot\"; }[]; shape: import(\"./segments.js\").JourneyShape; describe: boolean; }",
     "wrap": "serviceHandler"
@@ -1854,6 +2491,12 @@
    "parent": "service:PeopleConsole",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "db",
+     "model",
+     "now",
+     "open"
+    ],
     "input": "PortalRequest & { words?: string }",
     "output": "{ rule: import(\"./segments.js\").Rule; name: string; words: string; unknownTraits: string[]; }",
     "wrap": "serviceHandler"
@@ -1865,6 +2508,11 @@
    "parent": "service:PeopleConsole",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "db",
+     "now",
+     "open"
+    ],
     "input": "PortalRequest & { rule?: unknown }",
     "output": "import(\"./segments.js\").Preview",
     "wrap": "serviceHandler"
@@ -1876,6 +2524,11 @@
    "parent": "service:PeopleConsole",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "db",
+     "now",
+     "open"
+    ],
     "input": "SegmentIdsRequest",
     "output": "{ done: number[]; }",
     "wrap": "serviceHandler"
@@ -1887,6 +2540,11 @@
    "parent": "service:PeopleConsole",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "db",
+     "now",
+     "open"
+    ],
     "input": "SegmentIdsRequest",
     "output": "{ done: number[]; }",
     "wrap": "serviceHandler"
@@ -1898,6 +2556,11 @@
    "parent": "service:PeopleConsole",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "db",
+     "now",
+     "open"
+    ],
     "input": "SegmentSaveRequest",
     "output": "{ segment: import(\"./segments.js\").Segment; entered: number; left: number; }",
     "wrap": "serviceHandler"
@@ -1909,6 +2572,11 @@
    "parent": "service:PeopleConsole",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "db",
+     "now",
+     "open"
+    ],
     "input": "PortalRequest & { rule?: unknown; text?: string }",
     "output": "{ rule: import(\"./segments.js\").Rule; } | { problems: string[]; } | { text: string; }",
     "wrap": "serviceHandler"
@@ -1920,6 +2588,11 @@
    "parent": "service:PeopleConsole",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "db",
+     "now",
+     "open"
+    ],
     "input": "PortalRequest & { id?: number }",
     "output": "{ versions: import(\"./segments.js\").SegmentVersion[]; }",
     "wrap": "serviceHandler"
@@ -1942,6 +2615,11 @@
    "parent": "service:PeopleMap",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "clientDb",
+     "main",
+     "site"
+    ],
     "input": "void",
     "output": "PeopleMapStats | { error: string; } | { skipped: string; }",
     "wrap": "exclusiveHandler"
@@ -1964,6 +2642,11 @@
    "parent": "service:Segments",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "clientDb",
+     "flows",
+     "main"
+    ],
     "input": "void",
     "output": "{ recomputed: number; entered: number; left: number; archived: number[]; told: number; more: boolean; cursor: SegmentCursor; } | { skipped: string; error?: never; } | { error: string; skipped?: never; }",
     "wrap": "exclusiveHandler"
@@ -1975,6 +2658,14 @@
    "parent": "service:SetupAgent",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "finders",
+     "main",
+     "parts",
+     "setups",
+     "timeoutMs",
+     "wake"
+    ],
     "input": "AgentJob",
     "output": "AgentAnswer",
     "wrap": "serviceHandler"
@@ -1986,6 +2677,9 @@
    "parent": "service:TemplatesConsole",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "db"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -1997,6 +2691,9 @@
    "parent": "service:TemplatesConsole",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "db"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -2008,6 +2705,9 @@
    "parent": "service:TemplatesConsole",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "db"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -2019,6 +2719,9 @@
    "parent": "service:TemplatesConsole",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "db"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -2030,6 +2733,9 @@
    "parent": "service:TemplatesConsole",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "db"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -2041,6 +2747,9 @@
    "parent": "service:TemplatesConsole",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "db"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -2052,6 +2761,9 @@
    "parent": "service:TemplatesConsole",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "db"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -2063,6 +2775,9 @@
    "parent": "service:TemplatesConsole",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "db"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -2074,6 +2789,9 @@
    "parent": "service:TemplatesConsole",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "db"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -2085,6 +2803,9 @@
    "parent": "service:TemplatesConsole",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "db"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -2096,6 +2817,9 @@
    "parent": "service:TemplatesConsole",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "db"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -2107,6 +2831,10 @@
    "parent": "service:Tokens",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "select",
+     "update"
+    ],
     "input": "{ token: string }",
     "output": "restate.RestatePromise<TokenViewer | null>",
     "wrap": "serviceHandler"
@@ -2118,6 +2846,10 @@
    "parent": "service:Webhooks",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "main",
+     "tell"
+    ],
     "input": "{ id: string }",
     "output": "{ state: string; }",
     "wrap": "restate.handlers.handler"
@@ -2129,6 +2861,9 @@
    "parent": "service:Webhooks",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "Published",
     "output": "{ queued: number; }",
     "wrap": "restate.handlers.handler"
@@ -2140,6 +2875,9 @@
    "parent": "service:Webhooks",
    "group": "@wren/core",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "{ id: string }",
     "output": "{ id: string; }",
     "wrap": "serviceHandler"
@@ -2151,6 +2889,7 @@
    "parent": "@wren/core",
    "group": "@wren/core",
    "attrs": {
+    "factory": "makeAccountsConsole",
     "file": "packages/core/src/accounts-console.ts",
     "kind": "service",
     "via": "portalService"
@@ -2162,6 +2901,7 @@
    "parent": "@wren/core",
    "group": "@wren/core",
    "attrs": {
+    "factory": "makeAsk",
     "file": "packages/core/src/ask.ts",
     "kind": "service"
    }
@@ -2172,6 +2912,7 @@
    "parent": "@wren/core",
    "group": "@wren/core",
    "attrs": {
+    "factory": "makeBroadcast",
     "file": "packages/core/src/broadcast-run.ts",
     "kind": "object"
    }
@@ -2182,6 +2923,7 @@
    "parent": "@wren/core",
    "group": "@wren/core",
    "attrs": {
+    "factory": "makeConsolePortal",
     "file": "packages/core/src/console/console-portal.ts",
     "kind": "service",
     "via": "portalService"
@@ -2193,6 +2935,7 @@
    "parent": "@wren/core",
    "group": "@wren/core",
    "attrs": {
+    "factory": "makeContent",
     "file": "packages/core/src/content/restate.ts",
     "kind": "service"
    }
@@ -2203,6 +2946,7 @@
    "parent": "@wren/core",
    "group": "@wren/core",
    "attrs": {
+    "factory": "makeExecutor",
     "file": "packages/core/src/executor.ts",
     "kind": "service"
    }
@@ -2213,6 +2957,7 @@
    "parent": "@wren/core",
    "group": "@wren/core",
    "attrs": {
+    "factory": "executorRecorder",
     "file": "packages/core/src/testing.ts",
     "kind": "service"
    }
@@ -2223,6 +2968,7 @@
    "parent": "@wren/core",
    "group": "@wren/core",
    "attrs": {
+    "factory": "makeExecutorClock",
     "file": "packages/core/src/executor.ts",
     "kind": "object"
    }
@@ -2233,6 +2979,7 @@
    "parent": "@wren/core",
    "group": "@wren/core",
    "attrs": {
+    "factory": "makePeopleConsole",
     "file": "packages/core/src/people-console.ts",
     "kind": "service",
     "via": "portalService"
@@ -2244,6 +2991,7 @@
    "parent": "@wren/core",
    "group": "@wren/core",
    "attrs": {
+    "factory": "makePeopleMap",
     "file": "packages/core/src/people-map-pass.ts",
     "kind": "object"
    }
@@ -2254,6 +3002,7 @@
    "parent": "@wren/core",
    "group": "@wren/core",
    "attrs": {
+    "factory": "makeSegments",
     "file": "packages/core/src/segments-pass.ts",
     "kind": "object"
    }
@@ -2264,6 +3013,7 @@
    "parent": "@wren/core",
    "group": "@wren/core",
    "attrs": {
+    "factory": "makeSetupAgent",
     "file": "packages/core/src/setup-agent.ts",
     "kind": "service"
    }
@@ -2274,6 +3024,7 @@
    "parent": "@wren/core",
    "group": "@wren/core",
    "attrs": {
+    "factory": "makeTemplatesConsole",
     "file": "packages/core/src/templates-console.ts",
     "kind": "service",
     "via": "portalService"
@@ -2285,6 +3036,7 @@
    "parent": "@wren/core",
    "group": "@wren/core",
    "attrs": {
+    "factory": "makeTokens",
     "file": "packages/core/src/tokens.ts",
     "kind": "service"
    }
@@ -2295,6 +3047,7 @@
    "parent": "@wren/core",
    "group": "@wren/core",
    "attrs": {
+    "factory": "makeWebhooks",
     "file": "packages/core/src/webhooks.ts",
     "kind": "service"
    }
@@ -2777,6 +3530,41 @@
    "kind": "writes"
   },
   {
+   "from": "route:ConsolePortal/accessAsk",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/accessAsk",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/accessAsk",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/accessAsk",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/accessAsk",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/accessAsk",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/accessAsk",
+   "to": "table:public.access_asks",
+   "kind": "writes"
+  },
+  {
    "from": "route:ConsolePortal/addClient",
    "to": "table:public.client_accounts",
    "kind": "writes"
@@ -2800,6 +3588,81 @@
    "from": "route:ConsolePortal/ask",
    "to": "table:public.roles",
    "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/askDecide",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/askDecide",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/askDecide",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/askDecide",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/askDecide",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/askDecide",
+   "to": "table:public.access_asks",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ConsolePortal/askDecide",
+   "to": "table:public.grants",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ConsolePortal/businessFactSave",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/businessFactSave",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/businessFactSave",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/businessFactSave",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/businessFactSave",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/businessFactSave",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/businessFactSave",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/businessFactSave",
+   "to": "table:public.custom_values",
+   "kind": "writes"
   },
   {
    "from": "route:ConsolePortal/businessFacts",
@@ -2914,6 +3777,91 @@
   {
    "from": "route:ConsolePortal/connect",
    "to": "table:public.runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ConsolePortal/customFieldOrder",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/customFieldOrder",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/customFieldOrder",
+   "to": "table:public.custom_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/customFieldOrder",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/customFieldOrder",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/customFieldOrder",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/customFieldOrder",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/customFieldOrder",
+   "to": "table:public.custom_fields",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ConsolePortal/customFieldSave",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/customFieldSave",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/customFieldSave",
+   "to": "table:public.custom_field_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/customFieldSave",
+   "to": "table:public.custom_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/customFieldSave",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/customFieldSave",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/customFieldSave",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/customFieldSave",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/customFieldSave",
+   "to": "table:public.custom_fields",
    "kind": "writes"
   },
   {
@@ -3122,6 +4070,66 @@
    "kind": "writes"
   },
   {
+   "from": "route:ConsolePortal/grantAdd",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/grantAdd",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/grantAdd",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/grantAdd",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/grantAdd",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/grantAdd",
+   "to": "table:public.grants",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ConsolePortal/grantEnd",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/grantEnd",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/grantEnd",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/grantEnd",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/grantEnd",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/grantEnd",
+   "to": "table:public.grants",
+   "kind": "writes"
+  },
+  {
    "from": "route:ConsolePortal/install",
    "to": "table:public.client_members",
    "kind": "reads"
@@ -3154,6 +4162,76 @@
   {
    "from": "route:ConsolePortal/install",
    "to": "table:public.templates",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ConsolePortal/issueRaise",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/issueRaise",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/issueRaise",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/issueRaise",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/issueRaise",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/issueRaise",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/issueRaise",
+   "to": "table:public.issues",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ConsolePortal/issueResolve",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/issueResolve",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/issueResolve",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/issueResolve",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/issueResolve",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/issueResolve",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/issueResolve",
+   "to": "table:public.issues",
    "kind": "writes"
   },
   {
@@ -3555,6 +4633,126 @@
    "from": "route:ConsolePortal/replay",
    "to": "table:public.events",
    "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/roleCopy",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/roleCopy",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/roleCopy",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/roleCopy",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/roleCopy",
+   "to": "table:public.role_grants",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ConsolePortal/roleCopy",
+   "to": "table:public.roles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ConsolePortal/roleGrant",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/roleGrant",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/roleGrant",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/roleGrant",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/roleGrant",
+   "to": "table:public.role_grants",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ConsolePortal/roleGrant",
+   "to": "table:public.roles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ConsolePortal/roleRemove",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/roleRemove",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/roleRemove",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/roleRemove",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/roleRemove",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/roleRemove",
+   "to": "table:public.roles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ConsolePortal/roleSave",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/roleSave",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/roleSave",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/roleSave",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ConsolePortal/roleSave",
+   "to": "table:public.role_grants",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ConsolePortal/roleSave",
+   "to": "table:public.roles",
+   "kind": "writes"
   },
   {
    "from": "route:ConsolePortal/sandboxMake",

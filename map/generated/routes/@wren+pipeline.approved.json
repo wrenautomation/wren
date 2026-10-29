@@ -7,6 +7,9 @@
    "parent": "service:Journeys",
    "group": "@wren/pipeline",
    "attrs": {
+    "deps": [
+     "db"
+    ],
     "input": "AssignRequest",
     "output": "restate.RestatePromise<{ journey: string; owner: string | null; }>",
     "wrap": "serviceHandler"
@@ -18,6 +21,9 @@
    "parent": "service:Journeys",
    "group": "@wren/pipeline",
    "attrs": {
+    "deps": [
+     "db"
+    ],
     "input": "DropRequest",
     "output": "{ journey: string; node: string; }",
     "wrap": "serviceHandler"
@@ -29,8 +35,11 @@
    "parent": "service:Journeys",
    "group": "@wren/pipeline",
    "attrs": {
+    "deps": [
+     "db"
+    ],
     "input": "MoveRequest",
-    "output": "{ journey: string; from: string; to: string; status: \"done\" | \"open\" | \"dropped\"; }",
+    "output": "{ journey: string; from: string; to: string; status: \"open\" | \"done\" | \"dropped\"; }",
     "wrap": "serviceHandler"
    }
   },
@@ -40,6 +49,9 @@
    "parent": "service:Journeys",
    "group": "@wren/pipeline",
    "attrs": {
+    "deps": [
+     "db"
+    ],
     "input": "OpenRequest",
     "output": "{ journey: string; node: string; }",
     "wrap": "serviceHandler"
@@ -51,6 +63,9 @@
    "parent": "service:Journeys",
    "group": "@wren/pipeline",
    "attrs": {
+    "deps": [
+     "db"
+    ],
     "input": "RebuildRequest",
     "output": "restate.RestatePromise<import(\"./moves.js\").Rebuilt>",
     "wrap": "serviceHandler"
@@ -62,6 +77,10 @@
    "parent": "service:PipelineConsole",
    "group": "@wren/pipeline",
    "attrs": {
+    "deps": [
+     "db",
+     "open"
+    ],
     "input": "DealSignRequest",
     "output": "{ deal: string; termsVersion: number; changed: boolean; }",
     "wrap": "serviceHandler"
@@ -73,6 +92,10 @@
    "parent": "service:PipelineConsole",
    "group": "@wren/pipeline",
    "attrs": {
+    "deps": [
+     "db",
+     "open"
+    ],
     "input": "JourneyAssignRequest",
     "output": "{ journey: string; owner: string | null; }",
     "wrap": "serviceHandler"
@@ -84,6 +107,10 @@
    "parent": "service:PipelineConsole",
    "group": "@wren/pipeline",
    "attrs": {
+    "deps": [
+     "db",
+     "open"
+    ],
     "input": "JourneyDropRequest",
     "output": "{ journey: string; node: string; }",
     "wrap": "serviceHandler"
@@ -95,6 +122,10 @@
    "parent": "service:PipelineConsole",
    "group": "@wren/pipeline",
    "attrs": {
+    "deps": [
+     "db",
+     "open"
+    ],
     "input": "JourneyMoveRequest",
     "output": "{ journey: string; from: string; to: string; status: string; }",
     "wrap": "serviceHandler"
@@ -106,6 +137,10 @@
    "parent": "service:PipelineConsole",
    "group": "@wren/pipeline",
    "attrs": {
+    "deps": [
+     "db",
+     "open"
+    ],
     "input": "JourneyOpenRequest",
     "output": "{ journey: string; node: string; }",
     "wrap": "serviceHandler"
@@ -117,6 +152,10 @@
    "parent": "service:PipelineConsole",
    "group": "@wren/pipeline",
    "attrs": {
+    "deps": [
+     "db",
+     "open"
+    ],
     "input": "PortalRequest & { window: MapWindow }",
     "output": "MapAnswer",
     "wrap": "serviceHandler"
@@ -128,6 +167,10 @@
    "parent": "service:PipelineConsole",
    "group": "@wren/pipeline",
    "attrs": {
+    "deps": [
+     "db",
+     "open"
+    ],
     "input": "PortalRequest",
     "output": "import(\"./store.js\").OfferSync",
     "wrap": "serviceHandler"
@@ -139,6 +182,11 @@
    "parent": "service:PipelineConsole",
    "group": "@wren/pipeline",
    "attrs": {
+    "deps": [
+     "db",
+     "open",
+     "records"
+    ],
     "input": "PortalRequest & ExportAsk",
     "output": "import(\"@wren/core/records/serve\").RecordsFile",
     "wrap": "serviceHandler"
@@ -150,6 +198,11 @@
    "parent": "service:PipelineConsole",
    "group": "@wren/pipeline",
    "attrs": {
+    "deps": [
+     "db",
+     "open",
+     "records"
+    ],
     "input": "PortalRequest & GetAsk",
     "output": "import(\"@wren/core/records/serve\").RecordAnswer",
     "wrap": "serviceHandler"
@@ -161,6 +214,11 @@
    "parent": "service:PipelineConsole",
    "group": "@wren/pipeline",
    "attrs": {
+    "deps": [
+     "db",
+     "open",
+     "records"
+    ],
     "input": "PortalRequest & ListAsk",
     "output": "import(\"@wren/core/records/serve\").RecordsPage",
     "wrap": "serviceHandler"
@@ -172,6 +230,11 @@
    "parent": "service:PipelineConsole",
    "group": "@wren/pipeline",
    "attrs": {
+    "deps": [
+     "db",
+     "open",
+     "records"
+    ],
     "input": "PortalRequest & StatsAsk",
     "output": "import(\"@wren/core/records/serve\").RecordsStat",
     "wrap": "serviceHandler"
@@ -183,6 +246,11 @@
    "parent": "service:PipelineConsole",
    "group": "@wren/pipeline",
    "attrs": {
+    "deps": [
+     "db",
+     "open",
+     "records"
+    ],
     "input": "PortalRequest",
     "output": "import(\"@wren/core/records\").RecordMeta[]",
     "wrap": "serviceHandler"
@@ -194,6 +262,10 @@
    "parent": "service:PipelineConsole",
    "group": "@wren/pipeline",
    "attrs": {
+    "deps": [
+     "db",
+     "open"
+    ],
     "input": "AttachRequest",
     "output": "AttachAnswer",
     "wrap": "serviceHandler"
@@ -205,6 +277,10 @@
    "parent": "service:PipelineConsole",
    "group": "@wren/pipeline",
    "attrs": {
+    "deps": [
+     "db",
+     "open"
+    ],
     "input": "BlameRequest",
     "output": "BlameAnswer",
     "wrap": "serviceHandler"
@@ -216,6 +292,10 @@
    "parent": "service:PipelineConsole",
    "group": "@wren/pipeline",
    "attrs": {
+    "deps": [
+     "db",
+     "open"
+    ],
     "input": "ShapeDiffRequest",
     "output": "DiffAnswer",
     "wrap": "serviceHandler"
@@ -227,6 +307,10 @@
    "parent": "service:PipelineConsole",
    "group": "@wren/pipeline",
    "attrs": {
+    "deps": [
+     "db",
+     "open"
+    ],
     "input": "DraftIdRequest",
     "output": "DraftApplyAnswer",
     "wrap": "serviceHandler"
@@ -238,6 +322,10 @@
    "parent": "service:PipelineConsole",
    "group": "@wren/pipeline",
    "attrs": {
+    "deps": [
+     "db",
+     "open"
+    ],
     "input": "DraftDropRequest",
     "output": "DraftStateAnswer",
     "wrap": "serviceHandler"
@@ -249,6 +337,10 @@
    "parent": "service:PipelineConsole",
    "group": "@wren/pipeline",
    "attrs": {
+    "deps": [
+     "db",
+     "open"
+    ],
     "input": "DraftEditRequest",
     "output": "DraftEditAnswer",
     "wrap": "serviceHandler"
@@ -260,6 +352,10 @@
    "parent": "service:PipelineConsole",
    "group": "@wren/pipeline",
    "attrs": {
+    "deps": [
+     "db",
+     "open"
+    ],
     "input": "DraftNewRequest",
     "output": "DraftNewAnswer",
     "wrap": "serviceHandler"
@@ -271,6 +367,10 @@
    "parent": "service:PipelineConsole",
    "group": "@wren/pipeline",
    "attrs": {
+    "deps": [
+     "db",
+     "open"
+    ],
     "input": "DraftIdRequest",
     "output": "DraftPlanAnswer",
     "wrap": "serviceHandler"
@@ -282,6 +382,10 @@
    "parent": "service:PipelineConsole",
    "group": "@wren/pipeline",
    "attrs": {
+    "deps": [
+     "db",
+     "open"
+    ],
     "input": "DraftIdRequest",
     "output": "DraftStateAnswer",
     "wrap": "serviceHandler"
@@ -293,6 +397,10 @@
    "parent": "service:PipelineConsole",
    "group": "@wren/pipeline",
    "attrs": {
+    "deps": [
+     "db",
+     "open"
+    ],
     "input": "DraftUpdateRequest",
     "output": "DraftUpdateAnswer",
     "wrap": "serviceHandler"
@@ -304,6 +412,10 @@
    "parent": "service:PipelineConsole",
    "group": "@wren/pipeline",
    "attrs": {
+    "deps": [
+     "db",
+     "open"
+    ],
     "input": "ShapeExportRequest",
     "npm": [
      "yaml"
@@ -318,6 +430,10 @@
    "parent": "service:PipelineConsole",
    "group": "@wren/pipeline",
    "attrs": {
+    "deps": [
+     "db",
+     "open"
+    ],
     "input": "ShapeImportRequest",
     "npm": [
      "yaml"
@@ -332,6 +448,10 @@
    "parent": "service:PipelineConsole",
    "group": "@wren/pipeline",
    "attrs": {
+    "deps": [
+     "db",
+     "open"
+    ],
     "input": "ShapePreviewRequest",
     "npm": [
      "yaml"
@@ -346,6 +466,10 @@
    "parent": "service:PipelineConsole",
    "group": "@wren/pipeline",
    "attrs": {
+    "deps": [
+     "db",
+     "open"
+    ],
     "input": "PortalRequest",
     "npm": [
      "yaml"
@@ -360,6 +484,10 @@
    "parent": "service:PipelineConsole",
    "group": "@wren/pipeline",
    "attrs": {
+    "deps": [
+     "db",
+     "open"
+    ],
     "input": "TagRequest",
     "output": "TagAnswer",
     "wrap": "serviceHandler"
@@ -371,6 +499,10 @@
    "parent": "service:PipelineConsole",
    "group": "@wren/pipeline",
    "attrs": {
+    "deps": [
+     "db",
+     "open"
+    ],
     "input": "UndoRequest",
     "output": "UndoAnswer",
     "wrap": "serviceHandler"
@@ -382,6 +514,10 @@
    "parent": "service:PipelineConsole",
    "group": "@wren/pipeline",
    "attrs": {
+    "deps": [
+     "db",
+     "open"
+    ],
     "input": "UndoRequest",
     "output": "UndoPreviewAnswer",
     "wrap": "serviceHandler"
@@ -393,6 +529,10 @@
    "parent": "service:PipelineConsole",
    "group": "@wren/pipeline",
    "attrs": {
+    "deps": [
+     "db",
+     "open"
+    ],
     "input": "ShapeVersionRequest",
     "output": "{ version: number; }",
     "wrap": "serviceHandler"
@@ -404,6 +544,10 @@
    "parent": "service:PipelineConsole",
    "group": "@wren/pipeline",
    "attrs": {
+    "deps": [
+     "db",
+     "open"
+    ],
     "input": "TermsAddRequest",
     "output": "{ offer: string; plan: string; version: number; from: string; }",
     "wrap": "serviceHandler"
@@ -415,6 +559,7 @@
    "parent": "@wren/pipeline",
    "group": "@wren/pipeline",
    "attrs": {
+    "factory": "makeJourneys",
     "file": "packages/pipeline/src/restate.ts",
     "kind": "service"
    }
@@ -425,6 +570,7 @@
    "parent": "@wren/pipeline",
    "group": "@wren/pipeline",
    "attrs": {
+    "factory": "makePipelineConsole",
     "file": "packages/pipeline/src/console.ts",
     "kind": "service",
     "via": "portalService"

@@ -25,6 +25,9 @@
     "about": "Every cold email campaign, and how it's doing.",
     "file": "apps/portal/web/src/records.tsx",
     "label": "Campaigns",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 1,
     "record": "email.campaign",
     "template": "list"
@@ -53,6 +56,9 @@
     "about": "The mailboxes we send cold email from, and their health.",
     "file": "apps/portal/web/src/records.tsx",
     "label": "Inboxes",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 2,
     "record": "email.inbox",
     "template": "list"
@@ -107,6 +113,9 @@
     "about": "Leads stuck before a send, and why.",
     "file": "apps/portal/web/src/records.tsx",
     "label": "Stalls",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 6,
     "record": "email.stall",
     "template": "list"
@@ -121,6 +130,9 @@
     "about": "The words of every text we send.",
     "file": "apps/portal/web/src/records.tsx",
     "label": "Text copy",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 8,
     "record": "marketing.text_copy",
     "template": "list"

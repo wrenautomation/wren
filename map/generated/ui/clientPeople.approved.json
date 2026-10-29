@@ -67,6 +67,9 @@
     "about": "Every address kind, trait and timeline kind: where it comes from, who has it, what uses it.",
     "file": "apps/portal/web/src/records.tsx",
     "label": "Data",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 7,
     "record": "people.datum",
     "template": "list"
@@ -95,6 +98,9 @@
     "about": "Load a CSV of your contacts, and see what each file added.",
     "file": "apps/portal/web/src/records.tsx",
     "label": "Import",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 12,
     "record": "reactivation.import",
     "template": "list"
@@ -320,6 +326,16 @@
   {
    "from": "ui:clientPeople/groups",
    "to": "table:public.segment_records",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:clientPeople/import",
+   "to": "table:public.import_errors",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:clientPeople/import",
+   "to": "table:public.imports",
    "kind": "reads"
   },
   {

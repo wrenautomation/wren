@@ -7,6 +7,12 @@
    "parent": "service:Documents",
    "group": "@wren/documents",
    "attrs": {
+    "deps": [
+     "fire",
+     "mailer",
+     "main",
+     "portal"
+    ],
     "input": "Req & { act: \"sign\" | \"decline\"; fields: Record<string, string> }",
     "output": "Answer",
     "wrap": "serviceHandler"
@@ -18,6 +24,10 @@
    "parent": "service:Documents",
    "group": "@wren/documents",
    "attrs": {
+    "deps": [
+     "documenso",
+     "main"
+    ],
     "input": "{ id: string; by?: string | null }",
     "output": "{ done: boolean; why?: never; did?: never; } | { done: boolean; why: string; did?: never; } | { done: boolean; did: \"cancelled\" | \"kept\" | \"deleted\"; why?: never; }",
     "wrap": "serviceHandler"
@@ -29,6 +39,14 @@
    "parent": "service:Documents",
    "group": "@wren/documents",
    "attrs": {
+    "deps": [
+     "fetch",
+     "keys",
+     "main",
+     "open",
+     "stripeBase",
+     "stripeRetry"
+    ],
     "input": "Req",
     "npm": [
      "stripe"
@@ -43,6 +61,10 @@
    "parent": "service:Documents",
    "group": "@wren/documents",
    "attrs": {
+    "deps": [
+     "files",
+     "main"
+    ],
     "input": "Req",
     "npm": [
      "pdf-lib"
@@ -57,6 +79,12 @@
    "parent": "service:Documents",
    "group": "@wren/documents",
    "attrs": {
+    "deps": [
+     "documenso",
+     "mailer",
+     "main",
+     "portal"
+    ],
     "input": "{ id: string; remind?: boolean | null; by?: string | null }",
     "npm": [
      "libphonenumber-js",
@@ -72,6 +100,10 @@
    "parent": "service:Documents",
    "group": "@wren/documents",
    "attrs": {
+    "deps": [
+     "fire",
+     "main"
+    ],
     "input": "Req",
     "output": "Answer",
     "wrap": "serviceHandler"
@@ -83,6 +115,15 @@
    "parent": "service:Documents",
    "group": "@wren/documents",
    "attrs": {
+    "deps": [
+     "documenso",
+     "files",
+     "fire",
+     "keys",
+     "mailer",
+     "main",
+     "portal"
+    ],
     "input": "{ event: string; payload: object }",
     "output": "{ ok: boolean; why: string; ignored?: never; } | { ok: boolean; why?: never; ignored?: never; } | { ok: boolean; ignored: string; why?: never; }",
     "wrap": "serviceHandler"
@@ -94,6 +135,9 @@
    "parent": "service:DocumentsConsole",
    "group": "@wren/documents",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "IdsRequest",
     "npm": [
      "libphonenumber-js",
@@ -109,6 +153,10 @@
    "parent": "service:DocumentsConsole",
    "group": "@wren/documents",
    "attrs": {
+    "deps": [
+     "main",
+     "open"
+    ],
     "input": "?",
     "npm": [
      "libphonenumber-js"
@@ -123,6 +171,9 @@
    "parent": "service:DocumentsConsole",
    "group": "@wren/documents",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -134,6 +185,9 @@
    "parent": "service:DocumentsConsole",
    "group": "@wren/documents",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -145,6 +199,11 @@
    "parent": "service:DocumentsConsole",
    "group": "@wren/documents",
    "attrs": {
+    "deps": [
+     "files",
+     "main",
+     "sealed"
+    ],
     "input": "IdRequest & { part?: string | null }",
     "npm": [
      "pdf-lib"
@@ -159,6 +218,11 @@
    "parent": "service:DocumentsConsole",
    "group": "@wren/documents",
    "attrs": {
+    "deps": [
+     "main",
+     "open",
+     "sealed"
+    ],
     "input": "PortalRequest & ExportAsk",
     "output": "import(\"@wren/core/records/serve\").RecordsFile",
     "wrap": "serviceHandler"
@@ -170,6 +234,11 @@
    "parent": "service:DocumentsConsole",
    "group": "@wren/documents",
    "attrs": {
+    "deps": [
+     "main",
+     "open",
+     "sealed"
+    ],
     "input": "PortalRequest & GetAsk",
     "output": "import(\"@wren/core/records/serve\").RecordAnswer",
     "wrap": "serviceHandler"
@@ -181,6 +250,11 @@
    "parent": "service:DocumentsConsole",
    "group": "@wren/documents",
    "attrs": {
+    "deps": [
+     "main",
+     "open",
+     "sealed"
+    ],
     "input": "PortalRequest & ListAsk",
     "output": "import(\"@wren/core/records/serve\").RecordsPage",
     "wrap": "serviceHandler"
@@ -192,6 +266,11 @@
    "parent": "service:DocumentsConsole",
    "group": "@wren/documents",
    "attrs": {
+    "deps": [
+     "main",
+     "open",
+     "sealed"
+    ],
     "input": "PortalRequest & StatsAsk",
     "output": "import(\"@wren/core/records/serve\").RecordsStat",
     "wrap": "serviceHandler"
@@ -203,6 +282,10 @@
    "parent": "service:DocumentsConsole",
    "group": "@wren/documents",
    "attrs": {
+    "deps": [
+     "main",
+     "sealed"
+    ],
     "input": "PortalRequest",
     "output": "import(\"@wren/core/records\").RecordMeta[]",
     "wrap": "serviceHandler"
@@ -214,6 +297,9 @@
    "parent": "service:DocumentsConsole",
    "group": "@wren/documents",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "IdRequest",
     "npm": [
      "libphonenumber-js",
@@ -229,6 +315,10 @@
    "parent": "service:DocumentsConsole",
    "group": "@wren/documents",
    "attrs": {
+    "deps": [
+     "main",
+     "sealed"
+    ],
     "input": "IdRequest",
     "npm": [
      "libphonenumber-js",
@@ -244,6 +334,9 @@
    "parent": "service:DocumentsConsole",
    "group": "@wren/documents",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -255,6 +348,9 @@
    "parent": "service:DocumentsConsole",
    "group": "@wren/documents",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -266,6 +362,9 @@
    "parent": "service:DocumentsConsole",
    "group": "@wren/documents",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "PortalRequest",
     "output": "{ templates: { id: string; kind: string; name: string; body: string; lines: import(\"./lines.js\").DocLine[]; depositPct: number | null; expiresDays: number; version: string; }[]; approves: boolean; }",
     "wrap": "serviceHandler"
@@ -277,6 +376,10 @@
    "parent": "service:DocumentsConsole",
    "group": "@wren/documents",
    "attrs": {
+    "deps": [
+     "main",
+     "open"
+    ],
     "input": "?",
     "npm": [
      "libphonenumber-js"
@@ -291,6 +394,9 @@
    "parent": "service:DocumentsConsole",
    "group": "@wren/documents",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "IdsRequest",
     "output": "{ done: number; }",
     "wrap": "serviceHandler"
@@ -302,6 +408,7 @@
    "parent": "@wren/documents",
    "group": "@wren/documents",
    "attrs": {
+    "factory": "makeDocuments",
     "file": "packages/documents/src/service.ts",
     "kind": "service"
    }
@@ -312,6 +419,7 @@
    "parent": "@wren/documents",
    "group": "@wren/documents",
    "attrs": {
+    "factory": "makeDocumentsConsole",
     "file": "packages/documents/src/console.ts",
     "kind": "service",
     "via": "portalService"

@@ -25,6 +25,9 @@
     "about": "Sales calls booked with you, past and coming up.",
     "file": "apps/portal/web/src/records.tsx",
     "label": "Calls",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 1,
     "record": "email.call",
     "template": "list"

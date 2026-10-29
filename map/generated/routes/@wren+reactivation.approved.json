@@ -7,6 +7,13 @@
    "parent": "service:CrmRun",
    "group": "@wren/reactivation",
    "attrs": {
+    "deps": [
+     "clientLlm",
+     "clientSites",
+     "crm",
+     "main",
+     "open"
+    ],
     "input": "CrmLookupRequest",
     "npm": [
      "tldts"
@@ -21,6 +28,13 @@
    "parent": "service:CrmRun",
    "group": "@wren/reactivation",
    "attrs": {
+    "deps": [
+     "clientLlm",
+     "clientSites",
+     "crm",
+     "main",
+     "open"
+    ],
     "input": "CrmRedraftRequest",
     "output": "CrmSliceResult<RedraftStats>",
     "wrap": "exclusiveHandler"
@@ -32,6 +46,14 @@
    "parent": "service:CrmRun",
    "group": "@wren/reactivation",
    "attrs": {
+    "deps": [
+     "clientLlm",
+     "clientSites",
+     "crm",
+     "main",
+     "open",
+     "timezone"
+    ],
     "hosts": [
      "www.linkedin.com"
     ],
@@ -51,6 +73,13 @@
    "parent": "service:CrmRun",
    "group": "@wren/reactivation",
    "attrs": {
+    "deps": [
+     "clientLlm",
+     "clientSites",
+     "crm",
+     "main",
+     "open"
+    ],
     "input": "CrmSettleRequest",
     "npm": [
      "tldts"
@@ -65,6 +94,10 @@
    "parent": "service:ReactivationPortal",
    "group": "@wren/reactivation",
    "attrs": {
+    "deps": [
+     "main",
+     "open"
+    ],
     "input": "Req<\"approve\">",
     "output": "ReviewResult",
     "wrap": "plain"
@@ -76,6 +109,10 @@
    "parent": "service:ReactivationPortal",
    "group": "@wren/reactivation",
    "attrs": {
+    "deps": [
+     "main",
+     "open"
+    ],
     "input": "Req<\"book\">",
     "output": "Done",
     "wrap": "plain"
@@ -87,6 +124,10 @@
    "parent": "service:ReactivationPortal",
    "group": "@wren/reactivation",
    "attrs": {
+    "deps": [
+     "main",
+     "open"
+    ],
     "input": "Req<\"called\">",
     "output": "Done",
     "wrap": "plain"
@@ -98,6 +139,10 @@
    "parent": "service:ReactivationPortal",
    "group": "@wren/reactivation",
    "attrs": {
+    "deps": [
+     "main",
+     "open"
+    ],
     "input": "Req<\"change\">",
     "output": "Done",
     "wrap": "plain"
@@ -109,6 +154,10 @@
    "parent": "service:ReactivationPortal",
    "group": "@wren/reactivation",
    "attrs": {
+    "deps": [
+     "main",
+     "open"
+    ],
     "input": "Req<\"emails\">",
     "output": "EmailsPage",
     "wrap": "plain"
@@ -120,6 +169,10 @@
    "parent": "service:ReactivationPortal",
    "group": "@wren/reactivation",
    "attrs": {
+    "deps": [
+     "main",
+     "open"
+    ],
     "input": "Req<\"importPreview\">",
     "npm": [
      "csv-parse"
@@ -134,6 +187,10 @@
    "parent": "service:ReactivationPortal",
    "group": "@wren/reactivation",
    "attrs": {
+    "deps": [
+     "main",
+     "open"
+    ],
     "input": "Req<\"importRun\">",
     "npm": [
      "csv-parse"
@@ -148,6 +205,10 @@
    "parent": "service:ReactivationPortal",
    "group": "@wren/reactivation",
    "attrs": {
+    "deps": [
+     "main",
+     "open"
+    ],
     "input": "Req<\"overview\">",
     "output": "Overview",
     "wrap": "plain"
@@ -159,6 +220,10 @@
    "parent": "service:ReactivationPortal",
    "group": "@wren/reactivation",
    "attrs": {
+    "deps": [
+     "main",
+     "open"
+    ],
     "input": "Req<\"person\">",
     "output": "PersonView",
     "wrap": "plain"
@@ -170,6 +235,10 @@
    "parent": "service:ReactivationPortal",
    "group": "@wren/reactivation",
    "attrs": {
+    "deps": [
+     "main",
+     "open"
+    ],
     "input": "Req<\"recordsExport\">",
     "output": "RecordsFile",
     "wrap": "plain"
@@ -181,6 +250,10 @@
    "parent": "service:ReactivationPortal",
    "group": "@wren/reactivation",
    "attrs": {
+    "deps": [
+     "main",
+     "open"
+    ],
     "input": "Req<\"recordsGet\">",
     "output": "RecordAnswer",
     "wrap": "plain"
@@ -192,6 +265,10 @@
    "parent": "service:ReactivationPortal",
    "group": "@wren/reactivation",
    "attrs": {
+    "deps": [
+     "main",
+     "open"
+    ],
     "input": "Req<\"recordsList\">",
     "output": "RecordsPage",
     "wrap": "plain"
@@ -203,6 +280,10 @@
    "parent": "service:ReactivationPortal",
    "group": "@wren/reactivation",
    "attrs": {
+    "deps": [
+     "main",
+     "open"
+    ],
     "input": "Req<\"recordsStats\">",
     "output": "RecordsStat",
     "wrap": "plain"
@@ -214,6 +295,9 @@
    "parent": "service:ReactivationPortal",
    "group": "@wren/reactivation",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "Req<\"recordsTypes\">",
     "output": "RecordMeta[]",
     "wrap": "plain"
@@ -225,6 +309,10 @@
    "parent": "service:ReactivationPortal",
    "group": "@wren/reactivation",
    "attrs": {
+    "deps": [
+     "main",
+     "open"
+    ],
     "input": "Req<\"run\">",
     "output": "RunPage",
     "wrap": "plain"
@@ -236,6 +324,10 @@
    "parent": "service:ReactivationPortal",
    "group": "@wren/reactivation",
    "attrs": {
+    "deps": [
+     "main",
+     "open"
+    ],
     "input": "Req<\"settle\">",
     "output": "Done",
     "wrap": "plain"
@@ -247,6 +339,10 @@
    "parent": "service:ReactivationPortal",
    "group": "@wren/reactivation",
    "attrs": {
+    "deps": [
+     "main",
+     "open"
+    ],
     "input": "Req<\"skip\">",
     "output": "ReviewResult",
     "wrap": "plain"
@@ -258,6 +354,10 @@
    "parent": "service:ReactivationPortal",
    "group": "@wren/reactivation",
    "attrs": {
+    "deps": [
+     "main",
+     "open"
+    ],
     "input": "Req<\"unapprove\">",
     "output": "ReviewResult",
     "wrap": "plain"
@@ -269,6 +369,10 @@
    "parent": "service:ReactivationPortal",
    "group": "@wren/reactivation",
    "attrs": {
+    "deps": [
+     "main",
+     "open"
+    ],
     "input": "Req<\"unbook\">",
     "output": "Done",
     "wrap": "plain"
@@ -280,6 +384,10 @@
    "parent": "service:ReactivationPortal",
    "group": "@wren/reactivation",
    "attrs": {
+    "deps": [
+     "main",
+     "open"
+    ],
     "input": "Req<\"uncalled\">",
     "output": "Done",
     "wrap": "plain"
@@ -291,6 +399,10 @@
    "parent": "service:ReactivationPortal",
    "group": "@wren/reactivation",
    "attrs": {
+    "deps": [
+     "main",
+     "open"
+    ],
     "input": "Req<\"work\">",
     "output": "WorkView",
     "wrap": "plain"
@@ -302,6 +414,7 @@
    "parent": "@wren/reactivation",
    "group": "@wren/reactivation",
    "attrs": {
+    "factory": "makeCrmRun",
     "file": "packages/reactivation/src/crm-run.ts",
     "kind": "object"
    }
@@ -312,6 +425,7 @@
    "parent": "@wren/reactivation",
    "group": "@wren/reactivation",
    "attrs": {
+    "factory": "makeReactivationPortal",
     "file": "packages/reactivation/src/portal/service.ts",
     "kind": "service",
     "via": "portalService"

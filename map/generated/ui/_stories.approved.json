@@ -474,6 +474,18 @@
   },
   {
    "from": "story:pages-client",
+   "to": "ui:clientHome/today",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-client--failed",
+     "pages-client--loading",
+     "pages-client--today"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-client",
    "to": "ui:clientLearn/overview",
    "kind": "renders",
    "attrs": {
@@ -1072,6 +1084,19 @@
   },
   {
    "from": "story:pages-wren",
+   "to": "ui:wrenHome/today",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren--today",
+     "pages-wren--today-counts-failed",
+     "pages-wren--today-empty",
+     "pages-wren--today-failed"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren",
    "to": "ui:wrenMarketplace/catalog",
    "kind": "renders",
    "attrs": {
@@ -1578,6 +1603,17 @@
    }
   },
   {
+   "from": "story:pages-wren-apps",
+   "to": "ui:wrenHome/today",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren-apps--phone-dock",
+     "pages-wren-apps--sidebar-items"
+    ]
+   }
+  },
+  {
    "from": "story:pages-wren-rows",
    "to": "ui:ask/questions",
    "kind": "renders",
@@ -1614,6 +1650,16 @@
    "attrs": {
     "stories": [
      "pages-wren-rows--made-workflows"
+    ]
+   }
+  },
+  {
+   "from": "story:pages-wren-rows",
+   "to": "ui:wrenHome/today",
+   "kind": "renders",
+   "attrs": {
+    "stories": [
+     "pages-wren-rows--health-at-risk"
     ]
    }
   }

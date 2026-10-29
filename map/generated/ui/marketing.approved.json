@@ -39,6 +39,9 @@
     "about": "Inbox replies and broadcasts that wait on a yes, and sends that may have gone out.",
     "file": "apps/portal/web/src/records.tsx",
     "label": "To approve",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 3,
     "record": "marketing.asked_reply",
     "template": "list"
@@ -97,6 +100,10 @@
     "file": "apps/portal/web/src/records.tsx",
     "hidden": true,
     "label": "Inbox",
+    "npm": [
+     "drizzle-orm",
+     "zod"
+    ],
     "order": 0,
     "record": "marketing.inbox",
     "template": "list"
@@ -140,6 +147,9 @@
     "file": "apps/portal/web/src/records.tsx",
     "group": "Reach",
     "label": "Reviews",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 2,
     "record": "marketing.review",
     "template": "list"

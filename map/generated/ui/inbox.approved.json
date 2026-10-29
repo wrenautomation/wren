@@ -26,6 +26,9 @@
     "file": "apps/portal/web/src/records.tsx",
     "hidden": true,
     "label": "Access asks",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 5,
     "record": "access.ask",
     "template": "list"
@@ -55,6 +58,9 @@
     "file": "apps/portal/web/src/records.tsx",
     "hidden": true,
     "label": "Issues",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 4,
     "record": "access.issue",
     "template": "list"
@@ -84,6 +90,9 @@
     "file": "apps/portal/web/src/records.tsx",
     "hidden": true,
     "label": "Mentions",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 6,
     "record": "notes.mention",
     "template": "list"
@@ -156,6 +165,41 @@
   {
    "from": "ui:inbox/mail",
    "to": "table:watch.mail_records",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:inbox/mentions",
+   "to": "table:public.board_shares",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:inbox/mentions",
+   "to": "table:public.boards",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:inbox/mentions",
+   "to": "table:public.inbox_notes",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:inbox/mentions",
+   "to": "table:public.note_comments",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:inbox/mentions",
+   "to": "table:public.note_mentions",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:inbox/mentions",
+   "to": "table:public.note_shares",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:inbox/mentions",
+   "to": "table:public.notes",
    "kind": "reads"
   },
   {

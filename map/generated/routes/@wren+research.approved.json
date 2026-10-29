@@ -7,6 +7,14 @@
    "parent": "service:Discovery",
    "group": "@wren/research",
    "attrs": {
+    "deps": [
+     "clientDb",
+     "db",
+     "fetchHomepage",
+     "fetcher",
+     "genericWordsFor",
+     "resolves"
+    ],
     "input": "DiscoveryInput",
     "npm": [
      "@wrenautomation/falcon",
@@ -22,6 +30,14 @@
    "parent": "service:Discovery",
    "group": "@wren/research",
    "attrs": {
+    "deps": [
+     "clientDb",
+     "db",
+     "fetchHomepage",
+     "fetcher",
+     "genericWordsFor",
+     "resolves"
+    ],
     "input": "DiscoveryInput",
     "npm": [
      "@wrenautomation/falcon",
@@ -37,6 +53,16 @@
    "parent": "service:Enrichment",
    "group": "@wren/research",
    "attrs": {
+    "deps": [
+     "adsFor",
+     "db",
+     "desk",
+     "instagram",
+     "keys",
+     "linkedin",
+     "sites",
+     "youtube"
+    ],
     "input": "LimitInput",
     "npm": [
      "tldts"
@@ -51,6 +77,13 @@
    "parent": "service:Enrichment",
    "group": "@wren/research",
    "attrs": {
+    "deps": [
+     "db",
+     "instagram",
+     "keys",
+     "linkedin",
+     "youtube"
+    ],
     "input": "LimitInput",
     "output": "import(\"../enrichment/extraction.js\").ApplyExtractionsStats",
     "wrap": "exclusiveHandler"
@@ -62,6 +95,13 @@
    "parent": "service:Enrichment",
    "group": "@wren/research",
    "attrs": {
+    "deps": [
+     "db",
+     "instagram",
+     "keys",
+     "linkedin",
+     "youtube"
+    ],
     "input": "LimitInput",
     "output": "import(\"../enrichment/email-pick/run.js\").ApplyPicksStats",
     "wrap": "exclusiveHandler"
@@ -73,6 +113,10 @@
    "parent": "service:Enrichment",
    "group": "@wren/research",
    "attrs": {
+    "deps": [
+     "db",
+     "llm"
+    ],
     "input": "LimitInput",
     "output": "import(\"../enrichment/audit-backfill.js\").BackfillStats",
     "wrap": "exclusiveHandler"
@@ -84,6 +128,10 @@
    "parent": "service:Enrichment",
    "group": "@wren/research",
    "attrs": {
+    "deps": [
+     "db",
+     "pages"
+    ],
     "input": "ScanInput",
     "npm": [
      "libphonenumber-js"
@@ -98,6 +146,10 @@
    "parent": "service:Enrichment",
    "group": "@wren/research",
    "attrs": {
+    "deps": [
+     "db",
+     "fetcher"
+    ],
     "input": "CrawlInput",
     "npm": [
      "@wrenautomation/falcon",
@@ -113,6 +165,16 @@
    "parent": "service:Enrichment",
    "group": "@wren/research",
    "attrs": {
+    "deps": [
+     "db",
+     "exaFor",
+     "exaSites",
+     "instagram",
+     "keys",
+     "linkedin",
+     "sites",
+     "youtube"
+    ],
     "input": "LimitInput",
     "npm": [
      "tldts"
@@ -127,6 +189,11 @@
    "parent": "service:Enrichment",
    "group": "@wren/research",
    "attrs": {
+    "deps": [
+     "db",
+     "llm",
+     "tracer"
+    ],
     "input": "ExtractInput",
     "output": "ExtractionStats",
     "wrap": "exclusiveHandler"
@@ -138,6 +205,12 @@
    "parent": "service:Enrichment",
    "group": "@wren/research",
    "attrs": {
+    "deps": [
+     "db",
+     "desk",
+     "groupsFor",
+     "sites"
+    ],
     "input": "LimitInput",
     "npm": [
      "tldts"
@@ -152,6 +225,12 @@
    "parent": "service:Enrichment",
    "group": "@wren/research",
    "attrs": {
+    "deps": [
+     "db",
+     "instagram",
+     "keys",
+     "sites"
+    ],
     "input": "LimitInput",
     "output": "InstagramStats",
     "wrap": "exclusiveHandler"
@@ -163,6 +242,12 @@
    "parent": "service:Enrichment",
    "group": "@wren/research",
    "attrs": {
+    "deps": [
+     "db",
+     "llm",
+     "pages",
+     "tracer"
+    ],
     "input": "PickInput",
     "npm": [
      "@wrenautomation/falcon"
@@ -177,6 +262,12 @@
    "parent": "service:Enrichment",
    "group": "@wren/research",
    "attrs": {
+    "deps": [
+     "db",
+     "llm",
+     "pages",
+     "tracer"
+    ],
     "input": "EmailPickInput",
     "output": "EmailPickStats",
     "wrap": "exclusiveHandler"
@@ -188,6 +279,15 @@
    "parent": "service:Enrichment",
    "group": "@wren/research",
    "attrs": {
+    "deps": [
+     "db",
+     "instagram",
+     "linkedin",
+     "pages",
+     "recheck",
+     "sites",
+     "youtube"
+    ],
     "input": "ProfilesInput",
     "npm": [
      "tldts"
@@ -202,6 +302,14 @@
    "parent": "service:Enrichment",
    "group": "@wren/research",
    "attrs": {
+    "deps": [
+     "db",
+     "fetcher",
+     "ladder",
+     "renderJitter",
+     "renderer",
+     "sites"
+    ],
     "input": "RenderInput",
     "npm": [
      "@wrenautomation/falcon",
@@ -217,6 +325,10 @@
    "parent": "service:Enrichment",
    "group": "@wren/research",
    "attrs": {
+    "deps": [
+     "db",
+     "pages"
+    ],
     "input": "ScanInput",
     "npm": [
      "@wrenautomation/falcon"
@@ -231,6 +343,17 @@
    "parent": "service:Enrichment",
    "group": "@wren/research",
    "attrs": {
+    "deps": [
+     "db",
+     "desk",
+     "fetcher",
+     "keys",
+     "linkedin",
+     "llm",
+     "pages",
+     "sites",
+     "youtube"
+    ],
     "hosts": [
      "api.exa.ai",
      "api.x.com",
@@ -247,6 +370,9 @@
    "parent": "service:Enrichment",
    "group": "@wren/research",
    "attrs": {
+    "deps": [
+     "db"
+    ],
     "input": "TagInput",
     "output": "import(\"../enrichment/testimonials.js\").TagTestimonialsStats",
     "wrap": "exclusiveHandler"
@@ -258,6 +384,11 @@
    "parent": "service:Enrichment",
    "group": "@wren/research",
    "attrs": {
+    "deps": [
+     "db",
+     "linkedin",
+     "sites"
+    ],
     "input": "TeamInput",
     "npm": [
      "tldts"
@@ -272,6 +403,17 @@
    "parent": "service:Enrichment",
    "group": "@wren/research",
    "attrs": {
+    "deps": [
+     "db",
+     "fetcher",
+     "instagram",
+     "keys",
+     "linkedin",
+     "llm",
+     "tracer",
+     "triggersFor",
+     "youtube"
+    ],
     "input": "LimitInput",
     "npm": [
      "@wrenautomation/weaver",
@@ -287,6 +429,11 @@
    "parent": "service:Enrichment",
    "group": "@wren/research",
    "attrs": {
+    "deps": [
+     "db",
+     "keys",
+     "youtube"
+    ],
     "input": "LimitInput",
     "output": "YouTubeStats",
     "wrap": "exclusiveHandler"
@@ -298,6 +445,14 @@
    "parent": "service:Enrichment",
    "group": "@wren/research",
    "attrs": {
+    "deps": [
+     "db",
+     "instagram",
+     "keys",
+     "linkedin",
+     "youtube",
+     "youtubeSearchFor"
+    ],
     "input": "LimitInput",
     "npm": [
      "tldts"
@@ -312,6 +467,12 @@
    "parent": "service:ProfileResearch",
    "group": "@wren/research",
    "attrs": {
+    "deps": [
+     "db",
+     "linkedin",
+     "sites",
+     "timezone"
+    ],
     "input": "ProfileResearchInput",
     "npm": [
      "tldts"
@@ -326,6 +487,7 @@
    "parent": "@wren/research",
    "group": "@wren/research",
    "attrs": {
+    "factory": "makeDiscovery",
     "file": "packages/research/src/restate/discovery.ts",
     "kind": "object"
    }
@@ -336,6 +498,7 @@
    "parent": "@wren/research",
    "group": "@wren/research",
    "attrs": {
+    "factory": "makeEnrichment",
     "file": "packages/research/src/restate/enrichment.ts",
     "kind": "object"
    }
@@ -346,6 +509,7 @@
    "parent": "@wren/research",
    "group": "@wren/research",
    "attrs": {
+    "factory": "makeProfileResearch",
     "file": "packages/research/src/restate/profile-research.ts",
     "kind": "object"
    }

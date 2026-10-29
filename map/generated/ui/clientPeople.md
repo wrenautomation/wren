@@ -20,4 +20,4 @@ Registered in `apps/portal/web/src/modules/people/index.ts`.
 | Traits (link only) | list of `people.trait` | `apps/portal/web/src/records.tsx` | `public.profile_trait_activity`, `public.profile_trait_records` | What we know about each person, one value per trait, every change kept. |
 | Merges (link only) | list of `people.merge` | `apps/portal/web/src/records.tsx` | `public.profile_merge_records` | Profiles that turned out to be one person, and what moved. |
 | Members (link only) | list of `people.member` | `apps/portal/web/src/records.tsx` | `public.segment_member_records` | Who is in each group, and since when. |
-| Import | list of `reactivation.import` | `apps/portal/web/src/records.tsx` |  | Load a CSV of your contacts, and see what each file added. |
+| Import | list of `reactivation.import` | `apps/portal/web/src/records.tsx` | `public.import_errors`, `public.imports` | Load a CSV of your contacts, and see what each file added. |

@@ -38,6 +38,9 @@
     "about": "Every journey, open, done and dropped.",
     "file": "apps/portal/web/src/records.tsx",
     "label": "Journeys",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 1,
     "record": "pipeline.journey",
     "template": "list"

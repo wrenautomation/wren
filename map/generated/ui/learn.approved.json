@@ -141,6 +141,9 @@
     "file": "apps/portal/web/src/records.tsx",
     "group": "Setup",
     "label": "SOPs",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 7,
     "record": "learn.sop",
     "template": "list"

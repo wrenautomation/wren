@@ -7,6 +7,9 @@
    "parent": "service:VoiceConsole",
    "group": "@wren/voice",
    "attrs": {
+    "deps": [
+     "db"
+    ],
     "input": "DictatedRequest",
     "output": "{ id: string; }",
     "wrap": "serviceHandler"
@@ -18,6 +21,9 @@
    "parent": "service:VoiceConsole",
    "group": "@wren/voice",
    "attrs": {
+    "deps": [
+     "db"
+    ],
     "input": "PortalRequest",
     "output": "{ rows: import(\"./dictation-store.js\").DictationStat[]; }",
     "wrap": "serviceHandler"
@@ -29,6 +35,9 @@
    "parent": "service:VoiceConsole",
    "group": "@wren/voice",
    "attrs": {
+    "deps": [
+     "db"
+    ],
     "input": "SaveTestRequest",
     "output": "{ id: number; }",
     "wrap": "serviceHandler"
@@ -40,6 +49,7 @@
    "parent": "@wren/voice",
    "group": "@wren/voice",
    "attrs": {
+    "factory": "makeVoiceConsole",
     "file": "packages/voice/src/console.ts",
     "kind": "service",
     "via": "portalService"

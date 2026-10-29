@@ -94,6 +94,9 @@
     "about": "Bank transfers from clients, and the invoice each one paid.",
     "file": "apps/portal/web/src/records.tsx",
     "label": "Payments in",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 3,
     "record": "console.credit",
     "template": "list"

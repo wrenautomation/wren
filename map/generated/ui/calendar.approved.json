@@ -52,6 +52,9 @@
     "about": "Calls recorded on the Mac, each with notes and a transcript.",
     "file": "apps/portal/web/src/records.tsx",
     "label": "Recordings",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 3,
     "record": "calendar.recording",
     "template": "list"

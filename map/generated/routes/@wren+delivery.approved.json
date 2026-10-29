@@ -7,6 +7,12 @@
    "parent": "service:BillingConsole",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "execute",
+     "select",
+     "transaction",
+     "update"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -18,6 +24,12 @@
    "parent": "service:BillingConsole",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "execute",
+     "select",
+     "transaction",
+     "update"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -29,6 +41,10 @@
    "parent": "service:DeliveryPortal",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "app",
+     "main"
+    ],
     "input": "Req<\"access\">",
     "output": "{ id: number; status: \"open\" | \"declined\" | \"granted\" | \"revoked\"; }",
     "wrap": "plain"
@@ -40,6 +56,12 @@
    "parent": "service:DeliveryPortal",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "app",
+     "demoName",
+     "main",
+     "open"
+    ],
     "input": "Req<\"account\">",
     "output": "AccountView",
     "wrap": "plain"
@@ -51,6 +73,11 @@
    "parent": "service:DeliveryPortal",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "app",
+     "main",
+     "zone"
+    ],
     "input": "PortalRequest & { hostname: string }",
     "npm": [
      "tldts"
@@ -65,6 +92,10 @@
    "parent": "service:DeliveryPortal",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "app",
+     "main"
+    ],
     "input": "Req<\"answer\">",
     "output": "{ id: number; answeredAt: string | null; }",
     "wrap": "plain"
@@ -76,6 +107,10 @@
    "parent": "service:DeliveryPortal",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "app",
+     "main"
+    ],
     "input": "Req<\"ask\">",
     "output": "{ id: number; }",
     "wrap": "plain"
@@ -87,6 +122,13 @@
    "parent": "service:DeliveryPortal",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "app",
+     "main",
+     "open",
+     "watched",
+     "zone"
+    ],
     "input": "Req<\"board\">",
     "output": "BoardRow[]",
     "wrap": "plain"
@@ -98,6 +140,10 @@
    "parent": "service:DeliveryPortal",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "app",
+     "main"
+    ],
     "input": "Req<\"comment\">",
     "output": "{ id: number; }",
     "wrap": "plain"
@@ -109,6 +155,9 @@
    "parent": "service:DeliveryPortal",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "Req<\"contract\">",
     "output": "ContractView",
     "wrap": "plain"
@@ -120,6 +169,10 @@
    "parent": "service:DeliveryPortal",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "app",
+     "main"
+    ],
     "input": "Req<\"decide\">",
     "output": "{ id: number; status: \"approved\" | \"changes\" | \"waiting\"; }",
     "wrap": "plain"
@@ -131,6 +184,10 @@
    "parent": "service:DeliveryPortal",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "app",
+     "main"
+    ],
     "input": "Req<\"deliver\">",
     "output": "{ id: number; version: number; }",
     "wrap": "plain"
@@ -142,6 +199,12 @@
    "parent": "service:DeliveryPortal",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "app",
+     "domains",
+     "main",
+     "zone"
+    ],
     "input": "PortalRequest",
     "output": "{ domains: import(\"./domains.js\").DomainView[]; target: string; ready: boolean; canManage: boolean; }",
     "wrap": "plain"
@@ -153,6 +216,10 @@
    "parent": "service:DeliveryPortal",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "app",
+     "main"
+    ],
     "input": "Req<\"done\">",
     "output": "{ step: string; doneOn: string | null; }",
     "wrap": "plain"
@@ -164,6 +231,10 @@
    "parent": "service:DeliveryPortal",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "files",
+     "main"
+    ],
     "input": "Req<\"file\">",
     "output": "{ url: string; }",
     "wrap": "plain"
@@ -175,6 +246,10 @@
    "parent": "service:DeliveryPortal",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "app",
+     "main"
+    ],
     "input": "Req<\"hide\">",
     "output": "{ hidden: boolean; }",
     "wrap": "plain"
@@ -186,6 +261,10 @@
    "parent": "service:DeliveryPortal",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "app",
+     "main"
+    ],
     "input": "Req<\"home\">",
     "output": "DeliveryHome",
     "wrap": "plain"
@@ -197,6 +276,11 @@
    "parent": "service:DeliveryPortal",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "app",
+     "main",
+     "watched"
+    ],
     "input": "Req<\"interest\">",
     "output": "{ offerId: string; }",
     "wrap": "plain"
@@ -208,6 +292,11 @@
    "parent": "service:DeliveryPortal",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "app",
+     "main",
+     "watched"
+    ],
     "input": "Req<\"invite\">",
     "output": "{ email: string; role: string; }",
     "wrap": "plain"
@@ -219,6 +308,12 @@
    "parent": "service:DeliveryPortal",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "app",
+     "main",
+     "receive",
+     "taxNumber"
+    ],
     "input": "Req<\"invoicePdf\">",
     "npm": [
      "pdf-lib"
@@ -233,6 +328,10 @@
    "parent": "service:DeliveryPortal",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "app",
+     "main"
+    ],
     "input": "Req<\"mail\">",
     "output": "{ level: \"off\" | \"all\" | \"digest\"; }",
     "wrap": "plain"
@@ -244,6 +343,11 @@
    "parent": "service:DeliveryPortal",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "app",
+     "demoName",
+     "main"
+    ],
     "input": "Req<\"me\">",
     "output": "Me",
     "wrap": "plain"
@@ -255,6 +359,10 @@
    "parent": "service:DeliveryPortal",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "main",
+     "open"
+    ],
     "input": "Parameters<typeof rules.messagingChange>[0]",
     "output": "{ done: string[]; skipped: string[]; }",
     "wrap": "plain"
@@ -266,6 +374,10 @@
    "parent": "service:DeliveryPortal",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "main",
+     "open"
+    ],
     "input": "Parameters<typeof rules.messagingLinksOff>[0]",
     "output": "{ done: string[]; skipped: string[]; }",
     "wrap": "plain"
@@ -277,6 +389,10 @@
    "parent": "service:DeliveryPortal",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "main",
+     "open"
+    ],
     "input": "Parameters<typeof rules.messagingLinksOn>[0]",
     "output": "{ done: string[]; skipped: string[]; }",
     "wrap": "plain"
@@ -288,6 +404,10 @@
    "parent": "service:DeliveryPortal",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "main",
+     "open"
+    ],
     "input": "Parameters<typeof rules.messagingPostal>[0]",
     "output": "{ done: string[]; skipped: string[]; }",
     "wrap": "plain"
@@ -299,6 +419,11 @@
    "parent": "service:DeliveryPortal",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "main",
+     "open",
+     "senders"
+    ],
     "input": "Parameters<typeof rules.messagingSender>[0]",
     "output": "{ done: string[]; skipped: string[]; }",
     "wrap": "plain"
@@ -310,6 +435,10 @@
    "parent": "service:DeliveryPortal",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "app",
+     "main"
+    ],
     "input": "Req<\"people\">",
     "output": "{ people: MemberView[]; canManage: boolean; roles: { id: string; name: string; }[]; mail: MailLevel | null; }",
     "wrap": "plain"
@@ -321,6 +450,10 @@
    "parent": "service:DeliveryPortal",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "app",
+     "main"
+    ],
     "input": "Req<\"post\">",
     "output": "{ id: number; }",
     "wrap": "plain"
@@ -332,6 +465,10 @@
    "parent": "service:DeliveryPortal",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "app",
+     "main"
+    ],
     "input": "Req<\"pulse\">",
     "output": "{ score: number; }",
     "wrap": "plain"
@@ -343,6 +480,12 @@
    "parent": "service:DeliveryPortal",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "app",
+     "main",
+     "open",
+     "zone"
+    ],
     "input": "Req<\"recap\">",
     "output": "{ recap: { subject: string; text: string; } | null; }",
     "wrap": "plain"
@@ -354,6 +497,14 @@
    "parent": "service:DeliveryPortal",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "app",
+     "main",
+     "open",
+     "readers",
+     "receive",
+     "zone"
+    ],
     "input": "Req<\"recordsExport\">",
     "output": "RecordsFile",
     "wrap": "plain"
@@ -365,6 +516,14 @@
    "parent": "service:DeliveryPortal",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "app",
+     "main",
+     "open",
+     "readers",
+     "receive",
+     "zone"
+    ],
     "input": "Req<\"recordsGet\">",
     "output": "RecordAnswer",
     "wrap": "plain"
@@ -376,6 +535,14 @@
    "parent": "service:DeliveryPortal",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "app",
+     "main",
+     "open",
+     "readers",
+     "receive",
+     "zone"
+    ],
     "input": "Req<\"recordsList\">",
     "output": "RecordsPage",
     "wrap": "plain"
@@ -387,6 +554,14 @@
    "parent": "service:DeliveryPortal",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "app",
+     "main",
+     "open",
+     "readers",
+     "receive",
+     "zone"
+    ],
     "input": "Req<\"recordsStats\">",
     "output": "RecordsStat",
     "wrap": "plain"
@@ -398,6 +573,13 @@
    "parent": "service:DeliveryPortal",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "app",
+     "main",
+     "open",
+     "readers",
+     "receive"
+    ],
     "input": "Req<\"recordsTypes\">",
     "output": "RecordMeta[]",
     "wrap": "plain"
@@ -409,6 +591,10 @@
    "parent": "service:DeliveryPortal",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "app",
+     "main"
+    ],
     "input": "Req<\"remove\">",
     "output": "{ removed: string; }",
     "wrap": "plain"
@@ -420,6 +606,11 @@
    "parent": "service:DeliveryPortal",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "app",
+     "main",
+     "zone"
+    ],
     "input": "PortalRequest & { hostname: string }",
     "output": "{ removed: string; }",
     "wrap": "plain"
@@ -431,6 +622,10 @@
    "parent": "service:DeliveryPortal",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "app",
+     "main"
+    ],
     "input": "Req<\"result\">",
     "output": "{ key: string; value: number; }",
     "wrap": "plain"
@@ -442,6 +637,11 @@
    "parent": "service:DeliveryPortal",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "app",
+     "main",
+     "watched"
+    ],
     "input": "Req<\"review\">",
     "output": "{ moment: string; score: number | null; }",
     "wrap": "plain"
@@ -453,6 +653,11 @@
    "parent": "service:DeliveryPortal",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "app",
+     "main",
+     "watched"
+    ],
     "input": "Req<\"sign\">",
     "output": "{ signedAt: string | null; }",
     "wrap": "plain"
@@ -464,6 +669,10 @@
    "parent": "service:DeliveryPortal",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "app",
+     "main"
+    ],
     "input": "Req<\"slip\">",
     "output": "{ step: string; dueOn: string | null; }",
     "wrap": "plain"
@@ -475,6 +684,10 @@
    "parent": "service:DeliveryPortal",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "app",
+     "main"
+    ],
     "input": "Req<\"start\">",
     "output": "{ id: number; }",
     "wrap": "plain"
@@ -486,6 +699,9 @@
    "parent": "service:DeliveryPortal",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "Req<\"updates\">",
     "output": "{ updates: UpdateView[]; more: boolean; }",
     "wrap": "plain"
@@ -497,6 +713,10 @@
    "parent": "service:DeliveryPortal",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "files",
+     "main"
+    ],
     "input": "Req<\"upload\">",
     "output": "{ key: string; url: string; }",
     "wrap": "plain"
@@ -508,6 +728,10 @@
    "parent": "service:DeliveryPortal",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "app",
+     "main"
+    ],
     "input": "PortalRequest & Record<string, unknown>",
     "output": "{ subscription: import(\"@wren/core/webhooks\").SubscriptionView; secret: string; }",
     "wrap": "plain"
@@ -519,6 +743,9 @@
    "parent": "service:DeliveryPortal",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "PortalRequest & { id?: unknown }",
     "output": "{ payload: unknown; tries: { n: number; status: number | null; latencyMs: number; response: string | null; error: string | null; at: string; }[]; id: string; subscription: string; event: string; eventId: string; state: import(\"@wren/core\").DeliveryState; attempts: number; status: number | null; latencyMs: number | null; response: string | null; error: string | null; at: string; lastAt: string | null; nextAt: string | null; }",
     "wrap": "plain"
@@ -530,6 +757,10 @@
    "parent": "service:DeliveryPortal",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "app",
+     "main"
+    ],
     "input": "PortalRequest & Record<string, unknown>",
     "output": "import(\"@wren/core/webhooks\").SubscriptionView",
     "wrap": "plain"
@@ -541,6 +772,10 @@
    "parent": "service:DeliveryPortal",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "app",
+     "main"
+    ],
     "input": "PortalRequest & { id?: unknown }",
     "output": "{ id: string; }",
     "wrap": "plain"
@@ -552,6 +787,10 @@
    "parent": "service:DeliveryPortal",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "app",
+     "main"
+    ],
     "input": "PortalRequest & { id?: unknown }",
     "output": "{ removed: string; }",
     "wrap": "plain"
@@ -563,6 +802,10 @@
    "parent": "service:DeliveryPortal",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "app",
+     "main"
+    ],
     "input": "PortalRequest & { id?: unknown }",
     "output": "{ subscription: import(\"@wren/core/webhooks\").SubscriptionView; secret: string; }",
     "wrap": "plain"
@@ -574,6 +817,10 @@
    "parent": "service:DeliveryPortal",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "app",
+     "main"
+    ],
     "input": "PortalRequest & { id?: unknown }",
     "output": "{ error: string | null; id: string; subscription: string; event: string; eventId: string; state: import(\"@wren/core\").DeliveryState; attempts: number; status: number | null; latencyMs: number | null; response: string | null; at: string; lastAt: string | null; nextAt: string | null; }",
     "wrap": "plain"
@@ -585,6 +832,10 @@
    "parent": "service:DeliveryPortal",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "app",
+     "main"
+    ],
     "input": "PortalRequest",
     "output": "{ webhooks: import(\"@wren/core/webhooks\").SubscriptionView[]; deliveries: import(\"@wren/core/webhooks\").DeliveryView[]; events: { id: string; says: \"A lead came in through a door\" | \"A form was filled\" | \"A lead replied by email, text or DM\" | \"A call was booked or moved\" | \"A call was cancelled\" | \"A person reached an offer node, or a call was marked won\" | \"A person moved to another node of the shape, or was dropped\" | \"A pay link was paid\" | \"A payment was refunded, or a dispute lost\" | \"A bank payment on a pay link failed\" | \"A document you sent was opened\" | \"A document you sent was signed\" | \"A document you sent was declined\" | \"A connected app added a contact, got an invoice paid or finished a job\"; }[]; canManage: boolean; }",
     "wrap": "plain"
@@ -596,6 +847,9 @@
    "parent": "service:Domains",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "{ host: string }",
     "output": "{ client: string | null; }",
     "wrap": "serviceHandler"
@@ -607,6 +861,11 @@
    "parent": "service:HealthConsole",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "execute",
+     "transaction",
+     "update"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -618,6 +877,12 @@
    "parent": "service:HealthConsole",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "execute",
+     "select",
+     "transaction",
+     "update"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -629,6 +894,12 @@
    "parent": "service:HealthConsole",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "execute",
+     "select",
+     "transaction",
+     "update"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -640,6 +911,12 @@
    "parent": "service:HealthConsole",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "execute",
+     "select",
+     "transaction",
+     "update"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -651,6 +928,12 @@
    "parent": "service:HealthConsole",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "execute",
+     "insert",
+     "select",
+     "transaction"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -662,6 +945,12 @@
    "parent": "service:HealthConsole",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "execute",
+     "select",
+     "transaction",
+     "update"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -673,6 +962,13 @@
    "parent": "service:HealthConsole",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "execute",
+     "insert",
+     "select",
+     "transaction",
+     "update"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -684,6 +980,12 @@
    "parent": "service:HealthConsole",
    "group": "@wren/delivery",
    "attrs": {
+    "deps": [
+     "execute",
+     "insert",
+     "select",
+     "transaction"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -695,6 +997,7 @@
    "parent": "@wren/delivery",
    "group": "@wren/delivery",
    "attrs": {
+    "factory": "makeBillingConsole",
     "file": "packages/delivery/src/billing/console.ts",
     "kind": "service",
     "via": "portalService"
@@ -706,6 +1009,7 @@
    "parent": "@wren/delivery",
    "group": "@wren/delivery",
    "attrs": {
+    "factory": "makeDeliveryPortal",
     "file": "packages/delivery/src/service.ts",
     "kind": "service",
     "via": "portalService"
@@ -717,6 +1021,7 @@
    "parent": "@wren/delivery",
    "group": "@wren/delivery",
    "attrs": {
+    "factory": "makeDomainsResolver",
     "file": "packages/delivery/src/domains.ts",
     "kind": "service"
    }
@@ -727,6 +1032,7 @@
    "parent": "@wren/delivery",
    "group": "@wren/delivery",
    "attrs": {
+    "factory": "makeHealthConsole",
     "file": "packages/delivery/src/health/console.ts",
     "kind": "service",
     "via": "portalService"

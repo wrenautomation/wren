@@ -25,6 +25,9 @@
     "about": "The forms on your pages.",
     "file": "apps/portal/web/src/records.tsx",
     "label": "Forms",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 2,
     "record": "sites.form",
     "template": "list"
@@ -39,6 +42,9 @@
     "about": "Tracked links to your pages, one for each place you post them.",
     "file": "apps/portal/web/src/records.tsx",
     "label": "Links",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 1,
     "record": "sites.link",
     "template": "list"
@@ -53,6 +59,9 @@
     "about": "Every landing page, and how each one does.",
     "file": "apps/portal/web/src/records.tsx",
     "label": "Pages",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 0,
     "record": "sites.page",
     "template": "list"
@@ -67,6 +76,9 @@
     "about": "Every form someone sent from your pages, in full.",
     "file": "apps/portal/web/src/records.tsx",
     "label": "Submissions",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 3,
     "record": "sites.entry",
     "template": "list"
@@ -75,8 +87,23 @@
  ],
  "edges": [
   {
+   "from": "ui:clientSites/forms",
+   "to": "table:public.site_form_records",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:clientSites/links",
+   "to": "table:public.site_link_records",
+   "kind": "reads"
+  },
+  {
    "from": "ui:clientSites/pages",
    "to": "table:public.site_page_records",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:clientSites/submissions",
+   "to": "table:public.site_entry_records",
    "kind": "reads"
   }
  ]

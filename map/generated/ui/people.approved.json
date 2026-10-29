@@ -67,6 +67,9 @@
     "about": "Every address kind, trait and timeline kind: where it comes from, who has it, what uses it.",
     "file": "apps/portal/web/src/records.tsx",
     "label": "Data",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 7,
     "record": "people.datum",
     "template": "list"
@@ -82,6 +85,9 @@
     "file": "apps/portal/web/src/records.tsx",
     "hidden": true,
     "label": "Findings",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 12,
     "record": "people.finding",
     "template": "list"

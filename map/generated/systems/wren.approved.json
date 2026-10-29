@@ -592,6 +592,149 @@
  ],
  "edges": [
   {
+   "from": "route:ConsolePortal/customFields",
+   "to": "system:wren.s3:files",
+   "kind": "calls",
+   "attrs": {
+    "here": [
+     "apps/worker/src/services/platform.ts"
+    ],
+    "title": [
+     "`WREN_FILES_BUCKET`"
+    ]
+   }
+  },
+  {
+   "from": "route:ConsolePortal/recordsAsk",
+   "to": "system:wren.s3:files",
+   "kind": "calls",
+   "attrs": {
+    "here": [
+     "apps/worker/src/services/platform.ts"
+    ],
+    "title": [
+     "`WREN_FILES_BUCKET`"
+    ]
+   }
+  },
+  {
+   "from": "route:ConsolePortal/recordsCounts",
+   "to": "system:wren.s3:files",
+   "kind": "calls",
+   "attrs": {
+    "here": [
+     "apps/worker/src/services/platform.ts"
+    ],
+    "title": [
+     "`WREN_FILES_BUCKET`"
+    ]
+   }
+  },
+  {
+   "from": "route:ConsolePortal/recordsExport",
+   "to": "system:wren.s3:files",
+   "kind": "calls",
+   "attrs": {
+    "here": [
+     "apps/worker/src/services/platform.ts"
+    ],
+    "title": [
+     "`WREN_FILES_BUCKET`"
+    ]
+   }
+  },
+  {
+   "from": "route:ConsolePortal/recordsGet",
+   "to": "system:wren.s3:files",
+   "kind": "calls",
+   "attrs": {
+    "here": [
+     "apps/worker/src/services/platform.ts"
+    ],
+    "title": [
+     "`WREN_FILES_BUCKET`"
+    ]
+   }
+  },
+  {
+   "from": "route:ConsolePortal/recordsList",
+   "to": "system:wren.s3:files",
+   "kind": "calls",
+   "attrs": {
+    "here": [
+     "apps/worker/src/services/platform.ts"
+    ],
+    "title": [
+     "`WREN_FILES_BUCKET`"
+    ]
+   }
+  },
+  {
+   "from": "route:ConsolePortal/recordsStats",
+   "to": "system:wren.s3:files",
+   "kind": "calls",
+   "attrs": {
+    "here": [
+     "apps/worker/src/services/platform.ts"
+    ],
+    "title": [
+     "`WREN_FILES_BUCKET`"
+    ]
+   }
+  },
+  {
+   "from": "route:DeliveryPortal/file",
+   "to": "system:wren.s3:files",
+   "kind": "calls",
+   "attrs": {
+    "here": [
+     "apps/worker/src/services/clients.ts"
+    ],
+    "title": [
+     "`WREN_FILES_BUCKET`"
+    ]
+   }
+  },
+  {
+   "from": "route:DeliveryPortal/upload",
+   "to": "system:wren.s3:files",
+   "kind": "calls",
+   "attrs": {
+    "here": [
+     "apps/worker/src/services/clients.ts"
+    ],
+    "title": [
+     "`WREN_FILES_BUCKET`"
+    ]
+   }
+  },
+  {
+   "from": "route:NotesConsole/file",
+   "to": "system:wren.s3:files",
+   "kind": "calls",
+   "attrs": {
+    "here": [
+     "apps/worker/src/services/apps.ts"
+    ],
+    "title": [
+     "`WREN_FILES_BUCKET`"
+    ]
+   }
+  },
+  {
+   "from": "route:NotesConsole/upload",
+   "to": "system:wren.s3:files",
+   "kind": "calls",
+   "attrs": {
+    "here": [
+     "apps/worker/src/services/apps.ts"
+    ],
+    "title": [
+     "`WREN_FILES_BUCKET`"
+    ]
+   }
+  },
+  {
    "from": "system:wren",
    "to": "system:autobrowse",
    "kind": "uses",

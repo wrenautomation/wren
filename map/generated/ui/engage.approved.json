@@ -26,6 +26,9 @@
     "file": "apps/portal/web/src/records.tsx",
     "group": "Setup",
     "label": "Accounts",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 13,
     "record": "marketing.account",
     "template": "list"
@@ -40,6 +43,10 @@
     "about": "Drafts, replies and posts that wait on your yes before they go out.",
     "file": "apps/portal/web/src/records.tsx",
     "label": "To approve",
+    "npm": [
+     "drizzle-orm",
+     "zod"
+    ],
     "order": 5,
     "record": "marketing.approval",
     "template": "list"
@@ -68,6 +75,9 @@
     "about": "Comments on your posts, waiting on a reply.",
     "file": "apps/portal/web/src/records.tsx",
     "label": "Comments",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 6,
     "record": "marketing.comment",
     "template": "list"
@@ -97,6 +107,9 @@
     "file": "apps/portal/web/src/records.tsx",
     "group": "Setup",
     "label": "DM copy",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 14,
     "record": "marketing.dm_copy",
     "template": "list"
@@ -111,6 +124,9 @@
     "about": "DMs to answer or send, and what we sent.",
     "file": "apps/portal/web/src/records.tsx",
     "label": "DMs",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 1,
     "record": "marketing.dm",
     "template": "list"
@@ -125,6 +141,10 @@
     "about": "Comments to write on other people's posts and threads.",
     "file": "apps/portal/web/src/records.tsx",
     "label": "Engage",
+    "npm": [
+     "drizzle-orm",
+     "zod"
+    ],
     "order": 0,
     "record": "marketing.engage",
     "template": "list"
@@ -139,6 +159,9 @@
     "about": "Your followers on each platform, and the change in a week.",
     "file": "apps/portal/web/src/records.tsx",
     "label": "Followers",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 9,
     "record": "marketing.audience",
     "template": "list"
@@ -153,6 +176,10 @@
     "about": "Messages, comments and replies waiting on you, from every channel.",
     "file": "apps/portal/web/src/records.tsx",
     "label": "Inbox",
+    "npm": [
+     "drizzle-orm",
+     "zod"
+    ],
     "order": 4,
     "record": "marketing.inbox",
     "template": "list"
@@ -167,6 +194,9 @@
     "about": "LinkedIn invites: to approve, sent, and accepted ones to message.",
     "file": "apps/portal/web/src/records.tsx",
     "label": "Invites",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 2,
     "record": "marketing.invite",
     "template": "list"
@@ -211,6 +241,9 @@
     "about": "People you can message, and what's open with each.",
     "file": "apps/portal/web/src/records.tsx",
     "label": "People",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 3,
     "record": "marketing.person",
     "template": "list"
@@ -226,6 +259,9 @@
     "file": "apps/portal/web/src/records.tsx",
     "group": "Reddit",
     "label": "Places",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 12,
     "record": "marketing.place",
     "template": "list"
@@ -240,6 +276,9 @@
     "about": "Reviews of your business, each with a reply to send.",
     "file": "apps/portal/web/src/records.tsx",
     "label": "Reviews",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 7,
     "record": "marketing.review",
     "template": "list"
@@ -269,6 +308,9 @@
     "file": "apps/portal/web/src/records.tsx",
     "group": "Reddit",
     "label": "Thread replies",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 11,
     "record": "marketing.thread",
     "template": "list"

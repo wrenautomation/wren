@@ -45,6 +45,28 @@ Wren Automation: campaigns, channels and client products.
 
 ## Links
 
+- route:ConsolePortal/customFields calls wren.s3:files: `WREN_FILES_BUCKET`
+  - in `apps/worker/src/services/platform.ts`
+- route:ConsolePortal/recordsAsk calls wren.s3:files: `WREN_FILES_BUCKET`
+  - in `apps/worker/src/services/platform.ts`
+- route:ConsolePortal/recordsCounts calls wren.s3:files: `WREN_FILES_BUCKET`
+  - in `apps/worker/src/services/platform.ts`
+- route:ConsolePortal/recordsExport calls wren.s3:files: `WREN_FILES_BUCKET`
+  - in `apps/worker/src/services/platform.ts`
+- route:ConsolePortal/recordsGet calls wren.s3:files: `WREN_FILES_BUCKET`
+  - in `apps/worker/src/services/platform.ts`
+- route:ConsolePortal/recordsList calls wren.s3:files: `WREN_FILES_BUCKET`
+  - in `apps/worker/src/services/platform.ts`
+- route:ConsolePortal/recordsStats calls wren.s3:files: `WREN_FILES_BUCKET`
+  - in `apps/worker/src/services/platform.ts`
+- route:DeliveryPortal/file calls wren.s3:files: `WREN_FILES_BUCKET`
+  - in `apps/worker/src/services/clients.ts`
+- route:DeliveryPortal/upload calls wren.s3:files: `WREN_FILES_BUCKET`
+  - in `apps/worker/src/services/clients.ts`
+- route:NotesConsole/file calls wren.s3:files: `WREN_FILES_BUCKET`
+  - in `apps/worker/src/services/apps.ts`
+- route:NotesConsole/upload calls wren.s3:files: `WREN_FILES_BUCKET`
+  - in `apps/worker/src/services/apps.ts`
 - wren uses autobrowse: npm `@wrenautomation/autobrowse`
   - in `apps/auth/package.json`, `apps/cli/package.json`, `apps/worker/package.json`, `packages/calendar/package.json`, `packages/channel-email/package.json`, `packages/channel-search/package.json`, `packages/connectors/package.json`, `packages/content/package.json`
 - wren uses engine: npm `@wrenautomation/falcon`, npm `@wrenautomation/models`, npm `@wrenautomation/orrery`, npm `@wrenautomation/weaver`

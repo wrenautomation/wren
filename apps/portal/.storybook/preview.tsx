@@ -6,7 +6,7 @@
  * Ready to build (an artifact draws it, the page doesn't follow it yet), Done. Each story file
  * keeps its old id, so `pages-wren--<app>` links still open.
  * In kestrel's frame (`?kestrel`), Alt+click posts the element's source (`data-insp-path`,
- * main.ts) to kestrel, which opens its file.
+ * main.ts) and its tagged ancestors' to kestrel, which opens the screen's own file.
  */
 import "../web/src/app.css";
 import type { Decorator, Preview } from "@storybook/react-vite";
@@ -19,11 +19,16 @@ if (window.parent !== window && new URLSearchParams(location.search).has("kestre
     "click",
     (e) => {
       if (!e.altKey || e.shiftKey || !(e.target instanceof Element)) return;
-      const at = e.target.closest("[data-insp-path]")?.getAttribute("data-insp-path");
-      if (!at) return;
+      // every tagged ancestor, innermost first: the shared part and the screen that holds it
+      const chain: string[] = [];
+      for (let el = e.target.closest("[data-insp-path]"); el; ) {
+        chain.push(el.getAttribute("data-insp-path") as string);
+        el = el.parentElement?.closest("[data-insp-path]") ?? null;
+      }
+      if (!chain.length) return;
       e.preventDefault();
       e.stopPropagation();
-      window.parent.postMessage({ kestrel: "source", at }, "*");
+      window.parent.postMessage({ kestrel: "source", at: chain[0], chain }, "*");
     },
     true,
   );

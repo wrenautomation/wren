@@ -1,7 +1,7 @@
 /**
  * The portal's screens as JSON, for kestrel's ui layer (kestrel.json `layers.ui.dump`): areas in
  * order, each app (and the name it is exported as) and its pages, each page's template and record
- * or its own file, and `api`: each client path's first part → the Restate service. Vite loads the modules as the portal does, so a spread or a shared page list
+ * or its own file, `home` (what `/` draws, per workspace), and `api`: each client path's first part → the Restate service. Vite loads the modules as the portal does, so a spread or a shared page list
  * reads right.
  */
 import { Window } from "happy-dom";
@@ -52,6 +52,7 @@ type App = {
 try {
   const { MODULES } = (await vite.ssrLoadModule("/src/modules/index.ts")) as { MODULES: App[] };
   const areas = await vite.ssrLoadModule("/src/areas.ts");
+  const home = await vite.ssrLoadModule("/src/today.tsx");
   // Every loaded source file's exports, so a page's component names the file it is drawn in.
   const fileOf = new Map<unknown, string>();
   const nameOf = new Map<unknown, string>();
@@ -64,6 +65,7 @@ try {
     }
   }
   const template = fileOf.get((await vite.ssrLoadModule("/src/records.tsx")).TemplatePage);
+  const today = fileOf.get(home.WrenToday);
   const { SERVICES } = (await vite.ssrLoadModule(`${root}apps/portal/src/services.ts`)) as {
     SERVICES: Record<string, { name: string }>;
   };
@@ -88,6 +90,18 @@ try {
         ...(p.record ? { record: p.record } : {}),
         file: p.Page ? fileOf.get(p.Page) : template,
       })),
+    })),
+    // `/`: Today, one per workspace, both drawn in today.tsx
+    home: [
+      ["wrenHome", "team"],
+      ["clientHome", undefined],
+    ].map(([id, audience]) => ({
+      id,
+      name: "Today",
+      blurb: "What waits on you today",
+      file: today,
+      ...(audience ? { audience } : {}),
+      pages: [{ id: "today", label: "Today", template: "hand", file: today }],
     })),
     api: Object.fromEntries(Object.entries(SERVICES).map(([k, s]) => [k, s.name])),
   };

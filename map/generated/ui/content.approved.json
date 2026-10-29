@@ -26,6 +26,10 @@
     "file": "apps/portal/web/src/records.tsx",
     "hidden": true,
     "label": "Cadence",
+    "npm": [
+     "drizzle-orm",
+     "zod"
+    ],
     "order": 15,
     "record": "marketing.cadence",
     "template": "list"
@@ -55,6 +59,9 @@
     "file": "apps/portal/web/src/records.tsx",
     "hidden": true,
     "label": "What worked",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 13,
     "record": "marketing.digest",
     "template": "list"
@@ -85,6 +92,9 @@
     "file": "apps/portal/web/src/records.tsx",
     "hidden": true,
     "label": "Feed",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 11,
     "record": "marketing.explore",
     "template": "list"
@@ -130,6 +140,9 @@
     "file": "apps/portal/web/src/records.tsx",
     "hidden": true,
     "label": "Every number",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 14,
     "record": "marketing.metric",
     "template": "list"
@@ -240,6 +253,9 @@
     "file": "apps/portal/web/src/records.tsx",
     "hidden": true,
     "label": "Recordings",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 10,
     "record": "marketing.video",
     "template": "list"

@@ -1,0 +1,201 @@
+{
+ "layer": "ui",
+ "nodes": [
+  {
+   "id": "ui:clientHome",
+   "role": "app",
+   "group": "clientHome",
+   "attrs": {
+    "blurb": "What waits on you today",
+    "file": "apps/portal/web/src/today.tsx",
+    "name": "Today",
+    "path": "/",
+    "workspace": "client"
+   }
+  },
+  {
+   "id": "ui:clientHome/today",
+   "role": "screen",
+   "parent": "ui:clientHome",
+   "group": "clientHome",
+   "attrs": {
+    "file": "apps/portal/web/src/today.tsx",
+    "label": "Today",
+    "order": 0,
+    "template": "hand"
+   }
+  }
+ ],
+ "edges": [
+  {
+   "from": "ui:clientHome/today",
+   "to": "route:AccountsConsole/accounts",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/account/Accounts.tsx",
+     "apps/portal/web/src/modules/account/SetupCard.tsx"
+    ],
+    "path": "accounts/accounts"
+   }
+  },
+  {
+   "from": "ui:clientHome/today",
+   "to": "route:AccountsConsole/now",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/account/Now.tsx"
+    ],
+    "path": "accounts/now"
+   }
+  },
+  {
+   "from": "ui:clientHome/today",
+   "to": "route:ConsolePortal/ask",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/marketplace/AddOn.tsx"
+    ],
+    "path": "console/ask"
+   }
+  },
+  {
+   "from": "ui:clientHome/today",
+   "to": "route:ConsolePortal/call",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/marketing/pieces.tsx"
+    ],
+    "path": "console/call"
+   }
+  },
+  {
+   "from": "ui:clientHome/today",
+   "to": "route:ConsolePortal/recordsCounts",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/waiting.ts"
+    ],
+    "path": "console/recordsCounts"
+   }
+  },
+  {
+   "from": "ui:clientHome/today",
+   "to": "route:ConsolePortal/recordsEdit",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/marketing/plan.tsx"
+    ],
+    "path": "console/recordsEdit"
+   }
+  },
+  {
+   "from": "ui:clientHome/today",
+   "to": "route:ConsolePortal/recordsGet",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/marketplace/AddOn.tsx",
+     "apps/portal/web/src/modules/wren/health.tsx"
+    ],
+    "path": "console/recordsGet"
+   }
+  },
+  {
+   "from": "ui:clientHome/today",
+   "to": "route:ConsolePortal/recordsList",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/wren/health.tsx",
+     "apps/portal/web/src/moves.ts"
+    ],
+    "path": "console/recordsList"
+   }
+  },
+  {
+   "from": "ui:clientHome/today",
+   "to": "route:PipelineConsole/journeysDrop",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/deals/board.tsx"
+    ],
+    "path": "pipeline/journeysDrop"
+   }
+  },
+  {
+   "from": "ui:clientHome/today",
+   "to": "route:PipelineConsole/journeysMove",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/deals/board.tsx"
+    ],
+    "path": "pipeline/journeysMove"
+   }
+  },
+  {
+   "from": "ui:clientHome/today",
+   "to": "route:PipelineConsole/mapRead",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/map/read.ts"
+    ],
+    "path": "pipeline/mapRead"
+   }
+  },
+  {
+   "from": "ui:clientHome/today",
+   "to": "route:PipelineConsole/recordsGet",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/map/read.ts",
+     "apps/portal/web/src/modules/deals/board.tsx"
+    ],
+    "path": "pipeline/recordsGet"
+   }
+  },
+  {
+   "from": "ui:clientHome/today",
+   "to": "route:PipelineConsole/recordsList",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/map/read.ts",
+     "apps/portal/web/src/modules/deals/board.tsx"
+    ],
+    "path": "pipeline/recordsList"
+   }
+  },
+  {
+   "from": "ui:clientHome/today",
+   "to": "route:PipelineConsole/shapeBlame",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/map/read.ts"
+    ],
+    "path": "pipeline/shapeBlame"
+   }
+  },
+  {
+   "from": "ui:clientHome/today",
+   "to": "route:PipelineConsole/shapeDiff",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/map/read.ts"
+    ],
+    "path": "pipeline/shapeDiff"
+   }
+  }
+ ]
+}

@@ -7,6 +7,10 @@
    "parent": "service:Reviews",
    "group": "@wren/channel-sms",
    "attrs": {
+    "deps": [
+     "clientDb",
+     "main"
+    ],
     "input": "z.infer<typeof CLICK>",
     "output": "{ to: string | null }",
     "wrap": "serviceHandler"
@@ -18,6 +22,10 @@
    "parent": "service:Reviews",
    "group": "@wren/channel-sms",
    "attrs": {
+    "deps": [
+     "clientDb",
+     "main"
+    ],
     "input": "z.infer<typeof FEEDBACK>",
     "output": "{ ok: boolean }",
     "wrap": "serviceHandler"
@@ -29,6 +37,10 @@
    "parent": "service:Reviews",
    "group": "@wren/channel-sms",
    "attrs": {
+    "deps": [
+     "clientDb",
+     "main"
+    ],
     "input": "z.infer<typeof CLICK>",
     "output": "{ ok: boolean }",
     "wrap": "serviceHandler"
@@ -40,6 +52,9 @@
    "parent": "service:SmsConsole",
    "group": "@wren/channel-sms",
    "attrs": {
+    "deps": [
+     "db"
+    ],
     "input": "AskReviewRequest",
     "npm": [
      "libphonenumber-js"
@@ -54,6 +69,10 @@
    "parent": "service:SmsConsole",
    "group": "@wren/channel-sms",
    "attrs": {
+    "deps": [
+     "db",
+     "open"
+    ],
     "input": "CallDoneRequest",
     "output": "{ done: string[]; skipped: string[]; }",
     "wrap": "serviceHandler"
@@ -65,6 +84,10 @@
    "parent": "service:SmsConsole",
    "group": "@wren/channel-sms",
    "attrs": {
+    "deps": [
+     "db",
+     "open"
+    ],
     "input": "PortalRequest & ExportAsk",
     "output": "import(\"@wren/core/records/serve\").RecordsFile",
     "wrap": "serviceHandler"
@@ -76,6 +99,10 @@
    "parent": "service:SmsConsole",
    "group": "@wren/channel-sms",
    "attrs": {
+    "deps": [
+     "db",
+     "open"
+    ],
     "input": "PortalRequest & GetAsk",
     "output": "import(\"@wren/core/records/serve\").RecordAnswer",
     "wrap": "serviceHandler"
@@ -87,6 +114,10 @@
    "parent": "service:SmsConsole",
    "group": "@wren/channel-sms",
    "attrs": {
+    "deps": [
+     "db",
+     "open"
+    ],
     "input": "PortalRequest & ListAsk",
     "output": "import(\"@wren/core/records/serve\").RecordsPage",
     "wrap": "serviceHandler"
@@ -98,6 +129,10 @@
    "parent": "service:SmsConsole",
    "group": "@wren/channel-sms",
    "attrs": {
+    "deps": [
+     "db",
+     "open"
+    ],
     "input": "PortalRequest & StatsAsk",
     "output": "import(\"@wren/core/records/serve\").RecordsStat",
     "wrap": "serviceHandler"
@@ -109,6 +144,9 @@
    "parent": "service:SmsConsole",
    "group": "@wren/channel-sms",
    "attrs": {
+    "deps": [
+     "db"
+    ],
     "input": "PortalRequest",
     "output": "import(\"@wren/core/records\").RecordMeta[]",
     "wrap": "serviceHandler"
@@ -120,6 +158,9 @@
    "parent": "service:SmsConsole",
    "group": "@wren/channel-sms",
    "attrs": {
+    "deps": [
+     "db"
+    ],
     "input": "ReplyRequest",
     "npm": [
      "libphonenumber-js"
@@ -134,6 +175,14 @@
    "parent": "service:SmsDesk",
    "group": "@wren/channel-sms",
    "attrs": {
+    "deps": [
+     "bookingLink",
+     "campaignId",
+     "db",
+     "forClient",
+     "live",
+     "senderName"
+    ],
     "input": "{ phone: string; basis: ContactBasis; why: string; niche?: string } & ForClient",
     "npm": [
      "libphonenumber-js"
@@ -148,6 +197,19 @@
    "parent": "service:SmsDesk",
    "group": "@wren/channel-sms",
    "attrs": {
+    "deps": [
+     "bookingLink",
+     "campaignId",
+     "clock",
+     "db",
+     "forClient",
+     "heldNiches",
+     "live",
+     "policy",
+     "provider",
+     "senderName",
+     "sequences"
+    ],
     "input": "{ sequence: string; niche?: string; limit: number } & ForClient",
     "npm": [
      "libphonenumber-js"
@@ -162,6 +224,20 @@
    "parent": "service:SmsDesk",
    "group": "@wren/channel-sms",
    "attrs": {
+    "deps": [
+     "bookingLink",
+     "bookings",
+     "clock",
+     "db",
+     "formCountries",
+     "heldNiches",
+     "live",
+     "policy",
+     "provider",
+     "senderName",
+     "sequences",
+     "site"
+    ],
     "input": "void",
     "npm": [
      "libphonenumber-js"
@@ -176,6 +252,14 @@
    "parent": "service:SmsDesk",
    "group": "@wren/channel-sms",
    "attrs": {
+    "deps": [
+     "bookingLink",
+     "campaignId",
+     "clock",
+     "db",
+     "forClient",
+     "senderName"
+    ],
     "input": "{ messageId: number; disposition: Disposition } & ForClient",
     "output": "void",
     "wrap": "serviceHandler"
@@ -187,6 +271,15 @@
    "parent": "service:SmsDesk",
    "group": "@wren/channel-sms",
    "attrs": {
+    "deps": [
+     "bookingLink",
+     "campaignId",
+     "db",
+     "forClient",
+     "heldNiches",
+     "live",
+     "senderName"
+    ],
     "input": "{ niche?: string; limit?: number } & ForClient",
     "output": "LiftStats",
     "wrap": "serviceHandler"
@@ -198,6 +291,14 @@
    "parent": "service:SmsDesk",
    "group": "@wren/channel-sms",
    "attrs": {
+    "deps": [
+     "bookingLink",
+     "campaignId",
+     "clock",
+     "db",
+     "forClient",
+     "senderName"
+    ],
     "input": "{ contactId: number } & ForClient",
     "output": "void",
     "wrap": "serviceHandler"
@@ -209,6 +310,13 @@
    "parent": "service:SmsDesk",
    "group": "@wren/channel-sms",
    "attrs": {
+    "deps": [
+     "clock",
+     "db",
+     "live",
+     "policy",
+     "provider"
+    ],
     "input": "void",
     "output": "NumbersView",
     "wrap": "serviceHandler"
@@ -220,6 +328,10 @@
    "parent": "service:SmsDesk",
    "group": "@wren/channel-sms",
    "attrs": {
+    "deps": [
+     "clock",
+     "db"
+    ],
     "input": "{ e164: string; reason?: string }",
     "output": "boolean",
     "wrap": "serviceHandler"
@@ -231,6 +343,9 @@
    "parent": "service:SmsDesk",
    "group": "@wren/channel-sms",
    "attrs": {
+    "deps": [
+     "pusher"
+    ],
     "input": "void",
     "output": "{ publicKey: string | null }",
     "wrap": "serviceHandler"
@@ -242,6 +357,12 @@
    "parent": "service:SmsDesk",
    "group": "@wren/channel-sms",
    "attrs": {
+    "deps": [
+     "campaignId",
+     "clock",
+     "db",
+     "provider"
+    ],
     "input": "void",
     "output": "RegistrationStats",
     "wrap": "serviceHandler"
@@ -253,6 +374,17 @@
    "parent": "service:SmsDesk",
    "group": "@wren/channel-sms",
    "attrs": {
+    "deps": [
+     "bookingLink",
+     "bookings",
+     "campaignId",
+     "clock",
+     "db",
+     "forClient",
+     "live",
+     "policy",
+     "senderName"
+    ],
     "input": "{ client?: string | null }",
     "npm": [
      "libphonenumber-js"
@@ -267,6 +399,15 @@
    "parent": "service:SmsDesk",
    "group": "@wren/channel-sms",
    "attrs": {
+    "deps": [
+     "bookingLink",
+     "campaignId",
+     "clock",
+     "db",
+     "forClient",
+     "policy",
+     "senderName"
+    ],
     "input": "{ contactId: number; body: string; kind?: \"manual\" | \"pay\" | \"doc\" } & ForClient",
     "npm": [
      "libphonenumber-js"
@@ -281,6 +422,9 @@
    "parent": "service:SmsDesk",
    "group": "@wren/channel-sms",
    "attrs": {
+    "deps": [
+     "db"
+    ],
     "input": "{ e164: string }",
     "output": "boolean",
     "wrap": "serviceHandler"
@@ -292,6 +436,15 @@
    "parent": "service:SmsDesk",
    "group": "@wren/channel-sms",
    "attrs": {
+    "deps": [
+     "bookingLink",
+     "campaignId",
+     "db",
+     "forClient",
+     "live",
+     "provider",
+     "senderName"
+    ],
     "input": "Omit<SetTemplate, \"by\"> & { by?: string | null; viewer?: { email?: string }; client?: string | null; }",
     "output": "SlotView",
     "wrap": "serviceHandler"
@@ -303,6 +456,12 @@
    "parent": "service:SmsDesk",
    "group": "@wren/channel-sms",
    "attrs": {
+    "deps": [
+     "clock",
+     "db",
+     "live",
+     "policy"
+    ],
     "input": "{ phone: string; why: string; body: string }",
     "npm": [
      "libphonenumber-js"
@@ -317,6 +476,14 @@
    "parent": "service:SmsDesk",
    "group": "@wren/channel-sms",
    "attrs": {
+    "deps": [
+     "bookingLink",
+     "campaignId",
+     "clock",
+     "db",
+     "forClient",
+     "senderName"
+    ],
     "input": "{ days?: number; niche?: string } & ForClient",
     "output": "SmsStats",
     "wrap": "serviceHandler"
@@ -328,6 +495,10 @@
    "parent": "service:SmsDesk",
    "group": "@wren/channel-sms",
    "attrs": {
+    "deps": [
+     "db",
+     "pusher"
+    ],
     "input": "{ subscription: PushSubscriptionInput; by: string }",
     "output": "{ pushed: boolean; error: string | null }",
     "wrap": "serviceHandler"
@@ -339,6 +510,13 @@
    "parent": "service:SmsDesk",
    "group": "@wren/channel-sms",
    "attrs": {
+    "deps": [
+     "clock",
+     "db",
+     "live",
+     "policy",
+     "provider"
+    ],
     "input": "void",
     "npm": [
      "libphonenumber-js"
@@ -353,6 +531,14 @@
    "parent": "service:SmsDesk",
    "group": "@wren/channel-sms",
    "attrs": {
+    "deps": [
+     "bookingLink",
+     "campaignId",
+     "db",
+     "forClient",
+     "live",
+     "senderName"
+    ],
     "input": "{ client?: string | null }",
     "output": "SlotView[]",
     "wrap": "serviceHandler"
@@ -364,6 +550,15 @@
    "parent": "service:SmsDesk",
    "group": "@wren/channel-sms",
    "attrs": {
+    "deps": [
+     "bookingLink",
+     "campaignId",
+     "clock",
+     "db",
+     "forClient",
+     "policy",
+     "senderName"
+    ],
     "input": "{ contactId: number } & ForClient",
     "output": "Thread | null",
     "wrap": "serviceHandler"
@@ -375,6 +570,13 @@
    "parent": "service:SmsDesk",
    "group": "@wren/channel-sms",
    "attrs": {
+    "deps": [
+     "bookingLink",
+     "campaignId",
+     "db",
+     "forClient",
+     "senderName"
+    ],
     "input": "{ filter?: ThreadFilter; limit?: number; offset?: number } & ForClient",
     "output": "ThreadSummary[]",
     "wrap": "serviceHandler"
@@ -386,6 +588,9 @@
    "parent": "service:SmsDesk",
    "group": "@wren/channel-sms",
    "attrs": {
+    "deps": [
+     "db"
+    ],
     "input": "{ endpoint: string }",
     "output": "{ removed: boolean }",
     "wrap": "serviceHandler"
@@ -397,6 +602,17 @@
    "parent": "service:SmsEvents",
    "group": "@wren/channel-sms",
    "attrs": {
+    "deps": [
+     "calls",
+     "campaignId",
+     "clock",
+     "db",
+     "fire",
+     "keys",
+     "notifier",
+     "provider",
+     "pusher"
+    ],
     "input": "unknown",
     "output": "{ duplicate: boolean; outcome: string }",
     "wrap": "plain"
@@ -408,6 +624,17 @@
    "parent": "service:SmsEvents",
    "group": "@wren/channel-sms",
    "attrs": {
+    "deps": [
+     "calls",
+     "clientDb",
+     "clock",
+     "db",
+     "fire",
+     "keys",
+     "notifier",
+     "provider",
+     "pusher"
+    ],
     "input": "{ client: string; body: unknown }",
     "output": "{ duplicate: boolean; outcome: string }",
     "wrap": "plain"
@@ -419,6 +646,11 @@
    "parent": "service:SmsEvents",
    "group": "@wren/channel-sms",
    "attrs": {
+    "deps": [
+     "clientDb",
+     "db",
+     "keys"
+    ],
     "input": "{ number?: string | null; client?: string | null }",
     "output": "Signer",
     "wrap": "serviceHandler"
@@ -430,6 +662,20 @@
    "parent": "service:SmsForms",
    "group": "@wren/channel-sms",
    "attrs": {
+    "deps": [
+     "bookingLink",
+     "bookings",
+     "clock",
+     "db",
+     "formCountries",
+     "heldNiches",
+     "live",
+     "policy",
+     "provider",
+     "senderName",
+     "sequences",
+     "site"
+    ],
     "input": "{ application: number }",
     "npm": [
      "libphonenumber-js"
@@ -444,6 +690,12 @@
    "parent": "service:SmsForms",
    "group": "@wren/channel-sms",
    "attrs": {
+    "deps": [
+     "clock",
+     "db",
+     "notifier",
+     "policy"
+    ],
     "input": "RunRequest",
     "npm": [
      "libphonenumber-js"
@@ -458,6 +710,18 @@
    "parent": "service:SmsForms",
    "group": "@wren/channel-sms",
    "attrs": {
+    "deps": [
+     "bookingLink",
+     "bookings",
+     "clock",
+     "db",
+     "formMail",
+     "live",
+     "notifier",
+     "policy",
+     "senderName",
+     "site"
+    ],
     "input": "RunRequest",
     "output": "EmailOutcome",
     "wrap": "serviceHandler"
@@ -469,6 +733,20 @@
    "parent": "service:SmsForms",
    "group": "@wren/channel-sms",
    "attrs": {
+    "deps": [
+     "bookingLink",
+     "bookings",
+     "clock",
+     "db",
+     "formCountries",
+     "heldNiches",
+     "live",
+     "policy",
+     "provider",
+     "senderName",
+     "sequences",
+     "site"
+    ],
     "input": "FirstRequest",
     "npm": [
      "libphonenumber-js"
@@ -483,6 +761,7 @@
    "parent": "@wren/channel-sms",
    "group": "@wren/channel-sms",
    "attrs": {
+    "factory": "makeReviews",
     "file": "packages/channel-sms/src/restate/answers.ts",
     "kind": "service"
    }
@@ -493,6 +772,7 @@
    "parent": "@wren/channel-sms",
    "group": "@wren/channel-sms",
    "attrs": {
+    "factory": "makeSmsConsole",
     "file": "packages/channel-sms/src/restate/console.ts",
     "kind": "service",
     "via": "portalService"
@@ -504,6 +784,7 @@
    "parent": "@wren/channel-sms",
    "group": "@wren/channel-sms",
    "attrs": {
+    "factory": "makeSmsDesk",
     "file": "packages/channel-sms/src/restate/index.ts",
     "kind": "service"
    }
@@ -514,6 +795,7 @@
    "parent": "@wren/channel-sms",
    "group": "@wren/channel-sms",
    "attrs": {
+    "factory": "makeSmsEvents",
     "file": "packages/channel-sms/src/restate/index.ts",
     "kind": "service"
    }
@@ -524,6 +806,7 @@
    "parent": "@wren/channel-sms",
    "group": "@wren/channel-sms",
    "attrs": {
+    "factory": "makeSmsForms",
     "file": "packages/channel-sms/src/restate/forms.ts",
     "kind": "service"
    }

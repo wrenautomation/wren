@@ -8,7 +8,7 @@ File: packages/pipeline/src/restate.ts
 
 - **assign** `AssignRequest` → `restate.RestatePromise<{ journey: string; owner: string | null; }>` (serviceHandler): writes pipeline.instances; reads pipeline.shape_versions, public.client_members, public.clients, public.documents, public.operators, public.profiles, public.roles
 - **drop** `DropRequest` → `{ journey: string; node: string; }` (serviceHandler): writes pipeline.instances; reads pipeline.shape_drafts, pipeline.shape_versions, public.documents, public.profiles
-- **move** `MoveRequest` → `{ journey: string; from: string; to: string; status: "done" | "open" | "dropped"; }` (serviceHandler): reads pipeline.instances, pipeline.shape_drafts, pipeline.shape_versions, public.documents, public.profiles
+- **move** `MoveRequest` → `{ journey: string; from: string; to: string; status: "open" | "done" | "dropped"; }` (serviceHandler): reads pipeline.instances, pipeline.shape_drafts, pipeline.shape_versions, public.documents, public.profiles
 - **open** `OpenRequest` → `{ journey: string; node: string; }` (serviceHandler): reads pipeline.instances, pipeline.shape_drafts, pipeline.shape_versions, public.documents, public.profile_keys, public.profiles
 - **rebuild** `RebuildRequest` → `restate.RestatePromise<import("./moves.js").Rebuilt>` (serviceHandler): writes pipeline.instances; reads pipeline.shape_drafts, pipeline.shape_versions, public.documents, public.events, public.profiles
 

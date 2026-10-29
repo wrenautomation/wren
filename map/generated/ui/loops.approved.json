@@ -52,6 +52,9 @@
     "about": "Switches the code reads to turn a feature on or off.",
     "file": "apps/portal/web/src/records.tsx",
     "label": "Flags",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 4,
     "record": "loops.flag",
     "template": "list"
@@ -92,6 +95,10 @@
     "about": "Settings for the parts that run for Wren.",
     "file": "apps/portal/web/src/records.tsx",
     "label": "Settings",
+    "npm": [
+     "drizzle-orm",
+     "zod"
+    ],
     "order": 3,
     "record": "console.setting",
     "template": "list"

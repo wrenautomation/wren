@@ -7,7 +7,15 @@
    "parent": "service:NotesConsole",
    "group": "@wren/notes",
    "attrs": {
+    "deps": [
+     "open",
+     "write"
+    ],
     "input": "?",
+    "npm": [
+     "lib0",
+     "yjs"
+    ],
     "output": "?",
     "wrap": "write"
    }
@@ -18,6 +26,9 @@
    "parent": "service:NotesConsole",
    "group": "@wren/notes",
    "attrs": {
+    "deps": [
+     "write"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "write"
@@ -40,6 +51,10 @@
    "parent": "service:NotesConsole",
    "group": "@wren/notes",
    "attrs": {
+    "deps": [
+     "main",
+     "open"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "read"
@@ -51,6 +66,10 @@
    "parent": "service:NotesConsole",
    "group": "@wren/notes",
    "attrs": {
+    "deps": [
+     "main",
+     "write"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "write"
@@ -62,6 +81,9 @@
    "parent": "service:NotesConsole",
    "group": "@wren/notes",
    "attrs": {
+    "deps": [
+     "write"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "write"
@@ -73,6 +95,10 @@
    "parent": "service:NotesConsole",
    "group": "@wren/notes",
    "attrs": {
+    "deps": [
+     "main",
+     "write"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "write"
@@ -84,6 +110,10 @@
    "parent": "service:NotesConsole",
    "group": "@wren/notes",
    "attrs": {
+    "deps": [
+     "main",
+     "write"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "write"
@@ -95,6 +125,10 @@
    "parent": "service:NotesConsole",
    "group": "@wren/notes",
    "attrs": {
+    "deps": [
+     "main",
+     "write"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "write"
@@ -106,6 +140,9 @@
    "parent": "service:NotesConsole",
    "group": "@wren/notes",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "read"
@@ -117,7 +154,16 @@
    "parent": "service:NotesConsole",
    "group": "@wren/notes",
    "attrs": {
+    "deps": [
+     "open",
+     "write",
+     "zone"
+    ],
     "input": "?",
+    "npm": [
+     "lib0",
+     "yjs"
+    ],
     "output": "?",
     "wrap": "write"
    }
@@ -128,6 +174,9 @@
    "parent": "service:NotesConsole",
    "group": "@wren/notes",
    "attrs": {
+    "deps": [
+     "open"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "read"
@@ -139,6 +188,9 @@
    "parent": "service:NotesConsole",
    "group": "@wren/notes",
    "attrs": {
+    "deps": [
+     "write"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "write"
@@ -150,6 +202,9 @@
    "parent": "service:NotesConsole",
    "group": "@wren/notes",
    "attrs": {
+    "deps": [
+     "write"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "write"
@@ -161,6 +216,9 @@
    "parent": "service:NotesConsole",
    "group": "@wren/notes",
    "attrs": {
+    "deps": [
+     "write"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "write"
@@ -172,6 +230,9 @@
    "parent": "service:NotesConsole",
    "group": "@wren/notes",
    "attrs": {
+    "deps": [
+     "write"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "write"
@@ -205,7 +266,13 @@
    "parent": "service:NotesConsole",
    "group": "@wren/notes",
    "attrs": {
+    "deps": [
+     "write"
+    ],
     "input": "?",
+    "npm": [
+     "yjs"
+    ],
     "output": "?",
     "wrap": "write"
    }
@@ -216,6 +283,9 @@
    "parent": "service:NotesConsole",
    "group": "@wren/notes",
    "attrs": {
+    "deps": [
+     "drive"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "read"
@@ -227,6 +297,9 @@
    "parent": "service:NotesConsole",
    "group": "@wren/notes",
    "attrs": {
+    "deps": [
+     "drive"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "read"
@@ -238,6 +311,9 @@
    "parent": "service:NotesConsole",
    "group": "@wren/notes",
    "attrs": {
+    "deps": [
+     "files"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "read"
@@ -249,6 +325,9 @@
    "parent": "service:NotesConsole",
    "group": "@wren/notes",
    "attrs": {
+    "deps": [
+     "write"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "write"
@@ -260,6 +339,9 @@
    "parent": "service:NotesConsole",
    "group": "@wren/notes",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "read"
@@ -271,6 +353,9 @@
    "parent": "service:NotesConsole",
    "group": "@wren/notes",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "read"
@@ -282,6 +367,9 @@
    "parent": "service:NotesConsole",
    "group": "@wren/notes",
    "attrs": {
+    "deps": [
+     "write"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "write"
@@ -293,6 +381,9 @@
    "parent": "service:NotesConsole",
    "group": "@wren/notes",
    "attrs": {
+    "deps": [
+     "write"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "write"
@@ -304,6 +395,9 @@
    "parent": "service:NotesConsole",
    "group": "@wren/notes",
    "attrs": {
+    "deps": [
+     "write"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "write"
@@ -315,6 +409,9 @@
    "parent": "service:NotesConsole",
    "group": "@wren/notes",
    "attrs": {
+    "deps": [
+     "write"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "write"
@@ -337,6 +434,9 @@
    "parent": "service:NotesConsole",
    "group": "@wren/notes",
    "attrs": {
+    "deps": [
+     "open"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "read"
@@ -348,6 +448,9 @@
    "parent": "service:NotesConsole",
    "group": "@wren/notes",
    "attrs": {
+    "deps": [
+     "main"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "read"
@@ -359,6 +462,9 @@
    "parent": "service:NotesConsole",
    "group": "@wren/notes",
    "attrs": {
+    "deps": [
+     "open"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "read"
@@ -370,6 +476,9 @@
    "parent": "service:NotesConsole",
    "group": "@wren/notes",
    "attrs": {
+    "deps": [
+     "open"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "read"
@@ -381,6 +490,9 @@
    "parent": "service:NotesConsole",
    "group": "@wren/notes",
    "attrs": {
+    "deps": [
+     "open"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "read"
@@ -392,6 +504,10 @@
    "parent": "service:NotesConsole",
    "group": "@wren/notes",
    "attrs": {
+    "deps": [
+     "open",
+     "zone"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "read"
@@ -403,6 +519,9 @@
    "parent": "service:NotesConsole",
    "group": "@wren/notes",
    "attrs": {
+    "deps": [
+     "open"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "read"
@@ -414,7 +533,15 @@
    "parent": "service:NotesConsole",
    "group": "@wren/notes",
    "attrs": {
+    "deps": [
+     "open",
+     "write"
+    ],
     "input": "?",
+    "npm": [
+     "lib0",
+     "yjs"
+    ],
     "output": "?",
     "wrap": "write"
    }
@@ -425,6 +552,9 @@
    "parent": "service:NotesConsole",
    "group": "@wren/notes",
    "attrs": {
+    "deps": [
+     "write"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "write"
@@ -436,7 +566,15 @@
    "parent": "service:NotesConsole",
    "group": "@wren/notes",
    "attrs": {
+    "deps": [
+     "open",
+     "write"
+    ],
     "input": "?",
+    "npm": [
+     "lib0",
+     "yjs"
+    ],
     "output": "?",
     "wrap": "write"
    }
@@ -447,6 +585,9 @@
    "parent": "service:NotesConsole",
    "group": "@wren/notes",
    "attrs": {
+    "deps": [
+     "drive"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "read"
@@ -458,6 +599,10 @@
    "parent": "service:NotesConsole",
    "group": "@wren/notes",
    "attrs": {
+    "deps": [
+     "main",
+     "write"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "write"
@@ -469,6 +614,9 @@
    "parent": "service:NotesConsole",
    "group": "@wren/notes",
    "attrs": {
+    "deps": [
+     "write"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "write"
@@ -480,7 +628,14 @@
    "parent": "service:NotesConsole",
    "group": "@wren/notes",
    "attrs": {
+    "deps": [
+     "open"
+    ],
     "input": "?",
+    "npm": [
+     "lib0",
+     "yjs"
+    ],
     "output": "?",
     "wrap": "read"
    }
@@ -491,6 +646,9 @@
    "parent": "service:NotesConsole",
    "group": "@wren/notes",
    "attrs": {
+    "deps": [
+     "open"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "read"
@@ -502,7 +660,14 @@
    "parent": "service:NotesConsole",
    "group": "@wren/notes",
    "attrs": {
+    "deps": [
+     "main",
+     "write"
+    ],
     "input": "?",
+    "npm": [
+     "yjs"
+    ],
     "output": "?",
     "wrap": "write"
    }
@@ -513,6 +678,9 @@
    "parent": "service:NotesConsole",
    "group": "@wren/notes",
    "attrs": {
+    "deps": [
+     "write"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "write"
@@ -524,6 +692,9 @@
    "parent": "service:NotesConsole",
    "group": "@wren/notes",
    "attrs": {
+    "deps": [
+     "write"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "write"
@@ -535,6 +706,10 @@
    "parent": "service:NotesConsole",
    "group": "@wren/notes",
    "attrs": {
+    "deps": [
+     "main",
+     "write"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "write"
@@ -546,6 +721,10 @@
    "parent": "service:NotesConsole",
    "group": "@wren/notes",
    "attrs": {
+    "deps": [
+     "main",
+     "open"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "read"
@@ -557,7 +736,14 @@
    "parent": "service:NotesConsole",
    "group": "@wren/notes",
    "attrs": {
+    "deps": [
+     "main",
+     "write"
+    ],
     "input": "?",
+    "npm": [
+     "yjs"
+    ],
     "output": "?",
     "wrap": "write"
    }
@@ -568,7 +754,15 @@
    "parent": "service:NotesConsole",
    "group": "@wren/notes",
    "attrs": {
+    "deps": [
+     "main",
+     "open",
+     "write"
+    ],
     "input": "?",
+    "npm": [
+     "yjs"
+    ],
     "output": "?",
     "wrap": "write"
    }
@@ -579,6 +773,9 @@
    "parent": "service:NotesConsole",
    "group": "@wren/notes",
    "attrs": {
+    "deps": [
+     "write"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "write"
@@ -601,6 +798,9 @@
    "parent": "service:NotesConsole",
    "group": "@wren/notes",
    "attrs": {
+    "deps": [
+     "turns"
+    ],
     "input": "Parameters<NotesApi[\"drafting\"]>[0]",
     "output": "{ started: boolean; }",
     "wrap": "serviceHandler"
@@ -612,6 +812,10 @@
    "parent": "service:NotesConsole",
    "group": "@wren/notes",
    "attrs": {
+    "deps": [
+     "turns",
+     "write"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "write"
@@ -623,6 +827,9 @@
    "parent": "service:NotesConsole",
    "group": "@wren/notes",
    "attrs": {
+    "deps": [
+     "write"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "write"
@@ -634,6 +841,9 @@
    "parent": "service:NotesConsole",
    "group": "@wren/notes",
    "attrs": {
+    "deps": [
+     "write"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "write"
@@ -645,6 +855,10 @@
    "parent": "service:NotesConsole",
    "group": "@wren/notes",
    "attrs": {
+    "deps": [
+     "files",
+     "write"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "write"
@@ -678,6 +892,9 @@
    "parent": "service:NotesConsole",
    "group": "@wren/notes",
    "attrs": {
+    "deps": [
+     "write"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "write"
@@ -689,11 +906,1073 @@
    "parent": "@wren/notes",
    "group": "@wren/notes",
    "attrs": {
+    "factory": "makeNotesConsole",
     "file": "packages/notes/src/console.ts",
     "kind": "service",
     "via": "portalService"
    }
   }
  ],
- "edges": []
+ "edges": [
+  {
+   "from": "route:NotesConsole/append",
+   "to": "table:public.boards",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/append",
+   "to": "table:public.inbox_notes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/append",
+   "to": "table:public.note_comments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/append",
+   "to": "table:public.note_links",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/append",
+   "to": "table:public.note_mentions",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/append",
+   "to": "table:public.note_updates",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/append",
+   "to": "table:public.note_versions",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/append",
+   "to": "table:public.notes",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/archive",
+   "to": "table:public.boards",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/archive",
+   "to": "table:public.notes",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/backlinks",
+   "to": "table:public.board_shares",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/backlinks",
+   "to": "table:public.boards",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/backlinks",
+   "to": "table:public.note_links",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/backlinks",
+   "to": "table:public.note_shares",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/backlinks",
+   "to": "table:public.notes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/board",
+   "to": "table:public.board_shares",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/board",
+   "to": "table:public.boards",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/board",
+   "to": "table:public.note_shares",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/board",
+   "to": "table:public.notes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/boardArchive",
+   "to": "table:public.board_shares",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/boardArchive",
+   "to": "table:public.boards",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/boardCreate",
+   "to": "table:public.boards",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/boardGeneral",
+   "to": "table:public.board_shares",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/boardGeneral",
+   "to": "table:public.boards",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/boardSave",
+   "to": "table:public.board_shares",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/boardSave",
+   "to": "table:public.notes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/boardSave",
+   "to": "table:public.boards",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/boardShare",
+   "to": "table:public.boards",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/boardShare",
+   "to": "table:public.board_shares",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/boards",
+   "to": "table:public.board_shares",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/boards",
+   "to": "table:public.boards",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/capture",
+   "to": "table:public.boards",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/capture",
+   "to": "table:public.inbox_notes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/capture",
+   "to": "table:public.note_comments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/capture",
+   "to": "table:public.note_links",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/capture",
+   "to": "table:public.note_mentions",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/capture",
+   "to": "table:public.note_shares",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/capture",
+   "to": "table:public.note_updates",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/capture",
+   "to": "table:public.note_versions",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/capture",
+   "to": "table:public.notes",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/cardChips",
+   "to": "table:public.board_shares",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/cardChips",
+   "to": "table:public.boards",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/cardChips",
+   "to": "table:public.note_shares",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/cardChips",
+   "to": "table:public.notes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/comment",
+   "to": "table:public.inbox_notes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/comment",
+   "to": "table:public.notes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/comment",
+   "to": "table:public.note_comments",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/comment",
+   "to": "table:public.note_mentions",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/commentDelete",
+   "to": "table:public.notes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/commentDelete",
+   "to": "table:public.note_comments",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/commentEdit",
+   "to": "table:public.inbox_notes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/commentEdit",
+   "to": "table:public.notes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/commentEdit",
+   "to": "table:public.note_comments",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/commentEdit",
+   "to": "table:public.note_mentions",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/comments",
+   "to": "table:public.note_comments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/comments",
+   "to": "table:public.notes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/compare",
+   "to": "table:public.note_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/compare",
+   "to": "table:public.notes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/create",
+   "to": "table:public.boards",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/create",
+   "to": "table:public.note_links",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/create",
+   "to": "table:public.note_shares",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/create",
+   "to": "table:public.note_updates",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/create",
+   "to": "table:public.note_versions",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/create",
+   "to": "table:public.notes",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/general",
+   "to": "table:public.boards",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/general",
+   "to": "table:public.notes",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/home",
+   "to": "table:public.board_shares",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/home",
+   "to": "table:public.boards",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/home",
+   "to": "table:public.note_seen",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/home",
+   "to": "table:public.note_shares",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/home",
+   "to": "table:public.note_stars",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/home",
+   "to": "table:public.notes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/home",
+   "to": "table:public.notes_settings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/mentions",
+   "to": "table:public.board_shares",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/mentions",
+   "to": "table:public.boards",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/mentions",
+   "to": "table:public.inbox_notes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/mentions",
+   "to": "table:public.note_comments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/mentions",
+   "to": "table:public.note_mentions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/mentions",
+   "to": "table:public.note_shares",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/mentions",
+   "to": "table:public.notes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/move",
+   "to": "table:public.boards",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/move",
+   "to": "table:public.notes",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/nameVersion",
+   "to": "table:public.notes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/nameVersion",
+   "to": "table:public.note_versions",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/needsYou",
+   "to": "table:public.boards",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/needsYou",
+   "to": "table:public.notes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/needsYou",
+   "to": "table:public.task_blocks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/open",
+   "to": "table:public.board_shares",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/open",
+   "to": "table:public.boards",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/open",
+   "to": "table:public.inbox_notes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/open",
+   "to": "table:public.note_comments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/open",
+   "to": "table:public.note_shares",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/open",
+   "to": "table:public.note_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/open",
+   "to": "table:public.notes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/open",
+   "to": "table:public.note_mentions",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/open",
+   "to": "table:public.note_seen",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/people",
+   "to": "table:public.board_shares",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/people",
+   "to": "table:public.boards",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/people",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/people",
+   "to": "table:public.note_shares",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/people",
+   "to": "table:public.notes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/recordsExport",
+   "to": "table:public.custom_field_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/recordsExport",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/recordsExport",
+   "to": "table:public.draft_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/recordsExport",
+   "to": "table:public.draft_outcomes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/recordsExport",
+   "to": "table:public.draft_people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/recordsGet",
+   "to": "table:public.changes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/recordsGet",
+   "to": "table:public.custom_field_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/recordsGet",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/recordsGet",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/recordsList",
+   "to": "table:public.custom_field_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/recordsList",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/recordsStats",
+   "to": "table:public.custom_field_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/recordsStats",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/recordsTypes",
+   "to": "table:public.board_shares",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/recordsTypes",
+   "to": "table:public.boards",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/recordsTypes",
+   "to": "table:public.note_shares",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/recordsTypes",
+   "to": "table:public.notes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/rename",
+   "to": "table:public.boards",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/rename",
+   "to": "table:public.inbox_notes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/rename",
+   "to": "table:public.note_comments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/rename",
+   "to": "table:public.note_links",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/rename",
+   "to": "table:public.note_mentions",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/rename",
+   "to": "table:public.note_updates",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/rename",
+   "to": "table:public.note_versions",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/rename",
+   "to": "table:public.notes",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/resolve",
+   "to": "table:public.notes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/resolve",
+   "to": "table:public.note_comments",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/restore",
+   "to": "table:public.boards",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/restore",
+   "to": "table:public.inbox_notes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/restore",
+   "to": "table:public.note_comments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/restore",
+   "to": "table:public.note_links",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/restore",
+   "to": "table:public.note_mentions",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/restore",
+   "to": "table:public.note_updates",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/restore",
+   "to": "table:public.note_versions",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/restore",
+   "to": "table:public.notes",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/settings",
+   "to": "table:public.notes_settings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/share",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/share",
+   "to": "table:public.notes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/share",
+   "to": "table:public.note_shares",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/star",
+   "to": "table:public.notes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/star",
+   "to": "table:public.note_stars",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/sync",
+   "to": "table:public.boards",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/sync",
+   "to": "table:public.inbox_notes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/sync",
+   "to": "table:public.note_comments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/sync",
+   "to": "table:public.note_links",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/sync",
+   "to": "table:public.note_mentions",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/sync",
+   "to": "table:public.note_updates",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/sync",
+   "to": "table:public.note_versions",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/sync",
+   "to": "table:public.notes",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/task",
+   "to": "table:public.board_shares",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/task",
+   "to": "table:public.boards",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/task",
+   "to": "table:public.notes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/task",
+   "to": "table:public.task_blocks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/taskAdd",
+   "to": "table:public.board_shares",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/taskAdd",
+   "to": "table:public.boards",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/taskAdd",
+   "to": "table:public.note_links",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/taskAdd",
+   "to": "table:public.note_shares",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/taskAdd",
+   "to": "table:public.note_updates",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/taskAdd",
+   "to": "table:public.note_versions",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/taskAdd",
+   "to": "table:public.notes",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/taskAdd",
+   "to": "table:public.task_blocks",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/taskAdd",
+   "to": "table:public.task_moves",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/taskBlock",
+   "to": "table:public.boards",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/taskBlock",
+   "to": "table:public.notes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/taskBlock",
+   "to": "table:public.task_blocks",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/taskClose",
+   "to": "table:public.boards",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/taskClose",
+   "to": "table:public.notes",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/taskClose",
+   "to": "table:public.task_moves",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/taskEdit",
+   "to": "table:public.board_shares",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/taskEdit",
+   "to": "table:public.boards",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/taskEdit",
+   "to": "table:public.notes",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/taskEdit",
+   "to": "table:public.task_moves",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/taskExport",
+   "to": "table:public.board_shares",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/taskExport",
+   "to": "table:public.boards",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/taskExport",
+   "to": "table:public.note_shares",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/taskExport",
+   "to": "table:public.notes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/taskExport",
+   "to": "table:public.task_blocks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/taskFromLine",
+   "to": "table:public.board_shares",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/taskFromLine",
+   "to": "table:public.boards",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/taskFromLine",
+   "to": "table:public.note_links",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/taskFromLine",
+   "to": "table:public.note_shares",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/taskFromLine",
+   "to": "table:public.note_updates",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/taskFromLine",
+   "to": "table:public.note_versions",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/taskFromLine",
+   "to": "table:public.notes",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/taskFromLine",
+   "to": "table:public.task_blocks",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/taskFromLine",
+   "to": "table:public.task_moves",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/taskImport",
+   "to": "table:public.board_shares",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/taskImport",
+   "to": "table:public.boards",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/taskImport",
+   "to": "table:public.note_links",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/taskImport",
+   "to": "table:public.note_shares",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/taskImport",
+   "to": "table:public.note_updates",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/taskImport",
+   "to": "table:public.note_versions",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/taskImport",
+   "to": "table:public.notes",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/taskImport",
+   "to": "table:public.task_blocks",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/taskImport",
+   "to": "table:public.task_moves",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/taskMove",
+   "to": "table:public.boards",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/taskMove",
+   "to": "table:public.notes",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/taskMove",
+   "to": "table:public.task_moves",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/taskMoves",
+   "to": "table:public.boards",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/taskMoves",
+   "to": "table:public.notes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/taskMoves",
+   "to": "table:public.task_moves",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/train",
+   "to": "table:public.boards",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/train",
+   "to": "table:public.notes",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/transfer",
+   "to": "table:public.boards",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/transfer",
+   "to": "table:public.note_shares",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/transfer",
+   "to": "table:public.notes",
+   "kind": "writes"
+  },
+  {
+   "from": "route:NotesConsole/version",
+   "to": "table:public.note_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/version",
+   "to": "table:public.notes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/versions",
+   "to": "table:public.note_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/versions",
+   "to": "table:public.notes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:NotesConsole/workspaceTrain",
+   "to": "table:public.notes_settings",
+   "kind": "writes"
+  }
+ ]
 }

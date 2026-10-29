@@ -25,6 +25,9 @@
     "about": "Links your customers pay you through, and whether they paid.",
     "file": "apps/portal/web/src/records.tsx",
     "label": "Pay links",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 0,
     "record": "payments.link",
     "template": "list"

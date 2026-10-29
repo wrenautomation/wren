@@ -7,6 +7,10 @@
    "parent": "service:CallBookings",
    "group": "@wren/channel-email",
    "attrs": {
+    "deps": [
+     "db",
+     "fire"
+    ],
     "input": "unknown",
     "output": "BookingOutcome | null",
     "wrap": "plain"
@@ -18,6 +22,11 @@
    "parent": "service:CallBookings",
    "group": "@wren/channel-email",
    "attrs": {
+    "deps": [
+     "clientDb",
+     "db",
+     "fire"
+    ],
     "input": "{ client: string; body: unknown }",
     "output": "BookingOutcome | null",
     "wrap": "plain"
@@ -29,6 +38,13 @@
    "parent": "service:CallBriefs",
    "group": "@wren/channel-email",
    "attrs": {
+    "deps": [
+     "dbFor",
+     "llm",
+     "llmFor",
+     "settingsFor",
+     "siteFor"
+    ],
     "input": "{ client?: string | null; id: number }",
     "output": "{ built: boolean; }",
     "wrap": "serviceHandler"
@@ -40,6 +56,15 @@
    "parent": "service:CallBriefs",
    "group": "@wren/channel-email",
    "attrs": {
+    "deps": [
+     "dbFor",
+     "llm",
+     "llmFor",
+     "notifierFor",
+     "portal",
+     "settingsFor",
+     "siteFor"
+    ],
     "input": "SendAsk",
     "output": "{ sent: boolean; why: string; } | { sent: boolean; why?: never; }",
     "wrap": "serviceHandler"
@@ -51,6 +76,11 @@
    "parent": "service:Disposition",
    "group": "@wren/channel-email",
    "attrs": {
+    "deps": [
+     "clientInvites",
+     "dbOf",
+     "invites"
+    ],
     "input": "{ id: number; body?: string | null }",
     "output": "ApproveOutcome",
     "wrap": "exclusiveHandler"
@@ -62,6 +92,15 @@
    "parent": "service:Disposition",
    "group": "@wren/channel-email",
    "attrs": {
+    "deps": [
+     "clientInvites",
+     "clientLlm",
+     "dbOf",
+     "invites",
+     "llm",
+     "tracer",
+     "tracing"
+    ],
     "input": "void",
     "output": "ClassifyOutcome",
     "wrap": "exclusiveHandler"
@@ -73,6 +112,9 @@
    "parent": "service:Disposition",
    "group": "@wren/channel-email",
    "attrs": {
+    "deps": [
+     "dbOf"
+    ],
     "input": "{ id: number }",
     "output": "{ state: string }",
     "wrap": "exclusiveHandler"
@@ -84,6 +126,11 @@
    "parent": "service:Disposition",
    "group": "@wren/channel-email",
    "attrs": {
+    "deps": [
+     "clientInvites",
+     "dbOf",
+     "invites"
+    ],
     "input": "{ enrollmentId: number; body: string; campaign?: string | null }",
     "output": "{ ok: boolean; reason: string | null; until: string | null }",
     "wrap": "exclusiveHandler"
@@ -95,6 +142,11 @@
    "parent": "service:Disposition",
    "group": "@wren/channel-email",
    "attrs": {
+    "deps": [
+     "clientInvites",
+     "dbOf",
+     "invites"
+    ],
     "input": "{ threadEventId: number; body: string }",
     "output": "{ ok: boolean; reason: string | null }",
     "wrap": "exclusiveHandler"
@@ -117,6 +169,10 @@
    "parent": "service:EmailConsole",
    "group": "@wren/channel-email",
    "attrs": {
+    "deps": [
+     "clients",
+     "db"
+    ],
     "input": "PortalRequest",
     "output": "{ id: number; state: \"booked\" | \"sent\" | \"booking\" | \"dropped\" | \"proposed\" | \"already_booked\" | \"needs_you\"; email: string; start: Date | null; timeZone: string | null; detail: string | null; createdAt: Date; words: string | null; snippet: string | null; draft: string | null; }[]",
     "wrap": "serviceHandler"
@@ -128,6 +184,10 @@
    "parent": "service:EmailConsole",
    "group": "@wren/channel-email",
    "attrs": {
+    "deps": [
+     "clients",
+     "db"
+    ],
     "input": "InviteRequest",
     "output": "{ ok: true; state: import(\"../schema.js\").CallInviteState; said: string | null; reply: import(\"../index.js\").ReplyOutcome | null; }",
     "wrap": "serviceHandler"
@@ -139,6 +199,10 @@
    "parent": "service:EmailConsole",
    "group": "@wren/channel-email",
    "attrs": {
+    "deps": [
+     "clients",
+     "db"
+    ],
     "input": "CallsRequest",
     "output": "{ done: string[]; }",
     "wrap": "serviceHandler"
@@ -150,6 +214,10 @@
    "parent": "service:EmailConsole",
    "group": "@wren/channel-email",
    "attrs": {
+    "deps": [
+     "clients",
+     "db"
+    ],
     "input": "CallsRequest",
     "output": "{ changed: number; done: string[]; }",
     "wrap": "serviceHandler"
@@ -161,6 +229,10 @@
    "parent": "service:EmailConsole",
    "group": "@wren/channel-email",
    "attrs": {
+    "deps": [
+     "clients",
+     "db"
+    ],
     "input": "CallsRequest",
     "output": "{ changed: number; done: string[]; }",
     "wrap": "serviceHandler"
@@ -172,6 +244,10 @@
    "parent": "service:EmailConsole",
    "group": "@wren/channel-email",
    "attrs": {
+    "deps": [
+     "clients",
+     "db"
+    ],
     "input": "CallsRequest",
     "output": "{ changed: number; done: string[]; }",
     "wrap": "serviceHandler"
@@ -183,6 +259,10 @@
    "parent": "service:EmailConsole",
    "group": "@wren/channel-email",
    "attrs": {
+    "deps": [
+     "clients",
+     "db"
+    ],
     "input": "CallsRequest",
     "output": "{ changed: number; done: string[]; }",
     "wrap": "serviceHandler"
@@ -194,6 +274,10 @@
    "parent": "service:EmailConsole",
    "group": "@wren/channel-email",
    "attrs": {
+    "deps": [
+     "clients",
+     "db"
+    ],
     "input": "CallsRequest",
     "output": "{ changed: number; done: string[]; }",
     "wrap": "serviceHandler"
@@ -205,6 +289,10 @@
    "parent": "service:EmailConsole",
    "group": "@wren/channel-email",
    "attrs": {
+    "deps": [
+     "clients",
+     "db"
+    ],
     "input": "PortalRequest & { id?: unknown }",
     "output": "import(\"@wren/research/dossier\").DossierBrief",
     "wrap": "serviceHandler"
@@ -216,6 +304,10 @@
    "parent": "service:EmailConsole",
    "group": "@wren/channel-email",
    "attrs": {
+    "deps": [
+     "clients",
+     "db"
+    ],
     "input": "InviteRequest",
     "output": "{ state: string; }",
     "wrap": "serviceHandler"
@@ -227,6 +319,11 @@
    "parent": "service:EmailConsole",
    "group": "@wren/channel-email",
    "attrs": {
+    "deps": [
+     "clients",
+     "db",
+     "policy"
+    ],
     "input": "CampaignsRequest",
     "output": "Done",
     "wrap": "serviceHandler"
@@ -238,6 +335,11 @@
    "parent": "service:EmailConsole",
    "group": "@wren/channel-email",
    "attrs": {
+    "deps": [
+     "clients",
+     "db",
+     "policy"
+    ],
     "input": "CampaignsRequest",
     "output": "Done",
     "wrap": "serviceHandler"
@@ -249,6 +351,10 @@
    "parent": "service:EmailConsole",
    "group": "@wren/channel-email",
    "attrs": {
+    "deps": [
+     "db",
+     "senders"
+    ],
     "input": "SenderRequest",
     "output": "{ paused: string[]; }",
     "wrap": "serviceHandler"
@@ -260,6 +366,10 @@
    "parent": "service:EmailConsole",
    "group": "@wren/channel-email",
    "attrs": {
+    "deps": [
+     "clients",
+     "db"
+    ],
     "input": "PortalRequest & ExportAsk",
     "output": "import(\"@wren/core/records/serve\").RecordsFile",
     "wrap": "serviceHandler"
@@ -271,6 +381,10 @@
    "parent": "service:EmailConsole",
    "group": "@wren/channel-email",
    "attrs": {
+    "deps": [
+     "clients",
+     "db"
+    ],
     "input": "PortalRequest & GetAsk",
     "output": "import(\"@wren/core/records/serve\").RecordAnswer",
     "wrap": "serviceHandler"
@@ -282,6 +396,10 @@
    "parent": "service:EmailConsole",
    "group": "@wren/channel-email",
    "attrs": {
+    "deps": [
+     "clients",
+     "db"
+    ],
     "input": "PortalRequest & ListAsk",
     "output": "import(\"@wren/core/records/serve\").RecordsPage",
     "wrap": "serviceHandler"
@@ -293,6 +411,10 @@
    "parent": "service:EmailConsole",
    "group": "@wren/channel-email",
    "attrs": {
+    "deps": [
+     "clients",
+     "db"
+    ],
     "input": "PortalRequest & StatsAsk",
     "output": "import(\"@wren/core/records/serve\").RecordsStat",
     "wrap": "serviceHandler"
@@ -304,6 +426,10 @@
    "parent": "service:EmailConsole",
    "group": "@wren/channel-email",
    "attrs": {
+    "deps": [
+     "clients",
+     "db"
+    ],
     "input": "PortalRequest",
     "output": "import(\"@wren/core/records\").RecordMeta[]",
     "wrap": "serviceHandler"
@@ -315,6 +441,10 @@
    "parent": "service:EmailConsole",
    "group": "@wren/channel-email",
    "attrs": {
+    "deps": [
+     "db",
+     "senders"
+    ],
     "input": "SenderRequest",
     "output": "{ resumed: string[]; }",
     "wrap": "serviceHandler"
@@ -326,6 +456,11 @@
    "parent": "service:EmailConsole",
    "group": "@wren/channel-email",
    "attrs": {
+    "deps": [
+     "clients",
+     "db",
+     "policy"
+    ],
     "input": "CampaignsRequest",
     "output": "Done",
     "wrap": "serviceHandler"
@@ -337,6 +472,11 @@
    "parent": "service:EmailConsole",
    "group": "@wren/channel-email",
    "attrs": {
+    "deps": [
+     "clients",
+     "db",
+     "policy"
+    ],
     "input": "CampaignRequest",
     "output": "{ updatedAt: Date; campaign: string; updatedBy: string; openersPerDay: number | null; killSwitch: boolean | null; }",
     "wrap": "serviceHandler"
@@ -348,6 +488,11 @@
    "parent": "service:EmailConsole",
    "group": "@wren/channel-email",
    "attrs": {
+    "deps": [
+     "clients",
+     "db",
+     "policy"
+    ],
     "input": "CampaignsRequest",
     "output": "Done",
     "wrap": "serviceHandler"
@@ -403,6 +548,14 @@
    "parent": "service:ListmonkMail",
    "group": "@wren/channel-email",
    "attrs": {
+    "deps": [
+     "db",
+     "from",
+     "postal",
+     "send",
+     "shared",
+     "site"
+    ],
     "input": "ListmonkMessage",
     "output": "IssueSent",
     "wrap": "exclusiveHandler"
@@ -414,6 +567,12 @@
    "parent": "service:MailAccess",
    "group": "@wren/channel-email",
    "attrs": {
+    "deps": [
+     "access",
+     "main",
+     "now",
+     "setups"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -425,6 +584,12 @@
    "parent": "service:MailAccess",
    "group": "@wren/channel-email",
    "attrs": {
+    "deps": [
+     "access",
+     "main",
+     "now",
+     "setups"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -436,6 +601,12 @@
    "parent": "service:MailAccess",
    "group": "@wren/channel-email",
    "attrs": {
+    "deps": [
+     "access",
+     "main",
+     "now",
+     "setups"
+    ],
     "input": "?",
     "npm": [
      "@wrenautomation/autobrowse"
@@ -450,6 +621,11 @@
    "parent": "service:MailAccess",
    "group": "@wren/channel-email",
    "attrs": {
+    "deps": [
+     "access",
+     "main",
+     "now"
+    ],
     "input": "?",
     "npm": [
      "@wrenautomation/autobrowse"
@@ -464,6 +640,11 @@
    "parent": "service:MailAccess",
    "group": "@wren/channel-email",
    "attrs": {
+    "deps": [
+     "clientDb",
+     "main",
+     "now"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -475,6 +656,12 @@
    "parent": "service:MailAccess",
    "group": "@wren/channel-email",
    "attrs": {
+    "deps": [
+     "access",
+     "main",
+     "now",
+     "setups"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -486,6 +673,12 @@
    "parent": "service:MailCallback",
    "group": "@wren/channel-email",
    "attrs": {
+    "deps": [
+     "access",
+     "main",
+     "now",
+     "setups"
+    ],
     "input": "z.infer<typeof LANDING>",
     "npm": [
      "@wrenautomation/autobrowse"
@@ -500,6 +693,11 @@
    "parent": "service:Marketing",
    "group": "@wren/channel-email",
    "attrs": {
+    "deps": [
+     "clientDb",
+     "db",
+     "shared"
+    ],
     "input": "Visit & { token: string }",
     "output": "{ ok: boolean; prefs: { channel: \"email\" | \"sms\"; topic: string | null; named: string | null; from: string | null; address: string; everything: boolean; frequency: \"as_sent\" | \"weekly\" | \"monthly\"; pausedUntil: Date | null; topics: { name: string; publicName: string; line: string; cadence: string; on: boolean; }[]; }; }",
     "wrap": "serviceHandler"
@@ -511,6 +709,11 @@
    "parent": "service:Marketing",
    "group": "@wren/channel-email",
    "attrs": {
+    "deps": [
+     "clientDb",
+     "db",
+     "shared"
+    ],
     "input": "{ token: string }",
     "output": "{ channel: \"email\" | \"sms\"; topic: string | null; named: string | null; from: string | null; address: string; everything: boolean; frequency: \"as_sent\" | \"weekly\" | \"monthly\"; pausedUntil: Date | null; topics: { name: string; publicName: string; line: string; cadence: string; on: boolean; }[]; }",
     "wrap": "serviceHandler"
@@ -522,6 +725,11 @@
    "parent": "service:Marketing",
    "group": "@wren/channel-email",
    "attrs": {
+    "deps": [
+     "clientDb",
+     "db",
+     "shared"
+    ],
     "input": "Visit & { token: string; change: Change }",
     "output": "{ prefs: { channel: \"email\" | \"sms\"; topic: string | null; named: string | null; from: string | null; address: string; everything: boolean; frequency: \"as_sent\" | \"weekly\" | \"monthly\"; pausedUntil: Date | null; topics: { name: string; publicName: string; line: string; cadence: string; on: boolean; }[]; }; event: number | null; }",
     "wrap": "serviceHandler"
@@ -533,6 +741,12 @@
    "parent": "service:Marketing",
    "group": "@wren/channel-email",
    "attrs": {
+    "deps": [
+     "db",
+     "send",
+     "shared",
+     "site"
+    ],
     "input": "SignUpRequest",
     "output": "{ ok: true }",
     "wrap": "serviceHandler"
@@ -544,6 +758,16 @@
    "parent": "service:Newsletter",
    "group": "@wren/channel-email",
    "attrs": {
+    "deps": [
+     "db",
+     "from",
+     "listmonk",
+     "postal",
+     "send",
+     "shared",
+     "site",
+     "syncTopic"
+    ],
     "input": "Issue",
     "output": "IssueRun",
     "wrap": "exclusiveHandler"
@@ -555,6 +779,11 @@
    "parent": "service:QueueRefresh",
    "group": "@wren/channel-email",
    "attrs": {
+    "deps": [
+     "campaigns",
+     "db",
+     "trackOpens"
+    ],
     "input": "void",
     "output": "Record<string, RefreshStats>",
     "wrap": "serviceHandler"
@@ -566,6 +795,11 @@
    "parent": "service:Resolution",
    "group": "@wren/channel-email",
    "attrs": {
+    "deps": [
+     "clientDb",
+     "db",
+     "verifier"
+    ],
     "input": "{ limitPeople?: number } & ClientInput",
     "output": "import(\"../resolution/service.js\").BuildCandidatesStats",
     "wrap": "exclusiveHandler"
@@ -577,6 +811,11 @@
    "parent": "service:Resolution",
    "group": "@wren/channel-email",
    "attrs": {
+    "deps": [
+     "clientDb",
+     "db",
+     "verifier"
+    ],
     "input": "QueueOptions & ClientInput",
     "output": "import(\"../resolution/service.js\").QueueStats",
     "wrap": "exclusiveHandler"
@@ -588,6 +827,12 @@
    "parent": "service:Resolution",
    "group": "@wren/channel-email",
    "attrs": {
+    "deps": [
+     "checker",
+     "clientDb",
+     "db",
+     "verifier"
+    ],
     "input": "ResolveInput",
     "output": "ResolutionStats",
     "wrap": "exclusiveHandler"
@@ -599,6 +844,13 @@
    "parent": "service:Resolution",
    "group": "@wren/channel-email",
    "attrs": {
+    "deps": [
+     "checker",
+     "clientDb",
+     "db",
+     "openPool",
+     "verifier"
+    ],
     "input": "ResolveNewInput",
     "output": "ResolutionStats",
     "wrap": "exclusiveHandler"
@@ -610,6 +862,12 @@
    "parent": "service:Resolution",
    "group": "@wren/channel-email",
    "attrs": {
+    "deps": [
+     "checker",
+     "clientDb",
+     "db",
+     "verifier"
+    ],
     "input": "VerifyLeadsInput",
     "npm": [
      "mailifier"
@@ -624,6 +882,7 @@
    "parent": "@wren/channel-email",
    "group": "@wren/channel-email",
    "attrs": {
+    "factory": "makeCallBookings",
     "file": "packages/channel-email/src/restate/call-bookings.ts",
     "kind": "service"
    }
@@ -634,6 +893,7 @@
    "parent": "@wren/channel-email",
    "group": "@wren/channel-email",
    "attrs": {
+    "factory": "makeCallBriefs",
     "file": "packages/channel-email/src/calls/restate.ts",
     "kind": "service"
    }
@@ -644,6 +904,7 @@
    "parent": "@wren/channel-email",
    "group": "@wren/channel-email",
    "attrs": {
+    "factory": "makeDisposition",
     "file": "packages/channel-email/src/restate/disposition.ts",
     "kind": "object"
    }
@@ -654,6 +915,7 @@
    "parent": "@wren/channel-email",
    "group": "@wren/channel-email",
    "attrs": {
+    "factory": "makeEmailConsole",
     "file": "packages/channel-email/src/restate/console.ts",
     "kind": "service",
     "via": "portalService"
@@ -675,6 +937,7 @@
    "parent": "@wren/channel-email",
    "group": "@wren/channel-email",
    "attrs": {
+    "factory": "makeListmonkIntake",
     "file": "packages/channel-email/src/restate/listmonk.ts",
     "kind": "service"
    }
@@ -685,6 +948,7 @@
    "parent": "@wren/channel-email",
    "group": "@wren/channel-email",
    "attrs": {
+    "factory": "makeListmonkMail",
     "file": "packages/channel-email/src/restate/listmonk.ts",
     "kind": "object"
    }
@@ -695,6 +959,7 @@
    "parent": "@wren/channel-email",
    "group": "@wren/channel-email",
    "attrs": {
+    "factory": "makeMailAccess",
     "file": "packages/channel-email/src/access/console.ts",
     "kind": "service",
     "via": "portalService"
@@ -706,6 +971,7 @@
    "parent": "@wren/channel-email",
    "group": "@wren/channel-email",
    "attrs": {
+    "factory": "makeMailCallback",
     "file": "packages/channel-email/src/access/console.ts",
     "kind": "service"
    }
@@ -716,6 +982,7 @@
    "parent": "@wren/channel-email",
    "group": "@wren/channel-email",
    "attrs": {
+    "factory": "makeMarketing",
     "file": "packages/channel-email/src/restate/marketing.ts",
     "kind": "service"
    }
@@ -726,6 +993,7 @@
    "parent": "@wren/channel-email",
    "group": "@wren/channel-email",
    "attrs": {
+    "factory": "makeNewsletter",
     "file": "packages/channel-email/src/restate/newsletter.ts",
     "kind": "object"
    }
@@ -736,6 +1004,7 @@
    "parent": "@wren/channel-email",
    "group": "@wren/channel-email",
    "attrs": {
+    "factory": "makeQueueRefresh",
     "file": "packages/channel-email/src/restate/queue-refresh.ts",
     "kind": "service"
    }
@@ -746,6 +1015,7 @@
    "parent": "@wren/channel-email",
    "group": "@wren/channel-email",
    "attrs": {
+    "factory": "makeResolution",
     "file": "packages/channel-email/src/restate/resolution.ts",
     "kind": "object"
    }

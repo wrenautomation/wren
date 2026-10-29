@@ -7,6 +7,16 @@
    "parent": "service:AutoReply",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "clientDb",
+     "db",
+     "facts",
+     "google",
+     "googleMailbox",
+     "keys",
+     "llm",
+     "senderName"
+    ],
     "input": "Arrived",
     "output": "{ asked: number | null; why: string }",
     "wrap": "restate.handlers.object.exclusive"
@@ -18,6 +28,10 @@
    "parent": "service:Blog",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db",
+     "site"
+    ],
     "input": "{ slug: string }",
     "output": "{ live: boolean; tally: Record<string, number>; sent: number; }",
     "wrap": "sharedHandler"
@@ -29,6 +43,10 @@
    "parent": "service:Blog",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db",
+     "site"
+    ],
     "input": "{ slug: string; test?: string }",
     "output": "{ sending: boolean; test: string | null; }",
     "wrap": "exclusiveHandler"
@@ -40,6 +58,11 @@
    "parent": "service:Blog",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db",
+     "repo",
+     "site"
+    ],
     "input": "void",
     "output": "{ on: boolean; site: string; posts: { date: string; description: string; title: string; createdAt: Date; updatedAt: Date; body: string; draft: boolean; updatedBy: string | null; publishedAt: Date | null; slug: string; emailedAt: Date | null; commitSha: string | null; fromRef: string | null; }[]; }",
     "wrap": "sharedHandler"
@@ -51,6 +74,12 @@
    "parent": "service:Blog",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db",
+     "repo",
+     "site",
+     "zone"
+    ],
     "input": "{ slug?: string; title: string; description: string; body: string; publish: boolean; from?: string | null; viewer?: unknown; }",
     "output": "{ post: { date: string; description: string; title: string; createdAt: Date; updatedAt: Date; body: string; draft: boolean; updatedBy: string | null; publishedAt: Date | null; slug: string; emailedAt: Date | null; commitSha: string | null; fromRef: string | null; }; url: string; }",
     "wrap": "exclusiveHandler"
@@ -62,6 +91,10 @@
    "parent": "service:Chat",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "clientDb",
+     "db"
+    ],
     "input": "Req",
     "output": "Answer",
     "wrap": "plain"
@@ -73,6 +106,10 @@
    "parent": "service:Chat",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "clientDb",
+     "db"
+    ],
     "input": "Req",
     "output": "Answer",
     "wrap": "plain"
@@ -84,6 +121,12 @@
    "parent": "service:ClientReport",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "mail",
+     "main",
+     "open",
+     "records"
+    ],
     "input": "{ chain?: string }",
     "output": "{ state: \"stale\" | \"off\" | \"ran\" | \"waiting\"; nextAt: string | null }",
     "wrap": "restate.handlers.object.exclusive"
@@ -95,6 +138,11 @@
    "parent": "service:ContentDesk",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db",
+     "media",
+     "platforms"
+    ],
     "input": "{ text: string; media?: Media | null; draft?: boolean; platforms?: Platform[]; source?: IdeaSource; }",
     "output": "{ idea: ContentIdea; drafts: DraftReport | null }",
     "wrap": "exclusiveHandler"
@@ -106,6 +154,13 @@
    "parent": "service:ContentDesk",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db",
+     "llm",
+     "media",
+     "slides",
+     "zone"
+    ],
     "input": "{ ids: string[]; now?: boolean | null; at?: string | null; expect?: string | null; viewer?: unknown; }",
     "output": "{ done: string[]; }",
     "wrap": "exclusiveHandler"
@@ -117,6 +172,11 @@
    "parent": "service:ContentDesk",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db",
+     "llm",
+     "media"
+    ],
     "input": "{ id: number; short?: number | null; vertical?: boolean | null; privacy?: VideoPrivacy | null; replace?: boolean | null; publishAt?: string | null; }",
     "output": "{ done: string[]; }",
     "wrap": "exclusiveHandler"
@@ -128,6 +188,11 @@
    "parent": "service:ContentDesk",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db",
+     "llm",
+     "media"
+    ],
     "input": "{ draftId: string; field: string; name: string; data: string; viewer?: unknown }",
     "npm": [
      "@aws-sdk/client-s3",
@@ -143,6 +208,14 @@
    "parent": "service:ContentDesk",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "brand",
+     "db",
+     "llm",
+     "media",
+     "platforms",
+     "slides"
+    ],
     "input": "{ slides: { title: string; lines: string[] }[]; text: string; platforms: CarouselPlatform[]; go?: WriteGo | null; viewer?: unknown; }",
     "npm": [
      "@aws-sdk/client-s3",
@@ -158,6 +231,12 @@
    "parent": "service:ContentDesk",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db",
+     "llm",
+     "platforms",
+     "tracer"
+    ],
     "input": "{ draftId: string }",
     "output": "{ check: DraftCheck | null; why: string | null }",
     "wrap": "sharedHandler"
@@ -180,6 +259,10 @@
    "parent": "service:ContentDesk",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db",
+     "llm"
+    ],
     "input": "{ draftId: string; text: string; title?: string | null; viewer?: unknown }",
     "output": "{ done: string[]; }",
     "wrap": "exclusiveHandler"
@@ -191,6 +274,10 @@
    "parent": "service:ContentDesk",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db",
+     "llm"
+    ],
     "input": "{ draftId: string; patch: Record<string, unknown>; viewer?: unknown }",
     "output": "{ done: string[]; saved?: import(\"../shape-view.js\").FieldsSaved; }",
     "wrap": "exclusiveHandler"
@@ -202,6 +289,10 @@
    "parent": "service:ContentDesk",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db",
+     "llm"
+    ],
     "input": "FunnelRequest",
     "output": "{ done: string[]; }",
     "wrap": "exclusiveHandler"
@@ -213,6 +304,9 @@
    "parent": "service:ContentDesk",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db"
+    ],
     "input": "{ id: number; n: number }",
     "output": "{ done: string[]; }",
     "wrap": "exclusiveHandler"
@@ -224,6 +318,16 @@
    "parent": "service:ContentDesk",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "brand",
+     "db",
+     "llm",
+     "media",
+     "platforms",
+     "slides",
+     "tracer",
+     "voice"
+    ],
     "input": "{ video?: number | null; draftId?: string | null; platforms?: PromoPlatform[] | null; again?: boolean | null; pieces?: PromoPiece[] | null; viewer?: unknown; }",
     "npm": [
      "@aws-sdk/client-s3",
@@ -239,6 +343,15 @@
    "parent": "service:ContentDesk",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "brand",
+     "db",
+     "llm",
+     "media",
+     "platforms",
+     "tracer",
+     "voice"
+    ],
     "input": "{ draftId: string; note: string }",
     "output": "DraftReport",
     "wrap": "exclusiveHandler"
@@ -250,6 +363,10 @@
    "parent": "service:ContentDesk",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db",
+     "llm"
+    ],
     "input": "{ ids: string[]; reason?: string | null; note?: string | null; viewer?: unknown }",
     "output": "{ done: string[]; }",
     "wrap": "exclusiveHandler"
@@ -261,6 +378,13 @@
    "parent": "service:ContentDesk",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db",
+     "llm",
+     "media",
+     "posted",
+     "slides"
+    ],
     "input": "{ id: string; outcome: SettleOutcome; by: string }",
     "output": "{ id: string; outcome: SettleOutcome; found: boolean }",
     "wrap": "exclusiveHandler"
@@ -272,6 +396,13 @@
    "parent": "service:ContentDesk",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "brand",
+     "db",
+     "llm",
+     "media",
+     "slides"
+    ],
     "input": "{ draftId: string; slides?: { title: string; lines: string[] }[] | null; draw?: boolean | null; viewer?: unknown; }",
     "npm": [
      "@aws-sdk/client-s3",
@@ -287,6 +418,11 @@
    "parent": "service:ContentDesk",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db",
+     "media",
+     "platforms"
+    ],
     "input": "{ platforms: StoryPlatform[]; photo?: { name: string; data: string } | null; clip?: string | null; go?: WriteGo | null; viewer?: unknown; }",
     "npm": [
      "@aws-sdk/client-s3",
@@ -302,6 +438,10 @@
    "parent": "service:ContentDesk",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db",
+     "media"
+    ],
     "input": "void",
     "output": "{ clips: import(\"../story.js\").StoryClip[]; }",
     "wrap": "sharedHandler"
@@ -313,6 +453,9 @@
    "parent": "service:ContentDesk",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db"
+    ],
     "input": "{ draftId: string; field: VariantField; value: string; why?: string | null; viewer?: unknown; }",
     "output": "{ id: number }",
     "wrap": "exclusiveHandler"
@@ -324,6 +467,9 @@
    "parent": "service:ContentDesk",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db"
+    ],
     "input": "{ ids: number[]; viewer?: unknown }",
     "output": "{ done: number[] }",
     "wrap": "exclusiveHandler"
@@ -335,6 +481,9 @@
    "parent": "service:ContentDesk",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db"
+    ],
     "input": "{ ids: number[]; viewer?: unknown }",
     "output": "{ done: number[] }",
     "wrap": "exclusiveHandler"
@@ -346,6 +495,9 @@
    "parent": "service:ContentDesk",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db"
+    ],
     "input": "void",
     "output": "{ ideas: import(\"../own.js\").WaitingIdea[]; }",
     "wrap": "sharedHandler"
@@ -357,6 +509,12 @@
    "parent": "service:ContentDesk",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db",
+     "llm",
+     "media",
+     "platforms"
+    ],
     "input": "{ text: string; title?: string | null; platforms: Platform[]; adapt?: boolean | null; thread?: boolean | null; go?: WriteGo | null; from?: string | null; media?: Media | null; line?: string | null; angle?: IdeaAngle | null; viewer?: unknown; }",
     "output": "{ posts: { ideaId: string; results: WriteResult[]; }[]; }",
     "wrap": "exclusiveHandler"
@@ -368,6 +526,13 @@
    "parent": "service:DraftAsk",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "execute",
+     "insert",
+     "select",
+     "transaction",
+     "update"
+    ],
     "input": "{ id: string }",
     "output": "undefined",
     "wrap": "restate.handlers.handler"
@@ -379,6 +544,10 @@
    "parent": "service:DraftAsk",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "execute",
+     "insert"
+    ],
     "input": "Item & { message: string }",
     "output": "{ id: string; }",
     "wrap": "serviceHandler"
@@ -390,6 +559,14 @@
    "parent": "service:DraftAsk",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "delete",
+     "execute",
+     "insert",
+     "select",
+     "transaction",
+     "update"
+    ],
     "input": "Item & { text?: string; expect?: string | null; account?: string | null }",
     "output": "{ run?: string; turn?: DraftTurn | null; version?: string | null; accounts?: AccountPick | null; }",
     "wrap": "serviceHandler"
@@ -401,6 +578,13 @@
    "parent": "service:DraftAsk",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "execute",
+     "insert",
+     "select",
+     "transaction",
+     "update"
+    ],
     "input": "Item",
     "output": "{ run: string; before: string | null; turn: DraftTurn | null; version: string | null; }",
     "wrap": "serviceHandler"
@@ -412,6 +596,13 @@
    "parent": "service:InboxDesk",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "channels",
+     "clientDb",
+     "db",
+     "keys",
+     "llm"
+    ],
     "input": "Req & { id: number }",
     "output": "{ sent: boolean; queued?: string; copy?: Copied }",
     "wrap": "serviceHandler"
@@ -423,6 +614,11 @@
    "parent": "service:InboxDesk",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "channels",
+     "clientDb",
+     "db"
+    ],
     "input": "Req & { thread: string; channel: InboxChannel; target: string; body: string }",
     "output": "{ asked: number }",
     "wrap": "serviceHandler"
@@ -434,6 +630,11 @@
    "parent": "service:InboxDesk",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "channels",
+     "clientDb",
+     "db"
+    ],
     "input": "Req & { thread: string; assignee?: string | null }",
     "output": "{ assignee: string | null }",
     "wrap": "serviceHandler"
@@ -445,6 +646,11 @@
    "parent": "service:InboxDesk",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "channels",
+     "clientDb",
+     "db"
+    ],
     "input": "Req",
     "output": "{ modes: Record<InboxChannel, AutoReplyMode>; held: boolean }",
     "wrap": "serviceHandler"
@@ -456,6 +662,11 @@
    "parent": "service:InboxDesk",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "channels",
+     "clientDb",
+     "db"
+    ],
     "input": "Req & { channel: InboxChannel; mode: AutoReplyMode }",
     "output": "{ modes: Record<InboxChannel, AutoReplyMode>; held: boolean }",
     "wrap": "serviceHandler"
@@ -467,6 +678,11 @@
    "parent": "service:InboxDesk",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "channels",
+     "clientDb",
+     "db"
+    ],
     "input": "Req & { id: number }",
     "output": "{ dropped: boolean }",
     "wrap": "serviceHandler"
@@ -478,6 +694,12 @@
    "parent": "service:InboxDesk",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "channels",
+     "clientDb",
+     "db",
+     "mentionMail"
+    ],
     "input": "Req & { thread: string; body: string }",
     "output": "{ id: string; mentioned: string[] }",
     "wrap": "serviceHandler"
@@ -489,6 +711,13 @@
    "parent": "service:InboxDesk",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "channels",
+     "clientDb",
+     "db",
+     "keys",
+     "llm"
+    ],
     "input": "{ id: number; client?: string }",
     "output": "{ state: \"sent\" | \"queued\" | \"failed\" | \"gone\" }",
     "wrap": "serviceHandler"
@@ -500,6 +729,13 @@
    "parent": "service:InboxDesk",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "channels",
+     "clientDb",
+     "db",
+     "keys",
+     "llm"
+    ],
     "input": "Req & { thread: string; channel: InboxChannel; target: string; body: string }",
     "output": "{ sent: boolean; asked: number | null; why: string | null; copy?: Copied; }",
     "wrap": "serviceHandler"
@@ -511,6 +747,11 @@
    "parent": "service:InboxDesk",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "channels",
+     "clientDb",
+     "db"
+    ],
     "input": "Req & { thread: string; until?: string | null }",
     "output": "{ until: string | null }",
     "wrap": "serviceHandler"
@@ -522,6 +763,11 @@
    "parent": "service:InboxDesk",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "channels",
+     "clientDb",
+     "db"
+    ],
     "input": "Req & { thread: string; status: InboxStatus }",
     "output": "{ status: InboxStatus }",
     "wrap": "serviceHandler"
@@ -533,6 +779,17 @@
    "parent": "service:InboxDesk",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "channels",
+     "clientDb",
+     "db",
+     "facts",
+     "google",
+     "googleMailbox",
+     "keys",
+     "llm",
+     "senderName"
+    ],
     "input": "Req & { thread: string; channel: InboxChannel; target: string }",
     "output": "{ text: string | null }",
     "wrap": "serviceHandler"
@@ -544,6 +801,11 @@
    "parent": "service:InboxDesk",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "channels",
+     "clientDb",
+     "db"
+    ],
     "input": "Req & { thread: string }",
     "output": "{ assignee: string }",
     "wrap": "serviceHandler"
@@ -555,6 +817,9 @@
    "parent": "service:KeywordDm",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db"
+    ],
     "input": "z.infer<typeof ADD>",
     "output": "restate.RestatePromise<{ id: number; keyword: string; }>",
     "wrap": "serviceHandler"
@@ -566,6 +831,9 @@
    "parent": "service:KeywordDm",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db"
+    ],
     "input": "{ ids: unknown[] }",
     "output": "{ done: number; }",
     "wrap": "serviceHandler"
@@ -577,6 +845,10 @@
    "parent": "service:KeywordDm",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "clientDb",
+     "db"
+    ],
     "input": "Send",
     "output": "{ state: string }",
     "wrap": "serviceHandler"
@@ -588,6 +860,11 @@
    "parent": "service:MailReply",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "clientDb",
+     "main",
+     "sender"
+    ],
     "input": "{ client: string; mailId: number; body: string; by?: string | null }",
     "output": "{ id: string | null }",
     "wrap": "serviceHandler"
@@ -599,6 +876,10 @@
    "parent": "service:MarketingConsole",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db",
+     "zone"
+    ],
     "input": "ApproveRequest",
     "output": "{ done: string[]; }",
     "wrap": "serviceHandler"
@@ -610,6 +891,9 @@
    "parent": "service:MarketingConsole",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db"
+    ],
     "input": "AttachRequest",
     "npm": [
      "@aws-sdk/client-s3",
@@ -625,6 +909,9 @@
    "parent": "service:MarketingConsole",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db"
+    ],
     "input": "FieldsRequest",
     "output": "{ done: string[]; saved?: import(\"../shape-view.js\").FieldsSaved; }",
     "wrap": "serviceHandler"
@@ -636,6 +923,9 @@
    "parent": "service:MarketingConsole",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db"
+    ],
     "input": "FunnelConsoleRequest",
     "output": "{ done: string[]; }",
     "wrap": "serviceHandler"
@@ -647,6 +937,9 @@
    "parent": "service:MarketingConsole",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db"
+    ],
     "input": "SlidesRequest",
     "npm": [
      "@aws-sdk/client-s3",
@@ -662,6 +955,10 @@
    "parent": "service:MarketingConsole",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db",
+     "open"
+    ],
     "input": "PortalRequest & { id: number }",
     "output": "{ sent: boolean; queued?: string; copy?: import(\"../inbox/send.js\").Copied; }",
     "wrap": "serviceHandler"
@@ -673,6 +970,10 @@
    "parent": "service:MarketingConsole",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db",
+     "open"
+    ],
     "input": "InboxReplyRequest",
     "output": "{ asked: number; }",
     "wrap": "serviceHandler"
@@ -684,6 +985,9 @@
    "parent": "service:MarketingConsole",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db"
+    ],
     "input": "ThreadRequest & { assignee?: string | null }",
     "output": "{ assignee: string | null; }",
     "wrap": "serviceHandler"
@@ -695,6 +999,9 @@
    "parent": "service:MarketingConsole",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db"
+    ],
     "input": "PortalRequest",
     "output": "{ modes: Record<InboxChannel, AutoReplyMode>; held: boolean; }",
     "wrap": "serviceHandler"
@@ -706,6 +1013,9 @@
    "parent": "service:MarketingConsole",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db"
+    ],
     "input": "PortalRequest & { channel: InboxChannel; mode: AutoReplyMode }",
     "output": "{ modes: Record<InboxChannel, AutoReplyMode>; held: boolean; }",
     "wrap": "serviceHandler"
@@ -717,6 +1027,9 @@
    "parent": "service:MarketingConsole",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db"
+    ],
     "input": "PortalRequest & { id: number }",
     "output": "{ dropped: boolean; }",
     "wrap": "serviceHandler"
@@ -728,6 +1041,9 @@
    "parent": "service:MarketingConsole",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db"
+    ],
     "input": "ThreadRequest & { body: string }",
     "output": "{ id: string; mentioned: string[]; }",
     "wrap": "serviceHandler"
@@ -739,6 +1055,10 @@
    "parent": "service:MarketingConsole",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db",
+     "open"
+    ],
     "input": "InboxReplyRequest",
     "output": "{ sent: boolean; asked: number | null; why: string | null; copy?: import(\"../inbox/send.js\").Copied; }",
     "wrap": "serviceHandler"
@@ -750,6 +1070,9 @@
    "parent": "service:MarketingConsole",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db"
+    ],
     "input": "ThreadRequest & { until?: string | null }",
     "output": "{ until: string | null; }",
     "wrap": "serviceHandler"
@@ -761,6 +1084,9 @@
    "parent": "service:MarketingConsole",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db"
+    ],
     "input": "ThreadRequest & { status: InboxStatus }",
     "output": "{ status: InboxStatus; }",
     "wrap": "serviceHandler"
@@ -772,6 +1098,11 @@
    "parent": "service:MarketingConsole",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db",
+     "open",
+     "records"
+    ],
     "input": "Omit<InboxReplyRequest, \"body\">",
     "output": "{ text: string | null; }",
     "wrap": "serviceHandler"
@@ -783,6 +1114,9 @@
    "parent": "service:MarketingConsole",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db"
+    ],
     "input": "ThreadRequest",
     "output": "{ assignee: string; }",
     "wrap": "serviceHandler"
@@ -794,6 +1128,10 @@
    "parent": "service:MarketingConsole",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db",
+     "open"
+    ],
     "input": "PromoteRequest",
     "npm": [
      "@aws-sdk/client-s3",
@@ -809,6 +1147,12 @@
    "parent": "service:MarketingConsole",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db",
+     "open",
+     "records",
+     "zone"
+    ],
     "input": "PortalRequest & ExportAsk",
     "output": "import(\"@wren/core/records/serve\").RecordsFile",
     "wrap": "serviceHandler"
@@ -820,6 +1164,13 @@
    "parent": "service:MarketingConsole",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db",
+     "open",
+     "records",
+     "tiktokCreator",
+     "zone"
+    ],
     "input": "PortalRequest & GetAsk",
     "output": "import(\"@wren/core/records/serve\").RecordAnswer",
     "wrap": "serviceHandler"
@@ -831,6 +1182,12 @@
    "parent": "service:MarketingConsole",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db",
+     "open",
+     "records",
+     "zone"
+    ],
     "input": "PortalRequest & ListAsk",
     "output": "import(\"@wren/core/records/serve\").RecordsPage",
     "wrap": "serviceHandler"
@@ -842,6 +1199,12 @@
    "parent": "service:MarketingConsole",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db",
+     "open",
+     "records",
+     "zone"
+    ],
     "input": "PortalRequest & StatsAsk",
     "output": "import(\"@wren/core/records/serve\").RecordsStat",
     "wrap": "serviceHandler"
@@ -853,6 +1216,10 @@
    "parent": "service:MarketingConsole",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db",
+     "records"
+    ],
     "input": "PortalRequest",
     "output": "import(\"@wren/core/records\").RecordMeta[]",
     "wrap": "serviceHandler"
@@ -864,6 +1231,9 @@
    "parent": "service:MarketingConsole",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db"
+    ],
     "input": "RedraftRequest",
     "output": "import(\"./desk-context.js\").DraftReport",
     "wrap": "serviceHandler"
@@ -875,6 +1245,9 @@
    "parent": "service:MarketingConsole",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db"
+    ],
     "input": "RejectRequest",
     "output": "{ done: string[]; }",
     "wrap": "serviceHandler"
@@ -886,6 +1259,9 @@
    "parent": "service:MarketingConsole",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db"
+    ],
     "input": "PortalRequest & { id: number }",
     "output": "{ ok: boolean; }",
     "wrap": "serviceHandler"
@@ -897,6 +1273,12 @@
    "parent": "service:MarketingConsole",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db",
+     "open",
+     "records",
+     "zone"
+    ],
     "input": "PortalRequest & { id: number }",
     "output": "{ id: number | null; }",
     "wrap": "serviceHandler"
@@ -908,6 +1290,12 @@
    "parent": "service:MarketingConsole",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db",
+     "open",
+     "records",
+     "zone"
+    ],
     "input": "ReportSaveRequest",
     "output": "{ id: number; }",
     "wrap": "serviceHandler"
@@ -919,6 +1307,11 @@
    "parent": "service:MarketingConsole",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db",
+     "reportMail",
+     "zone"
+    ],
     "input": "PortalRequest",
     "output": "{ mail: boolean; zone: string; reports: { sends: { id: number; from: string; to: string; closed: boolean; lines: import(\"../client-reports/tiles.js\").ReportLine[]; sentTo: string[]; why: string | null; by: string | null; at: string; }[]; id: number; name: string; tiles: (\"calls\" | \"views\" | \"bookings\" | \"paid\" | \"forms\" | \"spend\" | \"visits\" | \"post_visits\" | \"ad_impressions\" | \"search_impressions\")[]; every: \"month\" | \"week\"; zone: string; recipients: string[]; on: boolean; nextAt: string | null; by: string; updatedAt: string; }[]; members: { email: string; role: string; }[]; }",
     "wrap": "serviceHandler"
@@ -930,6 +1323,10 @@
    "parent": "service:MarketingConsole",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db",
+     "open"
+    ],
     "input": "SettleRequest",
     "output": "{ item: string; outcome: SettleOutcome; }",
     "wrap": "serviceHandler"
@@ -941,6 +1338,10 @@
    "parent": "service:Pieces",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db",
+     "site"
+    ],
     "input": "void",
     "output": "{ pieces: import(\"../pieces.js\").Piece[]; }",
     "wrap": "sharedHandler"
@@ -952,6 +1353,12 @@
    "parent": "service:SocialAccess",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "access",
+     "main",
+     "now",
+     "setup"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -963,6 +1370,11 @@
    "parent": "service:SocialAccess",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "access",
+     "main",
+     "now"
+    ],
     "input": "?",
     "npm": [
      "@wrenautomation/autobrowse"
@@ -977,6 +1389,11 @@
    "parent": "service:SocialAccess",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "access",
+     "main",
+     "now"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -988,6 +1405,12 @@
    "parent": "service:SocialAccess",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "access",
+     "now",
+     "own",
+     "sites"
+    ],
     "input": "PortalRequest & { platform: string; requestId?: string }",
     "output": "OwnCheck",
     "wrap": "serviceHandler"
@@ -999,6 +1422,13 @@
    "parent": "service:SocialAccess",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "access",
+     "main",
+     "now",
+     "own",
+     "sites"
+    ],
     "input": "?",
     "output": "?",
     "wrap": "serviceHandler"
@@ -1010,6 +1440,12 @@
    "parent": "service:SocialCallback",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "access",
+     "main",
+     "now",
+     "setup"
+    ],
     "input": "z.infer<typeof SOCIAL_LANDING>",
     "npm": [
      "@wrenautomation/autobrowse"
@@ -1024,6 +1460,9 @@
    "parent": "service:SocialDesk",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db"
+    ],
     "input": "void",
     "output": "{ seen: number }",
     "wrap": "serviceHandler"
@@ -1035,6 +1474,9 @@
    "parent": "service:SocialDesk",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db"
+    ],
     "input": "{ ids: number[] }",
     "output": "{ seen: number }",
     "wrap": "serviceHandler"
@@ -1046,6 +1488,10 @@
    "parent": "service:SocialDesk",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db",
+     "zone"
+    ],
     "input": "{ platform: Platform }",
     "output": "{ platform: Platform; day: string; followers: number; }",
     "wrap": "serviceHandler"
@@ -1057,6 +1503,9 @@
    "parent": "service:SocialDesk",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db"
+    ],
     "input": "{ id: number }",
     "output": "{ read: boolean; kept: number }",
     "wrap": "serviceHandler"
@@ -1068,6 +1517,9 @@
    "parent": "service:SocialInbox",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "clientDb"
+    ],
     "input": "{ client: string; id: number; body: string; by?: string | null; again?: boolean }",
     "output": "{ ok: true }",
     "wrap": "serviceHandler"
@@ -1079,6 +1531,11 @@
    "parent": "service:SocialInbox",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "clientDb",
+     "main",
+     "sites"
+    ],
     "input": "{ client: string }",
     "output": "{ accounts: number; threads: number; messages: number; errors: string[]; }",
     "wrap": "serviceHandler"
@@ -1090,6 +1547,12 @@
    "parent": "service:SocialInbox",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "access",
+     "clientDb",
+     "main",
+     "sites"
+    ],
     "input": "{ client: string; contactId: number; body: string; by?: string | null; again?: boolean; }",
     "output": "{ ref: string | null }",
     "wrap": "serviceHandler"
@@ -1101,6 +1564,9 @@
    "parent": "service:SocialInbox",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "clientDb"
+    ],
     "input": "{ client: string; item: string; outcome: SettleOutcome; by?: string | null }",
     "output": "{ item: string; outcome: SettleOutcome }",
     "wrap": "serviceHandler"
@@ -1112,6 +1578,10 @@
    "parent": "service:SocialPush",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db",
+     "ours"
+    ],
     "input": "unknown",
     "output": "PushResult",
     "wrap": "serviceHandler"
@@ -1123,6 +1593,10 @@
    "parent": "service:SocialPush",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "db",
+     "ours"
+    ],
     "input": "unknown",
     "output": "PushResult",
     "wrap": "serviceHandler"
@@ -1189,6 +1663,14 @@
    "parent": "service:VideoDesk",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "_",
+     "execute",
+     "insert",
+     "select",
+     "transaction",
+     "update"
+    ],
     "input": "{ run: string }",
     "output": "undefined",
     "wrap": "restate.handlers.handler"
@@ -1200,6 +1682,10 @@
    "parent": "service:VideoDesk",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "insert",
+     "select"
+    ],
     "input": "One & { message: string }",
     "output": "{ run: string; }",
     "wrap": "serviceHandler"
@@ -1211,6 +1697,14 @@
    "parent": "service:VideoDesk",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "_",
+     "execute",
+     "insert",
+     "select",
+     "transaction",
+     "update"
+    ],
     "input": "One & { from: number; to: number; state: \"cut\" | \"kept\" }",
     "output": "{ run: string; view: import(\"../video.js\").VideoView; }",
     "wrap": "serviceHandler"
@@ -1222,6 +1716,10 @@
    "parent": "service:VideoDesk",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "insert",
+     "select"
+    ],
     "input": "One & { note?: string | null }",
     "output": "{ run: string; }",
     "wrap": "serviceHandler"
@@ -1233,6 +1731,14 @@
    "parent": "service:VideoDesk",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "_",
+     "execute",
+     "insert",
+     "select",
+     "transaction",
+     "update"
+    ],
     "input": "{ run: string }",
     "output": "undefined",
     "wrap": "restate.handlers.handler"
@@ -1244,6 +1750,14 @@
    "parent": "service:VideoDesk",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "_",
+     "execute",
+     "insert",
+     "select",
+     "transaction",
+     "update"
+    ],
     "input": "One & { at: number[]; text: string; was: string }",
     "output": "{ run: string; view: import(\"../video.js\").VideoView; }",
     "wrap": "serviceHandler"
@@ -1255,6 +1769,12 @@
    "parent": "service:VideoDesk",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "_",
+     "insert",
+     "select",
+     "update"
+    ],
     "input": "One & { sentence: string; beat?: string | null }",
     "output": "import(\"@wren/studio/change\").Proposal",
     "wrap": "serviceHandler"
@@ -1266,6 +1786,14 @@
    "parent": "service:VideoDesk",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "_",
+     "execute",
+     "insert",
+     "select",
+     "transaction",
+     "update"
+    ],
     "input": "One",
     "output": "{ n: number; run: string; view: import(\"../video.js\").VideoView; }",
     "wrap": "serviceHandler"
@@ -1277,6 +1805,12 @@
    "parent": "service:VideoDesk",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "insert",
+     "select",
+     "transaction",
+     "update"
+    ],
     "input": "One & { note?: string | null }",
     "output": "{ run: string; }",
     "wrap": "serviceHandler"
@@ -1288,6 +1822,10 @@
    "parent": "service:VideoDesk",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "select",
+     "update"
+    ],
     "input": "One & { only?: string; again?: boolean }",
     "output": "{ queued: boolean; }",
     "wrap": "serviceHandler"
@@ -1299,6 +1837,10 @@
    "parent": "service:VideoDesk",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "select",
+     "update"
+    ],
     "input": "{ id: number; only?: string; again?: boolean }",
     "output": "void",
     "wrap": "restate.handlers.handler"
@@ -1310,6 +1852,12 @@
    "parent": "service:VideoDesk",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "insert",
+     "select",
+     "transaction",
+     "update"
+    ],
     "input": "One",
     "output": "{ run: string; state: string; }",
     "wrap": "serviceHandler"
@@ -1321,6 +1869,14 @@
    "parent": "service:VideoDesk",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "_",
+     "execute",
+     "insert",
+     "select",
+     "transaction",
+     "update"
+    ],
     "input": "One & { patch: unknown; expect?: Record<string, unknown>; proposal?: string }",
     "output": "{ run: string; view: import(\"../video.js\").VideoView; }",
     "wrap": "serviceHandler"
@@ -1332,6 +1888,14 @@
    "parent": "service:VideoDesk",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "_",
+     "execute",
+     "insert",
+     "select",
+     "transaction",
+     "update"
+    ],
     "input": "One",
     "output": "{ n: number; run: string; view: import(\"../video.js\").VideoView; }",
     "wrap": "serviceHandler"
@@ -1343,6 +1907,13 @@
    "parent": "service:VideoDesk",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "_",
+     "insert",
+     "select",
+     "transaction",
+     "update"
+    ],
     "input": "One & { short?: number | null }",
     "output": "{ run: string; swapped: number; missing: number; }",
     "wrap": "serviceHandler"
@@ -1354,6 +1925,14 @@
    "parent": "service:VideoDesk",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "_",
+     "execute",
+     "insert",
+     "select",
+     "transaction",
+     "update"
+    ],
     "input": "One",
     "output": "{ run: string; view: import(\"../video.js\").VideoView; }",
     "wrap": "serviceHandler"
@@ -1365,6 +1944,14 @@
    "parent": "service:VideoDesk",
    "group": "@wren/content",
    "attrs": {
+    "deps": [
+     "_",
+     "execute",
+     "insert",
+     "select",
+     "transaction",
+     "update"
+    ],
     "input": "One & { wrong?: string | null; right?: string | null; at?: number | null; text?: string | null; }",
     "output": "{ n: number; run: string; view: import(\"../video.js\").VideoView; }",
     "wrap": "serviceHandler"
@@ -1376,6 +1963,7 @@
    "parent": "@wren/content",
    "group": "@wren/content",
    "attrs": {
+    "factory": "makeAutoReply",
     "file": "packages/content/src/restate/auto-reply.ts",
     "kind": "object"
    }
@@ -1386,6 +1974,7 @@
    "parent": "@wren/content",
    "group": "@wren/content",
    "attrs": {
+    "factory": "makeBlog",
     "file": "packages/content/src/restate/blog.ts",
     "kind": "object"
    }
@@ -1396,6 +1985,7 @@
    "parent": "@wren/content",
    "group": "@wren/content",
    "attrs": {
+    "factory": "makeChat",
     "file": "packages/content/src/restate/chat.ts",
     "kind": "service"
    }
@@ -1406,6 +1996,7 @@
    "parent": "@wren/content",
    "group": "@wren/content",
    "attrs": {
+    "factory": "makeClientReport",
     "file": "packages/content/src/restate/reports.ts",
     "kind": "object"
    }
@@ -1416,6 +2007,7 @@
    "parent": "@wren/content",
    "group": "@wren/content",
    "attrs": {
+    "factory": "makeContentDesk",
     "file": "packages/content/src/restate/desk.ts",
     "kind": "object"
    }
@@ -1426,6 +2018,7 @@
    "parent": "@wren/content",
    "group": "@wren/content",
    "attrs": {
+    "factory": "makeDraftAsk",
     "file": "packages/content/src/restate/draft-ask.ts",
     "kind": "service"
    }
@@ -1436,6 +2029,7 @@
    "parent": "@wren/content",
    "group": "@wren/content",
    "attrs": {
+    "factory": "makeInboxDesk",
     "file": "packages/content/src/restate/inbox-desk.ts",
     "kind": "service"
    }
@@ -1446,6 +2040,7 @@
    "parent": "@wren/content",
    "group": "@wren/content",
    "attrs": {
+    "factory": "makeKeywordDm",
     "file": "packages/content/src/restate/keyword-dm.ts",
     "kind": "service"
    }
@@ -1456,6 +2051,7 @@
    "parent": "@wren/content",
    "group": "@wren/content",
    "attrs": {
+    "factory": "makeMailReply",
     "file": "packages/content/src/restate/mail-reply.ts",
     "kind": "service"
    }
@@ -1466,6 +2062,7 @@
    "parent": "@wren/content",
    "group": "@wren/content",
    "attrs": {
+    "factory": "makeMarketingConsole",
     "file": "packages/content/src/restate/marketing-console.ts",
     "kind": "service",
     "via": "portalService"
@@ -1477,6 +2074,7 @@
    "parent": "@wren/content",
    "group": "@wren/content",
    "attrs": {
+    "factory": "makePieces",
     "file": "packages/content/src/restate/pieces.ts",
     "kind": "object"
    }
@@ -1487,6 +2085,7 @@
    "parent": "@wren/content",
    "group": "@wren/content",
    "attrs": {
+    "factory": "makeSocialAccess",
     "file": "packages/content/src/connect/console.ts",
     "kind": "service",
     "via": "portalService"
@@ -1498,6 +2097,7 @@
    "parent": "@wren/content",
    "group": "@wren/content",
    "attrs": {
+    "factory": "makeSocialCallback",
     "file": "packages/content/src/connect/console.ts",
     "kind": "service"
    }
@@ -1508,6 +2108,7 @@
    "parent": "@wren/content",
    "group": "@wren/content",
    "attrs": {
+    "factory": "makeSocialDesk",
     "file": "packages/content/src/restate/social.ts",
     "kind": "service"
    }
@@ -1518,6 +2119,7 @@
    "parent": "@wren/content",
    "group": "@wren/content",
    "attrs": {
+    "factory": "makeSocialInbox",
     "file": "packages/content/src/restate/social-inbox.ts",
     "kind": "service"
    }
@@ -1528,6 +2130,7 @@
    "parent": "@wren/content",
    "group": "@wren/content",
    "attrs": {
+    "factory": "makeSocialPush",
     "file": "packages/content/src/restate/social-push.ts",
     "kind": "service"
    }
@@ -1548,6 +2151,7 @@
    "parent": "@wren/content",
    "group": "@wren/content",
    "attrs": {
+    "factory": "makeVideoDesk",
     "file": "packages/content/src/restate/video-desk.ts",
     "kind": "service"
    }

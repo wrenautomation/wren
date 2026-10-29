@@ -25,6 +25,9 @@
     "about": "Every offer, its live plans and open journeys, with its versions and terms.",
     "file": "apps/portal/web/src/records.tsx",
     "label": "Offers",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 0,
     "record": "pipeline.offer",
     "template": "list"
@@ -39,6 +42,9 @@
     "about": "The terms each plan sells on, with a button to propose the next version.",
     "file": "apps/portal/web/src/records.tsx",
     "label": "Terms",
+    "npm": [
+     "drizzle-orm"
+    ],
     "order": 1,
     "record": "pipeline.terms",
     "template": "list"
