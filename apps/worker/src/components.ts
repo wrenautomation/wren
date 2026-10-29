@@ -110,6 +110,7 @@ export const PLATFORM = {
     marketplace: "every component, and the browser mods",
     workflows: "every workflow, drawn with live numbers",
     ask: "questions to Claude Code about the system, read only",
+    research: "birdwatch runs from weaver serve on the Mac, live and read only",
     review: "the Friday review of parked ideas",
     settings: "your layout and look, and a guide to every app and key",
     library: "every template, prompt and sequence, with their numbers",

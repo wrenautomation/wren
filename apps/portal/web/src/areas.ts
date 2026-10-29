@@ -42,6 +42,7 @@ export const AREAS_TEAM: readonly Area[] = [
       "clients",
       "team",
       "ask",
+      "research",
       "review",
       "handlers",
       "settings",

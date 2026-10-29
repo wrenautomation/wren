@@ -9,7 +9,7 @@ Exports: 137. Files: 26.
 - **ToolName** (type) `type ToolName = (typeof TOOL_NAMES)[number];`
 - **VOICE_AGENT** (const) `"voice.agent"`
 - **agentOf** (function) `(settings: unknown): AgentSettings`
-- **agentSettingsSchema** (const) `z.ZodObject<{ name: z.ZodDefault<z.ZodString>; firstLine: z.ZodDefault<z.ZodString>; prompt: z.ZodDefault<z.ZodString>; voice: z.ZodDefault<z.ZodString>; tools: z.ZodDefault<z.ZodArray<z.ZodEnum<{ lookUpLead: "lookUpLead"; offerTimes: "offerTimes"; book: "book"; transfer: "transfer"; takeMessage: "t…`
+- **agentSettingsSchema** (const) `z.ZodObject<{ name: z.ZodDefault<z.ZodString>; firstLine: z.ZodDefault<z.ZodString>; prompt: z.ZodDefault<z.ZodString>; voice: z.ZodDefault<z.ZodString>; tools: z.ZodDefault<z.ZodArray<z.ZodEnum<{ book: "book"; transfer: "transfer"; lookUpLead: "lookUpLead"; offerTimes: "offerTimes"; takeMessage: "t…`
 - **inHours** (function) `(agent: AgentSettings, at: Date): boolean`
 - **openingLine** (function) `(agent: AgentSettings, callerState: string | null = null): string`
 - **stretchesOf** (function) `(text: string): [number, number][] | null`

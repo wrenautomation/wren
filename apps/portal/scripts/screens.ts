@@ -87,7 +87,12 @@ try {
       })),
     })),
   };
-  process.stdout.write(`${JSON.stringify(out, null, 2)}\n`);
+  // every repo file vite loaded, plus this script: kestrel reruns ui only when one changes
+  const inputs = new Set([new URL(import.meta.url).pathname.slice(root.length)]);
+  for (const m of vite.moduleGraph.idToModuleMap.values())
+    if (m.file?.startsWith(root) && !m.file.includes("/node_modules/"))
+      inputs.add(m.file.slice(root.length));
+  process.stdout.write(`${JSON.stringify({ ...out, inputs: [...inputs].sort() }, null, 2)}\n`);
 } finally {
   await vite.close();
 }
