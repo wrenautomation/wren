@@ -6,7 +6,7 @@ Sidebar: client: Leads.
 
 Registered in `apps/portal/web/src/modules/deals/index.ts`.
 
-| Page | Template | Drawn in | For |
-|---|---|---|---|
-| Board | hand | `apps/portal/web/src/modules/deals/board.tsx` | Everyone by node, to drag down the shape as they move. |
-| Journeys | list of `pipeline.journey` | `apps/portal/web/src/records.tsx` | Every journey, open, done and dropped. |
+| Page | Template | Drawn in | Calls | For |
+|---|---|---|---|---|
+| Board | hand | `apps/portal/web/src/modules/deals/board.tsx` | `PipelineConsole/journeysDrop`, `PipelineConsole/journeysMove`, `PipelineConsole/recordsGet`, `PipelineConsole/recordsList` | Everyone by node, to drag down the shape as they move. |
+| Journeys | list of `pipeline.journey` | `apps/portal/web/src/records.tsx` |  | Every journey, open, done and dropped. |

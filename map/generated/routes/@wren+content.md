@@ -34,6 +34,29 @@ File: packages/content/src/restate/reports.ts
 
 File: packages/content/src/restate/desk.ts
 
+- **add** `{ text: string; media?: Media | null; draft?: boolean; platforms?: Platform[]; source?: IdeaSource; }` → `{ idea: ContentIdea; drafts: DraftReport | null }` (exclusiveHandler)
+- **approve** `{ ids: string[]; now?: boolean | null; at?: string | null; expect?: string | null; viewer?: unknown; }` → `{ done: string[]; }` (exclusiveHandler)
+- **approveVideo** `{ id: number; short?: number | null; vertical?: boolean | null; privacy?: VideoPrivacy | null; replace?: boolean | null; publishAt?: string | null; }` → `{ done: string[]; }` (exclusiveHandler)
+- **attach** `{ draftId: string; field: string; name: string; data: string; viewer?: unknown }` → `{ done: string[]; }` (exclusiveHandler)
+- **carousel** `{ slides: { title: string; lines: string[] }[]; text: string; platforms: CarouselPlatform[]; go?: WriteGo | null; viewer?: unknown; }` → `{ posts: { ideaId: string; results: import("./desk-context.js").WriteResult[]; }[]; }` (exclusiveHandler)
+- **check** `{ draftId: string }` → `{ check: DraftCheck | null; why: string | null }` (sharedHandler)
+- **draft** `DraftRequest` → `DraftReport` (exclusiveHandler)
+- **edit** `{ draftId: string; text: string; title?: string | null; viewer?: unknown }` → `{ done: string[]; }` (exclusiveHandler)
+- **fields** `{ draftId: string; patch: Record<string, unknown>; viewer?: unknown }` → `{ done: string[]; saved?: import("../shape-view.js").FieldsSaved; }` (exclusiveHandler)
+- **funnel** `FunnelRequest` → `{ done: string[]; }` (exclusiveHandler)
+- **pickThumbnail** `{ id: number; n: number }` → `{ done: string[]; }` (exclusiveHandler)
+- **promote** `{ video?: number | null; draftId?: string | null; platforms?: PromoPlatform[] | null; again?: boolean | null; pieces?: PromoPiece[] | null; viewer?: unknown; }` → `DraftReport` (exclusiveHandler)
+- **redraft** `{ draftId: string; note: string }` → `DraftReport` (exclusiveHandler)
+- **reject** `{ ids: string[]; reason?: string | null; note?: string | null; viewer?: unknown }` → `{ done: string[]; }` (exclusiveHandler)
+- **settlePost** `{ id: string; outcome: SettleOutcome; by: string }` → `{ id: string; outcome: SettleOutcome; found: boolean }` (exclusiveHandler)
+- **slides** `{ draftId: string; slides?: { title: string; lines: string[] }[] | null; draw?: boolean | null; viewer?: unknown; }` → `{ done: string[]; saved?: SlidesSaved }` (exclusiveHandler)
+- **story** `{ platforms: StoryPlatform[]; photo?: { name: string; data: string } | null; clip?: string | null; go?: WriteGo | null; viewer?: unknown; }` → `{ posts: { ideaId: string; results: import("./desk-context.js").WriteResult[]; }[]; }` (exclusiveHandler)
+- **storyClips** `void` → `{ clips: import("../story.js").StoryClip[]; }` (sharedHandler)
+- **swap** `{ draftId: string; field: VariantField; value: string; why?: string | null; viewer?: unknown; }` → `{ id: number }` (exclusiveHandler)
+- **swapApprove** `{ ids: number[]; viewer?: unknown }` → `{ done: number[] }` (exclusiveHandler)
+- **swapSkip** `{ ids: number[]; viewer?: unknown }` → `{ done: number[] }` (exclusiveHandler)
+- **waiting** `void` → `{ ideas: import("../own.js").WaitingIdea[]; }` (sharedHandler)
+- **write** `{ text: string; title?: string | null; platforms: Platform[]; adapt?: boolean | null; thread?: boolean | null; go?: WriteGo | null; from?: string | null; media?: Media | null; line?: string | null; angle?: IdeaAngle | null; viewer?: unknown; }` → `{ posts: { ideaId: string; results: WriteResult[]; }[]; }` (exclusiveHandler)
 
 ## DraftAsk (service)
 

@@ -1,0 +1,33 @@
+{
+ "layer": "ui",
+ "nodes": [
+  {
+   "id": "ui:research",
+   "role": "app",
+   "group": "research",
+   "attrs": {
+    "areas": [
+     "team: Tools"
+    ],
+    "blurb": "Birdwatch runs as they go: the tree, the back and forth, and every source to check.",
+    "file": "apps/portal/web/src/modules/research/index.ts",
+    "name": "Research",
+    "workspace": "wren"
+   }
+  },
+  {
+   "id": "ui:research/runs",
+   "role": "screen",
+   "parent": "ui:research",
+   "group": "research",
+   "attrs": {
+    "about": "Each run's tree, its decisions with their whys, and every source it found.",
+    "file": "apps/portal/web/src/modules/research/page.tsx",
+    "label": "Runs",
+    "order": 0,
+    "template": "hand"
+   }
+  }
+ ],
+ "edges": []
+}

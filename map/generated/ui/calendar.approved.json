@@ -70,5 +70,26 @@
    }
   }
  ],
- "edges": []
+ "edges": [
+  {
+   "from": "ui:calendar/schedule",
+   "to": "route:CalendarConsole/range",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/calendar/schedule.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:calendar/schedule",
+   "to": "route:CalendarConsole/recorder",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/calendar/recorder.tsx"
+    ]
+   }
+  }
+ ]
 }

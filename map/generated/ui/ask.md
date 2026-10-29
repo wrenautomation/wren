@@ -6,6 +6,6 @@ Sidebar: team: Tools.
 
 Registered in `apps/portal/web/src/modules/wren/index.ts`.
 
-| Page | Template | Drawn in | For |
-|---|---|---|---|
-| Questions | hand | `apps/portal/web/src/modules/wren/ask.tsx` | Answers from the code, the designs and prod. |
+| Page | Template | Drawn in | Calls | For |
+|---|---|---|---|---|
+| Questions | hand | `apps/portal/web/src/modules/wren/ask.tsx` | `ConsolePortal/question`, `ConsolePortal/recordsList` | Answers from the code, the designs and prod. |

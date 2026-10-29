@@ -114,5 +114,26 @@
    }
   }
  ],
- "edges": []
+ "edges": [
+  {
+   "from": "ui:clients/usage",
+   "to": "route:AccountsConsole/accounts",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/account/summary.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:clients/usage",
+   "to": "route:AccountsConsole/usage",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/account/summary.tsx"
+    ]
+   }
+  }
+ ]
 }

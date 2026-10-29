@@ -24,6 +24,237 @@
    }
   },
   {
+   "id": "route:Enrichment/adLibrary",
+   "role": "route",
+   "parent": "service:Enrichment",
+   "group": "@wren/research",
+   "attrs": {
+    "input": "LimitInput",
+    "output": "AdLibraryStats",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:Enrichment/applyExtractions",
+   "role": "route",
+   "parent": "service:Enrichment",
+   "group": "@wren/research",
+   "attrs": {
+    "input": "LimitInput",
+    "output": "import(\"../enrichment/extraction.js\").ApplyExtractionsStats",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:Enrichment/applyPicks",
+   "role": "route",
+   "parent": "service:Enrichment",
+   "group": "@wren/research",
+   "attrs": {
+    "input": "LimitInput",
+    "output": "import(\"../enrichment/email-pick/run.js\").ApplyPicksStats",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:Enrichment/backfillCallRecords",
+   "role": "route",
+   "parent": "service:Enrichment",
+   "group": "@wren/research",
+   "attrs": {
+    "input": "LimitInput",
+    "output": "import(\"../enrichment/audit-backfill.js\").BackfillStats",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:Enrichment/contacts",
+   "role": "route",
+   "parent": "service:Enrichment",
+   "group": "@wren/research",
+   "attrs": {
+    "input": "ScanInput",
+    "output": "ContactsStats",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:Enrichment/crawl",
+   "role": "route",
+   "parent": "service:Enrichment",
+   "group": "@wren/research",
+   "attrs": {
+    "input": "CrawlInput",
+    "output": "CrawlStats",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:Enrichment/exaSearch",
+   "role": "route",
+   "parent": "service:Enrichment",
+   "group": "@wren/research",
+   "attrs": {
+    "input": "LimitInput",
+    "output": "ExaSearchStats",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:Enrichment/extract",
+   "role": "route",
+   "parent": "service:Enrichment",
+   "group": "@wren/research",
+   "attrs": {
+    "input": "ExtractInput",
+    "output": "ExtractionStats",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:Enrichment/fbGroups",
+   "role": "route",
+   "parent": "service:Enrichment",
+   "group": "@wren/research",
+   "attrs": {
+    "input": "LimitInput",
+    "output": "FbGroupsStats",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:Enrichment/instagram",
+   "role": "route",
+   "parent": "service:Enrichment",
+   "group": "@wren/research",
+   "attrs": {
+    "input": "LimitInput",
+    "output": "InstagramStats",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:Enrichment/opener",
+   "role": "route",
+   "parent": "service:Enrichment",
+   "group": "@wren/research",
+   "attrs": {
+    "input": "PickInput",
+    "output": "OpenerStats",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:Enrichment/pick",
+   "role": "route",
+   "parent": "service:Enrichment",
+   "group": "@wren/research",
+   "attrs": {
+    "input": "EmailPickInput",
+    "output": "EmailPickStats",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:Enrichment/profiles",
+   "role": "route",
+   "parent": "service:Enrichment",
+   "group": "@wren/research",
+   "attrs": {
+    "input": "ProfilesInput",
+    "output": "ProfileStats",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:Enrichment/render",
+   "role": "route",
+   "parent": "service:Enrichment",
+   "group": "@wren/research",
+   "attrs": {
+    "input": "RenderInput",
+    "output": "RenderStats",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:Enrichment/scan",
+   "role": "route",
+   "parent": "service:Enrichment",
+   "group": "@wren/research",
+   "attrs": {
+    "input": "ScanInput",
+    "output": "ScanStats",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:Enrichment/signals",
+   "role": "route",
+   "parent": "service:Enrichment",
+   "group": "@wren/research",
+   "attrs": {
+    "input": "SignalsInput",
+    "output": "SignalsStats",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:Enrichment/tagTestimonials",
+   "role": "route",
+   "parent": "service:Enrichment",
+   "group": "@wren/research",
+   "attrs": {
+    "input": "TagInput",
+    "output": "import(\"../enrichment/testimonials.js\").TagTestimonialsStats",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:Enrichment/team",
+   "role": "route",
+   "parent": "service:Enrichment",
+   "group": "@wren/research",
+   "attrs": {
+    "input": "TeamInput",
+    "output": "TeamStats",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:Enrichment/triggers",
+   "role": "route",
+   "parent": "service:Enrichment",
+   "group": "@wren/research",
+   "attrs": {
+    "input": "LimitInput",
+    "output": "TriggersStats",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:Enrichment/youtube",
+   "role": "route",
+   "parent": "service:Enrichment",
+   "group": "@wren/research",
+   "attrs": {
+    "input": "LimitInput",
+    "output": "YouTubeStats",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:Enrichment/youtubeSearch",
+   "role": "route",
+   "parent": "service:Enrichment",
+   "group": "@wren/research",
+   "attrs": {
+    "input": "LimitInput",
+    "output": "YouTubeSearchStats",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
    "id": "route:ProfileResearch/run",
    "role": "route",
    "parent": "service:ProfileResearch",

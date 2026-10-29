@@ -99,5 +99,16 @@
    }
   }
  ],
- "edges": []
+ "edges": [
+  {
+   "from": "ui:sites/funnel-map",
+   "to": "route:ConsolePortal/recordsList",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/sites/funnel-graph.tsx"
+    ]
+   }
+  }
+ ]
 }

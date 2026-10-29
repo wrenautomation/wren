@@ -90,6 +90,259 @@
    }
   },
   {
+   "id": "route:ContentDesk/add",
+   "role": "route",
+   "parent": "service:ContentDesk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "{ text: string; media?: Media | null; draft?: boolean; platforms?: Platform[]; source?: IdeaSource; }",
+    "output": "{ idea: ContentIdea; drafts: DraftReport | null }",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:ContentDesk/approve",
+   "role": "route",
+   "parent": "service:ContentDesk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "{ ids: string[]; now?: boolean | null; at?: string | null; expect?: string | null; viewer?: unknown; }",
+    "output": "{ done: string[]; }",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:ContentDesk/approveVideo",
+   "role": "route",
+   "parent": "service:ContentDesk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "{ id: number; short?: number | null; vertical?: boolean | null; privacy?: VideoPrivacy | null; replace?: boolean | null; publishAt?: string | null; }",
+    "output": "{ done: string[]; }",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:ContentDesk/attach",
+   "role": "route",
+   "parent": "service:ContentDesk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "{ draftId: string; field: string; name: string; data: string; viewer?: unknown }",
+    "output": "{ done: string[]; }",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:ContentDesk/carousel",
+   "role": "route",
+   "parent": "service:ContentDesk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "{ slides: { title: string; lines: string[] }[]; text: string; platforms: CarouselPlatform[]; go?: WriteGo | null; viewer?: unknown; }",
+    "output": "{ posts: { ideaId: string; results: import(\"./desk-context.js\").WriteResult[]; }[]; }",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:ContentDesk/check",
+   "role": "route",
+   "parent": "service:ContentDesk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "{ draftId: string }",
+    "output": "{ check: DraftCheck | null; why: string | null }",
+    "wrap": "sharedHandler"
+   }
+  },
+  {
+   "id": "route:ContentDesk/draft",
+   "role": "route",
+   "parent": "service:ContentDesk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "DraftRequest",
+    "output": "DraftReport",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:ContentDesk/edit",
+   "role": "route",
+   "parent": "service:ContentDesk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "{ draftId: string; text: string; title?: string | null; viewer?: unknown }",
+    "output": "{ done: string[]; }",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:ContentDesk/fields",
+   "role": "route",
+   "parent": "service:ContentDesk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "{ draftId: string; patch: Record<string, unknown>; viewer?: unknown }",
+    "output": "{ done: string[]; saved?: import(\"../shape-view.js\").FieldsSaved; }",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:ContentDesk/funnel",
+   "role": "route",
+   "parent": "service:ContentDesk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "FunnelRequest",
+    "output": "{ done: string[]; }",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:ContentDesk/pickThumbnail",
+   "role": "route",
+   "parent": "service:ContentDesk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "{ id: number; n: number }",
+    "output": "{ done: string[]; }",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:ContentDesk/promote",
+   "role": "route",
+   "parent": "service:ContentDesk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "{ video?: number | null; draftId?: string | null; platforms?: PromoPlatform[] | null; again?: boolean | null; pieces?: PromoPiece[] | null; viewer?: unknown; }",
+    "output": "DraftReport",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:ContentDesk/redraft",
+   "role": "route",
+   "parent": "service:ContentDesk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "{ draftId: string; note: string }",
+    "output": "DraftReport",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:ContentDesk/reject",
+   "role": "route",
+   "parent": "service:ContentDesk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "{ ids: string[]; reason?: string | null; note?: string | null; viewer?: unknown }",
+    "output": "{ done: string[]; }",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:ContentDesk/settlePost",
+   "role": "route",
+   "parent": "service:ContentDesk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "{ id: string; outcome: SettleOutcome; by: string }",
+    "output": "{ id: string; outcome: SettleOutcome; found: boolean }",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:ContentDesk/slides",
+   "role": "route",
+   "parent": "service:ContentDesk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "{ draftId: string; slides?: { title: string; lines: string[] }[] | null; draw?: boolean | null; viewer?: unknown; }",
+    "output": "{ done: string[]; saved?: SlidesSaved }",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:ContentDesk/story",
+   "role": "route",
+   "parent": "service:ContentDesk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "{ platforms: StoryPlatform[]; photo?: { name: string; data: string } | null; clip?: string | null; go?: WriteGo | null; viewer?: unknown; }",
+    "output": "{ posts: { ideaId: string; results: import(\"./desk-context.js\").WriteResult[]; }[]; }",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:ContentDesk/storyClips",
+   "role": "route",
+   "parent": "service:ContentDesk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "void",
+    "output": "{ clips: import(\"../story.js\").StoryClip[]; }",
+    "wrap": "sharedHandler"
+   }
+  },
+  {
+   "id": "route:ContentDesk/swap",
+   "role": "route",
+   "parent": "service:ContentDesk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "{ draftId: string; field: VariantField; value: string; why?: string | null; viewer?: unknown; }",
+    "output": "{ id: number }",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:ContentDesk/swapApprove",
+   "role": "route",
+   "parent": "service:ContentDesk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "{ ids: number[]; viewer?: unknown }",
+    "output": "{ done: number[] }",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:ContentDesk/swapSkip",
+   "role": "route",
+   "parent": "service:ContentDesk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "{ ids: number[]; viewer?: unknown }",
+    "output": "{ done: number[] }",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:ContentDesk/waiting",
+   "role": "route",
+   "parent": "service:ContentDesk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "void",
+    "output": "{ ideas: import(\"../own.js\").WaitingIdea[]; }",
+    "wrap": "sharedHandler"
+   }
+  },
+  {
+   "id": "route:ContentDesk/write",
+   "role": "route",
+   "parent": "service:ContentDesk",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "{ text: string; title?: string | null; platforms: Platform[]; adapt?: boolean | null; thread?: boolean | null; go?: WriteGo | null; from?: string | null; media?: Media | null; line?: string | null; angle?: IdeaAngle | null; viewer?: unknown; }",
+    "output": "{ posts: { ideaId: string; results: WriteResult[]; }[]; }",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
    "id": "route:DraftAsk/answer",
    "role": "route",
    "parent": "service:DraftAsk",

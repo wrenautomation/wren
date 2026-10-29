@@ -202,5 +202,77 @@
    }
   }
  ],
- "edges": []
+ "edges": [
+  {
+   "from": "ui:clientPeople/channels",
+   "to": "route:PeopleConsole/channelPeople",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/people/channels.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:clientPeople/channels",
+   "to": "route:PeopleConsole/channelStats",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/people/channels.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:clientPeople/channels",
+   "to": "route:PeopleConsole/segmentContext",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/people/channels.tsx",
+     "apps/portal/web/src/modules/people/segments.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:clientPeople/channels",
+   "to": "route:PeopleConsole/segmentDescribe",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/people/segments.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:clientPeople/channels",
+   "to": "route:PeopleConsole/segmentPreview",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/people/segments.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:clientPeople/channels",
+   "to": "route:PeopleConsole/segmentSave",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/people/segments.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:clientPeople/channels",
+   "to": "route:PeopleConsole/segmentVersions",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/people/segments.tsx"
+    ]
+   }
+  }
+ ]
 }

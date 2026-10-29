@@ -178,6 +178,17 @@
    }
   },
   {
+   "id": "route:ConsolePortal/accessAsk",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "write"
+   }
+  },
+  {
    "id": "route:ConsolePortal/addClient",
    "role": "route",
    "parent": "service:ConsolePortal",
@@ -211,6 +222,39 @@
    }
   },
   {
+   "id": "route:ConsolePortal/askDecide",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "write"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/businessFactSave",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "write"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/businessFacts",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "Input",
+    "output": "{ value: string; key: string; id: string; label: string; createdAt: Date; updatedAt: Date; owner: string | null; createdBy: string; updatedBy: string; }[]",
+    "wrap": "plain"
+   }
+  },
+  {
    "id": "route:ConsolePortal/call",
    "role": "route",
    "parent": "service:ConsolePortal",
@@ -240,6 +284,39 @@
    "attrs": {
     "input": "ConnectRequest",
     "output": "{ client: string; site: string; set: boolean; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/customFieldOrder",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "write"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/customFieldSave",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "write"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/customFields",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "Input",
+    "output": "FieldsView",
     "wrap": "plain"
    }
   },
@@ -354,6 +431,28 @@
    }
   },
   {
+   "id": "route:ConsolePortal/grantAdd",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "write"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/grantEnd",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "write"
+   }
+  },
+  {
    "id": "route:ConsolePortal/install",
    "role": "route",
    "parent": "service:ConsolePortal",
@@ -361,6 +460,39 @@
    "attrs": {
     "input": "InstallRequest",
     "output": "{ start: LoopKey[]; stop: LoopKey[]; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/issueRaise",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "write"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/issueResolve",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "write"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/issues",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "Input",
+    "output": "IssueView[]",
     "wrap": "plain"
    }
   },
@@ -548,6 +680,72 @@
    "attrs": {
     "input": "PortalRequest & { id?: unknown }",
     "output": "{ arrived: number; seen: number; waiting: number; failed: number; out: number; done: string[]; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/roleCopy",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "write"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/roleGrant",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "write"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/roleRemove",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "write"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/roleSave",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "write"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/sandboxMake",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "PortalRequest",
+    "output": "{ id: string; name: string; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/sandboxReset",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "PortalRequest",
+    "output": "{ id: string; name: string; }",
     "wrap": "plain"
    }
   },
@@ -856,6 +1054,17 @@
    "attrs": {
     "input": "ViewRequest",
     "output": "import(\"./console-api.js\").ViewAnswer",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/viewAsList",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "PortalRequest",
+    "output": "ViewAsChoices",
     "wrap": "plain"
    }
   },

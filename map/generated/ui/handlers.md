@@ -6,7 +6,7 @@ Sidebar: team: Tools.
 
 Registered in `apps/portal/web/src/modules/wren/handlers.ts`.
 
-| Page | Template | Drawn in | For |
-|---|---|---|---|
-| Handlers | list of `console.handler` | `apps/portal/web/src/records.tsx` | Every action a form can run. |
-| AI tools | hand | `apps/portal/web/src/modules/account/AiTools.tsx` | Let Claude Code or your own script use your Wren. |
+| Page | Template | Drawn in | Calls | For |
+|---|---|---|---|---|
+| Handlers | list of `console.handler` | `apps/portal/web/src/records.tsx` |  | Every action a form can run. |
+| AI tools | hand | `apps/portal/web/src/modules/account/AiTools.tsx` | `ConsolePortal/tokens`, `DeliveryPortal/webhooks` | Let Claude Code or your own script use your Wren. |

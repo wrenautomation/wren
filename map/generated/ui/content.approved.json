@@ -111,6 +111,9 @@
    "attrs": {
     "about": "Posts from the people and topics you follow.",
     "file": "apps/portal/web/src/modules/marketing/feed.tsx",
+    "host": [
+     "media/grant"
+    ],
     "label": "Feed",
     "order": 5,
     "template": "hand"
@@ -256,5 +259,373 @@
    }
   }
  ],
- "edges": []
+ "edges": [
+  {
+   "from": "ui:content/facts",
+   "to": "route:ConsolePortal/recordsEdit",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/marketing/facts.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:content/facts",
+   "to": "route:ConsolePortal/recordsGet",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/marketing/facts.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:content/facts",
+   "to": "route:ConsolePortal/recordsUndo",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/marketing/facts.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:content/feed",
+   "to": "route:ConsolePortal/call",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/find.tsx",
+     "apps/portal/web/src/modules/marketing/feed.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:content/feed",
+   "to": "route:LearnConsole/alerts",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:content/feed",
+   "to": "route:LearnConsole/bell",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:content/feed",
+   "to": "route:LearnConsole/bellSeen",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:content/feed",
+   "to": "route:LearnConsole/browse",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:content/feed",
+   "to": "route:LearnConsole/home",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:content/feed",
+   "to": "route:LearnConsole/item",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:content/feed",
+   "to": "route:LearnConsole/open",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:content/feed",
+   "to": "route:LearnConsole/progress",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:content/feed",
+   "to": "route:LearnConsole/rail",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:content/feed",
+   "to": "route:LearnConsole/seen",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:content/feed",
+   "to": "route:LearnConsole/today",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:content/feed",
+   "to": "route:LearnConsole/unseen",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:content/pieces",
+   "to": "route:ConsolePortal/call",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/marketing/pieces.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:content/plan",
+   "to": "route:ConsolePortal/call",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/marketing/pieces.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:content/plan",
+   "to": "route:ConsolePortal/recordsEdit",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/marketing/plan.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:content/reports",
+   "to": "route:MarketingConsole/reports",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/marketing/reports.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:content/studio",
+   "to": "route:ConsolePortal/call",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/marketing/desk.ts",
+     "apps/portal/web/src/modules/marketing/pieces.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:content/studio",
+   "to": "route:ConsolePortal/recordsEdit",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/marketing/facts.tsx",
+     "apps/portal/web/src/modules/marketing/plan.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:content/studio",
+   "to": "route:ConsolePortal/recordsGet",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/marketing/facts.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:content/studio",
+   "to": "route:ConsolePortal/recordsUndo",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/marketing/facts.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:content/studio",
+   "to": "route:PipelineConsole/journeysDrop",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/deals/board.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:content/studio",
+   "to": "route:PipelineConsole/journeysMove",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/deals/board.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:content/studio",
+   "to": "route:PipelineConsole/recordsGet",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/map/stations.ts",
+     "apps/portal/web/src/modules/deals/board.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:content/studio",
+   "to": "route:PipelineConsole/recordsList",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/deals/board.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:content/write",
+   "to": "route:ConsolePortal/call",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/marketing/desk.ts",
+     "apps/portal/web/src/modules/marketing/pieces.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:content/write",
+   "to": "route:ConsolePortal/recordsEdit",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/marketing/facts.tsx",
+     "apps/portal/web/src/modules/marketing/plan.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:content/write",
+   "to": "route:ConsolePortal/recordsGet",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/marketing/facts.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:content/write",
+   "to": "route:ConsolePortal/recordsUndo",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/marketing/facts.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:content/write",
+   "to": "route:PipelineConsole/journeysDrop",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/deals/board.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:content/write",
+   "to": "route:PipelineConsole/journeysMove",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/deals/board.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:content/write",
+   "to": "route:PipelineConsole/recordsGet",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/map/stations.ts",
+     "apps/portal/web/src/modules/deals/board.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:content/write",
+   "to": "route:PipelineConsole/recordsList",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/deals/board.tsx"
+    ]
+   }
+  }
+ ]
 }

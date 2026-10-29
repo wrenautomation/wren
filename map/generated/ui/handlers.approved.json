@@ -43,5 +43,26 @@
    }
   }
  ],
- "edges": []
+ "edges": [
+  {
+   "from": "ui:handlers/ai",
+   "to": "route:ConsolePortal/tokens",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/account/AiTools.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:handlers/ai",
+   "to": "route:DeliveryPortal/webhooks",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/account/Webhooks.tsx"
+    ]
+   }
+  }
+ ]
 }

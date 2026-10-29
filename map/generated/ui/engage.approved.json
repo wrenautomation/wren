@@ -274,5 +274,16 @@
    }
   }
  ],
- "edges": []
+ "edges": [
+  {
+   "from": "ui:engage/auto-reply",
+   "to": "route:ConsolePortal/call",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/marketing/auto-reply.tsx"
+    ]
+   }
+  }
+ ]
 }

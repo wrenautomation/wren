@@ -13,6 +13,589 @@
    }
   },
   {
+   "id": "route:ReachDesk/accounts",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/outreach",
+   "attrs": {
+    "input": "{ client?: string | null } | null",
+    "output": "AccountView[]",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/actOnPost",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/outreach",
+   "attrs": {
+    "input": "{ id: number; act: \"like\" | \"follow\" }",
+    "output": "{ id: number; act: \"like\" | \"follow\" }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/addAccount",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/outreach",
+   "attrs": {
+    "input": "{ platform: string; account: string }",
+    "output": "AccountView",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/addContact",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/outreach",
+   "attrs": {
+    "input": "{ platform: string; handle: string; name?: string | null; niche?: string | null }",
+    "output": "ReachContact",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/answerComment",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/outreach",
+   "attrs": {
+    "input": "{ id: number; body?: string | null; again?: boolean }",
+    "output": "{ ref: string | null; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/approveInvites",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/outreach",
+   "attrs": {
+    "input": "{ ids: number[]; note?: string | null; viewer?: unknown }",
+    "output": "{ approved: number[] }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/armComment",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/outreach",
+   "attrs": {
+    "input": "{ id: number; body?: string | null }",
+    "output": "{ armed: boolean }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/commentPost",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/outreach",
+   "attrs": {
+    "input": "{ id: number; body?: string | null; at?: string | null; again?: boolean }",
+    "output": "{ commented: number; held?: string }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/commentThread",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/outreach",
+   "attrs": {
+    "input": "{ id: string; body?: string | null; at?: string | null; again?: boolean }",
+    "output": "{ ref: string | null; held?: string }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/contacts",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/outreach",
+   "attrs": {
+    "input": "{ platform?: string | null; state?: ContactState | null; limit?: number }",
+    "output": "ReachContact[]",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/dmComment",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/outreach",
+   "attrs": {
+    "input": "{ id: number; body: string; again?: boolean }",
+    "output": "{ contactId: number; messageId: number }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/draftModels",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/outreach",
+   "attrs": {
+    "input": "{ since?: string | null }",
+    "output": "Scorecard",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/draftPerson",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/outreach",
+   "attrs": {
+    "input": "{ id: string }",
+    "output": "{ contactId: number; draft: string | null }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/dropComment",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/outreach",
+   "attrs": {
+    "input": "{ id: number; reason?: unknown; note?: unknown }",
+    "output": "void",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/enrich",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/outreach",
+   "attrs": {
+    "input": "{ contactId: number; accountId?: string | null }",
+    "output": "Profile",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/enroll",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/outreach",
+   "attrs": {
+    "input": "{ sequence: string; limit?: number; contactIds?: number[]; enrichedOnly?: boolean; niche?: string | null; }",
+    "output": "EnrollStats",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/find",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/outreach",
+   "attrs": {
+    "input": "{ accountId: string; query: string; limit?: number; cursor?: string | null; niche?: string | null; }",
+    "output": "{ found: Found; added: AddStats }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/findCreators",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/outreach",
+   "attrs": {
+    "input": "{ q: string; only?: CreatorSite[] }",
+    "output": "{ hits: (import(\"../creator-search.js\").CreatorHit & { followed: boolean; })[]; failed: { site: CreatorSite; why: string; }[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/followPerson",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/outreach",
+   "attrs": {
+    "input": "{ id: string }",
+    "output": "{ platform: string; handle: string }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/health",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/outreach",
+   "attrs": {
+    "input": "{ id: string }",
+    "output": "AccountView",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/invitePerson",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/outreach",
+   "attrs": {
+    "input": "{ id: string }",
+    "output": "{ contactId: number }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/invites",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/outreach",
+   "attrs": {
+    "input": "void",
+    "output": "InvitesPass | { off: string }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/liftPass",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/outreach",
+   "attrs": {
+    "input": "{ platform: string; handle: string }",
+    "output": "{ lifted: boolean; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/markRead",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/outreach",
+   "attrs": {
+    "input": "{ contactId: number }",
+    "output": "void",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/messageFrom",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/outreach",
+   "attrs": {
+    "input": "{ id: string; body: string }",
+    "output": "{ contactId: number; sent: \"dm\" | \"invite\" }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/messagePerson",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/outreach",
+   "attrs": {
+    "input": "{ id: string; body?: string | null }",
+    "output": "{ contactId: number; messageId: number }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/movePlace",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/outreach",
+   "attrs": {
+    "input": "{ subreddit: string; account: string }",
+    "output": "void",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/passOn",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/outreach",
+   "attrs": {
+    "input": "{ ids: string[]; reason: PassReason; note?: string | null }",
+    "output": "{ people: number; closed: number }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/passes",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/outreach",
+   "attrs": {
+    "input": "void",
+    "output": "{ id: number; platform: string; handle: string; name: string; reason: \"not_now\" | \"not_lead\" | \"not_worth\" | \"spam\" | \"competitor\" | \"rude\"; note: string | null; item: string | null; by: string | null; until: Date | null; liftedAt: Date | null; createdAt: Date; }[]",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/paste",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/outreach",
+   "attrs": {
+    "input": "{ url: string }",
+    "output": "Pasted",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/pick",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/outreach",
+   "attrs": {
+    "input": "{ id: string; act: \"reply\" | \"follow\" }",
+    "output": "Pasted",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/posts",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/outreach",
+   "attrs": {
+    "input": "{ state?: string | null; limit?: number | null }",
+    "output": "{ id: number; platform: \"linkedin\" | \"instagram\" | \"x\" | \"youtube\" | \"tiktok\" | \"threads\"; state: \"skipped\" | \"queued\" | \"dropped\" | \"found\" | \"commented\"; author: string; fit: number | null; why: string | null; draft: string | null; url: string; foundBy: string; }[]",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/postsNow",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/outreach",
+   "attrs": {
+    "input": "void",
+    "output": "PostsStats[]",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/proposedInvites",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/outreach",
+   "attrs": {
+    "input": "void",
+    "output": "ProposedInvite[]",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/readThread",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/outreach",
+   "attrs": {
+    "input": "{ id: number }",
+    "output": "{ read: boolean }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/redraftPosts",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/outreach",
+   "attrs": {
+    "input": "{ ids: number[] }",
+    "output": "RedraftResult",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/reply",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/outreach",
+   "attrs": {
+    "input": "{ contactId: number; body?: string | null; subject?: string | null }",
+    "output": "{ messageId: number }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/replyInThread",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/outreach",
+   "attrs": {
+    "input": "{ id: number; ref: string; body?: string | null; account?: string | null }",
+    "output": "{ id: number; ref: string | null }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/schedule",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/outreach",
+   "attrs": {
+    "input": "{ posts?: boolean; threads?: boolean }",
+    "output": "{ slots: Slotted[] }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/setAccountState",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/outreach",
+   "attrs": {
+    "input": "{ id: string; state: AccountState; reason?: string | null; client?: string | null }",
+    "output": "AccountView",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/setTemplate",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/outreach",
+   "attrs": {
+    "input": "Omit<SetTemplate, \"by\"> & { by?: string | null; viewer?: { email?: string } }",
+    "output": "SlotView",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/settleSend",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/outreach",
+   "attrs": {
+    "input": "{ item: string; outcome: SettleOutcome; viewer?: unknown }",
+    "output": "{ item: string; outcome: SettleOutcome }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/skipInvites",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/outreach",
+   "attrs": {
+    "input": "{ ids: number[]; viewer?: unknown }",
+    "output": "{ skipped: number[] }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/skipPlace",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/outreach",
+   "attrs": {
+    "input": "{ subreddit: string }",
+    "output": "void",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/skipPost",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/outreach",
+   "attrs": {
+    "input": "{ ids: number[]; by?: unknown; reason?: unknown; note?: unknown }",
+    "output": "{ skipped: number[] }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/skipThread",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/outreach",
+   "attrs": {
+    "input": "{ id: string; reason?: unknown; note?: unknown }",
+    "output": "void",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/stats",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/outreach",
+   "attrs": {
+    "input": "{ platform?: string | null; days?: number }",
+    "output": "ReachStats",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/templates",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/outreach",
+   "attrs": {
+    "input": "void",
+    "output": "SlotView[]",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/thread",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/outreach",
+   "attrs": {
+    "input": "{ contactId: number }",
+    "output": "Thread",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/threads",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/outreach",
+   "attrs": {
+    "input": "ThreadFilter",
+    "output": "ThreadSummary[]",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/unschedule",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/outreach",
+   "attrs": {
+    "input": "{ posts?: number[]; threads?: string[] }",
+    "output": "void",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/watchPlace",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/outreach",
+   "attrs": {
+    "input": "{ subreddit: string }",
+    "output": "{ account: string | null; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/withdrawInvite",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/outreach",
+   "attrs": {
+    "input": "{ contactId: number }",
+    "output": "{ outcome: string }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
    "id": "service:CommentProofs",
    "role": "service",
    "parent": "@wren/outreach",

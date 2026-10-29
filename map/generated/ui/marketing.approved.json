@@ -160,5 +160,26 @@
    }
   }
  ],
- "edges": []
+ "edges": [
+  {
+   "from": "ui:marketing/auto-reply",
+   "to": "route:ConsolePortal/call",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/marketing/auto-reply.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:marketing/reports",
+   "to": "route:MarketingConsole/reports",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/marketing/reports.tsx"
+    ]
+   }
+  }
+ ]
 }

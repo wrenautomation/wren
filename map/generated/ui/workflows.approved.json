@@ -36,6 +36,10 @@
    "attrs": {
     "about": "Every workflow as it's wired, with its numbers.",
     "file": "apps/portal/web/src/modules/wren/workflows.tsx",
+    "host": [
+     "keys/stage",
+     "media/grant"
+    ],
     "label": "Canvas",
     "order": 2,
     "template": "hand"
@@ -112,5 +116,733 @@
    }
   }
  ],
- "edges": []
+ "edges": [
+  {
+   "from": "ui:workflows/all",
+   "to": "route:ConsolePortal/recordsList",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/wren/automations.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/all",
+   "to": "route:ConsolePortal/workflowsMade",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/wren/made.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:AccountsConsole/accounts",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/account/summary.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:AccountsConsole/usage",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/account/summary.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:ConsolePortal/agents",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/wren/Agents.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:ConsolePortal/call",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/find.tsx",
+     "apps/portal/web/src/modules/marketing/auto-reply.tsx",
+     "apps/portal/web/src/modules/marketing/desk.ts",
+     "apps/portal/web/src/modules/marketing/feed.tsx",
+     "apps/portal/web/src/modules/marketing/pieces.tsx",
+     "apps/portal/web/src/modules/wren/handlers.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:ConsolePortal/decisions",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/wren/decisions.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:ConsolePortal/doorReveal",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/wren/doors.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:ConsolePortal/doorRotate",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/wren/doors.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:ConsolePortal/loops",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/wren/Agents.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:ConsolePortal/question",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/wren/ask.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:ConsolePortal/recordsEdit",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/marketing/facts.tsx",
+     "apps/portal/web/src/modules/marketing/plan.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:ConsolePortal/recordsGet",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/marketing/facts.tsx",
+     "apps/portal/web/src/modules/marketing/texts.tsx",
+     "apps/portal/web/src/modules/marketplace/Installed.tsx",
+     "apps/portal/web/src/modules/wren/editor.tsx",
+     "apps/portal/web/src/modules/wren/executions.tsx",
+     "apps/portal/web/src/modules/wren/health.tsx",
+     "apps/portal/web/src/modules/wren/playback.tsx",
+     "apps/portal/web/src/modules/wren/replies.ts",
+     "apps/portal/web/src/modules/wren/workflows.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:ConsolePortal/recordsList",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/marketplace/Installed.tsx",
+     "apps/portal/web/src/modules/wren/ask.tsx",
+     "apps/portal/web/src/modules/wren/automations.tsx",
+     "apps/portal/web/src/modules/wren/editor.tsx",
+     "apps/portal/web/src/modules/wren/executions.tsx",
+     "apps/portal/web/src/modules/wren/health.tsx",
+     "apps/portal/web/src/modules/wren/infra.tsx",
+     "apps/portal/web/src/modules/wren/playback.tsx",
+     "apps/portal/web/src/modules/wren/workflows.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:ConsolePortal/recordsStats",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/marketing/chart.tsx",
+     "apps/portal/web/src/modules/wren/Agents.tsx",
+     "apps/portal/web/src/modules/wren/heads.tsx",
+     "apps/portal/web/src/modules/wren/workflows.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:ConsolePortal/recordsTypes",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/wren/workflows.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:ConsolePortal/recordsUndo",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/marketing/facts.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:ConsolePortal/replay",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/wren/executions.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:ConsolePortal/retryEvent",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/wren/executions.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:ConsolePortal/setLook",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/account/Look.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:ConsolePortal/templateInstalls",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/marketplace/Installed.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:ConsolePortal/tokens",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/account/AiTools.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:ConsolePortal/viewAsList",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/view-as-picker.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:ConsolePortal/workflowAnswer",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/wren/editor.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:ConsolePortal/workflowAsk",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/wren/editor.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:ConsolePortal/workflowDelete",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/wren/workflows.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:ConsolePortal/workflowDiscard",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/wren/workflows.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:ConsolePortal/workflowDoors",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/wren/doors.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:ConsolePortal/workflowSave",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/wren/workflows.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:ConsolePortal/workflowTest",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/wren/tester.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:ConsolePortal/workflowsMade",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/wren/made.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:DeliveryPortal/domains",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/account/Domain.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:DeliveryPortal/me",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/access/PersonAccess.tsx",
+     "apps/portal/web/src/modules/account/Look.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:DeliveryPortal/webhooks",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/account/Webhooks.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:DocumentsConsole/create",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/documents/documents.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:DocumentsConsole/send",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/documents/documents.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:DocumentsConsole/templateSave",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/documents/documents.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:DocumentsConsole/templates",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/documents/documents.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:EmailConsole/dossier",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/wren/dossier.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:LearnConsole/alerts",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:LearnConsole/bell",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:LearnConsole/bellSeen",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:LearnConsole/browse",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:LearnConsole/home",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:LearnConsole/item",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:LearnConsole/open",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:LearnConsole/progress",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:LearnConsole/rail",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:LearnConsole/seen",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:LearnConsole/today",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:LearnConsole/unseen",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:MarketingConsole/reports",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/marketing/reports.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:PaymentsConsole/connect",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/payments/stripe.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:PaymentsConsole/status",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/payments/stripe.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:PeopleConsole/broadcastContext",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/people/broadcasts.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:PeopleConsole/broadcastMonth",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/people/broadcasts.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:PeopleConsole/broadcastPreview",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/people/broadcasts.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:PeopleConsole/broadcastSave",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/people/broadcasts.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:PeopleConsole/segmentContext",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/people/segments.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:PeopleConsole/segmentDescribe",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/people/segments.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:PeopleConsole/segmentPreview",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/people/segments.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:PeopleConsole/segmentSave",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/people/segments.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:PeopleConsole/segmentVersions",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/people/segments.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:PipelineConsole/journeysDrop",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/deals/board.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:PipelineConsole/journeysMove",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/deals/board.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:PipelineConsole/recordsGet",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/map/stations.ts",
+     "apps/portal/web/src/modules/deals/board.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:PipelineConsole/recordsList",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/deals/board.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/canvas",
+   "to": "route:TemplatesConsole/list",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/find.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/new",
+   "to": "route:ConsolePortal/recordsList",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/wren/automations.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:workflows/new",
+   "to": "route:ConsolePortal/workflowsMade",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/wren/made.tsx"
+    ]
+   }
+  }
+ ]
 }

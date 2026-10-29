@@ -240,5 +240,56 @@
    }
   }
  ],
- "edges": []
+ "edges": [
+  {
+   "from": "ui:reactivation/contract",
+   "to": "route:DeliveryPortal/contract",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/work/Contract.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:reactivation/contract",
+   "to": "route:DeliveryPortal/sign",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/work/Contract.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:reactivation/run",
+   "to": "route:ReactivationPortal/overview",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/reactivation/Run.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:reactivation/run",
+   "to": "route:ReactivationPortal/run",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/reactivation/Run.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:reactivation/run",
+   "to": "route:ReactivationPortal/work",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/reactivation/Run.tsx"
+    ]
+   }
+  }
+ ]
 }

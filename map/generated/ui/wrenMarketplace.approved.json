@@ -56,5 +56,16 @@
    }
   }
  ],
- "edges": []
+ "edges": [
+  {
+   "from": "ui:wrenMarketplace/map",
+   "to": "route:ConsolePortal/recordsList",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/marketplace/Map.tsx"
+    ]
+   }
+  }
+ ]
 }

@@ -23,6 +23,10 @@
    "attrs": {
     "about": "Where everything is, and the fastest ways to reach it.",
     "file": "apps/portal/web/src/modules/settings/Guide.tsx",
+    "host": [
+     "keys/stage",
+     "media/grant"
+    ],
     "label": "Guide",
     "order": 3,
     "template": "hand"
@@ -81,5 +85,1166 @@
    }
   }
  ],
- "edges": []
+ "edges": [
+  {
+   "from": "ui:settings/guide",
+   "to": "route:AccountsConsole/accounts",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/account/Accounts.tsx",
+     "apps/portal/web/src/modules/account/summary.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:AccountsConsole/limits",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/account/Limits.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:AccountsConsole/now",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/account/Now.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:AccountsConsole/usage",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/account/summary.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:AccountsConsole/vendors",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/account/Vendors.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:CalendarConsole/range",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/calendar/schedule.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:CalendarConsole/recorder",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/calendar/recorder.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:Connectors/connectors",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/account/Connectors.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:ConsolePortal/agents",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/wren/Agents.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:ConsolePortal/ask",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/marketplace/Catalog.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:ConsolePortal/call",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/find.tsx",
+     "apps/portal/web/src/modules/marketing/auto-reply.tsx",
+     "apps/portal/web/src/modules/marketing/desk.ts",
+     "apps/portal/web/src/modules/marketing/draft-models.tsx",
+     "apps/portal/web/src/modules/marketing/feed.tsx",
+     "apps/portal/web/src/modules/marketing/pieces.tsx",
+     "apps/portal/web/src/modules/outreach/engage.tsx",
+     "apps/portal/web/src/modules/wren/handlers.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:ConsolePortal/connect",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/marketplace/Catalog.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:ConsolePortal/decisions",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/wren/decisions.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:ConsolePortal/doorReveal",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/wren/doors.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:ConsolePortal/doorRotate",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/wren/doors.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:ConsolePortal/loops",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/wren/Agents.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:ConsolePortal/question",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/wren/ask.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:ConsolePortal/recordsEdit",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/marketing/facts.tsx",
+     "apps/portal/web/src/modules/marketing/plan.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:ConsolePortal/recordsGet",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/library/templates.tsx",
+     "apps/portal/web/src/modules/marketing/facts.tsx",
+     "apps/portal/web/src/modules/marketing/texts.tsx",
+     "apps/portal/web/src/modules/marketplace/Installed.tsx",
+     "apps/portal/web/src/modules/voice/agent.tsx",
+     "apps/portal/web/src/modules/wren/editor.tsx",
+     "apps/portal/web/src/modules/wren/executions.tsx",
+     "apps/portal/web/src/modules/wren/health.tsx",
+     "apps/portal/web/src/modules/wren/playback.tsx",
+     "apps/portal/web/src/modules/wren/replies.ts",
+     "apps/portal/web/src/modules/wren/workflows.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:ConsolePortal/recordsList",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/marketplace/Installed.tsx",
+     "apps/portal/web/src/modules/marketplace/Map.tsx",
+     "apps/portal/web/src/modules/sites/funnel-graph.tsx",
+     "apps/portal/web/src/modules/voice/latency.tsx",
+     "apps/portal/web/src/modules/wren/ask.tsx",
+     "apps/portal/web/src/modules/wren/automations.tsx",
+     "apps/portal/web/src/modules/wren/editor.tsx",
+     "apps/portal/web/src/modules/wren/executions.tsx",
+     "apps/portal/web/src/modules/wren/health.tsx",
+     "apps/portal/web/src/modules/wren/infra.tsx",
+     "apps/portal/web/src/modules/wren/playback.tsx",
+     "apps/portal/web/src/modules/wren/workflows.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:ConsolePortal/recordsStats",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/marketing/chart.tsx",
+     "apps/portal/web/src/modules/wren/Agents.tsx",
+     "apps/portal/web/src/modules/wren/heads.tsx",
+     "apps/portal/web/src/modules/wren/workflows.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:ConsolePortal/recordsTypes",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/wren/workflows.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:ConsolePortal/recordsUndo",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/marketing/facts.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:ConsolePortal/replay",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/wren/executions.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:ConsolePortal/retryEvent",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/wren/executions.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:ConsolePortal/setLook",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/account/Look.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:ConsolePortal/templateInstalls",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/marketplace/Installed.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:ConsolePortal/templatePlan",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/marketplace/Template.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:ConsolePortal/templatePublish",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/marketplace/Template.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:ConsolePortal/templateUninstall",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/marketplace/Template.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:ConsolePortal/tokens",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/account/AiTools.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:ConsolePortal/uninstall",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/marketplace/Catalog.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:ConsolePortal/viewAsList",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/view-as-picker.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:ConsolePortal/workflowAnswer",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/wren/editor.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:ConsolePortal/workflowAsk",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/wren/editor.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:ConsolePortal/workflowDelete",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/wren/workflows.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:ConsolePortal/workflowDiscard",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/wren/workflows.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:ConsolePortal/workflowDoors",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/wren/doors.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:ConsolePortal/workflowSave",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/wren/workflows.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:ConsolePortal/workflowTemplateDelete",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/marketplace/delete-saved.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:ConsolePortal/workflowTest",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/wren/tester.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:ConsolePortal/workflowsMade",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/wren/made.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:DeliveryPortal/contract",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/work/Contract.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:DeliveryPortal/domains",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/account/Domain.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:DeliveryPortal/me",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/access/PersonAccess.tsx",
+     "apps/portal/web/src/modules/account/Included.tsx",
+     "apps/portal/web/src/modules/account/Look.tsx",
+     "apps/portal/web/src/modules/marketplace/Template.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:DeliveryPortal/sign",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/work/Contract.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:DeliveryPortal/webhooks",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/account/Webhooks.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:DocumentsConsole/create",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/documents/documents.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:DocumentsConsole/send",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/documents/documents.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:DocumentsConsole/templateSave",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/documents/documents.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:DocumentsConsole/templates",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/documents/documents.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:EmailConsole/dossier",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/wren/dossier.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:LearnConsole/alerts",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:LearnConsole/bell",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:LearnConsole/bellSeen",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:LearnConsole/browse",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:LearnConsole/home",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:LearnConsole/item",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:LearnConsole/open",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:LearnConsole/progress",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:LearnConsole/rail",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:LearnConsole/save",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/learn.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:LearnConsole/search",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/learn.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:LearnConsole/seen",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:LearnConsole/today",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:LearnConsole/unseen",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:MailAccess/mail",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/account/Mail.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:MarketingConsole/reports",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/marketing/reports.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:NotesConsole/toDraft",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/notes/turn.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:NotesConsole/toSop",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/notes/turn.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:PaymentsConsole/connect",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/payments/stripe.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:PaymentsConsole/status",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/payments/stripe.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:PeopleConsole/broadcastContext",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/people/broadcasts.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:PeopleConsole/broadcastMonth",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/people/broadcasts.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:PeopleConsole/broadcastPreview",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/people/broadcasts.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:PeopleConsole/broadcastSave",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/people/broadcasts.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:PeopleConsole/channelPeople",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/people/channels.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:PeopleConsole/channelStats",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/people/channels.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:PeopleConsole/segmentContext",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/people/channels.tsx",
+     "apps/portal/web/src/modules/people/segments.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:PeopleConsole/segmentDescribe",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/people/segments.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:PeopleConsole/segmentPreview",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/people/segments.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:PeopleConsole/segmentSave",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/people/segments.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:PeopleConsole/segmentVersions",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/people/segments.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:PipelineConsole/journeysDrop",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/deals/board.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:PipelineConsole/journeysMove",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/deals/board.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:PipelineConsole/recordsGet",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/map/stations.ts",
+     "apps/portal/web/src/modules/deals/board.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:PipelineConsole/recordsList",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/deals/board.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:ReactivationPortal/importPreview",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/people/import.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:ReactivationPortal/importRun",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/people/import.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:ReactivationPortal/overview",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/reactivation/Glance.tsx",
+     "apps/portal/web/src/modules/reactivation/Run.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:ReactivationPortal/run",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/reactivation/Run.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:ReactivationPortal/work",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/reactivation/Run.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:SitesConsole/linkCreate",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/sites/links.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:SitesConsole/linkTargets",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/sites/links.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:SmsConsole/askReview",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/texts/ask.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:SocialAccess/ownCheck",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/account/OwnSocial.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:SocialAccess/social",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/account/Social.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:TemplatesConsole/detail",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/library/templates.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:TemplatesConsole/list",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/find.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:TemplatesConsole/move",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/library/templates.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:TemplatesConsole/preview",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/library/templates.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:TemplatesConsole/publish",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/library/templates.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:TemplatesConsole/renameFolder",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/library/templates.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:TemplatesConsole/reset",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/library/templates.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:TemplatesConsole/restore",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/library/templates.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:TemplatesConsole/save",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/library/templates.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:VoiceConsole/dictation",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/voice/dictation.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/guide",
+   "to": "route:VoiceConsole/saveTest",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/voice/test.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/systems",
+   "to": "route:PipelineConsole/journeysDrop",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/deals/board.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/systems",
+   "to": "route:PipelineConsole/journeysMove",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/deals/board.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/systems",
+   "to": "route:PipelineConsole/recordsGet",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/map/stations.ts",
+     "apps/portal/web/src/modules/deals/board.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:settings/systems",
+   "to": "route:PipelineConsole/recordsList",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/deals/board.tsx"
+    ]
+   }
+  }
+ ]
 }

@@ -80,5 +80,56 @@
    }
   }
  ],
- "edges": []
+ "edges": [
+  {
+   "from": "ui:voice/agent",
+   "to": "route:ConsolePortal/recordsGet",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/voice/agent.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:voice/latency",
+   "to": "route:ConsolePortal/recordsList",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/voice/latency.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:voice/latency",
+   "to": "route:VoiceConsole/dictation",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/voice/dictation.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:voice/test",
+   "to": "route:ConsolePortal/recordsGet",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/voice/agent.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:voice/test",
+   "to": "route:VoiceConsole/saveTest",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/voice/test.tsx"
+    ]
+   }
+  }
+ ]
 }

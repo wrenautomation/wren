@@ -294,6 +294,9 @@
     "about": "The services your work runs on, and this month's use.",
     "file": "apps/portal/web/src/modules/account/Vendors.tsx",
     "group": "Setup",
+    "host": [
+     "keys/stage"
+    ],
     "label": "Vendors",
     "order": 13,
     "template": "hand"
@@ -327,5 +330,206 @@
    }
   }
  ],
- "edges": []
+ "edges": [
+  {
+   "from": "ui:account/accounts",
+   "to": "route:AccountsConsole/accounts",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/account/Accounts.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:account/ai",
+   "to": "route:ConsolePortal/tokens",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/account/AiTools.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:account/ai",
+   "to": "route:DeliveryPortal/webhooks",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/account/Webhooks.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:account/connectors",
+   "to": "route:Connectors/connectors",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/account/Connectors.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:account/domain",
+   "to": "route:DeliveryPortal/domains",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/account/Domain.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:account/facts",
+   "to": "route:ConsolePortal/viewAsList",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/view-as-picker.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:account/facts",
+   "to": "route:DeliveryPortal/me",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/access/PersonAccess.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:account/fields",
+   "to": "route:ConsolePortal/viewAsList",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/view-as-picker.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:account/fields",
+   "to": "route:DeliveryPortal/me",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/access/PersonAccess.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:account/look",
+   "to": "route:ConsolePortal/setLook",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/account/Look.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:account/look",
+   "to": "route:DeliveryPortal/me",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/account/Look.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:account/mail",
+   "to": "route:MailAccess/mail",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/account/Mail.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:account/people",
+   "to": "route:ConsolePortal/viewAsList",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/view-as-picker.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:account/people",
+   "to": "route:DeliveryPortal/me",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/access/PersonAccess.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:account/social",
+   "to": "route:SocialAccess/ownCheck",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/account/OwnSocial.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:account/social",
+   "to": "route:SocialAccess/social",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/account/Social.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:account/vendors",
+   "to": "route:AccountsConsole/accounts",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/account/Accounts.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:account/vendors",
+   "to": "route:AccountsConsole/limits",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/account/Limits.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:account/vendors",
+   "to": "route:AccountsConsole/vendors",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/account/Vendors.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:account/webhooks",
+   "to": "route:DeliveryPortal/webhooks",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/account/Webhooks.tsx"
+    ]
+   }
+  }
+ ]
 }

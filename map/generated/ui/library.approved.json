@@ -113,5 +113,96 @@
    }
   }
  ],
- "edges": []
+ "edges": [
+  {
+   "from": "ui:library/templates",
+   "to": "route:ConsolePortal/recordsGet",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/library/templates.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:library/templates",
+   "to": "route:TemplatesConsole/detail",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/library/templates.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:library/templates",
+   "to": "route:TemplatesConsole/move",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/library/templates.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:library/templates",
+   "to": "route:TemplatesConsole/preview",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/library/templates.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:library/templates",
+   "to": "route:TemplatesConsole/publish",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/library/templates.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:library/templates",
+   "to": "route:TemplatesConsole/renameFolder",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/library/templates.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:library/templates",
+   "to": "route:TemplatesConsole/reset",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/library/templates.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:library/templates",
+   "to": "route:TemplatesConsole/restore",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/library/templates.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:library/templates",
+   "to": "route:TemplatesConsole/save",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/library/templates.tsx"
+    ]
+   }
+  }
+ ]
 }

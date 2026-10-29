@@ -29,5 +29,26 @@
    }
   }
  ],
- "edges": []
+ "edges": [
+  {
+   "from": "ui:ask/questions",
+   "to": "route:ConsolePortal/question",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/wren/ask.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:ask/questions",
+   "to": "route:ConsolePortal/recordsList",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/wren/ask.tsx"
+    ]
+   }
+  }
+ ]
 }

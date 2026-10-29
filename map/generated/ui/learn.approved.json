@@ -65,6 +65,9 @@
     "about": "One saved item, with its transcript and notes.",
     "file": "apps/portal/web/src/modules/learn/drive.tsx",
     "hidden": true,
+    "host": [
+     "media/grant"
+    ],
     "label": "Items",
     "order": 8,
     "template": "hand"
@@ -78,6 +81,9 @@
    "attrs": {
     "about": "The best of what you follow, scored against your SOPs.",
     "file": "apps/portal/web/src/modules/learn/home.tsx",
+    "host": [
+     "media/grant"
+    ],
     "label": "Home",
     "order": 0,
     "template": "hand"
@@ -148,6 +154,9 @@
     "about": "The creators and feeds you follow.",
     "file": "apps/portal/web/src/modules/learn/sources.tsx",
     "group": "Setup",
+    "host": [
+     "media/grant"
+    ],
     "label": "Sources",
     "order": 3,
     "template": "hand"
@@ -161,11 +170,805 @@
    "attrs": {
     "about": "The last day's best from what you follow.",
     "file": "apps/portal/web/src/modules/learn/today.tsx",
+    "host": [
+     "media/grant"
+    ],
     "label": "Today",
     "order": 1,
     "template": "hand"
    }
   }
  ],
- "edges": []
+ "edges": [
+  {
+   "from": "ui:learn/add",
+   "to": "route:LearnConsole/alerts",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/add",
+   "to": "route:LearnConsole/bell",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/add",
+   "to": "route:LearnConsole/bellSeen",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/add",
+   "to": "route:LearnConsole/browse",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/add",
+   "to": "route:LearnConsole/home",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/add",
+   "to": "route:LearnConsole/item",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/add",
+   "to": "route:LearnConsole/open",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/add",
+   "to": "route:LearnConsole/progress",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/add",
+   "to": "route:LearnConsole/rail",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/add",
+   "to": "route:LearnConsole/save",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/learn.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/add",
+   "to": "route:LearnConsole/search",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/learn.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/add",
+   "to": "route:LearnConsole/seen",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/add",
+   "to": "route:LearnConsole/today",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/add",
+   "to": "route:LearnConsole/unseen",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/items",
+   "to": "route:LearnConsole/alerts",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/items",
+   "to": "route:LearnConsole/bell",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/items",
+   "to": "route:LearnConsole/bellSeen",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/items",
+   "to": "route:LearnConsole/browse",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/items",
+   "to": "route:LearnConsole/home",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/items",
+   "to": "route:LearnConsole/item",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/items",
+   "to": "route:LearnConsole/open",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/items",
+   "to": "route:LearnConsole/progress",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/items",
+   "to": "route:LearnConsole/rail",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/items",
+   "to": "route:LearnConsole/save",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/learn.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/items",
+   "to": "route:LearnConsole/search",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/learn.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/items",
+   "to": "route:LearnConsole/seen",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/items",
+   "to": "route:LearnConsole/today",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/items",
+   "to": "route:LearnConsole/unseen",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/overview",
+   "to": "route:LearnConsole/alerts",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/overview",
+   "to": "route:LearnConsole/bell",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/overview",
+   "to": "route:LearnConsole/bellSeen",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/overview",
+   "to": "route:LearnConsole/browse",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/overview",
+   "to": "route:LearnConsole/home",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/overview",
+   "to": "route:LearnConsole/item",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/overview",
+   "to": "route:LearnConsole/open",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/overview",
+   "to": "route:LearnConsole/progress",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/overview",
+   "to": "route:LearnConsole/rail",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/overview",
+   "to": "route:LearnConsole/seen",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/overview",
+   "to": "route:LearnConsole/today",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/overview",
+   "to": "route:LearnConsole/unseen",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/search",
+   "to": "route:LearnConsole/alerts",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/search",
+   "to": "route:LearnConsole/bell",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/search",
+   "to": "route:LearnConsole/bellSeen",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/search",
+   "to": "route:LearnConsole/browse",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/search",
+   "to": "route:LearnConsole/home",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/search",
+   "to": "route:LearnConsole/item",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/search",
+   "to": "route:LearnConsole/open",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/search",
+   "to": "route:LearnConsole/progress",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/search",
+   "to": "route:LearnConsole/rail",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/search",
+   "to": "route:LearnConsole/save",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/learn.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/search",
+   "to": "route:LearnConsole/search",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/learn.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/search",
+   "to": "route:LearnConsole/seen",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/search",
+   "to": "route:LearnConsole/today",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/search",
+   "to": "route:LearnConsole/unseen",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/sources",
+   "to": "route:ConsolePortal/call",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/find.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/sources",
+   "to": "route:LearnConsole/alerts",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/sources",
+   "to": "route:LearnConsole/bell",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/sources",
+   "to": "route:LearnConsole/bellSeen",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/sources",
+   "to": "route:LearnConsole/browse",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/sources",
+   "to": "route:LearnConsole/home",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/sources",
+   "to": "route:LearnConsole/item",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/sources",
+   "to": "route:LearnConsole/open",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/sources",
+   "to": "route:LearnConsole/progress",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/sources",
+   "to": "route:LearnConsole/rail",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/sources",
+   "to": "route:LearnConsole/seen",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/sources",
+   "to": "route:LearnConsole/today",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/sources",
+   "to": "route:LearnConsole/unseen",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/today",
+   "to": "route:LearnConsole/alerts",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/today",
+   "to": "route:LearnConsole/bell",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/today",
+   "to": "route:LearnConsole/bellSeen",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/today",
+   "to": "route:LearnConsole/browse",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/today",
+   "to": "route:LearnConsole/home",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/today",
+   "to": "route:LearnConsole/item",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/today",
+   "to": "route:LearnConsole/open",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/today",
+   "to": "route:LearnConsole/progress",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/today",
+   "to": "route:LearnConsole/rail",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/today",
+   "to": "route:LearnConsole/seen",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/today",
+   "to": "route:LearnConsole/today",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  },
+  {
+   "from": "ui:learn/today",
+   "to": "route:LearnConsole/unseen",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/learn/api.ts"
+    ]
+   }
+  }
+ ]
 }

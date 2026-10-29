@@ -29,5 +29,47 @@
    }
   }
  ],
- "edges": []
+ "edges": [
+  {
+   "from": "ui:clientSettings/systems",
+   "to": "route:PipelineConsole/journeysDrop",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/deals/board.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:clientSettings/systems",
+   "to": "route:PipelineConsole/journeysMove",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/deals/board.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:clientSettings/systems",
+   "to": "route:PipelineConsole/recordsGet",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/map/stations.ts",
+     "apps/portal/web/src/modules/deals/board.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:clientSettings/systems",
+   "to": "route:PipelineConsole/recordsList",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/deals/board.tsx"
+    ]
+   }
+  }
+ ]
 }

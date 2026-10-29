@@ -97,5 +97,56 @@
    }
   }
  ],
- "edges": []
+ "edges": [
+  {
+   "from": "ui:loops/agents",
+   "to": "route:ConsolePortal/agents",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/wren/Agents.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:loops/agents",
+   "to": "route:ConsolePortal/decisions",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/wren/decisions.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:loops/agents",
+   "to": "route:ConsolePortal/loops",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/wren/Agents.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:loops/agents",
+   "to": "route:ConsolePortal/recordsStats",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/wren/Agents.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:loops/infra",
+   "to": "route:ConsolePortal/recordsList",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/wren/infra.tsx"
+    ]
+   }
+  }
+ ]
 }

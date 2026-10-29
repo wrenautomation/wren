@@ -141,5 +141,26 @@
    }
   }
  ],
- "edges": []
+ "edges": [
+  {
+   "from": "ui:work/contract",
+   "to": "route:DeliveryPortal/contract",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/work/Contract.tsx"
+    ]
+   }
+  },
+  {
+   "from": "ui:work/contract",
+   "to": "route:DeliveryPortal/sign",
+   "kind": "calls",
+   "attrs": {
+    "at": [
+     "apps/portal/web/src/modules/work/Contract.tsx"
+    ]
+   }
+  }
+ ]
 }
