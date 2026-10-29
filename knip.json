@@ -1,0 +1,81 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "workspaces": {
+    ".": {
+      "entry": [
+        "scripts/*.{mjs,ts}",
+        "loadtest/**/*.js",
+        "map/_meta/*.mjs",
+        "deploy/**/*.{mjs,js,ts}"
+      ],
+      "ignore": ["designs/**"]
+    },
+    "packages/*": {
+      "entry": [
+        "src/**/*.test.{ts,tsx}",
+        "test/**/*.{ts,tsx}",
+        "scripts/*.{mjs,ts}",
+        ".storybook/vitest.config.ts"
+      ]
+    },
+    "packages/voice": {
+      "entry": ["src/box/main.ts", "src/**/*.test.ts", "test/**/*.ts"]
+    },
+    "apps/*": {
+      "entry": ["src/main.ts", "src/**/*.test.{ts,tsx}", "test/**/*.{ts,tsx}", "scripts/*.{mjs,ts}"]
+    },
+    "apps/worker": {
+      "entry": [
+        "src/main.ts",
+        "src/lambda.ts",
+        "src/box.ts",
+        "src/**/*.test.ts",
+        "test/**/*.ts",
+        "scripts/*.{mjs,ts}"
+      ]
+    },
+    "apps/auth": {
+      "entry": ["lambda/index.ts", "src/**/*.test.ts", "web/**/*.test.ts", "web/index.html"],
+      "vite": {
+        "config": ["web/vite.config.ts"]
+      },
+      "ignore": ["web/public/**"]
+    },
+    "apps/portal": {
+      "entry": [
+        "web/*.html",
+        "web/src/**/*.test.{ts,tsx}",
+        "src/**/*.test.ts",
+        "test/**/*.ts",
+        "scripts/*.{mjs,ts}",
+        ".storybook/vitest.config.ts"
+      ],
+      "vite": {
+        "config": ["web/vite.config.ts"]
+      },
+      "ignore": ["web/public/**", ".storybook/public/**"]
+    },
+    "apps/phone": {
+      "ignore": ["public/**"]
+    },
+    "packages/studio": {
+      "entry": [
+        "src/**/*.test.{ts,tsx}",
+        "test/**/*.{ts,tsx}",
+        "scripts/*.{mjs,ts}",
+        ".storybook/vitest.config.ts",
+        "remotion/index.tsx",
+        "sfx/*.mjs"
+      ]
+    },
+    "packages/db": {
+      "entry": [
+        "src/**/*.test.{ts,tsx}",
+        "test/**/*.{ts,tsx}",
+        "scripts/*.{mjs,ts}",
+        ".storybook/vitest.config.ts",
+        "drizzle*.config.ts"
+      ]
+    }
+  }
+}

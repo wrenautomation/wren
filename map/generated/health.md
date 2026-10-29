@@ -8,9 +8,9 @@ Signals, not a gate. Package layers and package cycles are the repo's own gate.
 | Flat folders (over 40 boxes) | 10 |
 | Inferred exports | 2632 |
 | Duplicated lines | 4549 (0.97%, 498 clones) |
-| Unused exports | 317 |
-| Unused types | 83 |
-| Unused dependencies | 25 |
+| Unused exports | 162 |
+| Unused types | 65 |
+| Unused dependencies | 10 |
 
 ## File cycles
 
@@ -43,7 +43,7 @@ Each line is one set of files that import each other in a loop.
 | `@wren/cli` | 67 |
 | `@wren/content` | 55 |
 | `@wren/pipeline` | 51 |
-| `@wren/portal/web/src` | 47 |
+| `@wren/portal/web/src` | 48 |
 | `@wren/outreach` | 44 |
 | `@wren/channel-sms` | 43 |
 | `@wren/studio` | 42 |
@@ -53,8 +53,8 @@ Each line is one set of files that import each other in a loop.
 | File | Imported by |
 |---|---|
 | `@wren/db/src/index.ts` | 653 |
-| `@wren/ui/src/index.ts` | 272 |
-| `@wren/portal/web/src/module.ts` | 146 |
+| `@wren/ui/src/index.ts` | 274 |
+| `@wren/portal/web/src/module.ts` | 148 |
 | `@wren/core/src/clients/index.ts` | 144 |
 | `@wren/core/src/content/index.ts` | 137 |
 | `@wren/core/src/restate/index.ts` | 129 |
@@ -62,7 +62,7 @@ Each line is one set of files that import each other in a loop.
 | `@wren/core/src/index.ts` | 121 |
 | `@wren/core/src/records.ts` | 120 |
 | `@wren/core/src/access.ts` | 107 |
-| `@wren/portal/web/src/load.ts` | 91 |
+| `@wren/portal/web/src/load.ts` | 92 |
 | `@wren/llm/src/index.ts` | 89 |
 | `@wren/core/src/records-serve.ts` | 85 |
 | `@wren/core/src/executor.ts` | 81 |
@@ -94,7 +94,7 @@ No declared type: a weak interface.
 
 | Package | Inferred | Exports |
 |---|---|---|
-| `@wren/core` | 577 | 2339 |
+| `@wren/core` | 577 | 2340 |
 | `@wren/ui` | 283 | 704 |
 | `@wren/content` | 209 | 632 |
 | `@wren/channel-email` | 200 | 840 |
@@ -107,7 +107,7 @@ No declared type: a weak interface.
 | `@wren/notes` | 92 | 235 |
 | `@wren/delivery` | 89 | 288 |
 | `@wren/sites` | 86 | 250 |
-| `@wren/books` | 70 | 180 |
+| `@wren/books` | 70 | 181 |
 | `@wren/reactivation` | 65 | 266 |
 | `@wren/channel-search` | 44 | 105 |
 | `@wren/payments` | 40 | 101 |
@@ -153,55 +153,34 @@ From knip. Unused files are left out: they need the repo's entries in a knip con
 
 | Package | Exports | Types | Dependencies |
 |---|---|---|---|
-| `apps/auth` | 1 | 0 | 8 |
-| `apps/cli` | 35 | 2 | 3 |
-| `apps/portal` | 86 | 36 | 0 |
-| `apps/worker` | 2 | 2 | 1 |
+| `apps/auth` | 1 | 0 | 0 |
+| `apps/cli` | 5 | 1 | 3 |
+| `apps/portal` | 83 | 37 | 0 |
+| `apps/worker` | 1 | 2 | 0 |
 | `packages/books` | 0 | 0 | 1 |
 | `packages/calendar` | 0 | 1 | 0 |
-| `packages/channel-email` | 7 | 3 | 2 |
-| `packages/channel-search` | 3 | 1 | 0 |
-| `packages/channel-sms` | 2 | 0 | 0 |
+| `packages/channel-email` | 3 | 0 | 1 |
 | `packages/channel-tiktok` | 0 | 1 | 0 |
-| `packages/connectors` | 0 | 1 | 0 |
-| `packages/content` | 51 | 7 | 0 |
-| `packages/core` | 12 | 3 | 0 |
-| `packages/delivery` | 3 | 0 | 0 |
-| `packages/niches` | 8 | 1 | 1 |
-| `packages/notes` | 2 | 0 | 0 |
-| `packages/outreach` | 7 | 0 | 0 |
-| `packages/pipeline` | 8 | 3 | 0 |
-| `packages/reactivation` | 10 | 0 | 1 |
-| `packages/research` | 19 | 2 | 0 |
-| `packages/studio` | 6 | 5 | 6 |
-| `packages/ui` | 54 | 15 | 0 |
-| `packages/voice` | 0 | 0 | 2 |
-| `packages/watch` | 1 | 0 | 0 |
+| `packages/content` | 2 | 1 | 0 |
+| `packages/core` | 3 | 1 | 0 |
+| `packages/delivery` | 1 | 0 | 0 |
+| `packages/niches` | 1 | 1 | 1 |
+| `packages/outreach` | 1 | 0 | 0 |
+| `packages/pipeline` | 1 | 3 | 0 |
+| `packages/reactivation` | 1 | 0 | 1 |
+| `packages/studio` | 5 | 2 | 2 |
+| `packages/ui` | 53 | 15 | 0 |
+| `packages/voice` | 1 | 0 | 1 |
 
 ### Unused dependencies
 
 - `@wren/experiments` in `apps/cli/package.json`
 - `playwright` in `apps/cli/package.json`
 - `playwright-core` in `apps/cli/package.json`
-- `@restatedev/restate-sdk-tunnel` in `apps/worker/package.json`
 - `@wrenautomation/falcon` in `packages/reactivation/package.json`
-- `@wren/config` in `packages/voice/package.json`
 - `@wren/llm` in `packages/voice/package.json`
 - `@wrenautomation/falcon` in `packages/niches/package.json`
-- `@simplewebauthn/browser` in `apps/auth/package.json`
-- `@wren/auth` in `apps/auth/package.json`
-- `@wren/channel-email` in `apps/auth/package.json`
-- `@wren/config` in `apps/auth/package.json`
-- `@wren/ui` in `apps/auth/package.json`
-- `@wrenautomation/autobrowse` in `apps/auth/package.json`
-- `react` in `apps/auth/package.json`
-- `react-dom` in `apps/auth/package.json`
 - `@wren/experiments` in `packages/channel-email/package.json`
-- `@wrenautomation/weaver` in `packages/channel-email/package.json`
 - `@remotion/cli` in `packages/studio/package.json`
-- `@remotion/google-fonts` in `packages/studio/package.json`
 - `@wren/research` in `packages/studio/package.json`
-- `react` in `packages/studio/package.json`
-- `react-dom` in `packages/studio/package.json`
-- `remotion` in `packages/studio/package.json`
 - `@wrenautomation/weaver` in `packages/books/package.json`
