@@ -90,5 +90,66 @@
    }
   }
  ],
- "edges": []
+ "edges": [
+  {
+   "from": "route:WatchConsole/addRule",
+   "to": "table:watch.rules",
+   "kind": "writes"
+  },
+  {
+   "from": "route:WatchConsole/done",
+   "to": "table:watch.rules",
+   "kind": "reads"
+  },
+  {
+   "from": "route:WatchConsole/done",
+   "to": "table:watch.mail",
+   "kind": "writes"
+  },
+  {
+   "from": "route:WatchConsole/hide",
+   "to": "table:watch.mail",
+   "kind": "writes"
+  },
+  {
+   "from": "route:WatchConsole/hide",
+   "to": "table:watch.rules",
+   "kind": "writes"
+  },
+  {
+   "from": "route:WatchConsole/removeRule",
+   "to": "table:watch.rules",
+   "kind": "writes"
+  },
+  {
+   "from": "route:WatchConsole/show",
+   "to": "table:watch.mail",
+   "kind": "writes"
+  },
+  {
+   "from": "route:WatchConsole/show",
+   "to": "table:watch.rules",
+   "kind": "writes"
+  },
+  {
+   "from": "route:WatchConsole/sort",
+   "to": "table:watch.rules",
+   "kind": "reads"
+  },
+  {
+   "from": "route:WatchConsole/sort",
+   "to": "table:watch.mail",
+   "kind": "writes"
+  },
+  {
+   "from": "route:WatchConsole/undone",
+   "to": "table:watch.rules",
+   "kind": "reads"
+  },
+  {
+   "from": "route:WatchConsole/undone",
+   "to": "table:watch.mail",
+   "kind": "writes"
+  }
+ ]
 }

@@ -46,5 +46,51 @@
    }
   }
  ],
- "edges": []
+ "edges": [
+  {
+   "from": "route:VoiceConsole/dictated",
+   "to": "table:public.runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:VoiceConsole/dictation",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:VoiceConsole/saveTest",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:VoiceConsole/saveTest",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:VoiceConsole/saveTest",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:VoiceConsole/saveTest",
+   "to": "table:public.sms_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:VoiceConsole/saveTest",
+   "to": "table:public.sms_numbers",
+   "kind": "reads"
+  },
+  {
+   "from": "route:VoiceConsole/saveTest",
+   "to": "table:public.voice_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:VoiceConsole/saveTest",
+   "to": "table:public.voice_turns",
+   "kind": "writes"
+  }
+ ]
 }

@@ -23,5 +23,26 @@
    }
   }
  ],
- "edges": []
+ "edges": [
+  {
+   "from": "route:SearchWeek/run",
+   "to": "table:public.search_days",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SearchWeek/run",
+   "to": "table:public.runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SearchWeek/run",
+   "to": "table:public.search_answers",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SearchWeek/run",
+   "to": "table:public.search_keywords",
+   "kind": "writes"
+  }
+ ]
 }

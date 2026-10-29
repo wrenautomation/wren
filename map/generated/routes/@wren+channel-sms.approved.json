@@ -493,5 +493,2456 @@
    }
   }
  ],
- "edges": []
+ "edges": [
+  {
+   "from": "route:Reviews/click",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Reviews/click",
+   "to": "table:public.sms_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Reviews/click",
+   "to": "table:public.review_asks",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Reviews/feedback",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Reviews/feedback",
+   "to": "table:public.sms_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Reviews/feedback",
+   "to": "table:public.review_asks",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Reviews/stop",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Reviews/stop",
+   "to": "table:public.review_asks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Reviews/stop",
+   "to": "table:public.sms_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Reviews/stop",
+   "to": "table:public.suppression_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Reviews/stop",
+   "to": "table:public.suppressions",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsConsole/askReview",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/askReview",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/askReview",
+   "to": "table:public.hooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/askReview",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/askReview",
+   "to": "table:public.workflow_installs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/callDone",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/callDone",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/callDone",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/callDone",
+   "to": "table:public.sms_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/callDone",
+   "to": "table:public.speed_runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsConsole/recordsExport",
+   "to": "table:public.changes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/recordsExport",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/recordsExport",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/recordsExport",
+   "to": "table:public.custom_field_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/recordsExport",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/recordsExport",
+   "to": "table:public.draft_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/recordsExport",
+   "to": "table:public.draft_outcomes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/recordsExport",
+   "to": "table:public.draft_people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/recordsExport",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/recordsExport",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/recordsGet",
+   "to": "table:public.changes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/recordsGet",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/recordsGet",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/recordsGet",
+   "to": "table:public.custom_field_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/recordsGet",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/recordsGet",
+   "to": "table:public.draft_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/recordsGet",
+   "to": "table:public.draft_outcomes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/recordsGet",
+   "to": "table:public.draft_people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/recordsGet",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/recordsGet",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/recordsList",
+   "to": "table:public.changes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/recordsList",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/recordsList",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/recordsList",
+   "to": "table:public.custom_field_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/recordsList",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/recordsList",
+   "to": "table:public.draft_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/recordsList",
+   "to": "table:public.draft_outcomes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/recordsList",
+   "to": "table:public.draft_people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/recordsList",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/recordsList",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/recordsStats",
+   "to": "table:public.changes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/recordsStats",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/recordsStats",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/recordsStats",
+   "to": "table:public.custom_field_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/recordsStats",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/recordsStats",
+   "to": "table:public.draft_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/recordsStats",
+   "to": "table:public.draft_outcomes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/recordsStats",
+   "to": "table:public.draft_people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/recordsStats",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/recordsStats",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/recordsTypes",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/recordsTypes",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/recordsTypes",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/reply",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/reply",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/reply",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/reply",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/reply",
+   "to": "table:public.custom_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/reply",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/reply",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/reply",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/reply",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/reply",
+   "to": "table:public.sms_numbers",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/reply",
+   "to": "table:public.suppressions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsConsole/reply",
+   "to": "table:public.sms_contacts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsConsole/reply",
+   "to": "table:public.sms_messages",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/addContact",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/addContact",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/addContact",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/addContact",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/addContact",
+   "to": "table:public.custom_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/addContact",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/addContact",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/addContact",
+   "to": "table:public.sms_numbers",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/addContact",
+   "to": "table:pipeline.deals",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/addContact",
+   "to": "table:pipeline.instances",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/addContact",
+   "to": "table:public.profile_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/addContact",
+   "to": "table:public.profile_findings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/addContact",
+   "to": "table:public.profile_keys",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/addContact",
+   "to": "table:public.profile_lookups",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/addContact",
+   "to": "table:public.profile_merges",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/addContact",
+   "to": "table:public.profile_trait_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/addContact",
+   "to": "table:public.profile_traits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/addContact",
+   "to": "table:public.profiles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/addContact",
+   "to": "table:public.sms_contacts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/enroll",
+   "to": "table:calendar.bookings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/enroll",
+   "to": "table:public.call_bookings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/enroll",
+   "to": "table:public.chat_messages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/enroll",
+   "to": "table:public.chat_threads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/enroll",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/enroll",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/enroll",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/enroll",
+   "to": "table:public.consent_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/enroll",
+   "to": "table:public.consents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/enroll",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/enroll",
+   "to": "table:public.custom_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/enroll",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/enroll",
+   "to": "table:public.email_clicks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/enroll",
+   "to": "table:public.enrollments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/enroll",
+   "to": "table:public.imports",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/enroll",
+   "to": "table:public.lead_channels",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/enroll",
+   "to": "table:public.messages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/enroll",
+   "to": "table:public.open_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/enroll",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/enroll",
+   "to": "table:public.profile_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/enroll",
+   "to": "table:public.profile_keys",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/enroll",
+   "to": "table:public.profile_site_reads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/enroll",
+   "to": "table:public.profile_traits",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/enroll",
+   "to": "table:public.profiles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/enroll",
+   "to": "table:public.site_form_defs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/enroll",
+   "to": "table:public.site_forms",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/enroll",
+   "to": "table:public.site_pages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/enroll",
+   "to": "table:public.sms_numbers",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/enroll",
+   "to": "table:public.social_handles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/enroll",
+   "to": "table:public.suppressions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/enroll",
+   "to": "table:public.template_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/enroll",
+   "to": "table:public.templates",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/enroll",
+   "to": "table:public.thread_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/enroll",
+   "to": "table:public.topics",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/enroll",
+   "to": "table:public.touches",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/enroll",
+   "to": "table:public.runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/enroll",
+   "to": "table:public.sms_contacts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/enroll",
+   "to": "table:public.sms_messages",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/forms",
+   "to": "table:calendar.bookings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/forms",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/forms",
+   "to": "table:public.call_bookings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/forms",
+   "to": "table:public.chat_messages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/forms",
+   "to": "table:public.chat_threads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/forms",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/forms",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/forms",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/forms",
+   "to": "table:public.consent_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/forms",
+   "to": "table:public.consents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/forms",
+   "to": "table:public.contact_candidates",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/forms",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/forms",
+   "to": "table:public.email_clicks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/forms",
+   "to": "table:public.enrollments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/forms",
+   "to": "table:public.imports",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/forms",
+   "to": "table:public.lead_channels",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/forms",
+   "to": "table:public.messages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/forms",
+   "to": "table:public.open_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/forms",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/forms",
+   "to": "table:public.profile_site_reads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/forms",
+   "to": "table:public.site_form_defs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/forms",
+   "to": "table:public.site_forms",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/forms",
+   "to": "table:public.site_pages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/forms",
+   "to": "table:public.sms_numbers",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/forms",
+   "to": "table:public.social_handles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/forms",
+   "to": "table:public.suppressions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/forms",
+   "to": "table:public.template_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/forms",
+   "to": "table:public.templates",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/forms",
+   "to": "table:public.thread_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/forms",
+   "to": "table:public.topics",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/forms",
+   "to": "table:public.touches",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/forms",
+   "to": "table:pipeline.deals",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/forms",
+   "to": "table:pipeline.instances",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/forms",
+   "to": "table:public.profile_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/forms",
+   "to": "table:public.profile_findings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/forms",
+   "to": "table:public.profile_keys",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/forms",
+   "to": "table:public.profile_lookups",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/forms",
+   "to": "table:public.profile_merges",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/forms",
+   "to": "table:public.profile_trait_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/forms",
+   "to": "table:public.profile_traits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/forms",
+   "to": "table:public.profiles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/forms",
+   "to": "table:public.runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/forms",
+   "to": "table:public.sms_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/forms",
+   "to": "table:public.sms_contacts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/forms",
+   "to": "table:public.sms_messages",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/forms",
+   "to": "table:public.speed_runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/label",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/label",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/label",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/label",
+   "to": "table:public.custom_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/label",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/label",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/label",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/label",
+   "to": "table:public.sms_numbers",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/label",
+   "to": "table:public.sms_contacts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/label",
+   "to": "table:public.sms_messages",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/label",
+   "to": "table:public.suppression_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/label",
+   "to": "table:public.suppressions",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/lift",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/lift",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/lift",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/lift",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/lift",
+   "to": "table:public.custom_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/lift",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/lift",
+   "to": "table:public.imports",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/lift",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/lift",
+   "to": "table:public.sms_numbers",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/lift",
+   "to": "table:pipeline.deals",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/lift",
+   "to": "table:pipeline.instances",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/lift",
+   "to": "table:public.profile_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/lift",
+   "to": "table:public.profile_findings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/lift",
+   "to": "table:public.profile_keys",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/lift",
+   "to": "table:public.profile_lookups",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/lift",
+   "to": "table:public.profile_merges",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/lift",
+   "to": "table:public.profile_trait_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/lift",
+   "to": "table:public.profile_traits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/lift",
+   "to": "table:public.profiles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/lift",
+   "to": "table:public.runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/lift",
+   "to": "table:public.sms_contacts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/markRead",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/markRead",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/markRead",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/markRead",
+   "to": "table:public.custom_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/markRead",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/markRead",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/markRead",
+   "to": "table:public.sms_numbers",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/markRead",
+   "to": "table:public.sms_contacts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/numbers",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/numbers",
+   "to": "table:public.sms_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/numbers",
+   "to": "table:public.sms_messages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/numbers",
+   "to": "table:public.sms_numbers",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/pause",
+   "to": "table:public.sms_numbers",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/register",
+   "to": "table:public.sms_numbers",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/reminders",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/reminders",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/reminders",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/reminders",
+   "to": "table:public.custom_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/reminders",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/reminders",
+   "to": "table:public.imports",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/reminders",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/reminders",
+   "to": "table:public.sms_numbers",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/reminders",
+   "to": "table:public.suppressions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/reminders",
+   "to": "table:public.template_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/reminders",
+   "to": "table:public.templates",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/reminders",
+   "to": "table:public.runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/reminders",
+   "to": "table:public.sms_contacts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/reminders",
+   "to": "table:public.sms_messages",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/reply",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/reply",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/reply",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/reply",
+   "to": "table:public.custom_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/reply",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/reply",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/reply",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/reply",
+   "to": "table:public.sms_numbers",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/reply",
+   "to": "table:public.suppressions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/reply",
+   "to": "table:public.sms_contacts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/reply",
+   "to": "table:public.sms_messages",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/resume",
+   "to": "table:public.sms_numbers",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/setTemplate",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/setTemplate",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/setTemplate",
+   "to": "table:public.custom_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/setTemplate",
+   "to": "table:public.template_versions",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/setTemplate",
+   "to": "table:public.templates",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/start",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/start",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/start",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/start",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/start",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/start",
+   "to": "table:public.sms_numbers",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/start",
+   "to": "table:public.suppressions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/start",
+   "to": "table:pipeline.deals",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/start",
+   "to": "table:pipeline.instances",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/start",
+   "to": "table:public.profile_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/start",
+   "to": "table:public.profile_findings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/start",
+   "to": "table:public.profile_keys",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/start",
+   "to": "table:public.profile_lookups",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/start",
+   "to": "table:public.profile_merges",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/start",
+   "to": "table:public.profile_trait_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/start",
+   "to": "table:public.profile_traits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/start",
+   "to": "table:public.profiles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/start",
+   "to": "table:public.sms_contacts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/start",
+   "to": "table:public.sms_messages",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/stats",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/stats",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/stats",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/stats",
+   "to": "table:public.custom_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/stats",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/stats",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/stats",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/stats",
+   "to": "table:public.sms_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/stats",
+   "to": "table:public.sms_messages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/stats",
+   "to": "table:public.sms_numbers",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/stats",
+   "to": "table:public.speed_runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/subscribe",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/subscribe",
+   "to": "table:public.sms_push_subscriptions",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/syncNumbers",
+   "to": "table:public.sms_numbers",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsDesk/templates",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/templates",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/templates",
+   "to": "table:public.custom_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/templates",
+   "to": "table:public.template_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/templates",
+   "to": "table:public.templates",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/thread",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/thread",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/thread",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/thread",
+   "to": "table:public.custom_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/thread",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/thread",
+   "to": "table:public.imports",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/thread",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/thread",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/thread",
+   "to": "table:public.sms_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/thread",
+   "to": "table:public.sms_messages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/thread",
+   "to": "table:public.sms_numbers",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/threads",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/threads",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/threads",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/threads",
+   "to": "table:public.custom_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/threads",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/threads",
+   "to": "table:public.imports",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/threads",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/threads",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/threads",
+   "to": "table:public.sms_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/threads",
+   "to": "table:public.sms_messages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/threads",
+   "to": "table:public.sms_numbers",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/unsubscribe",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/unsubscribe",
+   "to": "table:public.sms_push_subscriptions",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsEvents/ingest",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsEvents/ingest",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsEvents/ingest",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsEvents/ingest",
+   "to": "table:public.enrollments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsEvents/ingest",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsEvents/ingest",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsEvents/ingest",
+   "to": "table:public.reach_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsEvents/ingest",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsEvents/ingest",
+   "to": "table:public.topics",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsEvents/ingest",
+   "to": "table:pipeline.deals",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsEvents/ingest",
+   "to": "table:pipeline.instances",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsEvents/ingest",
+   "to": "table:public.consent_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsEvents/ingest",
+   "to": "table:public.consents",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsEvents/ingest",
+   "to": "table:public.profile_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsEvents/ingest",
+   "to": "table:public.profile_findings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsEvents/ingest",
+   "to": "table:public.profile_keys",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsEvents/ingest",
+   "to": "table:public.profile_lookups",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsEvents/ingest",
+   "to": "table:public.profile_merges",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsEvents/ingest",
+   "to": "table:public.profile_trait_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsEvents/ingest",
+   "to": "table:public.profile_traits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsEvents/ingest",
+   "to": "table:public.profiles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsEvents/ingest",
+   "to": "table:public.sms_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsEvents/ingest",
+   "to": "table:public.sms_contacts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsEvents/ingest",
+   "to": "table:public.sms_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsEvents/ingest",
+   "to": "table:public.sms_messages",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsEvents/ingest",
+   "to": "table:public.sms_numbers",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsEvents/ingest",
+   "to": "table:public.sms_push_subscriptions",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsEvents/ingest",
+   "to": "table:public.suppression_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsEvents/ingest",
+   "to": "table:public.suppressions",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsEvents/ingestFor",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsEvents/ingestFor",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsEvents/ingestFor",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsEvents/ingestFor",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsEvents/ingestFor",
+   "to": "table:public.enrollments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsEvents/ingestFor",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsEvents/ingestFor",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsEvents/ingestFor",
+   "to": "table:public.reach_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsEvents/ingestFor",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsEvents/ingestFor",
+   "to": "table:public.sms_numbers",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsEvents/ingestFor",
+   "to": "table:public.topics",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsEvents/ingestFor",
+   "to": "table:pipeline.deals",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsEvents/ingestFor",
+   "to": "table:pipeline.instances",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsEvents/ingestFor",
+   "to": "table:public.consent_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsEvents/ingestFor",
+   "to": "table:public.consents",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsEvents/ingestFor",
+   "to": "table:public.profile_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsEvents/ingestFor",
+   "to": "table:public.profile_findings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsEvents/ingestFor",
+   "to": "table:public.profile_keys",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsEvents/ingestFor",
+   "to": "table:public.profile_lookups",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsEvents/ingestFor",
+   "to": "table:public.profile_merges",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsEvents/ingestFor",
+   "to": "table:public.profile_trait_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsEvents/ingestFor",
+   "to": "table:public.profile_traits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsEvents/ingestFor",
+   "to": "table:public.profiles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsEvents/ingestFor",
+   "to": "table:public.sms_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsEvents/ingestFor",
+   "to": "table:public.sms_contacts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsEvents/ingestFor",
+   "to": "table:public.sms_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsEvents/ingestFor",
+   "to": "table:public.sms_messages",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsEvents/ingestFor",
+   "to": "table:public.sms_push_subscriptions",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsEvents/ingestFor",
+   "to": "table:public.suppression_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsEvents/ingestFor",
+   "to": "table:public.suppressions",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsEvents/signer",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsEvents/signer",
+   "to": "table:public.sms_numbers",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsEvents/signer",
+   "to": "table:public.vendor_modes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/applied",
+   "to": "table:calendar.bookings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/applied",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/applied",
+   "to": "table:public.call_bookings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/applied",
+   "to": "table:public.chat_messages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/applied",
+   "to": "table:public.chat_threads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/applied",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/applied",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/applied",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/applied",
+   "to": "table:public.consent_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/applied",
+   "to": "table:public.consents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/applied",
+   "to": "table:public.contact_candidates",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/applied",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/applied",
+   "to": "table:public.email_clicks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/applied",
+   "to": "table:public.enrollments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/applied",
+   "to": "table:public.imports",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/applied",
+   "to": "table:public.lead_channels",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/applied",
+   "to": "table:public.messages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/applied",
+   "to": "table:public.open_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/applied",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/applied",
+   "to": "table:public.profile_site_reads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/applied",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/applied",
+   "to": "table:public.site_form_defs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/applied",
+   "to": "table:public.site_forms",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/applied",
+   "to": "table:public.site_pages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/applied",
+   "to": "table:public.sms_numbers",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/applied",
+   "to": "table:public.social_handles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/applied",
+   "to": "table:public.suppressions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/applied",
+   "to": "table:public.template_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/applied",
+   "to": "table:public.templates",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/applied",
+   "to": "table:public.thread_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/applied",
+   "to": "table:public.topics",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/applied",
+   "to": "table:public.touches",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/applied",
+   "to": "table:pipeline.deals",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsForms/applied",
+   "to": "table:pipeline.instances",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsForms/applied",
+   "to": "table:public.profile_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsForms/applied",
+   "to": "table:public.profile_findings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsForms/applied",
+   "to": "table:public.profile_keys",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsForms/applied",
+   "to": "table:public.profile_lookups",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsForms/applied",
+   "to": "table:public.profile_merges",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsForms/applied",
+   "to": "table:public.profile_trait_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsForms/applied",
+   "to": "table:public.profile_traits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsForms/applied",
+   "to": "table:public.profiles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsForms/applied",
+   "to": "table:public.sms_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsForms/applied",
+   "to": "table:public.sms_contacts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsForms/applied",
+   "to": "table:public.sms_messages",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsForms/applied",
+   "to": "table:public.speed_runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsForms/check",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/check",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/check",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/check",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/check",
+   "to": "table:public.sms_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/check",
+   "to": "table:public.sms_messages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/check",
+   "to": "table:public.sms_numbers",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/check",
+   "to": "table:public.speed_runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsForms/email",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/email",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/email",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/email",
+   "to": "table:public.sms_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/email",
+   "to": "table:public.sms_numbers",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/email",
+   "to": "table:public.speed_runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsForms/email",
+   "to": "table:public.template_versions",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsForms/email",
+   "to": "table:public.templates",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsForms/first",
+   "to": "table:calendar.bookings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/first",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/first",
+   "to": "table:public.call_bookings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/first",
+   "to": "table:public.chat_messages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/first",
+   "to": "table:public.chat_threads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/first",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/first",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/first",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/first",
+   "to": "table:public.consent_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/first",
+   "to": "table:public.consents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/first",
+   "to": "table:public.contact_candidates",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/first",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/first",
+   "to": "table:public.email_clicks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/first",
+   "to": "table:public.enrollments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/first",
+   "to": "table:public.imports",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/first",
+   "to": "table:public.lead_channels",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/first",
+   "to": "table:public.messages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/first",
+   "to": "table:public.open_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/first",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/first",
+   "to": "table:public.profile_site_reads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/first",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/first",
+   "to": "table:public.site_form_defs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/first",
+   "to": "table:public.site_forms",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/first",
+   "to": "table:public.site_pages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/first",
+   "to": "table:public.sms_numbers",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/first",
+   "to": "table:public.social_handles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/first",
+   "to": "table:public.suppressions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/first",
+   "to": "table:public.template_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/first",
+   "to": "table:public.templates",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/first",
+   "to": "table:public.thread_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/first",
+   "to": "table:public.topics",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/first",
+   "to": "table:public.touches",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/first",
+   "to": "table:pipeline.deals",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsForms/first",
+   "to": "table:pipeline.instances",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsForms/first",
+   "to": "table:public.profile_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsForms/first",
+   "to": "table:public.profile_findings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsForms/first",
+   "to": "table:public.profile_keys",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsForms/first",
+   "to": "table:public.profile_lookups",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsForms/first",
+   "to": "table:public.profile_merges",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsForms/first",
+   "to": "table:public.profile_trait_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsForms/first",
+   "to": "table:public.profile_traits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsForms/first",
+   "to": "table:public.profiles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsForms/first",
+   "to": "table:public.sms_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsForms/first",
+   "to": "table:public.sms_contacts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsForms/first",
+   "to": "table:public.sms_messages",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SmsForms/first",
+   "to": "table:public.speed_runs",
+   "kind": "writes"
+  }
+ ]
 }

@@ -6,44 +6,44 @@ Services: 2.
 
 File: packages/pipeline/src/restate.ts
 
-- **assign** `AssignRequest` → `restate.RestatePromise<{ journey: string; owner: string | null; }>` (serviceHandler)
-- **drop** `DropRequest` → `{ journey: string; node: string; }` (serviceHandler)
-- **move** `MoveRequest` → `{ journey: string; from: string; to: string; status: "open" | "done" | "dropped"; }` (serviceHandler)
-- **open** `OpenRequest` → `{ journey: string; node: string; }` (serviceHandler)
-- **rebuild** `RebuildRequest` → `restate.RestatePromise<import("./moves.js").Rebuilt>` (serviceHandler)
+- **assign** `AssignRequest` → `restate.RestatePromise<{ journey: string; owner: string | null; }>` (serviceHandler): writes pipeline.instances; reads pipeline.shape_versions, public.client_members, public.clients, public.documents, public.operators, public.profiles, public.roles
+- **drop** `DropRequest` → `{ journey: string; node: string; }` (serviceHandler): writes pipeline.instances; reads pipeline.shape_drafts, pipeline.shape_versions, public.documents, public.profiles
+- **move** `MoveRequest` → `{ journey: string; from: string; to: string; status: "done" | "open" | "dropped"; }` (serviceHandler): reads pipeline.instances, pipeline.shape_drafts, pipeline.shape_versions, public.documents, public.profiles
+- **open** `OpenRequest` → `{ journey: string; node: string; }` (serviceHandler): reads pipeline.instances, pipeline.shape_drafts, pipeline.shape_versions, public.documents, public.profile_keys, public.profiles
+- **rebuild** `RebuildRequest` → `restate.RestatePromise<import("./moves.js").Rebuilt>` (serviceHandler): writes pipeline.instances; reads pipeline.shape_drafts, pipeline.shape_versions, public.documents, public.events, public.profiles
 
 ## PipelineConsole (service via `portalService`)
 
 File: packages/pipeline/src/console.ts
 
-- **dealsSign** `DealSignRequest` → `{ deal: string; termsVersion: number; changed: boolean; }` (serviceHandler)
-- **journeysAssign** `JourneyAssignRequest` → `{ journey: string; owner: string | null; }` (serviceHandler)
-- **journeysDrop** `JourneyDropRequest` → `{ journey: string; node: string; }` (serviceHandler)
-- **journeysMove** `JourneyMoveRequest` → `{ journey: string; from: string; to: string; status: string; }` (serviceHandler)
-- **journeysOpen** `JourneyOpenRequest` → `{ journey: string; node: string; }` (serviceHandler)
-- **mapRead** `PortalRequest & { window: MapWindow }` → `MapAnswer` (serviceHandler)
-- **offersSync** `PortalRequest` → `import("./store.js").OfferSync` (serviceHandler)
-- **recordsExport** `PortalRequest & ExportAsk` → `import("@wren/core/records/serve").RecordsFile` (serviceHandler)
-- **recordsGet** `PortalRequest & GetAsk` → `import("@wren/core/records/serve").RecordAnswer` (serviceHandler)
-- **recordsList** `PortalRequest & ListAsk` → `import("@wren/core/records/serve").RecordsPage` (serviceHandler)
-- **recordsStats** `PortalRequest & StatsAsk` → `import("@wren/core/records/serve").RecordsStat` (serviceHandler)
-- **recordsTypes** `PortalRequest` → `import("@wren/core/records").RecordMeta[]` (serviceHandler)
-- **shapeAttach** `AttachRequest` → `AttachAnswer` (serviceHandler)
-- **shapeBlame** `BlameRequest` → `BlameAnswer` (serviceHandler)
-- **shapeDiff** `ShapeDiffRequest` → `DiffAnswer` (serviceHandler)
-- **shapeDraftApply** `DraftIdRequest` → `DraftApplyAnswer` (serviceHandler)
-- **shapeDraftDrop** `DraftDropRequest` → `DraftStateAnswer` (serviceHandler)
-- **shapeDraftEdit** `DraftEditRequest` → `DraftEditAnswer` (serviceHandler)
-- **shapeDraftNew** `DraftNewRequest` → `DraftNewAnswer` (serviceHandler)
-- **shapeDraftPlan** `DraftIdRequest` → `DraftPlanAnswer` (serviceHandler)
-- **shapeDraftPropose** `DraftIdRequest` → `DraftStateAnswer` (serviceHandler)
-- **shapeDraftUpdate** `DraftUpdateRequest` → `DraftUpdateAnswer` (serviceHandler)
-- **shapeExport** `ShapeExportRequest` → `{ text: string; }` (serviceHandler)
-- **shapeImport** `ShapeImportRequest` → `{ version: number | null; changed: boolean; terms: { offer: string; plan: string; version: number; }[]; }` (serviceHandler)
-- **shapePreview** `ShapePreviewRequest` → `PreviewAnswer` (serviceHandler)
-- **shapeStart** `PortalRequest` → `{ version: number; }` (serviceHandler)
-- **shapeTag** `TagRequest` → `TagAnswer` (serviceHandler)
-- **shapeUndo** `UndoRequest` → `UndoAnswer` (serviceHandler)
-- **shapeUndoPreview** `UndoRequest` → `UndoPreviewAnswer` (serviceHandler)
-- **shapeVersion** `ShapeVersionRequest` → `{ version: number; }` (serviceHandler)
-- **termsAdd** `TermsAddRequest` → `{ offer: string; plan: string; version: number; from: string; }` (serviceHandler)
+- **dealsSign** `DealSignRequest` → `{ deal: string; termsVersion: number; changed: boolean; }` (serviceHandler): writes pipeline.deals; reads pipeline.instances, pipeline.terms_versions, public.client_members, public.clients, public.grants, public.operators, public.profiles, public.role_grants, public.roles
+- **journeysAssign** `JourneyAssignRequest` → `{ journey: string; owner: string | null; }` (serviceHandler): reads public.client_members, public.clients, public.grants, public.operators, public.role_grants, public.roles
+- **journeysDrop** `JourneyDropRequest` → `{ journey: string; node: string; }` (serviceHandler): reads public.client_members, public.clients, public.grants, public.operators, public.role_grants, public.roles
+- **journeysMove** `JourneyMoveRequest` → `{ journey: string; from: string; to: string; status: string; }` (serviceHandler): reads public.client_members, public.clients, public.grants, public.operators, public.role_grants, public.roles
+- **journeysOpen** `JourneyOpenRequest` → `{ journey: string; node: string; }` (serviceHandler): reads public.client_members, public.clients, public.grants, public.operators, public.role_grants, public.roles
+- **mapRead** `PortalRequest & { window: MapWindow }` → `MapAnswer` (serviceHandler): reads pipeline.deals, pipeline.instances, pipeline.shape_drafts, pipeline.shape_mirrors, pipeline.shape_tags, pipeline.shape_versions, pipeline.terms_versions, public.client_members, public.clients, public.documents, public.events, public.grants, public.operators, public.profile_keys, public.profiles, public.role_grants, public.roles
+- **offersSync** `PortalRequest` → `import("./store.js").OfferSync` (serviceHandler): writes pipeline.offer_versions; reads public.client_members, public.clients, public.grants, public.operators, public.role_grants, public.roles
+- **recordsExport** `PortalRequest & ExportAsk` → `import("@wren/core/records/serve").RecordsFile` (serviceHandler): writes public.custom_field_values; reads public.changes, public.client_members, public.clients, public.custom_fields, public.custom_values, public.draft_events, public.draft_outcomes, public.draft_people, public.grants, public.operators, public.role_grants, public.roles, public.runs
+- **recordsGet** `PortalRequest & GetAsk` → `import("@wren/core/records/serve").RecordAnswer` (serviceHandler): writes public.custom_field_values; reads public.changes, public.client_members, public.clients, public.custom_fields, public.custom_values, public.draft_events, public.draft_outcomes, public.draft_people, public.grants, public.operators, public.role_grants, public.roles, public.runs
+- **recordsList** `PortalRequest & ListAsk` → `import("@wren/core/records/serve").RecordsPage` (serviceHandler): writes public.custom_field_values; reads public.changes, public.client_members, public.clients, public.custom_fields, public.custom_values, public.draft_events, public.draft_outcomes, public.draft_people, public.grants, public.operators, public.role_grants, public.roles, public.runs
+- **recordsStats** `PortalRequest & StatsAsk` → `import("@wren/core/records/serve").RecordsStat` (serviceHandler): writes public.custom_field_values; reads public.changes, public.client_members, public.clients, public.custom_fields, public.custom_values, public.draft_events, public.draft_outcomes, public.draft_people, public.grants, public.operators, public.role_grants, public.roles, public.runs
+- **recordsTypes** `PortalRequest` → `import("@wren/core/records").RecordMeta[]` (serviceHandler): writes public.custom_field_values; reads public.client_members, public.clients, public.custom_fields, public.custom_values, public.grants, public.operators, public.role_grants, public.roles
+- **shapeAttach** `AttachRequest` → `AttachAnswer` (serviceHandler): writes pipeline.deals, pipeline.instances, pipeline.shape_versions, public.events; reads pipeline.shape_drafts, pipeline.terms_versions, public.client_members, public.clients, public.documents, public.grants, public.imports, public.operators, public.profiles, public.role_grants, public.roles, public.segments
+- **shapeBlame** `BlameRequest` → `BlameAnswer` (serviceHandler): reads pipeline.shape_drafts, pipeline.shape_versions, public.client_members, public.clients, public.grants, public.operators, public.role_grants, public.roles
+- **shapeDiff** `ShapeDiffRequest` → `DiffAnswer` (serviceHandler): reads pipeline.shape_drafts, pipeline.shape_versions, public.client_members, public.clients, public.grants, public.operators, public.role_grants, public.roles
+- **shapeDraftApply** `DraftIdRequest` → `DraftApplyAnswer` (serviceHandler): writes pipeline.deals, pipeline.instances, pipeline.shape_drafts, pipeline.shape_versions, public.events; reads pipeline.terms_versions, public.client_members, public.clients, public.documents, public.grants, public.imports, public.operators, public.profiles, public.role_grants, public.roles, public.segments
+- **shapeDraftDrop** `DraftDropRequest` → `DraftStateAnswer` (serviceHandler): writes pipeline.shape_drafts; reads pipeline.shape_versions, public.client_members, public.clients, public.grants, public.operators, public.role_grants, public.roles
+- **shapeDraftEdit** `DraftEditRequest` → `DraftEditAnswer` (serviceHandler): writes pipeline.shape_drafts; reads pipeline.shape_versions, public.client_members, public.clients, public.grants, public.imports, public.operators, public.role_grants, public.roles, public.segments
+- **shapeDraftNew** `DraftNewRequest` → `DraftNewAnswer` (serviceHandler): writes pipeline.shape_drafts; reads pipeline.shape_versions, public.client_members, public.clients, public.grants, public.operators, public.role_grants, public.roles
+- **shapeDraftPlan** `DraftIdRequest` → `DraftPlanAnswer` (serviceHandler): reads pipeline.shape_drafts, pipeline.shape_versions, public.client_members, public.clients, public.grants, public.operators, public.role_grants, public.roles
+- **shapeDraftPropose** `DraftIdRequest` → `DraftStateAnswer` (serviceHandler): writes pipeline.shape_drafts; reads pipeline.shape_versions, public.client_members, public.clients, public.grants, public.operators, public.role_grants, public.roles
+- **shapeDraftUpdate** `DraftUpdateRequest` → `DraftUpdateAnswer` (serviceHandler): writes pipeline.shape_drafts; reads pipeline.shape_versions, public.client_members, public.clients, public.grants, public.operators, public.role_grants, public.roles
+- **shapeExport** `ShapeExportRequest` → `{ text: string; }` (serviceHandler): reads pipeline.shape_drafts, pipeline.shape_versions, public.client_members, public.clients, public.grants, public.operators, public.role_grants, public.roles
+- **shapeImport** `ShapeImportRequest` → `{ version: number | null; changed: boolean; terms: { offer: string; plan: string; version: number; }[]; }` (serviceHandler): writes pipeline.deals, pipeline.instances, pipeline.shape_versions, pipeline.terms_versions, public.events; reads pipeline.shape_drafts, public.client_members, public.clients, public.documents, public.grants, public.imports, public.operators, public.profiles, public.role_grants, public.roles, public.segments
+- **shapePreview** `ShapePreviewRequest` → `PreviewAnswer` (serviceHandler): reads pipeline.shape_drafts, pipeline.shape_versions, public.client_members, public.clients, public.grants, public.operators, public.role_grants, public.roles
+- **shapeStart** `PortalRequest` → `{ version: number; }` (serviceHandler): writes pipeline.deals, pipeline.instances, pipeline.shape_versions, pipeline.terms_versions, public.events; reads pipeline.shape_drafts, public.client_members, public.clients, public.documents, public.grants, public.imports, public.operators, public.profiles, public.role_grants, public.roles, public.segments
+- **shapeTag** `TagRequest` → `TagAnswer` (serviceHandler): writes pipeline.shape_tags; reads pipeline.shape_drafts, pipeline.shape_versions, public.client_members, public.clients, public.grants, public.operators, public.role_grants, public.roles
+- **shapeUndo** `UndoRequest` → `UndoAnswer` (serviceHandler): writes pipeline.deals, pipeline.instances, pipeline.shape_versions, public.events; reads pipeline.shape_drafts, pipeline.terms_versions, public.client_members, public.clients, public.documents, public.grants, public.imports, public.operators, public.profiles, public.role_grants, public.roles, public.segments
+- **shapeUndoPreview** `UndoRequest` → `UndoPreviewAnswer` (serviceHandler): reads pipeline.instances, pipeline.shape_drafts, pipeline.shape_versions, public.client_members, public.clients, public.documents, public.grants, public.imports, public.operators, public.profiles, public.role_grants, public.roles, public.segments
+- **shapeVersion** `ShapeVersionRequest` → `{ version: number; }` (serviceHandler): writes pipeline.deals, pipeline.instances, pipeline.shape_versions, public.events; reads pipeline.shape_drafts, pipeline.terms_versions, public.client_members, public.clients, public.documents, public.grants, public.imports, public.operators, public.profiles, public.role_grants, public.roles, public.segments
+- **termsAdd** `TermsAddRequest` → `{ offer: string; plan: string; version: number; from: string; }` (serviceHandler): writes pipeline.terms_versions; reads public.client_members, public.clients, public.grants, public.operators, public.role_grants, public.roles

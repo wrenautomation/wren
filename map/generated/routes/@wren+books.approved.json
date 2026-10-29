@@ -24,5 +24,11 @@
    }
   }
  ],
- "edges": []
+ "edges": [
+  {
+   "from": "route:BooksConsole/setAccount",
+   "to": "table:books.accounts",
+   "kind": "writes"
+  }
+ ]
 }

@@ -767,7 +767,7 @@
    "group": "@wren/content",
    "attrs": {
     "input": "PromoteRequest",
-    "output": "{ started: boolean; platforms: (\"linkedin\" | \"reddit\" | \"instagram\" | \"x\")[]; }",
+    "output": "{ started: boolean; platforms: (\"linkedin\" | \"instagram\" | \"x\" | \"reddit\")[]; }",
     "wrap": "serviceHandler"
    }
   },
@@ -888,7 +888,7 @@
    "group": "@wren/content",
    "attrs": {
     "input": "PortalRequest",
-    "output": "{ mail: boolean; zone: string; reports: { sends: { id: number; from: string; to: string; closed: boolean; lines: import(\"../client-reports/tiles.js\").ReportLine[]; sentTo: string[]; why: string | null; by: string | null; at: string; }[]; id: number; name: string; tiles: (\"calls\" | \"views\" | \"bookings\" | \"paid\" | \"forms\" | \"post_visits\" | \"ad_impressions\" | \"search_impressions\" | \"visits\" | \"spend\")[]; every: \"week\" | \"month\"; zone: string; recipients: string[]; on: boolean; nextAt: string | null; by: string; updatedAt: string; }[]; members: { email: string; role: string; }[]; }",
+    "output": "{ mail: boolean; zone: string; reports: { sends: { id: number; from: string; to: string; closed: boolean; lines: import(\"../client-reports/tiles.js\").ReportLine[]; sentTo: string[]; why: string | null; by: string | null; at: string; }[]; id: number; name: string; tiles: (\"calls\" | \"views\" | \"bookings\" | \"paid\" | \"forms\" | \"spend\" | \"visits\" | \"post_visits\" | \"ad_impressions\" | \"search_impressions\")[]; every: \"month\" | \"week\"; zone: string; recipients: string[]; on: boolean; nextAt: string | null; by: string; updatedAt: string; }[]; members: { email: string; role: string; }[]; }",
     "wrap": "serviceHandler"
    }
   },
@@ -1515,5 +1515,7031 @@
    }
   }
  ],
- "edges": []
+ "edges": [
+  {
+   "from": "route:AutoReply/arrived",
+   "to": "table:public.auto_replies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:AutoReply/arrived",
+   "to": "table:public.call_bookings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:AutoReply/arrived",
+   "to": "table:public.call_invites",
+   "kind": "reads"
+  },
+  {
+   "from": "route:AutoReply/arrived",
+   "to": "table:public.chat_messages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:AutoReply/arrived",
+   "to": "table:public.chat_threads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:AutoReply/arrived",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:AutoReply/arrived",
+   "to": "table:public.comments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:AutoReply/arrived",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:AutoReply/arrived",
+   "to": "table:public.company_checks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:AutoReply/arrived",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:AutoReply/arrived",
+   "to": "table:public.custom_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:AutoReply/arrived",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:AutoReply/arrived",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:AutoReply/arrived",
+   "to": "table:public.enrichments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:AutoReply/arrived",
+   "to": "table:public.enrollments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:AutoReply/arrived",
+   "to": "table:public.findings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:AutoReply/arrived",
+   "to": "table:public.imports",
+   "kind": "reads"
+  },
+  {
+   "from": "route:AutoReply/arrived",
+   "to": "table:public.inbox_notes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:AutoReply/arrived",
+   "to": "table:public.leads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:AutoReply/arrived",
+   "to": "table:public.messages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:AutoReply/arrived",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:AutoReply/arrived",
+   "to": "table:public.person_lookups",
+   "kind": "reads"
+  },
+  {
+   "from": "route:AutoReply/arrived",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:AutoReply/arrived",
+   "to": "table:public.reach_messages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:AutoReply/arrived",
+   "to": "table:public.reddit_people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:AutoReply/arrived",
+   "to": "table:public.sms_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:AutoReply/arrived",
+   "to": "table:public.sms_messages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:AutoReply/arrived",
+   "to": "table:public.social_activity",
+   "kind": "reads"
+  },
+  {
+   "from": "route:AutoReply/arrived",
+   "to": "table:public.social_handles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:AutoReply/arrived",
+   "to": "table:public.thread_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:AutoReply/arrived",
+   "to": "table:public.touches",
+   "kind": "reads"
+  },
+  {
+   "from": "route:AutoReply/arrived",
+   "to": "table:public.vendor_modes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:AutoReply/arrived",
+   "to": "table:public.wren_settings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:AutoReply/arrived",
+   "to": "table:watch.mail",
+   "kind": "reads"
+  },
+  {
+   "from": "route:AutoReply/arrived",
+   "to": "table:watch.mail_sent",
+   "kind": "reads"
+  },
+  {
+   "from": "route:AutoReply/arrived",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:AutoReply/arrived",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:AutoReply/arrived",
+   "to": "table:public.inbox_replies",
+   "kind": "writes"
+  },
+  {
+   "from": "route:AutoReply/arrived",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:AutoReply/arrived",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:AutoReply/arrived",
+   "to": "table:public.reach_contacts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:AutoReply/arrived",
+   "to": "table:public.runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:AutoReply/arrived",
+   "to": "table:public.vendor_usage",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Blog/audience",
+   "to": "table:public.consent_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Blog/audience",
+   "to": "table:public.consents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Blog/audience",
+   "to": "table:public.marketing_sends",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Blog/audience",
+   "to": "table:public.message_settings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Blog/audience",
+   "to": "table:public.profile_keys",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Blog/audience",
+   "to": "table:public.profiles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Blog/audience",
+   "to": "table:public.suppressions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Blog/audience",
+   "to": "table:public.topics",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Blog/email",
+   "to": "table:public.blog_posts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Blog/posts",
+   "to": "table:public.blog_posts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Blog/save",
+   "to": "table:public.blog_posts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Chat/read",
+   "to": "table:public.chat_messages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Chat/read",
+   "to": "table:public.chat_threads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Chat/say",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Chat/say",
+   "to": "table:pipeline.deals",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Chat/say",
+   "to": "table:pipeline.instances",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Chat/say",
+   "to": "table:public.chat_messages",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Chat/say",
+   "to": "table:public.chat_threads",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Chat/say",
+   "to": "table:public.profile_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Chat/say",
+   "to": "table:public.profile_findings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Chat/say",
+   "to": "table:public.profile_keys",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Chat/say",
+   "to": "table:public.profile_lookups",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Chat/say",
+   "to": "table:public.profile_merges",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Chat/say",
+   "to": "table:public.profile_trait_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Chat/say",
+   "to": "table:public.profile_traits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Chat/say",
+   "to": "table:public.profiles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ClientReport/run",
+   "to": "table:public.changes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ClientReport/run",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ClientReport/run",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ClientReport/run",
+   "to": "table:public.custom_field_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ClientReport/run",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ClientReport/run",
+   "to": "table:public.draft_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ClientReport/run",
+   "to": "table:public.draft_outcomes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ClientReport/run",
+   "to": "table:public.draft_people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ClientReport/run",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ClientReport/run",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ClientReport/run",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ClientReport/run",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ClientReport/run",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ClientReport/run",
+   "to": "table:public.client_report_sends",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ClientReport/run",
+   "to": "table:public.client_reports",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/add",
+   "to": "table:public.content_ideas",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/approve",
+   "to": "table:public.content_ideas",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/approve",
+   "to": "table:public.content_playbooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/approve",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/approve",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/approve",
+   "to": "table:public.reddit_places",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/approve",
+   "to": "table:public.reddit_requirements",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/approve",
+   "to": "table:public.site_pages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/approve",
+   "to": "table:public.content_drafts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/approve",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/approve",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/approve",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/approve",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/approveVideo",
+   "to": "table:public.content_playbooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/approveVideo",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/approveVideo",
+   "to": "table:public.content_drafts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/approveVideo",
+   "to": "table:public.content_ideas",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/approveVideo",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/approveVideo",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/approveVideo",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/approveVideo",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/approveVideo",
+   "to": "table:public.template_versions",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/approveVideo",
+   "to": "table:public.templates",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/approveVideo",
+   "to": "table:public.video_edits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/attach",
+   "to": "table:public.content_ideas",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/attach",
+   "to": "table:public.content_playbooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/attach",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/attach",
+   "to": "table:public.content_drafts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/attach",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/attach",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/attach",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/attach",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/carousel",
+   "to": "table:public.content_playbooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/carousel",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/carousel",
+   "to": "table:public.content_drafts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/carousel",
+   "to": "table:public.content_ideas",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/carousel",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/carousel",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/carousel",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/carousel",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/check",
+   "to": "table:learn.breakdowns",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/check",
+   "to": "table:learn.collections",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/check",
+   "to": "table:learn.items",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/check",
+   "to": "table:learn.sop_sources",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/check",
+   "to": "table:learn.sources",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/check",
+   "to": "table:pipeline.instances",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/check",
+   "to": "table:public.content_ideas",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/check",
+   "to": "table:public.content_playbooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/check",
+   "to": "table:public.decision_calls",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/check",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/check",
+   "to": "table:public.platform_objects",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/check",
+   "to": "table:public.content_drafts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/edit",
+   "to": "table:public.content_ideas",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/edit",
+   "to": "table:public.content_playbooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/edit",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/edit",
+   "to": "table:public.content_drafts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/edit",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/edit",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/edit",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/edit",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/fields",
+   "to": "table:public.content_ideas",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/fields",
+   "to": "table:public.content_playbooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/fields",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/fields",
+   "to": "table:public.content_drafts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/fields",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/fields",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/fields",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/fields",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/funnel",
+   "to": "table:public.content_ideas",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/funnel",
+   "to": "table:public.content_playbooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/funnel",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/funnel",
+   "to": "table:public.site_pages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/funnel",
+   "to": "table:public.content_drafts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/funnel",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/funnel",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/funnel",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/funnel",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/pickThumbnail",
+   "to": "table:public.video_edits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/promote",
+   "to": "table:public.content_digests",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/promote",
+   "to": "table:public.content_metrics",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/promote",
+   "to": "table:public.content_playbooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/promote",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/promote",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/promote",
+   "to": "table:public.reddit_places",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/promote",
+   "to": "table:public.reddit_requirements",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/promote",
+   "to": "table:public.video_edits",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/promote",
+   "to": "table:public.content_drafts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/promote",
+   "to": "table:public.content_ideas",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/promote",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/promote",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/promote",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/promote",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/promote",
+   "to": "table:public.runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/redraft",
+   "to": "table:learn.items",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/redraft",
+   "to": "table:pipeline.instances",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/redraft",
+   "to": "table:public.content_digests",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/redraft",
+   "to": "table:public.content_ideas",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/redraft",
+   "to": "table:public.content_metrics",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/redraft",
+   "to": "table:public.content_playbooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/redraft",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/redraft",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/redraft",
+   "to": "table:public.reddit_places",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/redraft",
+   "to": "table:public.reddit_requirements",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/redraft",
+   "to": "table:public.content_drafts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/redraft",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/redraft",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/redraft",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/redraft",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/redraft",
+   "to": "table:public.runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/reject",
+   "to": "table:public.content_ideas",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/reject",
+   "to": "table:public.content_playbooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/reject",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/reject",
+   "to": "table:public.content_drafts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/reject",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/reject",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/reject",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/reject",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/settlePost",
+   "to": "table:public.content_ideas",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/settlePost",
+   "to": "table:public.content_playbooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/settlePost",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/settlePost",
+   "to": "table:public.reddit_places",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/settlePost",
+   "to": "table:public.site_pages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/settlePost",
+   "to": "table:public.content_drafts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/settlePost",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/settlePost",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/settlePost",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/settlePost",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/settlePost",
+   "to": "table:public.post_variants",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/settlePost",
+   "to": "table:public.send_attempts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/slides",
+   "to": "table:public.content_ideas",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/slides",
+   "to": "table:public.content_playbooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/slides",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/slides",
+   "to": "table:public.content_drafts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/slides",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/slides",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/slides",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/slides",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/story",
+   "to": "table:public.content_playbooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/story",
+   "to": "table:public.platform_objects",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/story",
+   "to": "table:public.content_drafts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/story",
+   "to": "table:public.content_ideas",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/storyClips",
+   "to": "table:public.content_drafts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/storyClips",
+   "to": "table:public.content_ideas",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/storyClips",
+   "to": "table:public.content_playbooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/storyClips",
+   "to": "table:public.platform_objects",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/swap",
+   "to": "table:public.content_drafts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/swap",
+   "to": "table:public.content_ideas",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/swap",
+   "to": "table:public.content_playbooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/swap",
+   "to": "table:public.platform_objects",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/swap",
+   "to": "table:public.post_variants",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/swapApprove",
+   "to": "table:public.content_drafts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/swapApprove",
+   "to": "table:public.content_ideas",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/swapApprove",
+   "to": "table:public.content_playbooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/swapApprove",
+   "to": "table:public.platform_objects",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/swapApprove",
+   "to": "table:public.post_variants",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/swapSkip",
+   "to": "table:public.content_drafts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/swapSkip",
+   "to": "table:public.post_variants",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/waiting",
+   "to": "table:public.content_drafts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/waiting",
+   "to": "table:public.content_ideas",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/waiting",
+   "to": "table:public.content_playbooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/waiting",
+   "to": "table:public.platform_objects",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/write",
+   "to": "table:public.content_playbooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/write",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/write",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/write",
+   "to": "table:public.reddit_places",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/write",
+   "to": "table:public.reddit_requirements",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/write",
+   "to": "table:public.content_drafts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/write",
+   "to": "table:public.content_ideas",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/write",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/write",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/write",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/write",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DraftAsk/answer",
+   "to": "table:public.comments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DraftAsk/answer",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DraftAsk/answer",
+   "to": "table:public.reach_posts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DraftAsk/answer",
+   "to": "table:public.reddit_threads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DraftAsk/answer",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DraftAsk/answer",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DraftAsk/answer",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DraftAsk/answer",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DraftAsk/answer",
+   "to": "table:public.runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DraftAsk/answer",
+   "to": "table:public.template_versions",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DraftAsk/answer",
+   "to": "table:public.templates",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DraftAsk/ask",
+   "to": "table:public.comments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DraftAsk/ask",
+   "to": "table:public.draft_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DraftAsk/ask",
+   "to": "table:public.reach_posts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DraftAsk/ask",
+   "to": "table:public.reddit_threads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DraftAsk/ask",
+   "to": "table:public.runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DraftAsk/set",
+   "to": "table:public.comments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DraftAsk/set",
+   "to": "table:public.content_drafts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DraftAsk/set",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DraftAsk/set",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DraftAsk/set",
+   "to": "table:public.reach_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DraftAsk/set",
+   "to": "table:public.reach_posts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DraftAsk/set",
+   "to": "table:public.reddit_places",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DraftAsk/set",
+   "to": "table:public.reddit_requirements",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DraftAsk/set",
+   "to": "table:public.reddit_threads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DraftAsk/set",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DraftAsk/set",
+   "to": "table:public.draft_accounts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DraftAsk/set",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DraftAsk/set",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DraftAsk/set",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DraftAsk/set",
+   "to": "table:public.runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DraftAsk/undo",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DraftAsk/undo",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DraftAsk/undo",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DraftAsk/undo",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DraftAsk/undo",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DraftAsk/undo",
+   "to": "table:public.runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/approve",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/approve",
+   "to": "table:public.call_invites",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/approve",
+   "to": "table:public.client_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/approve",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/approve",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/approve",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/approve",
+   "to": "table:public.draft_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/approve",
+   "to": "table:public.enrollments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/approve",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/approve",
+   "to": "table:public.leads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/approve",
+   "to": "table:public.mail_connections",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/approve",
+   "to": "table:public.messages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/approve",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/approve",
+   "to": "table:public.own_contact_points",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/approve",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/approve",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/approve",
+   "to": "table:public.reach_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/approve",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/approve",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/approve",
+   "to": "table:public.sms_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/approve",
+   "to": "table:public.social_activity",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/approve",
+   "to": "table:public.social_connections",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/approve",
+   "to": "table:public.thread_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/approve",
+   "to": "table:watch.mail",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/approve",
+   "to": "table:pipeline.deals",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/approve",
+   "to": "table:pipeline.instances",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/approve",
+   "to": "table:public.chat_messages",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/approve",
+   "to": "table:public.chat_threads",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/approve",
+   "to": "table:public.comments",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/approve",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/approve",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/approve",
+   "to": "table:public.inbox_replies",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/approve",
+   "to": "table:public.inbox_threads",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/approve",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/approve",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/approve",
+   "to": "table:public.profile_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/approve",
+   "to": "table:public.profile_findings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/approve",
+   "to": "table:public.profile_keys",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/approve",
+   "to": "table:public.profile_lookups",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/approve",
+   "to": "table:public.profile_merges",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/approve",
+   "to": "table:public.profile_trait_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/approve",
+   "to": "table:public.profile_traits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/approve",
+   "to": "table:public.profiles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/approve",
+   "to": "table:public.social_handles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/approve",
+   "to": "table:public.touches",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/ask",
+   "to": "table:public.call_invites",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/ask",
+   "to": "table:public.chat_threads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/ask",
+   "to": "table:public.client_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/ask",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/ask",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/ask",
+   "to": "table:public.comments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/ask",
+   "to": "table:public.enrollments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/ask",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/ask",
+   "to": "table:public.leads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/ask",
+   "to": "table:public.mail_connections",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/ask",
+   "to": "table:public.messages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/ask",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/ask",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/ask",
+   "to": "table:public.reach_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/ask",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/ask",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/ask",
+   "to": "table:public.sms_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/ask",
+   "to": "table:public.social_activity",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/ask",
+   "to": "table:public.social_connections",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/ask",
+   "to": "table:public.social_handles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/ask",
+   "to": "table:public.thread_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/ask",
+   "to": "table:watch.mail",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/ask",
+   "to": "table:public.inbox_replies",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/assign",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/assign",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/assign",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/assign",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/assign",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/assign",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/assign",
+   "to": "table:public.inbox_threads",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/autoReplies",
+   "to": "table:public.auto_replies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/autoReplies",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/autoReplies",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/autoReplies",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/autoReplies",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/autoReplies",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/autoReplies",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/autoReplySet",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/autoReplySet",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/autoReplySet",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/autoReplySet",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/autoReplySet",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/autoReplySet",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/autoReplySet",
+   "to": "table:public.auto_replies",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/drop",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/drop",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/drop",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/drop",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/drop",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/drop",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/drop",
+   "to": "table:public.inbox_replies",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/note",
+   "to": "table:public.board_shares",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/note",
+   "to": "table:public.boards",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/note",
+   "to": "table:public.call_invites",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/note",
+   "to": "table:public.chat_threads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/note",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/note",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/note",
+   "to": "table:public.comments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/note",
+   "to": "table:public.enrollments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/note",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/note",
+   "to": "table:public.leads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/note",
+   "to": "table:public.note_comments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/note",
+   "to": "table:public.note_shares",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/note",
+   "to": "table:public.notes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/note",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/note",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/note",
+   "to": "table:public.reach_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/note",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/note",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/note",
+   "to": "table:public.sms_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/note",
+   "to": "table:public.social_activity",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/note",
+   "to": "table:public.social_handles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/note",
+   "to": "table:public.thread_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/note",
+   "to": "table:watch.mail",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/note",
+   "to": "table:public.inbox_notes",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/note",
+   "to": "table:public.note_mentions",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/release",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/release",
+   "to": "table:public.call_invites",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/release",
+   "to": "table:public.client_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/release",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/release",
+   "to": "table:public.draft_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/release",
+   "to": "table:public.enrollments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/release",
+   "to": "table:public.leads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/release",
+   "to": "table:public.mail_connections",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/release",
+   "to": "table:public.messages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/release",
+   "to": "table:public.own_contact_points",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/release",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/release",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/release",
+   "to": "table:public.reach_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/release",
+   "to": "table:public.sms_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/release",
+   "to": "table:public.social_activity",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/release",
+   "to": "table:public.social_connections",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/release",
+   "to": "table:public.thread_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/release",
+   "to": "table:watch.mail",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/release",
+   "to": "table:pipeline.deals",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/release",
+   "to": "table:pipeline.instances",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/release",
+   "to": "table:public.chat_messages",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/release",
+   "to": "table:public.chat_threads",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/release",
+   "to": "table:public.comments",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/release",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/release",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/release",
+   "to": "table:public.inbox_replies",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/release",
+   "to": "table:public.inbox_threads",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/release",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/release",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/release",
+   "to": "table:public.profile_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/release",
+   "to": "table:public.profile_findings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/release",
+   "to": "table:public.profile_keys",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/release",
+   "to": "table:public.profile_lookups",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/release",
+   "to": "table:public.profile_merges",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/release",
+   "to": "table:public.profile_trait_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/release",
+   "to": "table:public.profile_traits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/release",
+   "to": "table:public.profiles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/release",
+   "to": "table:public.social_handles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/release",
+   "to": "table:public.touches",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/reply",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/reply",
+   "to": "table:public.call_invites",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/reply",
+   "to": "table:public.client_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/reply",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/reply",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/reply",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/reply",
+   "to": "table:public.draft_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/reply",
+   "to": "table:public.enrollments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/reply",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/reply",
+   "to": "table:public.leads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/reply",
+   "to": "table:public.mail_connections",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/reply",
+   "to": "table:public.messages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/reply",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/reply",
+   "to": "table:public.own_contact_points",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/reply",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/reply",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/reply",
+   "to": "table:public.reach_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/reply",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/reply",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/reply",
+   "to": "table:public.sms_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/reply",
+   "to": "table:public.social_activity",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/reply",
+   "to": "table:public.social_connections",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/reply",
+   "to": "table:public.thread_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/reply",
+   "to": "table:watch.mail",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/reply",
+   "to": "table:pipeline.deals",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/reply",
+   "to": "table:pipeline.instances",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/reply",
+   "to": "table:public.chat_messages",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/reply",
+   "to": "table:public.chat_threads",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/reply",
+   "to": "table:public.comments",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/reply",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/reply",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/reply",
+   "to": "table:public.inbox_replies",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/reply",
+   "to": "table:public.inbox_threads",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/reply",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/reply",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/reply",
+   "to": "table:public.profile_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/reply",
+   "to": "table:public.profile_findings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/reply",
+   "to": "table:public.profile_keys",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/reply",
+   "to": "table:public.profile_lookups",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/reply",
+   "to": "table:public.profile_merges",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/reply",
+   "to": "table:public.profile_trait_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/reply",
+   "to": "table:public.profile_traits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/reply",
+   "to": "table:public.profiles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/reply",
+   "to": "table:public.social_handles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/reply",
+   "to": "table:public.touches",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/snooze",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/snooze",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/snooze",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/snooze",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/snooze",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/snooze",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/snooze",
+   "to": "table:public.inbox_threads",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/status",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/status",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/status",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/status",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/status",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/status",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/status",
+   "to": "table:public.inbox_threads",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/suggest",
+   "to": "table:public.call_bookings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/suggest",
+   "to": "table:public.call_invites",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/suggest",
+   "to": "table:public.chat_messages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/suggest",
+   "to": "table:public.chat_threads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/suggest",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/suggest",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/suggest",
+   "to": "table:public.comments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/suggest",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/suggest",
+   "to": "table:public.company_checks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/suggest",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/suggest",
+   "to": "table:public.custom_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/suggest",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/suggest",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/suggest",
+   "to": "table:public.enrichments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/suggest",
+   "to": "table:public.enrollments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/suggest",
+   "to": "table:public.findings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/suggest",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/suggest",
+   "to": "table:public.imports",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/suggest",
+   "to": "table:public.inbox_notes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/suggest",
+   "to": "table:public.inbox_replies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/suggest",
+   "to": "table:public.leads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/suggest",
+   "to": "table:public.messages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/suggest",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/suggest",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/suggest",
+   "to": "table:public.person_lookups",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/suggest",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/suggest",
+   "to": "table:public.reach_messages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/suggest",
+   "to": "table:public.reddit_people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/suggest",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/suggest",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/suggest",
+   "to": "table:public.sms_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/suggest",
+   "to": "table:public.sms_messages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/suggest",
+   "to": "table:public.social_activity",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/suggest",
+   "to": "table:public.social_handles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/suggest",
+   "to": "table:public.thread_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/suggest",
+   "to": "table:public.touches",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/suggest",
+   "to": "table:public.vendor_modes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/suggest",
+   "to": "table:public.wren_settings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/suggest",
+   "to": "table:watch.mail",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/suggest",
+   "to": "table:watch.mail_sent",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/suggest",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/suggest",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/suggest",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/suggest",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/suggest",
+   "to": "table:public.reach_contacts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/suggest",
+   "to": "table:public.runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/suggest",
+   "to": "table:public.vendor_usage",
+   "kind": "writes"
+  },
+  {
+   "from": "route:InboxDesk/take",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/take",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/take",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/take",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/take",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/take",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:InboxDesk/take",
+   "to": "table:public.inbox_threads",
+   "kind": "writes"
+  },
+  {
+   "from": "route:KeywordDm/add",
+   "to": "table:public.comment_keywords",
+   "kind": "writes"
+  },
+  {
+   "from": "route:KeywordDm/add",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:KeywordDm/add",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:KeywordDm/remove",
+   "to": "table:public.platform_objects",
+   "kind": "reads"
+  },
+  {
+   "from": "route:KeywordDm/remove",
+   "to": "table:public.comment_keywords",
+   "kind": "writes"
+  },
+  {
+   "from": "route:KeywordDm/send",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:KeywordDm/send",
+   "to": "table:public.comment_keywords",
+   "kind": "reads"
+  },
+  {
+   "from": "route:KeywordDm/send",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:KeywordDm/send",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:KeywordDm/send",
+   "to": "table:public.draft_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:KeywordDm/send",
+   "to": "table:public.leads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:KeywordDm/send",
+   "to": "table:public.message_settings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:KeywordDm/send",
+   "to": "table:public.own_contact_points",
+   "kind": "reads"
+  },
+  {
+   "from": "route:KeywordDm/send",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:KeywordDm/send",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:KeywordDm/send",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:KeywordDm/send",
+   "to": "table:pipeline.deals",
+   "kind": "writes"
+  },
+  {
+   "from": "route:KeywordDm/send",
+   "to": "table:pipeline.instances",
+   "kind": "writes"
+  },
+  {
+   "from": "route:KeywordDm/send",
+   "to": "table:public.comments",
+   "kind": "writes"
+  },
+  {
+   "from": "route:KeywordDm/send",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:KeywordDm/send",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:KeywordDm/send",
+   "to": "table:public.keyword_hits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:KeywordDm/send",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:KeywordDm/send",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:KeywordDm/send",
+   "to": "table:public.profile_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:KeywordDm/send",
+   "to": "table:public.profile_findings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:KeywordDm/send",
+   "to": "table:public.profile_keys",
+   "kind": "writes"
+  },
+  {
+   "from": "route:KeywordDm/send",
+   "to": "table:public.profile_lookups",
+   "kind": "writes"
+  },
+  {
+   "from": "route:KeywordDm/send",
+   "to": "table:public.profile_merges",
+   "kind": "writes"
+  },
+  {
+   "from": "route:KeywordDm/send",
+   "to": "table:public.profile_trait_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:KeywordDm/send",
+   "to": "table:public.profile_traits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:KeywordDm/send",
+   "to": "table:public.profiles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:KeywordDm/send",
+   "to": "table:public.reach_contacts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:KeywordDm/send",
+   "to": "table:public.reach_messages",
+   "kind": "writes"
+  },
+  {
+   "from": "route:KeywordDm/send",
+   "to": "table:public.send_attempts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:KeywordDm/send",
+   "to": "table:public.social_handles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:KeywordDm/send",
+   "to": "table:public.touches",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MailReply/send",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MailReply/send",
+   "to": "table:watch.mail",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MailReply/send",
+   "to": "table:watch.mail_sent",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/approveDraft",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/approveDraft",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/approveDraft",
+   "to": "table:public.content_ideas",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/approveDraft",
+   "to": "table:public.content_playbooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/approveDraft",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/approveDraft",
+   "to": "table:public.flags",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/approveDraft",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/approveDraft",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/approveDraft",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/approveDraft",
+   "to": "table:public.reddit_places",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/approveDraft",
+   "to": "table:public.reddit_requirements",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/approveDraft",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/approveDraft",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/approveDraft",
+   "to": "table:public.site_pages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/approveDraft",
+   "to": "table:public.content_drafts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/approveDraft",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/approveDraft",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/approveDraft",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/approveDraft",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/draftAttach",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/draftAttach",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/draftAttach",
+   "to": "table:public.content_ideas",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/draftAttach",
+   "to": "table:public.content_playbooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/draftAttach",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/draftAttach",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/draftAttach",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/draftAttach",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/draftAttach",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/draftAttach",
+   "to": "table:public.content_drafts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/draftAttach",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/draftAttach",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/draftAttach",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/draftAttach",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/draftFields",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/draftFields",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/draftFields",
+   "to": "table:public.content_ideas",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/draftFields",
+   "to": "table:public.content_playbooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/draftFields",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/draftFields",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/draftFields",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/draftFields",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/draftFields",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/draftFields",
+   "to": "table:public.content_drafts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/draftFields",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/draftFields",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/draftFields",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/draftFields",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/draftFunnel",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/draftFunnel",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/draftFunnel",
+   "to": "table:public.content_ideas",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/draftFunnel",
+   "to": "table:public.content_playbooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/draftFunnel",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/draftFunnel",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/draftFunnel",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/draftFunnel",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/draftFunnel",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/draftFunnel",
+   "to": "table:public.site_pages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/draftFunnel",
+   "to": "table:public.content_drafts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/draftFunnel",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/draftFunnel",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/draftFunnel",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/draftFunnel",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/draftSlides",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/draftSlides",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/draftSlides",
+   "to": "table:public.content_ideas",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/draftSlides",
+   "to": "table:public.content_playbooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/draftSlides",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/draftSlides",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/draftSlides",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/draftSlides",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/draftSlides",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/draftSlides",
+   "to": "table:public.content_drafts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/draftSlides",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/draftSlides",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/draftSlides",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/draftSlides",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/inboxApprove",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxApprove",
+   "to": "table:public.call_invites",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxApprove",
+   "to": "table:public.client_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxApprove",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxApprove",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxApprove",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxApprove",
+   "to": "table:public.draft_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxApprove",
+   "to": "table:public.enrollments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxApprove",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxApprove",
+   "to": "table:public.leads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxApprove",
+   "to": "table:public.mail_connections",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxApprove",
+   "to": "table:public.messages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxApprove",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxApprove",
+   "to": "table:public.own_contact_points",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxApprove",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxApprove",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxApprove",
+   "to": "table:public.reach_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxApprove",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxApprove",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxApprove",
+   "to": "table:public.sms_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxApprove",
+   "to": "table:public.social_activity",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxApprove",
+   "to": "table:public.social_connections",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxApprove",
+   "to": "table:public.thread_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxApprove",
+   "to": "table:watch.mail",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxApprove",
+   "to": "table:pipeline.deals",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/inboxApprove",
+   "to": "table:pipeline.instances",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/inboxApprove",
+   "to": "table:public.chat_messages",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/inboxApprove",
+   "to": "table:public.chat_threads",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/inboxApprove",
+   "to": "table:public.comments",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/inboxApprove",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/inboxApprove",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/inboxApprove",
+   "to": "table:public.inbox_replies",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/inboxApprove",
+   "to": "table:public.inbox_threads",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/inboxApprove",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/inboxApprove",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/inboxApprove",
+   "to": "table:public.profile_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/inboxApprove",
+   "to": "table:public.profile_findings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/inboxApprove",
+   "to": "table:public.profile_keys",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/inboxApprove",
+   "to": "table:public.profile_lookups",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/inboxApprove",
+   "to": "table:public.profile_merges",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/inboxApprove",
+   "to": "table:public.profile_trait_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/inboxApprove",
+   "to": "table:public.profile_traits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/inboxApprove",
+   "to": "table:public.profiles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/inboxApprove",
+   "to": "table:public.social_handles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/inboxApprove",
+   "to": "table:public.touches",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/inboxAsk",
+   "to": "table:public.call_invites",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxAsk",
+   "to": "table:public.chat_threads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxAsk",
+   "to": "table:public.client_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxAsk",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxAsk",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxAsk",
+   "to": "table:public.comments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxAsk",
+   "to": "table:public.enrollments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxAsk",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxAsk",
+   "to": "table:public.leads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxAsk",
+   "to": "table:public.mail_connections",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxAsk",
+   "to": "table:public.messages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxAsk",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxAsk",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxAsk",
+   "to": "table:public.reach_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxAsk",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxAsk",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxAsk",
+   "to": "table:public.sms_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxAsk",
+   "to": "table:public.social_activity",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxAsk",
+   "to": "table:public.social_connections",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxAsk",
+   "to": "table:public.social_handles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxAsk",
+   "to": "table:public.thread_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxAsk",
+   "to": "table:watch.mail",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxAsk",
+   "to": "table:public.inbox_replies",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/inboxAssign",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxAssign",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxAssign",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxAssign",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxAssign",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxAssign",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxAssign",
+   "to": "table:public.inbox_threads",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/inboxAuto",
+   "to": "table:public.auto_replies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxAuto",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxAuto",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxAuto",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxAuto",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxAuto",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxAuto",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxAutoSet",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxAutoSet",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxAutoSet",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxAutoSet",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxAutoSet",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxAutoSet",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxAutoSet",
+   "to": "table:public.auto_replies",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/inboxDrop",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxDrop",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxDrop",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxDrop",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxDrop",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxDrop",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxDrop",
+   "to": "table:public.inbox_replies",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/inboxNote",
+   "to": "table:public.board_shares",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxNote",
+   "to": "table:public.boards",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxNote",
+   "to": "table:public.call_invites",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxNote",
+   "to": "table:public.chat_threads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxNote",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxNote",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxNote",
+   "to": "table:public.comments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxNote",
+   "to": "table:public.enrollments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxNote",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxNote",
+   "to": "table:public.leads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxNote",
+   "to": "table:public.note_comments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxNote",
+   "to": "table:public.note_shares",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxNote",
+   "to": "table:public.notes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxNote",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxNote",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxNote",
+   "to": "table:public.reach_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxNote",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxNote",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxNote",
+   "to": "table:public.sms_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxNote",
+   "to": "table:public.social_activity",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxNote",
+   "to": "table:public.social_handles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxNote",
+   "to": "table:public.thread_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxNote",
+   "to": "table:watch.mail",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxNote",
+   "to": "table:public.inbox_notes",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/inboxNote",
+   "to": "table:public.note_mentions",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/inboxReply",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxReply",
+   "to": "table:public.call_invites",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxReply",
+   "to": "table:public.client_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxReply",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxReply",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxReply",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxReply",
+   "to": "table:public.draft_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxReply",
+   "to": "table:public.enrollments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxReply",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxReply",
+   "to": "table:public.leads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxReply",
+   "to": "table:public.mail_connections",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxReply",
+   "to": "table:public.messages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxReply",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxReply",
+   "to": "table:public.own_contact_points",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxReply",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxReply",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxReply",
+   "to": "table:public.reach_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxReply",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxReply",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxReply",
+   "to": "table:public.sms_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxReply",
+   "to": "table:public.social_activity",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxReply",
+   "to": "table:public.social_connections",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxReply",
+   "to": "table:public.thread_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxReply",
+   "to": "table:watch.mail",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxReply",
+   "to": "table:pipeline.deals",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/inboxReply",
+   "to": "table:pipeline.instances",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/inboxReply",
+   "to": "table:public.chat_messages",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/inboxReply",
+   "to": "table:public.chat_threads",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/inboxReply",
+   "to": "table:public.comments",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/inboxReply",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/inboxReply",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/inboxReply",
+   "to": "table:public.inbox_replies",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/inboxReply",
+   "to": "table:public.inbox_threads",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/inboxReply",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/inboxReply",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/inboxReply",
+   "to": "table:public.profile_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/inboxReply",
+   "to": "table:public.profile_findings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/inboxReply",
+   "to": "table:public.profile_keys",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/inboxReply",
+   "to": "table:public.profile_lookups",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/inboxReply",
+   "to": "table:public.profile_merges",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/inboxReply",
+   "to": "table:public.profile_trait_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/inboxReply",
+   "to": "table:public.profile_traits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/inboxReply",
+   "to": "table:public.profiles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/inboxReply",
+   "to": "table:public.social_handles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/inboxReply",
+   "to": "table:public.touches",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/inboxSnooze",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxSnooze",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxSnooze",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxSnooze",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxSnooze",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxSnooze",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxSnooze",
+   "to": "table:public.inbox_threads",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/inboxStatus",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxStatus",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxStatus",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxStatus",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxStatus",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxStatus",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxStatus",
+   "to": "table:public.inbox_threads",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/inboxSuggest",
+   "to": "table:public.call_bookings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxSuggest",
+   "to": "table:public.call_invites",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxSuggest",
+   "to": "table:public.chat_messages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxSuggest",
+   "to": "table:public.chat_threads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxSuggest",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxSuggest",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxSuggest",
+   "to": "table:public.comments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxSuggest",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxSuggest",
+   "to": "table:public.company_checks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxSuggest",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxSuggest",
+   "to": "table:public.custom_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxSuggest",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxSuggest",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxSuggest",
+   "to": "table:public.enrichments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxSuggest",
+   "to": "table:public.enrollments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxSuggest",
+   "to": "table:public.findings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxSuggest",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxSuggest",
+   "to": "table:public.imports",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxSuggest",
+   "to": "table:public.inbox_notes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxSuggest",
+   "to": "table:public.inbox_replies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxSuggest",
+   "to": "table:public.leads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxSuggest",
+   "to": "table:public.messages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxSuggest",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxSuggest",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxSuggest",
+   "to": "table:public.person_lookups",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxSuggest",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxSuggest",
+   "to": "table:public.reach_messages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxSuggest",
+   "to": "table:public.reddit_people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxSuggest",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxSuggest",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxSuggest",
+   "to": "table:public.sms_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxSuggest",
+   "to": "table:public.sms_messages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxSuggest",
+   "to": "table:public.social_activity",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxSuggest",
+   "to": "table:public.social_handles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxSuggest",
+   "to": "table:public.thread_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxSuggest",
+   "to": "table:public.touches",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxSuggest",
+   "to": "table:public.vendor_modes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxSuggest",
+   "to": "table:public.wren_settings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxSuggest",
+   "to": "table:watch.mail",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxSuggest",
+   "to": "table:watch.mail_sent",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxSuggest",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/inboxSuggest",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/inboxSuggest",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/inboxSuggest",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/inboxSuggest",
+   "to": "table:public.reach_contacts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/inboxSuggest",
+   "to": "table:public.runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/inboxSuggest",
+   "to": "table:public.vendor_usage",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/inboxTake",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxTake",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxTake",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxTake",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxTake",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxTake",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/inboxTake",
+   "to": "table:public.inbox_threads",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/promote",
+   "to": "table:public.client_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/promote",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/promote",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/promote",
+   "to": "table:public.content_digests",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/promote",
+   "to": "table:public.content_metrics",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/promote",
+   "to": "table:public.content_playbooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/promote",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/promote",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/promote",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/promote",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/promote",
+   "to": "table:public.reddit_places",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/promote",
+   "to": "table:public.reddit_requirements",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/promote",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/promote",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/promote",
+   "to": "table:public.social_connections",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/promote",
+   "to": "table:public.vendor_modes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/promote",
+   "to": "table:public.vendor_usage",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/promote",
+   "to": "table:public.video_edits",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/promote",
+   "to": "table:public.wren_settings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/promote",
+   "to": "table:public.content_drafts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/promote",
+   "to": "table:public.content_ideas",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/promote",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/promote",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/promote",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/promote",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/promote",
+   "to": "table:public.runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/recordsExport",
+   "to": "table:public.changes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/recordsExport",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/recordsExport",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/recordsExport",
+   "to": "table:public.custom_field_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/recordsExport",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/recordsExport",
+   "to": "table:public.draft_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/recordsExport",
+   "to": "table:public.draft_outcomes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/recordsExport",
+   "to": "table:public.draft_people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/recordsExport",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/recordsExport",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/recordsGet",
+   "to": "table:public.changes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/recordsGet",
+   "to": "table:public.client_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/recordsGet",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/recordsGet",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/recordsGet",
+   "to": "table:public.custom_field_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/recordsGet",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/recordsGet",
+   "to": "table:public.draft_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/recordsGet",
+   "to": "table:public.draft_outcomes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/recordsGet",
+   "to": "table:public.draft_people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/recordsGet",
+   "to": "table:public.mail_connections",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/recordsGet",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/recordsGet",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/recordsGet",
+   "to": "table:public.social_connections",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/recordsList",
+   "to": "table:public.changes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/recordsList",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/recordsList",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/recordsList",
+   "to": "table:public.custom_field_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/recordsList",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/recordsList",
+   "to": "table:public.draft_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/recordsList",
+   "to": "table:public.draft_outcomes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/recordsList",
+   "to": "table:public.draft_people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/recordsList",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/recordsList",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/recordsStats",
+   "to": "table:public.changes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/recordsStats",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/recordsStats",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/recordsStats",
+   "to": "table:public.custom_field_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/recordsStats",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/recordsStats",
+   "to": "table:public.draft_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/recordsStats",
+   "to": "table:public.draft_outcomes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/recordsStats",
+   "to": "table:public.draft_people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/recordsStats",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/recordsStats",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/recordsTypes",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/recordsTypes",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/recordsTypes",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/redraft",
+   "to": "table:learn.items",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/redraft",
+   "to": "table:pipeline.instances",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/redraft",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/redraft",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/redraft",
+   "to": "table:public.content_digests",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/redraft",
+   "to": "table:public.content_ideas",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/redraft",
+   "to": "table:public.content_metrics",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/redraft",
+   "to": "table:public.content_playbooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/redraft",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/redraft",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/redraft",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/redraft",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/redraft",
+   "to": "table:public.reddit_places",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/redraft",
+   "to": "table:public.reddit_requirements",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/redraft",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/redraft",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/redraft",
+   "to": "table:public.content_drafts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/redraft",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/redraft",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/redraft",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/redraft",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/redraft",
+   "to": "table:public.runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/rejectDraft",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/rejectDraft",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/rejectDraft",
+   "to": "table:public.content_ideas",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/rejectDraft",
+   "to": "table:public.content_playbooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/rejectDraft",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/rejectDraft",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/rejectDraft",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/rejectDraft",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/rejectDraft",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/rejectDraft",
+   "to": "table:public.content_drafts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/rejectDraft",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/rejectDraft",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/rejectDraft",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/rejectDraft",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/reportDelete",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/reportDelete",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/reportDelete",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/reportDelete",
+   "to": "table:public.client_reports",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/reportRun",
+   "to": "table:public.changes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/reportRun",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/reportRun",
+   "to": "table:public.client_reports",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/reportRun",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/reportRun",
+   "to": "table:public.custom_field_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/reportRun",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/reportRun",
+   "to": "table:public.draft_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/reportRun",
+   "to": "table:public.draft_outcomes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/reportRun",
+   "to": "table:public.draft_people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/reportRun",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/reportRun",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/reportRun",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/reportRun",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/reportRun",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/reportRun",
+   "to": "table:public.client_report_sends",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/reportSave",
+   "to": "table:public.changes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/reportSave",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/reportSave",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/reportSave",
+   "to": "table:public.custom_field_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/reportSave",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/reportSave",
+   "to": "table:public.draft_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/reportSave",
+   "to": "table:public.draft_outcomes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/reportSave",
+   "to": "table:public.draft_people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/reportSave",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/reportSave",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/reportSave",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/reportSave",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/reportSave",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/reportSave",
+   "to": "table:public.client_report_sends",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/reportSave",
+   "to": "table:public.client_reports",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/reports",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/reports",
+   "to": "table:public.client_report_sends",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/reports",
+   "to": "table:public.client_reports",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/reports",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/reports",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/sendSettle",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/sendSettle",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/sendSettle",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/sendSettle",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/sendSettle",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/sendSettle",
+   "to": "table:public.draft_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/sendSettle",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/sendSettle",
+   "to": "table:public.leads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/sendSettle",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/sendSettle",
+   "to": "table:public.own_contact_points",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/sendSettle",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/sendSettle",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/sendSettle",
+   "to": "table:public.reddit_places",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/sendSettle",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/sendSettle",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/sendSettle",
+   "to": "table:public.template_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/sendSettle",
+   "to": "table:public.templates",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/sendSettle",
+   "to": "table:pipeline.deals",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/sendSettle",
+   "to": "table:pipeline.instances",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/sendSettle",
+   "to": "table:public.comments",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/sendSettle",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/sendSettle",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/sendSettle",
+   "to": "table:public.marketing_sends",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/sendSettle",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/sendSettle",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/sendSettle",
+   "to": "table:public.profile_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/sendSettle",
+   "to": "table:public.profile_findings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/sendSettle",
+   "to": "table:public.profile_keys",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/sendSettle",
+   "to": "table:public.profile_lookups",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/sendSettle",
+   "to": "table:public.profile_merges",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/sendSettle",
+   "to": "table:public.profile_trait_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/sendSettle",
+   "to": "table:public.profile_traits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/sendSettle",
+   "to": "table:public.profiles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/sendSettle",
+   "to": "table:public.reach_contacts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/sendSettle",
+   "to": "table:public.reach_messages",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/sendSettle",
+   "to": "table:public.reach_posts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/sendSettle",
+   "to": "table:public.reddit_threads",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/sendSettle",
+   "to": "table:public.runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/sendSettle",
+   "to": "table:public.send_attempts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/sendSettle",
+   "to": "table:public.social_handles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/sendSettle",
+   "to": "table:public.touches",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Pieces/list",
+   "to": "table:public.blog_posts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Pieces/list",
+   "to": "table:public.content_drafts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Pieces/list",
+   "to": "table:public.content_ideas",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Pieces/list",
+   "to": "table:public.content_metrics",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Pieces/list",
+   "to": "table:public.video_edits",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialAccess/check",
+   "to": "table:public.account_facts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialAccess/check",
+   "to": "table:public.client_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialAccess/check",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialAccess/check",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialAccess/check",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialAccess/check",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialAccess/check",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialAccess/check",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialAccess/check",
+   "to": "table:public.social_connections",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialAccess/check",
+   "to": "table:public.setup_runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialAccess/connect",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialAccess/connect",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialAccess/connect",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialAccess/connect",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialAccess/connect",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialAccess/connect",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialAccess/connect",
+   "to": "table:public.social_grants",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialAccess/disconnect",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialAccess/disconnect",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialAccess/disconnect",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialAccess/disconnect",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialAccess/disconnect",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialAccess/disconnect",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialAccess/disconnect",
+   "to": "table:public.social_connections",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialAccess/disconnect",
+   "to": "table:public.client_accounts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialAccess/social",
+   "to": "table:public.client_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialAccess/social",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialAccess/social",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialAccess/social",
+   "to": "table:public.content_drafts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialAccess/social",
+   "to": "table:public.content_ideas",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialAccess/social",
+   "to": "table:public.content_playbooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialAccess/social",
+   "to": "table:public.draft_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialAccess/social",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialAccess/social",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialAccess/social",
+   "to": "table:public.platform_objects",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialAccess/social",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialAccess/social",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialAccess/social",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialAccess/social",
+   "to": "table:public.social_connections",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialAccess/social",
+   "to": "table:public.social_days",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialCallback/land",
+   "to": "table:public.account_facts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialCallback/land",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialCallback/land",
+   "to": "table:public.client_accounts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialCallback/land",
+   "to": "table:public.setup_runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialCallback/land",
+   "to": "table:public.social_connections",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialCallback/land",
+   "to": "table:public.social_grants",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialDesk/markAllSeen",
+   "to": "table:public.social_activity",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialDesk/markSeen",
+   "to": "table:public.social_activity",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialDesk/readAudience",
+   "to": "table:public.metric_sources",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialDesk/readAudience",
+   "to": "table:public.social_days",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialDesk/readPost",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialDesk/readPost",
+   "to": "table:public.comment_keywords",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialDesk/readPost",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialDesk/readPost",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialDesk/readPost",
+   "to": "table:public.draft_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialDesk/readPost",
+   "to": "table:public.leads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialDesk/readPost",
+   "to": "table:public.message_settings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialDesk/readPost",
+   "to": "table:public.own_contact_points",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialDesk/readPost",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialDesk/readPost",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialDesk/readPost",
+   "to": "table:public.reddit_places",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialDesk/readPost",
+   "to": "table:public.reddit_threads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialDesk/readPost",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialDesk/readPost",
+   "to": "table:public.social_activity",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialDesk/readPost",
+   "to": "table:pipeline.deals",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialDesk/readPost",
+   "to": "table:pipeline.instances",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialDesk/readPost",
+   "to": "table:public.comments",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialDesk/readPost",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialDesk/readPost",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialDesk/readPost",
+   "to": "table:public.keyword_hits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialDesk/readPost",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialDesk/readPost",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialDesk/readPost",
+   "to": "table:public.profile_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialDesk/readPost",
+   "to": "table:public.profile_findings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialDesk/readPost",
+   "to": "table:public.profile_keys",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialDesk/readPost",
+   "to": "table:public.profile_lookups",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialDesk/readPost",
+   "to": "table:public.profile_merges",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialDesk/readPost",
+   "to": "table:public.profile_trait_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialDesk/readPost",
+   "to": "table:public.profile_traits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialDesk/readPost",
+   "to": "table:public.profiles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialDesk/readPost",
+   "to": "table:public.reach_contacts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialDesk/readPost",
+   "to": "table:public.reach_messages",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialDesk/readPost",
+   "to": "table:public.send_attempts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialDesk/readPost",
+   "to": "table:public.social_handles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialDesk/readPost",
+   "to": "table:public.touches",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/answer",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialInbox/answer",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialInbox/answer",
+   "to": "table:public.draft_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialInbox/answer",
+   "to": "table:public.leads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialInbox/answer",
+   "to": "table:public.own_contact_points",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialInbox/answer",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialInbox/answer",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialInbox/answer",
+   "to": "table:public.reach_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialInbox/answer",
+   "to": "table:public.reddit_places",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialInbox/answer",
+   "to": "table:public.reddit_threads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialInbox/answer",
+   "to": "table:pipeline.deals",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/answer",
+   "to": "table:pipeline.instances",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/answer",
+   "to": "table:public.comments",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/answer",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/answer",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/answer",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/answer",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/answer",
+   "to": "table:public.profile_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/answer",
+   "to": "table:public.profile_findings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/answer",
+   "to": "table:public.profile_keys",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/answer",
+   "to": "table:public.profile_lookups",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/answer",
+   "to": "table:public.profile_merges",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/answer",
+   "to": "table:public.profile_trait_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/answer",
+   "to": "table:public.profile_traits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/answer",
+   "to": "table:public.profiles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/answer",
+   "to": "table:public.send_attempts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/answer",
+   "to": "table:public.social_handles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/answer",
+   "to": "table:public.touches",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/read",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialInbox/read",
+   "to": "table:public.client_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialInbox/read",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialInbox/read",
+   "to": "table:public.leads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialInbox/read",
+   "to": "table:public.own_contact_points",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialInbox/read",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialInbox/read",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialInbox/read",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialInbox/read",
+   "to": "table:public.social_connections",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialInbox/read",
+   "to": "table:pipeline.deals",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/read",
+   "to": "table:pipeline.instances",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/read",
+   "to": "table:public.profile_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/read",
+   "to": "table:public.profile_findings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/read",
+   "to": "table:public.profile_keys",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/read",
+   "to": "table:public.profile_lookups",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/read",
+   "to": "table:public.profile_merges",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/read",
+   "to": "table:public.profile_trait_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/read",
+   "to": "table:public.profile_traits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/read",
+   "to": "table:public.profiles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/read",
+   "to": "table:public.reach_contacts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/read",
+   "to": "table:public.reach_messages",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/read",
+   "to": "table:public.social_handles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/read",
+   "to": "table:public.touches",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/send",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialInbox/send",
+   "to": "table:public.client_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialInbox/send",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialInbox/send",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialInbox/send",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialInbox/send",
+   "to": "table:public.leads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialInbox/send",
+   "to": "table:public.own_contact_points",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialInbox/send",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialInbox/send",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialInbox/send",
+   "to": "table:public.social_connections",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialInbox/send",
+   "to": "table:pipeline.deals",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/send",
+   "to": "table:pipeline.instances",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/send",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/send",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/send",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/send",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/send",
+   "to": "table:public.profile_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/send",
+   "to": "table:public.profile_findings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/send",
+   "to": "table:public.profile_keys",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/send",
+   "to": "table:public.profile_lookups",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/send",
+   "to": "table:public.profile_merges",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/send",
+   "to": "table:public.profile_trait_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/send",
+   "to": "table:public.profile_traits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/send",
+   "to": "table:public.profiles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/send",
+   "to": "table:public.reach_contacts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/send",
+   "to": "table:public.reach_messages",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/send",
+   "to": "table:public.runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/send",
+   "to": "table:public.send_attempts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/send",
+   "to": "table:public.social_handles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/send",
+   "to": "table:public.touches",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/settle",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialInbox/settle",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialInbox/settle",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialInbox/settle",
+   "to": "table:public.draft_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialInbox/settle",
+   "to": "table:public.leads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialInbox/settle",
+   "to": "table:public.own_contact_points",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialInbox/settle",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialInbox/settle",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialInbox/settle",
+   "to": "table:public.reddit_places",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialInbox/settle",
+   "to": "table:public.template_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialInbox/settle",
+   "to": "table:public.templates",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialInbox/settle",
+   "to": "table:pipeline.deals",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/settle",
+   "to": "table:pipeline.instances",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/settle",
+   "to": "table:public.comments",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/settle",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/settle",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/settle",
+   "to": "table:public.marketing_sends",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/settle",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/settle",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/settle",
+   "to": "table:public.profile_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/settle",
+   "to": "table:public.profile_findings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/settle",
+   "to": "table:public.profile_keys",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/settle",
+   "to": "table:public.profile_lookups",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/settle",
+   "to": "table:public.profile_merges",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/settle",
+   "to": "table:public.profile_trait_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/settle",
+   "to": "table:public.profile_traits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/settle",
+   "to": "table:public.profiles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/settle",
+   "to": "table:public.reach_contacts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/settle",
+   "to": "table:public.reach_messages",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/settle",
+   "to": "table:public.reach_posts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/settle",
+   "to": "table:public.reddit_threads",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/settle",
+   "to": "table:public.runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/settle",
+   "to": "table:public.send_attempts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/settle",
+   "to": "table:public.social_handles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialInbox/settle",
+   "to": "table:public.touches",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SocialPush/gbp",
+   "to": "table:public.client_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialPush/gbp",
+   "to": "table:public.social_connections",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialPush/meta",
+   "to": "table:public.client_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SocialPush/meta",
+   "to": "table:public.social_connections",
+   "kind": "reads"
+  },
+  {
+   "from": "route:VideoDesk/answer",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:VideoDesk/answer",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:VideoDesk/answer",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:VideoDesk/answer",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:VideoDesk/answer",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:VideoDesk/answer",
+   "to": "table:public.runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:VideoDesk/answer",
+   "to": "table:public.template_versions",
+   "kind": "writes"
+  },
+  {
+   "from": "route:VideoDesk/answer",
+   "to": "table:public.templates",
+   "kind": "writes"
+  },
+  {
+   "from": "route:VideoDesk/answer",
+   "to": "table:public.video_edits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:VideoDesk/ask",
+   "to": "table:public.video_edits",
+   "kind": "reads"
+  },
+  {
+   "from": "route:VideoDesk/ask",
+   "to": "table:public.runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:VideoDesk/cut",
+   "to": "table:learn.items",
+   "kind": "reads"
+  },
+  {
+   "from": "route:VideoDesk/cut",
+   "to": "table:pipeline.instances",
+   "kind": "reads"
+  },
+  {
+   "from": "route:VideoDesk/cut",
+   "to": "table:public.content_playbooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:VideoDesk/cut",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:VideoDesk/cut",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:VideoDesk/cut",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:VideoDesk/cut",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:VideoDesk/cut",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:VideoDesk/cut",
+   "to": "table:public.runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:VideoDesk/cut",
+   "to": "table:public.video_edits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:VideoDesk/edit",
+   "to": "table:public.video_edits",
+   "kind": "reads"
+  },
+  {
+   "from": "route:VideoDesk/edit",
+   "to": "table:public.runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:VideoDesk/editing",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:VideoDesk/editing",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:VideoDesk/editing",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:VideoDesk/editing",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:VideoDesk/editing",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:VideoDesk/editing",
+   "to": "table:public.runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:VideoDesk/editing",
+   "to": "table:public.template_versions",
+   "kind": "writes"
+  },
+  {
+   "from": "route:VideoDesk/editing",
+   "to": "table:public.templates",
+   "kind": "writes"
+  },
+  {
+   "from": "route:VideoDesk/editing",
+   "to": "table:public.video_edits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:VideoDesk/line",
+   "to": "table:learn.items",
+   "kind": "reads"
+  },
+  {
+   "from": "route:VideoDesk/line",
+   "to": "table:pipeline.instances",
+   "kind": "reads"
+  },
+  {
+   "from": "route:VideoDesk/line",
+   "to": "table:public.content_playbooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:VideoDesk/line",
+   "to": "table:public.runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:VideoDesk/line",
+   "to": "table:public.video_edits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:VideoDesk/propose",
+   "to": "table:public.video_edits",
+   "kind": "reads"
+  },
+  {
+   "from": "route:VideoDesk/propose",
+   "to": "table:public.runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:VideoDesk/punctuate",
+   "to": "table:learn.items",
+   "kind": "reads"
+  },
+  {
+   "from": "route:VideoDesk/punctuate",
+   "to": "table:pipeline.instances",
+   "kind": "reads"
+  },
+  {
+   "from": "route:VideoDesk/punctuate",
+   "to": "table:public.content_playbooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:VideoDesk/punctuate",
+   "to": "table:public.runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:VideoDesk/punctuate",
+   "to": "table:public.video_edits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:VideoDesk/reject",
+   "to": "table:public.runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:VideoDesk/reject",
+   "to": "table:public.video_edits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:VideoDesk/render",
+   "to": "table:public.video_edits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:VideoDesk/rendering",
+   "to": "table:public.video_edits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:VideoDesk/restore",
+   "to": "table:public.runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:VideoDesk/restore",
+   "to": "table:public.video_edits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:VideoDesk/set",
+   "to": "table:learn.items",
+   "kind": "reads"
+  },
+  {
+   "from": "route:VideoDesk/set",
+   "to": "table:pipeline.instances",
+   "kind": "reads"
+  },
+  {
+   "from": "route:VideoDesk/set",
+   "to": "table:public.content_playbooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:VideoDesk/set",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:VideoDesk/set",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:VideoDesk/set",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:VideoDesk/set",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:VideoDesk/set",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:VideoDesk/set",
+   "to": "table:public.runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:VideoDesk/set",
+   "to": "table:public.video_edits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:VideoDesk/stress",
+   "to": "table:learn.items",
+   "kind": "reads"
+  },
+  {
+   "from": "route:VideoDesk/stress",
+   "to": "table:pipeline.instances",
+   "kind": "reads"
+  },
+  {
+   "from": "route:VideoDesk/stress",
+   "to": "table:public.content_playbooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:VideoDesk/stress",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:VideoDesk/stress",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:VideoDesk/stress",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:VideoDesk/stress",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:VideoDesk/stress",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:VideoDesk/stress",
+   "to": "table:public.runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:VideoDesk/stress",
+   "to": "table:public.video_edits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:VideoDesk/swap",
+   "to": "table:public.content_ideas",
+   "kind": "reads"
+  },
+  {
+   "from": "route:VideoDesk/swap",
+   "to": "table:public.content_playbooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:VideoDesk/swap",
+   "to": "table:public.platform_objects",
+   "kind": "reads"
+  },
+  {
+   "from": "route:VideoDesk/swap",
+   "to": "table:public.video_edits",
+   "kind": "reads"
+  },
+  {
+   "from": "route:VideoDesk/swap",
+   "to": "table:public.content_drafts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:VideoDesk/swap",
+   "to": "table:public.runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:VideoDesk/undo",
+   "to": "table:learn.items",
+   "kind": "reads"
+  },
+  {
+   "from": "route:VideoDesk/undo",
+   "to": "table:pipeline.instances",
+   "kind": "reads"
+  },
+  {
+   "from": "route:VideoDesk/undo",
+   "to": "table:public.content_playbooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:VideoDesk/undo",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:VideoDesk/undo",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:VideoDesk/undo",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:VideoDesk/undo",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:VideoDesk/undo",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:VideoDesk/undo",
+   "to": "table:public.runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:VideoDesk/undo",
+   "to": "table:public.video_edits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:VideoDesk/words",
+   "to": "table:learn.items",
+   "kind": "reads"
+  },
+  {
+   "from": "route:VideoDesk/words",
+   "to": "table:pipeline.instances",
+   "kind": "reads"
+  },
+  {
+   "from": "route:VideoDesk/words",
+   "to": "table:public.content_playbooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:VideoDesk/words",
+   "to": "table:public.runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:VideoDesk/words",
+   "to": "table:public.video_edits",
+   "kind": "writes"
+  }
+ ]
 }

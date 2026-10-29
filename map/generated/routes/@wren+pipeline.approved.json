@@ -30,7 +30,7 @@
    "group": "@wren/pipeline",
    "attrs": {
     "input": "MoveRequest",
-    "output": "{ journey: string; from: string; to: string; status: \"open\" | \"done\" | \"dropped\"; }",
+    "output": "{ journey: string; from: string; to: string; status: \"done\" | \"open\" | \"dropped\"; }",
     "wrap": "serviceHandler"
    }
   },
@@ -419,5 +419,1806 @@
    }
   }
  ],
- "edges": []
+ "edges": [
+  {
+   "from": "route:Journeys/assign",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Journeys/assign",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Journeys/assign",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Journeys/assign",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Journeys/assign",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Journeys/assign",
+   "to": "table:public.profiles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Journeys/assign",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Journeys/assign",
+   "to": "table:pipeline.instances",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Journeys/drop",
+   "to": "table:pipeline.shape_drafts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Journeys/drop",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Journeys/drop",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Journeys/drop",
+   "to": "table:public.profiles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Journeys/drop",
+   "to": "table:pipeline.instances",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Journeys/move",
+   "to": "table:pipeline.instances",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Journeys/move",
+   "to": "table:pipeline.shape_drafts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Journeys/move",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Journeys/move",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Journeys/move",
+   "to": "table:public.profiles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Journeys/open",
+   "to": "table:pipeline.instances",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Journeys/open",
+   "to": "table:pipeline.shape_drafts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Journeys/open",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Journeys/open",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Journeys/open",
+   "to": "table:public.profile_keys",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Journeys/open",
+   "to": "table:public.profiles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Journeys/rebuild",
+   "to": "table:pipeline.shape_drafts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Journeys/rebuild",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Journeys/rebuild",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Journeys/rebuild",
+   "to": "table:public.events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Journeys/rebuild",
+   "to": "table:public.profiles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Journeys/rebuild",
+   "to": "table:pipeline.instances",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PipelineConsole/dealsSign",
+   "to": "table:pipeline.instances",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/dealsSign",
+   "to": "table:pipeline.terms_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/dealsSign",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/dealsSign",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/dealsSign",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/dealsSign",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/dealsSign",
+   "to": "table:public.profiles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/dealsSign",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/dealsSign",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/dealsSign",
+   "to": "table:pipeline.deals",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PipelineConsole/journeysAssign",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/journeysAssign",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/journeysAssign",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/journeysAssign",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/journeysAssign",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/journeysAssign",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/journeysDrop",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/journeysDrop",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/journeysDrop",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/journeysDrop",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/journeysDrop",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/journeysDrop",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/journeysMove",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/journeysMove",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/journeysMove",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/journeysMove",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/journeysMove",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/journeysMove",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/journeysOpen",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/journeysOpen",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/journeysOpen",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/journeysOpen",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/journeysOpen",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/journeysOpen",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/mapRead",
+   "to": "table:pipeline.deals",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/mapRead",
+   "to": "table:pipeline.instances",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/mapRead",
+   "to": "table:pipeline.shape_drafts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/mapRead",
+   "to": "table:pipeline.shape_mirrors",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/mapRead",
+   "to": "table:pipeline.shape_tags",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/mapRead",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/mapRead",
+   "to": "table:pipeline.terms_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/mapRead",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/mapRead",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/mapRead",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/mapRead",
+   "to": "table:public.events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/mapRead",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/mapRead",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/mapRead",
+   "to": "table:public.profile_keys",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/mapRead",
+   "to": "table:public.profiles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/mapRead",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/mapRead",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/offersSync",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/offersSync",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/offersSync",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/offersSync",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/offersSync",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/offersSync",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/offersSync",
+   "to": "table:pipeline.offer_versions",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PipelineConsole/recordsExport",
+   "to": "table:public.changes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/recordsExport",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/recordsExport",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/recordsExport",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/recordsExport",
+   "to": "table:public.custom_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/recordsExport",
+   "to": "table:public.draft_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/recordsExport",
+   "to": "table:public.draft_outcomes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/recordsExport",
+   "to": "table:public.draft_people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/recordsExport",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/recordsExport",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/recordsExport",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/recordsExport",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/recordsExport",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/recordsExport",
+   "to": "table:public.custom_field_values",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PipelineConsole/recordsGet",
+   "to": "table:public.changes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/recordsGet",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/recordsGet",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/recordsGet",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/recordsGet",
+   "to": "table:public.custom_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/recordsGet",
+   "to": "table:public.draft_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/recordsGet",
+   "to": "table:public.draft_outcomes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/recordsGet",
+   "to": "table:public.draft_people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/recordsGet",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/recordsGet",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/recordsGet",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/recordsGet",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/recordsGet",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/recordsGet",
+   "to": "table:public.custom_field_values",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PipelineConsole/recordsList",
+   "to": "table:public.changes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/recordsList",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/recordsList",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/recordsList",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/recordsList",
+   "to": "table:public.custom_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/recordsList",
+   "to": "table:public.draft_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/recordsList",
+   "to": "table:public.draft_outcomes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/recordsList",
+   "to": "table:public.draft_people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/recordsList",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/recordsList",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/recordsList",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/recordsList",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/recordsList",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/recordsList",
+   "to": "table:public.custom_field_values",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PipelineConsole/recordsStats",
+   "to": "table:public.changes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/recordsStats",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/recordsStats",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/recordsStats",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/recordsStats",
+   "to": "table:public.custom_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/recordsStats",
+   "to": "table:public.draft_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/recordsStats",
+   "to": "table:public.draft_outcomes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/recordsStats",
+   "to": "table:public.draft_people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/recordsStats",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/recordsStats",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/recordsStats",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/recordsStats",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/recordsStats",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/recordsStats",
+   "to": "table:public.custom_field_values",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PipelineConsole/recordsTypes",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/recordsTypes",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/recordsTypes",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/recordsTypes",
+   "to": "table:public.custom_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/recordsTypes",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/recordsTypes",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/recordsTypes",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/recordsTypes",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/recordsTypes",
+   "to": "table:public.custom_field_values",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PipelineConsole/shapeAttach",
+   "to": "table:pipeline.shape_drafts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeAttach",
+   "to": "table:pipeline.terms_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeAttach",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeAttach",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeAttach",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeAttach",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeAttach",
+   "to": "table:public.imports",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeAttach",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeAttach",
+   "to": "table:public.profiles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeAttach",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeAttach",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeAttach",
+   "to": "table:public.segments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeAttach",
+   "to": "table:pipeline.deals",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PipelineConsole/shapeAttach",
+   "to": "table:pipeline.instances",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PipelineConsole/shapeAttach",
+   "to": "table:pipeline.shape_versions",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PipelineConsole/shapeAttach",
+   "to": "table:public.events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PipelineConsole/shapeBlame",
+   "to": "table:pipeline.shape_drafts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeBlame",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeBlame",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeBlame",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeBlame",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeBlame",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeBlame",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeBlame",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDiff",
+   "to": "table:pipeline.shape_drafts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDiff",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDiff",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDiff",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDiff",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDiff",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDiff",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDiff",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftApply",
+   "to": "table:pipeline.terms_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftApply",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftApply",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftApply",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftApply",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftApply",
+   "to": "table:public.imports",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftApply",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftApply",
+   "to": "table:public.profiles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftApply",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftApply",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftApply",
+   "to": "table:public.segments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftApply",
+   "to": "table:pipeline.deals",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftApply",
+   "to": "table:pipeline.instances",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftApply",
+   "to": "table:pipeline.shape_drafts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftApply",
+   "to": "table:pipeline.shape_versions",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftApply",
+   "to": "table:public.events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftDrop",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftDrop",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftDrop",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftDrop",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftDrop",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftDrop",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftDrop",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftDrop",
+   "to": "table:pipeline.shape_drafts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftEdit",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftEdit",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftEdit",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftEdit",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftEdit",
+   "to": "table:public.imports",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftEdit",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftEdit",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftEdit",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftEdit",
+   "to": "table:public.segments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftEdit",
+   "to": "table:pipeline.shape_drafts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftNew",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftNew",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftNew",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftNew",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftNew",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftNew",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftNew",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftNew",
+   "to": "table:pipeline.shape_drafts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftPlan",
+   "to": "table:pipeline.shape_drafts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftPlan",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftPlan",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftPlan",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftPlan",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftPlan",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftPlan",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftPlan",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftPropose",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftPropose",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftPropose",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftPropose",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftPropose",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftPropose",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftPropose",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftPropose",
+   "to": "table:pipeline.shape_drafts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftUpdate",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftUpdate",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftUpdate",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftUpdate",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftUpdate",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftUpdate",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftUpdate",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeDraftUpdate",
+   "to": "table:pipeline.shape_drafts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PipelineConsole/shapeExport",
+   "to": "table:pipeline.shape_drafts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeExport",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeExport",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeExport",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeExport",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeExport",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeExport",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeExport",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeImport",
+   "to": "table:pipeline.shape_drafts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeImport",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeImport",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeImport",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeImport",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeImport",
+   "to": "table:public.imports",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeImport",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeImport",
+   "to": "table:public.profiles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeImport",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeImport",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeImport",
+   "to": "table:public.segments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeImport",
+   "to": "table:pipeline.deals",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PipelineConsole/shapeImport",
+   "to": "table:pipeline.instances",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PipelineConsole/shapeImport",
+   "to": "table:pipeline.shape_versions",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PipelineConsole/shapeImport",
+   "to": "table:pipeline.terms_versions",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PipelineConsole/shapeImport",
+   "to": "table:public.events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PipelineConsole/shapePreview",
+   "to": "table:pipeline.shape_drafts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapePreview",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapePreview",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapePreview",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapePreview",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapePreview",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapePreview",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapePreview",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeStart",
+   "to": "table:pipeline.shape_drafts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeStart",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeStart",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeStart",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeStart",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeStart",
+   "to": "table:public.imports",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeStart",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeStart",
+   "to": "table:public.profiles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeStart",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeStart",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeStart",
+   "to": "table:public.segments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeStart",
+   "to": "table:pipeline.deals",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PipelineConsole/shapeStart",
+   "to": "table:pipeline.instances",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PipelineConsole/shapeStart",
+   "to": "table:pipeline.shape_versions",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PipelineConsole/shapeStart",
+   "to": "table:pipeline.terms_versions",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PipelineConsole/shapeStart",
+   "to": "table:public.events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PipelineConsole/shapeTag",
+   "to": "table:pipeline.shape_drafts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeTag",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeTag",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeTag",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeTag",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeTag",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeTag",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeTag",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeTag",
+   "to": "table:pipeline.shape_tags",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PipelineConsole/shapeUndo",
+   "to": "table:pipeline.shape_drafts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeUndo",
+   "to": "table:pipeline.terms_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeUndo",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeUndo",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeUndo",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeUndo",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeUndo",
+   "to": "table:public.imports",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeUndo",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeUndo",
+   "to": "table:public.profiles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeUndo",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeUndo",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeUndo",
+   "to": "table:public.segments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeUndo",
+   "to": "table:pipeline.deals",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PipelineConsole/shapeUndo",
+   "to": "table:pipeline.instances",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PipelineConsole/shapeUndo",
+   "to": "table:pipeline.shape_versions",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PipelineConsole/shapeUndo",
+   "to": "table:public.events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PipelineConsole/shapeUndoPreview",
+   "to": "table:pipeline.instances",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeUndoPreview",
+   "to": "table:pipeline.shape_drafts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeUndoPreview",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeUndoPreview",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeUndoPreview",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeUndoPreview",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeUndoPreview",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeUndoPreview",
+   "to": "table:public.imports",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeUndoPreview",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeUndoPreview",
+   "to": "table:public.profiles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeUndoPreview",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeUndoPreview",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeUndoPreview",
+   "to": "table:public.segments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeVersion",
+   "to": "table:pipeline.shape_drafts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeVersion",
+   "to": "table:pipeline.terms_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeVersion",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeVersion",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeVersion",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeVersion",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeVersion",
+   "to": "table:public.imports",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeVersion",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeVersion",
+   "to": "table:public.profiles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeVersion",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeVersion",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeVersion",
+   "to": "table:public.segments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/shapeVersion",
+   "to": "table:pipeline.deals",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PipelineConsole/shapeVersion",
+   "to": "table:pipeline.instances",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PipelineConsole/shapeVersion",
+   "to": "table:pipeline.shape_versions",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PipelineConsole/shapeVersion",
+   "to": "table:public.events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PipelineConsole/termsAdd",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/termsAdd",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/termsAdd",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/termsAdd",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/termsAdd",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/termsAdd",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PipelineConsole/termsAdd",
+   "to": "table:pipeline.terms_versions",
+   "kind": "writes"
+  }
+ ]
 }

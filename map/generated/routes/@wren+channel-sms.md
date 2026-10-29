@@ -6,63 +6,63 @@ Services: 5.
 
 File: packages/channel-sms/src/restate/answers.ts
 
-- **click** `z.infer<typeof CLICK>` → `{ to: string | null }` (serviceHandler)
-- **feedback** `z.infer<typeof FEEDBACK>` → `{ ok: boolean }` (serviceHandler)
-- **stop** `z.infer<typeof CLICK>` → `{ ok: boolean }` (serviceHandler)
+- **click** `z.infer<typeof CLICK>` → `{ to: string | null }` (serviceHandler): writes public.review_asks; reads public.clients, public.sms_contacts
+- **feedback** `z.infer<typeof FEEDBACK>` → `{ ok: boolean }` (serviceHandler): writes public.review_asks; reads public.clients, public.sms_contacts
+- **stop** `z.infer<typeof CLICK>` → `{ ok: boolean }` (serviceHandler): writes public.suppression_events, public.suppressions; reads public.clients, public.review_asks, public.sms_contacts
 
 ## SmsConsole (service via `portalService`)
 
 File: packages/channel-sms/src/restate/console.ts
 
-- **askReview** `AskReviewRequest` → `{ asked: boolean; }` (serviceHandler)
-- **callDone** `CallDoneRequest` → `{ done: string[]; skipped: string[]; }` (serviceHandler)
-- **recordsExport** `PortalRequest & ExportAsk` → `import("@wren/core/records/serve").RecordsFile` (serviceHandler)
-- **recordsGet** `PortalRequest & GetAsk` → `import("@wren/core/records/serve").RecordAnswer` (serviceHandler)
-- **recordsList** `PortalRequest & ListAsk` → `import("@wren/core/records/serve").RecordsPage` (serviceHandler)
-- **recordsStats** `PortalRequest & StatsAsk` → `import("@wren/core/records/serve").RecordsStat` (serviceHandler)
-- **recordsTypes** `PortalRequest` → `import("@wren/core/records").RecordMeta[]` (serviceHandler)
-- **reply** `ReplyRequest` → `{ messageId: number; }` (serviceHandler)
+- **askReview** `AskReviewRequest` → `{ asked: boolean; }` (serviceHandler): reads public.client_members, public.clients, public.hooks, public.roles, public.workflow_installs
+- **callDone** `CallDoneRequest` → `{ done: string[]; skipped: string[]; }` (serviceHandler): writes public.speed_runs; reads public.client_members, public.clients, public.roles, public.sms_contacts
+- **recordsExport** `PortalRequest & ExportAsk` → `import("@wren/core/records/serve").RecordsFile` (serviceHandler): reads public.changes, public.client_members, public.clients, public.custom_field_values, public.custom_fields, public.draft_events, public.draft_outcomes, public.draft_people, public.roles, public.runs
+- **recordsGet** `PortalRequest & GetAsk` → `import("@wren/core/records/serve").RecordAnswer` (serviceHandler): reads public.changes, public.client_members, public.clients, public.custom_field_values, public.custom_fields, public.draft_events, public.draft_outcomes, public.draft_people, public.roles, public.runs
+- **recordsList** `PortalRequest & ListAsk` → `import("@wren/core/records/serve").RecordsPage` (serviceHandler): reads public.changes, public.client_members, public.clients, public.custom_field_values, public.custom_fields, public.draft_events, public.draft_outcomes, public.draft_people, public.roles, public.runs
+- **recordsStats** `PortalRequest & StatsAsk` → `import("@wren/core/records/serve").RecordsStat` (serviceHandler): reads public.changes, public.client_members, public.clients, public.custom_field_values, public.custom_fields, public.draft_events, public.draft_outcomes, public.draft_people, public.roles, public.runs
+- **recordsTypes** `PortalRequest` → `import("@wren/core/records").RecordMeta[]` (serviceHandler): reads public.client_members, public.clients, public.roles
+- **reply** `ReplyRequest` → `{ messageId: number; }` (serviceHandler): writes public.sms_contacts, public.sms_messages; reads public.client_members, public.clients, public.companies, public.custom_fields, public.custom_values, public.documents, public.people, public.roles, public.runs, public.sms_numbers, public.suppressions
 
 ## SmsDesk (service)
 
 File: packages/channel-sms/src/restate/index.ts
 
-- **addContact** `{ phone: string; basis: ContactBasis; why: string; niche?: string } & ForClient` → `{ contactId: number; e164: string; created: boolean }` (serviceHandler)
-- **enroll** `{ sequence: string; niche?: string; limit: number } & ForClient` → `EnrollStats` (serviceHandler)
-- **forms** `void` → `FormStats` (serviceHandler)
-- **label** `{ messageId: number; disposition: Disposition } & ForClient` → `void` (serviceHandler)
-- **lift** `{ niche?: string; limit?: number } & ForClient` → `LiftStats` (serviceHandler)
-- **markRead** `{ contactId: number } & ForClient` → `void` (serviceHandler)
-- **numbers** `void` → `NumbersView` (serviceHandler)
-- **pause** `{ e164: string; reason?: string }` → `boolean` (serviceHandler)
+- **addContact** `{ phone: string; basis: ContactBasis; why: string; niche?: string } & ForClient` → `{ contactId: number; e164: string; created: boolean }` (serviceHandler): writes pipeline.deals, pipeline.instances, public.profile_events, public.profile_findings, public.profile_keys, public.profile_lookups, public.profile_merges, public.profile_trait_events, public.profile_traits, public.profiles, public.sms_contacts; reads pipeline.shape_versions, public.clients, public.companies, public.custom_fields, public.custom_values, public.documents, public.people, public.sms_numbers
+- **enroll** `{ sequence: string; niche?: string; limit: number } & ForClient` → `EnrollStats` (serviceHandler): writes public.runs, public.sms_contacts, public.sms_messages; reads calendar.bookings, public.call_bookings, public.chat_messages, public.chat_threads, public.client_members, public.clients, public.companies, public.consent_events, public.consents, public.custom_fields, public.custom_values, public.documents, public.email_clicks, public.enrollments, public.imports, public.lead_channels, public.messages, public.open_events, public.people, public.profile_events, public.profile_keys, public.profile_site_reads, public.profile_traits, public.profiles, public.site_form_defs, public.site_forms, public.site_pages, public.sms_numbers, public.social_handles, public.suppressions, public.template_versions, public.templates, public.thread_events, public.topics, public.touches
+- **forms** `void` → `FormStats` (serviceHandler): writes pipeline.deals, pipeline.instances, public.profile_events, public.profile_findings, public.profile_keys, public.profile_lookups, public.profile_merges, public.profile_trait_events, public.profile_traits, public.profiles, public.runs, public.sms_calls, public.sms_contacts, public.sms_messages, public.speed_runs; reads calendar.bookings, pipeline.shape_versions, public.call_bookings, public.chat_messages, public.chat_threads, public.client_members, public.clients, public.companies, public.consent_events, public.consents, public.contact_candidates, public.documents, public.email_clicks, public.enrollments, public.imports, public.lead_channels, public.messages, public.open_events, public.people, public.profile_site_reads, public.site_form_defs, public.site_forms, public.site_pages, public.sms_numbers, public.social_handles, public.suppressions, public.template_versions, public.templates, public.thread_events, public.topics, public.touches
+- **label** `{ messageId: number; disposition: Disposition } & ForClient` → `void` (serviceHandler): writes public.sms_contacts, public.sms_messages, public.suppression_events, public.suppressions; reads public.clients, public.companies, public.custom_fields, public.custom_values, public.documents, public.people, public.runs, public.sms_numbers
+- **lift** `{ niche?: string; limit?: number } & ForClient` → `LiftStats` (serviceHandler): writes pipeline.deals, pipeline.instances, public.profile_events, public.profile_findings, public.profile_keys, public.profile_lookups, public.profile_merges, public.profile_trait_events, public.profile_traits, public.profiles, public.runs, public.sms_contacts; reads pipeline.shape_versions, public.clients, public.companies, public.custom_fields, public.custom_values, public.documents, public.imports, public.people, public.sms_numbers
+- **markRead** `{ contactId: number } & ForClient` → `void` (serviceHandler): writes public.sms_contacts; reads public.clients, public.companies, public.custom_fields, public.custom_values, public.documents, public.people, public.sms_numbers
+- **numbers** `void` → `NumbersView` (serviceHandler): reads public.runs, public.sms_contacts, public.sms_messages, public.sms_numbers
+- **pause** `{ e164: string; reason?: string }` → `boolean` (serviceHandler): writes public.sms_numbers
 - **pushKey** `void` → `{ publicKey: string | null }` (serviceHandler)
-- **register** `void` → `RegistrationStats` (serviceHandler)
-- **reminders** `{ client?: string | null }` → `ReminderStats` (serviceHandler)
-- **reply** `{ contactId: number; body: string; kind?: "manual" | "pay" | "doc" } & ForClient` → `{ messageId: number }` (serviceHandler)
-- **resume** `{ e164: string }` → `boolean` (serviceHandler)
-- **setTemplate** `Omit<SetTemplate, "by"> & { by?: string | null; viewer?: { email?: string }; client?: string | null; }` → `SlotView` (serviceHandler)
-- **start** `{ phone: string; why: string; body: string }` → `{ contactId: number; messageId: number }` (serviceHandler)
-- **stats** `{ days?: number; niche?: string } & ForClient` → `SmsStats` (serviceHandler)
-- **subscribe** `{ subscription: PushSubscriptionInput; by: string }` → `{ pushed: boolean; error: string | null }` (serviceHandler)
-- **syncNumbers** `void` → `SyncStats` (serviceHandler)
-- **templates** `{ client?: string | null }` → `SlotView[]` (serviceHandler)
-- **thread** `{ contactId: number } & ForClient` → `Thread | null` (serviceHandler)
-- **threads** `{ filter?: ThreadFilter; limit?: number; offset?: number } & ForClient` → `ThreadSummary[]` (serviceHandler)
-- **unsubscribe** `{ endpoint: string }` → `{ removed: boolean }` (serviceHandler)
+- **register** `void` → `RegistrationStats` (serviceHandler): writes public.sms_numbers
+- **reminders** `{ client?: string | null }` → `ReminderStats` (serviceHandler): writes public.runs, public.sms_contacts, public.sms_messages; reads public.clients, public.companies, public.custom_fields, public.custom_values, public.documents, public.imports, public.people, public.sms_numbers, public.suppressions, public.template_versions, public.templates
+- **reply** `{ contactId: number; body: string; kind?: "manual" | "pay" | "doc" } & ForClient` → `{ messageId: number }` (serviceHandler): writes public.sms_contacts, public.sms_messages; reads public.clients, public.companies, public.custom_fields, public.custom_values, public.documents, public.people, public.runs, public.sms_numbers, public.suppressions
+- **resume** `{ e164: string }` → `boolean` (serviceHandler): writes public.sms_numbers
+- **setTemplate** `Omit<SetTemplate, "by"> & { by?: string | null; viewer?: { email?: string }; client?: string | null; }` → `SlotView` (serviceHandler): writes public.template_versions, public.templates; reads public.clients, public.custom_fields, public.custom_values
+- **start** `{ phone: string; why: string; body: string }` → `{ contactId: number; messageId: number }` (serviceHandler): writes pipeline.deals, pipeline.instances, public.profile_events, public.profile_findings, public.profile_keys, public.profile_lookups, public.profile_merges, public.profile_trait_events, public.profile_traits, public.profiles, public.sms_contacts, public.sms_messages; reads pipeline.shape_versions, public.companies, public.documents, public.people, public.runs, public.sms_numbers, public.suppressions
+- **stats** `{ days?: number; niche?: string } & ForClient` → `SmsStats` (serviceHandler): reads public.clients, public.companies, public.custom_fields, public.custom_values, public.documents, public.people, public.runs, public.sms_contacts, public.sms_messages, public.sms_numbers, public.speed_runs
+- **subscribe** `{ subscription: PushSubscriptionInput; by: string }` → `{ pushed: boolean; error: string | null }` (serviceHandler): writes public.sms_push_subscriptions; reads public.operators
+- **syncNumbers** `void` → `SyncStats` (serviceHandler): writes public.sms_numbers
+- **templates** `{ client?: string | null }` → `SlotView[]` (serviceHandler): reads public.clients, public.custom_fields, public.custom_values, public.template_versions, public.templates
+- **thread** `{ contactId: number } & ForClient` → `Thread | null` (serviceHandler): reads public.clients, public.companies, public.custom_fields, public.custom_values, public.documents, public.imports, public.people, public.runs, public.sms_contacts, public.sms_messages, public.sms_numbers
+- **threads** `{ filter?: ThreadFilter; limit?: number; offset?: number } & ForClient` → `ThreadSummary[]` (serviceHandler): reads public.clients, public.companies, public.custom_fields, public.custom_values, public.documents, public.imports, public.people, public.runs, public.sms_contacts, public.sms_messages, public.sms_numbers
+- **unsubscribe** `{ endpoint: string }` → `{ removed: boolean }` (serviceHandler): writes public.sms_push_subscriptions; reads public.operators
 
 ## SmsEvents (service)
 
 File: packages/channel-sms/src/restate/index.ts
 
-- **ingest** `unknown` → `{ duplicate: boolean; outcome: string }` (plain)
-- **ingestFor** `{ client: string; body: unknown }` → `{ duplicate: boolean; outcome: string }` (plain)
-- **signer** `{ number?: string | null; client?: string | null }` → `Signer` (serviceHandler)
+- **ingest** `unknown` → `{ duplicate: boolean; outcome: string }` (plain): writes pipeline.deals, pipeline.instances, public.consent_events, public.consents, public.profile_events, public.profile_findings, public.profile_keys, public.profile_lookups, public.profile_merges, public.profile_trait_events, public.profile_traits, public.profiles, public.sms_calls, public.sms_contacts, public.sms_events, public.sms_messages, public.sms_numbers, public.sms_push_subscriptions, public.suppression_events, public.suppressions; reads pipeline.shape_versions, public.companies, public.documents, public.enrollments, public.operators, public.people, public.reach_contacts, public.runs, public.topics
+- **ingestFor** `{ client: string; body: unknown }` → `{ duplicate: boolean; outcome: string }` (plain): writes pipeline.deals, pipeline.instances, public.consent_events, public.consents, public.profile_events, public.profile_findings, public.profile_keys, public.profile_lookups, public.profile_merges, public.profile_trait_events, public.profile_traits, public.profiles, public.sms_calls, public.sms_contacts, public.sms_events, public.sms_messages, public.sms_push_subscriptions, public.suppression_events, public.suppressions; reads pipeline.shape_versions, public.clients, public.companies, public.documents, public.enrollments, public.operators, public.people, public.reach_contacts, public.runs, public.sms_numbers, public.topics
+- **signer** `{ number?: string | null; client?: string | null }` → `Signer` (serviceHandler): reads public.clients, public.sms_numbers, public.vendor_modes
 
 ## SmsForms (service)
 
 File: packages/channel-sms/src/restate/forms.ts
 
-- **applied** `{ application: number }` → `Stepped | null` (serviceHandler)
-- **check** `RunRequest` → `string` (serviceHandler)
-- **email** `RunRequest` → `EmailOutcome` (serviceHandler)
-- **first** `FirstRequest` → `Stepped` (serviceHandler)
+- **applied** `{ application: number }` → `Stepped | null` (serviceHandler): writes pipeline.deals, pipeline.instances, public.profile_events, public.profile_findings, public.profile_keys, public.profile_lookups, public.profile_merges, public.profile_trait_events, public.profile_traits, public.profiles, public.sms_calls, public.sms_contacts, public.sms_messages, public.speed_runs; reads calendar.bookings, pipeline.shape_versions, public.call_bookings, public.chat_messages, public.chat_threads, public.client_members, public.clients, public.companies, public.consent_events, public.consents, public.contact_candidates, public.documents, public.email_clicks, public.enrollments, public.imports, public.lead_channels, public.messages, public.open_events, public.people, public.profile_site_reads, public.runs, public.site_form_defs, public.site_forms, public.site_pages, public.sms_numbers, public.social_handles, public.suppressions, public.template_versions, public.templates, public.thread_events, public.topics, public.touches
+- **check** `RunRequest` → `string` (serviceHandler): writes public.speed_runs; reads public.companies, public.documents, public.people, public.runs, public.sms_contacts, public.sms_messages, public.sms_numbers
+- **email** `RunRequest` → `EmailOutcome` (serviceHandler): writes public.speed_runs, public.template_versions, public.templates; reads public.companies, public.documents, public.people, public.sms_contacts, public.sms_numbers
+- **first** `FirstRequest` → `Stepped` (serviceHandler): writes pipeline.deals, pipeline.instances, public.profile_events, public.profile_findings, public.profile_keys, public.profile_lookups, public.profile_merges, public.profile_trait_events, public.profile_traits, public.profiles, public.sms_calls, public.sms_contacts, public.sms_messages, public.speed_runs; reads calendar.bookings, pipeline.shape_versions, public.call_bookings, public.chat_messages, public.chat_threads, public.client_members, public.clients, public.companies, public.consent_events, public.consents, public.contact_candidates, public.documents, public.email_clicks, public.enrollments, public.imports, public.lead_channels, public.messages, public.open_events, public.people, public.profile_site_reads, public.runs, public.site_form_defs, public.site_forms, public.site_pages, public.sms_numbers, public.social_handles, public.suppressions, public.template_versions, public.templates, public.thread_events, public.topics, public.touches

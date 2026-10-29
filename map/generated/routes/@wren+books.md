@@ -6,4 +6,4 @@ Services: 1.
 
 File: packages/books/src/console.ts
 
-- **setAccount** `AccountRequest` → `{ done: string[]; }` (serviceHandler)
+- **setAccount** `AccountRequest` → `{ done: string[]; }` (serviceHandler): writes books.accounts

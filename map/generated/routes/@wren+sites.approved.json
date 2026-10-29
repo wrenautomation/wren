@@ -485,5 +485,2386 @@
    }
   }
  ],
- "edges": []
+ "edges": [
+  {
+   "from": "route:Sites/form",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Sites/form",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Sites/form",
+   "to": "table:public.hooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Sites/form",
+   "to": "table:public.site_form_defs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Sites/form",
+   "to": "table:public.site_form_splits",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Sites/form",
+   "to": "table:public.site_pages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Sites/form",
+   "to": "table:public.site_split_arms",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Sites/form",
+   "to": "table:public.site_splits",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Sites/form",
+   "to": "table:pipeline.deals",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Sites/form",
+   "to": "table:pipeline.instances",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Sites/form",
+   "to": "table:public.profile_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Sites/form",
+   "to": "table:public.profile_findings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Sites/form",
+   "to": "table:public.profile_keys",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Sites/form",
+   "to": "table:public.profile_lookups",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Sites/form",
+   "to": "table:public.profile_merges",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Sites/form",
+   "to": "table:public.profile_trait_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Sites/form",
+   "to": "table:public.profile_traits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Sites/form",
+   "to": "table:public.profiles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Sites/form",
+   "to": "table:public.site_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Sites/form",
+   "to": "table:public.site_forms",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Sites/hop",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Sites/hop",
+   "to": "table:public.hooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Sites/hop",
+   "to": "table:public.site_pages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Sites/hop",
+   "to": "table:public.site_hops",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Sites/serve",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Sites/serve",
+   "to": "table:public.hooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Sites/serve",
+   "to": "table:public.site_form_defs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Sites/serve",
+   "to": "table:public.site_page_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Sites/serve",
+   "to": "table:public.site_pages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Sites/serve",
+   "to": "table:public.site_split_arms",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Sites/serve",
+   "to": "table:public.site_splits",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Sites/serveForm",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Sites/serveForm",
+   "to": "table:public.hooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Sites/serveForm",
+   "to": "table:public.site_form_defs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Sites/serveForm",
+   "to": "table:public.site_form_splits",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Sites/track",
+   "to": "table:public.site_form_defs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Sites/track",
+   "to": "table:public.site_form_splits",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Sites/track",
+   "to": "table:public.site_pages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Sites/track",
+   "to": "table:public.site_split_arms",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Sites/track",
+   "to": "table:public.site_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SitesConsole/add",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/add",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/add",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/add",
+   "to": "table:public.hooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/add",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/add",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/add",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/add",
+   "to": "table:public.site_pages",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SitesConsole/approve",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/approve",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/approve",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/approve",
+   "to": "table:public.hooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/approve",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/approve",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/approve",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/approve",
+   "to": "table:public.site_pages",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SitesConsole/approve",
+   "to": "table:public.site_splits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SitesConsole/ask",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/ask",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/ask",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/ask",
+   "to": "table:public.hooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/ask",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/ask",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/ask",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/ask",
+   "to": "table:public.site_page_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/ask",
+   "to": "table:public.site_pages",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SitesConsole/create",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/create",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/create",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/create",
+   "to": "table:public.hooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/create",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/create",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/create",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/create",
+   "to": "table:public.wren_settings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/create",
+   "to": "table:public.site_page_versions",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SitesConsole/create",
+   "to": "table:public.site_pages",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SitesConsole/decline",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/decline",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/decline",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/decline",
+   "to": "table:public.hooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/decline",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/decline",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/decline",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/decline",
+   "to": "table:public.site_pages",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SitesConsole/decline",
+   "to": "table:public.site_splits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SitesConsole/detail",
+   "to": "table:public.ad_days",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/detail",
+   "to": "table:public.ad_launches",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/detail",
+   "to": "table:public.call_bookings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/detail",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/detail",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/detail",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/detail",
+   "to": "table:public.hooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/detail",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/detail",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/detail",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/detail",
+   "to": "table:public.site_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/detail",
+   "to": "table:public.site_forms",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/detail",
+   "to": "table:public.site_hops",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/detail",
+   "to": "table:public.site_page_records",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/detail",
+   "to": "table:public.site_page_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/detail",
+   "to": "table:public.site_pages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/detail",
+   "to": "table:public.site_split_arms",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/detail",
+   "to": "table:public.site_splits",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/draft",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/draft",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/draft",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/draft",
+   "to": "table:public.hooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/draft",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/draft",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/draft",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/draft",
+   "to": "table:public.wren_settings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/draft",
+   "to": "table:public.site_page_versions",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SitesConsole/draft",
+   "to": "table:public.site_pages",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SitesConsole/duplicate",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/duplicate",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/duplicate",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/duplicate",
+   "to": "table:public.hooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/duplicate",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/duplicate",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/duplicate",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/duplicate",
+   "to": "table:public.site_page_versions",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SitesConsole/duplicate",
+   "to": "table:public.site_pages",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SitesConsole/formCreate",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formCreate",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formCreate",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formCreate",
+   "to": "table:public.hooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formCreate",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formCreate",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formCreate",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formCreate",
+   "to": "table:public.site_form_defs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SitesConsole/formDetail",
+   "to": "table:public.client_domains",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formDetail",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formDetail",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formDetail",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formDetail",
+   "to": "table:public.hooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formDetail",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formDetail",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formDetail",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formDetail",
+   "to": "table:public.site_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formDetail",
+   "to": "table:public.site_form_defs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formDetail",
+   "to": "table:public.site_form_splits",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formDetail",
+   "to": "table:public.site_forms",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formDetail",
+   "to": "table:public.site_pages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formDetail",
+   "to": "table:public.site_splits",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formPublish",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formPublish",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formPublish",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formPublish",
+   "to": "table:public.hooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formPublish",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formPublish",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formPublish",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formPublish",
+   "to": "table:public.site_form_defs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SitesConsole/formRetire",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formRetire",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formRetire",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formRetire",
+   "to": "table:public.hooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formRetire",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formRetire",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formRetire",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formRetire",
+   "to": "table:public.site_form_defs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SitesConsole/formSave",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formSave",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formSave",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formSave",
+   "to": "table:public.hooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formSave",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formSave",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formSave",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formSave",
+   "to": "table:public.site_form_defs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SitesConsole/formSplitSave",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formSplitSave",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formSplitSave",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formSplitSave",
+   "to": "table:public.hooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formSplitSave",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formSplitSave",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formSplitSave",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formSplitSave",
+   "to": "table:public.site_form_defs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formSplitSave",
+   "to": "table:public.site_form_splits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SitesConsole/formSplitShip",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formSplitShip",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formSplitShip",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formSplitShip",
+   "to": "table:public.hooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formSplitShip",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formSplitShip",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formSplitShip",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formSplitShip",
+   "to": "table:public.site_form_defs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SitesConsole/formSplitShip",
+   "to": "table:public.site_form_splits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SitesConsole/formSplitStart",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formSplitStart",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formSplitStart",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formSplitStart",
+   "to": "table:public.hooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formSplitStart",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formSplitStart",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formSplitStart",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formSplitStart",
+   "to": "table:public.site_form_defs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formSplitStart",
+   "to": "table:public.site_form_splits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SitesConsole/formSplitStop",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formSplitStop",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formSplitStop",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formSplitStop",
+   "to": "table:public.hooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formSplitStop",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formSplitStop",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formSplitStop",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formSplitStop",
+   "to": "table:public.site_form_defs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SitesConsole/formSplitStop",
+   "to": "table:public.site_form_splits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SitesConsole/formUnpublish",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formUnpublish",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formUnpublish",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formUnpublish",
+   "to": "table:public.hooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formUnpublish",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formUnpublish",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formUnpublish",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/formUnpublish",
+   "to": "table:public.site_form_defs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SitesConsole/forms",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/forms",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/forms",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/forms",
+   "to": "table:public.hooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/forms",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/forms",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/forms",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/forms",
+   "to": "table:public.site_form_defs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/linkCreate",
+   "to": "table:public.client_domains",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/linkCreate",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/linkCreate",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/linkCreate",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/linkCreate",
+   "to": "table:public.hooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/linkCreate",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/linkCreate",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/linkCreate",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/linkCreate",
+   "to": "table:public.site_pages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/linkCreate",
+   "to": "table:public.site_links",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SitesConsole/linkTargets",
+   "to": "table:public.client_domains",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/linkTargets",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/linkTargets",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/linkTargets",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/linkTargets",
+   "to": "table:public.hooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/linkTargets",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/linkTargets",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/linkTargets",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/linkTargets",
+   "to": "table:public.site_pages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/notes",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/notes",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/notes",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/notes",
+   "to": "table:public.hooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/notes",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/notes",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/notes",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/notes",
+   "to": "table:public.site_pages",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SitesConsole/offers",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/offers",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/offers",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/offers",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/offers",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/offers",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsExport",
+   "to": "table:public.ad_days",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsExport",
+   "to": "table:public.ad_launches",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsExport",
+   "to": "table:public.call_bookings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsExport",
+   "to": "table:public.changes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsExport",
+   "to": "table:public.client_domains",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsExport",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsExport",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsExport",
+   "to": "table:public.custom_field_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsExport",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsExport",
+   "to": "table:public.draft_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsExport",
+   "to": "table:public.draft_outcomes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsExport",
+   "to": "table:public.draft_people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsExport",
+   "to": "table:public.hooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsExport",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsExport",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsExport",
+   "to": "table:public.site_entry_records",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsExport",
+   "to": "table:public.site_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsExport",
+   "to": "table:public.site_form_defs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsExport",
+   "to": "table:public.site_form_records",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsExport",
+   "to": "table:public.site_form_splits",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsExport",
+   "to": "table:public.site_forms",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsExport",
+   "to": "table:public.site_hops",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsExport",
+   "to": "table:public.site_link_records",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsExport",
+   "to": "table:public.site_page_records",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsExport",
+   "to": "table:public.site_page_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsExport",
+   "to": "table:public.site_pages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsExport",
+   "to": "table:public.site_split_arms",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsExport",
+   "to": "table:public.site_splits",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsGet",
+   "to": "table:public.ad_days",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsGet",
+   "to": "table:public.ad_launches",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsGet",
+   "to": "table:public.call_bookings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsGet",
+   "to": "table:public.changes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsGet",
+   "to": "table:public.client_domains",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsGet",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsGet",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsGet",
+   "to": "table:public.custom_field_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsGet",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsGet",
+   "to": "table:public.draft_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsGet",
+   "to": "table:public.draft_outcomes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsGet",
+   "to": "table:public.draft_people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsGet",
+   "to": "table:public.hooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsGet",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsGet",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsGet",
+   "to": "table:public.site_entry_records",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsGet",
+   "to": "table:public.site_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsGet",
+   "to": "table:public.site_form_defs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsGet",
+   "to": "table:public.site_form_records",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsGet",
+   "to": "table:public.site_form_splits",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsGet",
+   "to": "table:public.site_forms",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsGet",
+   "to": "table:public.site_hops",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsGet",
+   "to": "table:public.site_link_records",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsGet",
+   "to": "table:public.site_page_records",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsGet",
+   "to": "table:public.site_page_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsGet",
+   "to": "table:public.site_pages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsGet",
+   "to": "table:public.site_split_arms",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsGet",
+   "to": "table:public.site_splits",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsList",
+   "to": "table:public.ad_days",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsList",
+   "to": "table:public.ad_launches",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsList",
+   "to": "table:public.call_bookings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsList",
+   "to": "table:public.changes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsList",
+   "to": "table:public.client_domains",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsList",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsList",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsList",
+   "to": "table:public.custom_field_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsList",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsList",
+   "to": "table:public.draft_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsList",
+   "to": "table:public.draft_outcomes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsList",
+   "to": "table:public.draft_people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsList",
+   "to": "table:public.hooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsList",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsList",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsList",
+   "to": "table:public.site_entry_records",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsList",
+   "to": "table:public.site_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsList",
+   "to": "table:public.site_form_defs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsList",
+   "to": "table:public.site_form_records",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsList",
+   "to": "table:public.site_form_splits",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsList",
+   "to": "table:public.site_forms",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsList",
+   "to": "table:public.site_hops",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsList",
+   "to": "table:public.site_link_records",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsList",
+   "to": "table:public.site_page_records",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsList",
+   "to": "table:public.site_page_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsList",
+   "to": "table:public.site_pages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsList",
+   "to": "table:public.site_split_arms",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsList",
+   "to": "table:public.site_splits",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsStats",
+   "to": "table:public.ad_days",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsStats",
+   "to": "table:public.ad_launches",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsStats",
+   "to": "table:public.call_bookings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsStats",
+   "to": "table:public.changes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsStats",
+   "to": "table:public.client_domains",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsStats",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsStats",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsStats",
+   "to": "table:public.custom_field_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsStats",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsStats",
+   "to": "table:public.draft_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsStats",
+   "to": "table:public.draft_outcomes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsStats",
+   "to": "table:public.draft_people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsStats",
+   "to": "table:public.hooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsStats",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsStats",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsStats",
+   "to": "table:public.site_entry_records",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsStats",
+   "to": "table:public.site_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsStats",
+   "to": "table:public.site_form_defs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsStats",
+   "to": "table:public.site_form_records",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsStats",
+   "to": "table:public.site_form_splits",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsStats",
+   "to": "table:public.site_forms",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsStats",
+   "to": "table:public.site_hops",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsStats",
+   "to": "table:public.site_link_records",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsStats",
+   "to": "table:public.site_page_records",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsStats",
+   "to": "table:public.site_page_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsStats",
+   "to": "table:public.site_pages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsStats",
+   "to": "table:public.site_split_arms",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsStats",
+   "to": "table:public.site_splits",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsTypes",
+   "to": "table:public.ad_days",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsTypes",
+   "to": "table:public.ad_launches",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsTypes",
+   "to": "table:public.call_bookings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsTypes",
+   "to": "table:public.client_domains",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsTypes",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsTypes",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsTypes",
+   "to": "table:public.hooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsTypes",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsTypes",
+   "to": "table:public.site_entry_records",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsTypes",
+   "to": "table:public.site_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsTypes",
+   "to": "table:public.site_form_defs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsTypes",
+   "to": "table:public.site_form_records",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsTypes",
+   "to": "table:public.site_form_splits",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsTypes",
+   "to": "table:public.site_forms",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsTypes",
+   "to": "table:public.site_hops",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsTypes",
+   "to": "table:public.site_link_records",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsTypes",
+   "to": "table:public.site_page_records",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsTypes",
+   "to": "table:public.site_page_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsTypes",
+   "to": "table:public.site_pages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsTypes",
+   "to": "table:public.site_split_arms",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/recordsTypes",
+   "to": "table:public.site_splits",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/retire",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/retire",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/retire",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/retire",
+   "to": "table:public.hooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/retire",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/retire",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/retire",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/retire",
+   "to": "table:public.site_pages",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SitesConsole/retireAsk",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/retireAsk",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/retireAsk",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/retireAsk",
+   "to": "table:public.hooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/retireAsk",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/retireAsk",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/retireAsk",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/retireAsk",
+   "to": "table:public.site_split_arms",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/retireAsk",
+   "to": "table:public.site_splits",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/retireAsk",
+   "to": "table:public.site_pages",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SitesConsole/rewrite",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/rewrite",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/rewrite",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/rewrite",
+   "to": "table:public.hooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/rewrite",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/rewrite",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/rewrite",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/rewrite",
+   "to": "table:public.wren_settings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/rewrite",
+   "to": "table:public.site_page_versions",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SitesConsole/rewrite",
+   "to": "table:public.site_pages",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SitesConsole/save",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/save",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/save",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/save",
+   "to": "table:public.hooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/save",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/save",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/save",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/save",
+   "to": "table:public.site_page_versions",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SitesConsole/save",
+   "to": "table:public.site_pages",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SitesConsole/share",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/share",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/share",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/share",
+   "to": "table:public.hooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/share",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/share",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/share",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/share",
+   "to": "table:public.site_page_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/share",
+   "to": "table:public.site_pages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/splitShip",
+   "to": "table:public.call_bookings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/splitShip",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/splitShip",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/splitShip",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/splitShip",
+   "to": "table:public.hooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/splitShip",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/splitShip",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/splitShip",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/splitShip",
+   "to": "table:public.site_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/splitShip",
+   "to": "table:public.site_forms",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/splitShip",
+   "to": "table:public.site_split_arms",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/splitShip",
+   "to": "table:public.site_page_versions",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SitesConsole/splitShip",
+   "to": "table:public.site_pages",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SitesConsole/splitShip",
+   "to": "table:public.site_splits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SitesConsole/splitStart",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/splitStart",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/splitStart",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/splitStart",
+   "to": "table:public.hooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/splitStart",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/splitStart",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/splitStart",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/splitStart",
+   "to": "table:public.site_pages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/splitStart",
+   "to": "table:public.site_split_arms",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SitesConsole/splitStart",
+   "to": "table:public.site_splits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SitesConsole/splitStop",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/splitStop",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/splitStop",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/splitStop",
+   "to": "table:public.hooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/splitStop",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/splitStop",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/splitStop",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/splitStop",
+   "to": "table:public.site_pages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/splitStop",
+   "to": "table:public.site_split_arms",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/splitStop",
+   "to": "table:public.site_splits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SitesConsole/splitWeights",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/splitWeights",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/splitWeights",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/splitWeights",
+   "to": "table:public.hooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/splitWeights",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/splitWeights",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/splitWeights",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/splitWeights",
+   "to": "table:public.site_pages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SitesConsole/splitWeights",
+   "to": "table:public.site_split_arms",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SitesConsole/splitWeights",
+   "to": "table:public.site_splits",
+   "kind": "writes"
+  }
+ ]
 }

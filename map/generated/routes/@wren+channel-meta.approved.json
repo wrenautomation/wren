@@ -155,5 +155,106 @@
    }
   }
  ],
- "edges": []
+ "edges": [
+  {
+   "from": "route:Ads/audit",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Ads/audit",
+   "to": "table:public.wren_settings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Ads/launch",
+   "to": "table:public.ad_launches",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Ads/leadConsents",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Ads/leadConsents",
+   "to": "table:public.topics",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Ads/leadConsents",
+   "to": "table:pipeline.deals",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Ads/leadConsents",
+   "to": "table:pipeline.instances",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Ads/leadConsents",
+   "to": "table:public.consent_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Ads/leadConsents",
+   "to": "table:public.consents",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Ads/leadConsents",
+   "to": "table:public.profile_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Ads/leadConsents",
+   "to": "table:public.profile_findings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Ads/leadConsents",
+   "to": "table:public.profile_keys",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Ads/leadConsents",
+   "to": "table:public.profile_lookups",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Ads/leadConsents",
+   "to": "table:public.profile_merges",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Ads/leadConsents",
+   "to": "table:public.profile_trait_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Ads/leadConsents",
+   "to": "table:public.profile_traits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Ads/leadConsents",
+   "to": "table:public.profiles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Ads/resume",
+   "to": "table:public.ad_launches",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Ads/start",
+   "to": "table:public.ad_launches",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Ads/stop",
+   "to": "table:public.ad_launches",
+   "kind": "writes"
+  }
+ ]
 }

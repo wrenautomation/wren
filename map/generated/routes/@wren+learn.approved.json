@@ -52,7 +52,7 @@
    "group": "@wren/learn",
    "attrs": {
     "input": "BrowseRequest",
-    "output": "{ place: string; sort: \"length\" | \"title\" | \"score\" | \"source\" | \"newest\"; items: (import(\"./drive.js\").Card & { pick: import(\"./decide.js\").LearnPick | null; })[]; more: boolean; total: number; types: Partial<Record<import(\"./schema.js\").ItemType, number>>; sources: { n: number; id: number; name: string; kind: \"reddit\" | \"instagram\" | \"x\" | \"youtube\" | \"tiktok\" | \"newsletter\" | \"podcast\" | \"blog\" | \"forum\" | \"releases\"; avatar: string | null; }[]; }",
+    "output": "{ place: string; sort: \"length\" | \"title\" | \"score\" | \"source\" | \"newest\"; items: (import(\"./drive.js\").Card & { pick: import(\"./decide.js\").LearnPick | null; })[]; more: boolean; total: number; types: Partial<Record<import(\"./schema.js\").ItemType, number>>; sources: { n: number; id: number; name: string; kind: \"instagram\" | \"x\" | \"youtube\" | \"tiktok\" | \"reddit\" | \"podcast\" | \"newsletter\" | \"blog\" | \"forum\" | \"releases\"; avatar: string | null; }[]; }",
     "wrap": "serviceHandler"
    }
   },
@@ -129,7 +129,7 @@
    "group": "@wren/learn",
    "attrs": {
     "input": "FollowRequest",
-    "output": "{ id: string; name: string; kind: \"reddit\" | \"instagram\" | \"x\" | \"youtube\" | \"tiktok\" | \"newsletter\" | \"podcast\" | \"blog\" | \"forum\" | \"releases\"; items: number; }",
+    "output": "{ id: string; name: string; kind: \"instagram\" | \"x\" | \"youtube\" | \"tiktok\" | \"reddit\" | \"podcast\" | \"newsletter\" | \"blog\" | \"forum\" | \"releases\"; items: number; }",
     "wrap": "serviceHandler"
    }
   },
@@ -140,7 +140,7 @@
    "group": "@wren/learn",
    "attrs": {
     "input": "PortalRequest",
-    "output": "{ shelves: { type: \"link\" | \"reddit\" | \"instagram\" | \"x\" | \"youtube\" | \"tiktok\" | \"newsletter\" | \"podcast\" | \"blog\" | \"releases\" | \"shorts\"; total: number; items: (import(\"./drive.js\").Card & { pick: import(\"./decide.js\").LearnPick | null; })[]; }[]; continue: (import(\"./drive.js\").Card & { pick: import(\"./decide.js\").LearnPick | null; })[]; top: (import(\"./drive.js\").Card & { pick: import(\"./decide.js\").LearnPick | null; })[]; sops: { at: string; id: number; sop: string; state: \"failed\" | \"asked\" | \"added\"; error: string | null; itemId: number | null; title: string; type: \"link\" | \"reddit\" | \"instagram\" | \"x\" | \"youtube\" | \"tiktok\" | \"newsletter\" | \"podcast\" | \"blog\" | \"releases\" | \"shorts\"; }[]; }",
+    "output": "{ shelves: { type: \"link\" | \"instagram\" | \"x\" | \"youtube\" | \"tiktok\" | \"reddit\" | \"podcast\" | \"newsletter\" | \"blog\" | \"releases\" | \"shorts\"; total: number; items: (import(\"./drive.js\").Card & { pick: import(\"./decide.js\").LearnPick | null; })[]; }[]; continue: (import(\"./drive.js\").Card & { pick: import(\"./decide.js\").LearnPick | null; })[]; top: (import(\"./drive.js\").Card & { pick: import(\"./decide.js\").LearnPick | null; })[]; sops: { at: string; id: number; sop: string; state: \"failed\" | \"added\" | \"asked\"; error: string | null; itemId: number | null; title: string; type: \"link\" | \"instagram\" | \"x\" | \"youtube\" | \"tiktok\" | \"reddit\" | \"podcast\" | \"newsletter\" | \"blog\" | \"releases\" | \"shorts\"; }[]; }",
     "wrap": "serviceHandler"
    }
   },
@@ -151,7 +151,7 @@
    "group": "@wren/learn",
    "attrs": {
     "input": "ItemRequest",
-    "output": "{ pick: \"keep\" | \"drop\" | null; text: string; transcript: string | null; file: string | null; mediaUrl: string | null; moments: import(\"./schema.js\").Moment[]; why: string | null; changes: string[]; verdict: \"drop\" | \"show\" | \"hold\" | null; failure: string | null; kind: \"post\" | \"article\" | \"video\" | \"reel\" | \"film\" | \"episode\"; breakdown: { kind: \"post\" | \"article\" | \"video\" | \"reel\" | \"film\" | \"episode\"; by: \"model\" | \"hand\"; facts: import(\"./calls.js\").FactRow[]; shots: { t: number; len: number; src: \"hand\" | \"scene\"; type: \"ui\" | \"b-roll\" | \"graphic\" | \"logo\" | \"text-card\" | \"talking-head\" | null; move: \"push\" | \"static\" | \"pull\" | \"pan\" | \"track\" | \"orbit\" | \"roll\" | \"rack-focus\" | \"macro\" | \"ui-zoom\" | null; in: \"cut\" | \"dissolve\" | \"fade\" | \"whip\" | null; text: string | null; sound: \"music\" | \"vo\" | \"both\" | \"silent\" | null; note?: string | undefined; }[]; calls: { at: string; path: string; call: import(\"./calls.js\").FactCall; comment: string | null; by: string | null; }[]; } | null; collection: { id: number; name: string; } | null; sops: { id: number; itemId: number | null; noteId: string | null; client: string | null; title: string | null; text: string | null; sop: string; state: \"failed\" | \"asked\" | \"added\"; file: string | null; points: Date | null; error: string | null; by: string | null; askedAt: Date; doneAt: Date | null; }[]; id: number; title: string; type: import(\"./schema.js\").ItemType; url: string; thumbnail: string | null; duration: number | null; chars: number; source: { id: number; name: string; kind: import(\"./schema.js\").SourceKind; avatar: string | null; } | null; creator: string | null; score: number | null; summary: string | null; status: \"unread\" | \"read\" | \"archived\"; state: \"reading\" | \"failed\" | \"mac\" | \"scoring\" | \"ready\"; starred: boolean; pinned: boolean; later: boolean; position: number | null; collectionId: number | null; tags: string[]; saved: boolean; at: string; }",
+    "output": "{ pick: \"keep\" | \"drop\" | null; text: string; transcript: string | null; file: string | null; mediaUrl: string | null; moments: import(\"./schema.js\").Moment[]; why: string | null; changes: string[]; verdict: \"drop\" | \"show\" | \"hold\" | null; failure: string | null; kind: \"post\" | \"video\" | \"article\" | \"reel\" | \"film\" | \"episode\"; breakdown: { kind: \"post\" | \"video\" | \"article\" | \"reel\" | \"film\" | \"episode\"; by: \"model\" | \"hand\"; facts: import(\"./calls.js\").FactRow[]; shots: { t: number; len: number; src: \"hand\" | \"scene\"; type: \"logo\" | \"ui\" | \"b-roll\" | \"graphic\" | \"text-card\" | \"talking-head\" | null; move: \"push\" | \"static\" | \"pull\" | \"pan\" | \"track\" | \"orbit\" | \"roll\" | \"rack-focus\" | \"macro\" | \"ui-zoom\" | null; in: \"cut\" | \"dissolve\" | \"fade\" | \"whip\" | null; text: string | null; sound: \"both\" | \"music\" | \"vo\" | \"silent\" | null; note?: string | undefined; }[]; calls: { at: string; path: string; call: import(\"./calls.js\").FactCall; comment: string | null; by: string | null; }[]; } | null; collection: { id: number; name: string; } | null; sops: { id: number; itemId: number | null; noteId: string | null; client: string | null; title: string | null; text: string | null; sop: string; state: \"failed\" | \"added\" | \"asked\"; file: string | null; points: Date | null; error: string | null; by: string | null; askedAt: Date; doneAt: Date | null; }[]; id: number; title: string; type: import(\"./schema.js\").ItemType; url: string; thumbnail: string | null; duration: number | null; chars: number; source: { id: number; name: string; kind: import(\"./schema.js\").SourceKind; avatar: string | null; } | null; creator: string | null; score: number | null; summary: string | null; status: \"unread\" | \"read\" | \"archived\"; state: \"reading\" | \"failed\" | \"mac\" | \"scoring\" | \"ready\"; starred: boolean; pinned: boolean; later: boolean; position: number | null; collectionId: number | null; tags: string[]; saved: boolean; at: string; }",
     "wrap": "serviceHandler"
    }
   },
@@ -217,7 +217,7 @@
    "group": "@wren/learn",
    "attrs": {
     "input": "PortalRequest",
-    "output": "{ places: { inbox: number; all: number; later: number; starred: number; saved: number; archived: number; }; collections: { n: number; id: number; name: string; parentId: number | null; }[]; sources: { kind: \"reddit\" | \"instagram\" | \"x\" | \"youtube\" | \"tiktok\" | \"newsletter\" | \"podcast\" | \"blog\" | \"forum\" | \"releases\"; sources: { fresh: number; id: number; name: string; kind: \"reddit\" | \"instagram\" | \"x\" | \"youtube\" | \"tiktok\" | \"newsletter\" | \"podcast\" | \"blog\" | \"forum\" | \"releases\"; avatar: string | null; stopped: boolean; failure: string | null; }[]; }[]; tags: { n: number; tag: string; }[]; }",
+    "output": "{ places: { inbox: number; all: number; later: number; starred: number; saved: number; archived: number; }; collections: { n: number; id: number; name: string; parentId: number | null; }[]; sources: { kind: \"instagram\" | \"x\" | \"youtube\" | \"tiktok\" | \"reddit\" | \"podcast\" | \"newsletter\" | \"blog\" | \"forum\" | \"releases\"; sources: { fresh: number; id: number; name: string; kind: \"instagram\" | \"x\" | \"youtube\" | \"tiktok\" | \"reddit\" | \"podcast\" | \"newsletter\" | \"blog\" | \"forum\" | \"releases\"; avatar: string | null; stopped: boolean; failure: string | null; }[]; }[]; tags: { n: number; tag: string; }[]; }",
     "wrap": "serviceHandler"
    }
   },
@@ -239,7 +239,7 @@
    "group": "@wren/learn",
    "attrs": {
     "input": "SaveRequest",
-    "output": "{ id: string; url: string; kind: \"post\" | \"article\" | \"video\" | \"reel\" | \"film\" | \"episode\"; fresh: boolean; unread: boolean; }",
+    "output": "{ id: string; url: string; kind: \"post\" | \"video\" | \"article\" | \"reel\" | \"film\" | \"episode\"; fresh: boolean; unread: boolean; }",
     "wrap": "serviceHandler"
    }
   },
@@ -272,7 +272,7 @@
    "group": "@wren/learn",
    "attrs": {
     "input": "PortalRequest",
-    "output": "{ may: boolean; kinds: { sources: { alert: \"every\" | \"off\" | \"top\" | null; items: number; fresh: number; last: string | null; id: number; name: string; url: string; page: string | null; kind: \"reddit\" | \"instagram\" | \"x\" | \"youtube\" | \"tiktok\" | \"newsletter\" | \"podcast\" | \"blog\" | \"forum\" | \"releases\"; avatar: string | null; tell: \"every\" | \"digest\" | \"top\"; failure: string | null; stopped: boolean; fetchedAt: Date | null; top: number | null; }[]; kind: \"reddit\" | \"instagram\" | \"x\" | \"youtube\" | \"tiktok\" | \"newsletter\" | \"podcast\" | \"blog\" | \"forum\" | \"releases\"; }[]; }",
+    "output": "{ may: boolean; kinds: { sources: { alert: \"every\" | \"off\" | \"top\" | null; items: number; fresh: number; last: string | null; id: number; name: string; url: string; page: string | null; kind: \"instagram\" | \"x\" | \"youtube\" | \"tiktok\" | \"reddit\" | \"podcast\" | \"newsletter\" | \"blog\" | \"forum\" | \"releases\"; avatar: string | null; tell: \"every\" | \"digest\" | \"top\"; failure: string | null; stopped: boolean; fetchedAt: Date | null; top: number | null; }[]; kind: \"instagram\" | \"x\" | \"youtube\" | \"tiktok\" | \"reddit\" | \"podcast\" | \"newsletter\" | \"blog\" | \"forum\" | \"releases\"; }[]; }",
     "wrap": "serviceHandler"
    }
   },
@@ -375,5 +375,1621 @@
    }
   }
  ],
- "edges": []
+ "edges": [
+  {
+   "from": "route:LearnConsole/alertPick",
+   "to": "table:learn.sources",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/alertPick",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/alertPick",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/alertPick",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/alertPick",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/alertPick",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/alertPick",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/alertPick",
+   "to": "table:learn.alert_picks",
+   "kind": "writes"
+  },
+  {
+   "from": "route:LearnConsole/alertPick",
+   "to": "table:learn.readers",
+   "kind": "writes"
+  },
+  {
+   "from": "route:LearnConsole/alerts",
+   "to": "table:learn.alert_picks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/alerts",
+   "to": "table:learn.readers",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/alerts",
+   "to": "table:learn.settings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/alerts",
+   "to": "table:learn.sources",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/alerts",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/alerts",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/alerts",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/alerts",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/alerts",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/alerts",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/bell",
+   "to": "table:learn.alerts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/bell",
+   "to": "table:learn.collections",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/bell",
+   "to": "table:learn.items",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/bell",
+   "to": "table:learn.sources",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/bell",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/bell",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/bell",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/bell",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/bell",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/bell",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/bell",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/bellSeen",
+   "to": "table:learn.items",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/bellSeen",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/bellSeen",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/bellSeen",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/bellSeen",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/bellSeen",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/bellSeen",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/bellSeen",
+   "to": "table:learn.alerts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:LearnConsole/browse",
+   "to": "table:learn.collections",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/browse",
+   "to": "table:learn.item_tags",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/browse",
+   "to": "table:learn.items",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/browse",
+   "to": "table:learn.sources",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/browse",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/browse",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/browse",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/browse",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/browse",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/browse",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/browse",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/browse",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/browse",
+   "to": "table:public.wren_settings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/call",
+   "to": "table:learn.breakdowns",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/call",
+   "to": "table:learn.collections",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/call",
+   "to": "table:learn.items",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/call",
+   "to": "table:learn.sources",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/call",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/call",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/call",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/call",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/call",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/call",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/call",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/call",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/call",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:LearnConsole/collectionAdd",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/collectionAdd",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/collectionAdd",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/collectionAdd",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/collectionAdd",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/collectionAdd",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/collectionAdd",
+   "to": "table:learn.collections",
+   "kind": "writes"
+  },
+  {
+   "from": "route:LearnConsole/collectionDrop",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/collectionDrop",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/collectionDrop",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/collectionDrop",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/collectionDrop",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/collectionDrop",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/collectionDrop",
+   "to": "table:learn.collections",
+   "kind": "writes"
+  },
+  {
+   "from": "route:LearnConsole/collectionEdit",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/collectionEdit",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/collectionEdit",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/collectionEdit",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/collectionEdit",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/collectionEdit",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/collectionEdit",
+   "to": "table:learn.collections",
+   "kind": "writes"
+  },
+  {
+   "from": "route:LearnConsole/digestMail",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/digestMail",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/digestMail",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/digestMail",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/digestMail",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/digestMail",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/digestMail",
+   "to": "table:learn.settings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:LearnConsole/find",
+   "to": "table:learn.collections",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/find",
+   "to": "table:learn.items",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/find",
+   "to": "table:learn.sources",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/find",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/find",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/find",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/find",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/find",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/find",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/find",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/follow",
+   "to": "table:learn.collections",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/follow",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/follow",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/follow",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/follow",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/follow",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/follow",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/follow",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/follow",
+   "to": "table:learn.items",
+   "kind": "writes"
+  },
+  {
+   "from": "route:LearnConsole/follow",
+   "to": "table:learn.sources",
+   "kind": "writes"
+  },
+  {
+   "from": "route:LearnConsole/home",
+   "to": "table:learn.collections",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/home",
+   "to": "table:learn.items",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/home",
+   "to": "table:learn.sop_sources",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/home",
+   "to": "table:learn.sources",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/home",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/home",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/home",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/home",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/home",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/home",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/home",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/home",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/home",
+   "to": "table:public.wren_settings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/item",
+   "to": "table:learn.breakdowns",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/item",
+   "to": "table:learn.collections",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/item",
+   "to": "table:learn.items",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/item",
+   "to": "table:learn.sop_sources",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/item",
+   "to": "table:learn.sources",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/item",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/item",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/item",
+   "to": "table:public.decision_calls",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/item",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/item",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/item",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/item",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/item",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/item",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/item",
+   "to": "table:public.wren_settings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/mark",
+   "to": "table:learn.collections",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/mark",
+   "to": "table:learn.sop_sources",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/mark",
+   "to": "table:learn.sources",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/mark",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/mark",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/mark",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/mark",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/mark",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/mark",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/mark",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/mark",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/mark",
+   "to": "table:learn.items",
+   "kind": "writes"
+  },
+  {
+   "from": "route:LearnConsole/mark",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:LearnConsole/media",
+   "to": "table:learn.collections",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/media",
+   "to": "table:learn.items",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/media",
+   "to": "table:learn.sources",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/media",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/media",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/media",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/media",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/media",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/media",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/media",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/move",
+   "to": "table:learn.collections",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/move",
+   "to": "table:learn.sources",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/move",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/move",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/move",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/move",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/move",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/move",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/move",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/move",
+   "to": "table:learn.items",
+   "kind": "writes"
+  },
+  {
+   "from": "route:LearnConsole/open",
+   "to": "table:learn.collections",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/open",
+   "to": "table:learn.sources",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/open",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/open",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/open",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/open",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/open",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/open",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/open",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/open",
+   "to": "table:learn.items",
+   "kind": "writes"
+  },
+  {
+   "from": "route:LearnConsole/progress",
+   "to": "table:learn.collections",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/progress",
+   "to": "table:learn.sources",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/progress",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/progress",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/progress",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/progress",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/progress",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/progress",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/progress",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/progress",
+   "to": "table:learn.items",
+   "kind": "writes"
+  },
+  {
+   "from": "route:LearnConsole/rail",
+   "to": "table:learn.collections",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/rail",
+   "to": "table:learn.item_tags",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/rail",
+   "to": "table:learn.items",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/rail",
+   "to": "table:learn.sources",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/rail",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/rail",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/rail",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/rail",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/rail",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/rail",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/rail",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/readAgain",
+   "to": "table:learn.collections",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/readAgain",
+   "to": "table:learn.sources",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/readAgain",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/readAgain",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/readAgain",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/readAgain",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/readAgain",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/readAgain",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/readAgain",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/readAgain",
+   "to": "table:learn.items",
+   "kind": "writes"
+  },
+  {
+   "from": "route:LearnConsole/save",
+   "to": "table:learn.collections",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/save",
+   "to": "table:learn.sources",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/save",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/save",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/save",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/save",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/save",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/save",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/save",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/save",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/save",
+   "to": "table:learn.items",
+   "kind": "writes"
+  },
+  {
+   "from": "route:LearnConsole/save",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:LearnConsole/search",
+   "to": "table:learn.collections",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/search",
+   "to": "table:learn.items",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/search",
+   "to": "table:learn.sources",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/search",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/search",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/search",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/search",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/search",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/search",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/search",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/seen",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/seen",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/seen",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/seen",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/seen",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/seen",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/seen",
+   "to": "table:learn.seen",
+   "kind": "writes"
+  },
+  {
+   "from": "route:LearnConsole/sources",
+   "to": "table:learn.alert_picks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/sources",
+   "to": "table:learn.items",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/sources",
+   "to": "table:learn.readers",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/sources",
+   "to": "table:learn.sources",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/sources",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/sources",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/sources",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/sources",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/sources",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/sources",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/tag",
+   "to": "table:learn.collections",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/tag",
+   "to": "table:learn.items",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/tag",
+   "to": "table:learn.sources",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/tag",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/tag",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/tag",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/tag",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/tag",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/tag",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/tag",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/tag",
+   "to": "table:learn.item_tags",
+   "kind": "writes"
+  },
+  {
+   "from": "route:LearnConsole/tell",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/tell",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/tell",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/tell",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/tell",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/tell",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/tell",
+   "to": "table:learn.sources",
+   "kind": "writes"
+  },
+  {
+   "from": "route:LearnConsole/toSop",
+   "to": "table:learn.collections",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/toSop",
+   "to": "table:learn.items",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/toSop",
+   "to": "table:learn.sources",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/toSop",
+   "to": "table:public.boards",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/toSop",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/toSop",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/toSop",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/toSop",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/toSop",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/toSop",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/toSop",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/toSop",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/toSop",
+   "to": "table:learn.sop_sources",
+   "kind": "writes"
+  },
+  {
+   "from": "route:LearnConsole/toSop",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:LearnConsole/toSop",
+   "to": "table:public.note_links",
+   "kind": "writes"
+  },
+  {
+   "from": "route:LearnConsole/toSop",
+   "to": "table:public.note_shares",
+   "kind": "writes"
+  },
+  {
+   "from": "route:LearnConsole/toSop",
+   "to": "table:public.note_updates",
+   "kind": "writes"
+  },
+  {
+   "from": "route:LearnConsole/toSop",
+   "to": "table:public.note_versions",
+   "kind": "writes"
+  },
+  {
+   "from": "route:LearnConsole/toSop",
+   "to": "table:public.notes",
+   "kind": "writes"
+  },
+  {
+   "from": "route:LearnConsole/today",
+   "to": "table:learn.alerts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/today",
+   "to": "table:learn.collections",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/today",
+   "to": "table:learn.items",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/today",
+   "to": "table:learn.sources",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/today",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/today",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/today",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/today",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/today",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/today",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/today",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/today",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/today",
+   "to": "table:public.wren_settings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/unfollow",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/unfollow",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/unfollow",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/unfollow",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/unfollow",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/unfollow",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/unfollow",
+   "to": "table:learn.sources",
+   "kind": "writes"
+  },
+  {
+   "from": "route:LearnConsole/unseen",
+   "to": "table:learn.collections",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/unseen",
+   "to": "table:learn.items",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/unseen",
+   "to": "table:learn.seen",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/unseen",
+   "to": "table:learn.sources",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/unseen",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/unseen",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/unseen",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/unseen",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/unseen",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/unseen",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnConsole/unseen",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnPictures/sign",
+   "to": "table:learn.items",
+   "kind": "reads"
+  },
+  {
+   "from": "route:LearnPictures/sign",
+   "to": "table:learn.sources",
+   "kind": "reads"
+  }
+ ]
 }

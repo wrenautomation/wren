@@ -19,7 +19,7 @@
    "group": "@wren/documents",
    "attrs": {
     "input": "{ id: string; by?: string | null }",
-    "output": "{ done: boolean; why?: never; did?: never; } | { done: boolean; why: string; did?: never; } | { done: boolean; did: \"cancelled\" | \"deleted\" | \"kept\"; why?: never; }",
+    "output": "{ done: boolean; why?: never; did?: never; } | { done: boolean; why: string; did?: never; } | { done: boolean; did: \"cancelled\" | \"kept\" | \"deleted\"; why?: never; }",
     "wrap": "serviceHandler"
    }
   },
@@ -287,5 +287,1251 @@
    }
   }
  ],
- "edges": []
+ "edges": [
+  {
+   "from": "route:Documents/act",
+   "to": "table:public.client_domains",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Documents/act",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Documents/act",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Documents/act",
+   "to": "table:public.custom_field_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Documents/act",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Documents/act",
+   "to": "table:public.custom_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Documents/act",
+   "to": "table:public.doc_templates",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Documents/act",
+   "to": "table:public.pay_links",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Documents/act",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Documents/act",
+   "to": "table:public.doc_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Documents/act",
+   "to": "table:public.docs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Documents/cancel",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Documents/cancel",
+   "to": "table:public.doc_templates",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Documents/cancel",
+   "to": "table:public.docs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Documents/deposit",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Documents/deposit",
+   "to": "table:public.custom_field_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Documents/deposit",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Documents/deposit",
+   "to": "table:public.custom_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Documents/deposit",
+   "to": "table:public.doc_templates",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Documents/deposit",
+   "to": "table:public.vendor_modes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Documents/deposit",
+   "to": "table:public.doc_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Documents/deposit",
+   "to": "table:public.docs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Documents/deposit",
+   "to": "table:public.pay_links",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Documents/pdf",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Documents/pdf",
+   "to": "table:public.custom_field_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Documents/pdf",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Documents/pdf",
+   "to": "table:public.custom_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Documents/pdf",
+   "to": "table:public.doc_templates",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Documents/pdf",
+   "to": "table:public.pay_links",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Documents/pdf",
+   "to": "table:public.doc_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Documents/pdf",
+   "to": "table:public.docs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Documents/send",
+   "to": "table:public.client_domains",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Documents/send",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Documents/send",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Documents/send",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Documents/send",
+   "to": "table:public.custom_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Documents/send",
+   "to": "table:public.doc_templates",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Documents/send",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Documents/send",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Documents/send",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Documents/send",
+   "to": "table:public.sms_numbers",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Documents/send",
+   "to": "table:public.suppressions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Documents/send",
+   "to": "table:public.doc_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Documents/send",
+   "to": "table:public.docs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Documents/send",
+   "to": "table:public.sms_contacts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Documents/send",
+   "to": "table:public.sms_messages",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Documents/serve",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Documents/serve",
+   "to": "table:public.custom_field_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Documents/serve",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Documents/serve",
+   "to": "table:public.custom_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Documents/serve",
+   "to": "table:public.doc_templates",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Documents/serve",
+   "to": "table:public.pay_links",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Documents/serve",
+   "to": "table:public.doc_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Documents/serve",
+   "to": "table:public.docs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Documents/signed",
+   "to": "table:public.client_domains",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Documents/signed",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Documents/signed",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Documents/signed",
+   "to": "table:public.doc_templates",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Documents/signed",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Documents/signed",
+   "to": "table:public.doc_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Documents/signed",
+   "to": "table:public.docs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DocumentsConsole/approve",
+   "to": "table:public.client_domains",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/approve",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/approve",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/approve",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/approve",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/approve",
+   "to": "table:public.custom_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/approve",
+   "to": "table:public.doc_templates",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/approve",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/approve",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/approve",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/approve",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/approve",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/approve",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/approve",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/approve",
+   "to": "table:public.sms_numbers",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/approve",
+   "to": "table:public.suppressions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/approve",
+   "to": "table:public.doc_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DocumentsConsole/approve",
+   "to": "table:public.docs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DocumentsConsole/approve",
+   "to": "table:public.sms_contacts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DocumentsConsole/approve",
+   "to": "table:public.sms_messages",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DocumentsConsole/create",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/create",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/create",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/create",
+   "to": "table:public.custom_field_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/create",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/create",
+   "to": "table:public.custom_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/create",
+   "to": "table:public.doc_templates",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/create",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/create",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/create",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/create",
+   "to": "table:public.sms_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/create",
+   "to": "table:public.sms_numbers",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/create",
+   "to": "table:public.doc_counters",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DocumentsConsole/create",
+   "to": "table:public.doc_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DocumentsConsole/create",
+   "to": "table:public.docs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DocumentsConsole/decline",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/decline",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/decline",
+   "to": "table:public.doc_templates",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/decline",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/decline",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/decline",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/decline",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/decline",
+   "to": "table:public.docs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DocumentsConsole/duplicate",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/duplicate",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/duplicate",
+   "to": "table:public.doc_templates",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/duplicate",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/duplicate",
+   "to": "table:public.doc_counters",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DocumentsConsole/duplicate",
+   "to": "table:public.doc_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DocumentsConsole/duplicate",
+   "to": "table:public.docs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DocumentsConsole/pdf",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/pdf",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/pdf",
+   "to": "table:public.doc_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/pdf",
+   "to": "table:public.doc_templates",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/pdf",
+   "to": "table:public.docs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/pdf",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsExport",
+   "to": "table:public.changes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsExport",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsExport",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsExport",
+   "to": "table:public.custom_field_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsExport",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsExport",
+   "to": "table:public.doc_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsExport",
+   "to": "table:public.doc_templates",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsExport",
+   "to": "table:public.docs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsExport",
+   "to": "table:public.draft_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsExport",
+   "to": "table:public.draft_outcomes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsExport",
+   "to": "table:public.draft_people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsExport",
+   "to": "table:public.pay_links",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsExport",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsExport",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsGet",
+   "to": "table:public.changes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsGet",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsGet",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsGet",
+   "to": "table:public.custom_field_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsGet",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsGet",
+   "to": "table:public.doc_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsGet",
+   "to": "table:public.doc_templates",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsGet",
+   "to": "table:public.docs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsGet",
+   "to": "table:public.draft_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsGet",
+   "to": "table:public.draft_outcomes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsGet",
+   "to": "table:public.draft_people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsGet",
+   "to": "table:public.pay_links",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsGet",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsGet",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsList",
+   "to": "table:public.changes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsList",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsList",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsList",
+   "to": "table:public.custom_field_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsList",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsList",
+   "to": "table:public.doc_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsList",
+   "to": "table:public.doc_templates",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsList",
+   "to": "table:public.docs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsList",
+   "to": "table:public.draft_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsList",
+   "to": "table:public.draft_outcomes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsList",
+   "to": "table:public.draft_people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsList",
+   "to": "table:public.pay_links",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsList",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsList",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsStats",
+   "to": "table:public.changes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsStats",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsStats",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsStats",
+   "to": "table:public.custom_field_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsStats",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsStats",
+   "to": "table:public.doc_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsStats",
+   "to": "table:public.doc_templates",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsStats",
+   "to": "table:public.docs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsStats",
+   "to": "table:public.draft_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsStats",
+   "to": "table:public.draft_outcomes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsStats",
+   "to": "table:public.draft_people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsStats",
+   "to": "table:public.pay_links",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsStats",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsStats",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsTypes",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsTypes",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsTypes",
+   "to": "table:public.doc_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsTypes",
+   "to": "table:public.docs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsTypes",
+   "to": "table:public.pay_links",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsTypes",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/recordsTypes",
+   "to": "table:public.doc_templates",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DocumentsConsole/remind",
+   "to": "table:public.client_domains",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/remind",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/remind",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/remind",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/remind",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/remind",
+   "to": "table:public.custom_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/remind",
+   "to": "table:public.doc_templates",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/remind",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/remind",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/remind",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/remind",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/remind",
+   "to": "table:public.sms_numbers",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/remind",
+   "to": "table:public.suppressions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/remind",
+   "to": "table:public.doc_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DocumentsConsole/remind",
+   "to": "table:public.docs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DocumentsConsole/remind",
+   "to": "table:public.sms_contacts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DocumentsConsole/remind",
+   "to": "table:public.sms_messages",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DocumentsConsole/send",
+   "to": "table:public.client_domains",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/send",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/send",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/send",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/send",
+   "to": "table:public.custom_field_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/send",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/send",
+   "to": "table:public.custom_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/send",
+   "to": "table:public.doc_templates",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/send",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/send",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/send",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/send",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/send",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/send",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/send",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/send",
+   "to": "table:public.sms_numbers",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/send",
+   "to": "table:public.suppressions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/send",
+   "to": "table:public.doc_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DocumentsConsole/send",
+   "to": "table:public.docs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DocumentsConsole/send",
+   "to": "table:public.sms_contacts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DocumentsConsole/send",
+   "to": "table:public.sms_messages",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DocumentsConsole/templateArchive",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/templateArchive",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/templateArchive",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/templateArchive",
+   "to": "table:public.doc_templates",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DocumentsConsole/templateSave",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/templateSave",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/templateSave",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/templateSave",
+   "to": "table:public.doc_templates",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DocumentsConsole/templates",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/templates",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/templates",
+   "to": "table:public.doc_templates",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/templates",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/templates",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/templates",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/templates",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/update",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/update",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/update",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/update",
+   "to": "table:public.doc_templates",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/update",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/update",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/update",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/update",
+   "to": "table:public.sms_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/update",
+   "to": "table:public.sms_numbers",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/update",
+   "to": "table:public.docs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DocumentsConsole/void",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/void",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/void",
+   "to": "table:public.doc_templates",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/void",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DocumentsConsole/void",
+   "to": "table:public.doc_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DocumentsConsole/void",
+   "to": "table:public.docs",
+   "kind": "writes"
+  }
+ ]
 }

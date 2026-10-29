@@ -177,5 +177,1201 @@
    }
   }
  ],
- "edges": []
+ "edges": [
+  {
+   "from": "route:Payments/send",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Payments/send",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Payments/send",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Payments/send",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Payments/send",
+   "to": "table:public.custom_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Payments/send",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Payments/send",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Payments/send",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Payments/send",
+   "to": "table:public.sms_numbers",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Payments/send",
+   "to": "table:public.suppressions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Payments/send",
+   "to": "table:public.vendor_modes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Payments/send",
+   "to": "table:pipeline.deals",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Payments/send",
+   "to": "table:pipeline.instances",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Payments/send",
+   "to": "table:public.pay_links",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Payments/send",
+   "to": "table:public.profile_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Payments/send",
+   "to": "table:public.profile_findings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Payments/send",
+   "to": "table:public.profile_keys",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Payments/send",
+   "to": "table:public.profile_lookups",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Payments/send",
+   "to": "table:public.profile_merges",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Payments/send",
+   "to": "table:public.profile_trait_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Payments/send",
+   "to": "table:public.profile_traits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Payments/send",
+   "to": "table:public.profiles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Payments/send",
+   "to": "table:public.sms_contacts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Payments/send",
+   "to": "table:public.sms_messages",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Payments/stripe",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Payments/stripe",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Payments/stripe",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Payments/stripe",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Payments/stripe",
+   "to": "table:public.pay_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Payments/stripe",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Payments/stripe",
+   "to": "table:public.sms_numbers",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Payments/stripe",
+   "to": "table:pipeline.deals",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Payments/stripe",
+   "to": "table:pipeline.instances",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Payments/stripe",
+   "to": "table:public.pay_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Payments/stripe",
+   "to": "table:public.pay_links",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Payments/stripe",
+   "to": "table:public.profile_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Payments/stripe",
+   "to": "table:public.profile_findings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Payments/stripe",
+   "to": "table:public.profile_keys",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Payments/stripe",
+   "to": "table:public.profile_lookups",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Payments/stripe",
+   "to": "table:public.profile_merges",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Payments/stripe",
+   "to": "table:public.profile_trait_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Payments/stripe",
+   "to": "table:public.profile_traits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Payments/stripe",
+   "to": "table:public.profiles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Payments/stripe",
+   "to": "table:public.sms_contacts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PaymentsConsole/again",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/again",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/again",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/again",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/again",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/again",
+   "to": "table:public.custom_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/again",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/again",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/again",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/again",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/again",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/again",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/again",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/again",
+   "to": "table:public.sms_numbers",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/again",
+   "to": "table:public.suppressions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/again",
+   "to": "table:public.vendor_modes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/again",
+   "to": "table:pipeline.deals",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PaymentsConsole/again",
+   "to": "table:pipeline.instances",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PaymentsConsole/again",
+   "to": "table:public.pay_links",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PaymentsConsole/again",
+   "to": "table:public.profile_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PaymentsConsole/again",
+   "to": "table:public.profile_findings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PaymentsConsole/again",
+   "to": "table:public.profile_keys",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PaymentsConsole/again",
+   "to": "table:public.profile_lookups",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PaymentsConsole/again",
+   "to": "table:public.profile_merges",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PaymentsConsole/again",
+   "to": "table:public.profile_trait_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PaymentsConsole/again",
+   "to": "table:public.profile_traits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PaymentsConsole/again",
+   "to": "table:public.profiles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PaymentsConsole/again",
+   "to": "table:public.sms_contacts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PaymentsConsole/again",
+   "to": "table:public.sms_messages",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PaymentsConsole/approve",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/approve",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/approve",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/approve",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/approve",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/approve",
+   "to": "table:public.custom_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/approve",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/approve",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/approve",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/approve",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/approve",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/approve",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/approve",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/approve",
+   "to": "table:public.sms_numbers",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/approve",
+   "to": "table:public.suppressions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/approve",
+   "to": "table:public.vendor_modes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/approve",
+   "to": "table:pipeline.deals",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PaymentsConsole/approve",
+   "to": "table:pipeline.instances",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PaymentsConsole/approve",
+   "to": "table:public.pay_links",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PaymentsConsole/approve",
+   "to": "table:public.profile_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PaymentsConsole/approve",
+   "to": "table:public.profile_findings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PaymentsConsole/approve",
+   "to": "table:public.profile_keys",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PaymentsConsole/approve",
+   "to": "table:public.profile_lookups",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PaymentsConsole/approve",
+   "to": "table:public.profile_merges",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PaymentsConsole/approve",
+   "to": "table:public.profile_trait_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PaymentsConsole/approve",
+   "to": "table:public.profile_traits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PaymentsConsole/approve",
+   "to": "table:public.profiles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PaymentsConsole/approve",
+   "to": "table:public.sms_contacts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PaymentsConsole/approve",
+   "to": "table:public.sms_messages",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PaymentsConsole/connect",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/connect",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/connect",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/connect",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/connect",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/connect",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/connect",
+   "to": "table:public.client_accounts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PaymentsConsole/connect",
+   "to": "table:public.pay_accounts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PaymentsConsole/connect",
+   "to": "table:public.vendor_modes",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PaymentsConsole/create",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/create",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/create",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/create",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/create",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/create",
+   "to": "table:public.custom_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/create",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/create",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/create",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/create",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/create",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/create",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/create",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/create",
+   "to": "table:public.sms_numbers",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/create",
+   "to": "table:public.suppressions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/create",
+   "to": "table:public.vendor_modes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/create",
+   "to": "table:pipeline.deals",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PaymentsConsole/create",
+   "to": "table:pipeline.instances",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PaymentsConsole/create",
+   "to": "table:public.pay_links",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PaymentsConsole/create",
+   "to": "table:public.profile_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PaymentsConsole/create",
+   "to": "table:public.profile_findings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PaymentsConsole/create",
+   "to": "table:public.profile_keys",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PaymentsConsole/create",
+   "to": "table:public.profile_lookups",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PaymentsConsole/create",
+   "to": "table:public.profile_merges",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PaymentsConsole/create",
+   "to": "table:public.profile_trait_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PaymentsConsole/create",
+   "to": "table:public.profile_traits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PaymentsConsole/create",
+   "to": "table:public.profiles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PaymentsConsole/create",
+   "to": "table:public.sms_contacts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PaymentsConsole/create",
+   "to": "table:public.sms_messages",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PaymentsConsole/decline",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/decline",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/decline",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/decline",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/decline",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/decline",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/decline",
+   "to": "table:public.pay_links",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PaymentsConsole/fromThread",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/fromThread",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/fromThread",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/fromThread",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/fromThread",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/fromThread",
+   "to": "table:public.custom_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/fromThread",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/fromThread",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/fromThread",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/fromThread",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/fromThread",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/fromThread",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/fromThread",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/fromThread",
+   "to": "table:public.sms_numbers",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/fromThread",
+   "to": "table:public.suppressions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/fromThread",
+   "to": "table:public.vendor_modes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/fromThread",
+   "to": "table:pipeline.deals",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PaymentsConsole/fromThread",
+   "to": "table:pipeline.instances",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PaymentsConsole/fromThread",
+   "to": "table:public.pay_links",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PaymentsConsole/fromThread",
+   "to": "table:public.profile_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PaymentsConsole/fromThread",
+   "to": "table:public.profile_findings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PaymentsConsole/fromThread",
+   "to": "table:public.profile_keys",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PaymentsConsole/fromThread",
+   "to": "table:public.profile_lookups",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PaymentsConsole/fromThread",
+   "to": "table:public.profile_merges",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PaymentsConsole/fromThread",
+   "to": "table:public.profile_trait_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PaymentsConsole/fromThread",
+   "to": "table:public.profile_traits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PaymentsConsole/fromThread",
+   "to": "table:public.profiles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PaymentsConsole/fromThread",
+   "to": "table:public.sms_contacts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PaymentsConsole/fromThread",
+   "to": "table:public.sms_messages",
+   "kind": "writes"
+  },
+  {
+   "from": "route:PaymentsConsole/recordsExport",
+   "to": "table:public.changes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/recordsExport",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/recordsExport",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/recordsExport",
+   "to": "table:public.custom_field_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/recordsExport",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/recordsExport",
+   "to": "table:public.draft_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/recordsExport",
+   "to": "table:public.draft_outcomes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/recordsExport",
+   "to": "table:public.draft_people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/recordsExport",
+   "to": "table:public.pay_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/recordsExport",
+   "to": "table:public.pay_links",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/recordsExport",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/recordsExport",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/recordsGet",
+   "to": "table:public.changes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/recordsGet",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/recordsGet",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/recordsGet",
+   "to": "table:public.custom_field_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/recordsGet",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/recordsGet",
+   "to": "table:public.draft_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/recordsGet",
+   "to": "table:public.draft_outcomes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/recordsGet",
+   "to": "table:public.draft_people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/recordsGet",
+   "to": "table:public.pay_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/recordsGet",
+   "to": "table:public.pay_links",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/recordsGet",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/recordsGet",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/recordsList",
+   "to": "table:public.changes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/recordsList",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/recordsList",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/recordsList",
+   "to": "table:public.custom_field_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/recordsList",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/recordsList",
+   "to": "table:public.draft_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/recordsList",
+   "to": "table:public.draft_outcomes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/recordsList",
+   "to": "table:public.draft_people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/recordsList",
+   "to": "table:public.pay_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/recordsList",
+   "to": "table:public.pay_links",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/recordsList",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/recordsList",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/recordsStats",
+   "to": "table:public.changes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/recordsStats",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/recordsStats",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/recordsStats",
+   "to": "table:public.custom_field_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/recordsStats",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/recordsStats",
+   "to": "table:public.draft_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/recordsStats",
+   "to": "table:public.draft_outcomes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/recordsStats",
+   "to": "table:public.draft_people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/recordsStats",
+   "to": "table:public.pay_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/recordsStats",
+   "to": "table:public.pay_links",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/recordsStats",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/recordsStats",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/recordsTypes",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/recordsTypes",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/recordsTypes",
+   "to": "table:public.pay_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/recordsTypes",
+   "to": "table:public.pay_links",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/recordsTypes",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/status",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/status",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/status",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/status",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/status",
+   "to": "table:public.pay_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/status",
+   "to": "table:public.pay_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/status",
+   "to": "table:public.pay_links",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/status",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/status",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:PaymentsConsole/status",
+   "to": "table:public.vendor_modes",
+   "kind": "reads"
+  }
+ ]
 }

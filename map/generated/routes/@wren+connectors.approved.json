@@ -99,5 +99,176 @@
    }
   }
  ],
- "edges": []
+ "edges": [
+  {
+   "from": "route:ConnectorCallback/land",
+   "to": "table:public.connector_fired",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ConnectorCallback/land",
+   "to": "table:public.connector_grants",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ConnectorCallback/land",
+   "to": "table:public.connector_links",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ConnectorSync/run",
+   "to": "table:public.connector_fired",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ConnectorSync/run",
+   "to": "table:public.connector_links",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Connectors/connect",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Connectors/connect",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Connectors/connect",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Connectors/connect",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Connectors/connect",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Connectors/connect",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Connectors/connect",
+   "to": "table:public.connector_grants",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Connectors/connectors",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Connectors/connectors",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Connectors/connectors",
+   "to": "table:public.connector_links",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Connectors/connectors",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Connectors/connectors",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Connectors/connectors",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Connectors/connectors",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Connectors/disconnect",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Connectors/disconnect",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Connectors/disconnect",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Connectors/disconnect",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Connectors/disconnect",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Connectors/disconnect",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Connectors/disconnect",
+   "to": "table:public.connector_links",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Connectors/syncNow",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Connectors/syncNow",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Connectors/syncNow",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Connectors/syncNow",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Connectors/syncNow",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Connectors/syncNow",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Connectors/syncNow",
+   "to": "table:public.connector_fired",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Connectors/syncNow",
+   "to": "table:public.connector_links",
+   "kind": "writes"
+  }
+ ]
 }

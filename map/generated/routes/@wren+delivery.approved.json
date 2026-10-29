@@ -118,7 +118,7 @@
    "group": "@wren/delivery",
    "attrs": {
     "input": "Req<\"decide\">",
-    "output": "{ id: number; status: \"approved\" | \"waiting\" | \"changes\"; }",
+    "output": "{ id: number; status: \"approved\" | \"changes\" | \"waiting\"; }",
     "wrap": "plain"
    }
   },
@@ -727,5 +727,2581 @@
    }
   }
  ],
- "edges": []
+ "edges": [
+  {
+   "from": "route:BillingConsole/dismiss",
+   "to": "table:delivery.invoices",
+   "kind": "reads"
+  },
+  {
+   "from": "route:BillingConsole/dismiss",
+   "to": "table:delivery.wise_credits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:BillingConsole/match",
+   "to": "table:delivery.agreements",
+   "kind": "reads"
+  },
+  {
+   "from": "route:BillingConsole/match",
+   "to": "table:pipeline.terms_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:BillingConsole/match",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:BillingConsole/match",
+   "to": "table:books.usage_lines",
+   "kind": "writes"
+  },
+  {
+   "from": "route:BillingConsole/match",
+   "to": "table:delivery.asks",
+   "kind": "writes"
+  },
+  {
+   "from": "route:BillingConsole/match",
+   "to": "table:delivery.engagements",
+   "kind": "writes"
+  },
+  {
+   "from": "route:BillingConsole/match",
+   "to": "table:delivery.invoices",
+   "kind": "writes"
+  },
+  {
+   "from": "route:BillingConsole/match",
+   "to": "table:delivery.milestones",
+   "kind": "writes"
+  },
+  {
+   "from": "route:BillingConsole/match",
+   "to": "table:delivery.wise_credits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DeliveryPortal/access",
+   "to": "table:delivery.engagements",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/access",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/access",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/access",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/access",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/access",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/access",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/access",
+   "to": "table:delivery.access_requests",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DeliveryPortal/account",
+   "to": "table:delivery.engagements",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/account",
+   "to": "table:delivery.invoices",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/account",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/account",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/account",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/account",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/account",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/account",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/addDomain",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/addDomain",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/addDomain",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/addDomain",
+   "to": "table:public.client_domains",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DeliveryPortal/answer",
+   "to": "table:delivery.engagements",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/answer",
+   "to": "table:delivery.milestones",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/answer",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/answer",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/answer",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/answer",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/answer",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/answer",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/answer",
+   "to": "table:delivery.asks",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DeliveryPortal/ask",
+   "to": "table:delivery.engagements",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/ask",
+   "to": "table:delivery.milestones",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/ask",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/ask",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/ask",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/ask",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/ask",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/ask",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/ask",
+   "to": "table:delivery.asks",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DeliveryPortal/board",
+   "to": "table:books.usage_lines",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/board",
+   "to": "table:delivery.access_requests",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/board",
+   "to": "table:delivery.agreements",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/board",
+   "to": "table:delivery.asks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/board",
+   "to": "table:delivery.comments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/board",
+   "to": "table:delivery.deliverables",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/board",
+   "to": "table:delivery.engagements",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/board",
+   "to": "table:delivery.invoices",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/board",
+   "to": "table:delivery.member_mail",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/board",
+   "to": "table:delivery.milestones",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/board",
+   "to": "table:delivery.pulses",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/board",
+   "to": "table:delivery.results",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/board",
+   "to": "table:delivery.updates",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/board",
+   "to": "table:pipeline.terms_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/board",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/board",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/board",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/comment",
+   "to": "table:delivery.deliverables",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/comment",
+   "to": "table:delivery.engagements",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/comment",
+   "to": "table:delivery.milestones",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/comment",
+   "to": "table:delivery.updates",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/comment",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/comment",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/comment",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/comment",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/comment",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/comment",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/comment",
+   "to": "table:delivery.comments",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DeliveryPortal/contract",
+   "to": "table:delivery.agreements",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/contract",
+   "to": "table:delivery.engagements",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/contract",
+   "to": "table:pipeline.terms_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/contract",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/contract",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/contract",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/decide",
+   "to": "table:delivery.engagements",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/decide",
+   "to": "table:delivery.milestones",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/decide",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/decide",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/decide",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/decide",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/decide",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/decide",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/decide",
+   "to": "table:delivery.deliverables",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DeliveryPortal/deliver",
+   "to": "table:delivery.engagements",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/deliver",
+   "to": "table:delivery.milestones",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/deliver",
+   "to": "table:delivery.updates",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/deliver",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/deliver",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/deliver",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/deliver",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/deliver",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/deliver",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/deliver",
+   "to": "table:delivery.comments",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DeliveryPortal/deliver",
+   "to": "table:delivery.deliverables",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DeliveryPortal/domains",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/domains",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/domains",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/domains",
+   "to": "table:public.client_domains",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DeliveryPortal/done",
+   "to": "table:delivery.engagements",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/done",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/done",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/done",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/done",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/done",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/done",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/done",
+   "to": "table:delivery.milestones",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DeliveryPortal/file",
+   "to": "table:delivery.asks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/file",
+   "to": "table:delivery.deliverables",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/file",
+   "to": "table:delivery.engagements",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/file",
+   "to": "table:delivery.milestones",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/file",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/file",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/file",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/hide",
+   "to": "table:delivery.engagements",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/hide",
+   "to": "table:delivery.milestones",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/hide",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/hide",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/hide",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/hide",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/hide",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/hide",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/hide",
+   "to": "table:delivery.updates",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DeliveryPortal/home",
+   "to": "table:delivery.access_requests",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/home",
+   "to": "table:delivery.agreements",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/home",
+   "to": "table:delivery.asks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/home",
+   "to": "table:delivery.comments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/home",
+   "to": "table:delivery.deliverables",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/home",
+   "to": "table:delivery.engagements",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/home",
+   "to": "table:delivery.interests",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/home",
+   "to": "table:delivery.invoices",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/home",
+   "to": "table:delivery.milestones",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/home",
+   "to": "table:delivery.moments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/home",
+   "to": "table:delivery.pulses",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/home",
+   "to": "table:delivery.results",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/home",
+   "to": "table:delivery.reviews",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/home",
+   "to": "table:delivery.updates",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/home",
+   "to": "table:pipeline.terms_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/home",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/home",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/home",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/interest",
+   "to": "table:delivery.engagements",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/interest",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/interest",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/interest",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/interest",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/interest",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/interest",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/interest",
+   "to": "table:delivery.interests",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DeliveryPortal/invite",
+   "to": "table:auth.user",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/invite",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/invite",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/invite",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/invite",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/invite",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/invite",
+   "to": "table:auth.session",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DeliveryPortal/invite",
+   "to": "table:public.client_members",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DeliveryPortal/invoicePdf",
+   "to": "table:delivery.engagements",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/invoicePdf",
+   "to": "table:delivery.invoices",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/invoicePdf",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/invoicePdf",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/invoicePdf",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/invoicePdf",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/invoicePdf",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/invoicePdf",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/mail",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/mail",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/mail",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/mail",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/mail",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/mail",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/mail",
+   "to": "table:delivery.member_mail",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DeliveryPortal/me",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/me",
+   "to": "table:public.flags",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/me",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/me",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/me",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/me",
+   "to": "table:public.client_members",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DeliveryPortal/messagingChange",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/messagingChange",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/messagingChange",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/messagingChange",
+   "to": "table:public.mail_bounce_reads",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DeliveryPortal/messagingChange",
+   "to": "table:public.message_settings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DeliveryPortal/messagingLinksOff",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/messagingLinksOff",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/messagingLinksOff",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/messagingLinksOff",
+   "to": "table:public.mail_bounce_reads",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DeliveryPortal/messagingLinksOff",
+   "to": "table:public.message_settings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DeliveryPortal/messagingLinksOn",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/messagingLinksOn",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/messagingLinksOn",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/messagingLinksOn",
+   "to": "table:public.mail_bounce_reads",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DeliveryPortal/messagingLinksOn",
+   "to": "table:public.message_settings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DeliveryPortal/messagingPostal",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/messagingPostal",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/messagingPostal",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/messagingPostal",
+   "to": "table:public.mail_bounce_reads",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DeliveryPortal/messagingPostal",
+   "to": "table:public.message_settings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DeliveryPortal/messagingSender",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/messagingSender",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/messagingSender",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/messagingSender",
+   "to": "table:public.mail_bounce_reads",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DeliveryPortal/messagingSender",
+   "to": "table:public.message_settings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DeliveryPortal/people",
+   "to": "table:delivery.member_mail",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/people",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/people",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/people",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/people",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/people",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/people",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/post",
+   "to": "table:delivery.engagements",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/post",
+   "to": "table:delivery.milestones",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/post",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/post",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/post",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/post",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/post",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/post",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/post",
+   "to": "table:delivery.updates",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DeliveryPortal/pulse",
+   "to": "table:delivery.engagements",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/pulse",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/pulse",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/pulse",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/pulse",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/pulse",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/pulse",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/pulse",
+   "to": "table:delivery.pulses",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DeliveryPortal/recap",
+   "to": "table:delivery.asks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recap",
+   "to": "table:delivery.deliverables",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recap",
+   "to": "table:delivery.engagements",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recap",
+   "to": "table:delivery.milestones",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recap",
+   "to": "table:delivery.results",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recap",
+   "to": "table:delivery.updates",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recap",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recap",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recap",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsExport",
+   "to": "table:delivery.access_requests",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsExport",
+   "to": "table:delivery.agreements",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsExport",
+   "to": "table:delivery.asks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsExport",
+   "to": "table:delivery.comments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsExport",
+   "to": "table:delivery.deliverables",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsExport",
+   "to": "table:delivery.engagements",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsExport",
+   "to": "table:delivery.interests",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsExport",
+   "to": "table:delivery.invoices",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsExport",
+   "to": "table:delivery.milestones",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsExport",
+   "to": "table:delivery.moments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsExport",
+   "to": "table:delivery.pulses",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsExport",
+   "to": "table:delivery.results",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsExport",
+   "to": "table:delivery.reviews",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsExport",
+   "to": "table:delivery.updates",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsExport",
+   "to": "table:pipeline.terms_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsExport",
+   "to": "table:public.audit_changes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsExport",
+   "to": "table:public.audit_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsExport",
+   "to": "table:public.changes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsExport",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsExport",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsExport",
+   "to": "table:public.custom_field_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsExport",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsExport",
+   "to": "table:public.draft_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsExport",
+   "to": "table:public.draft_outcomes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsExport",
+   "to": "table:public.draft_people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsExport",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsExport",
+   "to": "table:public.message_settings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsExport",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsExport",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsExport",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsExport",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsGet",
+   "to": "table:delivery.access_requests",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsGet",
+   "to": "table:delivery.agreements",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsGet",
+   "to": "table:delivery.asks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsGet",
+   "to": "table:delivery.comments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsGet",
+   "to": "table:delivery.deliverables",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsGet",
+   "to": "table:delivery.engagements",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsGet",
+   "to": "table:delivery.interests",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsGet",
+   "to": "table:delivery.invoices",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsGet",
+   "to": "table:delivery.milestones",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsGet",
+   "to": "table:delivery.moments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsGet",
+   "to": "table:delivery.pulses",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsGet",
+   "to": "table:delivery.results",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsGet",
+   "to": "table:delivery.reviews",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsGet",
+   "to": "table:delivery.updates",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsGet",
+   "to": "table:pipeline.terms_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsGet",
+   "to": "table:public.audit_changes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsGet",
+   "to": "table:public.audit_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsGet",
+   "to": "table:public.changes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsGet",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsGet",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsGet",
+   "to": "table:public.custom_field_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsGet",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsGet",
+   "to": "table:public.draft_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsGet",
+   "to": "table:public.draft_outcomes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsGet",
+   "to": "table:public.draft_people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsGet",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsGet",
+   "to": "table:public.message_settings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsGet",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsGet",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsGet",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsGet",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsList",
+   "to": "table:delivery.access_requests",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsList",
+   "to": "table:delivery.agreements",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsList",
+   "to": "table:delivery.asks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsList",
+   "to": "table:delivery.comments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsList",
+   "to": "table:delivery.deliverables",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsList",
+   "to": "table:delivery.engagements",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsList",
+   "to": "table:delivery.interests",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsList",
+   "to": "table:delivery.invoices",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsList",
+   "to": "table:delivery.milestones",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsList",
+   "to": "table:delivery.moments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsList",
+   "to": "table:delivery.pulses",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsList",
+   "to": "table:delivery.results",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsList",
+   "to": "table:delivery.reviews",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsList",
+   "to": "table:delivery.updates",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsList",
+   "to": "table:pipeline.terms_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsList",
+   "to": "table:public.audit_changes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsList",
+   "to": "table:public.audit_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsList",
+   "to": "table:public.changes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsList",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsList",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsList",
+   "to": "table:public.custom_field_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsList",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsList",
+   "to": "table:public.draft_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsList",
+   "to": "table:public.draft_outcomes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsList",
+   "to": "table:public.draft_people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsList",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsList",
+   "to": "table:public.message_settings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsList",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsList",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsList",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsList",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsStats",
+   "to": "table:delivery.access_requests",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsStats",
+   "to": "table:delivery.agreements",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsStats",
+   "to": "table:delivery.asks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsStats",
+   "to": "table:delivery.comments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsStats",
+   "to": "table:delivery.deliverables",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsStats",
+   "to": "table:delivery.engagements",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsStats",
+   "to": "table:delivery.interests",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsStats",
+   "to": "table:delivery.invoices",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsStats",
+   "to": "table:delivery.milestones",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsStats",
+   "to": "table:delivery.moments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsStats",
+   "to": "table:delivery.pulses",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsStats",
+   "to": "table:delivery.results",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsStats",
+   "to": "table:delivery.reviews",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsStats",
+   "to": "table:delivery.updates",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsStats",
+   "to": "table:pipeline.terms_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsStats",
+   "to": "table:public.audit_changes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsStats",
+   "to": "table:public.audit_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsStats",
+   "to": "table:public.changes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsStats",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsStats",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsStats",
+   "to": "table:public.custom_field_values",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsStats",
+   "to": "table:public.custom_fields",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsStats",
+   "to": "table:public.draft_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsStats",
+   "to": "table:public.draft_outcomes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsStats",
+   "to": "table:public.draft_people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsStats",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsStats",
+   "to": "table:public.message_settings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsStats",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsStats",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsStats",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsStats",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsTypes",
+   "to": "table:delivery.access_requests",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsTypes",
+   "to": "table:delivery.agreements",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsTypes",
+   "to": "table:delivery.asks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsTypes",
+   "to": "table:delivery.comments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsTypes",
+   "to": "table:delivery.deliverables",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsTypes",
+   "to": "table:delivery.engagements",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsTypes",
+   "to": "table:delivery.interests",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsTypes",
+   "to": "table:delivery.invoices",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsTypes",
+   "to": "table:delivery.milestones",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsTypes",
+   "to": "table:delivery.moments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsTypes",
+   "to": "table:delivery.pulses",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsTypes",
+   "to": "table:delivery.results",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsTypes",
+   "to": "table:delivery.reviews",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsTypes",
+   "to": "table:delivery.updates",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsTypes",
+   "to": "table:pipeline.terms_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsTypes",
+   "to": "table:public.audit_changes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsTypes",
+   "to": "table:public.audit_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsTypes",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsTypes",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsTypes",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsTypes",
+   "to": "table:public.message_settings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsTypes",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsTypes",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/recordsTypes",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/remove",
+   "to": "table:auth.user",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/remove",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/remove",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/remove",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/remove",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/remove",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/remove",
+   "to": "table:auth.session",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DeliveryPortal/remove",
+   "to": "table:public.client_members",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DeliveryPortal/removeDomain",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/removeDomain",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/removeDomain",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/removeDomain",
+   "to": "table:public.client_domains",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DeliveryPortal/result",
+   "to": "table:delivery.engagements",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/result",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/result",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/result",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/result",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/result",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/result",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/result",
+   "to": "table:delivery.results",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DeliveryPortal/review",
+   "to": "table:delivery.engagements",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/review",
+   "to": "table:delivery.moments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/review",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/review",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/review",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/review",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/review",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/review",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/review",
+   "to": "table:delivery.reviews",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DeliveryPortal/sign",
+   "to": "table:delivery.invoices",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/sign",
+   "to": "table:pipeline.terms_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/sign",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/sign",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/sign",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/sign",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/sign",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/sign",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/sign",
+   "to": "table:delivery.agreements",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DeliveryPortal/sign",
+   "to": "table:delivery.asks",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DeliveryPortal/sign",
+   "to": "table:delivery.engagements",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DeliveryPortal/sign",
+   "to": "table:delivery.milestones",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DeliveryPortal/slip",
+   "to": "table:delivery.engagements",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/slip",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/slip",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/slip",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/slip",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/slip",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/slip",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/slip",
+   "to": "table:delivery.milestones",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DeliveryPortal/start",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/start",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/start",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/start",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/start",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/start",
+   "to": "table:delivery.asks",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DeliveryPortal/start",
+   "to": "table:delivery.engagements",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DeliveryPortal/start",
+   "to": "table:delivery.milestones",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DeliveryPortal/start",
+   "to": "table:public.clients",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DeliveryPortal/updates",
+   "to": "table:delivery.comments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/updates",
+   "to": "table:delivery.deliverables",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/updates",
+   "to": "table:delivery.engagements",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/updates",
+   "to": "table:delivery.milestones",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/updates",
+   "to": "table:delivery.updates",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/updates",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/updates",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/updates",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/upload",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/upload",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/upload",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/webhookAdd",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/webhookAdd",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/webhookAdd",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/webhookAdd",
+   "to": "table:public.webhook_subscriptions",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DeliveryPortal/webhookDelivery",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/webhookDelivery",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/webhookDelivery",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/webhookDelivery",
+   "to": "table:public.webhook_attempts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/webhookDelivery",
+   "to": "table:public.webhook_deliveries",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/webhookDelivery",
+   "to": "table:public.webhook_subscriptions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/webhookEdit",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/webhookEdit",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/webhookEdit",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/webhookEdit",
+   "to": "table:public.webhook_subscriptions",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DeliveryPortal/webhookRedeliver",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/webhookRedeliver",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/webhookRedeliver",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/webhookRedeliver",
+   "to": "table:public.webhook_attempts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/webhookRedeliver",
+   "to": "table:public.webhook_subscriptions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/webhookRedeliver",
+   "to": "table:public.webhook_deliveries",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DeliveryPortal/webhookRemove",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/webhookRemove",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/webhookRemove",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/webhookRemove",
+   "to": "table:public.webhook_subscriptions",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DeliveryPortal/webhookRotate",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/webhookRotate",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/webhookRotate",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/webhookRotate",
+   "to": "table:public.webhook_subscriptions",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DeliveryPortal/webhookTest",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/webhookTest",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/webhookTest",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/webhookTest",
+   "to": "table:public.webhook_attempts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DeliveryPortal/webhookTest",
+   "to": "table:public.webhook_deliveries",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DeliveryPortal/webhookTest",
+   "to": "table:public.webhook_subscriptions",
+   "kind": "writes"
+  },
+  {
+   "from": "route:DeliveryPortal/webhooks",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/webhooks",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/webhooks",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/webhooks",
+   "to": "table:public.webhook_deliveries",
+   "kind": "reads"
+  },
+  {
+   "from": "route:DeliveryPortal/webhooks",
+   "to": "table:public.webhook_subscriptions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Domains/resolve",
+   "to": "table:public.client_domains",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Domains/resolve",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:HealthConsole/clearOverride",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:HealthConsole/flagAddress",
+   "to": "table:delivery.engagements",
+   "kind": "reads"
+  },
+  {
+   "from": "route:HealthConsole/flagAddress",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:HealthConsole/flagClear",
+   "to": "table:delivery.engagements",
+   "kind": "reads"
+  },
+  {
+   "from": "route:HealthConsole/flagClear",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:HealthConsole/flagOwn",
+   "to": "table:delivery.engagements",
+   "kind": "reads"
+  },
+  {
+   "from": "route:HealthConsole/flagOwn",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:HealthConsole/flagRaise",
+   "to": "table:delivery.engagements",
+   "kind": "reads"
+  },
+  {
+   "from": "route:HealthConsole/flagRaise",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:HealthConsole/flagTake",
+   "to": "table:delivery.engagements",
+   "kind": "reads"
+  },
+  {
+   "from": "route:HealthConsole/flagTake",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:HealthConsole/override",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:HealthConsole/rate",
+   "to": "table:public.clients",
+   "kind": "reads"
+  }
+ ]
 }

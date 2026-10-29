@@ -296,5 +296,1426 @@
    }
   }
  ],
- "edges": []
+ "edges": [
+  {
+   "from": "route:Discovery/discover",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Discovery/discover",
+   "to": "table:public.imports",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Discovery/discover",
+   "to": "table:public.runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Discovery/discover",
+   "to": "table:public.unit_holds",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Discovery/verify",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Discovery/verify",
+   "to": "table:public.imports",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Discovery/verify",
+   "to": "table:public.runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Discovery/verify",
+   "to": "table:public.unit_holds",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/adLibrary",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/adLibrary",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/adLibrary",
+   "to": "table:public.limits",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/adLibrary",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/adLibrary",
+   "to": "table:public.suppressions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/adLibrary",
+   "to": "table:public.unit_holds",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/adLibrary",
+   "to": "table:pipeline.deals",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/adLibrary",
+   "to": "table:pipeline.instances",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/adLibrary",
+   "to": "table:public.companies",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/adLibrary",
+   "to": "table:public.import_errors",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/adLibrary",
+   "to": "table:public.imports",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/adLibrary",
+   "to": "table:public.leads",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/adLibrary",
+   "to": "table:public.profile_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/adLibrary",
+   "to": "table:public.profile_findings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/adLibrary",
+   "to": "table:public.profile_keys",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/adLibrary",
+   "to": "table:public.profile_lookups",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/adLibrary",
+   "to": "table:public.profile_merges",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/adLibrary",
+   "to": "table:public.profile_trait_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/adLibrary",
+   "to": "table:public.profile_traits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/adLibrary",
+   "to": "table:public.profiles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/adLibrary",
+   "to": "table:public.sightings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/applyExtractions",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/applyExtractions",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/applyExtractions",
+   "to": "table:public.leads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/applyExtractions",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/applyExtractions",
+   "to": "table:pipeline.deals",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/applyExtractions",
+   "to": "table:pipeline.instances",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/applyExtractions",
+   "to": "table:public.companies",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/applyExtractions",
+   "to": "table:public.enrichments",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/applyExtractions",
+   "to": "table:public.import_errors",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/applyExtractions",
+   "to": "table:public.imports",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/applyExtractions",
+   "to": "table:public.people",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/applyExtractions",
+   "to": "table:public.profile_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/applyExtractions",
+   "to": "table:public.profile_findings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/applyExtractions",
+   "to": "table:public.profile_keys",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/applyExtractions",
+   "to": "table:public.profile_lookups",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/applyExtractions",
+   "to": "table:public.profile_merges",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/applyExtractions",
+   "to": "table:public.profile_trait_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/applyExtractions",
+   "to": "table:public.profile_traits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/applyExtractions",
+   "to": "table:public.profiles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/applyExtractions",
+   "to": "table:public.sightings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/applyPicks",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/applyPicks",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/applyPicks",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/applyPicks",
+   "to": "table:public.suppressions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/applyPicks",
+   "to": "table:pipeline.deals",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/applyPicks",
+   "to": "table:pipeline.instances",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/applyPicks",
+   "to": "table:public.companies",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/applyPicks",
+   "to": "table:public.enrichments",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/applyPicks",
+   "to": "table:public.import_errors",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/applyPicks",
+   "to": "table:public.imports",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/applyPicks",
+   "to": "table:public.leads",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/applyPicks",
+   "to": "table:public.people",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/applyPicks",
+   "to": "table:public.profile_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/applyPicks",
+   "to": "table:public.profile_findings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/applyPicks",
+   "to": "table:public.profile_keys",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/applyPicks",
+   "to": "table:public.profile_lookups",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/applyPicks",
+   "to": "table:public.profile_merges",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/applyPicks",
+   "to": "table:public.profile_trait_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/applyPicks",
+   "to": "table:public.profile_traits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/applyPicks",
+   "to": "table:public.profiles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/applyPicks",
+   "to": "table:public.sightings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/backfillCallRecords",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/backfillCallRecords",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/backfillCallRecords",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/backfillCallRecords",
+   "to": "table:public.enrichments",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/contacts",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/contacts",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/contacts",
+   "to": "table:public.imports",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/contacts",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/contacts",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/contacts",
+   "to": "table:public.contact_points",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/contacts",
+   "to": "table:public.enrichments",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/contacts",
+   "to": "table:public.unit_holds",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/crawl",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/crawl",
+   "to": "table:public.imports",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/crawl",
+   "to": "table:public.documents",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/crawl",
+   "to": "table:public.unit_holds",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/exaSearch",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/exaSearch",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/exaSearch",
+   "to": "table:public.limits",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/exaSearch",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/exaSearch",
+   "to": "table:public.suppressions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/exaSearch",
+   "to": "table:public.unit_holds",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/exaSearch",
+   "to": "table:public.vendor_modes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/exaSearch",
+   "to": "table:pipeline.deals",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/exaSearch",
+   "to": "table:pipeline.instances",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/exaSearch",
+   "to": "table:public.companies",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/exaSearch",
+   "to": "table:public.import_errors",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/exaSearch",
+   "to": "table:public.imports",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/exaSearch",
+   "to": "table:public.leads",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/exaSearch",
+   "to": "table:public.profile_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/exaSearch",
+   "to": "table:public.profile_findings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/exaSearch",
+   "to": "table:public.profile_keys",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/exaSearch",
+   "to": "table:public.profile_lookups",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/exaSearch",
+   "to": "table:public.profile_merges",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/exaSearch",
+   "to": "table:public.profile_trait_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/exaSearch",
+   "to": "table:public.profile_traits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/exaSearch",
+   "to": "table:public.profiles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/exaSearch",
+   "to": "table:public.sightings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/exaSearch",
+   "to": "table:public.vendor_usage",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/extract",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/extract",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/extract",
+   "to": "table:public.imports",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/extract",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/extract",
+   "to": "table:public.unit_holds",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/extract",
+   "to": "table:public.enrichments",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/fbGroups",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/fbGroups",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/fbGroups",
+   "to": "table:public.limits",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/fbGroups",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/fbGroups",
+   "to": "table:public.unit_holds",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/fbGroups",
+   "to": "table:public.documents",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/fbGroups",
+   "to": "table:public.findings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/fbGroups",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/fbGroups",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/fbGroups",
+   "to": "table:public.social_groups",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/fbGroups",
+   "to": "table:public.social_posts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/fbGroups",
+   "to": "table:public.social_searches",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/instagram",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/instagram",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/instagram",
+   "to": "table:public.leads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/instagram",
+   "to": "table:public.limits",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/instagram",
+   "to": "table:public.own_contact_points",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/instagram",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/instagram",
+   "to": "table:public.documents",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/instagram",
+   "to": "table:public.findings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/instagram",
+   "to": "table:public.unit_holds",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/opener",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/opener",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/opener",
+   "to": "table:public.imports",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/opener",
+   "to": "table:public.leads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/opener",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/opener",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/opener",
+   "to": "table:public.suppressions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/opener",
+   "to": "table:public.unit_holds",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/opener",
+   "to": "table:public.enrichments",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/pick",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/pick",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/pick",
+   "to": "table:public.imports",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/pick",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/pick",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/pick",
+   "to": "table:public.enrichments",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/pick",
+   "to": "table:public.unit_holds",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/profiles",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/profiles",
+   "to": "table:public.company_event_checks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/profiles",
+   "to": "table:public.imports",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/profiles",
+   "to": "table:public.limits",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/profiles",
+   "to": "table:public.profile_lookups",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/profiles",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/profiles",
+   "to": "table:public.signal_checks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/profiles",
+   "to": "table:public.vendor_modes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/profiles",
+   "to": "table:public.wren_settings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/profiles",
+   "to": "table:public.check_outcomes",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/profiles",
+   "to": "table:public.companies",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/profiles",
+   "to": "table:public.company_lookups",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/profiles",
+   "to": "table:public.documents",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/profiles",
+   "to": "table:public.findings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/profiles",
+   "to": "table:public.people",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/profiles",
+   "to": "table:public.person_lookups",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/profiles",
+   "to": "table:public.unit_holds",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/profiles",
+   "to": "table:public.vendor_usage",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/render",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/render",
+   "to": "table:public.imports",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/render",
+   "to": "table:public.documents",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/render",
+   "to": "table:public.unit_holds",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/scan",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/scan",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/scan",
+   "to": "table:public.imports",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/scan",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/scan",
+   "to": "table:public.enrichments",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/scan",
+   "to": "table:public.unit_holds",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/signals",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/signals",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/signals",
+   "to": "table:public.company_event_checks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/signals",
+   "to": "table:public.company_lookups",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/signals",
+   "to": "table:public.limits",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/signals",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/signals",
+   "to": "table:public.person_lookups",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/signals",
+   "to": "table:public.profile_lookups",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/signals",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/signals",
+   "to": "table:public.vendor_modes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/signals",
+   "to": "table:public.wren_settings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/signals",
+   "to": "table:public.documents",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/signals",
+   "to": "table:public.findings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/signals",
+   "to": "table:public.signal_checks",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/signals",
+   "to": "table:public.unit_holds",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/signals",
+   "to": "table:public.vendor_usage",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/tagTestimonials",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/tagTestimonials",
+   "to": "table:public.imports",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/tagTestimonials",
+   "to": "table:public.people",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/team",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/team",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/team",
+   "to": "table:public.imports",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/team",
+   "to": "table:public.limits",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/team",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/team",
+   "to": "table:public.vendor_modes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/team",
+   "to": "table:public.check_outcomes",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/team",
+   "to": "table:public.documents",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/team",
+   "to": "table:public.people",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/team",
+   "to": "table:public.team_searches",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/team",
+   "to": "table:public.unit_holds",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/team",
+   "to": "table:public.vendor_usage",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/triggers",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/triggers",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/triggers",
+   "to": "table:public.limits",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/triggers",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/triggers",
+   "to": "table:public.suppressions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/triggers",
+   "to": "table:public.unit_holds",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/triggers",
+   "to": "table:pipeline.deals",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/triggers",
+   "to": "table:pipeline.instances",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/triggers",
+   "to": "table:public.companies",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/triggers",
+   "to": "table:public.documents",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/triggers",
+   "to": "table:public.findings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/triggers",
+   "to": "table:public.import_errors",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/triggers",
+   "to": "table:public.imports",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/triggers",
+   "to": "table:public.leads",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/triggers",
+   "to": "table:public.profile_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/triggers",
+   "to": "table:public.profile_findings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/triggers",
+   "to": "table:public.profile_keys",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/triggers",
+   "to": "table:public.profile_lookups",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/triggers",
+   "to": "table:public.profile_merges",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/triggers",
+   "to": "table:public.profile_trait_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/triggers",
+   "to": "table:public.profile_traits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/triggers",
+   "to": "table:public.profiles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/triggers",
+   "to": "table:public.sightings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/youtube",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/youtube",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/youtube",
+   "to": "table:public.leads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/youtube",
+   "to": "table:public.limits",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/youtube",
+   "to": "table:public.own_contact_points",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/youtube",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/youtube",
+   "to": "table:public.vendor_modes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/youtube",
+   "to": "table:public.vendor_usage",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/youtube",
+   "to": "table:public.documents",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/youtube",
+   "to": "table:public.findings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/youtube",
+   "to": "table:public.unit_holds",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/youtubeSearch",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/youtubeSearch",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/youtubeSearch",
+   "to": "table:public.limits",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/youtubeSearch",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/youtubeSearch",
+   "to": "table:public.suppressions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/youtubeSearch",
+   "to": "table:public.unit_holds",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Enrichment/youtubeSearch",
+   "to": "table:pipeline.deals",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/youtubeSearch",
+   "to": "table:pipeline.instances",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/youtubeSearch",
+   "to": "table:public.companies",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/youtubeSearch",
+   "to": "table:public.import_errors",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/youtubeSearch",
+   "to": "table:public.imports",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/youtubeSearch",
+   "to": "table:public.leads",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/youtubeSearch",
+   "to": "table:public.profile_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/youtubeSearch",
+   "to": "table:public.profile_findings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/youtubeSearch",
+   "to": "table:public.profile_keys",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/youtubeSearch",
+   "to": "table:public.profile_lookups",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/youtubeSearch",
+   "to": "table:public.profile_merges",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/youtubeSearch",
+   "to": "table:public.profile_trait_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/youtubeSearch",
+   "to": "table:public.profile_traits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/youtubeSearch",
+   "to": "table:public.profiles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Enrichment/youtubeSearch",
+   "to": "table:public.sightings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ProfileResearch/run",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ProfileResearch/run",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ProfileResearch/run",
+   "to": "table:public.company_event_checks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ProfileResearch/run",
+   "to": "table:public.company_lookups",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ProfileResearch/run",
+   "to": "table:public.limits",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ProfileResearch/run",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ProfileResearch/run",
+   "to": "table:public.person_lookups",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ProfileResearch/run",
+   "to": "table:public.profile_keys",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ProfileResearch/run",
+   "to": "table:public.profiles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ProfileResearch/run",
+   "to": "table:public.signal_checks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ProfileResearch/run",
+   "to": "table:public.social_handles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ProfileResearch/run",
+   "to": "table:public.vendor_modes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ProfileResearch/run",
+   "to": "table:public.wren_settings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ProfileResearch/run",
+   "to": "table:public.documents",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ProfileResearch/run",
+   "to": "table:public.profile_findings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ProfileResearch/run",
+   "to": "table:public.profile_lookups",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ProfileResearch/run",
+   "to": "table:public.runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ProfileResearch/run",
+   "to": "table:public.vendor_usage",
+   "kind": "writes"
+  }
+ ]
 }

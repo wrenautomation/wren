@@ -6,50 +6,50 @@ Services: 2.
 
 File: packages/sites/src/service.ts
 
-- **form** `FormRequest` → `Answer` (serviceHandler)
-- **hop** `Parameters<typeof api.hop>[0]` → `{ kept: boolean; }` (serviceHandler)
-- **serve** `Parameters<typeof api.serve>[0]` → `Served` (serviceHandler)
-- **serveForm** `Parameters<typeof api.serveForm>[0]` → `Served` (serviceHandler)
-- **track** `Parameters<typeof api.track>[0]` → `{ kept: boolean; }` (serviceHandler)
+- **form** `FormRequest` → `Answer` (serviceHandler): writes pipeline.deals, pipeline.instances, public.profile_events, public.profile_findings, public.profile_keys, public.profile_lookups, public.profile_merges, public.profile_trait_events, public.profile_traits, public.profiles, public.site_events, public.site_forms; reads pipeline.shape_versions, public.clients, public.hooks, public.site_form_defs, public.site_form_splits, public.site_pages, public.site_split_arms, public.site_splits
+- **hop** `Parameters<typeof api.hop>[0]` → `{ kept: boolean; }` (serviceHandler): writes public.site_hops; reads public.clients, public.hooks, public.site_pages
+- **serve** `Parameters<typeof api.serve>[0]` → `Served` (serviceHandler): reads public.clients, public.hooks, public.site_form_defs, public.site_page_versions, public.site_pages, public.site_split_arms, public.site_splits
+- **serveForm** `Parameters<typeof api.serveForm>[0]` → `Served` (serviceHandler): reads public.clients, public.hooks, public.site_form_defs, public.site_form_splits
+- **track** `Parameters<typeof api.track>[0]` → `{ kept: boolean; }` (serviceHandler): writes public.site_events; reads public.site_form_defs, public.site_form_splits, public.site_pages, public.site_split_arms
 
 ## SitesConsole (service via `portalService`)
 
 File: packages/sites/src/console.ts
 
-- **add** `?` → `?` (serviceHandler)
-- **approve** `?` → `?` (serviceHandler)
-- **ask** `?` → `?` (serviceHandler)
-- **create** `?` → `?` (serviceHandler)
-- **decline** `?` → `?` (serviceHandler)
-- **detail** `?` → `?` (serviceHandler)
-- **draft** `?` → `?` (serviceHandler)
-- **duplicate** `?` → `?` (serviceHandler)
-- **formCreate** `?` → `?` (serviceHandler)
-- **formDetail** `?` → `?` (serviceHandler)
-- **formPublish** `?` → `?` (serviceHandler)
-- **formRetire** `?` → `?` (serviceHandler)
-- **formSave** `?` → `?` (serviceHandler)
-- **formSplitSave** `?` → `?` (serviceHandler)
-- **formSplitShip** `?` → `?` (serviceHandler)
-- **formSplitStart** `?` → `?` (serviceHandler)
-- **formSplitStop** `?` → `?` (serviceHandler)
-- **formUnpublish** `?` → `?` (serviceHandler)
-- **forms** `?` → `?` (serviceHandler)
-- **linkCreate** `?` → `?` (serviceHandler)
-- **linkTargets** `?` → `?` (serviceHandler)
-- **notes** `?` → `?` (serviceHandler)
-- **offers** `?` → `?` (serviceHandler)
-- **recordsExport** `?` → `?` (serviceHandler)
-- **recordsGet** `?` → `?` (serviceHandler)
-- **recordsList** `?` → `?` (serviceHandler)
-- **recordsStats** `?` → `?` (serviceHandler)
-- **recordsTypes** `?` → `?` (serviceHandler)
-- **retire** `?` → `?` (serviceHandler)
-- **retireAsk** `?` → `?` (serviceHandler)
-- **rewrite** `?` → `?` (serviceHandler)
-- **save** `?` → `?` (serviceHandler)
-- **share** `?` → `?` (serviceHandler)
-- **splitShip** `?` → `?` (serviceHandler)
-- **splitStart** `?` → `?` (serviceHandler)
-- **splitStop** `?` → `?` (serviceHandler)
-- **splitWeights** `?` → `?` (serviceHandler)
+- **add** `?` → `?` (serviceHandler): writes public.site_pages; reads public.client_members, public.clients, public.grants, public.hooks, public.operators, public.role_grants, public.roles
+- **approve** `?` → `?` (serviceHandler): writes public.site_pages, public.site_splits; reads public.client_members, public.clients, public.grants, public.hooks, public.operators, public.role_grants, public.roles
+- **ask** `?` → `?` (serviceHandler): writes public.site_pages; reads public.client_members, public.clients, public.grants, public.hooks, public.operators, public.role_grants, public.roles, public.site_page_versions
+- **create** `?` → `?` (serviceHandler): writes public.site_page_versions, public.site_pages; reads public.client_members, public.clients, public.grants, public.hooks, public.operators, public.role_grants, public.roles, public.wren_settings
+- **decline** `?` → `?` (serviceHandler): writes public.site_pages, public.site_splits; reads public.client_members, public.clients, public.grants, public.hooks, public.operators, public.role_grants, public.roles
+- **detail** `?` → `?` (serviceHandler): reads public.ad_days, public.ad_launches, public.call_bookings, public.client_members, public.clients, public.grants, public.hooks, public.operators, public.role_grants, public.roles, public.site_events, public.site_forms, public.site_hops, public.site_page_records, public.site_page_versions, public.site_pages, public.site_split_arms, public.site_splits
+- **draft** `?` → `?` (serviceHandler): writes public.site_page_versions, public.site_pages; reads public.client_members, public.clients, public.grants, public.hooks, public.operators, public.role_grants, public.roles, public.wren_settings
+- **duplicate** `?` → `?` (serviceHandler): writes public.site_page_versions, public.site_pages; reads public.client_members, public.clients, public.grants, public.hooks, public.operators, public.role_grants, public.roles
+- **formCreate** `?` → `?` (serviceHandler): writes public.site_form_defs; reads public.client_members, public.clients, public.grants, public.hooks, public.operators, public.role_grants, public.roles
+- **formDetail** `?` → `?` (serviceHandler): reads public.client_domains, public.client_members, public.clients, public.grants, public.hooks, public.operators, public.role_grants, public.roles, public.site_events, public.site_form_defs, public.site_form_splits, public.site_forms, public.site_pages, public.site_splits
+- **formPublish** `?` → `?` (serviceHandler): writes public.site_form_defs; reads public.client_members, public.clients, public.grants, public.hooks, public.operators, public.role_grants, public.roles
+- **formRetire** `?` → `?` (serviceHandler): writes public.site_form_defs; reads public.client_members, public.clients, public.grants, public.hooks, public.operators, public.role_grants, public.roles
+- **formSave** `?` → `?` (serviceHandler): writes public.site_form_defs; reads public.client_members, public.clients, public.grants, public.hooks, public.operators, public.role_grants, public.roles
+- **formSplitSave** `?` → `?` (serviceHandler): writes public.site_form_splits; reads public.client_members, public.clients, public.grants, public.hooks, public.operators, public.role_grants, public.roles, public.site_form_defs
+- **formSplitShip** `?` → `?` (serviceHandler): writes public.site_form_defs, public.site_form_splits; reads public.client_members, public.clients, public.grants, public.hooks, public.operators, public.role_grants, public.roles
+- **formSplitStart** `?` → `?` (serviceHandler): writes public.site_form_splits; reads public.client_members, public.clients, public.grants, public.hooks, public.operators, public.role_grants, public.roles, public.site_form_defs
+- **formSplitStop** `?` → `?` (serviceHandler): writes public.site_form_defs, public.site_form_splits; reads public.client_members, public.clients, public.grants, public.hooks, public.operators, public.role_grants, public.roles
+- **formUnpublish** `?` → `?` (serviceHandler): writes public.site_form_defs; reads public.client_members, public.clients, public.grants, public.hooks, public.operators, public.role_grants, public.roles
+- **forms** `?` → `?` (serviceHandler): reads public.client_members, public.clients, public.grants, public.hooks, public.operators, public.role_grants, public.roles, public.site_form_defs
+- **linkCreate** `?` → `?` (serviceHandler): writes public.site_links; reads public.client_domains, public.client_members, public.clients, public.grants, public.hooks, public.operators, public.role_grants, public.roles, public.site_pages
+- **linkTargets** `?` → `?` (serviceHandler): reads public.client_domains, public.client_members, public.clients, public.grants, public.hooks, public.operators, public.role_grants, public.roles, public.site_pages
+- **notes** `?` → `?` (serviceHandler): writes public.site_pages; reads public.client_members, public.clients, public.grants, public.hooks, public.operators, public.role_grants, public.roles
+- **offers** `?` → `?` (serviceHandler): reads public.client_members, public.clients, public.grants, public.operators, public.role_grants, public.roles
+- **recordsExport** `?` → `?` (serviceHandler): reads public.ad_days, public.ad_launches, public.call_bookings, public.changes, public.client_domains, public.client_members, public.clients, public.custom_field_values, public.custom_fields, public.draft_events, public.draft_outcomes, public.draft_people, public.hooks, public.roles, public.runs, public.site_entry_records, public.site_events, public.site_form_defs, public.site_form_records, public.site_form_splits, public.site_forms, public.site_hops, public.site_link_records, public.site_page_records, public.site_page_versions, public.site_pages, public.site_split_arms, public.site_splits
+- **recordsGet** `?` → `?` (serviceHandler): reads public.ad_days, public.ad_launches, public.call_bookings, public.changes, public.client_domains, public.client_members, public.clients, public.custom_field_values, public.custom_fields, public.draft_events, public.draft_outcomes, public.draft_people, public.hooks, public.roles, public.runs, public.site_entry_records, public.site_events, public.site_form_defs, public.site_form_records, public.site_form_splits, public.site_forms, public.site_hops, public.site_link_records, public.site_page_records, public.site_page_versions, public.site_pages, public.site_split_arms, public.site_splits
+- **recordsList** `?` → `?` (serviceHandler): reads public.ad_days, public.ad_launches, public.call_bookings, public.changes, public.client_domains, public.client_members, public.clients, public.custom_field_values, public.custom_fields, public.draft_events, public.draft_outcomes, public.draft_people, public.hooks, public.roles, public.runs, public.site_entry_records, public.site_events, public.site_form_defs, public.site_form_records, public.site_form_splits, public.site_forms, public.site_hops, public.site_link_records, public.site_page_records, public.site_page_versions, public.site_pages, public.site_split_arms, public.site_splits
+- **recordsStats** `?` → `?` (serviceHandler): reads public.ad_days, public.ad_launches, public.call_bookings, public.changes, public.client_domains, public.client_members, public.clients, public.custom_field_values, public.custom_fields, public.draft_events, public.draft_outcomes, public.draft_people, public.hooks, public.roles, public.runs, public.site_entry_records, public.site_events, public.site_form_defs, public.site_form_records, public.site_form_splits, public.site_forms, public.site_hops, public.site_link_records, public.site_page_records, public.site_page_versions, public.site_pages, public.site_split_arms, public.site_splits
+- **recordsTypes** `?` → `?` (serviceHandler): reads public.ad_days, public.ad_launches, public.call_bookings, public.client_domains, public.client_members, public.clients, public.hooks, public.roles, public.site_entry_records, public.site_events, public.site_form_defs, public.site_form_records, public.site_form_splits, public.site_forms, public.site_hops, public.site_link_records, public.site_page_records, public.site_page_versions, public.site_pages, public.site_split_arms, public.site_splits
+- **retire** `?` → `?` (serviceHandler): writes public.site_pages; reads public.client_members, public.clients, public.grants, public.hooks, public.operators, public.role_grants, public.roles
+- **retireAsk** `?` → `?` (serviceHandler): writes public.site_pages; reads public.client_members, public.clients, public.grants, public.hooks, public.operators, public.role_grants, public.roles, public.site_split_arms, public.site_splits
+- **rewrite** `?` → `?` (serviceHandler): writes public.site_page_versions, public.site_pages; reads public.client_members, public.clients, public.grants, public.hooks, public.operators, public.role_grants, public.roles, public.wren_settings
+- **save** `?` → `?` (serviceHandler): writes public.site_page_versions, public.site_pages; reads public.client_members, public.clients, public.grants, public.hooks, public.operators, public.role_grants, public.roles
+- **share** `?` → `?` (serviceHandler): reads public.client_members, public.clients, public.grants, public.hooks, public.operators, public.role_grants, public.roles, public.site_page_versions, public.site_pages
+- **splitShip** `?` → `?` (serviceHandler): writes public.site_page_versions, public.site_pages, public.site_splits; reads public.call_bookings, public.client_members, public.clients, public.grants, public.hooks, public.operators, public.role_grants, public.roles, public.site_events, public.site_forms, public.site_split_arms
+- **splitStart** `?` → `?` (serviceHandler): writes public.site_split_arms, public.site_splits; reads public.client_members, public.clients, public.grants, public.hooks, public.operators, public.role_grants, public.roles, public.site_pages
+- **splitStop** `?` → `?` (serviceHandler): writes public.site_splits; reads public.client_members, public.clients, public.grants, public.hooks, public.operators, public.role_grants, public.roles, public.site_pages, public.site_split_arms
+- **splitWeights** `?` → `?` (serviceHandler): writes public.site_split_arms, public.site_splits; reads public.client_members, public.clients, public.grants, public.hooks, public.operators, public.role_grants, public.roles, public.site_pages
