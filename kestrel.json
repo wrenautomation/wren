@@ -78,6 +78,7 @@
         "worker:pixel": "Open-tracking pixel on t.wrenautomation.com; off by default."
       }
     },
+    "patterns": {},
     "ui": {
       "dump": "pnpm -s --filter @wren/portal kestrel:screens",
       "calls": ["call", "callAsMe", "post"],

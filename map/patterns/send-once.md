@@ -1,6 +1,9 @@
 ---
 type: pattern
 covers: ["@wren/core/src/send-verdict.ts", "@wren/core/src/maybe-sent.ts", "@wren/outreach/src/settle-send.ts"]
+rule:
+  when: { reaches: ["SiteClient.call(_, !GET)"] }
+  must: [withSendKey, sendOnce, deliveryOf, maybeSent]
 ---
 
 # send-once (a claim, a key, a verdict)
@@ -25,4 +28,4 @@ Every send of ours that must go out at most once: claim a row, send under a key,
 
 ## Rule
 
-None yet: judgment. A check could hold that every `restateSites` write runs inside `withSendKey`.
+kestrel `patterns` layer: a route whose walk makes a site write (`SiteClient.call` with a method that is not `GET`; a method in a variable counts) also calls one of `withSendKey`, `sendOnce`, `deliveryOf`, `maybeSent`. The walk ends at an injected call, so a key set in a callee service is not seen: approve such a route as an exception.

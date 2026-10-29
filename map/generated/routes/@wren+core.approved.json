@@ -1807,6 +1807,10 @@
    "attrs": {
     "input": "{ platform: Platform; commentId: string; text: string } & ForClient & Keyed",
     "output": "{ ref: string | null } | Delivery<{ ref: string | null }>",
+    "reaches": [
+     "deliveryOf",
+     "withSendKey"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -1818,6 +1822,10 @@
    "attrs": {
     "input": "{ platform: Platform; post: Post } & ForClient & AsAccount & Keyed",
     "output": "Published | Delivery<Published>",
+    "reaches": [
+     "deliveryOf",
+     "withSendKey"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -1829,6 +1837,10 @@
    "attrs": {
     "input": "{ platform: Platform; commentId: string; postId?: string | null; text: string; } & ForClient & AsAccount & Keyed",
     "output": "void | Delivery<void>",
+    "reaches": [
+     "deliveryOf",
+     "withSendKey"
+    ],
     "wrap": "serviceHandler"
    }
   },

@@ -18,6 +18,9 @@
     ],
     "input": "{ today: string }",
     "output": "WeekStats",
+    "reaches": [
+     "SiteClient.call(_, !GET)"
+    ],
     "wrap": "serviceHandler"
    }
   },

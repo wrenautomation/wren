@@ -15,6 +15,9 @@
     ],
     "input": "void",
     "output": "import(\"./ads.js\").AdAccount[]",
+    "reaches": [
+     "SiteClient.call(_, !GET)"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -33,6 +36,9 @@
     ],
     "input": "void",
     "output": "import(\"./audit.js\").Audit",
+    "reaches": [
+     "SiteClient.call(_, !GET)"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -50,6 +56,9 @@
     ],
     "input": "void",
     "output": "import(\"./ads.js\").CampaignRow[]",
+    "reaches": [
+     "SiteClient.call(_, !GET)"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -67,6 +76,9 @@
     ],
     "input": "{ preset?: string; level?: \"account\" | \"campaign\" | \"adset\" | \"ad\"; daily?: boolean; }",
     "output": "import(\"./ads.js\").InsightRow[]",
+    "reaches": [
+     "SiteClient.call(_, !GET)"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -84,6 +96,9 @@
     ],
     "input": "{ q: string; limit?: number }",
     "output": "import(\"./ads.js\").Interest[]",
+    "reaches": [
+     "SiteClient.call(_, !GET)"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -102,6 +117,9 @@
     ],
     "input": "LaunchSpec",
     "output": "import(\"./ads.js\").Launched",
+    "reaches": [
+     "SiteClient.call(_, !GET)"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -120,6 +138,9 @@
     ],
     "input": "LeadConsent & { limit?: number }",
     "output": "{ given: number; skipped: number; }",
+    "reaches": [
+     "SiteClient.call(_, !GET)"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -137,6 +158,9 @@
     ],
     "input": "LeadFormSpec",
     "output": "string",
+    "reaches": [
+     "SiteClient.call(_, !GET)"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -154,6 +178,9 @@
     ],
     "input": "void",
     "output": "import(\"./ads.js\").LeadFormRow[]",
+    "reaches": [
+     "SiteClient.call(_, !GET)"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -171,6 +198,9 @@
     ],
     "input": "{ formId: string; limit?: number }",
     "output": "import(\"./ads.js\").Lead[]",
+    "reaches": [
+     "SiteClient.call(_, !GET)"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -189,6 +219,9 @@
     ],
     "input": "{ campaignId: string }",
     "output": "void",
+    "reaches": [
+     "SiteClient.call(_, !GET)"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -207,6 +240,9 @@
     ],
     "input": "Tree & { dailyBudgetUsd: number }",
     "output": "void",
+    "reaches": [
+     "SiteClient.call(_, !GET)"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -225,6 +261,9 @@
     ],
     "input": "{ campaignId: string; reason?: string }",
     "output": "void",
+    "reaches": [
+     "SiteClient.call(_, !GET)"
+    ],
     "wrap": "serviceHandler"
    }
   },

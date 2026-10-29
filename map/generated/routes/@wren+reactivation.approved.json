@@ -19,6 +19,9 @@
      "tldts"
     ],
     "output": "CrmSliceResult<CrmLookupStats>",
+    "reaches": [
+     "SiteClient.call(_, !GET)"
+    ],
     "wrap": "exclusiveHandler"
    }
   },
@@ -64,6 +67,9 @@
      "tldts"
     ],
     "output": "CrmRunResult",
+    "reaches": [
+     "SiteClient.call(_, !GET)"
+    ],
     "wrap": "exclusiveHandler"
    }
   },

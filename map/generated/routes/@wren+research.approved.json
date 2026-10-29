@@ -293,6 +293,9 @@
      "tldts"
     ],
     "output": "ProfileStats",
+    "reaches": [
+     "SiteClient.call(_, !GET)"
+    ],
     "wrap": "exclusiveHandler"
    }
   },
@@ -361,6 +364,9 @@
     ],
     "input": "SignalsInput",
     "output": "SignalsStats",
+    "reaches": [
+     "SiteClient.call(_, !GET)"
+    ],
     "wrap": "exclusiveHandler"
    }
   },
@@ -394,6 +400,9 @@
      "tldts"
     ],
     "output": "TeamStats",
+    "reaches": [
+     "SiteClient.call(_, !GET)"
+    ],
     "wrap": "exclusiveHandler"
    }
   },
@@ -478,6 +487,9 @@
      "tldts"
     ],
     "output": "ProfileResearchStats",
+    "reaches": [
+     "SiteClient.call(_, !GET)"
+    ],
     "wrap": "exclusiveHandler"
    }
   },

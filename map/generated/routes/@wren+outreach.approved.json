@@ -48,6 +48,9 @@
     ],
     "input": "{ id: number; act: \"like\" | \"follow\" }",
     "output": "{ id: number; act: \"like\" | \"follow\" }",
+    "reaches": [
+     "SiteClient.call(_, !GET)"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -133,6 +136,11 @@
     ],
     "input": "{ id: number; body?: string | null; at?: string | null; again?: boolean }",
     "output": "{ commented: number; held?: string }",
+    "reaches": [
+     "SiteClient.call(_, !GET)",
+     "sendOnce",
+     "withSendKey"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -150,6 +158,11 @@
     ],
     "input": "{ id: string; body?: string | null; at?: string | null; again?: boolean }",
     "output": "{ ref: string | null; held?: string }",
+    "reaches": [
+     "SiteClient.call(_, !GET)",
+     "sendOnce",
+     "withSendKey"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -179,6 +192,10 @@
     ],
     "input": "{ id: number; body: string; again?: boolean }",
     "output": "{ contactId: number; messageId: number }",
+    "reaches": [
+     "sendOnce",
+     "withSendKey"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -242,6 +259,9 @@
     ],
     "input": "{ contactId: number; accountId?: string | null }",
     "output": "Profile",
+    "reaches": [
+     "SiteClient.call(_, !GET)"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -276,6 +296,9 @@
     ],
     "input": "{ accountId: string; query: string; limit?: number; cursor?: string | null; niche?: string | null; }",
     "output": "{ found: Found; added: AddStats }",
+    "reaches": [
+     "SiteClient.call(_, !GET)"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -309,6 +332,9 @@
     ],
     "input": "{ id: string }",
     "output": "{ platform: string; handle: string }",
+    "reaches": [
+     "SiteClient.call(_, !GET)"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -325,6 +351,9 @@
     ],
     "input": "{ id: string }",
     "output": "AccountView",
+    "reaches": [
+     "SiteClient.call(_, !GET)"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -361,6 +390,9 @@
     ],
     "input": "void",
     "output": "InvitesPass | { off: string }",
+    "reaches": [
+     "SiteClient.call(_, !GET)"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -483,6 +515,9 @@
     ],
     "input": "{ url: string }",
     "output": "Pasted",
+    "reaches": [
+     "SiteClient.call(_, !GET)"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -505,6 +540,9 @@
     ],
     "input": "{ id: string; act: \"reply\" | \"follow\" }",
     "output": "Pasted",
+    "reaches": [
+     "SiteClient.call(_, !GET)"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -538,6 +576,9 @@
     ],
     "input": "void",
     "output": "PostsStats[]",
+    "reaches": [
+     "SiteClient.call(_, !GET)"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -569,6 +610,9 @@
     ],
     "input": "{ id: number }",
     "output": "{ read: boolean }",
+    "reaches": [
+     "SiteClient.call(_, !GET)"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -840,6 +884,9 @@
     ],
     "input": "{ contactId: number }",
     "output": "{ outcome: string }",
+    "reaches": [
+     "SiteClient.call(_, !GET)"
+    ],
     "wrap": "serviceHandler"
    }
   },

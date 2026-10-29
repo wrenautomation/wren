@@ -748,6 +748,9 @@
     ],
     "input": "PortalRequest & { id?: unknown }",
     "output": "{ payload: unknown; tries: { n: number; status: number | null; latencyMs: number; response: string | null; error: string | null; at: string; }[]; id: string; subscription: string; event: string; eventId: string; state: import(\"@wren/core\").DeliveryState; attempts: number; status: number | null; latencyMs: number | null; response: string | null; error: string | null; at: string; lastAt: string | null; nextAt: string | null; }",
+    "reaches": [
+     "deliveryOf"
+    ],
     "wrap": "plain"
    }
   },
@@ -778,6 +781,9 @@
     ],
     "input": "PortalRequest & { id?: unknown }",
     "output": "{ id: string; }",
+    "reaches": [
+     "deliveryOf"
+    ],
     "wrap": "plain"
    }
   },

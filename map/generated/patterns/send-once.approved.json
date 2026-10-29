@@ -1,0 +1,190 @@
+{
+ "layer": "patterns",
+ "nodes": [
+  {
+   "id": "pattern:send-once",
+   "role": "pattern",
+   "group": "send-once",
+   "attrs": {
+    "card": "map/patterns/send-once.md"
+   }
+  }
+ ],
+ "edges": [
+  {
+   "from": "pattern:send-once",
+   "to": "route:Ads/accounts",
+   "kind": "breaks"
+  },
+  {
+   "from": "pattern:send-once",
+   "to": "route:Ads/audit",
+   "kind": "breaks"
+  },
+  {
+   "from": "pattern:send-once",
+   "to": "route:Ads/campaigns",
+   "kind": "breaks"
+  },
+  {
+   "from": "pattern:send-once",
+   "to": "route:Ads/insights",
+   "kind": "breaks"
+  },
+  {
+   "from": "pattern:send-once",
+   "to": "route:Ads/interests",
+   "kind": "breaks"
+  },
+  {
+   "from": "pattern:send-once",
+   "to": "route:Ads/launch",
+   "kind": "breaks"
+  },
+  {
+   "from": "pattern:send-once",
+   "to": "route:Ads/leadConsents",
+   "kind": "breaks"
+  },
+  {
+   "from": "pattern:send-once",
+   "to": "route:Ads/leadForm",
+   "kind": "breaks"
+  },
+  {
+   "from": "pattern:send-once",
+   "to": "route:Ads/leadForms",
+   "kind": "breaks"
+  },
+  {
+   "from": "pattern:send-once",
+   "to": "route:Ads/leads",
+   "kind": "breaks"
+  },
+  {
+   "from": "pattern:send-once",
+   "to": "route:Ads/resume",
+   "kind": "breaks"
+  },
+  {
+   "from": "pattern:send-once",
+   "to": "route:Ads/start",
+   "kind": "breaks"
+  },
+  {
+   "from": "pattern:send-once",
+   "to": "route:Ads/stop",
+   "kind": "breaks"
+  },
+  {
+   "from": "pattern:send-once",
+   "to": "route:CrmRun/lookup",
+   "kind": "breaks"
+  },
+  {
+   "from": "pattern:send-once",
+   "to": "route:CrmRun/run",
+   "kind": "breaks"
+  },
+  {
+   "from": "pattern:send-once",
+   "to": "route:Enrichment/profiles",
+   "kind": "breaks"
+  },
+  {
+   "from": "pattern:send-once",
+   "to": "route:Enrichment/signals",
+   "kind": "breaks"
+  },
+  {
+   "from": "pattern:send-once",
+   "to": "route:Enrichment/team",
+   "kind": "breaks"
+  },
+  {
+   "from": "pattern:send-once",
+   "to": "route:ProfileResearch/run",
+   "kind": "breaks"
+  },
+  {
+   "from": "pattern:send-once",
+   "to": "route:ReachDesk/actOnPost",
+   "kind": "breaks"
+  },
+  {
+   "from": "pattern:send-once",
+   "to": "route:ReachDesk/enrich",
+   "kind": "breaks"
+  },
+  {
+   "from": "pattern:send-once",
+   "to": "route:ReachDesk/find",
+   "kind": "breaks"
+  },
+  {
+   "from": "pattern:send-once",
+   "to": "route:ReachDesk/followPerson",
+   "kind": "breaks"
+  },
+  {
+   "from": "pattern:send-once",
+   "to": "route:ReachDesk/health",
+   "kind": "breaks"
+  },
+  {
+   "from": "pattern:send-once",
+   "to": "route:ReachDesk/invites",
+   "kind": "breaks"
+  },
+  {
+   "from": "pattern:send-once",
+   "to": "route:ReachDesk/paste",
+   "kind": "breaks"
+  },
+  {
+   "from": "pattern:send-once",
+   "to": "route:ReachDesk/pick",
+   "kind": "breaks"
+  },
+  {
+   "from": "pattern:send-once",
+   "to": "route:ReachDesk/postsNow",
+   "kind": "breaks"
+  },
+  {
+   "from": "pattern:send-once",
+   "to": "route:ReachDesk/readThread",
+   "kind": "breaks"
+  },
+  {
+   "from": "pattern:send-once",
+   "to": "route:ReachDesk/withdrawInvite",
+   "kind": "breaks"
+  },
+  {
+   "from": "pattern:send-once",
+   "to": "route:SearchWeek/run",
+   "kind": "breaks"
+  },
+  {
+   "from": "pattern:send-once",
+   "to": "route:SocialAccess/social",
+   "kind": "breaks"
+  },
+  {
+   "from": "pattern:send-once",
+   "to": "route:ReachDesk/commentPost",
+   "kind": "holds"
+  },
+  {
+   "from": "pattern:send-once",
+   "to": "route:ReachDesk/commentThread",
+   "kind": "holds"
+  },
+  {
+   "from": "pattern:send-once",
+   "to": "route:SocialInbox/send",
+   "kind": "holds"
+  }
+ ]
+}
