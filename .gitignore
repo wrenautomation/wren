@@ -35,3 +35,5 @@ packages/ui/test-results/
 map/generated/**/*.current.json
 # Spend is not for a public repo: kestrel cost writes it locally only.
 map/generated/cost.md
+# git rebuilds it: kestrel recent writes it locally only.
+map/generated/recent.md
