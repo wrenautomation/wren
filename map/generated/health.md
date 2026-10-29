@@ -2,6 +2,16 @@
 
 Signals, not a gate. Package layers and package cycles are the repo's own gate.
 
+## Read first
+
+1. 30 pins are behind a newer publish. The worst: `@wrenautomation/falcon@0.8.2`, 27 behind 0.28.0, in 7 packages. Bump each scope in one change.
+2. 16 file cycles: files that import each other in a loop. The largest has 8 files, from `@wren/content/src/restate/desk-approvals.ts`. Move what they share into one file that imports none of them.
+3. 10 dependencies no code imports: `@wren/experiments`, `playwright`, `playwright-core`, `@wrenautomation/falcon`, `@wren/llm` and more. Remove them from package.json.
+4. 227 exports nothing imports. Most are in `apps/portal` (120). Delete them, or stop the export.
+5. 10 folders over 40 boxes: too flat to read as a graph. The largest: `@wren/core` (185). Group its files by job.
+6. 0.97% of lines are copies (499 clones). The largest: 27 lines, `packages/documents/src/console.ts:20-46` and `packages/payments/src/console.ts:25-51`. Share the part where both copies change together.
+7. 2633 exports with no declared type: the interface is whatever the code returns. Most: `@wren/core` (577 of 2340). Declare the type where other packages use it.
+
 | Signal | Count |
 |---|---|
 | File cycles | 16 |
