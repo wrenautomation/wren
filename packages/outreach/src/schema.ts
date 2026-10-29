@@ -846,6 +846,11 @@ export const reachPosts = pgTable(
     /** Our like on the post and our follow of its author, each sent with his Comment. */
     likedAt: timestamp("liked_at", { withTimezone: true }),
     followedAt: timestamp("followed_at", { withTimezone: true }),
+    /** Auto like/follow tries that failed; at `ACT_TRIES` the act is parked (`reach-posts/acts.ts`). */
+    likeFails: smallint("like_fails").notNull().default(0),
+    followFails: smallint("follow_fails").notNull().default(0),
+    /** The last failure's words, for a person who clears the park. */
+    actError: text("act_error"),
     raw: jsonb("raw").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },

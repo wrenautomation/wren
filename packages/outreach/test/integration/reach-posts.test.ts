@@ -21,10 +21,13 @@ import { companies, people } from "@wren/core/schema";
 import { startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
-import { eq, sql } from "drizzle-orm";
+import { eq, inArray, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { DEFAULT_POLICY } from "../../src/policy.js";
-import { ACTS_PER_PASS, autoActs } from "../../src/reach-posts/acts.js";
+import { ACT_BREAK, ACT_TRIES, ACTS_PER_PASS, autoActs } from "../../src/reach-posts/acts.js";
+
+const nextUtcDay = (d: Date) => Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + 1);
+
 import type { FeedPost } from "../../src/reach-posts/read.js";
 import { COMMENTS_COMPONENTS, COMMENTS_SETTINGS, MIN_FIT } from "../../src/reach-posts/settings.js";
 import {
@@ -1021,6 +1024,67 @@ describe("likes and follows with no yes", () => {
     sent.length = 0;
     await run({}, holds);
     expect(sent).toEqual([]);
+  });
+
+  it("a switched-off bucket (cap 0) holds till the UTC day turns", async () => {
+    await row("731", "fay", 90);
+    const holds: Record<string, number> = {};
+    const off = new SiteCallError(
+      "x",
+      "POST",
+      "/2/users/me/likes",
+      429,
+      "x like reads are off for x@wren (cap 0)",
+    );
+    const r = await run({ fail: (path) => (path.endsWith("/likes") ? off : null) }, holds);
+    expect(r.held).toEqual(["x like"]);
+    expect(holds["x like"]).toBe(nextUtcDay(NOW));
+  });
+
+  it("a failed act parks its post at ACT_TRIES; a failed follow parks its author", async () => {
+    const a = await row("741", "gus", 90);
+    await row("742", "gus", 85);
+    const broken = new SiteCallError("x", "POST", "/2/users/me/likes", 502, "no Like button");
+    const fail = (path: string) =>
+      path.endsWith("/following") || path.endsWith("/likes") ? broken : null;
+    for (let i = 0; i < ACT_TRIES; i++) await run({ fail }, {});
+    const [after] = await db().select().from(reachPosts).where(eq(reachPosts.id, a.id));
+    expect(after).toMatchObject({
+      likeFails: ACT_TRIES,
+      actError: expect.stringContaining("no Like button"),
+    });
+    // Parked: the next pass asks nothing of this author's posts.
+    sent.length = 0;
+    expect(await run({ fail }, {})).toMatchObject({ errors: [] });
+    expect(sent).toEqual([]);
+  });
+
+  it("ACT_BREAK failures in a row hold the act for the day; a busy profile counts nothing", async () => {
+    for (let i = 0; i < ACT_BREAK + 1; i++) await row(`75${i}`, `hal${i}`, 90);
+    const holds: Record<string, number> = {};
+    const broken = new SiteCallError("x", "POST", "/2/users/me/following", 502, "no Follow button");
+    const r = await run({ fail: (path) => (path.endsWith("/following") ? broken : null) }, holds);
+    expect(r.held).toEqual(["x follow"]);
+    expect(r.errors).toHaveLength(ACT_BREAK);
+    expect(holds["x follow"]).toBe(nextUtcDay(NOW));
+    const fresh = [
+      await row("761", "ida", 90),
+      await row("762", "jo", 90),
+      await row("763", "kit", 90),
+    ];
+    const busy = new SiteCallError("x", "POST", "/2/users/me/likes", 503, "not sent: profile busy");
+    const b = await run({ fail: (path) => (path.endsWith("/likes") ? busy : null) }, {});
+    expect(b.held).toEqual([]);
+    const fails = await db()
+      .select({ n: reachPosts.likeFails })
+      .from(reachPosts)
+      .where(
+        inArray(
+          reachPosts.id,
+          fresh.map((f) => f.id),
+        ),
+      );
+    expect(fails.map((f) => f.n)).toEqual([0, 0, 0]);
   });
 });
 

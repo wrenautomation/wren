@@ -73,6 +73,12 @@ export class SiteCallError extends Error {
   }
 }
 
+/** Ms from `now` to the next UTC midnight, when autobrowse's day caps reset. */
+export const untilUtcDay = (now: number): number => {
+  const d = new Date(now);
+  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + 1) - now;
+};
+
 /** Longer than this, a 429's wait outlasts Restate's retries: a daily cap, not a burst. */
 const LONG_WAIT_S = 15 * 60;
 
@@ -81,13 +87,15 @@ const LONG_WAIT_S = 15 * 60;
  * carrying its message says it), or null for anything else. A caller waits it out instead of
  * asking again and calling the refusal an error.
  */
-export function capWaitMs(err: unknown): number | null {
+export function capWaitMs(err: unknown, now = Date.now()): number | null {
   const message = err instanceof Error ? err.message : String(err);
   const is429 =
     err instanceof SiteCallError
       ? err.status === 429
       : (err as { code?: unknown } | null)?.code === 429 || /\b429\b/.test(message);
   if (!is429) return null;
+  // a bucket switched off: no retry-after; held till the caps' UTC day turns
+  if (/\(cap 0\)/.test(message)) return untilUtcDay(now);
   const m = /retry after (\d+)s/.exec(message);
   const wait = m ? Number(m[1]) : null;
   return wait !== null && wait > LONG_WAIT_S ? wait * 1000 : null;
@@ -105,7 +113,7 @@ export const capHeld = (holds: CapHolds, key: string, now: number): boolean =>
 
 /** A used cap holds `key` until it resets: true. Anything else changes nothing: false. */
 export function holdCap(holds: CapHolds, key: string, err: unknown, now: number): boolean {
-  const wait = capWaitMs(err);
+  const wait = capWaitMs(err, now);
   if (wait === null) return false;
   holds[key] = Math.max(holds[key] ?? 0, now + wait);
   return true;

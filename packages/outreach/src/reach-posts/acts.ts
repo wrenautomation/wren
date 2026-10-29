@@ -1,7 +1,7 @@
 /** His calls on a post (comment, like, follow, skip) and the likes and follows sent with no yes. */
 
 import { keepSentEdit } from "@wren/core/ask";
-import { type CapHolds, capHeld, holdCap } from "@wren/core/content";
+import { type CapHolds, capHeld, holdCap, SiteCallError, untilUtcDay } from "@wren/core/content";
 import { recordDraft } from "@wren/core/draft-record";
 import type { RejectReason } from "@wren/core/reject-reasons";
 import type { Queryable } from "@wren/db";
@@ -191,6 +191,12 @@ export function postActs(
 export const ACTS_PER_PASS = 5;
 /** Posts older than this get no like or follow. */
 const ACT_DAYS = 7;
+/** Failed tries before a post's act is parked; a follow parks for its author. */
+export const ACT_TRIES = 2;
+/** Failures in a row in one pass that hold the act for the day: the flow, not the post, is broken. */
+export const ACT_BREAK = 3;
+/** autobrowse's answer when the profile is busy: nothing reached the site. */
+const PROFILE_BUSY = 503;
 
 export interface ActsStats {
   liked: number;
@@ -204,7 +210,9 @@ export interface ActsStats {
  * Likes on fit posts and follows of their authors, with no yes (William, 2026-10-25): a like or
  * follow has no words. A post fits at `minFit`; job ads and posts off target are dropped, never
  * acted on. An author already followed through another post is not asked again. A used cap
- * (`holds`, key `<platform> <act>`) ends that act till its reset.
+ * (`holds`, key `<platform> <act>`) ends that act till its reset. A failed act counts on its post
+ * and parks at `ACT_TRIES`; `ACT_BREAK` failures in a row, or a sign-in or block, hold the act for
+ * the day (designs/2026-10-29-act-parking.md).
  */
 export async function autoActs(
   db: Queryable,
@@ -231,15 +239,16 @@ export async function autoActs(
   // One journaled read: a replay acts on the same posts whatever the table holds by then.
   const due = await o.step(`acts due ${o.platform}`, async () => {
     const rows = (await db.execute(sql`
-      SELECT p.id, p.liked_at IS NULL AS "toLike",
+      SELECT p.id, p.liked_at IS NULL AND p.like_fails < ${ACT_TRIES} AS "toLike",
         p.followed_at IS NULL AND NOT EXISTS (SELECT 1 FROM reach_posts f
-          WHERE f.platform = p.platform AND f.followed_at IS NOT NULL
+          WHERE f.platform = p.platform
+            AND (f.followed_at IS NOT NULL OR f.follow_fails >= ${ACT_TRIES})
             AND coalesce(f.handle, f.author_url) = coalesce(p.handle, p.author_url)) AS "toFollow"
       FROM reach_posts p
       WHERE p.platform = ${o.platform} AND p.fit >= ${o.settings.minFit}
         AND p.state IN ('found', 'queued', 'commented')
         AND p.created_at > ${new Date(t - ACT_DAYS * 86_400_000).toISOString()}::timestamptz
-        AND (p.liked_at IS NULL OR p.followed_at IS NULL)
+        AND ((p.liked_at IS NULL AND p.like_fails < ${ACT_TRIES}) OR p.followed_at IS NULL)
       ORDER BY p.fit DESC, p.id`)) as unknown as Array<{
       id: number;
       toLike: boolean;
@@ -265,6 +274,12 @@ export async function autoActs(
     });
   });
   const followed = new Set<string>();
+  const streak = { like: 0, follow: 0 };
+  const holdDay = (what: "like" | "follow") => {
+    o.holds[key(what)] = Math.max(o.holds[key(what)] ?? 0, t + untilUtcDay(t));
+    on[what] = false;
+    stats.held.push(key(what));
+  };
   for (const { p, toLike, toFollow } of due) {
     const who = p.handle ?? p.authorUrl ?? "";
     const want = {
@@ -278,6 +293,7 @@ export async function autoActs(
       try {
         await o.call(act);
         await o.step(`${what} ${p.id}`, () => markPostActed(db, p.id, what, o.now));
+        streak[what] = 0;
         if (what === "like") stats.liked++;
         else {
           stats.followed++;
@@ -287,8 +303,18 @@ export async function autoActs(
         if (holdCap(o.holds, key(what), err, t)) {
           on[what] = false;
           stats.held.push(key(what));
-        } else
-          stats.errors.push(`${what} ${p.id}: ${err instanceof Error ? err.message : String(err)}`);
+          continue;
+        }
+        const message = err instanceof Error ? err.message : String(err);
+        stats.errors.push(`${what} ${p.id}: ${message}`);
+        if (err instanceof SiteCallError && err.status === PROFILE_BUSY) continue;
+        await o.step(`${what} failed ${p.id}`, () => markActFailed(db, p.id, what, message));
+        if (what === "follow") followed.add(who);
+        // a sign-in wall or a block is the account's, not this post's
+        const account =
+          err instanceof SiteCallError &&
+          (err.code === "need_login" || err.code === "platform_blocked");
+        if (account || ++streak[what] >= ACT_BREAK) holdDay(what);
       }
     }
   }
@@ -297,6 +323,24 @@ export async function autoActs(
 
 const companyOf = (url: string | null) =>
   url ? (/linkedin\.com\/company\/([^/?#]+)/i.exec(url)?.[1]?.toLowerCase() ?? null) : null;
+
+/** A like or follow failed: one more try spent on the post, its words kept. */
+export async function markActFailed(
+  db: Queryable,
+  id: number,
+  act: "like" | "follow",
+  error: string,
+): Promise<void> {
+  await db
+    .update(reachPosts)
+    .set({
+      ...(act === "like"
+        ? { likeFails: sql`${reachPosts.likeFails} + 1` }
+        : { followFails: sql`${reachPosts.followFails} + 1` }),
+      actError: error.slice(0, 500),
+    })
+    .where(eq(reachPosts.id, id));
+}
 
 /** Our like or follow went out: kept on the post and as a touch. */
 export async function markPostActed(
