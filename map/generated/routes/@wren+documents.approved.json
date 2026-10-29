@@ -30,6 +30,9 @@
    "group": "@wren/documents",
    "attrs": {
     "input": "Req",
+    "npm": [
+     "stripe"
+    ],
     "output": "Answer",
     "wrap": "serviceHandler"
    }
@@ -41,6 +44,9 @@
    "group": "@wren/documents",
    "attrs": {
     "input": "Req",
+    "npm": [
+     "pdf-lib"
+    ],
     "output": "Answer",
     "wrap": "serviceHandler"
    }
@@ -52,6 +58,10 @@
    "group": "@wren/documents",
    "attrs": {
     "input": "{ id: string; remind?: boolean | null; by?: string | null }",
+    "npm": [
+     "libphonenumber-js",
+     "pdf-lib"
+    ],
     "output": "{ sent: boolean; url: null; why?: never; } | { sent: boolean; why: string; url: null; } | { sent: boolean; url: string; why?: never; }",
     "wrap": "serviceHandler"
    }
@@ -85,6 +95,10 @@
    "group": "@wren/documents",
    "attrs": {
     "input": "IdsRequest",
+    "npm": [
+     "libphonenumber-js",
+     "pdf-lib"
+    ],
     "output": "{ done: string[]; }",
     "wrap": "serviceHandler"
    }
@@ -96,6 +110,9 @@
    "group": "@wren/documents",
    "attrs": {
     "input": "?",
+    "npm": [
+     "libphonenumber-js"
+    ],
     "output": "?",
     "wrap": "serviceHandler"
    }
@@ -129,6 +146,9 @@
    "group": "@wren/documents",
    "attrs": {
     "input": "IdRequest & { part?: string | null }",
+    "npm": [
+     "pdf-lib"
+    ],
     "output": "{ name: string; url: string; base64?: never; } | { name: string; base64: string; url?: never; }",
     "wrap": "serviceHandler"
    }
@@ -195,6 +215,10 @@
    "group": "@wren/documents",
    "attrs": {
     "input": "IdRequest",
+    "npm": [
+     "libphonenumber-js",
+     "pdf-lib"
+    ],
     "output": "{ id: string; }",
     "wrap": "serviceHandler"
    }
@@ -206,6 +230,10 @@
    "group": "@wren/documents",
    "attrs": {
     "input": "IdRequest",
+    "npm": [
+     "libphonenumber-js",
+     "pdf-lib"
+    ],
     "output": "{ docs: { id: string; status: string; }[]; url: null; why?: never; } | { docs: { id: string; status: string; }[]; url: string | null; why: string | null; }",
     "wrap": "serviceHandler"
    }
@@ -250,6 +278,9 @@
    "group": "@wren/documents",
    "attrs": {
     "input": "?",
+    "npm": [
+     "libphonenumber-js"
+    ],
     "output": "?",
     "wrap": "serviceHandler"
    }

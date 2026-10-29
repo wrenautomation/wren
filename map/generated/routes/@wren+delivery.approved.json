@@ -52,6 +52,9 @@
    "group": "@wren/delivery",
    "attrs": {
     "input": "PortalRequest & { hostname: string }",
+    "npm": [
+     "tldts"
+    ],
     "output": "import(\"./domains.js\").DomainView",
     "wrap": "plain"
    }
@@ -217,6 +220,9 @@
    "group": "@wren/delivery",
    "attrs": {
     "input": "Req<\"invoicePdf\">",
+    "npm": [
+     "pdf-lib"
+    ],
     "output": "{ name: string; base64: string; }",
     "wrap": "plain"
    }

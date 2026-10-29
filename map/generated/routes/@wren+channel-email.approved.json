@@ -437,6 +437,9 @@
    "group": "@wren/channel-email",
    "attrs": {
     "input": "?",
+    "npm": [
+     "@wrenautomation/autobrowse"
+    ],
     "output": "?",
     "wrap": "serviceHandler"
    }
@@ -448,6 +451,9 @@
    "group": "@wren/channel-email",
    "attrs": {
     "input": "?",
+    "npm": [
+     "@wrenautomation/autobrowse"
+    ],
     "output": "?",
     "wrap": "serviceHandler"
    }
@@ -481,6 +487,9 @@
    "group": "@wren/channel-email",
    "attrs": {
     "input": "z.infer<typeof LANDING>",
+    "npm": [
+     "@wrenautomation/autobrowse"
+    ],
     "output": "{ ok: boolean; said: string; }",
     "wrap": "serviceHandler"
    }
@@ -602,6 +611,9 @@
    "group": "@wren/channel-email",
    "attrs": {
     "input": "VerifyLeadsInput",
+    "npm": [
+     "mailifier"
+    ],
     "output": "VerificationStats",
     "wrap": "exclusiveHandler"
    }

@@ -81,7 +81,9 @@ File: packages/channel-email/src/access/console.ts
 - **addMailbox** `?` → `?` (serviceHandler): writes public.client_accounts, public.setup_runs; reads public.account_facts, public.client_members, public.clients, public.grants, public.operators, public.role_grants, public.roles
 - **check** `?` → `?` (serviceHandler): writes public.setup_runs; reads public.account_facts, public.client_accounts, public.client_members, public.clients, public.grants, public.operators, public.role_grants, public.roles
 - **connect** `?` → `?` (serviceHandler): writes public.client_accounts, public.mail_grants, public.setup_runs; reads public.account_facts, public.client_members, public.clients, public.grants, public.mail_consents, public.operators, public.role_grants, public.roles
+  - outside: npm @wrenautomation/autobrowse
 - **consent** `?` → `?` (serviceHandler): writes public.mail_grants; reads public.account_facts, public.client_accounts, public.client_members, public.clients, public.grants, public.operators, public.role_grants, public.roles, public.setup_runs
+  - outside: npm @wrenautomation/autobrowse
 - **done** `?` → `?` (serviceHandler): writes watch.mail; reads public.client_members, public.clients, public.roles
 - **mail** `?` → `?` (serviceHandler): reads public.account_facts, public.client_accounts, public.client_members, public.clients, public.grants, public.mail_connections, public.mail_consents, public.operators, public.role_grants, public.roles, public.setup_runs
 
@@ -90,6 +92,7 @@ File: packages/channel-email/src/access/console.ts
 File: packages/channel-email/src/access/console.ts
 
 - **land** `z.infer<typeof LANDING>` → `{ ok: boolean; said: string; }` (serviceHandler): writes public.mail_connections, public.mail_consents, public.mail_grants, public.setup_runs; reads public.account_facts, public.client_accounts, public.clients
+  - outside: npm @wrenautomation/autobrowse
 
 ## Marketing (service)
 
@@ -121,3 +124,4 @@ File: packages/channel-email/src/restate/resolution.ts
 - **resolve** `ResolveInput` → `ResolutionStats` (exclusiveHandler): writes pipeline.deals, pipeline.instances, public.companies, public.contact_candidates, public.import_errors, public.imports, public.leads, public.profile_events, public.profile_findings, public.profile_keys, public.profile_lookups, public.profile_merges, public.profile_trait_events, public.profile_traits, public.profiles, public.runs, public.sightings, public.verifications; reads pipeline.shape_versions, public.people, public.suppressions
 - **resolveNewDomains** `ResolveNewInput` → `ResolutionStats` (exclusiveHandler): writes pipeline.deals, pipeline.instances, public.companies, public.contact_candidates, public.import_errors, public.imports, public.leads, public.profile_events, public.profile_findings, public.profile_keys, public.profile_lookups, public.profile_merges, public.profile_trait_events, public.profile_traits, public.profiles, public.runs, public.sightings, public.verifications; reads pipeline.shape_versions, public.people, public.suppressions
 - **verifyLeads** `VerifyLeadsInput` → `VerificationStats` (exclusiveHandler): writes public.contact_candidates, public.leads, public.runs, public.verifications; reads public.companies, public.contact_outcomes, public.enrollments, public.imports, public.people, public.suppressions
+  - outside: npm mailifier

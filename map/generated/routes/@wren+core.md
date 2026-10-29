@@ -17,6 +17,7 @@ File: packages/core/src/accounts-console.ts
 - **start** `?` → `?` (serviceHandler): writes public.setup_runs; reads public.account_facts, public.client_accounts, public.client_members, public.clients, public.grants, public.operators, public.role_grants, public.roles
 - **usage** `?` → `?` (serviceHandler): reads public.clients, public.vendor_usage
 - **vendors** `?` → `?` (serviceHandler): reads public.client_members, public.clients, public.roles, public.vendor_modes, public.vendor_usage, public.wren_settings
+  - outside: npm @wrenautomation/models
 
 ## Ask (service)
 
@@ -39,6 +40,7 @@ File: packages/core/src/console/console-portal.ts
 
 - **accessAsk** `?` → `?` (write)
 - **addClient** `AddClientRequest` → `{ id: string; name: string; demo: boolean; }` (plain): writes public.client_accounts, public.clients
+  - outside: npm postgres
 - **agents** `PortalRequest` → `import("./loops.js").AgentLine[]` (plain)
 - **ask** `ComponentRequest` → `{ component: string; }` (plain): reads public.client_members, public.clients, public.roles
 - **askDecide** `?` → `?` (write)
@@ -46,6 +48,7 @@ File: packages/core/src/console/console-portal.ts
 - **businessFacts** `Input` → `{ value: string; key: string; id: string; createdAt: Date; label: string; updatedAt: Date; owner: string | null; createdBy: string; updatedBy: string; }[]` (plain): reads public.client_members, public.clients, public.custom_fields, public.custom_values, public.grants, public.operators, public.role_grants, public.roles
 - **call** `CallRequest` → `unknown` (plain): writes public.grants, public.runs
 - **configure** `InstallRequest` → `{ start: LoopKey[]; stop: LoopKey[]; }` (plain): writes public.client_accounts, public.clients, public.runs, public.template_versions, public.templates, public.wren_settings; reads public.client_members, public.roles
+  - outside: npm postgres
 - **connect** `ConnectRequest` → `{ client: string; site: string; set: boolean; }` (plain): writes public.client_accounts, public.clients, public.runs; reads public.client_members, public.roles
 - **customFieldOrder** `?` → `?` (write)
 - **customFieldSave** `?` → `?` (write)
@@ -63,6 +66,7 @@ File: packages/core/src/console/console-portal.ts
 - **grantAdd** `?` → `?` (write)
 - **grantEnd** `?` → `?` (write)
 - **install** `InstallRequest` → `{ start: LoopKey[]; stop: LoopKey[]; }` (plain): writes public.client_accounts, public.clients, public.runs, public.template_versions, public.templates; reads public.client_members, public.roles
+  - outside: npm postgres
 - **issueRaise** `?` → `?` (write)
 - **issueResolve** `?` → `?` (write)
 - **issues** `Input` → `IssueView[]` (plain): reads public.client_members, public.clients, public.grants, public.issues, public.operators, public.role_grants, public.roles
@@ -88,7 +92,9 @@ File: packages/core/src/console/console-portal.ts
 - **roleRemove** `?` → `?` (write)
 - **roleSave** `?` → `?` (write)
 - **sandboxMake** `PortalRequest` → `{ id: string; name: string; }` (plain): writes public.client_accounts, public.clients
+  - outside: npm postgres
 - **sandboxReset** `PortalRequest` → `{ id: string; name: string; }` (plain): writes public.client_accounts, public.clients, public.grants, public.roles
+  - outside: npm postgres
 - **saveView** `KeepRequest` → `import("../saved-views.js").SavedViewLine` (plain): writes public.saved_views; reads public.client_members, public.clients, public.grants, public.operators, public.role_grants, public.roles
 - **savedViews** `KeepRequest` → `import("../saved-views.js").SavedViewLine[]` (plain): reads public.client_members, public.clients, public.grants, public.operators, public.role_grants, public.roles, public.saved_views, public.viewer_prefs
 - **setLook** `SetLookRequest` → `{ client: string; look: unknown; }` (plain): writes public.clients; reads public.client_members, public.roles
@@ -116,6 +122,7 @@ File: packages/core/src/console/console-portal.ts
 - **tokenRevoke** `PortalRequest & { id?: unknown }` → `{ revoked: string; }` (plain): writes public.access_tokens; reads public.clients
 - **tokens** `PortalRequest` → `import("../tokens.js").TokenRow[]` (plain): reads public.access_tokens, public.clients
 - **uninstall** `ComponentRequest` → `{ start: LoopKey[]; stop: LoopKey[]; }` (plain): writes public.client_accounts, public.clients, public.runs, public.template_versions, public.templates; reads public.client_members, public.roles
+  - outside: npm postgres
 - **view** `ViewRequest` → `import("./console-api.js").ViewAnswer` (plain)
 - **viewAsList** `PortalRequest` → `ViewAsChoices` (plain): reads public.client_members, public.clients, public.operators, public.roles
 - **workflowAnswer** `PortalRequest & { id?: unknown }` → `{ state: "thinking"; error?: never; reply?: never; patch?: never; } | { state: "failed"; error: string; reply?: never; patch?: never; } | { state: "done"; reply: string; patch: import("../workflows.js").WorkflowEdits | null; error?: never; }` (plain): reads public.runs

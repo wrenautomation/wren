@@ -118,6 +118,9 @@
    "group": "@wren/core",
    "attrs": {
     "input": "?",
+    "npm": [
+     "@wrenautomation/models"
+    ],
     "output": "?",
     "wrap": "serviceHandler"
    }
@@ -195,6 +198,9 @@
    "group": "@wren/core",
    "attrs": {
     "input": "AddClientRequest",
+    "npm": [
+     "postgres"
+    ],
     "output": "{ id: string; name: string; demo: boolean; }",
     "wrap": "plain"
    }
@@ -272,6 +278,9 @@
    "group": "@wren/core",
    "attrs": {
     "input": "InstallRequest",
+    "npm": [
+     "postgres"
+    ],
     "output": "{ start: LoopKey[]; stop: LoopKey[]; }",
     "wrap": "plain"
    }
@@ -459,6 +468,9 @@
    "group": "@wren/core",
    "attrs": {
     "input": "InstallRequest",
+    "npm": [
+     "postgres"
+    ],
     "output": "{ start: LoopKey[]; stop: LoopKey[]; }",
     "wrap": "plain"
    }
@@ -734,6 +746,9 @@
    "group": "@wren/core",
    "attrs": {
     "input": "PortalRequest",
+    "npm": [
+     "postgres"
+    ],
     "output": "{ id: string; name: string; }",
     "wrap": "plain"
    }
@@ -745,6 +760,9 @@
    "group": "@wren/core",
    "attrs": {
     "input": "PortalRequest",
+    "npm": [
+     "postgres"
+    ],
     "output": "{ id: string; name: string; }",
     "wrap": "plain"
    }
@@ -1042,6 +1060,9 @@
    "group": "@wren/core",
    "attrs": {
     "input": "ComponentRequest",
+    "npm": [
+     "postgres"
+    ],
     "output": "{ start: LoopKey[]; stop: LoopKey[]; }",
     "wrap": "plain"
    }

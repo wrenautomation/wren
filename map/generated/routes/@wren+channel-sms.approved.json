@@ -41,6 +41,9 @@
    "group": "@wren/channel-sms",
    "attrs": {
     "input": "AskReviewRequest",
+    "npm": [
+     "libphonenumber-js"
+    ],
     "output": "{ asked: boolean; }",
     "wrap": "serviceHandler"
    }
@@ -118,6 +121,9 @@
    "group": "@wren/channel-sms",
    "attrs": {
     "input": "ReplyRequest",
+    "npm": [
+     "libphonenumber-js"
+    ],
     "output": "{ messageId: number; }",
     "wrap": "serviceHandler"
    }
@@ -129,6 +135,9 @@
    "group": "@wren/channel-sms",
    "attrs": {
     "input": "{ phone: string; basis: ContactBasis; why: string; niche?: string } & ForClient",
+    "npm": [
+     "libphonenumber-js"
+    ],
     "output": "{ contactId: number; e164: string; created: boolean }",
     "wrap": "serviceHandler"
    }
@@ -140,6 +149,9 @@
    "group": "@wren/channel-sms",
    "attrs": {
     "input": "{ sequence: string; niche?: string; limit: number } & ForClient",
+    "npm": [
+     "libphonenumber-js"
+    ],
     "output": "EnrollStats",
     "wrap": "serviceHandler"
    }
@@ -151,6 +163,9 @@
    "group": "@wren/channel-sms",
    "attrs": {
     "input": "void",
+    "npm": [
+     "libphonenumber-js"
+    ],
     "output": "FormStats",
     "wrap": "serviceHandler"
    }
@@ -239,6 +254,9 @@
    "group": "@wren/channel-sms",
    "attrs": {
     "input": "{ client?: string | null }",
+    "npm": [
+     "libphonenumber-js"
+    ],
     "output": "ReminderStats",
     "wrap": "serviceHandler"
    }
@@ -250,6 +268,9 @@
    "group": "@wren/channel-sms",
    "attrs": {
     "input": "{ contactId: number; body: string; kind?: \"manual\" | \"pay\" | \"doc\" } & ForClient",
+    "npm": [
+     "libphonenumber-js"
+    ],
     "output": "{ messageId: number }",
     "wrap": "serviceHandler"
    }
@@ -283,6 +304,9 @@
    "group": "@wren/channel-sms",
    "attrs": {
     "input": "{ phone: string; why: string; body: string }",
+    "npm": [
+     "libphonenumber-js"
+    ],
     "output": "{ contactId: number; messageId: number }",
     "wrap": "serviceHandler"
    }
@@ -316,6 +340,9 @@
    "group": "@wren/channel-sms",
    "attrs": {
     "input": "void",
+    "npm": [
+     "libphonenumber-js"
+    ],
     "output": "SyncStats",
     "wrap": "serviceHandler"
    }
@@ -404,6 +431,9 @@
    "group": "@wren/channel-sms",
    "attrs": {
     "input": "{ application: number }",
+    "npm": [
+     "libphonenumber-js"
+    ],
     "output": "Stepped | null",
     "wrap": "serviceHandler"
    }
@@ -415,6 +445,9 @@
    "group": "@wren/channel-sms",
    "attrs": {
     "input": "RunRequest",
+    "npm": [
+     "libphonenumber-js"
+    ],
     "output": "string",
     "wrap": "serviceHandler"
    }
@@ -437,6 +470,9 @@
    "group": "@wren/channel-sms",
    "attrs": {
     "input": "FirstRequest",
+    "npm": [
+     "libphonenumber-js"
+    ],
     "output": "Stepped",
     "wrap": "serviceHandler"
    }

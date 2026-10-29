@@ -129,6 +129,10 @@
    "group": "@wren/content",
    "attrs": {
     "input": "{ draftId: string; field: string; name: string; data: string; viewer?: unknown }",
+    "npm": [
+     "@aws-sdk/client-s3",
+     "@smithy/core"
+    ],
     "output": "{ done: string[]; }",
     "wrap": "exclusiveHandler"
    }
@@ -140,6 +144,10 @@
    "group": "@wren/content",
    "attrs": {
     "input": "{ slides: { title: string; lines: string[] }[]; text: string; platforms: CarouselPlatform[]; go?: WriteGo | null; viewer?: unknown; }",
+    "npm": [
+     "@aws-sdk/client-s3",
+     "@smithy/core"
+    ],
     "output": "{ posts: { ideaId: string; results: import(\"./desk-context.js\").WriteResult[]; }[]; }",
     "wrap": "exclusiveHandler"
    }
@@ -217,6 +225,10 @@
    "group": "@wren/content",
    "attrs": {
     "input": "{ video?: number | null; draftId?: string | null; platforms?: PromoPlatform[] | null; again?: boolean | null; pieces?: PromoPiece[] | null; viewer?: unknown; }",
+    "npm": [
+     "@aws-sdk/client-s3",
+     "@smithy/core"
+    ],
     "output": "DraftReport",
     "wrap": "exclusiveHandler"
    }
@@ -261,6 +273,10 @@
    "group": "@wren/content",
    "attrs": {
     "input": "{ draftId: string; slides?: { title: string; lines: string[] }[] | null; draw?: boolean | null; viewer?: unknown; }",
+    "npm": [
+     "@aws-sdk/client-s3",
+     "@smithy/core"
+    ],
     "output": "{ done: string[]; saved?: SlidesSaved }",
     "wrap": "exclusiveHandler"
    }
@@ -272,6 +288,10 @@
    "group": "@wren/content",
    "attrs": {
     "input": "{ platforms: StoryPlatform[]; photo?: { name: string; data: string } | null; clip?: string | null; go?: WriteGo | null; viewer?: unknown; }",
+    "npm": [
+     "@aws-sdk/client-s3",
+     "@smithy/core"
+    ],
     "output": "{ posts: { ideaId: string; results: import(\"./desk-context.js\").WriteResult[]; }[]; }",
     "wrap": "exclusiveHandler"
    }
@@ -591,6 +611,10 @@
    "group": "@wren/content",
    "attrs": {
     "input": "AttachRequest",
+    "npm": [
+     "@aws-sdk/client-s3",
+     "@smithy/core"
+    ],
     "output": "{ done: string[]; }",
     "wrap": "serviceHandler"
    }
@@ -624,6 +648,10 @@
    "group": "@wren/content",
    "attrs": {
     "input": "SlidesRequest",
+    "npm": [
+     "@aws-sdk/client-s3",
+     "@smithy/core"
+    ],
     "output": "{ done: string[]; saved?: import(\"../shape-view.js\").SlidesSaved; }",
     "wrap": "serviceHandler"
    }
@@ -767,6 +795,10 @@
    "group": "@wren/content",
    "attrs": {
     "input": "PromoteRequest",
+    "npm": [
+     "@aws-sdk/client-s3",
+     "@smithy/core"
+    ],
     "output": "{ started: boolean; platforms: (\"linkedin\" | \"instagram\" | \"x\" | \"reddit\")[]; }",
     "wrap": "serviceHandler"
    }
@@ -932,6 +964,9 @@
    "group": "@wren/content",
    "attrs": {
     "input": "?",
+    "npm": [
+     "@wrenautomation/autobrowse"
+    ],
     "output": "?",
     "wrap": "serviceHandler"
    }
@@ -976,6 +1011,9 @@
    "group": "@wren/content",
    "attrs": {
     "input": "z.infer<typeof SOCIAL_LANDING>",
+    "npm": [
+     "@wrenautomation/autobrowse"
+    ],
     "output": "{ ok: boolean; said: string; }",
     "wrap": "serviceHandler"
    }

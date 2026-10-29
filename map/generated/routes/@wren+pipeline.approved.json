@@ -305,6 +305,9 @@
    "group": "@wren/pipeline",
    "attrs": {
     "input": "ShapeExportRequest",
+    "npm": [
+     "yaml"
+    ],
     "output": "{ text: string; }",
     "wrap": "serviceHandler"
    }
@@ -316,6 +319,9 @@
    "group": "@wren/pipeline",
    "attrs": {
     "input": "ShapeImportRequest",
+    "npm": [
+     "yaml"
+    ],
     "output": "{ version: number | null; changed: boolean; terms: { offer: string; plan: string; version: number; }[]; }",
     "wrap": "serviceHandler"
    }
@@ -327,6 +333,9 @@
    "group": "@wren/pipeline",
    "attrs": {
     "input": "ShapePreviewRequest",
+    "npm": [
+     "yaml"
+    ],
     "output": "PreviewAnswer",
     "wrap": "serviceHandler"
    }
@@ -338,6 +347,9 @@
    "group": "@wren/pipeline",
    "attrs": {
     "input": "PortalRequest",
+    "npm": [
+     "yaml"
+    ],
     "output": "{ version: number; }",
     "wrap": "serviceHandler"
    }

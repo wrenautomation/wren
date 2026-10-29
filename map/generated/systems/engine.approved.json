@@ -12,5 +12,110 @@
    }
   }
  ],
- "edges": []
+ "edges": [
+  {
+   "from": "route:AccountsConsole/vendors",
+   "to": "system:engine",
+   "kind": "uses",
+   "attrs": {
+    "here": [],
+    "title": [
+     "npm `@wrenautomation/models`"
+    ]
+   }
+  },
+  {
+   "from": "route:CrmRun/run",
+   "to": "system:engine",
+   "kind": "uses",
+   "attrs": {
+    "here": [],
+    "title": [
+     "npm `@wrenautomation/falcon`",
+     "npm `@wrenautomation/weaver`"
+    ]
+   }
+  },
+  {
+   "from": "route:Discovery/discover",
+   "to": "system:engine",
+   "kind": "uses",
+   "attrs": {
+    "here": [],
+    "title": [
+     "npm `@wrenautomation/falcon`",
+     "npm `@wrenautomation/weaver`"
+    ]
+   }
+  },
+  {
+   "from": "route:Discovery/verify",
+   "to": "system:engine",
+   "kind": "uses",
+   "attrs": {
+    "here": [],
+    "title": [
+     "npm `@wrenautomation/falcon`",
+     "npm `@wrenautomation/weaver`"
+    ]
+   }
+  },
+  {
+   "from": "route:Enrichment/crawl",
+   "to": "system:engine",
+   "kind": "uses",
+   "attrs": {
+    "here": [],
+    "title": [
+     "npm `@wrenautomation/falcon`",
+     "npm `@wrenautomation/weaver`"
+    ]
+   }
+  },
+  {
+   "from": "route:Enrichment/opener",
+   "to": "system:engine",
+   "kind": "uses",
+   "attrs": {
+    "here": [],
+    "title": [
+     "npm `@wrenautomation/falcon`"
+    ]
+   }
+  },
+  {
+   "from": "route:Enrichment/render",
+   "to": "system:engine",
+   "kind": "uses",
+   "attrs": {
+    "here": [],
+    "title": [
+     "npm `@wrenautomation/falcon`",
+     "npm `@wrenautomation/weaver`"
+    ]
+   }
+  },
+  {
+   "from": "route:Enrichment/scan",
+   "to": "system:engine",
+   "kind": "uses",
+   "attrs": {
+    "here": [],
+    "title": [
+     "npm `@wrenautomation/falcon`"
+    ]
+   }
+  },
+  {
+   "from": "route:Enrichment/triggers",
+   "to": "system:engine",
+   "kind": "uses",
+   "attrs": {
+    "here": [],
+    "title": [
+     "npm `@wrenautomation/weaver`"
+    ]
+   }
+  }
+ ]
 }

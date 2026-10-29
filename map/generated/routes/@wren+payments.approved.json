@@ -8,6 +8,10 @@
    "group": "@wren/payments",
    "attrs": {
     "input": "{ id: string }",
+    "npm": [
+     "libphonenumber-js",
+     "stripe"
+    ],
     "output": "{ sent: boolean; why?: never; } | { sent: boolean; why: string; }",
     "wrap": "serviceHandler"
    }
@@ -19,6 +23,9 @@
    "group": "@wren/payments",
    "attrs": {
     "input": "{ client: string; raw: string; signature?: string | null }",
+    "npm": [
+     "stripe"
+    ],
     "output": "HookAnswer",
     "wrap": "serviceHandler"
    }
@@ -30,6 +37,10 @@
    "group": "@wren/payments",
    "attrs": {
     "input": "IdsRequest",
+    "npm": [
+     "libphonenumber-js",
+     "stripe"
+    ],
     "output": "{ links: { id: string; status: string; }[]; }",
     "wrap": "serviceHandler"
    }
@@ -41,6 +52,10 @@
    "group": "@wren/payments",
    "attrs": {
     "input": "IdsRequest",
+    "npm": [
+     "libphonenumber-js",
+     "stripe"
+    ],
     "output": "{ done: string[]; }",
     "wrap": "serviceHandler"
    }
@@ -52,6 +67,9 @@
    "group": "@wren/payments",
    "attrs": {
     "input": "ConnectRequest",
+    "npm": [
+     "stripe"
+    ],
     "output": "{ connected: boolean; webhook: \"pasted\"; last4: null; url?: never; why?: never; } | { connected: boolean; webhook: \"pasted\"; last4: string; url?: never; why?: never; } | { connected: boolean; webhook: \"api\"; last4: string; url?: never; why?: never; } | { connected: boolean; webhook: null; url: string; last4: string; why: string; }",
     "wrap": "serviceHandler"
    }
@@ -63,6 +81,10 @@
    "group": "@wren/payments",
    "attrs": {
     "input": "CreateRequest",
+    "npm": [
+     "libphonenumber-js",
+     "stripe"
+    ],
     "output": "{ links: { id: string; status: string; }[]; }",
     "wrap": "serviceHandler"
    }
@@ -85,6 +107,10 @@
    "group": "@wren/payments",
    "attrs": {
     "input": "FromThreadRequest",
+    "npm": [
+     "libphonenumber-js",
+     "stripe"
+    ],
     "output": "{ links: { id: string; status: string; }[]; }",
     "wrap": "serviceHandler"
    }

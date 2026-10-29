@@ -129,6 +129,9 @@
    "group": "@wren/learn",
    "attrs": {
     "input": "FollowRequest",
+    "npm": [
+     "entities"
+    ],
     "output": "{ id: string; name: string; kind: \"instagram\" | \"x\" | \"youtube\" | \"tiktok\" | \"reddit\" | \"podcast\" | \"newsletter\" | \"blog\" | \"forum\" | \"releases\"; items: number; }",
     "wrap": "serviceHandler"
    }
@@ -305,6 +308,9 @@
    "group": "@wren/learn",
    "attrs": {
     "input": "SopRequest",
+    "npm": [
+     "yjs"
+    ],
     "output": "{ done: string[]; }",
     "wrap": "serviceHandler"
    }

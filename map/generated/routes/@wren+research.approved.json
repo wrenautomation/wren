@@ -8,6 +8,10 @@
    "group": "@wren/research",
    "attrs": {
     "input": "DiscoveryInput",
+    "npm": [
+     "@wrenautomation/falcon",
+     "@wrenautomation/weaver"
+    ],
     "output": "DiscoveryStats",
     "wrap": "exclusiveHandler"
    }
@@ -19,6 +23,10 @@
    "group": "@wren/research",
    "attrs": {
     "input": "DiscoveryInput",
+    "npm": [
+     "@wrenautomation/falcon",
+     "@wrenautomation/weaver"
+    ],
     "output": "DomainVerificationStats",
     "wrap": "exclusiveHandler"
    }
@@ -30,6 +38,9 @@
    "group": "@wren/research",
    "attrs": {
     "input": "LimitInput",
+    "npm": [
+     "tldts"
+    ],
     "output": "AdLibraryStats",
     "wrap": "exclusiveHandler"
    }
@@ -74,6 +85,9 @@
    "group": "@wren/research",
    "attrs": {
     "input": "ScanInput",
+    "npm": [
+     "libphonenumber-js"
+    ],
     "output": "ContactsStats",
     "wrap": "exclusiveHandler"
    }
@@ -85,6 +99,10 @@
    "group": "@wren/research",
    "attrs": {
     "input": "CrawlInput",
+    "npm": [
+     "@wrenautomation/falcon",
+     "@wrenautomation/weaver"
+    ],
     "output": "CrawlStats",
     "wrap": "exclusiveHandler"
    }
@@ -96,6 +114,9 @@
    "group": "@wren/research",
    "attrs": {
     "input": "LimitInput",
+    "npm": [
+     "tldts"
+    ],
     "output": "ExaSearchStats",
     "wrap": "exclusiveHandler"
    }
@@ -118,6 +139,9 @@
    "group": "@wren/research",
    "attrs": {
     "input": "LimitInput",
+    "npm": [
+     "tldts"
+    ],
     "output": "FbGroupsStats",
     "wrap": "exclusiveHandler"
    }
@@ -140,6 +164,9 @@
    "group": "@wren/research",
    "attrs": {
     "input": "PickInput",
+    "npm": [
+     "@wrenautomation/falcon"
+    ],
     "output": "OpenerStats",
     "wrap": "exclusiveHandler"
    }
@@ -162,6 +189,9 @@
    "group": "@wren/research",
    "attrs": {
     "input": "ProfilesInput",
+    "npm": [
+     "tldts"
+    ],
     "output": "ProfileStats",
     "wrap": "exclusiveHandler"
    }
@@ -173,6 +203,10 @@
    "group": "@wren/research",
    "attrs": {
     "input": "RenderInput",
+    "npm": [
+     "@wrenautomation/falcon",
+     "@wrenautomation/weaver"
+    ],
     "output": "RenderStats",
     "wrap": "exclusiveHandler"
    }
@@ -184,6 +218,9 @@
    "group": "@wren/research",
    "attrs": {
     "input": "ScanInput",
+    "npm": [
+     "@wrenautomation/falcon"
+    ],
     "output": "ScanStats",
     "wrap": "exclusiveHandler"
    }
@@ -194,6 +231,11 @@
    "parent": "service:Enrichment",
    "group": "@wren/research",
    "attrs": {
+    "hosts": [
+     "api.exa.ai",
+     "api.x.com",
+     "www.googleapis.com"
+    ],
     "input": "SignalsInput",
     "output": "SignalsStats",
     "wrap": "exclusiveHandler"
@@ -217,6 +259,9 @@
    "group": "@wren/research",
    "attrs": {
     "input": "TeamInput",
+    "npm": [
+     "tldts"
+    ],
     "output": "TeamStats",
     "wrap": "exclusiveHandler"
    }
@@ -228,6 +273,10 @@
    "group": "@wren/research",
    "attrs": {
     "input": "LimitInput",
+    "npm": [
+     "@wrenautomation/weaver",
+     "tldts"
+    ],
     "output": "TriggersStats",
     "wrap": "exclusiveHandler"
    }
@@ -250,6 +299,9 @@
    "group": "@wren/research",
    "attrs": {
     "input": "LimitInput",
+    "npm": [
+     "tldts"
+    ],
     "output": "YouTubeSearchStats",
     "wrap": "exclusiveHandler"
    }
@@ -261,6 +313,9 @@
    "group": "@wren/research",
    "attrs": {
     "input": "ProfileResearchInput",
+    "npm": [
+     "tldts"
+    ],
     "output": "ProfileResearchStats",
     "wrap": "exclusiveHandler"
    }

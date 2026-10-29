@@ -14,6 +14,105 @@
  ],
  "edges": [
   {
+   "from": "route:ConnectorCallback/land",
+   "to": "system:autobrowse",
+   "kind": "uses",
+   "attrs": {
+    "here": [],
+    "title": [
+     "npm `@wrenautomation/autobrowse`"
+    ]
+   }
+  },
+  {
+   "from": "route:ConnectorSync/run",
+   "to": "system:autobrowse",
+   "kind": "uses",
+   "attrs": {
+    "here": [],
+    "title": [
+     "npm `@wrenautomation/autobrowse`"
+    ]
+   }
+  },
+  {
+   "from": "route:Connectors/connect",
+   "to": "system:autobrowse",
+   "kind": "uses",
+   "attrs": {
+    "here": [],
+    "title": [
+     "npm `@wrenautomation/autobrowse`"
+    ]
+   }
+  },
+  {
+   "from": "route:Connectors/syncNow",
+   "to": "system:autobrowse",
+   "kind": "uses",
+   "attrs": {
+    "here": [],
+    "title": [
+     "npm `@wrenautomation/autobrowse`"
+    ]
+   }
+  },
+  {
+   "from": "route:MailAccess/connect",
+   "to": "system:autobrowse",
+   "kind": "uses",
+   "attrs": {
+    "here": [],
+    "title": [
+     "npm `@wrenautomation/autobrowse`"
+    ]
+   }
+  },
+  {
+   "from": "route:MailAccess/consent",
+   "to": "system:autobrowse",
+   "kind": "uses",
+   "attrs": {
+    "here": [],
+    "title": [
+     "npm `@wrenautomation/autobrowse`"
+    ]
+   }
+  },
+  {
+   "from": "route:MailCallback/land",
+   "to": "system:autobrowse",
+   "kind": "uses",
+   "attrs": {
+    "here": [],
+    "title": [
+     "npm `@wrenautomation/autobrowse`"
+    ]
+   }
+  },
+  {
+   "from": "route:SocialAccess/connect",
+   "to": "system:autobrowse",
+   "kind": "uses",
+   "attrs": {
+    "here": [],
+    "title": [
+     "npm `@wrenautomation/autobrowse`"
+    ]
+   }
+  },
+  {
+   "from": "route:SocialCallback/land",
+   "to": "system:autobrowse",
+   "kind": "uses",
+   "attrs": {
+    "here": [],
+    "title": [
+     "npm `@wrenautomation/autobrowse`"
+    ]
+   }
+  },
+  {
    "from": "system:autobrowse",
    "to": "system:credvault",
    "kind": "uses",

@@ -337,6 +337,9 @@
    "parent": "service:ReachDesk",
    "group": "@wren/outreach",
    "attrs": {
+    "hosts": [
+     "www.reddit.com"
+    ],
     "input": "{ url: string }",
     "output": "Pasted",
     "wrap": "serviceHandler"
@@ -348,6 +351,9 @@
    "parent": "service:ReachDesk",
    "group": "@wren/outreach",
    "attrs": {
+    "hosts": [
+     "www.reddit.com"
+    ],
     "input": "{ id: string; act: \"reply\" | \"follow\" }",
     "output": "Pasted",
     "wrap": "serviceHandler"

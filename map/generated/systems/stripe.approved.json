@@ -12,5 +12,94 @@
    }
   }
  ],
- "edges": []
+ "edges": [
+  {
+   "from": "route:Documents/deposit",
+   "to": "system:stripe",
+   "kind": "uses",
+   "attrs": {
+    "here": [],
+    "title": [
+     "npm `stripe`"
+    ]
+   }
+  },
+  {
+   "from": "route:Payments/send",
+   "to": "system:stripe",
+   "kind": "uses",
+   "attrs": {
+    "here": [],
+    "title": [
+     "npm `stripe`"
+    ]
+   }
+  },
+  {
+   "from": "route:Payments/stripe",
+   "to": "system:stripe",
+   "kind": "uses",
+   "attrs": {
+    "here": [],
+    "title": [
+     "npm `stripe`"
+    ]
+   }
+  },
+  {
+   "from": "route:PaymentsConsole/again",
+   "to": "system:stripe",
+   "kind": "uses",
+   "attrs": {
+    "here": [],
+    "title": [
+     "npm `stripe`"
+    ]
+   }
+  },
+  {
+   "from": "route:PaymentsConsole/approve",
+   "to": "system:stripe",
+   "kind": "uses",
+   "attrs": {
+    "here": [],
+    "title": [
+     "npm `stripe`"
+    ]
+   }
+  },
+  {
+   "from": "route:PaymentsConsole/connect",
+   "to": "system:stripe",
+   "kind": "uses",
+   "attrs": {
+    "here": [],
+    "title": [
+     "npm `stripe`"
+    ]
+   }
+  },
+  {
+   "from": "route:PaymentsConsole/create",
+   "to": "system:stripe",
+   "kind": "uses",
+   "attrs": {
+    "here": [],
+    "title": [
+     "npm `stripe`"
+    ]
+   }
+  },
+  {
+   "from": "route:PaymentsConsole/fromThread",
+   "to": "system:stripe",
+   "kind": "uses",
+   "attrs": {
+    "here": [],
+    "title": [
+     "npm `stripe`"
+    ]
+   }
+  }
+ ]
 }

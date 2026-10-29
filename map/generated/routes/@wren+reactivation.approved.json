@@ -8,6 +8,9 @@
    "group": "@wren/reactivation",
    "attrs": {
     "input": "CrmLookupRequest",
+    "npm": [
+     "tldts"
+    ],
     "output": "CrmSliceResult<CrmLookupStats>",
     "wrap": "exclusiveHandler"
    }
@@ -29,7 +32,15 @@
    "parent": "service:CrmRun",
    "group": "@wren/reactivation",
    "attrs": {
+    "hosts": [
+     "www.linkedin.com"
+    ],
     "input": "CrmRunRequest",
+    "npm": [
+     "@wrenautomation/falcon",
+     "@wrenautomation/weaver",
+     "tldts"
+    ],
     "output": "CrmRunResult",
     "wrap": "exclusiveHandler"
    }
@@ -41,6 +52,9 @@
    "group": "@wren/reactivation",
    "attrs": {
     "input": "CrmSettleRequest",
+    "npm": [
+     "tldts"
+    ],
     "output": "CrmSliceResult<SettleStats & { byName: boolean }>",
     "wrap": "exclusiveHandler"
    }
@@ -107,6 +121,9 @@
    "group": "@wren/reactivation",
    "attrs": {
     "input": "Req<\"importPreview\">",
+    "npm": [
+     "csv-parse"
+    ],
     "output": "import(\"./import.js\").ImportPreview",
     "wrap": "plain"
    }
@@ -118,6 +135,9 @@
    "group": "@wren/reactivation",
    "attrs": {
     "input": "Req<\"importRun\">",
+    "npm": [
+     "csv-parse"
+    ],
     "output": "import(\"./import.js\").ImportResult",
     "wrap": "plain"
    }
