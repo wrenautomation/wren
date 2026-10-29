@@ -959,3 +959,38 @@ tests in the steer slot (no plan file version bump: stored files take it), and e
 carries Jev's yes odds (serves, each test) marked as a hint. Haiku still makes the call. One
 paused round on the same ask: reads under 0.3 on `research_task` went from 2 of 6 to 0 of 6;
 rich reads from 1 to 2. Direction only.
+
+### 10-28 night: refs and citers, a decider model, Jev against Sonnet, engine 0.27.0
+- The extractor reads the body: `bodyOf` moves to falcon/document, and the reference list is cut
+  before parts split. It holds no finding and cost Haiku tokens on every paper.
+- Each review sees every earlier round's new hits and kept findings ("Hits 9 new (earlier
+  rounds: 40, 15)"). It rides the `{hits}` and `{kept}` slots, so stored plan files show it. No
+  stop rule in code: stopping is the review's call (the 10-28 rule).
+- `follow --as refs|citers` on an arXiv paper. Options weighed for the reference list:
+  OpenAlex (none: `referenced_works` is empty for arXiv works, 4 of 4 probed), Semantic Scholar
+  (has them, plus an influence flag), parse the paper's own bibliography (no API, but brittle).
+  Chose Semantic Scholar for refs, OpenAlex for citers (one call, sorted by citations
+  server side). Refs order: the works the paper leans on (influence flag) first, then by
+  citations; by citations alone, background classics (GPT-3) led. A hit is the arXiv page when
+  there is one, else the DOI. A refused call throws, so a spent keyless budget is a gap.
+- `--decider` (`WEAVER_DECIDER`): plan, triage and review on their own model; extract and check
+  stay on `--model`. Default Sonnet when the model is Haiku: decisions cost cents a run, and the
+  rule is Haiku restates, Sonnet decides. A stronger `--model` is never downgraded.
+- Dropped: routing more checks on Jev's doubt. The doubt pass already adds checks, never fewer.
+- The side by side, 25 arXiv papers (12 picked at random from run 1's unread hits), Sonnet
+  reading each body as the reference ($1.27). AUC of Jev's yes odds against Sonnet's yes:
+
+  | test | yes | Jev on page | Jev on abstract |
+  |---|---|---|---|
+  | research_task | 14/25 | 1.00 | 1.00 |
+  | ablation | 11/25 | 0.98 | 0.84 |
+  | code | 19/25 | 1.00 | 0.77 |
+  | no_training | 18/25 | 0.94 | 0.81 |
+  | gain | 21/25 | 0.99 | 0.96 |
+  | serves (page: worth) | 11/25 | 0.89 | 0.72 |
+
+  Jev on a whole page is near Sonnet on fact tests, at about 1/50 the price. The abstract is
+  enough for topic (research_task) but not for ablation or code. Judgment (worth, serves) is
+  weaker, 0.89 and 0.72. So the 0.25.0 "code AUC 0.25" was not a Jev miss: code was read right
+  and does not predict a rich page. Jev stays a hint and a router; its fact answers on full text
+  are good enough to sort by.
