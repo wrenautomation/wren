@@ -17,6 +17,7 @@ import {
   capHeld,
   capWaitMs,
   holdCap,
+  LOGIN_HOLD_MS,
   liveHolds,
   SiteCallError,
   type SiteClient,
@@ -1255,6 +1256,10 @@ describe("capWaitMs", () => {
     expect(holdCap(holds, "x:comments", cap, 1_000)).toBe(true);
     expect(holds).toEqual({ "x:comments": 3_601_000 });
     expect(holdCap(holds, "x:comments", new Error("boom"), 1_000)).toBe(false);
+    // A refused token: held an hour while autobrowse makes it again.
+    const login = new SiteCallError("meta", "GET", "/1/posts", 409, "was refused", "need_login");
+    expect(holdCap(holds, "meta comments", login, 1_000)).toBe(true);
+    expect(holds["meta comments"]).toBe(1_000 + LOGIN_HOLD_MS);
     expect(capHeld(holds, "x:comments", 3_600_999)).toBe(true);
     expect(capHeld(holds, "x:comments", 3_601_000)).toBe(false);
     expect(capHeld(holds, "reddit", 0)).toBe(false);

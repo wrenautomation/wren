@@ -111,9 +111,18 @@ export type CapHolds = Record<string, number>;
 export const capHeld = (holds: CapHolds, key: string, now: number): boolean =>
   (holds[key] ?? 0) > now;
 
-/** A used cap holds `key` until it resets: true. Anything else changes nothing: false. */
+/**
+ * A refused token or a signed-out site (`need_login`): autobrowse queued the re-make and held
+ * the value, so a loop asks again after this, not each pass.
+ */
+export const LOGIN_HOLD_MS = 60 * 60_000;
+
+/**
+ * Hold `key` while a used cap or a `need_login` refusal lasts: true when `err` was one.
+ */
 export function holdCap(holds: CapHolds, key: string, err: unknown, now: number): boolean {
-  const wait = capWaitMs(err, now);
+  const login = err instanceof SiteCallError && err.code === "need_login";
+  const wait = login ? LOGIN_HOLD_MS : capWaitMs(err, now);
   if (wait === null) return false;
   holds[key] = Math.max(holds[key] ?? 0, now + wait);
   return true;
