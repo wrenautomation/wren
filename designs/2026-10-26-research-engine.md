@@ -1011,3 +1011,11 @@ Options weighed:
 
 Call flips: the last call still wins. A flip now warns with who, round and why. An agent call
 that flips a person's call fails: a person outranks the agent.
+
+### 10-29: access codes, engine 0.28.0
+
+From the Agent-Reach review (WA-958). A failed site read carries one of `need_login`,
+`platform_blocked`, `rate_limited`, `upstream_broken`. autobrowse detects them and owns the list;
+weaver reads them and decides. The reddit reader no longer reads signed in on a spent cap or a
+broken site. Options and the Restate transport choice: autobrowse
+`designs/2026-10-28-signed-in-reads.md`, "Access codes".
