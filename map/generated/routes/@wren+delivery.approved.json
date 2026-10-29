@@ -2,6 +2,589 @@
  "layer": "routes",
  "nodes": [
   {
+   "id": "route:BillingConsole/dismiss",
+   "role": "route",
+   "parent": "service:BillingConsole",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:BillingConsole/match",
+   "role": "route",
+   "parent": "service:BillingConsole",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:DeliveryPortal/access",
+   "role": "route",
+   "parent": "service:DeliveryPortal",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "Req<\"access\">",
+    "output": "{ id: number; status: \"open\" | \"declined\" | \"granted\" | \"revoked\"; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:DeliveryPortal/account",
+   "role": "route",
+   "parent": "service:DeliveryPortal",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "Req<\"account\">",
+    "output": "AccountView",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:DeliveryPortal/addDomain",
+   "role": "route",
+   "parent": "service:DeliveryPortal",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "PortalRequest & { hostname: string }",
+    "output": "import(\"./domains.js\").DomainView",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:DeliveryPortal/answer",
+   "role": "route",
+   "parent": "service:DeliveryPortal",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "Req<\"answer\">",
+    "output": "{ id: number; answeredAt: string | null; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:DeliveryPortal/ask",
+   "role": "route",
+   "parent": "service:DeliveryPortal",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "Req<\"ask\">",
+    "output": "{ id: number; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:DeliveryPortal/board",
+   "role": "route",
+   "parent": "service:DeliveryPortal",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "Req<\"board\">",
+    "output": "BoardRow[]",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:DeliveryPortal/comment",
+   "role": "route",
+   "parent": "service:DeliveryPortal",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "Req<\"comment\">",
+    "output": "{ id: number; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:DeliveryPortal/contract",
+   "role": "route",
+   "parent": "service:DeliveryPortal",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "Req<\"contract\">",
+    "output": "ContractView",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:DeliveryPortal/decide",
+   "role": "route",
+   "parent": "service:DeliveryPortal",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "Req<\"decide\">",
+    "output": "{ id: number; status: \"approved\" | \"waiting\" | \"changes\"; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:DeliveryPortal/deliver",
+   "role": "route",
+   "parent": "service:DeliveryPortal",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "Req<\"deliver\">",
+    "output": "{ id: number; version: number; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:DeliveryPortal/domains",
+   "role": "route",
+   "parent": "service:DeliveryPortal",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "PortalRequest",
+    "output": "{ domains: import(\"./domains.js\").DomainView[]; target: string; ready: boolean; canManage: boolean; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:DeliveryPortal/done",
+   "role": "route",
+   "parent": "service:DeliveryPortal",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "Req<\"done\">",
+    "output": "{ step: string; doneOn: string | null; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:DeliveryPortal/file",
+   "role": "route",
+   "parent": "service:DeliveryPortal",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "Req<\"file\">",
+    "output": "{ url: string; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:DeliveryPortal/hide",
+   "role": "route",
+   "parent": "service:DeliveryPortal",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "Req<\"hide\">",
+    "output": "{ hidden: boolean; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:DeliveryPortal/home",
+   "role": "route",
+   "parent": "service:DeliveryPortal",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "Req<\"home\">",
+    "output": "DeliveryHome",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:DeliveryPortal/interest",
+   "role": "route",
+   "parent": "service:DeliveryPortal",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "Req<\"interest\">",
+    "output": "{ offerId: string; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:DeliveryPortal/invite",
+   "role": "route",
+   "parent": "service:DeliveryPortal",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "Req<\"invite\">",
+    "output": "{ email: string; role: string; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:DeliveryPortal/invoicePdf",
+   "role": "route",
+   "parent": "service:DeliveryPortal",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "Req<\"invoicePdf\">",
+    "output": "{ name: string; base64: string; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:DeliveryPortal/mail",
+   "role": "route",
+   "parent": "service:DeliveryPortal",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "Req<\"mail\">",
+    "output": "{ level: \"off\" | \"all\" | \"digest\"; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:DeliveryPortal/me",
+   "role": "route",
+   "parent": "service:DeliveryPortal",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "Req<\"me\">",
+    "output": "Me",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:DeliveryPortal/messagingChange",
+   "role": "route",
+   "parent": "service:DeliveryPortal",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "Parameters<typeof rules.messagingChange>[0]",
+    "output": "{ done: string[]; skipped: string[]; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:DeliveryPortal/messagingLinksOff",
+   "role": "route",
+   "parent": "service:DeliveryPortal",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "Parameters<typeof rules.messagingLinksOff>[0]",
+    "output": "{ done: string[]; skipped: string[]; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:DeliveryPortal/messagingLinksOn",
+   "role": "route",
+   "parent": "service:DeliveryPortal",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "Parameters<typeof rules.messagingLinksOn>[0]",
+    "output": "{ done: string[]; skipped: string[]; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:DeliveryPortal/messagingPostal",
+   "role": "route",
+   "parent": "service:DeliveryPortal",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "Parameters<typeof rules.messagingPostal>[0]",
+    "output": "{ done: string[]; skipped: string[]; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:DeliveryPortal/messagingSender",
+   "role": "route",
+   "parent": "service:DeliveryPortal",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "Parameters<typeof rules.messagingSender>[0]",
+    "output": "{ done: string[]; skipped: string[]; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:DeliveryPortal/people",
+   "role": "route",
+   "parent": "service:DeliveryPortal",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "Req<\"people\">",
+    "output": "{ people: MemberView[]; canManage: boolean; roles: { id: string; name: string; }[]; mail: MailLevel | null; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:DeliveryPortal/post",
+   "role": "route",
+   "parent": "service:DeliveryPortal",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "Req<\"post\">",
+    "output": "{ id: number; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:DeliveryPortal/pulse",
+   "role": "route",
+   "parent": "service:DeliveryPortal",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "Req<\"pulse\">",
+    "output": "{ score: number; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:DeliveryPortal/recap",
+   "role": "route",
+   "parent": "service:DeliveryPortal",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "Req<\"recap\">",
+    "output": "{ recap: { subject: string; text: string; } | null; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:DeliveryPortal/recordsExport",
+   "role": "route",
+   "parent": "service:DeliveryPortal",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "Req<\"recordsExport\">",
+    "output": "RecordsFile",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:DeliveryPortal/recordsGet",
+   "role": "route",
+   "parent": "service:DeliveryPortal",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "Req<\"recordsGet\">",
+    "output": "RecordAnswer",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:DeliveryPortal/recordsList",
+   "role": "route",
+   "parent": "service:DeliveryPortal",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "Req<\"recordsList\">",
+    "output": "RecordsPage",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:DeliveryPortal/recordsStats",
+   "role": "route",
+   "parent": "service:DeliveryPortal",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "Req<\"recordsStats\">",
+    "output": "RecordsStat",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:DeliveryPortal/recordsTypes",
+   "role": "route",
+   "parent": "service:DeliveryPortal",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "Req<\"recordsTypes\">",
+    "output": "RecordMeta[]",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:DeliveryPortal/remove",
+   "role": "route",
+   "parent": "service:DeliveryPortal",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "Req<\"remove\">",
+    "output": "{ removed: string; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:DeliveryPortal/removeDomain",
+   "role": "route",
+   "parent": "service:DeliveryPortal",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "PortalRequest & { hostname: string }",
+    "output": "{ removed: string; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:DeliveryPortal/result",
+   "role": "route",
+   "parent": "service:DeliveryPortal",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "Req<\"result\">",
+    "output": "{ key: string; value: number; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:DeliveryPortal/review",
+   "role": "route",
+   "parent": "service:DeliveryPortal",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "Req<\"review\">",
+    "output": "{ moment: string; score: number | null; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:DeliveryPortal/sign",
+   "role": "route",
+   "parent": "service:DeliveryPortal",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "Req<\"sign\">",
+    "output": "{ signedAt: string | null; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:DeliveryPortal/slip",
+   "role": "route",
+   "parent": "service:DeliveryPortal",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "Req<\"slip\">",
+    "output": "{ step: string; dueOn: string | null; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:DeliveryPortal/start",
+   "role": "route",
+   "parent": "service:DeliveryPortal",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "Req<\"start\">",
+    "output": "{ id: number; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:DeliveryPortal/updates",
+   "role": "route",
+   "parent": "service:DeliveryPortal",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "Req<\"updates\">",
+    "output": "{ updates: UpdateView[]; more: boolean; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:DeliveryPortal/upload",
+   "role": "route",
+   "parent": "service:DeliveryPortal",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "Req<\"upload\">",
+    "output": "{ key: string; url: string; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:DeliveryPortal/webhookAdd",
+   "role": "route",
+   "parent": "service:DeliveryPortal",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "PortalRequest & Record<string, unknown>",
+    "output": "{ subscription: import(\"@wren/core/webhooks\").SubscriptionView; secret: string; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:DeliveryPortal/webhookDelivery",
+   "role": "route",
+   "parent": "service:DeliveryPortal",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "PortalRequest & { id?: unknown }",
+    "output": "{ payload: unknown; tries: { n: number; status: number | null; latencyMs: number; response: string | null; error: string | null; at: string; }[]; id: string; subscription: string; event: string; eventId: string; state: import(\"@wren/core\").DeliveryState; attempts: number; status: number | null; latencyMs: number | null; response: string | null; error: string | null; at: string; lastAt: string | null; nextAt: string | null; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:DeliveryPortal/webhookEdit",
+   "role": "route",
+   "parent": "service:DeliveryPortal",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "PortalRequest & Record<string, unknown>",
+    "output": "import(\"@wren/core/webhooks\").SubscriptionView",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:DeliveryPortal/webhookRedeliver",
+   "role": "route",
+   "parent": "service:DeliveryPortal",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "PortalRequest & { id?: unknown }",
+    "output": "{ id: string; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:DeliveryPortal/webhookRemove",
+   "role": "route",
+   "parent": "service:DeliveryPortal",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "PortalRequest & { id?: unknown }",
+    "output": "{ removed: string; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:DeliveryPortal/webhookRotate",
+   "role": "route",
+   "parent": "service:DeliveryPortal",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "PortalRequest & { id?: unknown }",
+    "output": "{ subscription: import(\"@wren/core/webhooks\").SubscriptionView; secret: string; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:DeliveryPortal/webhookTest",
+   "role": "route",
+   "parent": "service:DeliveryPortal",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "PortalRequest & { id?: unknown }",
+    "output": "{ error: string | null; id: string; subscription: string; event: string; eventId: string; state: import(\"@wren/core\").DeliveryState; attempts: number; status: number | null; latencyMs: number | null; response: string | null; at: string; lastAt: string | null; nextAt: string | null; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:DeliveryPortal/webhooks",
+   "role": "route",
+   "parent": "service:DeliveryPortal",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "PortalRequest",
+    "output": "{ webhooks: import(\"@wren/core/webhooks\").SubscriptionView[]; deliveries: import(\"@wren/core/webhooks\").DeliveryView[]; events: { id: string; says: \"A lead came in through a door\" | \"A form was filled\" | \"A lead replied by email, text or DM\" | \"A call was booked or moved\" | \"A call was cancelled\" | \"A person reached an offer node, or a call was marked won\" | \"A person moved to another node of the shape, or was dropped\" | \"A pay link was paid\" | \"A payment was refunded, or a dispute lost\" | \"A bank payment on a pay link failed\" | \"A document you sent was opened\" | \"A document you sent was signed\" | \"A document you sent was declined\" | \"A connected app added a contact, got an invoice paid or finished a job\"; }[]; canManage: boolean; }",
+    "wrap": "plain"
+   }
+  },
+  {
    "id": "route:Domains/resolve",
    "role": "route",
    "parent": "service:Domains",
@@ -13,6 +596,116 @@
    }
   },
   {
+   "id": "route:HealthConsole/clearOverride",
+   "role": "route",
+   "parent": "service:HealthConsole",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:HealthConsole/flagAddress",
+   "role": "route",
+   "parent": "service:HealthConsole",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:HealthConsole/flagClear",
+   "role": "route",
+   "parent": "service:HealthConsole",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:HealthConsole/flagOwn",
+   "role": "route",
+   "parent": "service:HealthConsole",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:HealthConsole/flagRaise",
+   "role": "route",
+   "parent": "service:HealthConsole",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:HealthConsole/flagTake",
+   "role": "route",
+   "parent": "service:HealthConsole",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:HealthConsole/override",
+   "role": "route",
+   "parent": "service:HealthConsole",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:HealthConsole/rate",
+   "role": "route",
+   "parent": "service:HealthConsole",
+   "group": "@wren/delivery",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "service:BillingConsole",
+   "role": "service",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "file": "packages/delivery/src/billing/console.ts",
+    "kind": "service",
+    "via": "portalService"
+   }
+  },
+  {
+   "id": "service:DeliveryPortal",
+   "role": "service",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "file": "packages/delivery/src/service.ts",
+    "kind": "service",
+    "via": "portalService"
+   }
+  },
+  {
    "id": "service:Domains",
    "role": "service",
    "parent": "@wren/delivery",
@@ -20,6 +713,17 @@
    "attrs": {
     "file": "packages/delivery/src/domains.ts",
     "kind": "service"
+   }
+  },
+  {
+   "id": "service:HealthConsole",
+   "role": "service",
+   "parent": "@wren/delivery",
+   "group": "@wren/delivery",
+   "attrs": {
+    "file": "packages/delivery/src/health/console.ts",
+    "kind": "service",
+    "via": "portalService"
    }
   }
  ],

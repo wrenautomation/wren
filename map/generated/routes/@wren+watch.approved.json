@@ -1,0 +1,94 @@
+{
+ "layer": "routes",
+ "nodes": [
+  {
+   "id": "route:WatchConsole/addRule",
+   "role": "route",
+   "parent": "service:WatchConsole",
+   "group": "@wren/watch",
+   "attrs": {
+    "input": "RuleRequest",
+    "output": "{ id: string; words: string; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:WatchConsole/done",
+   "role": "route",
+   "parent": "service:WatchConsole",
+   "group": "@wren/watch",
+   "attrs": {
+    "input": "IdsRequest",
+    "output": "{ done: string[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:WatchConsole/hide",
+   "role": "route",
+   "parent": "service:WatchConsole",
+   "group": "@wren/watch",
+   "attrs": {
+    "input": "LikeRequest",
+    "output": "{ done: string[]; rules: number; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:WatchConsole/removeRule",
+   "role": "route",
+   "parent": "service:WatchConsole",
+   "group": "@wren/watch",
+   "attrs": {
+    "input": "IdsRequest",
+    "output": "{ done: string[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:WatchConsole/show",
+   "role": "route",
+   "parent": "service:WatchConsole",
+   "group": "@wren/watch",
+   "attrs": {
+    "input": "LikeRequest",
+    "output": "{ done: string[]; rules: number; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:WatchConsole/sort",
+   "role": "route",
+   "parent": "service:WatchConsole",
+   "group": "@wren/watch",
+   "attrs": {
+    "input": "IdsRequest",
+    "output": "{ drop?: number; show?: number; hold?: number; done: string[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:WatchConsole/undone",
+   "role": "route",
+   "parent": "service:WatchConsole",
+   "group": "@wren/watch",
+   "attrs": {
+    "input": "IdsRequest",
+    "output": "{ done: string[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "service:WatchConsole",
+   "role": "service",
+   "parent": "@wren/watch",
+   "group": "@wren/watch",
+   "attrs": {
+    "file": "packages/watch/src/console.ts",
+    "kind": "service",
+    "via": "portalService"
+   }
+  }
+ ],
+ "edges": []
+}

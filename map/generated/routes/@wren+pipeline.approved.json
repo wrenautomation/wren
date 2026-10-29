@@ -30,7 +30,7 @@
    "group": "@wren/pipeline",
    "attrs": {
     "input": "MoveRequest",
-    "output": "{ journey: string; from: string; to: string; status: \"open\" | \"dropped\" | \"done\"; }",
+    "output": "{ journey: string; from: string; to: string; status: \"open\" | \"done\" | \"dropped\"; }",
     "wrap": "serviceHandler"
    }
   },
@@ -57,6 +57,347 @@
    }
   },
   {
+   "id": "route:PipelineConsole/dealsSign",
+   "role": "route",
+   "parent": "service:PipelineConsole",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "input": "DealSignRequest",
+    "output": "{ deal: string; termsVersion: number; changed: boolean; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PipelineConsole/journeysAssign",
+   "role": "route",
+   "parent": "service:PipelineConsole",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "input": "JourneyAssignRequest",
+    "output": "{ journey: string; owner: string | null; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PipelineConsole/journeysDrop",
+   "role": "route",
+   "parent": "service:PipelineConsole",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "input": "JourneyDropRequest",
+    "output": "{ journey: string; node: string; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PipelineConsole/journeysMove",
+   "role": "route",
+   "parent": "service:PipelineConsole",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "input": "JourneyMoveRequest",
+    "output": "{ journey: string; from: string; to: string; status: string; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PipelineConsole/journeysOpen",
+   "role": "route",
+   "parent": "service:PipelineConsole",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "input": "JourneyOpenRequest",
+    "output": "{ journey: string; node: string; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PipelineConsole/mapRead",
+   "role": "route",
+   "parent": "service:PipelineConsole",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "input": "PortalRequest & { window: MapWindow }",
+    "output": "MapAnswer",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PipelineConsole/offersSync",
+   "role": "route",
+   "parent": "service:PipelineConsole",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "input": "PortalRequest",
+    "output": "import(\"./store.js\").OfferSync",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PipelineConsole/recordsExport",
+   "role": "route",
+   "parent": "service:PipelineConsole",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "input": "PortalRequest & ExportAsk",
+    "output": "import(\"@wren/core/records/serve\").RecordsFile",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PipelineConsole/recordsGet",
+   "role": "route",
+   "parent": "service:PipelineConsole",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "input": "PortalRequest & GetAsk",
+    "output": "import(\"@wren/core/records/serve\").RecordAnswer",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PipelineConsole/recordsList",
+   "role": "route",
+   "parent": "service:PipelineConsole",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "input": "PortalRequest & ListAsk",
+    "output": "import(\"@wren/core/records/serve\").RecordsPage",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PipelineConsole/recordsStats",
+   "role": "route",
+   "parent": "service:PipelineConsole",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "input": "PortalRequest & StatsAsk",
+    "output": "import(\"@wren/core/records/serve\").RecordsStat",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PipelineConsole/recordsTypes",
+   "role": "route",
+   "parent": "service:PipelineConsole",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "input": "PortalRequest",
+    "output": "import(\"@wren/core/records\").RecordMeta[]",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PipelineConsole/shapeAttach",
+   "role": "route",
+   "parent": "service:PipelineConsole",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "input": "AttachRequest",
+    "output": "AttachAnswer",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PipelineConsole/shapeBlame",
+   "role": "route",
+   "parent": "service:PipelineConsole",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "input": "BlameRequest",
+    "output": "BlameAnswer",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PipelineConsole/shapeDiff",
+   "role": "route",
+   "parent": "service:PipelineConsole",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "input": "ShapeDiffRequest",
+    "output": "DiffAnswer",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PipelineConsole/shapeDraftApply",
+   "role": "route",
+   "parent": "service:PipelineConsole",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "input": "DraftIdRequest",
+    "output": "DraftApplyAnswer",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PipelineConsole/shapeDraftDrop",
+   "role": "route",
+   "parent": "service:PipelineConsole",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "input": "DraftDropRequest",
+    "output": "DraftStateAnswer",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PipelineConsole/shapeDraftEdit",
+   "role": "route",
+   "parent": "service:PipelineConsole",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "input": "DraftEditRequest",
+    "output": "DraftEditAnswer",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PipelineConsole/shapeDraftNew",
+   "role": "route",
+   "parent": "service:PipelineConsole",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "input": "DraftNewRequest",
+    "output": "DraftNewAnswer",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PipelineConsole/shapeDraftPlan",
+   "role": "route",
+   "parent": "service:PipelineConsole",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "input": "DraftIdRequest",
+    "output": "DraftPlanAnswer",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PipelineConsole/shapeDraftPropose",
+   "role": "route",
+   "parent": "service:PipelineConsole",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "input": "DraftIdRequest",
+    "output": "DraftStateAnswer",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PipelineConsole/shapeDraftUpdate",
+   "role": "route",
+   "parent": "service:PipelineConsole",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "input": "DraftUpdateRequest",
+    "output": "DraftUpdateAnswer",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PipelineConsole/shapeExport",
+   "role": "route",
+   "parent": "service:PipelineConsole",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "input": "ShapeExportRequest",
+    "output": "{ text: string; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PipelineConsole/shapeImport",
+   "role": "route",
+   "parent": "service:PipelineConsole",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "input": "ShapeImportRequest",
+    "output": "{ version: number | null; changed: boolean; terms: { offer: string; plan: string; version: number; }[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PipelineConsole/shapePreview",
+   "role": "route",
+   "parent": "service:PipelineConsole",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "input": "ShapePreviewRequest",
+    "output": "PreviewAnswer",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PipelineConsole/shapeStart",
+   "role": "route",
+   "parent": "service:PipelineConsole",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "input": "PortalRequest",
+    "output": "{ version: number; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PipelineConsole/shapeTag",
+   "role": "route",
+   "parent": "service:PipelineConsole",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "input": "TagRequest",
+    "output": "TagAnswer",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PipelineConsole/shapeUndo",
+   "role": "route",
+   "parent": "service:PipelineConsole",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "input": "UndoRequest",
+    "output": "UndoAnswer",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PipelineConsole/shapeUndoPreview",
+   "role": "route",
+   "parent": "service:PipelineConsole",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "input": "UndoRequest",
+    "output": "UndoPreviewAnswer",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PipelineConsole/shapeVersion",
+   "role": "route",
+   "parent": "service:PipelineConsole",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "input": "ShapeVersionRequest",
+    "output": "{ version: number; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PipelineConsole/termsAdd",
+   "role": "route",
+   "parent": "service:PipelineConsole",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "input": "TermsAddRequest",
+    "output": "{ offer: string; plan: string; version: number; from: string; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
    "id": "service:Journeys",
    "role": "service",
    "parent": "@wren/pipeline",
@@ -64,6 +405,17 @@
    "attrs": {
     "file": "packages/pipeline/src/restate.ts",
     "kind": "service"
+   }
+  },
+  {
+   "id": "service:PipelineConsole",
+   "role": "service",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "file": "packages/pipeline/src/console.ts",
+    "kind": "service",
+    "via": "portalService"
    }
   }
  ],

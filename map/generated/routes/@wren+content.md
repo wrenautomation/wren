@@ -1,6 +1,6 @@
 # @wren/content: routes
 
-Services: 16.
+Services: 18.
 
 ## AutoReply (object)
 
@@ -14,8 +14,8 @@ File: packages/content/src/restate/blog.ts
 
 - **audience** `{ slug: string }` → `{ live: boolean; tally: Record<string, number>; sent: number; }` (sharedHandler)
 - **email** `{ slug: string; test?: string }` → `{ sending: boolean; test: string | null; }` (exclusiveHandler)
-- **posts** `void` → `{ on: boolean; site: string; posts: { date: string; createdAt: Date; updatedAt: Date; description: string; title: string; body: string; draft: boolean; updatedBy: string | null; slug: string; publishedAt: Date | null; emailedAt: Date | null; commitSha: string | null; fromRef: string | null; }[]; }` (sharedHandler)
-- **save** `{ slug?: string; title: string; description: string; body: string; publish: boolean; from?: string | null; viewer?: unknown; }` → `{ post: { date: string; createdAt: Date; updatedAt: Date; description: string; title: string; body: string; draft: boolean; updatedBy: string | null; slug: string; publishedAt: Date | null; emailedAt: Date | null; commitSha: string | null; fromRef: string | null; }; url: string; }` (exclusiveHandler)
+- **posts** `void` → `{ on: boolean; site: string; posts: { date: string; description: string; title: string; createdAt: Date; updatedAt: Date; body: string; draft: boolean; updatedBy: string | null; publishedAt: Date | null; slug: string; emailedAt: Date | null; commitSha: string | null; fromRef: string | null; }[]; }` (sharedHandler)
+- **save** `{ slug?: string; title: string; description: string; body: string; publish: boolean; from?: string | null; viewer?: unknown; }` → `{ post: { date: string; description: string; title: string; createdAt: Date; updatedAt: Date; body: string; draft: boolean; updatedBy: string | null; publishedAt: Date | null; slug: string; emailedAt: Date | null; commitSha: string | null; fromRef: string | null; }; url: string; }` (exclusiveHandler)
 
 ## Chat (service)
 
@@ -76,11 +76,56 @@ File: packages/content/src/restate/mail-reply.ts
 
 - **send** `{ client: string; mailId: number; body: string; by?: string | null }` → `{ id: string | null }` (serviceHandler)
 
+## MarketingConsole (service via `portalService`)
+
+File: packages/content/src/restate/marketing-console.ts
+
+- **approveDraft** `ApproveRequest` → `{ done: string[]; }` (serviceHandler)
+- **draftAttach** `AttachRequest` → `{ done: string[]; }` (serviceHandler)
+- **draftFields** `FieldsRequest` → `{ done: string[]; saved?: import("../shape-view.js").FieldsSaved; }` (serviceHandler)
+- **draftFunnel** `FunnelConsoleRequest` → `{ done: string[]; }` (serviceHandler)
+- **draftSlides** `SlidesRequest` → `{ done: string[]; saved?: import("../shape-view.js").SlidesSaved; }` (serviceHandler)
+- **inboxApprove** `PortalRequest & { id: number }` → `{ sent: boolean; queued?: string; copy?: import("../inbox/send.js").Copied; }` (serviceHandler)
+- **inboxAsk** `InboxReplyRequest` → `{ asked: number; }` (serviceHandler)
+- **inboxAssign** `ThreadRequest & { assignee?: string | null }` → `{ assignee: string | null; }` (serviceHandler)
+- **inboxAuto** `PortalRequest` → `{ modes: Record<InboxChannel, AutoReplyMode>; held: boolean; }` (serviceHandler)
+- **inboxAutoSet** `PortalRequest & { channel: InboxChannel; mode: AutoReplyMode }` → `{ modes: Record<InboxChannel, AutoReplyMode>; held: boolean; }` (serviceHandler)
+- **inboxDrop** `PortalRequest & { id: number }` → `{ dropped: boolean; }` (serviceHandler)
+- **inboxNote** `ThreadRequest & { body: string }` → `{ id: string; mentioned: string[]; }` (serviceHandler)
+- **inboxReply** `InboxReplyRequest` → `{ sent: boolean; asked: number | null; why: string | null; copy?: import("../inbox/send.js").Copied; }` (serviceHandler)
+- **inboxSnooze** `ThreadRequest & { until?: string | null }` → `{ until: string | null; }` (serviceHandler)
+- **inboxStatus** `ThreadRequest & { status: InboxStatus }` → `{ status: InboxStatus; }` (serviceHandler)
+- **inboxSuggest** `Omit<InboxReplyRequest, "body">` → `{ text: string | null; }` (serviceHandler)
+- **inboxTake** `ThreadRequest` → `{ assignee: string; }` (serviceHandler)
+- **promote** `PromoteRequest` → `{ started: boolean; platforms: ("linkedin" | "reddit" | "instagram" | "x")[]; }` (serviceHandler)
+- **recordsExport** `PortalRequest & ExportAsk` → `import("@wren/core/records/serve").RecordsFile` (serviceHandler)
+- **recordsGet** `PortalRequest & GetAsk` → `import("@wren/core/records/serve").RecordAnswer` (serviceHandler)
+- **recordsList** `PortalRequest & ListAsk` → `import("@wren/core/records/serve").RecordsPage` (serviceHandler)
+- **recordsStats** `PortalRequest & StatsAsk` → `import("@wren/core/records/serve").RecordsStat` (serviceHandler)
+- **recordsTypes** `PortalRequest` → `import("@wren/core/records").RecordMeta[]` (serviceHandler)
+- **redraft** `RedraftRequest` → `import("./desk-context.js").DraftReport` (serviceHandler)
+- **rejectDraft** `RejectRequest` → `{ done: string[]; }` (serviceHandler)
+- **reportDelete** `PortalRequest & { id: number }` → `{ ok: boolean; }` (serviceHandler)
+- **reportRun** `PortalRequest & { id: number }` → `{ id: number | null; }` (serviceHandler)
+- **reportSave** `ReportSaveRequest` → `{ id: number; }` (serviceHandler)
+- **reports** `PortalRequest` → `{ mail: boolean; zone: string; reports: { sends: { id: number; from: string; to: string; closed: boolean; lines: import("../client-reports/tiles.js").ReportLine[]; sentTo: string[]; why: string | null; by: string | null; at: string; }[]; id: number; name: string; tiles: ("calls" | "views" | "bookings" | "paid" | "forms" | "post_visits" | "ad_impressions" | "search_impressions" | "visits" | "spend")[]; every: "week" | "month"; zone: string; recipients: string[]; on: boolean; nextAt: string | null; by: string; updatedAt: string; }[]; members: { email: string; role: string; }[]; }` (serviceHandler)
+- **sendSettle** `SettleRequest` → `{ item: string; outcome: SettleOutcome; }` (serviceHandler)
+
 ## Pieces (object)
 
 File: packages/content/src/restate/pieces.ts
 
 - **list** `void` → `{ pieces: import("../pieces.js").Piece[]; }` (sharedHandler)
+
+## SocialAccess (service via `portalService`)
+
+File: packages/content/src/connect/console.ts
+
+- **check** `?` → `?` (serviceHandler)
+- **connect** `?` → `?` (serviceHandler)
+- **disconnect** `?` → `?` (serviceHandler)
+- **ownCheck** `PortalRequest & { platform: string; requestId?: string }` → `OwnCheck` (serviceHandler)
+- **social** `?` → `?` (serviceHandler)
 
 ## SocialCallback (service)
 

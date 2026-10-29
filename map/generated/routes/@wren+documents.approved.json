@@ -79,6 +79,193 @@
    }
   },
   {
+   "id": "route:DocumentsConsole/approve",
+   "role": "route",
+   "parent": "service:DocumentsConsole",
+   "group": "@wren/documents",
+   "attrs": {
+    "input": "IdsRequest",
+    "output": "{ done: string[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:DocumentsConsole/create",
+   "role": "route",
+   "parent": "service:DocumentsConsole",
+   "group": "@wren/documents",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:DocumentsConsole/decline",
+   "role": "route",
+   "parent": "service:DocumentsConsole",
+   "group": "@wren/documents",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:DocumentsConsole/duplicate",
+   "role": "route",
+   "parent": "service:DocumentsConsole",
+   "group": "@wren/documents",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:DocumentsConsole/pdf",
+   "role": "route",
+   "parent": "service:DocumentsConsole",
+   "group": "@wren/documents",
+   "attrs": {
+    "input": "IdRequest & { part?: string | null }",
+    "output": "{ name: string; url: string; base64?: never; } | { name: string; base64: string; url?: never; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:DocumentsConsole/recordsExport",
+   "role": "route",
+   "parent": "service:DocumentsConsole",
+   "group": "@wren/documents",
+   "attrs": {
+    "input": "PortalRequest & ExportAsk",
+    "output": "import(\"@wren/core/records/serve\").RecordsFile",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:DocumentsConsole/recordsGet",
+   "role": "route",
+   "parent": "service:DocumentsConsole",
+   "group": "@wren/documents",
+   "attrs": {
+    "input": "PortalRequest & GetAsk",
+    "output": "import(\"@wren/core/records/serve\").RecordAnswer",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:DocumentsConsole/recordsList",
+   "role": "route",
+   "parent": "service:DocumentsConsole",
+   "group": "@wren/documents",
+   "attrs": {
+    "input": "PortalRequest & ListAsk",
+    "output": "import(\"@wren/core/records/serve\").RecordsPage",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:DocumentsConsole/recordsStats",
+   "role": "route",
+   "parent": "service:DocumentsConsole",
+   "group": "@wren/documents",
+   "attrs": {
+    "input": "PortalRequest & StatsAsk",
+    "output": "import(\"@wren/core/records/serve\").RecordsStat",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:DocumentsConsole/recordsTypes",
+   "role": "route",
+   "parent": "service:DocumentsConsole",
+   "group": "@wren/documents",
+   "attrs": {
+    "input": "PortalRequest",
+    "output": "import(\"@wren/core/records\").RecordMeta[]",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:DocumentsConsole/remind",
+   "role": "route",
+   "parent": "service:DocumentsConsole",
+   "group": "@wren/documents",
+   "attrs": {
+    "input": "IdRequest",
+    "output": "{ id: string; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:DocumentsConsole/send",
+   "role": "route",
+   "parent": "service:DocumentsConsole",
+   "group": "@wren/documents",
+   "attrs": {
+    "input": "IdRequest",
+    "output": "{ docs: { id: string; status: string; }[]; url: null; why?: never; } | { docs: { id: string; status: string; }[]; url: string | null; why: string | null; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:DocumentsConsole/templateArchive",
+   "role": "route",
+   "parent": "service:DocumentsConsole",
+   "group": "@wren/documents",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:DocumentsConsole/templateSave",
+   "role": "route",
+   "parent": "service:DocumentsConsole",
+   "group": "@wren/documents",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:DocumentsConsole/templates",
+   "role": "route",
+   "parent": "service:DocumentsConsole",
+   "group": "@wren/documents",
+   "attrs": {
+    "input": "PortalRequest",
+    "output": "{ templates: { id: string; kind: string; name: string; body: string; lines: import(\"./lines.js\").DocLine[]; depositPct: number | null; expiresDays: number; version: string; }[]; approves: boolean; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:DocumentsConsole/update",
+   "role": "route",
+   "parent": "service:DocumentsConsole",
+   "group": "@wren/documents",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:DocumentsConsole/void",
+   "role": "route",
+   "parent": "service:DocumentsConsole",
+   "group": "@wren/documents",
+   "attrs": {
+    "input": "IdsRequest",
+    "output": "{ done: number; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
    "id": "service:Documents",
    "role": "service",
    "parent": "@wren/documents",
@@ -86,6 +273,17 @@
    "attrs": {
     "file": "packages/documents/src/service.ts",
     "kind": "service"
+   }
+  },
+  {
+   "id": "service:DocumentsConsole",
+   "role": "service",
+   "parent": "@wren/documents",
+   "group": "@wren/documents",
+   "attrs": {
+    "file": "packages/documents/src/console.ts",
+    "kind": "service",
+    "via": "portalService"
    }
   }
  ],

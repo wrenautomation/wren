@@ -68,6 +68,171 @@
    }
   },
   {
+   "id": "route:CalendarConsole/cancel",
+   "role": "route",
+   "parent": "service:CalendarConsole",
+   "group": "@wren/calendar",
+   "attrs": {
+    "input": "IdsRequest",
+    "output": "{ cancelled: number; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:CalendarConsole/clear",
+   "role": "route",
+   "parent": "service:CalendarConsole",
+   "group": "@wren/calendar",
+   "attrs": {
+    "input": "IdsRequest",
+    "output": "{ changed: number; done: (number | undefined)[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:CalendarConsole/noShow",
+   "role": "route",
+   "parent": "service:CalendarConsole",
+   "group": "@wren/calendar",
+   "attrs": {
+    "input": "IdsRequest",
+    "output": "{ changed: number; done: (number | undefined)[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:CalendarConsole/notFit",
+   "role": "route",
+   "parent": "service:CalendarConsole",
+   "group": "@wren/calendar",
+   "attrs": {
+    "input": "IdsRequest",
+    "output": "{ changed: number; done: (number | undefined)[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:CalendarConsole/notYet",
+   "role": "route",
+   "parent": "service:CalendarConsole",
+   "group": "@wren/calendar",
+   "attrs": {
+    "input": "IdsRequest",
+    "output": "{ changed: number; done: (number | undefined)[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:CalendarConsole/range",
+   "role": "route",
+   "parent": "service:CalendarConsole",
+   "group": "@wren/calendar",
+   "attrs": {
+    "input": "RangeRequest",
+    "output": "CalendarRange",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:CalendarConsole/record",
+   "role": "route",
+   "parent": "service:CalendarConsole",
+   "group": "@wren/calendar",
+   "attrs": {
+    "input": "PortalRequest",
+    "output": "import(\"./recorder.js\").RecorderState",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:CalendarConsole/recorder",
+   "role": "route",
+   "parent": "service:CalendarConsole",
+   "group": "@wren/calendar",
+   "attrs": {
+    "input": "PortalRequest",
+    "output": "import(\"./recorder.js\").RecorderState",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:CalendarConsole/recordsExport",
+   "role": "route",
+   "parent": "service:CalendarConsole",
+   "group": "@wren/calendar",
+   "attrs": {
+    "input": "PortalRequest & ExportAsk",
+    "output": "import(\"@wren/core/records/serve\").RecordsFile",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:CalendarConsole/recordsGet",
+   "role": "route",
+   "parent": "service:CalendarConsole",
+   "group": "@wren/calendar",
+   "attrs": {
+    "input": "PortalRequest & GetAsk",
+    "output": "import(\"@wren/core/records/serve\").RecordAnswer",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:CalendarConsole/recordsList",
+   "role": "route",
+   "parent": "service:CalendarConsole",
+   "group": "@wren/calendar",
+   "attrs": {
+    "input": "PortalRequest & ListAsk",
+    "output": "import(\"@wren/core/records/serve\").RecordsPage",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:CalendarConsole/recordsStats",
+   "role": "route",
+   "parent": "service:CalendarConsole",
+   "group": "@wren/calendar",
+   "attrs": {
+    "input": "PortalRequest & StatsAsk",
+    "output": "import(\"@wren/core/records/serve\").RecordsStat",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:CalendarConsole/recordsTypes",
+   "role": "route",
+   "parent": "service:CalendarConsole",
+   "group": "@wren/calendar",
+   "attrs": {
+    "input": "PortalRequest",
+    "output": "import(\"@wren/core/records\").RecordMeta[]",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:CalendarConsole/stopRecording",
+   "role": "route",
+   "parent": "service:CalendarConsole",
+   "group": "@wren/calendar",
+   "attrs": {
+    "input": "PortalRequest",
+    "output": "import(\"./recorder.js\").RecorderState",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:CalendarConsole/won",
+   "role": "route",
+   "parent": "service:CalendarConsole",
+   "group": "@wren/calendar",
+   "attrs": {
+    "input": "IdsRequest",
+    "output": "{ changed: number; done: (number | undefined)[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
    "id": "route:ClientCalendar/book",
    "role": "route",
    "parent": "service:ClientCalendar",
@@ -141,6 +306,17 @@
    "attrs": {
     "file": "packages/calendar/src/restate.ts",
     "kind": "service"
+   }
+  },
+  {
+   "id": "service:CalendarConsole",
+   "role": "service",
+   "parent": "@wren/calendar",
+   "group": "@wren/calendar",
+   "attrs": {
+    "file": "packages/calendar/src/console.ts",
+    "kind": "service",
+    "via": "portalService"
    }
   },
   {

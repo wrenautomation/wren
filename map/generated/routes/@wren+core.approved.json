@@ -2,6 +2,127 @@
  "layer": "routes",
  "nodes": [
   {
+   "id": "route:AccountsConsole/accounts",
+   "role": "route",
+   "parent": "service:AccountsConsole",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:AccountsConsole/addAccount",
+   "role": "route",
+   "parent": "service:AccountsConsole",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:AccountsConsole/checkNow",
+   "role": "route",
+   "parent": "service:AccountsConsole",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:AccountsConsole/limits",
+   "role": "route",
+   "parent": "service:AccountsConsole",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:AccountsConsole/mark",
+   "role": "route",
+   "parent": "service:AccountsConsole",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:AccountsConsole/now",
+   "role": "route",
+   "parent": "service:AccountsConsole",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:AccountsConsole/setLimit",
+   "role": "route",
+   "parent": "service:AccountsConsole",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:AccountsConsole/setVendor",
+   "role": "route",
+   "parent": "service:AccountsConsole",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:AccountsConsole/start",
+   "role": "route",
+   "parent": "service:AccountsConsole",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:AccountsConsole/usage",
+   "role": "route",
+   "parent": "service:AccountsConsole",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:AccountsConsole/vendors",
+   "role": "route",
+   "parent": "service:AccountsConsole",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
    "id": "route:Ask/answer",
    "role": "route",
    "parent": "service:Ask",
@@ -54,6 +175,831 @@
     "input": "void",
     "output": "{ key: string; gen: number; last: {} | null; }",
     "wrap": "sharedHandler"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/addClient",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "AddClientRequest",
+    "output": "{ id: string; name: string; demo: boolean; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/agents",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "PortalRequest",
+    "output": "import(\"./loops.js\").AgentLine[]",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/ask",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "ComponentRequest",
+    "output": "{ component: string; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/call",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "CallRequest",
+    "output": "unknown",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/configure",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "InstallRequest",
+    "output": "{ start: LoopKey[]; stop: LoopKey[]; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/connect",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "ConnectRequest",
+    "output": "{ client: string; site: string; set: boolean; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/decisions",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "PortalRequest",
+    "output": "import(\"../decide/stats.js\").KindStats[]",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/doorReveal",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "DoorRequest",
+    "output": "{ token: string; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/doorRotate",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "DoorRequest",
+    "output": "{ token: string; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/experimentAdd",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "PortalRequest & ExperimentInput",
+    "output": "{ flag: string; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/experimentRemove",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "PortalRequest & { ids?: unknown }",
+    "output": "{ done: string[]; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/experimentShip",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "PortalRequest & { ids?: unknown }",
+    "output": "{ done: string[]; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/experimentStart",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "PortalRequest & { ids?: unknown }",
+    "output": "{ done: string[]; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/experimentStop",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "PortalRequest & { ids?: unknown }",
+    "output": "{ done: string[]; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/flagAdd",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "PortalRequest & FlagInput",
+    "output": "{ key: string; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/flagRemove",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "PortalRequest & { ids?: unknown }",
+    "output": "{ done: string[]; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/install",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "InstallRequest",
+    "output": "{ start: LoopKey[]; stop: LoopKey[]; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/loops",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "PortalRequest",
+    "output": "import(\"./loops.js\").LoopRow[]",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/moveViews",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "KeepRequest",
+    "output": "import(\"../saved-views.js\").SavedViewLine[]",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/prefs",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "KeepRequest",
+    "output": "Record<string, unknown>",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/question",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "QuestionRequest",
+    "output": "{ id: string; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/recordsAsk",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "AskRequest",
+    "output": "{ id: string; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/recordsCounts",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "PortalRequest & { asks?: unknown }",
+    "output": "{ totals: number[]; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/recordsEdit",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "EditRequest",
+    "output": "import(\"../edits.js\").Edited",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/recordsExport",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "PortalRequest & ExportAsk",
+    "output": "import(\"../records-serve.js\").RecordsFile",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/recordsGet",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "PortalRequest & GetAsk",
+    "output": "import(\"../records-serve.js\").RecordAnswer",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/recordsList",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "PortalRequest & ListAsk",
+    "output": "import(\"../records-serve.js\").RecordsPage",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/recordsStats",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "PortalRequest & StatsAsk",
+    "output": "import(\"../records-serve.js\").RecordsStat",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/recordsTypes",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "PortalRequest",
+    "output": "import(\"@wren/reactivation/restate\").RecordMeta[]",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/recordsUndo",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "UndoRequest",
+    "output": "import(\"../edits.js\").Edited",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/releaseHold",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "PortalRequest & { id?: unknown }",
+    "output": "{ done: number[]; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/removeView",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "KeepRequest",
+    "output": "{ removed: unknown; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/replay",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "PortalRequest & { ids?: unknown }",
+    "output": "{ done: string[]; replayed: number; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/retryEvent",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "PortalRequest & { id?: unknown }",
+    "output": "{ arrived: number; seen: number; waiting: number; failed: number; out: number; done: string[]; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/saveView",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "KeepRequest",
+    "output": "import(\"../saved-views.js\").SavedViewLine",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/savedViews",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "KeepRequest",
+    "output": "import(\"../saved-views.js\").SavedViewLine[]",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/setLook",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "SetLookRequest",
+    "output": "{ client: string; look: unknown; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/setLoop",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "SetLoopRequest",
+    "output": "{ running: boolean; service: string; key: string; lastAt: string | null; failures: number; error: string | null; nextAt: string | null; delayMs: number | null; timeouts: import(\"@wren/channel-email/restate\").TimedOut[]; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/setPref",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "KeepRequest",
+    "output": "{ key: string; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/snippetAdd",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "PortalRequest & SnippetInput",
+    "output": "import(\"../library.js\").SnippetLine",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/snippetRemove",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "PortalRequest & { ids?: unknown }",
+    "output": "{ done: number[]; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/snippets",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "PortalRequest",
+    "output": "import(\"../library.js\").SnippetLine[]",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/surveyAdd",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "PortalRequest & SurveyInput",
+    "output": "{ key: string; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/surveyAnswer",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "PortalRequest & { survey?: unknown; value?: unknown }",
+    "output": "{ saved: boolean; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/surveyPause",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "PortalRequest & { ids?: unknown }",
+    "output": "{ done: string[]; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/surveyRemove",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "PortalRequest & { ids?: unknown }",
+    "output": "{ done: string[]; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/surveyStart",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "PortalRequest & { ids?: unknown }",
+    "output": "{ done: string[]; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/surveysDue",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "PortalRequest",
+    "output": "import(\"../surveys.js\").SurveyDef[]",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/teamRemove",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "TeamSeatRequest",
+    "output": "{ removed: string; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/teamSet",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "TeamSeatRequest",
+    "output": "{ email: string; role: import(\"../access.js\").RoleId; clients: string[] | null; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/templateApprove",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "IdsRequest",
+    "output": "{ start: LoopKey[]; stop: LoopKey[]; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/templateDecline",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "IdsRequest",
+    "output": "{ done: string[]; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/templateInstall",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "TemplateRequest",
+    "output": "import(\"../template-install.js\").Installed",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/templateInstalls",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "PortalRequest",
+    "output": "{ template: string; name: string; state: \"draft\" | \"waiting\" | \"live\" | \"off\"; current: boolean; parts: number; at: string; by: string; }[]",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/templatePlan",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "TemplateRequest",
+    "output": "import(\"../template-install.js\").Plan",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/templatePublish",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "TemplateRequest",
+    "output": "{ id: string; state: import(\"../schema.js\").InstallState; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/templateUninstall",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "TemplateRequest",
+    "output": "{ start: LoopKey[]; stop: LoopKey[]; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/tokenMake",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "PortalRequest & { name?: unknown; pin?: unknown; days?: unknown }",
+    "output": "import(\"../tokens.js\").TokenRow & { token: string; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/tokenRevoke",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "PortalRequest & { id?: unknown }",
+    "output": "{ revoked: string; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/tokens",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "PortalRequest",
+    "output": "import(\"../tokens.js\").TokenRow[]",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/uninstall",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "ComponentRequest",
+    "output": "{ start: LoopKey[]; stop: LoopKey[]; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/view",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "ViewRequest",
+    "output": "import(\"./console-api.js\").ViewAnswer",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/workflowAnswer",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "PortalRequest & { id?: unknown }",
+    "output": "{ state: \"thinking\"; error?: never; reply?: never; patch?: never; } | { state: \"failed\"; error: string; reply?: never; patch?: never; } | { state: \"done\"; reply: string; patch: import(\"../workflows.js\").WorkflowEdits | null; error?: never; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/workflowAsk",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "WorkflowSaveRequest & { message?: unknown }",
+    "output": "{ id: string; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/workflowBuild",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "PortalRequest & { message?: unknown; name?: unknown }",
+    "output": "{ workflow: string; ask: string | null; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/workflowDelete",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "WorkflowSaveRequest",
+    "output": "{ done: number; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/workflowDiscard",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "WorkflowSaveRequest",
+    "output": "{ done: number; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/workflowDoors",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "DoorRequest",
+    "output": "import(\"../doors.js\").Door[]",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/workflowPublish",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "WorkflowSaveRequest",
+    "output": "{ start: LoopKey[]; stop: LoopKey[]; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/workflowSave",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "WorkflowSaveRequest",
+    "output": "{ id: number; problems: string[]; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/workflowSwitch",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "WorkflowSaveRequest & { on?: unknown }",
+    "output": "{ start: LoopKey[]; stop: LoopKey[]; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/workflowTemplateDelete",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "PortalRequest & { template?: unknown }",
+    "output": "{ id: string; name: string; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/workflowTemplateSave",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "WorkflowSaveRequest & { name?: unknown; blurb?: unknown }",
+    "output": "{ id: string; name: string; updated: boolean; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/workflowTest",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "WorkflowTestRequest",
+    "output": "import(\"../dry.js\").DryResult & { entered?: import(\"../executor.js\").ExecutorEvent; }",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ConsolePortal/workflowsMade",
+   "role": "route",
+   "parent": "service:ConsolePortal",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "PortalRequest",
+    "output": "import(\"../executor.js\").MadeWorkflow[]",
+    "wrap": "plain"
    }
   },
   {
@@ -376,6 +1322,380 @@
    }
   },
   {
+   "id": "route:PeopleConsole/broadcastApprove",
+   "role": "route",
+   "parent": "service:PeopleConsole",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "BroadcastIdsRequest",
+    "output": "{ done: number[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PeopleConsole/broadcastAsk",
+   "role": "route",
+   "parent": "service:PeopleConsole",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "BroadcastIdsRequest",
+    "output": "{ done: number[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PeopleConsole/broadcastCancel",
+   "role": "route",
+   "parent": "service:PeopleConsole",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "BroadcastIdsRequest",
+    "output": "{ done: number[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PeopleConsole/broadcastContext",
+   "role": "route",
+   "parent": "service:PeopleConsole",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "PortalRequest",
+    "output": "{ email: boolean; emailUnset: string | null; text: boolean; testDomain: string | null; testPhone: string | null; segments: { id: number; name: string; size: number; }[]; topics: { id: number; name: string; publicName: string; channel: \"email\" | \"sms\"; }[]; fields: (\"name\" | \"first_name\")[]; textMost: number; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PeopleConsole/broadcastDecline",
+   "role": "route",
+   "parent": "service:PeopleConsole",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "BroadcastIdsRequest",
+    "output": "{ done: number[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PeopleConsole/broadcastMonth",
+   "role": "route",
+   "parent": "service:PeopleConsole",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "PortalRequest & { from?: string; to?: string }",
+    "output": "{ broadcasts: { id: number; name: string; channel: import(\"./broadcasts-schema.js\").BroadcastChannel; state: import(\"./broadcasts-schema.js\").BroadcastState; at: string; }[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PeopleConsole/broadcastPreview",
+   "role": "route",
+   "parent": "service:PeopleConsole",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "BroadcastSaveRequest",
+    "output": "{ subject: string | null; body: string; people: number; yes: number; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PeopleConsole/broadcastRestore",
+   "role": "route",
+   "parent": "service:PeopleConsole",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "BroadcastIdsRequest",
+    "output": "{ done: number[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PeopleConsole/broadcastSave",
+   "role": "route",
+   "parent": "service:PeopleConsole",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "BroadcastSaveRequest",
+    "output": "{ broadcast: { name: string; id: number; channel: \"email\" | \"sms\"; state: \"draft\" | \"sending\" | \"sent\" | \"waiting\" | \"scheduled\" | \"declined\" | \"canceled\"; zone: string; createdAt: Date; updatedAt: Date; subject: string | null; body: string; startedAt: Date | null; finishedAt: Date | null; by: string; segmentId: number; topicId: number; sendAt: Date | null; local: boolean; askedBy: string | null; askedAt: Date | null; decidedBy: string | null; decidedAt: Date | null; note: string | null; testedTo: string | null; testedAt: Date | null; }; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PeopleConsole/broadcastTest",
+   "role": "route",
+   "parent": "service:PeopleConsole",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "BroadcastTestRequest",
+    "output": "{ sent: string; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PeopleConsole/channelPeople",
+   "role": "route",
+   "parent": "service:PeopleConsole",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "PortalRequest & StatsQuery & { key?: string; step?: string }",
+    "output": "{ people: import(\"./channel-stats.js\").StepPerson[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PeopleConsole/channelStats",
+   "role": "route",
+   "parent": "service:PeopleConsole",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "PortalRequest & StatsQuery",
+    "output": "import(\"./channel-stats.js\").ChannelStats",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PeopleConsole/findingDrop",
+   "role": "route",
+   "parent": "service:PeopleConsole",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "ResearchRequest",
+    "output": "{ done: number[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PeopleConsole/findingKeep",
+   "role": "route",
+   "parent": "service:PeopleConsole",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "ResearchRequest",
+    "output": "{ done: number[]; keys: number; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PeopleConsole/leadCheck",
+   "role": "route",
+   "parent": "service:PeopleConsole",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "LeadRequest",
+    "output": "{ done: number[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PeopleConsole/leadFit",
+   "role": "route",
+   "parent": "service:PeopleConsole",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "LeadRequest",
+    "output": "{ done: number[]; label: string; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PeopleConsole/leadNot",
+   "role": "route",
+   "parent": "service:PeopleConsole",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "LeadRequest",
+    "output": "{ done: number[]; label: string; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PeopleConsole/memberAdd",
+   "role": "route",
+   "parent": "service:PeopleConsole",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "MemberAddRequest",
+    "output": "{ done: number[]; group: string; made: boolean; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PeopleConsole/memberRemove",
+   "role": "route",
+   "parent": "service:PeopleConsole",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "PortalRequest & { ids?: string[] }",
+    "output": "{ done: string[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PeopleConsole/recordsExport",
+   "role": "route",
+   "parent": "service:PeopleConsole",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "PortalRequest & ExportAsk",
+    "output": "import(\"./records-serve.js\").RecordsFile",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PeopleConsole/recordsGet",
+   "role": "route",
+   "parent": "service:PeopleConsole",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "PortalRequest & GetAsk",
+    "output": "import(\"./records-serve.js\").RecordAnswer",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PeopleConsole/recordsList",
+   "role": "route",
+   "parent": "service:PeopleConsole",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "PortalRequest & ListAsk",
+    "output": "import(\"./records-serve.js\").RecordsPage",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PeopleConsole/recordsStats",
+   "role": "route",
+   "parent": "service:PeopleConsole",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "PortalRequest & StatsAsk",
+    "output": "import(\"./records-serve.js\").RecordsStat",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PeopleConsole/recordsTypes",
+   "role": "route",
+   "parent": "service:PeopleConsole",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "PortalRequest",
+    "output": "import(\"./records.js\").RecordMeta[]",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PeopleConsole/research",
+   "role": "route",
+   "parent": "service:PeopleConsole",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "ResearchRequest",
+    "output": "{ done: number[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PeopleConsole/segmentArchive",
+   "role": "route",
+   "parent": "service:PeopleConsole",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "SegmentIdsRequest",
+    "output": "{ done: number[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PeopleConsole/segmentContext",
+   "role": "route",
+   "parent": "service:PeopleConsole",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "PortalRequest",
+    "output": "{ traits: string[]; segments: { id: number; name: string; kind: \"manual\" | \"live\" | \"snapshot\"; }[]; shape: import(\"./segments.js\").JourneyShape; describe: boolean; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PeopleConsole/segmentDescribe",
+   "role": "route",
+   "parent": "service:PeopleConsole",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "PortalRequest & { words?: string }",
+    "output": "{ rule: import(\"./segments.js\").Rule; name: string; words: string; unknownTraits: string[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PeopleConsole/segmentPreview",
+   "role": "route",
+   "parent": "service:PeopleConsole",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "PortalRequest & { rule?: unknown }",
+    "output": "import(\"./segments.js\").Preview",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PeopleConsole/segmentRestore",
+   "role": "route",
+   "parent": "service:PeopleConsole",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "SegmentIdsRequest",
+    "output": "{ done: number[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PeopleConsole/segmentRetake",
+   "role": "route",
+   "parent": "service:PeopleConsole",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "SegmentIdsRequest",
+    "output": "{ done: number[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PeopleConsole/segmentSave",
+   "role": "route",
+   "parent": "service:PeopleConsole",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "SegmentSaveRequest",
+    "output": "{ segment: import(\"./segments.js\").Segment; entered: number; left: number; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PeopleConsole/segmentText",
+   "role": "route",
+   "parent": "service:PeopleConsole",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "PortalRequest & { rule?: unknown; text?: string }",
+    "output": "{ rule: import(\"./segments.js\").Rule; } | { problems: string[]; } | { text: string; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PeopleConsole/segmentVersions",
+   "role": "route",
+   "parent": "service:PeopleConsole",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "PortalRequest & { id?: number }",
+    "output": "{ versions: import(\"./segments.js\").SegmentVersion[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
    "id": "route:PeopleMap/status",
    "role": "route",
    "parent": "service:PeopleMap",
@@ -431,6 +1751,127 @@
    }
   },
   {
+   "id": "route:TemplatesConsole/approve",
+   "role": "route",
+   "parent": "service:TemplatesConsole",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:TemplatesConsole/decline",
+   "role": "route",
+   "parent": "service:TemplatesConsole",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:TemplatesConsole/detail",
+   "role": "route",
+   "parent": "service:TemplatesConsole",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:TemplatesConsole/list",
+   "role": "route",
+   "parent": "service:TemplatesConsole",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:TemplatesConsole/move",
+   "role": "route",
+   "parent": "service:TemplatesConsole",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:TemplatesConsole/preview",
+   "role": "route",
+   "parent": "service:TemplatesConsole",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:TemplatesConsole/publish",
+   "role": "route",
+   "parent": "service:TemplatesConsole",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:TemplatesConsole/renameFolder",
+   "role": "route",
+   "parent": "service:TemplatesConsole",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:TemplatesConsole/reset",
+   "role": "route",
+   "parent": "service:TemplatesConsole",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:TemplatesConsole/restore",
+   "role": "route",
+   "parent": "service:TemplatesConsole",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:TemplatesConsole/save",
+   "role": "route",
+   "parent": "service:TemplatesConsole",
+   "group": "@wren/core",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
    "id": "route:Tokens/check",
    "role": "route",
    "parent": "service:Tokens",
@@ -475,6 +1916,17 @@
    }
   },
   {
+   "id": "service:AccountsConsole",
+   "role": "service",
+   "parent": "@wren/core",
+   "group": "@wren/core",
+   "attrs": {
+    "file": "packages/core/src/accounts-console.ts",
+    "kind": "service",
+    "via": "portalService"
+   }
+  },
+  {
    "id": "service:Ask",
    "role": "service",
    "parent": "@wren/core",
@@ -492,6 +1944,17 @@
    "attrs": {
     "file": "packages/core/src/broadcast-run.ts",
     "kind": "object"
+   }
+  },
+  {
+   "id": "service:ConsolePortal",
+   "role": "service",
+   "parent": "@wren/core",
+   "group": "@wren/core",
+   "attrs": {
+    "file": "packages/core/src/console/console-portal.ts",
+    "kind": "service",
+    "via": "portalService"
    }
   },
   {
@@ -535,6 +1998,17 @@
    }
   },
   {
+   "id": "service:PeopleConsole",
+   "role": "service",
+   "parent": "@wren/core",
+   "group": "@wren/core",
+   "attrs": {
+    "file": "packages/core/src/people-console.ts",
+    "kind": "service",
+    "via": "portalService"
+   }
+  },
+  {
    "id": "service:PeopleMap",
    "role": "service",
    "parent": "@wren/core",
@@ -565,6 +2039,17 @@
    }
   },
   {
+   "id": "service:TemplatesConsole",
+   "role": "service",
+   "parent": "@wren/core",
+   "group": "@wren/core",
+   "attrs": {
+    "file": "packages/core/src/templates-console.ts",
+    "kind": "service",
+    "via": "portalService"
+   }
+  },
+  {
    "id": "service:Tokens",
    "role": "service",
    "parent": "@wren/core",
@@ -581,16 +2066,6 @@
    "group": "@wren/core",
    "attrs": {
     "file": "packages/core/src/webhooks.ts",
-    "kind": "service"
-   }
-  },
-  {
-   "id": "service:o.name",
-   "role": "service",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "file": "packages/core/src/portal.ts",
     "kind": "service"
    }
   }

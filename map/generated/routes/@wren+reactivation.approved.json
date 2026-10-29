@@ -46,6 +46,237 @@
    }
   },
   {
+   "id": "route:ReactivationPortal/approve",
+   "role": "route",
+   "parent": "service:ReactivationPortal",
+   "group": "@wren/reactivation",
+   "attrs": {
+    "input": "Req<\"approve\">",
+    "output": "ReviewResult",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ReactivationPortal/book",
+   "role": "route",
+   "parent": "service:ReactivationPortal",
+   "group": "@wren/reactivation",
+   "attrs": {
+    "input": "Req<\"book\">",
+    "output": "Done",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ReactivationPortal/called",
+   "role": "route",
+   "parent": "service:ReactivationPortal",
+   "group": "@wren/reactivation",
+   "attrs": {
+    "input": "Req<\"called\">",
+    "output": "Done",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ReactivationPortal/change",
+   "role": "route",
+   "parent": "service:ReactivationPortal",
+   "group": "@wren/reactivation",
+   "attrs": {
+    "input": "Req<\"change\">",
+    "output": "Done",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ReactivationPortal/emails",
+   "role": "route",
+   "parent": "service:ReactivationPortal",
+   "group": "@wren/reactivation",
+   "attrs": {
+    "input": "Req<\"emails\">",
+    "output": "EmailsPage",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ReactivationPortal/importPreview",
+   "role": "route",
+   "parent": "service:ReactivationPortal",
+   "group": "@wren/reactivation",
+   "attrs": {
+    "input": "Req<\"importPreview\">",
+    "output": "import(\"./import.js\").ImportPreview",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ReactivationPortal/importRun",
+   "role": "route",
+   "parent": "service:ReactivationPortal",
+   "group": "@wren/reactivation",
+   "attrs": {
+    "input": "Req<\"importRun\">",
+    "output": "import(\"./import.js\").ImportResult",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ReactivationPortal/overview",
+   "role": "route",
+   "parent": "service:ReactivationPortal",
+   "group": "@wren/reactivation",
+   "attrs": {
+    "input": "Req<\"overview\">",
+    "output": "Overview",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ReactivationPortal/person",
+   "role": "route",
+   "parent": "service:ReactivationPortal",
+   "group": "@wren/reactivation",
+   "attrs": {
+    "input": "Req<\"person\">",
+    "output": "PersonView",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ReactivationPortal/recordsExport",
+   "role": "route",
+   "parent": "service:ReactivationPortal",
+   "group": "@wren/reactivation",
+   "attrs": {
+    "input": "Req<\"recordsExport\">",
+    "output": "RecordsFile",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ReactivationPortal/recordsGet",
+   "role": "route",
+   "parent": "service:ReactivationPortal",
+   "group": "@wren/reactivation",
+   "attrs": {
+    "input": "Req<\"recordsGet\">",
+    "output": "RecordAnswer",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ReactivationPortal/recordsList",
+   "role": "route",
+   "parent": "service:ReactivationPortal",
+   "group": "@wren/reactivation",
+   "attrs": {
+    "input": "Req<\"recordsList\">",
+    "output": "RecordsPage",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ReactivationPortal/recordsStats",
+   "role": "route",
+   "parent": "service:ReactivationPortal",
+   "group": "@wren/reactivation",
+   "attrs": {
+    "input": "Req<\"recordsStats\">",
+    "output": "RecordsStat",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ReactivationPortal/recordsTypes",
+   "role": "route",
+   "parent": "service:ReactivationPortal",
+   "group": "@wren/reactivation",
+   "attrs": {
+    "input": "Req<\"recordsTypes\">",
+    "output": "RecordMeta[]",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ReactivationPortal/run",
+   "role": "route",
+   "parent": "service:ReactivationPortal",
+   "group": "@wren/reactivation",
+   "attrs": {
+    "input": "Req<\"run\">",
+    "output": "RunPage",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ReactivationPortal/settle",
+   "role": "route",
+   "parent": "service:ReactivationPortal",
+   "group": "@wren/reactivation",
+   "attrs": {
+    "input": "Req<\"settle\">",
+    "output": "Done",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ReactivationPortal/skip",
+   "role": "route",
+   "parent": "service:ReactivationPortal",
+   "group": "@wren/reactivation",
+   "attrs": {
+    "input": "Req<\"skip\">",
+    "output": "ReviewResult",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ReactivationPortal/unapprove",
+   "role": "route",
+   "parent": "service:ReactivationPortal",
+   "group": "@wren/reactivation",
+   "attrs": {
+    "input": "Req<\"unapprove\">",
+    "output": "ReviewResult",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ReactivationPortal/unbook",
+   "role": "route",
+   "parent": "service:ReactivationPortal",
+   "group": "@wren/reactivation",
+   "attrs": {
+    "input": "Req<\"unbook\">",
+    "output": "Done",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ReactivationPortal/uncalled",
+   "role": "route",
+   "parent": "service:ReactivationPortal",
+   "group": "@wren/reactivation",
+   "attrs": {
+    "input": "Req<\"uncalled\">",
+    "output": "Done",
+    "wrap": "plain"
+   }
+  },
+  {
+   "id": "route:ReactivationPortal/work",
+   "role": "route",
+   "parent": "service:ReactivationPortal",
+   "group": "@wren/reactivation",
+   "attrs": {
+    "input": "Req<\"work\">",
+    "output": "WorkView",
+    "wrap": "plain"
+   }
+  },
+  {
    "id": "service:CrmRun",
    "role": "service",
    "parent": "@wren/reactivation",
@@ -53,6 +284,17 @@
    "attrs": {
     "file": "packages/reactivation/src/crm-run.ts",
     "kind": "object"
+   }
+  },
+  {
+   "id": "service:ReactivationPortal",
+   "role": "service",
+   "parent": "@wren/reactivation",
+   "group": "@wren/reactivation",
+   "attrs": {
+    "file": "packages/reactivation/src/portal/service.ts",
+    "kind": "service",
+    "via": "portalService"
    }
   }
  ],

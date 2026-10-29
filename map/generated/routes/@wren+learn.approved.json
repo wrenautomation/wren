@@ -2,6 +2,347 @@
  "layer": "routes",
  "nodes": [
   {
+   "id": "route:LearnConsole/alertPick",
+   "role": "route",
+   "parent": "service:LearnConsole",
+   "group": "@wren/learn",
+   "attrs": {
+    "input": "PickRequest",
+    "output": "{ source: string; pick: \"every\" | \"off\" | \"top\"; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:LearnConsole/alerts",
+   "role": "route",
+   "parent": "service:LearnConsole",
+   "group": "@wren/learn",
+   "attrs": {
+    "input": "PortalRequest",
+    "output": "{ saved: \"every\" | \"off\" | \"top\"; perHour: number; mail: { on: boolean; may: boolean; to: string; }; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:LearnConsole/bell",
+   "role": "route",
+   "parent": "service:LearnConsole",
+   "group": "@wren/learn",
+   "attrs": {
+    "input": "PortalRequest",
+    "output": "{ unseen: number; alerts: import(\"./alerts.js\").BellLine[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:LearnConsole/bellSeen",
+   "role": "route",
+   "parent": "service:LearnConsole",
+   "group": "@wren/learn",
+   "attrs": {
+    "input": "PortalRequest",
+    "output": "{ n: number; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:LearnConsole/browse",
+   "role": "route",
+   "parent": "service:LearnConsole",
+   "group": "@wren/learn",
+   "attrs": {
+    "input": "BrowseRequest",
+    "output": "{ place: string; sort: \"length\" | \"title\" | \"score\" | \"source\" | \"newest\"; items: (import(\"./drive.js\").Card & { pick: import(\"./decide.js\").LearnPick | null; })[]; more: boolean; total: number; types: Partial<Record<import(\"./schema.js\").ItemType, number>>; sources: { n: number; id: number; name: string; kind: \"reddit\" | \"instagram\" | \"x\" | \"youtube\" | \"tiktok\" | \"newsletter\" | \"podcast\" | \"blog\" | \"forum\" | \"releases\"; avatar: string | null; }[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:LearnConsole/call",
+   "role": "route",
+   "parent": "service:LearnConsole",
+   "group": "@wren/learn",
+   "attrs": {
+    "input": "CallRequest",
+    "output": "{ subject: string; row: import(\"./calls.js\").FactRow | null; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:LearnConsole/collectionAdd",
+   "role": "route",
+   "parent": "service:LearnConsole",
+   "group": "@wren/learn",
+   "attrs": {
+    "input": "CollectionRequest",
+    "output": "{ id: string; name: string; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:LearnConsole/collectionDrop",
+   "role": "route",
+   "parent": "service:LearnConsole",
+   "group": "@wren/learn",
+   "attrs": {
+    "input": "CollectionRequest",
+    "output": "{ done: string[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:LearnConsole/collectionEdit",
+   "role": "route",
+   "parent": "service:LearnConsole",
+   "group": "@wren/learn",
+   "attrs": {
+    "input": "CollectionRequest",
+    "output": "{ id: string; name: string; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:LearnConsole/digestMail",
+   "role": "route",
+   "parent": "service:LearnConsole",
+   "group": "@wren/learn",
+   "attrs": {
+    "input": "DigestMailRequest",
+    "output": "{ on: boolean; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:LearnConsole/find",
+   "role": "route",
+   "parent": "service:LearnConsole",
+   "group": "@wren/learn",
+   "attrs": {
+    "input": "SearchRequest",
+    "output": "{ items: import(\"./items.js\").Found[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:LearnConsole/follow",
+   "role": "route",
+   "parent": "service:LearnConsole",
+   "group": "@wren/learn",
+   "attrs": {
+    "input": "FollowRequest",
+    "output": "{ id: string; name: string; kind: \"reddit\" | \"instagram\" | \"x\" | \"youtube\" | \"tiktok\" | \"newsletter\" | \"podcast\" | \"blog\" | \"forum\" | \"releases\"; items: number; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:LearnConsole/home",
+   "role": "route",
+   "parent": "service:LearnConsole",
+   "group": "@wren/learn",
+   "attrs": {
+    "input": "PortalRequest",
+    "output": "{ shelves: { type: \"link\" | \"reddit\" | \"instagram\" | \"x\" | \"youtube\" | \"tiktok\" | \"newsletter\" | \"podcast\" | \"blog\" | \"releases\" | \"shorts\"; total: number; items: (import(\"./drive.js\").Card & { pick: import(\"./decide.js\").LearnPick | null; })[]; }[]; continue: (import(\"./drive.js\").Card & { pick: import(\"./decide.js\").LearnPick | null; })[]; top: (import(\"./drive.js\").Card & { pick: import(\"./decide.js\").LearnPick | null; })[]; sops: { at: string; id: number; sop: string; state: \"failed\" | \"asked\" | \"added\"; error: string | null; itemId: number | null; title: string; type: \"link\" | \"reddit\" | \"instagram\" | \"x\" | \"youtube\" | \"tiktok\" | \"newsletter\" | \"podcast\" | \"blog\" | \"releases\" | \"shorts\"; }[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:LearnConsole/item",
+   "role": "route",
+   "parent": "service:LearnConsole",
+   "group": "@wren/learn",
+   "attrs": {
+    "input": "ItemRequest",
+    "output": "{ pick: \"keep\" | \"drop\" | null; text: string; transcript: string | null; file: string | null; mediaUrl: string | null; moments: import(\"./schema.js\").Moment[]; why: string | null; changes: string[]; verdict: \"drop\" | \"show\" | \"hold\" | null; failure: string | null; kind: \"post\" | \"article\" | \"video\" | \"reel\" | \"film\" | \"episode\"; breakdown: { kind: \"post\" | \"article\" | \"video\" | \"reel\" | \"film\" | \"episode\"; by: \"model\" | \"hand\"; facts: import(\"./calls.js\").FactRow[]; shots: { t: number; len: number; src: \"hand\" | \"scene\"; type: \"ui\" | \"b-roll\" | \"graphic\" | \"logo\" | \"text-card\" | \"talking-head\" | null; move: \"push\" | \"static\" | \"pull\" | \"pan\" | \"track\" | \"orbit\" | \"roll\" | \"rack-focus\" | \"macro\" | \"ui-zoom\" | null; in: \"cut\" | \"dissolve\" | \"fade\" | \"whip\" | null; text: string | null; sound: \"music\" | \"vo\" | \"both\" | \"silent\" | null; note?: string | undefined; }[]; calls: { at: string; path: string; call: import(\"./calls.js\").FactCall; comment: string | null; by: string | null; }[]; } | null; collection: { id: number; name: string; } | null; sops: { id: number; itemId: number | null; noteId: string | null; client: string | null; title: string | null; text: string | null; sop: string; state: \"failed\" | \"asked\" | \"added\"; file: string | null; points: Date | null; error: string | null; by: string | null; askedAt: Date; doneAt: Date | null; }[]; id: number; title: string; type: import(\"./schema.js\").ItemType; url: string; thumbnail: string | null; duration: number | null; chars: number; source: { id: number; name: string; kind: import(\"./schema.js\").SourceKind; avatar: string | null; } | null; creator: string | null; score: number | null; summary: string | null; status: \"unread\" | \"read\" | \"archived\"; state: \"reading\" | \"failed\" | \"mac\" | \"scoring\" | \"ready\"; starred: boolean; pinned: boolean; later: boolean; position: number | null; collectionId: number | null; tags: string[]; saved: boolean; at: string; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:LearnConsole/mark",
+   "role": "route",
+   "parent": "service:LearnConsole",
+   "group": "@wren/learn",
+   "attrs": {
+    "input": "MarkRequest",
+    "output": "{ done: string[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:LearnConsole/media",
+   "role": "route",
+   "parent": "service:LearnConsole",
+   "group": "@wren/learn",
+   "attrs": {
+    "input": "IdsRequest",
+    "output": "{ urls: string[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:LearnConsole/move",
+   "role": "route",
+   "parent": "service:LearnConsole",
+   "group": "@wren/learn",
+   "attrs": {
+    "input": "MoveRequest",
+    "output": "{ done: string[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:LearnConsole/open",
+   "role": "route",
+   "parent": "service:LearnConsole",
+   "group": "@wren/learn",
+   "attrs": {
+    "input": "ItemRequest",
+    "output": "{ ok: boolean; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:LearnConsole/progress",
+   "role": "route",
+   "parent": "service:LearnConsole",
+   "group": "@wren/learn",
+   "attrs": {
+    "input": "ProgressRequest",
+    "output": "{ ok: boolean; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:LearnConsole/rail",
+   "role": "route",
+   "parent": "service:LearnConsole",
+   "group": "@wren/learn",
+   "attrs": {
+    "input": "PortalRequest",
+    "output": "{ places: { inbox: number; all: number; later: number; starred: number; saved: number; archived: number; }; collections: { n: number; id: number; name: string; parentId: number | null; }[]; sources: { kind: \"reddit\" | \"instagram\" | \"x\" | \"youtube\" | \"tiktok\" | \"newsletter\" | \"podcast\" | \"blog\" | \"forum\" | \"releases\"; sources: { fresh: number; id: number; name: string; kind: \"reddit\" | \"instagram\" | \"x\" | \"youtube\" | \"tiktok\" | \"newsletter\" | \"podcast\" | \"blog\" | \"forum\" | \"releases\"; avatar: string | null; stopped: boolean; failure: string | null; }[]; }[]; tags: { n: number; tag: string; }[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:LearnConsole/readAgain",
+   "role": "route",
+   "parent": "service:LearnConsole",
+   "group": "@wren/learn",
+   "attrs": {
+    "input": "IdsRequest",
+    "output": "{ done: string[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:LearnConsole/save",
+   "role": "route",
+   "parent": "service:LearnConsole",
+   "group": "@wren/learn",
+   "attrs": {
+    "input": "SaveRequest",
+    "output": "{ id: string; url: string; kind: \"post\" | \"article\" | \"video\" | \"reel\" | \"film\" | \"episode\"; fresh: boolean; unread: boolean; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:LearnConsole/search",
+   "role": "route",
+   "parent": "service:LearnConsole",
+   "group": "@wren/learn",
+   "attrs": {
+    "input": "SearchRequest",
+    "output": "{ hits: import(\"./items.js\").Hit[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:LearnConsole/seen",
+   "role": "route",
+   "parent": "service:LearnConsole",
+   "group": "@wren/learn",
+   "attrs": {
+    "input": "PortalRequest",
+    "output": "{ ok: boolean; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:LearnConsole/sources",
+   "role": "route",
+   "parent": "service:LearnConsole",
+   "group": "@wren/learn",
+   "attrs": {
+    "input": "PortalRequest",
+    "output": "{ may: boolean; kinds: { sources: { alert: \"every\" | \"off\" | \"top\" | null; items: number; fresh: number; last: string | null; id: number; name: string; url: string; page: string | null; kind: \"reddit\" | \"instagram\" | \"x\" | \"youtube\" | \"tiktok\" | \"newsletter\" | \"podcast\" | \"blog\" | \"forum\" | \"releases\"; avatar: string | null; tell: \"every\" | \"digest\" | \"top\"; failure: string | null; stopped: boolean; fetchedAt: Date | null; top: number | null; }[]; kind: \"reddit\" | \"instagram\" | \"x\" | \"youtube\" | \"tiktok\" | \"newsletter\" | \"podcast\" | \"blog\" | \"forum\" | \"releases\"; }[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:LearnConsole/tag",
+   "role": "route",
+   "parent": "service:LearnConsole",
+   "group": "@wren/learn",
+   "attrs": {
+    "input": "TagRequest",
+    "output": "{ done: string[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:LearnConsole/tell",
+   "role": "route",
+   "parent": "service:LearnConsole",
+   "group": "@wren/learn",
+   "attrs": {
+    "input": "TellRequest",
+    "output": "{ done: string[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:LearnConsole/toSop",
+   "role": "route",
+   "parent": "service:LearnConsole",
+   "group": "@wren/learn",
+   "attrs": {
+    "input": "SopRequest",
+    "output": "{ done: string[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:LearnConsole/today",
+   "role": "route",
+   "parent": "service:LearnConsole",
+   "group": "@wren/learn",
+   "attrs": {
+    "input": "PortalRequest",
+    "output": "{ since: string; total: number; held: number; items: import(\"./alerts.js\").TodayLine[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:LearnConsole/unfollow",
+   "role": "route",
+   "parent": "service:LearnConsole",
+   "group": "@wren/learn",
+   "attrs": {
+    "input": "IdsRequest",
+    "output": "{ done: string[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:LearnConsole/unseen",
+   "role": "route",
+   "parent": "service:LearnConsole",
+   "group": "@wren/learn",
+   "attrs": {
+    "input": "PortalRequest",
+    "output": "{ n: number; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
    "id": "route:LearnPictures/sign",
    "role": "route",
    "parent": "service:LearnPictures",
@@ -10,6 +351,17 @@
     "input": "{ ref: string }",
     "output": "{ url: string | null }",
     "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "service:LearnConsole",
+   "role": "service",
+   "parent": "@wren/learn",
+   "group": "@wren/learn",
+   "attrs": {
+    "file": "packages/learn/src/console.ts",
+    "kind": "service",
+    "via": "portalService"
    }
   },
   {

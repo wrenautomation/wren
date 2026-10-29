@@ -1,6 +1,6 @@
 # @wren/channel-sms: routes
 
-Services: 4.
+Services: 5.
 
 ## Reviews (service)
 
@@ -9,6 +9,19 @@ File: packages/channel-sms/src/restate/answers.ts
 - **click** `z.infer<typeof CLICK>` → `{ to: string | null }` (serviceHandler)
 - **feedback** `z.infer<typeof FEEDBACK>` → `{ ok: boolean }` (serviceHandler)
 - **stop** `z.infer<typeof CLICK>` → `{ ok: boolean }` (serviceHandler)
+
+## SmsConsole (service via `portalService`)
+
+File: packages/channel-sms/src/restate/console.ts
+
+- **askReview** `AskReviewRequest` → `{ asked: boolean; }` (serviceHandler)
+- **callDone** `CallDoneRequest` → `{ done: string[]; skipped: string[]; }` (serviceHandler)
+- **recordsExport** `PortalRequest & ExportAsk` → `import("@wren/core/records/serve").RecordsFile` (serviceHandler)
+- **recordsGet** `PortalRequest & GetAsk` → `import("@wren/core/records/serve").RecordAnswer` (serviceHandler)
+- **recordsList** `PortalRequest & ListAsk` → `import("@wren/core/records/serve").RecordsPage` (serviceHandler)
+- **recordsStats** `PortalRequest & StatsAsk` → `import("@wren/core/records/serve").RecordsStat` (serviceHandler)
+- **recordsTypes** `PortalRequest` → `import("@wren/core/records").RecordMeta[]` (serviceHandler)
+- **reply** `ReplyRequest` → `{ messageId: number; }` (serviceHandler)
 
 ## SmsDesk (service)
 

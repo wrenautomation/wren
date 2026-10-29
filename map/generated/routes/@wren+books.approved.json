@@ -1,0 +1,28 @@
+{
+ "layer": "routes",
+ "nodes": [
+  {
+   "id": "route:BooksConsole/setAccount",
+   "role": "route",
+   "parent": "service:BooksConsole",
+   "group": "@wren/books",
+   "attrs": {
+    "input": "AccountRequest",
+    "output": "{ done: string[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "service:BooksConsole",
+   "role": "service",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "file": "packages/books/src/console.ts",
+    "kind": "service",
+    "via": "portalService"
+   }
+  }
+ ],
+ "edges": []
+}

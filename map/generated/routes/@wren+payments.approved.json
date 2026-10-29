@@ -24,6 +24,138 @@
    }
   },
   {
+   "id": "route:PaymentsConsole/again",
+   "role": "route",
+   "parent": "service:PaymentsConsole",
+   "group": "@wren/payments",
+   "attrs": {
+    "input": "IdsRequest",
+    "output": "{ links: { id: string; status: string; }[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PaymentsConsole/approve",
+   "role": "route",
+   "parent": "service:PaymentsConsole",
+   "group": "@wren/payments",
+   "attrs": {
+    "input": "IdsRequest",
+    "output": "{ done: string[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PaymentsConsole/connect",
+   "role": "route",
+   "parent": "service:PaymentsConsole",
+   "group": "@wren/payments",
+   "attrs": {
+    "input": "ConnectRequest",
+    "output": "{ connected: boolean; webhook: \"pasted\"; last4: null; url?: never; why?: never; } | { connected: boolean; webhook: \"pasted\"; last4: string; url?: never; why?: never; } | { connected: boolean; webhook: \"api\"; last4: string; url?: never; why?: never; } | { connected: boolean; webhook: null; url: string; last4: string; why: string; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PaymentsConsole/create",
+   "role": "route",
+   "parent": "service:PaymentsConsole",
+   "group": "@wren/payments",
+   "attrs": {
+    "input": "CreateRequest",
+    "output": "{ links: { id: string; status: string; }[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PaymentsConsole/decline",
+   "role": "route",
+   "parent": "service:PaymentsConsole",
+   "group": "@wren/payments",
+   "attrs": {
+    "input": "IdsRequest",
+    "output": "{ done: string[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PaymentsConsole/fromThread",
+   "role": "route",
+   "parent": "service:PaymentsConsole",
+   "group": "@wren/payments",
+   "attrs": {
+    "input": "FromThreadRequest",
+    "output": "{ links: { id: string; status: string; }[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PaymentsConsole/recordsExport",
+   "role": "route",
+   "parent": "service:PaymentsConsole",
+   "group": "@wren/payments",
+   "attrs": {
+    "input": "PortalRequest & ExportAsk",
+    "output": "import(\"@wren/core/records/serve\").RecordsFile",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PaymentsConsole/recordsGet",
+   "role": "route",
+   "parent": "service:PaymentsConsole",
+   "group": "@wren/payments",
+   "attrs": {
+    "input": "PortalRequest & GetAsk",
+    "output": "import(\"@wren/core/records/serve\").RecordAnswer",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PaymentsConsole/recordsList",
+   "role": "route",
+   "parent": "service:PaymentsConsole",
+   "group": "@wren/payments",
+   "attrs": {
+    "input": "PortalRequest & ListAsk",
+    "output": "import(\"@wren/core/records/serve\").RecordsPage",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PaymentsConsole/recordsStats",
+   "role": "route",
+   "parent": "service:PaymentsConsole",
+   "group": "@wren/payments",
+   "attrs": {
+    "input": "PortalRequest & StatsAsk",
+    "output": "import(\"@wren/core/records/serve\").RecordsStat",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PaymentsConsole/recordsTypes",
+   "role": "route",
+   "parent": "service:PaymentsConsole",
+   "group": "@wren/payments",
+   "attrs": {
+    "input": "PortalRequest",
+    "output": "import(\"@wren/core/records\").RecordMeta[]",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:PaymentsConsole/status",
+   "role": "route",
+   "parent": "service:PaymentsConsole",
+   "group": "@wren/payments",
+   "attrs": {
+    "input": "PortalRequest",
+    "output": "{ connected: boolean; live: boolean | null; webhook: string | null; url: string; keyStore: boolean; last4: string | null; managed: string; approves: boolean; note: string | null; drift: number; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
    "id": "service:Payments",
    "role": "service",
    "parent": "@wren/payments",
@@ -31,6 +163,17 @@
    "attrs": {
     "file": "packages/payments/src/service.ts",
     "kind": "service"
+   }
+  },
+  {
+   "id": "service:PaymentsConsole",
+   "role": "service",
+   "parent": "@wren/payments",
+   "group": "@wren/payments",
+   "attrs": {
+    "file": "packages/payments/src/console.ts",
+    "kind": "service",
+    "via": "portalService"
    }
   }
  ],

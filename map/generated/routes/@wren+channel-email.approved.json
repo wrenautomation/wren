@@ -112,6 +112,248 @@
    }
   },
   {
+   "id": "route:EmailConsole/answers",
+   "role": "route",
+   "parent": "service:EmailConsole",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "input": "PortalRequest",
+    "output": "{ id: number; state: \"booked\" | \"sent\" | \"booking\" | \"dropped\" | \"proposed\" | \"already_booked\" | \"needs_you\"; email: string; start: Date | null; timeZone: string | null; detail: string | null; createdAt: Date; words: string | null; snippet: string | null; draft: string | null; }[]",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:EmailConsole/approve",
+   "role": "route",
+   "parent": "service:EmailConsole",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "input": "InviteRequest",
+    "output": "{ ok: true; state: import(\"../schema.js\").CallInviteState; said: string | null; reply: import(\"../index.js\").ReplyOutcome | null; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:EmailConsole/callBrief",
+   "role": "route",
+   "parent": "service:EmailConsole",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "input": "CallsRequest",
+    "output": "{ done: string[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:EmailConsole/callClear",
+   "role": "route",
+   "parent": "service:EmailConsole",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "input": "CallsRequest",
+    "output": "{ changed: number; done: string[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:EmailConsole/callNoShow",
+   "role": "route",
+   "parent": "service:EmailConsole",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "input": "CallsRequest",
+    "output": "{ changed: number; done: string[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:EmailConsole/callNotFit",
+   "role": "route",
+   "parent": "service:EmailConsole",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "input": "CallsRequest",
+    "output": "{ changed: number; done: string[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:EmailConsole/callNotYet",
+   "role": "route",
+   "parent": "service:EmailConsole",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "input": "CallsRequest",
+    "output": "{ changed: number; done: string[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:EmailConsole/callWon",
+   "role": "route",
+   "parent": "service:EmailConsole",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "input": "CallsRequest",
+    "output": "{ changed: number; done: string[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:EmailConsole/dossier",
+   "role": "route",
+   "parent": "service:EmailConsole",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "input": "PortalRequest & { id?: unknown }",
+    "output": "import(\"@wren/research/dossier\").DossierBrief",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:EmailConsole/drop",
+   "role": "route",
+   "parent": "service:EmailConsole",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "input": "InviteRequest",
+    "output": "{ state: string; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:EmailConsole/killSwitchOff",
+   "role": "route",
+   "parent": "service:EmailConsole",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "input": "CampaignsRequest",
+    "output": "Done",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:EmailConsole/killSwitchOn",
+   "role": "route",
+   "parent": "service:EmailConsole",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "input": "CampaignsRequest",
+    "output": "Done",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:EmailConsole/pause",
+   "role": "route",
+   "parent": "service:EmailConsole",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "input": "SenderRequest",
+    "output": "{ paused: string[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:EmailConsole/recordsExport",
+   "role": "route",
+   "parent": "service:EmailConsole",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "input": "PortalRequest & ExportAsk",
+    "output": "import(\"@wren/core/records/serve\").RecordsFile",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:EmailConsole/recordsGet",
+   "role": "route",
+   "parent": "service:EmailConsole",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "input": "PortalRequest & GetAsk",
+    "output": "import(\"@wren/core/records/serve\").RecordAnswer",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:EmailConsole/recordsList",
+   "role": "route",
+   "parent": "service:EmailConsole",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "input": "PortalRequest & ListAsk",
+    "output": "import(\"@wren/core/records/serve\").RecordsPage",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:EmailConsole/recordsStats",
+   "role": "route",
+   "parent": "service:EmailConsole",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "input": "PortalRequest & StatsAsk",
+    "output": "import(\"@wren/core/records/serve\").RecordsStat",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:EmailConsole/recordsTypes",
+   "role": "route",
+   "parent": "service:EmailConsole",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "input": "PortalRequest",
+    "output": "import(\"@wren/core/records\").RecordMeta[]",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:EmailConsole/resume",
+   "role": "route",
+   "parent": "service:EmailConsole",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "input": "SenderRequest",
+    "output": "{ resumed: string[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:EmailConsole/resumeOpeners",
+   "role": "route",
+   "parent": "service:EmailConsole",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "input": "CampaignsRequest",
+    "output": "Done",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:EmailConsole/setCampaign",
+   "role": "route",
+   "parent": "service:EmailConsole",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "input": "CampaignRequest",
+    "output": "{ updatedAt: Date; campaign: string; updatedBy: string; killSwitch: boolean | null; openersPerDay: number | null; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:EmailConsole/stopOpeners",
+   "role": "route",
+   "parent": "service:EmailConsole",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "input": "CampaignsRequest",
+    "output": "Done",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
    "id": "route:InboxPush/claim",
    "role": "route",
    "parent": "service:InboxPush",
@@ -164,6 +406,72 @@
     "input": "ListmonkMessage",
     "output": "IssueSent",
     "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:MailAccess/addMailbox",
+   "role": "route",
+   "parent": "service:MailAccess",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:MailAccess/check",
+   "role": "route",
+   "parent": "service:MailAccess",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:MailAccess/connect",
+   "role": "route",
+   "parent": "service:MailAccess",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:MailAccess/consent",
+   "role": "route",
+   "parent": "service:MailAccess",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:MailAccess/done",
+   "role": "route",
+   "parent": "service:MailAccess",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:MailAccess/mail",
+   "role": "route",
+   "parent": "service:MailAccess",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
    }
   },
   {
@@ -329,6 +637,17 @@
    }
   },
   {
+   "id": "service:EmailConsole",
+   "role": "service",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "file": "packages/channel-email/src/restate/console.ts",
+    "kind": "service",
+    "via": "portalService"
+   }
+  },
+  {
    "id": "service:InboxPush",
    "role": "service",
    "parent": "@wren/channel-email",
@@ -356,6 +675,17 @@
    "attrs": {
     "file": "packages/channel-email/src/restate/listmonk.ts",
     "kind": "object"
+   }
+  },
+  {
+   "id": "service:MailAccess",
+   "role": "service",
+   "parent": "@wren/channel-email",
+   "group": "@wren/channel-email",
+   "attrs": {
+    "file": "packages/channel-email/src/access/console.ts",
+    "kind": "service",
+    "via": "portalService"
    }
   },
   {

@@ -628,11 +628,13 @@
      "packages/reactivation/package.json",
      "packages/research/package.json",
      "packages/studio/package.json",
+     "packages/ui/package.json",
      "packages/voice/package.json"
     ],
     "title": [
      "npm `@wrenautomation/falcon`",
      "npm `@wrenautomation/models`",
+     "npm `@wrenautomation/orrery`",
      "npm `@wrenautomation/weaver`"
     ]
    }

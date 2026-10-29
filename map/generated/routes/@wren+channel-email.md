@@ -1,6 +1,6 @@
 # @wren/channel-email: routes
 
-Services: 11.
+Services: 13.
 
 ## CallBookings (service)
 
@@ -27,6 +27,33 @@ File: packages/channel-email/src/restate/disposition.ts
 - **reply** `{ threadEventId: number; body: string }` → `{ ok: boolean; reason: string | null }` (exclusiveHandler)
 - **status** `void` → `ClassifyOutcome | null` (sharedHandler)
 
+## EmailConsole (service via `portalService`)
+
+File: packages/channel-email/src/restate/console.ts
+
+- **answers** `PortalRequest` → `{ id: number; state: "booked" | "sent" | "booking" | "dropped" | "proposed" | "already_booked" | "needs_you"; email: string; start: Date | null; timeZone: string | null; detail: string | null; createdAt: Date; words: string | null; snippet: string | null; draft: string | null; }[]` (serviceHandler)
+- **approve** `InviteRequest` → `{ ok: true; state: import("../schema.js").CallInviteState; said: string | null; reply: import("../index.js").ReplyOutcome | null; }` (serviceHandler)
+- **callBrief** `CallsRequest` → `{ done: string[]; }` (serviceHandler)
+- **callClear** `CallsRequest` → `{ changed: number; done: string[]; }` (serviceHandler)
+- **callNoShow** `CallsRequest` → `{ changed: number; done: string[]; }` (serviceHandler)
+- **callNotFit** `CallsRequest` → `{ changed: number; done: string[]; }` (serviceHandler)
+- **callNotYet** `CallsRequest` → `{ changed: number; done: string[]; }` (serviceHandler)
+- **callWon** `CallsRequest` → `{ changed: number; done: string[]; }` (serviceHandler)
+- **dossier** `PortalRequest & { id?: unknown }` → `import("@wren/research/dossier").DossierBrief` (serviceHandler)
+- **drop** `InviteRequest` → `{ state: string; }` (serviceHandler)
+- **killSwitchOff** `CampaignsRequest` → `Done` (serviceHandler)
+- **killSwitchOn** `CampaignsRequest` → `Done` (serviceHandler)
+- **pause** `SenderRequest` → `{ paused: string[]; }` (serviceHandler)
+- **recordsExport** `PortalRequest & ExportAsk` → `import("@wren/core/records/serve").RecordsFile` (serviceHandler)
+- **recordsGet** `PortalRequest & GetAsk` → `import("@wren/core/records/serve").RecordAnswer` (serviceHandler)
+- **recordsList** `PortalRequest & ListAsk` → `import("@wren/core/records/serve").RecordsPage` (serviceHandler)
+- **recordsStats** `PortalRequest & StatsAsk` → `import("@wren/core/records/serve").RecordsStat` (serviceHandler)
+- **recordsTypes** `PortalRequest` → `import("@wren/core/records").RecordMeta[]` (serviceHandler)
+- **resume** `SenderRequest` → `{ resumed: string[]; }` (serviceHandler)
+- **resumeOpeners** `CampaignsRequest` → `Done` (serviceHandler)
+- **setCampaign** `CampaignRequest` → `{ updatedAt: Date; campaign: string; updatedBy: string; killSwitch: boolean | null; openersPerDay: number | null; }` (serviceHandler)
+- **stopOpeners** `CampaignsRequest` → `Done` (serviceHandler)
+
 ## InboxPush (object)
 
 File: packages/channel-email/src/restate/inbox-scheduler.ts
@@ -46,6 +73,17 @@ File: packages/channel-email/src/restate/listmonk.ts
 File: packages/channel-email/src/restate/listmonk.ts
 
 - **send** `ListmonkMessage` → `IssueSent` (exclusiveHandler)
+
+## MailAccess (service via `portalService`)
+
+File: packages/channel-email/src/access/console.ts
+
+- **addMailbox** `?` → `?` (serviceHandler)
+- **check** `?` → `?` (serviceHandler)
+- **connect** `?` → `?` (serviceHandler)
+- **consent** `?` → `?` (serviceHandler)
+- **done** `?` → `?` (serviceHandler)
+- **mail** `?` → `?` (serviceHandler)
 
 ## MailCallback (service)
 

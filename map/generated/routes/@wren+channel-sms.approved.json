@@ -35,6 +35,94 @@
    }
   },
   {
+   "id": "route:SmsConsole/askReview",
+   "role": "route",
+   "parent": "service:SmsConsole",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "input": "AskReviewRequest",
+    "output": "{ asked: boolean; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SmsConsole/callDone",
+   "role": "route",
+   "parent": "service:SmsConsole",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "input": "CallDoneRequest",
+    "output": "{ done: string[]; skipped: string[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SmsConsole/recordsExport",
+   "role": "route",
+   "parent": "service:SmsConsole",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "input": "PortalRequest & ExportAsk",
+    "output": "import(\"@wren/core/records/serve\").RecordsFile",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SmsConsole/recordsGet",
+   "role": "route",
+   "parent": "service:SmsConsole",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "input": "PortalRequest & GetAsk",
+    "output": "import(\"@wren/core/records/serve\").RecordAnswer",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SmsConsole/recordsList",
+   "role": "route",
+   "parent": "service:SmsConsole",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "input": "PortalRequest & ListAsk",
+    "output": "import(\"@wren/core/records/serve\").RecordsPage",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SmsConsole/recordsStats",
+   "role": "route",
+   "parent": "service:SmsConsole",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "input": "PortalRequest & StatsAsk",
+    "output": "import(\"@wren/core/records/serve\").RecordsStat",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SmsConsole/recordsTypes",
+   "role": "route",
+   "parent": "service:SmsConsole",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "input": "PortalRequest",
+    "output": "import(\"@wren/core/records\").RecordMeta[]",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SmsConsole/reply",
+   "role": "route",
+   "parent": "service:SmsConsole",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "input": "ReplyRequest",
+    "output": "{ messageId: number; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
    "id": "route:SmsDesk/addContact",
    "role": "route",
    "parent": "service:SmsDesk",
@@ -361,6 +449,17 @@
    "attrs": {
     "file": "packages/channel-sms/src/restate/answers.ts",
     "kind": "service"
+   }
+  },
+  {
+   "id": "service:SmsConsole",
+   "role": "service",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "file": "packages/channel-sms/src/restate/console.ts",
+    "kind": "service",
+    "via": "portalService"
    }
   },
   {

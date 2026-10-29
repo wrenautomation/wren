@@ -22,7 +22,7 @@
      "apps/worker/src/box.ts"
     ],
     "title": [
-     "60 services"
+     "83 services"
     ]
    }
   },
@@ -35,7 +35,7 @@
      "apps/worker/src/lambda.ts"
     ],
     "title": [
-     "60 services"
+     "83 services"
     ]
    }
   }

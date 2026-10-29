@@ -1,0 +1,50 @@
+{
+ "layer": "routes",
+ "nodes": [
+  {
+   "id": "route:VoiceConsole/dictated",
+   "role": "route",
+   "parent": "service:VoiceConsole",
+   "group": "@wren/voice",
+   "attrs": {
+    "input": "DictatedRequest",
+    "output": "{ id: string; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:VoiceConsole/dictation",
+   "role": "route",
+   "parent": "service:VoiceConsole",
+   "group": "@wren/voice",
+   "attrs": {
+    "input": "PortalRequest",
+    "output": "{ rows: import(\"./dictation-store.js\").DictationStat[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:VoiceConsole/saveTest",
+   "role": "route",
+   "parent": "service:VoiceConsole",
+   "group": "@wren/voice",
+   "attrs": {
+    "input": "SaveTestRequest",
+    "output": "{ id: number; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "service:VoiceConsole",
+   "role": "service",
+   "parent": "@wren/voice",
+   "group": "@wren/voice",
+   "attrs": {
+    "file": "packages/voice/src/console.ts",
+    "kind": "service",
+    "via": "portalService"
+   }
+  }
+ ],
+ "edges": []
+}

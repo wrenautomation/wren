@@ -41,7 +41,7 @@
    "group": "@wren/content",
    "attrs": {
     "input": "void",
-    "output": "{ on: boolean; site: string; posts: { date: string; createdAt: Date; updatedAt: Date; description: string; title: string; body: string; draft: boolean; updatedBy: string | null; slug: string; publishedAt: Date | null; emailedAt: Date | null; commitSha: string | null; fromRef: string | null; }[]; }",
+    "output": "{ on: boolean; site: string; posts: { date: string; description: string; title: string; createdAt: Date; updatedAt: Date; body: string; draft: boolean; updatedBy: string | null; publishedAt: Date | null; slug: string; emailedAt: Date | null; commitSha: string | null; fromRef: string | null; }[]; }",
     "wrap": "sharedHandler"
    }
   },
@@ -52,7 +52,7 @@
    "group": "@wren/content",
    "attrs": {
     "input": "{ slug?: string; title: string; description: string; body: string; publish: boolean; from?: string | null; viewer?: unknown; }",
-    "output": "{ post: { date: string; createdAt: Date; updatedAt: Date; description: string; title: string; body: string; draft: boolean; updatedBy: string | null; slug: string; publishedAt: Date | null; emailedAt: Date | null; commitSha: string | null; fromRef: string | null; }; url: string; }",
+    "output": "{ post: { date: string; description: string; title: string; createdAt: Date; updatedAt: Date; body: string; draft: boolean; updatedBy: string | null; publishedAt: Date | null; slug: string; emailedAt: Date | null; commitSha: string | null; fromRef: string | null; }; url: string; }",
     "wrap": "exclusiveHandler"
    }
   },
@@ -321,6 +321,336 @@
    }
   },
   {
+   "id": "route:MarketingConsole/approveDraft",
+   "role": "route",
+   "parent": "service:MarketingConsole",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "ApproveRequest",
+    "output": "{ done: string[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:MarketingConsole/draftAttach",
+   "role": "route",
+   "parent": "service:MarketingConsole",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "AttachRequest",
+    "output": "{ done: string[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:MarketingConsole/draftFields",
+   "role": "route",
+   "parent": "service:MarketingConsole",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "FieldsRequest",
+    "output": "{ done: string[]; saved?: import(\"../shape-view.js\").FieldsSaved; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:MarketingConsole/draftFunnel",
+   "role": "route",
+   "parent": "service:MarketingConsole",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "FunnelConsoleRequest",
+    "output": "{ done: string[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:MarketingConsole/draftSlides",
+   "role": "route",
+   "parent": "service:MarketingConsole",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "SlidesRequest",
+    "output": "{ done: string[]; saved?: import(\"../shape-view.js\").SlidesSaved; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:MarketingConsole/inboxApprove",
+   "role": "route",
+   "parent": "service:MarketingConsole",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "PortalRequest & { id: number }",
+    "output": "{ sent: boolean; queued?: string; copy?: import(\"../inbox/send.js\").Copied; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:MarketingConsole/inboxAsk",
+   "role": "route",
+   "parent": "service:MarketingConsole",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "InboxReplyRequest",
+    "output": "{ asked: number; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:MarketingConsole/inboxAssign",
+   "role": "route",
+   "parent": "service:MarketingConsole",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "ThreadRequest & { assignee?: string | null }",
+    "output": "{ assignee: string | null; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:MarketingConsole/inboxAuto",
+   "role": "route",
+   "parent": "service:MarketingConsole",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "PortalRequest",
+    "output": "{ modes: Record<InboxChannel, AutoReplyMode>; held: boolean; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:MarketingConsole/inboxAutoSet",
+   "role": "route",
+   "parent": "service:MarketingConsole",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "PortalRequest & { channel: InboxChannel; mode: AutoReplyMode }",
+    "output": "{ modes: Record<InboxChannel, AutoReplyMode>; held: boolean; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:MarketingConsole/inboxDrop",
+   "role": "route",
+   "parent": "service:MarketingConsole",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "PortalRequest & { id: number }",
+    "output": "{ dropped: boolean; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:MarketingConsole/inboxNote",
+   "role": "route",
+   "parent": "service:MarketingConsole",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "ThreadRequest & { body: string }",
+    "output": "{ id: string; mentioned: string[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:MarketingConsole/inboxReply",
+   "role": "route",
+   "parent": "service:MarketingConsole",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "InboxReplyRequest",
+    "output": "{ sent: boolean; asked: number | null; why: string | null; copy?: import(\"../inbox/send.js\").Copied; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:MarketingConsole/inboxSnooze",
+   "role": "route",
+   "parent": "service:MarketingConsole",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "ThreadRequest & { until?: string | null }",
+    "output": "{ until: string | null; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:MarketingConsole/inboxStatus",
+   "role": "route",
+   "parent": "service:MarketingConsole",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "ThreadRequest & { status: InboxStatus }",
+    "output": "{ status: InboxStatus; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:MarketingConsole/inboxSuggest",
+   "role": "route",
+   "parent": "service:MarketingConsole",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "Omit<InboxReplyRequest, \"body\">",
+    "output": "{ text: string | null; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:MarketingConsole/inboxTake",
+   "role": "route",
+   "parent": "service:MarketingConsole",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "ThreadRequest",
+    "output": "{ assignee: string; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:MarketingConsole/promote",
+   "role": "route",
+   "parent": "service:MarketingConsole",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "PromoteRequest",
+    "output": "{ started: boolean; platforms: (\"linkedin\" | \"reddit\" | \"instagram\" | \"x\")[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:MarketingConsole/recordsExport",
+   "role": "route",
+   "parent": "service:MarketingConsole",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "PortalRequest & ExportAsk",
+    "output": "import(\"@wren/core/records/serve\").RecordsFile",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:MarketingConsole/recordsGet",
+   "role": "route",
+   "parent": "service:MarketingConsole",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "PortalRequest & GetAsk",
+    "output": "import(\"@wren/core/records/serve\").RecordAnswer",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:MarketingConsole/recordsList",
+   "role": "route",
+   "parent": "service:MarketingConsole",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "PortalRequest & ListAsk",
+    "output": "import(\"@wren/core/records/serve\").RecordsPage",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:MarketingConsole/recordsStats",
+   "role": "route",
+   "parent": "service:MarketingConsole",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "PortalRequest & StatsAsk",
+    "output": "import(\"@wren/core/records/serve\").RecordsStat",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:MarketingConsole/recordsTypes",
+   "role": "route",
+   "parent": "service:MarketingConsole",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "PortalRequest",
+    "output": "import(\"@wren/core/records\").RecordMeta[]",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:MarketingConsole/redraft",
+   "role": "route",
+   "parent": "service:MarketingConsole",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "RedraftRequest",
+    "output": "import(\"./desk-context.js\").DraftReport",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:MarketingConsole/rejectDraft",
+   "role": "route",
+   "parent": "service:MarketingConsole",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "RejectRequest",
+    "output": "{ done: string[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:MarketingConsole/reportDelete",
+   "role": "route",
+   "parent": "service:MarketingConsole",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "PortalRequest & { id: number }",
+    "output": "{ ok: boolean; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:MarketingConsole/reportRun",
+   "role": "route",
+   "parent": "service:MarketingConsole",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "PortalRequest & { id: number }",
+    "output": "{ id: number | null; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:MarketingConsole/reportSave",
+   "role": "route",
+   "parent": "service:MarketingConsole",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "ReportSaveRequest",
+    "output": "{ id: number; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:MarketingConsole/reports",
+   "role": "route",
+   "parent": "service:MarketingConsole",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "PortalRequest",
+    "output": "{ mail: boolean; zone: string; reports: { sends: { id: number; from: string; to: string; closed: boolean; lines: import(\"../client-reports/tiles.js\").ReportLine[]; sentTo: string[]; why: string | null; by: string | null; at: string; }[]; id: number; name: string; tiles: (\"calls\" | \"views\" | \"bookings\" | \"paid\" | \"forms\" | \"post_visits\" | \"ad_impressions\" | \"search_impressions\" | \"visits\" | \"spend\")[]; every: \"week\" | \"month\"; zone: string; recipients: string[]; on: boolean; nextAt: string | null; by: string; updatedAt: string; }[]; members: { email: string; role: string; }[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:MarketingConsole/sendSettle",
+   "role": "route",
+   "parent": "service:MarketingConsole",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "SettleRequest",
+    "output": "{ item: string; outcome: SettleOutcome; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
    "id": "route:Pieces/list",
    "role": "route",
    "parent": "service:Pieces",
@@ -329,6 +659,61 @@
     "input": "void",
     "output": "{ pieces: import(\"../pieces.js\").Piece[]; }",
     "wrap": "sharedHandler"
+   }
+  },
+  {
+   "id": "route:SocialAccess/check",
+   "role": "route",
+   "parent": "service:SocialAccess",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SocialAccess/connect",
+   "role": "route",
+   "parent": "service:SocialAccess",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SocialAccess/disconnect",
+   "role": "route",
+   "parent": "service:SocialAccess",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SocialAccess/ownCheck",
+   "role": "route",
+   "parent": "service:SocialAccess",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "PortalRequest & { platform: string; requestId?: string }",
+    "output": "OwnCheck",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SocialAccess/social",
+   "role": "route",
+   "parent": "service:SocialAccess",
+   "group": "@wren/content",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
    }
   },
   {
@@ -785,6 +1170,17 @@
    }
   },
   {
+   "id": "service:MarketingConsole",
+   "role": "service",
+   "parent": "@wren/content",
+   "group": "@wren/content",
+   "attrs": {
+    "file": "packages/content/src/restate/marketing-console.ts",
+    "kind": "service",
+    "via": "portalService"
+   }
+  },
+  {
    "id": "service:Pieces",
    "role": "service",
    "parent": "@wren/content",
@@ -792,6 +1188,17 @@
    "attrs": {
     "file": "packages/content/src/restate/pieces.ts",
     "kind": "object"
+   }
+  },
+  {
+   "id": "service:SocialAccess",
+   "role": "service",
+   "parent": "@wren/content",
+   "group": "@wren/content",
+   "attrs": {
+    "file": "packages/content/src/connect/console.ts",
+    "kind": "service",
+    "via": "portalService"
    }
   },
   {

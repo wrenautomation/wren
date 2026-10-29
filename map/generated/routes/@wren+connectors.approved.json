@@ -24,6 +24,50 @@
    }
   },
   {
+   "id": "route:Connectors/connect",
+   "role": "route",
+   "parent": "service:Connectors",
+   "group": "@wren/connectors",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Connectors/connectors",
+   "role": "route",
+   "parent": "service:Connectors",
+   "group": "@wren/connectors",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Connectors/disconnect",
+   "role": "route",
+   "parent": "service:Connectors",
+   "group": "@wren/connectors",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Connectors/syncNow",
+   "role": "route",
+   "parent": "service:Connectors",
+   "group": "@wren/connectors",
+   "attrs": {
+    "input": "PortalRequest & { id: number }",
+    "output": "{ ok: boolean; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
    "id": "service:ConnectorCallback",
    "role": "service",
    "parent": "@wren/connectors",
@@ -41,6 +85,17 @@
    "attrs": {
     "file": "packages/connectors/src/restate.ts",
     "kind": "object"
+   }
+  },
+  {
+   "id": "service:Connectors",
+   "role": "service",
+   "parent": "@wren/connectors",
+   "group": "@wren/connectors",
+   "attrs": {
+    "file": "packages/connectors/src/restate.ts",
+    "kind": "service",
+    "via": "portalService"
    }
   }
  ],

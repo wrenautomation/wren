@@ -4,7 +4,7 @@ Durable execution: journals every service call and invokes the worker.
 
 ## Links
 
-- restate invokes wren.container:worker: 60 services
+- restate invokes wren.container:worker: 83 services
   - in `apps/worker/src/box.ts`
-- restate invokes wren.lambda:worker: 60 services
+- restate invokes wren.lambda:worker: 83 services
   - in `apps/worker/src/lambda.ts`

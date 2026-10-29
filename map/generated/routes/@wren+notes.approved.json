@@ -1,0 +1,699 @@
+{
+ "layer": "routes",
+ "nodes": [
+  {
+   "id": "route:NotesConsole/append",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "write"
+   }
+  },
+  {
+   "id": "route:NotesConsole/archive",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "write"
+   }
+  },
+  {
+   "id": "route:NotesConsole/backlinks",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "read"
+   }
+  },
+  {
+   "id": "route:NotesConsole/board",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "read"
+   }
+  },
+  {
+   "id": "route:NotesConsole/boardArchive",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "write"
+   }
+  },
+  {
+   "id": "route:NotesConsole/boardCreate",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "write"
+   }
+  },
+  {
+   "id": "route:NotesConsole/boardGeneral",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "write"
+   }
+  },
+  {
+   "id": "route:NotesConsole/boardSave",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "write"
+   }
+  },
+  {
+   "id": "route:NotesConsole/boardShare",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "write"
+   }
+  },
+  {
+   "id": "route:NotesConsole/boards",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "read"
+   }
+  },
+  {
+   "id": "route:NotesConsole/capture",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "write"
+   }
+  },
+  {
+   "id": "route:NotesConsole/cardChips",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "read"
+   }
+  },
+  {
+   "id": "route:NotesConsole/cardsPropose",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "write"
+   }
+  },
+  {
+   "id": "route:NotesConsole/comment",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "write"
+   }
+  },
+  {
+   "id": "route:NotesConsole/commentDelete",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "write"
+   }
+  },
+  {
+   "id": "route:NotesConsole/commentEdit",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "write"
+   }
+  },
+  {
+   "id": "route:NotesConsole/comments",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "read"
+   }
+  },
+  {
+   "id": "route:NotesConsole/compare",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "read"
+   }
+  },
+  {
+   "id": "route:NotesConsole/create",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "write"
+   }
+  },
+  {
+   "id": "route:NotesConsole/drive",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "read"
+   }
+  },
+  {
+   "id": "route:NotesConsole/driveTitle",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "read"
+   }
+  },
+  {
+   "id": "route:NotesConsole/file",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "read"
+   }
+  },
+  {
+   "id": "route:NotesConsole/general",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "write"
+   }
+  },
+  {
+   "id": "route:NotesConsole/home",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "read"
+   }
+  },
+  {
+   "id": "route:NotesConsole/mentions",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "read"
+   }
+  },
+  {
+   "id": "route:NotesConsole/mentionsRead",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "write"
+   }
+  },
+  {
+   "id": "route:NotesConsole/mentionsUnread",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "write"
+   }
+  },
+  {
+   "id": "route:NotesConsole/move",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "write"
+   }
+  },
+  {
+   "id": "route:NotesConsole/nameVersion",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "write"
+   }
+  },
+  {
+   "id": "route:NotesConsole/needsYou",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "read"
+   }
+  },
+  {
+   "id": "route:NotesConsole/open",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "read"
+   }
+  },
+  {
+   "id": "route:NotesConsole/people",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "read"
+   }
+  },
+  {
+   "id": "route:NotesConsole/recordsExport",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "read"
+   }
+  },
+  {
+   "id": "route:NotesConsole/recordsGet",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "read"
+   }
+  },
+  {
+   "id": "route:NotesConsole/recordsList",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "read"
+   }
+  },
+  {
+   "id": "route:NotesConsole/recordsStats",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "read"
+   }
+  },
+  {
+   "id": "route:NotesConsole/recordsTypes",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "read"
+   }
+  },
+  {
+   "id": "route:NotesConsole/rename",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "write"
+   }
+  },
+  {
+   "id": "route:NotesConsole/resolve",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "write"
+   }
+  },
+  {
+   "id": "route:NotesConsole/restore",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "write"
+   }
+  },
+  {
+   "id": "route:NotesConsole/settings",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "read"
+   }
+  },
+  {
+   "id": "route:NotesConsole/share",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "write"
+   }
+  },
+  {
+   "id": "route:NotesConsole/star",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "write"
+   }
+  },
+  {
+   "id": "route:NotesConsole/sync",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "read"
+   }
+  },
+  {
+   "id": "route:NotesConsole/task",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "read"
+   }
+  },
+  {
+   "id": "route:NotesConsole/taskAdd",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "write"
+   }
+  },
+  {
+   "id": "route:NotesConsole/taskBlock",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "write"
+   }
+  },
+  {
+   "id": "route:NotesConsole/taskClose",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "write"
+   }
+  },
+  {
+   "id": "route:NotesConsole/taskEdit",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "write"
+   }
+  },
+  {
+   "id": "route:NotesConsole/taskExport",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "read"
+   }
+  },
+  {
+   "id": "route:NotesConsole/taskFromLine",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "write"
+   }
+  },
+  {
+   "id": "route:NotesConsole/taskImport",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "write"
+   }
+  },
+  {
+   "id": "route:NotesConsole/taskMove",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "write"
+   }
+  },
+  {
+   "id": "route:NotesConsole/taskMoves",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "read"
+   }
+  },
+  {
+   "id": "route:NotesConsole/toDraft",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "Parameters<NotesApi[\"drafting\"]>[0]",
+    "output": "{ started: boolean; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:NotesConsole/toSop",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "write"
+   }
+  },
+  {
+   "id": "route:NotesConsole/train",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "write"
+   }
+  },
+  {
+   "id": "route:NotesConsole/transfer",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "write"
+   }
+  },
+  {
+   "id": "route:NotesConsole/upload",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "write"
+   }
+  },
+  {
+   "id": "route:NotesConsole/version",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "read"
+   }
+  },
+  {
+   "id": "route:NotesConsole/versions",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "read"
+   }
+  },
+  {
+   "id": "route:NotesConsole/workspaceTrain",
+   "role": "route",
+   "parent": "service:NotesConsole",
+   "group": "@wren/notes",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "write"
+   }
+  },
+  {
+   "id": "service:NotesConsole",
+   "role": "service",
+   "parent": "@wren/notes",
+   "group": "@wren/notes",
+   "attrs": {
+    "file": "packages/notes/src/console.ts",
+    "kind": "service",
+    "via": "portalService"
+   }
+  }
+ ],
+ "edges": []
+}

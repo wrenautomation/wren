@@ -57,6 +57,413 @@
    }
   },
   {
+   "id": "route:SitesConsole/add",
+   "role": "route",
+   "parent": "service:SitesConsole",
+   "group": "@wren/sites",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SitesConsole/approve",
+   "role": "route",
+   "parent": "service:SitesConsole",
+   "group": "@wren/sites",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SitesConsole/ask",
+   "role": "route",
+   "parent": "service:SitesConsole",
+   "group": "@wren/sites",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SitesConsole/create",
+   "role": "route",
+   "parent": "service:SitesConsole",
+   "group": "@wren/sites",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SitesConsole/decline",
+   "role": "route",
+   "parent": "service:SitesConsole",
+   "group": "@wren/sites",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SitesConsole/detail",
+   "role": "route",
+   "parent": "service:SitesConsole",
+   "group": "@wren/sites",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SitesConsole/draft",
+   "role": "route",
+   "parent": "service:SitesConsole",
+   "group": "@wren/sites",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SitesConsole/duplicate",
+   "role": "route",
+   "parent": "service:SitesConsole",
+   "group": "@wren/sites",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SitesConsole/formCreate",
+   "role": "route",
+   "parent": "service:SitesConsole",
+   "group": "@wren/sites",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SitesConsole/formDetail",
+   "role": "route",
+   "parent": "service:SitesConsole",
+   "group": "@wren/sites",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SitesConsole/formPublish",
+   "role": "route",
+   "parent": "service:SitesConsole",
+   "group": "@wren/sites",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SitesConsole/formRetire",
+   "role": "route",
+   "parent": "service:SitesConsole",
+   "group": "@wren/sites",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SitesConsole/formSave",
+   "role": "route",
+   "parent": "service:SitesConsole",
+   "group": "@wren/sites",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SitesConsole/formSplitSave",
+   "role": "route",
+   "parent": "service:SitesConsole",
+   "group": "@wren/sites",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SitesConsole/formSplitShip",
+   "role": "route",
+   "parent": "service:SitesConsole",
+   "group": "@wren/sites",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SitesConsole/formSplitStart",
+   "role": "route",
+   "parent": "service:SitesConsole",
+   "group": "@wren/sites",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SitesConsole/formSplitStop",
+   "role": "route",
+   "parent": "service:SitesConsole",
+   "group": "@wren/sites",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SitesConsole/formUnpublish",
+   "role": "route",
+   "parent": "service:SitesConsole",
+   "group": "@wren/sites",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SitesConsole/forms",
+   "role": "route",
+   "parent": "service:SitesConsole",
+   "group": "@wren/sites",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SitesConsole/linkCreate",
+   "role": "route",
+   "parent": "service:SitesConsole",
+   "group": "@wren/sites",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SitesConsole/linkTargets",
+   "role": "route",
+   "parent": "service:SitesConsole",
+   "group": "@wren/sites",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SitesConsole/notes",
+   "role": "route",
+   "parent": "service:SitesConsole",
+   "group": "@wren/sites",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SitesConsole/offers",
+   "role": "route",
+   "parent": "service:SitesConsole",
+   "group": "@wren/sites",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SitesConsole/recordsExport",
+   "role": "route",
+   "parent": "service:SitesConsole",
+   "group": "@wren/sites",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SitesConsole/recordsGet",
+   "role": "route",
+   "parent": "service:SitesConsole",
+   "group": "@wren/sites",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SitesConsole/recordsList",
+   "role": "route",
+   "parent": "service:SitesConsole",
+   "group": "@wren/sites",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SitesConsole/recordsStats",
+   "role": "route",
+   "parent": "service:SitesConsole",
+   "group": "@wren/sites",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SitesConsole/recordsTypes",
+   "role": "route",
+   "parent": "service:SitesConsole",
+   "group": "@wren/sites",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SitesConsole/retire",
+   "role": "route",
+   "parent": "service:SitesConsole",
+   "group": "@wren/sites",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SitesConsole/retireAsk",
+   "role": "route",
+   "parent": "service:SitesConsole",
+   "group": "@wren/sites",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SitesConsole/rewrite",
+   "role": "route",
+   "parent": "service:SitesConsole",
+   "group": "@wren/sites",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SitesConsole/save",
+   "role": "route",
+   "parent": "service:SitesConsole",
+   "group": "@wren/sites",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SitesConsole/share",
+   "role": "route",
+   "parent": "service:SitesConsole",
+   "group": "@wren/sites",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SitesConsole/splitShip",
+   "role": "route",
+   "parent": "service:SitesConsole",
+   "group": "@wren/sites",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SitesConsole/splitStart",
+   "role": "route",
+   "parent": "service:SitesConsole",
+   "group": "@wren/sites",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SitesConsole/splitStop",
+   "role": "route",
+   "parent": "service:SitesConsole",
+   "group": "@wren/sites",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:SitesConsole/splitWeights",
+   "role": "route",
+   "parent": "service:SitesConsole",
+   "group": "@wren/sites",
+   "attrs": {
+    "input": "?",
+    "output": "?",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
    "id": "service:Sites",
    "role": "service",
    "parent": "@wren/sites",
@@ -64,6 +471,17 @@
    "attrs": {
     "file": "packages/sites/src/service.ts",
     "kind": "service"
+   }
+  },
+  {
+   "id": "service:SitesConsole",
+   "role": "service",
+   "parent": "@wren/sites",
+   "group": "@wren/sites",
+   "attrs": {
+    "file": "packages/sites/src/console.ts",
+    "kind": "service",
+    "via": "portalService"
    }
   }
  ],
