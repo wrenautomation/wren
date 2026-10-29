@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 import type { StorybookConfig } from "@storybook/react-vite";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
+import { codeInspectorPlugin } from "code-inspector-plugin";
 import { mergeConfig, type Plugin, runnerImport } from "vite";
 import { nodeStubs } from "../web/node-stubs.js";
 
@@ -58,9 +59,18 @@ const config: StorybookConfig = {
   // No docs pages: prop tables would parse every page's types on each start.
   typescript: { reactDocgen: false },
   // The app's own React and Tailwind plugins (web/vite.config.ts).
-  viteFinal: (vite) =>
+  // Dev only: each element's file and line as `data-insp-path` (Option+Shift+click opens it in the
+  // editor; kestrel's frame reads it on Alt+click, preview.tsx).
+  viteFinal: (vite, { configType }) =>
     mergeConfig(vite, {
-      plugins: [nodeStubs, dictateOff, recordTypes, react(), tailwindcss()],
+      plugins: [
+        nodeStubs,
+        dictateOff,
+        recordTypes,
+        ...(configType === "DEVELOPMENT" ? [codeInspectorPlugin({ bundler: "vite" })] : []),
+        react(),
+        tailwindcss(),
+      ],
       build: { chunkSizeWarningLimit: 4000 },
     }),
 };

@@ -5,12 +5,28 @@
  * The sidebar sorts pages by how far they are from the artifacts: Revamp (no artifact draws it),
  * Ready to build (an artifact draws it, the page doesn't follow it yet), Done. Each story file
  * keeps its old id, so `pages-wren--<app>` links still open.
+ * In kestrel's frame (`?kestrel`), Alt+click posts the element's source (`data-insp-path`,
+ * main.ts) to kestrel, which opens its file.
  */
 import "../web/src/app.css";
 import type { Decorator, Preview } from "@storybook/react-vite";
 import { preview } from "@wren/ui/storybook/frame";
 import { mswLoader } from "msw-storybook-addon/csf3";
 import { setMessy } from "../web/src/mocks/api.js";
+
+if (window.parent !== window && new URLSearchParams(location.search).has("kestrel"))
+  window.addEventListener(
+    "click",
+    (e) => {
+      if (!e.altKey || e.shiftKey || !(e.target instanceof Element)) return;
+      const at = e.target.closest("[data-insp-path]")?.getAttribute("data-insp-path");
+      if (!at) return;
+      e.preventDefault();
+      e.stopPropagation();
+      window.parent.postMessage({ kestrel: "source", at }, "*");
+    },
+    true,
+  );
 
 const data: Decorator = (Story, { globals }) => {
   setMessy(globals.data === "messy");
