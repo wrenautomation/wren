@@ -1,0 +1,16 @@
+{
+ "layer": "systems",
+ "nodes": [
+  {
+   "id": "system:ssm",
+   "role": "system",
+   "group": "ssm",
+   "attrs": {
+    "description": "Parameter Store: every secret and env set.",
+    "kind": "vendor",
+    "title": "AWS SSM"
+   }
+  }
+ ],
+ "edges": []
+}

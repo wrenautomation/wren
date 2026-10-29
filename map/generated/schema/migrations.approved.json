@@ -1,0 +1,1756 @@
+{
+ "layer": "schema",
+ "nodes": [
+  {
+   "id": "migration:0000_initial_tables.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0001_email_channel_tables.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0002_reports.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0003_discovery_attempts.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0004_content_loop.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0005_content_redraft.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0006_content_redraft_index.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0007_content_metrics.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0008_ad_launches.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0009_idea_source_ads.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0010_people_origin_linkedin.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0011_enrollment_offer.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0012_content_reddit.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0013_sms_channel.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0014_drop_leftovers.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0015_clients.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0016_crm.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0017_findings.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0018_signals_scores_briefs.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0019_products_profile_handoffs.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0020_compositions_raced.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0021_handoff_attempts.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0022_message_link_code.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0023_recruiting_opener.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0024_lead_recycling.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0025_books.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0026_books_void_bills.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0027_books_payments_on_account.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0028_books_subscriptions_by_bill.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0029_search.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0030_run_events.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0031_research_studies_away_until.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0032_auth_and_members.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0033_video_enrichment.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0034_delivery.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0035_delivery_mail.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0036_auth_passkey.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0037_delivery_comments.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0038_delivery_invoices.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0039_sms_registration.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0040_sms_templates.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0041_delivery_onboarding.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0042_company_decline_reason.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0043_sms_form_contacts.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0044_sms_push_subscriptions.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0045_sms_reminders.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0046_delivery_moments.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0047_invoice_periods.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0048_call_invites.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0049_reach.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0050_reach_indexes.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0051_call_invite_proposals.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0052_page_archive.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0053_books_usage_alerts.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0054_send_stops_on_invalid.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0055_candidate_mints.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0056_fk_indexes.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0057_pipeline_views.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0058_console_usage_views.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0059_mover_addresses_next_step.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0060_record_views.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0061_console_records.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0062_linkedin_lookups.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0063_lead_sheet.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0064_lead_checks.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0065_lead_sheet_fast.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0066_campaign_controls.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0067_placement_checks.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0068_reactivation_replies.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0069_firm_record_indexes.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0070_reactivation_calls.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0071_people_mover_email.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0072_campaign_names.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0073_unit_economics.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0074_client_look.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0075_copy_experiments.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0076_experiment_records.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0077_delivery_installs.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0078_natural_sort.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0079_content_playbooks.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0080_call_bookings.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0081_shared_verdicts.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0082_team_roles.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0083_marketing_days.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0084_marketing_records.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0085_marketing_consent.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0086_topic_keyword.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0087_subscription_billed_for.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0088_contact_points.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0089_own_contact_points.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0090_placement_kinds.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0091_team_searches.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0092_marketing_drafts.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0093_fills.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0094_events_and_hooks.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0095_watch.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0096_workflow_saves.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0097_social_groups.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0098_email_held_steps.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0099_spine_events.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0100_checks.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0101_company_event_checks.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0102_comments.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0103_comments_contact_index.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0104_signals_funnel.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0105_watch_feeds.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0106_enrollment_lead_links.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0107_missing_foreign_keys.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0108_verification_email_required.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0109_latest_verifications.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0110_lead_channels.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0111_companies_unassigned_index.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0112_closed_set_checks.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0113_constraint_names.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0114_wren_settings.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0115_one_outcome_view.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0116_reddit_discovery.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0117_linkedin_invites.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0118_idea_sources_planner.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0119_social_inbox.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0120_signals.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0121_dm_drafts.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0122_video_edits.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0123_video_render.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0124_calendar.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0125_templates.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0126_client_domains.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0127_template_fk_indexes.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0128_template_stats.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0129_changes.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0130_saved_views.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0131_heatmaps.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0132_voice.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0133_flags.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0134_spine_executions.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0135_flag_experiments.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0136_scoped_access.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0137_issues_and_asks.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0138_surveys.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0139_speed_to_lead.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0140_templates_live.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0141_workflow_drafts.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0142_templates_legacy_drop.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0143_speed_call_done.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0144_templates_indexes.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0145_close_brief_outcome.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0146_setup_accounts.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0147_vendor_usage.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0148_usage_lines.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0149_template_installs.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0150_client_approver.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0151_campaign_keys.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0152_client_sends.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0153_hold_and_execution_titles.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0154_accounts_registry_backfill.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0155_hook_seal.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0156_signal_hold_names.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0157_workflow_templates.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0158_wait_until.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0159_follow_up.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0160_draft_events.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0161_invite_proposed.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0162_draft_views.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0163_linkedin_posts.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0164_setup_alerts.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0165_draft_order.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0166_invites_proposed_again.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0167_video_formats.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0168_notes.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0169_video_stress.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0170_notes_comments.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0171_notes_fk_indexes.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0172_health.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0173_content_funnel.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0174_learn.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0175_sites.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0176_touches.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0177_webhooks_out.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0178_missed_call_reviews.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0179_learn_drive.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0180_inbox_reply.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0181_learn_seen_draft_format.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0182_forms.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0183_payments.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0184_mail_access.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0185_keys.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0186_learn_clients.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0187_sites_splits.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0188_content_analytics.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0189_sites_links_retire.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0190_client_social.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0191_content_metric_waiting.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0192_learn_alerts.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0193_social_connections_account_index.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0194_site_link_clicks.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0195_content_leftovers_views.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0196_site_owner_names.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0197_client_social_platforms.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0198_mail_sent.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0199_tiktok_direct_post.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0200_post_points_to_page.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0201_review_emails.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0202_webhook_failures.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0203_post_variants.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0204_form_steps.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0205_form_splits.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0206_learn_embeddings.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0207_learn_creator_kinds.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0208_deals.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0209_reach_posts.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0210_note_mention_mail.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0211_note_turns.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0212_execution_person_firm.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0213_keep_signals.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0214_heat_by_day.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0215_access_tokens.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0216_custom_fields.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0217_auto_replies.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0218_invoice_lines.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0219_review_stars.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0220_site_chat.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0221_connectors.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0222_documents.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0223_client_reports.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0224_chat_ip_document_events.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0225_dead_letters.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0226_company_firsts.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0227_comment_noise.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0228_done_records.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0229_ad_formats.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0230_comment_keywords.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0231_learn_breakdowns.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0232_sms_imessage.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0233_access_token_cap.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0234_card_lines.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0235_wake_on_row.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0236_drop_copy_experiments.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0237_post_video_formats.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0238_reach_passes.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0239_youtube_community_format.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0240_story_format.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0241_threads_platform.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0242_blog_posts.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0243_send_at.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0244_video_rejected.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0245_message_caps.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0246_sent_log.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0247_profiles.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0248_email_clicks.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0249_profile_events.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0250_inbox_reply_queued.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0251_inbox_reply_send_at.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0252_segments.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0253_comment_proofs.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0254_broadcasts.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0255_reddit_requirements.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0256_message_sender.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0257_blog_from.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0258_mail_bounces.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0259_pay_money.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0260_bounce_senders.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0261_pay_webhook_note.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0262_invoice_reversals.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0263_boards.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0264_view_as_sandbox.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0265_draft_due.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0266_draft_version.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0267_video_finish.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0268_post_now_flag.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0269_boards_labels.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0270_reddit_places_joined.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0271_people_map.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0272_segment_rules_channel_stats.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0273_speed_forms.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0274_draft_accounts.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0275_wise_billing.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0276_invoice_link_gone.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0277_engage_threads.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0279_note_versions.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0280_send_attempts.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0281_enrollments_to_email.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0282_profile_timeline_pushdown.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0283_call_recordings.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0284_decide.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0285_decide_call_index.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0286_send_attempts_key.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0287_unsure_failed_drafts.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0288_send_journal.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0289_people_depth.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0290_touch_links.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0291_lead_call_view.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0292_profile_findings_lookup_index.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0293_reddit_karma_places.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0294_fetch_ladder.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0295_pipeline.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0296_agreement_terms_version.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0297_journey_event_kind.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0298_journeys_segments_wake.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0299_invoice_told.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0300_pipeline_numbers.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0301_journey_research.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0302_pipeline_legacy_deal_uuid.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0303_deals_guard_and_drop.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0304_api_key_labels_purposes.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0305_vault_keys_and_key_id.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0306_shape.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0307_journeys_guard.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0308_journey_owner.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0309_shape_git.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0310_reddit_comment_ref.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0311_platform_objects.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0312_our_platform_objects.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0313_reach_platform_objects.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0314_shape_run.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0315_metro_only.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0316_docs_sealed.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0317_idea_line_angle.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0318_warmup_out.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0319_source_cost_by_name.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0320_whole_timeline_text.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0321_generous_caps.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0322_conversation_booked_once.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0323_companies_headcount.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0324_sms_inbound_index.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0325_profile_list.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0326_idea_source_site.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0327_post_hook.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0328_move_flow.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0329_access_reviews.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0330_video_locked.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0331_video_short_cuts.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0332_video_sounds.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0333_funnel_repo.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0334_learn_breakdown_kinds.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0335_learn_breakdown_format_to_facts.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0336_learn_breakdown_by.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0337_decide_call_comment_learn_fact.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0338_learn_standards.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0339_sop_check.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0340_learn_back.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0341_executor_views.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0342_lively_screwball.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0343_journeys_instances.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0344_learn_documents.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0345_learn_calls_on_documents.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0346_executions_documents.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0347_limits.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0348_source_replied_booked.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0349_reach_posts_more_platforms.sql",
+   "role": "migration",
+   "group": "migrations"
+  },
+  {
+   "id": "migration:0350_reach_posts_tiktok_threads.sql",
+   "role": "migration",
+   "group": "migrations"
+  }
+ ],
+ "edges": []
+}

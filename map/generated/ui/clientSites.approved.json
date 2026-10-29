@@ -1,0 +1,76 @@
+{
+ "layer": "ui",
+ "nodes": [
+  {
+   "id": "ui:clientSites",
+   "role": "app",
+   "group": "clientSites",
+   "attrs": {
+    "areas": [
+     "client: Marketing"
+    ],
+    "blurb": "Your landing pages, their copy, tracked links, visits, forms, bookings and ads.",
+    "file": "apps/portal/web/src/modules/sites/index.ts",
+    "name": "Sites",
+    "workspace": "client"
+   }
+  },
+  {
+   "id": "ui:clientSites/forms",
+   "role": "screen",
+   "parent": "ui:clientSites",
+   "group": "clientSites",
+   "attrs": {
+    "about": "The forms on your pages.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Forms",
+    "order": 2,
+    "record": "sites.form",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:clientSites/links",
+   "role": "screen",
+   "parent": "ui:clientSites",
+   "group": "clientSites",
+   "attrs": {
+    "about": "Tracked links to your pages, one for each place you post them.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Links",
+    "order": 1,
+    "record": "sites.link",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:clientSites/pages",
+   "role": "screen",
+   "parent": "ui:clientSites",
+   "group": "clientSites",
+   "attrs": {
+    "about": "Every landing page, and how each one does.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Pages",
+    "order": 0,
+    "record": "sites.page",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:clientSites/submissions",
+   "role": "screen",
+   "parent": "ui:clientSites",
+   "group": "clientSites",
+   "attrs": {
+    "about": "Every form someone sent from your pages, in full.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Submissions",
+    "order": 3,
+    "record": "sites.entry",
+    "template": "list"
+   }
+  }
+ ],
+ "edges": []
+}

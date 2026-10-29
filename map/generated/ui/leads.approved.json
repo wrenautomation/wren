@@ -1,0 +1,61 @@
+{
+ "layer": "ui",
+ "nodes": [
+  {
+   "id": "ui:leads",
+   "role": "app",
+   "group": "leads",
+   "attrs": {
+    "areas": [
+     "client: Leads"
+    ],
+    "blurb": "Companies from found to verified lead, and where they stall.",
+    "file": "apps/portal/web/src/modules/wren/index.ts",
+    "name": "Pipeline",
+    "workspace": "client"
+   }
+  },
+  {
+   "id": "ui:leads/companies",
+   "role": "screen",
+   "parent": "ui:leads",
+   "group": "leads",
+   "attrs": {
+    "about": "Every company our lead sources found, with its people.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Companies",
+    "order": 1,
+    "record": "email.firm",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:leads/overview",
+   "role": "screen",
+   "parent": "ui:leads",
+   "group": "leads",
+   "attrs": {
+    "about": "Companies our lead sources found, and how far each got.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Overview",
+    "order": 0,
+    "template": "overview"
+   }
+  },
+  {
+   "id": "ui:leads/stalls",
+   "role": "screen",
+   "parent": "ui:leads",
+   "group": "leads",
+   "attrs": {
+    "about": "Leads stuck before a send, and why.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Stalls",
+    "order": 2,
+    "record": "email.stall",
+    "template": "list"
+   }
+  }
+ ],
+ "edges": []
+}

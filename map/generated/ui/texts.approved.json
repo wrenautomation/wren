@@ -1,0 +1,89 @@
+{
+ "layer": "ui",
+ "nodes": [
+  {
+   "id": "ui:texts",
+   "role": "app",
+   "group": "texts",
+   "attrs": {
+    "areas": [
+     "client: Inbox"
+    ],
+    "blurb": "Texts to leads and their replies, sorted.",
+    "file": "apps/portal/web/src/modules/texts/index.tsx",
+    "name": "Texts",
+    "workspace": "client"
+   }
+  },
+  {
+   "id": "ui:texts/calls",
+   "role": "screen",
+   "parent": "ui:texts",
+   "group": "texts",
+   "attrs": {
+    "about": "Calls nobody picked up, and the text each caller got back.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Missed calls",
+    "order": 3,
+    "record": "sms.call",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:texts/overview",
+   "role": "screen",
+   "parent": "ui:texts",
+   "group": "texts",
+   "attrs": {
+    "about": "Your text replies, missed calls and reviews, at a glance.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Overview",
+    "order": 0,
+    "template": "overview"
+   }
+  },
+  {
+   "id": "ui:texts/reviews",
+   "role": "screen",
+   "parent": "ui:texts",
+   "group": "texts",
+   "attrs": {
+    "about": "Customers we asked for a review, and who left one.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Reviews",
+    "order": 4,
+    "record": "sms.review",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:texts/speed",
+   "role": "screen",
+   "parent": "ui:texts",
+   "group": "texts",
+   "attrs": {
+    "about": "Each new lead and how fast they got a text and a call.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Speed to lead",
+    "order": 2,
+    "record": "sms.speed",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:texts/threads",
+   "role": "screen",
+   "parent": "ui:texts",
+   "group": "texts",
+   "attrs": {
+    "about": "Text conversations waiting on a reply.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Threads",
+    "order": 1,
+    "record": "sms.thread",
+    "template": "list"
+   }
+  }
+ ],
+ "edges": []
+}

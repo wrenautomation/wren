@@ -1,0 +1,117 @@
+{
+ "layer": "ui",
+ "nodes": [
+  {
+   "id": "ui:library",
+   "role": "app",
+   "group": "library",
+   "attrs": {
+    "areas": [
+     "team: Tools"
+    ],
+    "blurb": "Every template, sequence, snippet, video and SOP, with its numbers and where it's used.",
+    "file": "apps/portal/web/src/modules/library/index.ts",
+    "name": "Library",
+    "workspace": "wren"
+   }
+  },
+  {
+   "id": "ui:library/media",
+   "role": "screen",
+   "parent": "ui:library",
+   "group": "library",
+   "attrs": {
+    "about": "Every rendered file, and where it went.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Media",
+    "order": 3,
+    "record": "library.media",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:library/sections",
+   "role": "screen",
+   "parent": "ui:library",
+   "group": "library",
+   "attrs": {
+    "about": "The blocks a page is built from.",
+    "file": "apps/portal/web/src/modules/library/sections.tsx",
+    "label": "Sections",
+    "order": 4,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:library/sequences",
+   "role": "screen",
+   "parent": "ui:library",
+   "group": "library",
+   "attrs": {
+    "about": "The email sequences our workflows send.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Sequences",
+    "order": 1,
+    "record": "templates.sequence",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:library/snippets",
+   "role": "screen",
+   "parent": "ui:library",
+   "group": "library",
+   "attrs": {
+    "about": "Replies you send often, ready to drop into any draft.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Snippets",
+    "order": 2,
+    "record": "library.snippet",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:library/sops",
+   "role": "screen",
+   "parent": "ui:library",
+   "group": "library",
+   "attrs": {
+    "about": "The SOPs the content loop follows.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "SOPs",
+    "order": 5,
+    "record": "library.sop",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:library/templates",
+   "role": "screen",
+   "parent": "ui:library",
+   "group": "library",
+   "attrs": {
+    "about": "Every template and prompt, by folder, with its versions.",
+    "file": "apps/portal/web/src/modules/library/templates.tsx",
+    "label": "Templates",
+    "order": 0,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:library/workflows",
+   "role": "screen",
+   "parent": "ui:library",
+   "group": "library",
+   "attrs": {
+    "about": "Saved workflow templates, and how each one is wired.",
+    "file": "apps/portal/web/src/records.tsx",
+    "hidden": true,
+    "label": "Workflows",
+    "order": 6,
+    "record": "library.workflow",
+    "template": "list"
+   }
+  }
+ ],
+ "edges": []
+}

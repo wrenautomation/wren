@@ -14,13 +14,19 @@
    "id": "@wren/channel-reddit/src/api.ts",
    "role": "file",
    "parent": "@wren/channel-reddit",
-   "group": "@wren/channel-reddit"
+   "group": "@wren/channel-reddit",
+   "attrs": {
+    "description": "Reddit's own API as a `SiteClient`, straight from wren: no autobrowse on the path"
+   }
   },
   {
    "id": "@wren/channel-reddit/src/content.ts",
    "role": "file",
    "parent": "@wren/channel-reddit",
-   "group": "@wren/channel-reddit"
+   "group": "@wren/channel-reddit",
+   "attrs": {
+    "description": "Reddit as a `ContentChannel`, over autobrowse's `reddit` site in Reddit's own API shape (oauth.reddit.com)"
+   }
   },
   {
    "id": "@wren/channel-reddit/src/index.ts",
@@ -32,19 +38,28 @@
    "id": "@wren/channel-reddit/src/outreach.ts",
    "role": "file",
    "parent": "@wren/channel-reddit",
-   "group": "@wren/channel-reddit"
+   "group": "@wren/channel-reddit",
+   "attrs": {
+    "description": "Reddit as an `OutreachChannel`, over autobrowse's `reddit` site (the Data API's shapes, answered by the signed-in page on the Mac's desk)"
+   }
   },
   {
    "id": "@wren/channel-reddit/src/thread.ts",
    "role": "file",
    "parent": "@wren/channel-reddit",
-   "group": "@wren/channel-reddit"
+   "group": "@wren/channel-reddit",
+   "attrs": {
+    "description": "A Reddit post and its comments as one conversation: `/comments/{article}` read to any depth, flattened oldest first, with each comment's parent"
+   }
   },
   {
    "id": "@wren/channel-reddit/src/warmup.ts",
    "role": "file",
    "parent": "@wren/channel-reddit",
-   "group": "@wren/channel-reddit"
+   "group": "@wren/channel-reddit",
+   "attrs": {
+    "description": "The Reddit warmup protocol: what a young account may do today, from its age and karma"
+   }
   }
  ],
  "edges": [

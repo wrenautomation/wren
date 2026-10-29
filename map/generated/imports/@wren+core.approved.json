@@ -26,25 +26,37 @@
    "id": "@wren/core/src/access-asks.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Ask for access: someone asks for verbs over a scope, for a while, with a reason"
+   }
   },
   {
    "id": "@wren/core/src/access-console.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "The console's access handlers: roles, grants, issues and asks, for Wren's team (`wren`) or a client's people, wherever they look"
+   }
   },
   {
    "id": "@wren/core/src/access-records.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Access as records: roles, grants, issues and asks for one workspace (a client, or `wren` for Wren's team), read by one login"
+   }
   },
   {
    "id": "@wren/core/src/access.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Who may do what: eight fixed verbs, built-in roles on each side, custom roles and extra grants, one check"
+   }
   },
   {
    "id": "@wren/core/src/accounts-console-routes.ts",
@@ -56,115 +68,172 @@
    "id": "@wren/core/src/accounts-console.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "AccountsConsole: a client's accounts, each with its facts and setup runs, and its vendors with mode, room and the month's usage"
+   }
   },
   {
    "id": "@wren/core/src/ask.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Ask: Wren's team asks Claude Code about the system from the console (⌘K or the Ask app)"
+   }
   },
   {
    "id": "@wren/core/src/audit.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "`AuditSealer/all`: every 15 minutes, seals the audit log in main and in each client's database (through the client's own login)"
+   }
   },
   {
    "id": "@wren/core/src/automations.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Every automation in one list: workflows (built-in and made), loops by service, comment keyword DMs and auto-replies"
+   }
   },
   {
    "id": "@wren/core/src/bounces-schema.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Marketing email bounces: the delivery reports that came back to a workspace's sending mailbox for a broadcast or a workflow's Send message"
+   }
   },
   {
    "id": "@wren/core/src/bounces.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Marketing email bounces: a delivery report that came back to a workspace's sending mailbox, matched to the send it answers, then acted on"
+   }
   },
   {
    "id": "@wren/core/src/broadcast-records.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Broadcasts as console records, the People app's: each broadcast with how far it got (`people.broadcast`), and each person it went to (`people.recipient`)"
+   }
   },
   {
    "id": "@wren/core/src/broadcast-run.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "`Broadcast`: one broadcast's sending, keyed by its id (`<id>` for Wren's, `<client>/<id>` for a client's)"
+   }
   },
   {
    "id": "@wren/core/src/broadcasts-schema.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Broadcasts: one send to a segment, by email or text, in a workspace"
+   }
   },
   {
    "id": "@wren/core/src/broadcasts.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Broadcasts: one send to a group, by email or text, now or at a time, optionally at that time in each person's own zone"
+   }
   },
   {
    "id": "@wren/core/src/buckets.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Token buckets (GCRA): research's per-source caps and vendors' per-key read limits"
+   }
   },
   {
    "id": "@wren/core/src/cache.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "The shared cache"
+   }
   },
   {
    "id": "@wren/core/src/calendar.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "The calendar a call is booked on"
+   }
   },
   {
    "id": "@wren/core/src/calls.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "How a call went, one vocabulary for every call"
+   }
   },
   {
    "id": "@wren/core/src/channel-stats-schema.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Channel stats: each person's funnel steps on each channel and source, read live from the rows that already hold them, never copied"
+   }
   },
   {
    "id": "@wren/core/src/channel-stats.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Channel stats: who each channel reached, and how far they went from there, side by side"
+   }
   },
   {
    "id": "@wren/core/src/checks.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Checks on a stage's units"
+   }
   },
   {
    "id": "@wren/core/src/clients/domains.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Client portals on the client's own host"
+   }
   },
   {
    "id": "@wren/core/src/clients/index.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "The client registry: who the clients are and where their databases live"
+   }
   },
   {
    "id": "@wren/core/src/clients/schema.ts",
@@ -176,19 +245,28 @@
    "id": "@wren/core/src/clients/touch.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Which channel a lander touch came from: an email link, a text, an ad, a search, a post"
+   }
   },
   {
    "id": "@wren/core/src/code-step.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "The Code node's sandbox: a function body run in QuickJS (wasm, in process), a fresh context per call"
+   }
   },
   {
    "id": "@wren/core/src/components.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "A component: one feature's manifest"
+   }
   },
   {
    "id": "@wren/core/src/console-routes.ts",
@@ -200,433 +278,649 @@
    "id": "@wren/core/src/console.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "ConsolePortal: Wren's team reads a view by name, as JSON or CSV"
+   }
   },
   {
    "id": "@wren/core/src/console/api/calls.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "The Call form over Restate's handlers: the read the call journals, the handler it names and whether this teammate may call it, and the runs row around the call"
+   }
   },
   {
    "id": "@wren/core/src/console/api/clients.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Clients and the team: a new client, Wren's team seats, a client's portal look"
+   }
   },
   {
    "id": "@wren/core/src/console/api/components.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Components on a client: install, configure and uninstall a part, a template's plan, install, publish, approve and uninstall, an account connected, and a client's own ask for a part"
+   }
   },
   {
    "id": "@wren/core/src/console/api/context.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "`consoleContext`: what every ConsolePortal handler group closes over, built once per `consoleApi` call (`../console-api.ts`), with `ConsoleDeps` (what the worker passes in) and `consoleTypes` (the record types the console serves)"
+   }
   },
   {
    "id": "@wren/core/src/console/api/executions.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Executions: what Retry and Replay were given, and a hold let go"
+   }
   },
   {
    "id": "@wren/core/src/console/api/library.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "The Library and the team's own tools: snippets, flags, experiments, surveys (and a client login's answers), AI tool tokens"
+   }
   },
   {
    "id": "@wren/core/src/console/api/loops.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Loops and agents: Restate's admin for the team, the loop list, the built parts, Decide's numbers"
+   }
   },
   {
    "id": "@wren/core/src/console/api/records.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Records and views: a view by name, Wren's record types (list, get, export, stats, counts), edits with undo and Ask, and the viewer's saved views and prefs"
+   }
   },
   {
    "id": "@wren/core/src/console/api/requests.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "The request shapes every ConsolePortal handler takes (`consoleApi`, `../console-api.ts`), and the public constants beside them: a look's showcase presets and the runs row's command line"
+   }
   },
   {
    "id": "@wren/core/src/console/api/workflows.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Workflows from the canvas: a draft saved, published, switched, discarded or deleted, its doors, a live one kept as a template, the builder and Ask on the graph, and the dry test"
+   }
   },
   {
    "id": "@wren/core/src/console/components.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "The shop: every part and every workflow over them as records (`console.component`), each marked installed or not for a client; and the install and configure requests"
+   }
   },
   {
    "id": "@wren/core/src/console/console-api.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "`consoleApi`: every ConsolePortal handler as a plain function over the deps the worker passes in"
+   }
   },
   {
    "id": "@wren/core/src/console/console-portal.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "`makeConsolePortal`: the ConsolePortal service over `consoleApi`, each handler behind the portal's guard; a component change journals its loops' starts and stops"
+   }
   },
   {
    "id": "@wren/core/src/console/executions.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Executions as records: each subject's walk through a workflow (`console.execution`) and its steps, the units held out of a stage and sources paused (`console.hold`), and each check's pass rate (`console.check`)"
+   }
   },
   {
    "id": "@wren/core/src/console/handlers.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Handlers as records: every handler a form can call (`console.handler`), from Restate's `/services`, with its input schema read from the OpenAPI into form boxes (`formOf`)"
+   }
   },
   {
    "id": "@wren/core/src/console/loops.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Loops as records: one row per loop object from Restate's state (`console.loop`), failing first; `setLoop`'s request; and Wren's executor arrivals (`console.event`)"
+   }
   },
   {
    "id": "@wren/core/src/console/restate-admin.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Restate's admin API from the console: SQL over its own tables, a cached GET (`/services`, a service's OpenAPI), each with a deadline so a hung call never holds a pass, and which loop objects are running"
+   }
   },
   {
    "id": "@wren/core/src/console/settings.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Wren's own settings as records (`console.setting`): a component's settings block as form boxes, each box as one line he reads and types, and a guess's `built` pointer in plain words"
+   }
   },
   {
    "id": "@wren/core/src/content/autobrowse.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "autobrowse's site APIs from here: one call shaped like the official API (`call(\"linkedin\", \"POST\", \"/rest/posts\", body)`)"
+   }
   },
   {
    "id": "@wren/core/src/content/box.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "autobrowse's machine, from here: start it when a `sites` call needs it"
+   }
   },
   {
    "id": "@wren/core/src/content/do.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "autobrowse's one verb from here: `do(\"upload this to youtube\", {file})`"
+   }
   },
   {
    "id": "@wren/core/src/content/index.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "The content channel port: what publishing organic content to a platform looks like from this repo, whichever way the adapter does it (the platform's API, or an autobrowse flow where the API is gated or absent)"
+   }
   },
   {
    "id": "@wren/core/src/content/ingress.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "autobrowse's site APIs through Restate's ingress, from outside any invocation's journal: the CLI, and a loop step already inside one `ctx.run` (a journaled call there would break replay)"
+   }
   },
   {
    "id": "@wren/core/src/content/insights.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "A post's and an account's deeper numbers: whatever the platform's token can read, as long rows (`metric`, `key`, `value`), plus a gap per number it can't, with the platform's own words"
+   }
   },
   {
    "id": "@wren/core/src/content/page-inbox.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "A Facebook Page's inbox (Messenger, or its Instagram), as autobrowse `meta GET /{pageId}/conversations` reads it with the Page's own token"
+   }
   },
   {
    "id": "@wren/core/src/content/proof.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Comment proof: is a comment we sent there for a stranger? `CommentProof.check` answers with a `Proof`: live, hidden (only its author sees it), missing (gone) or pending (no reader yet, or none answered)"
+   }
   },
   {
    "id": "@wren/core/src/content/renewal.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "`TokenRenewal/box`: keeps autobrowse's tokens alive"
+   }
   },
   {
    "id": "@wren/core/src/content/restate.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "The content channels as one Restate service, `Content`: publish and the reads, keyed by platform"
+   }
   },
   {
    "id": "@wren/core/src/content/routes.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "One rule for every site call: read, staging or send"
+   }
   },
   {
    "id": "@wren/core/src/content/shapes.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Post shapes: every field a platform's post takes past its text and file, one zod schema per platform"
+   }
   },
   {
    "id": "@wren/core/src/content/slides.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "A carousel's slide set: 5 to 10 slides, a title and a few short lines each"
+   }
   },
   {
    "id": "@wren/core/src/content/thread.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "An X thread in one draft: the posts live in the draft's text, split by a line holding only `---`, so the draft box, Ask Claude, history and undo work on it like any post"
+   }
   },
   {
    "id": "@wren/core/src/content/tiktok.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "TikTok's Direct Post rules (developers.tiktok.com/doc/content-sharing-guidelines), in one place for the post's shape, the portal's form, the approve check and the adapter: the creator as `creator_info/query` answers it, the words TikTok requires, and why a post can't go yet"
+   }
   },
   {
    "id": "@wren/core/src/custom-console.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Settings → Fields and Business facts: an owner's custom fields on each record type that takes them, and their business facts"
+   }
   },
   {
    "id": "@wren/core/src/custom-fields.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Custom fields and custom values"
+   }
   },
   {
    "id": "@wren/core/src/custom-schema.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Custom fields and custom values"
+   }
   },
   {
    "id": "@wren/core/src/dead-letter-schema.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "The dead-letter queue's rows: one per Restate invocation that used up its retries and paused"
+   }
   },
   {
    "id": "@wren/core/src/dead-letters.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "The dead-letter queue"
+   }
   },
   {
    "id": "@wren/core/src/decide-schema.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Decide's two logs: every machine answer, and every call William made on the same thing"
+   }
   },
   {
    "id": "@wren/core/src/decide/backends.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Who answers a decision"
+   }
   },
   {
    "id": "@wren/core/src/decide/calls.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "William's calls beside the machine's: his label, kept or not, and whether he went against a pick he was shown"
+   }
   },
   {
    "id": "@wren/core/src/decide/comments.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "His call on a drafted comment, read off the draft record"
+   }
   },
   {
    "id": "@wren/core/src/decide/decide.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "The seam: `decide` asks a backend about one subject and keeps the whole answer as a `decisions` row (`calls.ts` keeps William's own call beside it)"
+   }
   },
   {
    "id": "@wren/core/src/decide/export.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "The distill set: one `wren.decision/1` record per answered decision, with his newest call on the same subject when he made one"
+   }
   },
   {
    "id": "@wren/core/src/decide/index.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Decide: one interface for every machine call, each answer logged beside William's own call so the pair can teach a model of our own"
+   }
   },
   {
    "id": "@wren/core/src/decide/kinds.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Each kind of decision: the questions it asks, its labels, and which labels mean \"kept\""
+   }
   },
   {
    "id": "@wren/core/src/decide/lead-fit.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Lead check: is this person a viable lead for what Wren sells? `leadFitState` is all Jev sees about one profile, with every name, handle, address and link taken out"
+   }
   },
   {
    "id": "@wren/core/src/decide/loop.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "`Decide/wren`: every 10 minutes, the subjects each source says are due get one decision each"
+   }
   },
   {
    "id": "@wren/core/src/decide/stats.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "How often the machine and William agree, per kind, with what it cost: the numbers that say when a kind could move to `gate`"
+   }
   },
   {
    "id": "@wren/core/src/doh.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Tiny DNS-over-HTTPS lookups (Cloudflare resolver)"
+   }
   },
   {
    "id": "@wren/core/src/door.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "A lead at the door: whatever a form or CRM posts to a hook, read as the facts every lead step needs"
+   }
   },
   {
    "id": "@wren/core/src/doors.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "A trigger node's door: the hook a Webhook or a Form node enters by"
+   }
   },
   {
    "id": "@wren/core/src/draft-models.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Which model writes reach drafts (thread replies, comments on others' posts, comment answers, DMs, invite notes), and how two of them are compared"
+   }
   },
   {
    "id": "@wren/core/src/draft-record.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "The training record: every draft of every kind keeps one `draft_events` row per step, written where the draft changes hands"
+   }
   },
   {
    "id": "@wren/core/src/dry.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "A test of a workflow, dry: the executor's own walker on a store in memory, so nothing is claimed, and on a clock of its own, so a two-day wait passes at once"
+   }
   },
   {
    "id": "@wren/core/src/edits.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Edits: one path for every record that declares `edits` (`./records.ts`)"
+   }
   },
   {
    "id": "@wren/core/src/email-patterns.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Email pattern vocabulary: apply and infer"
+   }
   },
   {
    "id": "@wren/core/src/emails.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Shared email-address knowledge: normalization, pragmatic syntax rules, domain extraction, freemail / platform / role lists"
+   }
   },
   {
    "id": "@wren/core/src/epsilon.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Epsilon on every spaced schedule (William, 10-26): a slot moves by a random 1 to 9 minutes and some seconds, and never lands on :00 or :30, so no act fires at the top of an hour"
+   }
   },
   {
    "id": "@wren/core/src/executor.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "The executor: events move along a workflow's routed wires"
+   }
   },
   {
    "id": "@wren/core/src/experiment-store.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Experiments in the database: a site flag with a goal, the `marketing.experiment` record, and its buttons"
+   }
   },
   {
    "id": "@wren/core/src/facts-list.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "The facts list as plain data: its caps, the default, and the checks and counts its editor and its record share"
+   }
   },
   {
    "id": "@wren/core/src/facts.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "What is true about William and Wren: the only first-person facts a model draft may claim"
+   }
   },
   {
    "id": "@wren/core/src/feed.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "A run's feed: what a stage is doing, in plain words, as it works"
+   }
   },
   {
    "id": "@wren/core/src/fetch-limit.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Time limits on outbound HTTP"
+   }
   },
   {
    "id": "@wren/core/src/flag-store.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Flags in the database: the `loops.flag` record with edits (History, Undo, Ask Claude), add and remove, evaluation for a login, and the push of site flags to the lander's edge on every change"
+   }
   },
   {
    "id": "@wren/core/src/flags.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Feature flags: a flag has variants and ordered rules, and the first rule that holds picks the variant"
+   }
   },
   {
    "id": "@wren/core/src/follow.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Follow-up and Nurture: two parts whose insides are workflows of the channels' own touch steps and Waits"
+   }
   },
   {
    "id": "@wren/core/src/github.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "GitHub's contents API on one repo, with a token for that repo: read a file, write one as a commit, and name the last commit that touched a path"
+   }
   },
   {
    "id": "@wren/core/src/grants.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Roles and grants on the main database: read a login's grants fresh, hand one out, end one, spend a counted one, keep custom roles"
+   }
   },
   {
    "id": "@wren/core/src/grounded.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "The facts guard: code, after every model draft that writes as William or Wren"
+   }
   },
   {
    "id": "@wren/core/src/html.ts",
@@ -638,19 +932,28 @@
    "id": "@wren/core/src/http.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "A request body as text, or null past `max` bytes"
+   }
   },
   {
    "id": "@wren/core/src/ids.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "A UUID as Postgres and the URLs write it: hex with hyphens, either case"
+   }
   },
   {
    "id": "@wren/core/src/in-house.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "The tools we built in place of a SaaS: what each is, the Shop parts and apps it lives in, what it replaces at that vendor's public price, what it costs us, and how far along it is"
+   }
   },
   {
    "id": "@wren/core/src/index.ts",
@@ -662,19 +965,28 @@
    "id": "@wren/core/src/ingest/countries.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Long-form names checked before the two-letter rule: \"uk\" is common but not the ISO code"
+   }
   },
   {
    "id": "@wren/core/src/ingest/google-maps.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Google Maps listings, as the open-source gosom/google-maps-scraper writes them (its CSV download or `-results out.csv`), turned into import rows"
+   }
   },
   {
    "id": "@wren/core/src/ingest/importer.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Import runner: LeadSource -> classified rows -> imports/companies/leads"
+   }
   },
   {
    "id": "@wren/core/src/ingest/index.ts",
@@ -686,121 +998,181 @@
    "id": "@wren/core/src/ingest/overture.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Overture Maps places, as `wren fetch get` writes them (JSON lines, one place per line), turned into import rows"
+   }
   },
   {
    "id": "@wren/core/src/ingest/sba.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "SBA Small Business Search answers, as `wren fetch get` writes them (one JSON file per NAICS code per day), turned into import rows"
+   }
   },
   {
    "id": "@wren/core/src/ingest/schema.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Edge validation for imported rows: every raw row is classified before it touches the DB"
+   }
   },
   {
    "id": "@wren/core/src/ingest/screen.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "The screen: which of a niche's stored companies are no buyer, and why"
+   }
   },
   {
    "id": "@wren/core/src/ingest/sources.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "LeadSource: a source only yields raw row objects plus enough identity for the imports table; classification is schema.ts's job, so every source reuses the whole edge unchanged"
+   }
   },
   {
    "id": "@wren/core/src/installs.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "The Shop's install check, one path for a part on its own and for each part a template installs"
+   }
   },
   {
    "id": "@wren/core/src/issues.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Issues on records: someone with `comment` on a row leaves a short note; it waits in the Inbox of whoever has `act` there, who resolves it"
+   }
   },
   {
    "id": "@wren/core/src/key-id.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "A key's id: what a log line or a usage row says instead of the key"
+   }
   },
   {
    "id": "@wren/core/src/key-refs.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "What a key may be called and look like, and the guard that keeps raw keys out of Restate"
+   }
   },
   {
    "id": "@wren/core/src/keys-schema.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "The key store's tables"
+   }
   },
   {
    "id": "@wren/core/src/keys.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "The key store: a client's own vendor keys, sealed in main's `client_secrets`"
+   }
   },
   {
    "id": "@wren/core/src/leads.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "One lead across channels: the person when we know them, else the firm"
+   }
   },
   {
    "id": "@wren/core/src/library.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "The Library's own records: snippets, saved replies and blocks the team inserts from any draft or reply box, and the workflows, each a link into the Workflows app"
+   }
   },
   {
    "id": "@wren/core/src/limits-schema.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Limits over the code's defaults"
+   }
   },
   {
    "id": "@wren/core/src/limits.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Limits over the code's defaults"
+   }
   },
   {
    "id": "@wren/core/src/line-diff.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Two texts compared line by line (longest common subsequence): what the CLI's `templates diff` prints and the Library's diff draws"
+   }
   },
   {
    "id": "@wren/core/src/logic.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Logic nodes and triggers: parts every workflow may add on the canvas, outside the Shop"
+   }
   },
   {
    "id": "@wren/core/src/loop-watch.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "The loop watchdog"
+   }
   },
   {
    "id": "@wren/core/src/mail.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "A small RFC 5322 / MIME reader — the subset of Python's stdlib `email` the inbound classifier and the books' receipt reader need: unfolded and RFC 2047-decoded headers, the Content-Type and its params, transfer decoding, charset decoding, multipart bodies, embedded `message/rfc822` originals and the header blocks of a `message/delivery-status` report"
+   }
   },
   {
    "id": "@wren/core/src/mailbox.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "A Gmail inbox Wren reads, by search: whole messages, or headers alone"
+   }
   },
   {
    "id": "@wren/core/src/marketing-console-routes.ts",
@@ -812,103 +1184,154 @@
    "id": "@wren/core/src/marketing-records.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Opt-in marketing as console records (`./records.ts`): subscribers and topics"
+   }
   },
   {
    "id": "@wren/core/src/marketing-views.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "The SQL views behind the opt-in marketing records (`./marketing-records.ts`): a subscriber is one address on one channel, across its topics; its activity is every consent change with its proof, plus the suppressions on the address"
+   }
   },
   {
    "id": "@wren/core/src/marketing.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Opt-in marketing: the one writer of `consents` and `consent_events`, and `mayMarket`, the one rule a marketing send passes"
+   }
   },
   {
    "id": "@wren/core/src/maybe-sent.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "A send on the ledger, typed"
+   }
   },
   {
    "id": "@wren/core/src/message-settings.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "The message rules a workspace sets for marketing sends: a per-person cap across email, texts and DMs together, and the switch that tags every link with where it came from"
+   }
   },
   {
    "id": "@wren/core/src/message-step.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Send message and Notify me on the executor"
+   }
   },
   {
    "id": "@wren/core/src/metered.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "A client's reads through the vendor gate: each read a site call or a model call makes asks `gate` first and is `meter`ed after, on the client's own limits"
+   }
   },
   {
    "id": "@wren/core/src/model-labels.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Model names as people read them: an id (\"cohere:command-a-03-2025\", \"gateway:free\", \"claude-haiku-4-5:agent\") becomes a label (\"Command A\", \"Free models\", \"Claude Haiku 4.5\")"
+   }
   },
   {
    "id": "@wren/core/src/model-prices.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "What a model call costs, in integer micro-dollars, for the meter"
+   }
   },
   {
    "id": "@wren/core/src/notify.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Nudges to the operator: a `Notifier` seam with three forms — none, console, Discord webhook"
+   }
   },
   {
    "id": "@wren/core/src/objects-schema.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Platform objects: one row per post, comment or group on a platform, under one canonical spelling (`objects/canon.ts`)"
+   }
   },
   {
    "id": "@wren/core/src/objects/canon.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "The one spelling of a post or comment on each platform"
+   }
   },
   {
    "id": "@wren/core/src/objects/index.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "The one write path for platform objects"
+   }
   },
   {
    "id": "@wren/core/src/objects/roles.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Every column that names a post, comment or group by its platform ref: the roles an object plays in other tables"
+   }
   },
   {
    "id": "@wren/core/src/our-posts.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "What we've posted, as the material for a comment on someone else's post or thread"
+   }
   },
   {
    "id": "@wren/core/src/outreach/index.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "One-to-one outreach on a platform where we talk as an account: find people, read one, connect, message, read replies"
+   }
   },
   {
    "id": "@wren/core/src/pass-reasons.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Why he passed on a person, not on the words: they leave every reply queue and aren't proposed again (`reach_passes`)"
+   }
   },
   {
    "id": "@wren/core/src/people-console-routes.ts",
@@ -920,25 +1343,37 @@
    "id": "@wren/core/src/people-console.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "PeopleConsole: a client's People records, from its own database, for anyone who may open that client"
+   }
   },
   {
    "id": "@wren/core/src/people-map-pass.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "The people map's pass, one per workspace: loose handles keyed, site counts read (Wren's, when the lander's export is set), then every profile's row rebuilt and `stage` / `warmth` mirrored as traits"
+   }
   },
   {
    "id": "@wren/core/src/people-map-schema.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "The people map: one row per live profile with where they stand (stage), whether they ever came toward us (warmth, with each reason counted), what they signed up for, their replies, their first and last touch, and who they are (persona)"
+   }
   },
   {
    "id": "@wren/core/src/people-map.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "The people map: each live profile's stage, warmth (and why), subscriptions, replies, first and last touch, and persona, rebuilt in one set-based statement from the source tables through `profile_keys`"
+   }
   },
   {
    "id": "@wren/core/src/people/formats.ts",
@@ -950,7 +1385,10 @@
    "id": "@wren/core/src/people/importer.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "People import runner: PersonSource -> imports/people/companies/sightings"
+   }
   },
   {
    "id": "@wren/core/src/people/index.ts",
@@ -962,163 +1400,244 @@
    "id": "@wren/core/src/people/linkedin.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "LinkedIn people, as autobrowse's `people` command writes them: one row a person, their current role, and (enriched) the employer's website off its LinkedIn page"
+   }
   },
   {
    "id": "@wren/core/src/people/officers.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Officers and contacts named in public filings (NY's CEO name, Florida's officer list, a DOL labor-condition filing's point of contact), matched to a firm before they get here"
+   }
   },
   {
    "id": "@wren/core/src/people/schema.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Edge validation for person rows and name parsing"
+   }
   },
   {
    "id": "@wren/core/src/people/sources.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "PersonSource: the seam every people-bearing source implements"
+   }
   },
   {
    "id": "@wren/core/src/portal.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Who is asking the portal, and which client they get"
+   }
   },
   {
    "id": "@wren/core/src/profile-findings.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "\"Research this person\" on a profile, the writes the portal and the CLI make: queue a run, and decide what a run found"
+   }
   },
   {
    "id": "@wren/core/src/profile-pipeline.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "What a profile merge does to the pipeline: the `from` profile's journeys and deals move to `into`"
+   }
   },
   {
    "id": "@wren/core/src/profile-reach.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "How to reach a profile and who it is, for the person page: every email, phone and `handle:<platform>` key as a link, and the title, company and LinkedIn page of the research row (`people`) its `person` key names"
+   }
   },
   {
    "id": "@wren/core/src/profile-records.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Profiles as console records, the People app's: the people (`people.profile`), every line of their timeline (`people.event`), each address (`people.key`), trait (`people.trait`) and merge (`people.merge`), and the data index (`people.datum`): every address kind, trait and timeline kind, who has it and what uses it"
+   }
   },
   {
    "id": "@wren/core/src/profiles-backfill.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "What each address source says about who, one builder per source so its live writer and the backfill agree, and the backfill itself: every existing row through `resolveProfile`, oldest id first, batch by batch"
+   }
   },
   {
    "id": "@wren/core/src/profiles-bulk.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "The profile backfill (`./profiles-backfill.ts`) a chunk of rows at a time: `wren people backfill --bulk`"
+   }
   },
   {
    "id": "@wren/core/src/profiles-link.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "A booker we already reached under another address: an invite went to their LinkedIn, they searched for us and booked with their work email"
+   }
   },
   {
    "id": "@wren/core/src/profiles-schema.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Profiles: one person in a workspace, by every address they go by"
+   }
   },
   {
    "id": "@wren/core/src/profiles.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "One profile per person"
+   }
   },
   {
    "id": "@wren/core/src/promise.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "A promise is how long a person may wait: \"30m\", \"4h\", \"2d\""
+   }
   },
   {
    "id": "@wren/core/src/ramp.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Warm-up ramps (William, 10-26): a new account starts low each day and climbs to its cap, so a platform sees a person who grows, never a burst on day one"
+   }
   },
   {
    "id": "@wren/core/src/reason-labels.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Why something failed, as people read it: \"web GET /exa/companies: 502 Failed to reach environment\" becomes \"Exa search failed (502)\", \"author is empty on 1 of 1 rows\" becomes \"Came back without author (1 of 1)\""
+   }
   },
   {
    "id": "@wren/core/src/record-accounts.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "The accounts records are on: the login a row was sent from or reached (\"reddit@alt\", \"linkedin@wren\", \"social:<id>\"), by key, with the words a person reads (\"u/<handle>\") and its platform"
+   }
   },
   {
    "id": "@wren/core/src/records-delta.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Change-only list reads"
+   }
   },
   {
    "id": "@wren/core/src/records-serve.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "The records routes over one client's database: list, get, export, and the types the web draws"
+   }
   },
   {
    "id": "@wren/core/src/records.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Record types (console standard, S1)"
+   }
   },
   {
    "id": "@wren/core/src/refusal.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "A \"no\" said to the person asking, with the HTTP status the Worker answers"
+   }
   },
   {
    "id": "@wren/core/src/reject-reasons.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Why he turned a draft down, as quick picks; a note says the rest"
+   }
   },
   {
    "id": "@wren/core/src/reply-drafts.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Who writes replies (comments on ours, others' posts, Reddit threads, DMs): the model drafts each one for his edit, or he writes them all and the boxes start empty"
+   }
   },
   {
    "id": "@wren/core/src/reply-who.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Who a reply is from, for the event `replyFired` makes"
+   }
   },
   {
    "id": "@wren/core/src/resp.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "A small Valkey (Redis protocol, RESP2) client: one connection, commands in order, replies matched by position"
+   }
   },
   {
    "id": "@wren/core/src/restate/form.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "A handler's form: its input as a zod schema, its effect, whether the ingress may call it"
+   }
   },
   {
    "id": "@wren/core/src/restate/index.ts",
@@ -1130,31 +1649,46 @@
    "id": "@wren/core/src/restate/ingress.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "A one-way call through Restate's ingress, for code already inside a `ctx.run` (an executor step), where a journaled send would break replay"
+   }
   },
   {
    "id": "@wren/core/src/restate/keys.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Loop keys"
+   }
   },
   {
    "id": "@wren/core/src/restate/limits.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Time limits on what a loop pass waits for"
+   }
   },
   {
    "id": "@wren/core/src/restate/loop.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "The shape every periodic stage shares: a Virtual Object whose key names the unit of work (an inbox, or \"fleet\"), with `sync` (one pass now), `start` (loop until stopped), `stop`, `loop` (one pass then a durable delay) and `status`"
+   }
   },
   {
    "id": "@wren/core/src/retention.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Run-ledger retention"
+   }
   },
   {
    "id": "@wren/core/src/runs.ts",
@@ -1166,7 +1700,10 @@
    "id": "@wren/core/src/saved-views.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "What a viewer keeps of the portal: saved views, a list's filters, search, sort and columns under a name, the viewer's own or shared with the workspace; and prefs, what he arranged, by key"
+   }
   },
   {
    "id": "@wren/core/src/schema.ts",
@@ -1178,109 +1715,163 @@
    "id": "@wren/core/src/segment-records.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Groups (once Segments) as console records, the People app's: each group with its size and what uses it (`people.segment`), and who is in each (`people.member`)"
+   }
   },
   {
    "id": "@wren/core/src/segment-step.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "The executor's In group step: is the person this event is about in a People group now? Yes or no; skip when no person is found"
+   }
   },
   {
    "id": "@wren/core/src/segments-pass.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "The segments pass, one per workspace:  1"
+   }
   },
   {
    "id": "@wren/core/src/segments-schema.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Segments: a named set of profiles in a workspace"
+   }
   },
   {
    "id": "@wren/core/src/segments-text.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "A group's rule as text, for agents and the CLI"
+   }
   },
   {
    "id": "@wren/core/src/segments.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Segments: who in a workspace matches a rule, kept as rows"
+   }
   },
   {
    "id": "@wren/core/src/send-journal-schema.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "The send journal's table: one row per keyed direct write, in the database of the send's own ledger (Wren's, or a client's beside its `send_attempts`)"
+   }
   },
   {
    "id": "@wren/core/src/send-journal.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "A send journal for wren's own calls to a platform API (no autobrowse between)"
+   }
   },
   {
    "id": "@wren/core/src/send-verdict.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Send verdicts from autobrowse (autobrowse designs/2026-10-16-send-verdicts.md)"
+   }
   },
   {
    "id": "@wren/core/src/sent-records.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "The sent log as a console record: every message we sent, on any channel, with one state ladder"
+   }
   },
   {
    "id": "@wren/core/src/sent-url.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Where a sent thing can be seen: the reply's own permalink when the platform gives one, else the place it went (the post, the thread, the person's profile)"
+   }
   },
   {
    "id": "@wren/core/src/sent-views.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "The SQL views behind the sent log (`./sent-records.ts`, designs/2026-10-14-customerio-audit.md, B2): every message we sent, on any channel, as one row, and each row's history"
+   }
   },
   {
    "id": "@wren/core/src/setup-agent.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "`SetupAgent/run`: one done-for-you setup step, handed over by `setup.step` on its first round"
+   }
   },
   {
    "id": "@wren/core/src/setup-alerts.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Setup alerts: every setup state change that matters goes through `setupAlert`"
+   }
   },
   {
    "id": "@wren/core/src/setup-schema.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Accounts, their facts and their setups"
+   }
   },
   {
    "id": "@wren/core/src/setup-watch.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "`SetupWatch/all`: once an hour, done setups whose repeat is due get every check again (`recheck`)"
+   }
   },
   {
    "id": "@wren/core/src/setup.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Account setup: a setup is a workflow of steps, each making one named fact true on one account"
+   }
   },
   {
    "id": "@wren/core/src/setups.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Setups for the accounts core already knows how to connect: Google's Search Console and Calendar, and Meta's partner link"
+   }
   },
   {
    "id": "@wren/core/src/slots/index.ts",
@@ -1292,37 +1883,55 @@
    "id": "@wren/core/src/slots/kinds.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "One slot syntax for every channel: an email, a text, a DM and a model prompt all parse with `parse.ts`, check here and render with `tree.ts`"
+   }
   },
   {
    "id": "@wren/core/src/slots/parse.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "The template authoring format: a file IS the email"
+   }
   },
   {
    "id": "@wren/core/src/slots/pickers.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Pickers: HOW one option is chosen at a variant point"
+   }
   },
   {
    "id": "@wren/core/src/slots/preview.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Preview surfaces for the authoring loop: see the copy before anything composes"
+   }
   },
   {
    "id": "@wren/core/src/slots/pyrepr.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Python `repr()` parity for the template version hash"
+   }
   },
   {
    "id": "@wren/core/src/slots/tree.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Templates as pure data: an email, a text, a DM or a prompt (`kinds.ts` says which)"
+   }
   },
   {
    "id": "@wren/core/src/state.ts",
@@ -1334,55 +1943,82 @@
    "id": "@wren/core/src/stats.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "The one way a rate is stated, for every channel (ported from emailsgen.stats)"
+   }
   },
   {
    "id": "@wren/core/src/suppress.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Suppression: the one writer of `suppressions` and `suppression_events`"
+   }
   },
   {
    "id": "@wren/core/src/survey-store.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Surveys in the database: the `marketing.survey` record with its words edited in place, Go live, Pause and Remove, the live site ones for the edge push, and the portal side (what a client login is due, its answer)"
+   }
   },
   {
    "id": "@wren/core/src/surveys.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Surveys: one question, when it shows and who sees it, in words the team edits"
+   }
   },
   {
    "id": "@wren/core/src/template-defaults.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Wren's built-in defaults as files: `packages/templates/defaults/<kind>/<system>/<folder>/<name>.<ext>`"
+   }
   },
   {
    "id": "@wren/core/src/template-edits.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "What the Library shows and changes on a template: its live and draft words with a sample render, its slots and variants with their numbers, each version's numbers, the campaigns that sent it; and its edits"
+   }
   },
   {
    "id": "@wren/core/src/template-install.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Template install: a workflow marked as a template goes onto a client in one go"
+   }
   },
   {
    "id": "@wren/core/src/template-labels.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Names as people read them: a folder, name part or niche (\"sec_ria\", \"book-first\") becomes a label (\"SEC RIA\", \"Book first\")"
+   }
   },
   {
    "id": "@wren/core/src/template-records.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "The template store as records: templates, their versions, each variant's numbers, and the sequences and steps that send them"
+   }
   },
   {
    "id": "@wren/core/src/templates-console-routes.ts",
@@ -1394,13 +2030,19 @@
    "id": "@wren/core/src/templates-console.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "TemplatesConsole: the Library's template browser"
+   }
   },
   {
    "id": "@wren/core/src/templates.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "The template store: every channel's copy and every model prompt in `templates` and `template_versions`"
+   }
   },
   {
    "id": "@wren/core/src/testing.ts",
@@ -1412,91 +2054,136 @@
    "id": "@wren/core/src/time.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "IANA zone arithmetic on top of `Intl`, no library"
+   }
   },
   {
    "id": "@wren/core/src/tokens.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Access tokens for AI tools, the `wren` CLI and its skill"
+   }
   },
   {
    "id": "@wren/core/src/touch-feed.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "The touch feed: `recordTouch` has many writers outside Restate, so the executor hears a touch from this tail loop, not from them"
+   }
   },
   {
    "id": "@wren/core/src/touch-link.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "The item's own page for a touch: the comment, the reply, the status, the DM thread"
+   }
   },
   {
    "id": "@wren/core/src/touches-schema.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Touches: every social touch, ours and theirs, on one person's timeline"
+   }
   },
   {
    "id": "@wren/core/src/touches.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Touches: one line per social touch, ours or theirs, on the person's timeline"
+   }
   },
   {
    "id": "@wren/core/src/train.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "The training export: `draft_events` as one `wren.draft/1` record per draft (item and round), and `wren.pair/1` preference pairs built from them"
+   }
   },
   {
    "id": "@wren/core/src/vault-keys.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "API keys as accounts"
+   }
   },
   {
    "id": "@wren/core/src/vendor-direct-exa.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "autobrowse's Exa-backed `web` routes on a client's own Exa key: people search, a firm's companies, company search, and LinkedIn profiles, company pages and posts from Exa's index"
+   }
   },
   {
    "id": "@wren/core/src/vendor-direct.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "A client's own key, straight to its vendor"
+   }
   },
   {
    "id": "@wren/core/src/vendor-keys.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Whose key a vendor call runs on"
+   }
   },
   {
    "id": "@wren/core/src/vendor-schema.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Vendor modes and metered usage"
+   }
   },
   {
    "id": "@wren/core/src/vendor-stop.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "A vendor read that never ran: the gate said no, or the client's key isn't there"
+   }
   },
   {
    "id": "@wren/core/src/vendors.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Metered vendors: what each one charges, its quota per key, and per owner whether it runs on the owner's key or Wren's"
+   }
   },
   {
    "id": "@wren/core/src/view-as.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "View as's console calls: who the picker offers, and the sandbox, a blank new client made once and wiped on demand"
+   }
   },
   {
    "id": "@wren/core/src/views.ts",
@@ -1508,43 +2195,64 @@
    "id": "@wren/core/src/warm.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "How often to check back after a touch, the way a person would: every couple of minutes right after posting, commenting or messaging, then less as it goes quiet"
+   }
   },
   {
    "id": "@wren/core/src/webhook-events.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Outbound webhooks, the pure half: the events a client's URL may hear and where each comes from on the executor, the URL guard, and the Send webhook node's slots"
+   }
   },
   {
    "id": "@wren/core/src/webhooks.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Outbound webhooks: what a client's URL hears, signed the Standard Webhooks way, posted past an SSRF guard, tried again on a ladder by Restate, every try logged"
+   }
   },
   {
    "id": "@wren/core/src/wire.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Test helper: a fake `fetch` that keeps every call as the shape that matters on the wire"
+   }
   },
   {
    "id": "@wren/core/src/workflow-ask.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Ask Claude on a workflow's graph: \"add a text 2 days after the second email if no reply\""
+   }
   },
   {
    "id": "@wren/core/src/workflow-templates.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "Save as template: a published workflow's live wiring kept under a name in `workflow_templates`, sold beside the code's templates and installed on a client through the same path (`template-install.ts`)"
+   }
   },
   {
    "id": "@wren/core/src/workflows.ts",
    "role": "file",
    "parent": "@wren/core",
-   "group": "@wren/core"
+   "group": "@wren/core",
+   "attrs": {
+    "description": "A workflow: parts wired output to input, with inputs and outputs of its own, so it nests in another workflow as a node"
+   }
   },
   {
    "id": "@wren/core/vitest.config.ts",

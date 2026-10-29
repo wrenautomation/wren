@@ -2535,6 +2535,20 @@
    }
   },
   {
+   "id": "@wren/books#usageByService",
+   "role": "export",
+   "parent": "@wren/books",
+   "group": "@wren/books",
+   "attrs": {
+    "entries": [
+     "@wren/books"
+    ],
+    "file": "packages/books/src/usage.ts",
+    "kind": "function",
+    "sig": "(db: Db, provider: UsageProvider, from: string, to: string): Promise<{ service: string; currency: string; amount: number }[]>"
+   }
+  },
+  {
    "id": "@wren/books#usageLines",
    "role": "export",
    "parent": "@wren/books",

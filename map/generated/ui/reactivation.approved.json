@@ -1,0 +1,244 @@
+{
+ "layer": "ui",
+ "nodes": [
+  {
+   "id": "ui:reactivation",
+   "role": "app",
+   "group": "reactivation",
+   "attrs": {
+    "areas": [
+     "client: Leads"
+    ],
+    "blurb": "Checks your past clients for a reason to call now. Each gets a brief and an email that waits for your OK.",
+    "file": "apps/portal/web/src/modules/reactivation/index.ts",
+    "name": "Reactivation",
+    "workspace": "client"
+   }
+  },
+  {
+   "id": "ui:reactivation/contract",
+   "role": "screen",
+   "parent": "ui:reactivation",
+   "group": "reactivation",
+   "attrs": {
+    "about": "Your contract with Wren, to read and sign.",
+    "file": "apps/portal/web/src/modules/work/Contract.tsx",
+    "hidden": true,
+    "label": "Contract",
+    "order": 14,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:reactivation/deliverables",
+   "role": "screen",
+   "parent": "ui:reactivation",
+   "group": "reactivation",
+   "attrs": {
+    "about": "What we hand over, waiting for your OK.",
+    "file": "apps/portal/web/src/records.tsx",
+    "hidden": true,
+    "label": "Deliverables",
+    "order": 12,
+    "record": "delivery.deliverable",
+    "template": "queue"
+   }
+  },
+  {
+   "id": "ui:reactivation/emails",
+   "role": "screen",
+   "parent": "ui:reactivation",
+   "group": "reactivation",
+   "attrs": {
+    "about": "Emails to past customers, waiting for your OK.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Emails",
+    "order": 3,
+    "record": "reactivation.email",
+    "template": "queue"
+   }
+  },
+  {
+   "id": "ui:reactivation/keep",
+   "role": "screen",
+   "parent": "ui:reactivation",
+   "group": "reactivation",
+   "attrs": {
+    "about": "Current customers who may go quiet, riskiest first.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Keep",
+    "order": 5,
+    "record": "reactivation.keep",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:reactivation/needs-you",
+   "role": "screen",
+   "parent": "ui:reactivation",
+   "group": "reactivation",
+   "attrs": {
+    "about": "Questions and files we need from you.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Needs you",
+    "order": 10,
+    "record": "delivery.ask",
+    "template": "queue"
+   }
+  },
+  {
+   "id": "ui:reactivation/overview",
+   "role": "screen",
+   "parent": "ui:reactivation",
+   "group": "reactivation",
+   "attrs": {
+    "about": "How winning back your past customers is going.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Overview",
+    "order": 0,
+    "template": "overview"
+   }
+  },
+  {
+   "id": "ui:reactivation/paperwork",
+   "role": "screen",
+   "parent": "ui:reactivation",
+   "group": "reactivation",
+   "attrs": {
+    "about": "Your contract, the setup fee and the access we need.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Paperwork",
+    "order": 11,
+    "record": "delivery.paperwork",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:reactivation/people",
+   "role": "screen",
+   "parent": "ui:reactivation",
+   "group": "reactivation",
+   "attrs": {
+    "about": "Everyone on your list, ranked by why to call them now.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "People",
+    "order": 2,
+    "record": "reactivation.person",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:reactivation/plan",
+   "role": "screen",
+   "parent": "ui:reactivation",
+   "group": "reactivation",
+   "attrs": {
+    "about": "Every step of your project, with its dates.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Plan",
+    "order": 8,
+    "record": "delivery.step",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:reactivation/real",
+   "role": "screen",
+   "parent": "ui:reactivation",
+   "group": "reactivation",
+   "attrs": {
+    "about": "What in this sample is real and what is made up.",
+    "file": "apps/portal/web/src/modules/reactivation/Real.tsx",
+    "hidden": true,
+    "label": "What's real",
+    "order": 7,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:reactivation/replies",
+   "role": "screen",
+   "parent": "ui:reactivation",
+   "group": "reactivation",
+   "attrs": {
+    "about": "Replies from past customers, ready for you to answer.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Replies",
+    "order": 4,
+    "record": "reactivation.reply",
+    "template": "queue"
+   }
+  },
+  {
+   "id": "ui:reactivation/results",
+   "role": "screen",
+   "parent": "ui:reactivation",
+   "group": "reactivation",
+   "attrs": {
+    "about": "The numbers that show whether the work paid off.",
+    "file": "apps/portal/web/src/records.tsx",
+    "hidden": true,
+    "label": "Results",
+    "order": 13,
+    "record": "delivery.result",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:reactivation/run",
+   "role": "screen",
+   "parent": "ui:reactivation",
+   "group": "reactivation",
+   "attrs": {
+    "about": "Watch the campaign's work as it runs, line by line.",
+    "file": "apps/portal/web/src/modules/reactivation/Run.tsx",
+    "label": "Run",
+    "order": 1,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:reactivation/setup",
+   "role": "screen",
+   "parent": "ui:reactivation",
+   "group": "reactivation",
+   "attrs": {
+    "about": "Who your campaign writes to, and how.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Setup",
+    "order": 6,
+    "record": "reactivation.setting",
+    "template": "form"
+   }
+  },
+  {
+   "id": "ui:reactivation/updates",
+   "role": "screen",
+   "parent": "ui:reactivation",
+   "group": "reactivation",
+   "attrs": {
+    "about": "What we've done on your project, as we post it.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Updates",
+    "order": 9,
+    "record": "delivery.update",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:reactivation/welcome",
+   "role": "screen",
+   "parent": "ui:reactivation",
+   "group": "reactivation",
+   "attrs": {
+    "about": "How this works, who does what, and where to find us.",
+    "file": "apps/portal/web/src/modules/work/Welcome.tsx",
+    "hidden": true,
+    "label": "Welcome guide",
+    "order": 15,
+    "template": "hand"
+   }
+  }
+ ],
+ "edges": []
+}

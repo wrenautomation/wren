@@ -1,0 +1,101 @@
+{
+ "layer": "ui",
+ "nodes": [
+  {
+   "id": "ui:loops",
+   "role": "app",
+   "group": "loops",
+   "attrs": {
+    "areas": [
+     "team: Tools"
+    ],
+    "blurb": "Every scheduled job, which ones fail, and Wren's own settings.",
+    "file": "apps/portal/web/src/modules/wren/index.ts",
+    "name": "Loops",
+    "workspace": "wren"
+   }
+  },
+  {
+   "id": "ui:loops/agents",
+   "role": "screen",
+   "parent": "ui:loops",
+   "group": "loops",
+   "attrs": {
+    "about": "Everything that runs for Wren, by department.",
+    "file": "apps/portal/web/src/modules/wren/Agents.tsx",
+    "label": "Agents",
+    "order": 1,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:loops/all",
+   "role": "screen",
+   "parent": "ui:loops",
+   "group": "loops",
+   "attrs": {
+    "about": "Every loop, and whether it's running or failing.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Loops",
+    "order": 2,
+    "record": "console.loop",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:loops/flags",
+   "role": "screen",
+   "parent": "ui:loops",
+   "group": "loops",
+   "attrs": {
+    "about": "Switches the code reads to turn a feature on or off.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Flags",
+    "order": 4,
+    "record": "loops.flag",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:loops/infra",
+   "role": "screen",
+   "parent": "ui:loops",
+   "group": "loops",
+   "attrs": {
+    "about": "Every host, and what calls what.",
+    "file": "apps/portal/web/src/modules/wren/infra.tsx",
+    "label": "Infra",
+    "order": 5,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:loops/overview",
+   "role": "screen",
+   "parent": "ui:loops",
+   "group": "loops",
+   "attrs": {
+    "about": "Everything that runs on its own, and whether it's healthy.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Overview",
+    "order": 0,
+    "template": "overview"
+   }
+  },
+  {
+   "id": "ui:loops/settings",
+   "role": "screen",
+   "parent": "ui:loops",
+   "group": "loops",
+   "attrs": {
+    "about": "Settings for the parts that run for Wren.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Settings",
+    "order": 3,
+    "record": "console.setting",
+    "template": "list"
+   }
+  }
+ ],
+ "edges": []
+}

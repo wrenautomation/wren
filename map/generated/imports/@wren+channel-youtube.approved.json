@@ -14,7 +14,10 @@
    "id": "@wren/channel-youtube/src/content.ts",
    "role": "file",
    "parent": "@wren/channel-youtube",
-   "group": "@wren/channel-youtube"
+   "group": "@wren/channel-youtube",
+   "attrs": {
+    "description": "YouTube as a `ContentChannel`, over autobrowse's site API in the Data API v3's shape"
+   }
   },
   {
    "id": "@wren/channel-youtube/src/index.ts",

@@ -1,0 +1,171 @@
+{
+ "layer": "ui",
+ "nodes": [
+  {
+   "id": "ui:learn",
+   "role": "app",
+   "group": "learn",
+   "attrs": {
+    "blurb": "Saved links and followed sources, read, scored against Wren's SOPs, and kept like a drive.",
+    "file": "apps/portal/web/src/modules/learn/index.ts",
+    "name": "Learn",
+    "parked": true,
+    "workspace": "wren"
+   }
+  },
+  {
+   "id": "ui:learn/add",
+   "role": "screen",
+   "parent": "ui:learn",
+   "group": "learn",
+   "attrs": {
+    "about": "Save a link to read and learn from.",
+    "file": "apps/portal/web/src/modules/learn/learn.tsx",
+    "hidden": true,
+    "label": "Save a link",
+    "order": 10,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:learn/competitors",
+   "role": "screen",
+   "parent": "ui:learn",
+   "group": "learn",
+   "attrs": {
+    "about": "How competitors' reels, posts and films are made, and how far they reach.",
+    "file": "apps/portal/web/src/records.tsx",
+    "group": "Competitors",
+    "label": "Competitors",
+    "order": 4,
+    "template": "overview"
+   }
+  },
+  {
+   "id": "ui:learn/hooks",
+   "role": "screen",
+   "parent": "ui:learn",
+   "group": "learn",
+   "attrs": {
+    "about": "Hook styles, ranked by how far they reach.",
+    "file": "apps/portal/web/src/records.tsx",
+    "group": "Competitors",
+    "label": "Hooks",
+    "order": 6,
+    "record": "learn.hook",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:learn/items",
+   "role": "screen",
+   "parent": "ui:learn",
+   "group": "learn",
+   "attrs": {
+    "about": "One saved item, with its transcript and notes.",
+    "file": "apps/portal/web/src/modules/learn/drive.tsx",
+    "hidden": true,
+    "label": "Items",
+    "order": 8,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:learn/overview",
+   "role": "screen",
+   "parent": "ui:learn",
+   "group": "learn",
+   "attrs": {
+    "about": "The best of what you follow, scored against your SOPs.",
+    "file": "apps/portal/web/src/modules/learn/home.tsx",
+    "label": "Home",
+    "order": 0,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:learn/reels",
+   "role": "screen",
+   "parent": "ui:learn",
+   "group": "learn",
+   "attrs": {
+    "about": "Each reel, post or film broken down into its hook, beats and ask.",
+    "file": "apps/portal/web/src/records.tsx",
+    "group": "Competitors",
+    "label": "Breakdowns",
+    "order": 5,
+    "record": "learn.breakdown",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:learn/saved",
+   "role": "screen",
+   "parent": "ui:learn",
+   "group": "learn",
+   "attrs": {
+    "about": "Everything you saved to come back to.",
+    "hidden": true,
+    "label": "Saved",
+    "order": 9,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:learn/search",
+   "role": "screen",
+   "parent": "ui:learn",
+   "group": "learn",
+   "attrs": {
+    "about": "Search every transcript, word for word.",
+    "file": "apps/portal/web/src/modules/learn/learn.tsx",
+    "label": "Search",
+    "order": 2,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:learn/sops",
+   "role": "screen",
+   "parent": "ui:learn",
+   "group": "learn",
+   "attrs": {
+    "about": "Your SOPs, and the items added to each one.",
+    "file": "apps/portal/web/src/records.tsx",
+    "group": "Setup",
+    "label": "SOPs",
+    "order": 7,
+    "record": "learn.sop",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:learn/sources",
+   "role": "screen",
+   "parent": "ui:learn",
+   "group": "learn",
+   "attrs": {
+    "about": "The creators and feeds you follow.",
+    "file": "apps/portal/web/src/modules/learn/sources.tsx",
+    "group": "Setup",
+    "label": "Sources",
+    "order": 3,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:learn/today",
+   "role": "screen",
+   "parent": "ui:learn",
+   "group": "learn",
+   "attrs": {
+    "about": "The last day's best from what you follow.",
+    "file": "apps/portal/web/src/modules/learn/today.tsx",
+    "label": "Today",
+    "order": 1,
+    "template": "hand"
+   }
+  }
+ ],
+ "edges": []
+}

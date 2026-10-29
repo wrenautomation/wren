@@ -1,0 +1,43 @@
+{
+ "layer": "systems",
+ "nodes": [
+  {
+   "id": "system:restate",
+   "role": "system",
+   "group": "restate",
+   "attrs": {
+    "description": "Durable execution: journals every service call and invokes the worker.",
+    "kind": "vendor",
+    "title": "Restate Cloud"
+   }
+  }
+ ],
+ "edges": [
+  {
+   "from": "system:restate",
+   "to": "system:wren.container:worker",
+   "kind": "invokes",
+   "attrs": {
+    "here": [
+     "apps/worker/src/box.ts"
+    ],
+    "title": [
+     "60 services"
+    ]
+   }
+  },
+  {
+   "from": "system:restate",
+   "to": "system:wren.lambda:worker",
+   "kind": "invokes",
+   "attrs": {
+    "here": [
+     "apps/worker/src/lambda.ts"
+    ],
+    "title": [
+     "60 services"
+    ]
+   }
+  }
+ ]
+}

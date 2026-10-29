@@ -14,49 +14,73 @@
    "id": "@wren/channel-meta/src/ads.ts",
    "role": "file",
    "parent": "@wren/channel-meta",
-   "group": "@wren/channel-meta"
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "description": "Meta ads over autobrowse's `meta` site (Marketing API, graph.facebook.com)"
+   }
   },
   {
    "id": "@wren/channel-meta/src/audit.ts",
    "role": "file",
    "parent": "@wren/channel-meta",
-   "group": "@wren/channel-meta"
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "description": "A Meta ad account audit"
+   }
   },
   {
    "id": "@wren/channel-meta/src/bridge.ts",
    "role": "file",
    "parent": "@wren/channel-meta",
-   "group": "@wren/channel-meta"
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "description": "The two ways ads and organic content feed each other, as pure functions: a winning ad becomes an idea for a post (AdsWatch adds it, nobody drafts it until the person says), and a published post becomes a launch spec (PAUSED, printed, nothing spends)"
+   }
   },
   {
    "id": "@wren/channel-meta/src/components.ts",
    "role": "file",
    "parent": "@wren/channel-meta",
-   "group": "@wren/channel-meta"
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "description": "Meta ads: launch, watch and pull leads from lead forms"
+   }
   },
   {
    "id": "@wren/channel-meta/src/consent.ts",
    "role": "file",
    "parent": "@wren/channel-meta",
-   "group": "@wren/channel-meta"
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "description": "A Meta lead form's consent box as marketing consent"
+   }
   },
   {
    "id": "@wren/channel-meta/src/content-web.ts",
    "role": "file",
    "parent": "@wren/channel-meta",
-   "group": "@wren/channel-meta"
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "description": "Instagram through the browser, for the case the Graph API cannot serve: a file on this machine"
+   }
   },
   {
    "id": "@wren/channel-meta/src/content.ts",
    "role": "file",
    "parent": "@wren/channel-meta",
-   "group": "@wren/channel-meta"
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "description": "Instagram and a Facebook Page as `ContentChannel`s, both over autobrowse's `meta` site (one Facebook Login app, graph.facebook.com)"
+   }
   },
   {
    "id": "@wren/channel-meta/src/days.ts",
    "role": "file",
    "parent": "@wren/channel-meta",
-   "group": "@wren/channel-meta"
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "description": "`ad_days`: Meta's daily ad set rows kept as they were read"
+   }
   },
   {
    "id": "@wren/channel-meta/src/index.ts",
@@ -68,49 +92,73 @@
    "id": "@wren/channel-meta/src/launches.ts",
    "role": "file",
    "parent": "@wren/channel-meta",
-   "group": "@wren/channel-meta"
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "description": "The `ad_launches` ledger and the one judgement `AdsWatch` makes over it: an ad set that has spent the guard amount with nothing to show (no clicks, no results) gets paused"
+   }
   },
   {
    "id": "@wren/channel-meta/src/poll.ts",
    "role": "file",
    "parent": "@wren/channel-meta",
-   "group": "@wren/channel-meta"
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "description": "How long to wait before each status read of a video container (Instagram, Threads): 10 s, 15 s, 20 s, then 30 s, 5 minutes in all (12 reads)"
+   }
   },
   {
    "id": "@wren/channel-meta/src/records.ts",
    "role": "file",
    "parent": "@wren/channel-meta",
-   "group": "@wren/channel-meta"
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "description": "Ad set days as a console record for the Marketing app (`marketing_ad_day_records`)"
+   }
   },
   {
    "id": "@wren/channel-meta/src/restate.ts",
    "role": "file",
    "parent": "@wren/channel-meta",
-   "group": "@wren/channel-meta"
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "description": "Meta ads as one Restate service, `Ads`"
+   }
   },
   {
    "id": "@wren/channel-meta/src/schema.ts",
    "role": "file",
    "parent": "@wren/channel-meta",
-   "group": "@wren/channel-meta"
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "description": "What `wren ads` launched, as rows: the spec, the four ids, the budget and when it was started and stopped"
+   }
   },
   {
    "id": "@wren/channel-meta/src/setups.ts",
    "role": "file",
    "parent": "@wren/channel-meta",
-   "group": "@wren/channel-meta"
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "description": "The Meta setup's checks: can Wren's token read the client's ad account, and is a Page there that Wren may run ads for? Each is one free read of the account through autobrowse's `meta` site; the Pages come by field expansion"
+   }
   },
   {
    "id": "@wren/channel-meta/src/threads.ts",
    "role": "file",
    "parent": "@wren/channel-meta",
-   "group": "@wren/channel-meta"
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "description": "Threads as a `ContentChannel`, over autobrowse's `threads` site (graph.threads.net, the profile's own long-lived token)"
+   }
   },
   {
    "id": "@wren/channel-meta/src/watch.ts",
    "role": "file",
    "parent": "@wren/channel-meta",
-   "group": "@wren/channel-meta"
+   "group": "@wren/channel-meta",
+   "attrs": {
+    "description": "`AdsWatch/default`: once a day, adset-level insights for the last 7 days against `ad_launches`"
+   }
   },
   {
    "id": "@wren/channel-meta/vitest.config.ts",

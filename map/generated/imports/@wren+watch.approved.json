@@ -14,13 +14,19 @@
    "id": "@wren/watch/src/clients.ts",
    "role": "file",
    "parent": "@wren/watch",
-   "group": "@wren/watch"
+   "group": "@wren/watch",
+   "attrs": {
+    "description": "`MailReader/all`: the Monitor's reader made per client"
+   }
   },
   {
    "id": "@wren/watch/src/components.ts",
    "role": "file",
    "parent": "@wren/watch",
-   "group": "@wren/watch"
+   "group": "@wren/watch",
+   "attrs": {
+    "description": "Monitor (was the Monitor): Wren's first routed workflow"
+   }
   },
   {
    "id": "@wren/watch/src/console-routes.ts",
@@ -32,7 +38,10 @@
    "id": "@wren/watch/src/console.ts",
    "role": "file",
    "parent": "@wren/watch",
-   "group": "@wren/watch"
+   "group": "@wren/watch",
+   "attrs": {
+    "description": "WatchConsole: the Inbox app's hands on the Monitor"
+   }
   },
   {
    "id": "@wren/watch/src/index.ts",
@@ -44,37 +53,55 @@
    "id": "@wren/watch/src/links.ts",
    "role": "file",
    "parent": "@wren/watch",
-   "group": "@wren/watch"
+   "group": "@wren/watch",
+   "attrs": {
+    "description": "The link a notification mail is about: the sender's own page for the thing (LinkedIn's message thread, a Reddit reply, a GitHub issue), so \"Open\" lands there and not in Gmail"
+   }
   },
   {
    "id": "@wren/watch/src/read.ts",
    "role": "file",
    "parent": "@wren/watch",
-   "group": "@wren/watch"
+   "group": "@wren/watch",
+   "attrs": {
+    "description": "The Monitor's reader: new mail in each inbox since the newest kept, headers and Gmail's preview only"
+   }
   },
   {
    "id": "@wren/watch/src/records.ts",
    "role": "file",
    "parent": "@wren/watch",
-   "group": "@wren/watch"
+   "group": "@wren/watch",
+   "attrs": {
+    "description": "The Monitor as console records, in the Inbox app: the mail it read, by where it shows, and the rules it reads by"
+   }
   },
   {
    "id": "@wren/watch/src/restate.ts",
    "role": "file",
    "parent": "@wren/watch",
-   "group": "@wren/watch"
+   "group": "@wren/watch",
+   "attrs": {
+    "description": "`Watch/all`: every 15 minutes, read new mail in each inbox and each Learn source due a read"
+   }
   },
   {
    "id": "@wren/watch/src/schema.ts",
    "role": "file",
    "parent": "@wren/watch",
-   "group": "@wren/watch"
+   "group": "@wren/watch",
+   "attrs": {
+    "description": "The Monitor's tables: mail it read and the rules it reads mail by"
+   }
   },
   {
    "id": "@wren/watch/src/triage.ts",
    "role": "file",
    "parent": "@wren/watch",
-   "group": "@wren/watch"
+   "group": "@wren/watch",
+   "attrs": {
+    "description": "The Monitor's triage: show, hold or drop, with one line on why"
+   }
   },
   {
    "id": "@wren/watch/vitest.config.ts",

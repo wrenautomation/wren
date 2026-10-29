@@ -1,0 +1,72 @@
+{
+ "layer": "ui",
+ "nodes": [
+  {
+   "id": "ui:clientNotes",
+   "role": "app",
+   "group": "clientNotes",
+   "attrs": {
+    "areas": [
+     "client: Tools"
+    ],
+    "blurb": "Your team's notes and docs, with versions and sharing.",
+    "file": "apps/portal/web/src/modules/notes/index.ts",
+    "name": "Notes",
+    "workspace": "client"
+   }
+  },
+  {
+   "id": "ui:clientNotes/board",
+   "role": "screen",
+   "parent": "ui:clientNotes",
+   "group": "clientNotes",
+   "attrs": {
+    "about": "Cards in columns, each one a note.",
+    "file": "apps/portal/web/src/modules/notes/board.tsx",
+    "label": "Board",
+    "order": 1,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:clientNotes/doc",
+   "role": "screen",
+   "parent": "ui:clientNotes",
+   "group": "clientNotes",
+   "attrs": {
+    "about": "One note, with its versions and comments.",
+    "hidden": true,
+    "label": "Note",
+    "order": 3,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:clientNotes/home",
+   "role": "screen",
+   "parent": "ui:clientNotes",
+   "group": "clientNotes",
+   "attrs": {
+    "about": "Your notes, plans and docs.",
+    "file": "apps/portal/web/src/modules/notes/home.tsx",
+    "label": "Notes",
+    "order": 0,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:clientNotes/mentions",
+   "role": "screen",
+   "parent": "ui:clientNotes",
+   "group": "clientNotes",
+   "attrs": {
+    "about": "Notes where someone tagged you with @.",
+    "file": "apps/portal/web/src/modules/notes/mentions.tsx",
+    "label": "Mentions",
+    "order": 2,
+    "template": "hand"
+   }
+  }
+ ],
+ "edges": []
+}

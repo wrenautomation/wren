@@ -17,7 +17,10 @@
    "id": "@wren/documents/src/components.ts",
    "role": "file",
    "parent": "@wren/documents",
-   "group": "@wren/documents"
+   "group": "@wren/documents",
+   "attrs": {
+    "description": "Documents, e-sign and estimates as a part"
+   }
   },
   {
    "id": "@wren/documents/src/console-routes.ts",
@@ -29,55 +32,82 @@
    "id": "@wren/documents/src/console.ts",
    "role": "file",
    "parent": "@wren/documents",
-   "group": "@wren/documents"
+   "group": "@wren/documents",
+   "attrs": {
+    "description": "DocumentsConsole: the portal's Documents and Templates pages, Texts' \"Send estimate\" and To approve's yes and no"
+   }
   },
   {
    "id": "@wren/documents/src/documenso.ts",
    "role": "file",
    "parent": "@wren/documents",
-   "group": "@wren/documents"
+   "group": "@wren/documents",
+   "attrs": {
+    "description": "A thin client for Documenso's REST API v2"
+   }
   },
   {
    "id": "@wren/documents/src/lines.ts",
    "role": "file",
    "parent": "@wren/documents",
-   "group": "@wren/documents"
+   "group": "@wren/documents",
+   "attrs": {
+    "description": "The pure half of documents: kinds, line math, totals and slots"
+   }
   },
   {
    "id": "@wren/documents/src/pdf.ts",
    "role": "file",
    "parent": "@wren/documents",
-   "group": "@wren/documents"
+   "group": "@wren/documents",
+   "attrs": {
+    "description": "The signed copy as a PDF, built on demand from the frozen row: the words, the lines and totals, then a signing record page with each step's time, IP and agent, the signer, the consent words and the SHA-256"
+   }
   },
   {
    "id": "@wren/documents/src/records.ts",
    "role": "file",
    "parent": "@wren/documents",
-   "group": "@wren/documents"
+   "group": "@wren/documents",
+   "attrs": {
+    "description": "Documents as records: one client's contracts, proposals and estimates, and its templates"
+   }
   },
   {
    "id": "@wren/documents/src/render.ts",
    "role": "file",
    "parent": "@wren/documents",
-   "group": "@wren/documents"
+   "group": "@wren/documents",
+   "attrs": {
+    "description": "The signing page at `/o/d/<token>`: the words, the lines, the totals, then the signing form or what became of it"
+   }
   },
   {
    "id": "@wren/documents/src/schema.ts",
    "role": "file",
    "parent": "@wren/documents",
-   "group": "@wren/documents"
+   "group": "@wren/documents",
+   "attrs": {
+    "description": "Documents, e-sign and estimates"
+   }
   },
   {
    "id": "@wren/documents/src/service.ts",
    "role": "file",
    "parent": "@wren/documents",
-   "group": "@wren/documents"
+   "group": "@wren/documents",
+   "attrs": {
+    "description": "Documents on Restate"
+   }
   },
   {
    "id": "@wren/documents/src/store.ts",
    "role": "file",
    "parent": "@wren/documents",
-   "group": "@wren/documents"
+   "group": "@wren/documents",
+   "attrs": {
+    "description": "Documents' reads and writes: templates, filling, totals, the frozen text and its SHA-256, the link's token (only its hash kept), and the signer's steps"
+   }
   },
   {
    "id": "@wren/documents/vitest.config.ts",

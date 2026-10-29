@@ -7,6 +7,7 @@
    "parent": "repo:wren",
    "group": "@wren/llm-gateway",
    "attrs": {
+    "description": "Free-tier model gateway: rotates Gemini, OpenRouter and Cohere keys.",
     "dir": "apps/llm-gateway/",
     "npm": [
      "cloudflare:workers"
@@ -17,31 +18,46 @@
    "id": "@wren/llm-gateway/src/catalog.ts",
    "role": "file",
    "parent": "@wren/llm-gateway",
-   "group": "@wren/llm-gateway"
+   "group": "@wren/llm-gateway",
+   "attrs": {
+    "description": "What the gateway can call: providers, their models' free-tier limits per key, and the aliases that fall through a chain of models"
+   }
   },
   {
    "id": "@wren/llm-gateway/src/guard.ts",
    "role": "file",
    "parent": "@wren/llm-gateway",
-   "group": "@wren/llm-gateway"
+   "group": "@wren/llm-gateway",
+   "attrs": {
+    "description": "Who may call and how much"
+   }
   },
   {
    "id": "@wren/llm-gateway/src/ledger.ts",
    "role": "file",
    "parent": "@wren/llm-gateway",
-   "group": "@wren/llm-gateway"
+   "group": "@wren/llm-gateway",
+   "attrs": {
+    "description": "Per key and model: requests this minute and this day, a cooldown after a 429, and keys that failed auth"
+   }
   },
   {
    "id": "@wren/llm-gateway/src/route.ts",
    "role": "file",
    "parent": "@wren/llm-gateway",
-   "group": "@wren/llm-gateway"
+   "group": "@wren/llm-gateway",
+   "attrs": {
+    "description": "One chat completion through the chain: a key with room from the ledger, the next key on a 429 or a dead key, the next model when a model's keys are spent"
+   }
   },
   {
    "id": "@wren/llm-gateway/src/worker.ts",
    "role": "file",
    "parent": "@wren/llm-gateway",
-   "group": "@wren/llm-gateway"
+   "group": "@wren/llm-gateway",
+   "attrs": {
+    "description": "llm.wrenautomation.com: one OpenAI-compatible endpoint over every free LLM key we hold"
+   }
   }
  ],
  "edges": [

@@ -19,25 +19,37 @@
    "id": "@wren/voice/src/agent.ts",
    "role": "file",
    "parent": "@wren/voice",
-   "group": "@wren/voice"
+   "group": "@wren/voice",
+   "attrs": {
+    "description": "The agent: the `voice.agent` part's settings block, so the Shop edits it (Wren's in `wren_settings`, a client's in `clients.products`)"
+   }
   },
   {
    "id": "@wren/voice/src/box/main.ts",
    "role": "file",
    "parent": "@wren/voice",
-   "group": "@wren/voice"
+   "group": "@wren/voice",
+   "attrs": {
+    "description": "The voice box service's entry (deploy/voice/wren-voice.service)"
+   }
   },
   {
    "id": "@wren/voice/src/box/server.ts",
    "role": "file",
    "parent": "@wren/voice",
-   "group": "@wren/voice"
+   "group": "@wren/voice",
+   "attrs": {
+    "description": "The call loop's home on the box: a long-lived process holding each call's media socket, so every stage streams in one place, beside Restate and Postgres"
+   }
   },
   {
    "id": "@wren/voice/src/box/ws.ts",
    "role": "file",
    "parent": "@wren/voice",
-   "group": "@wren/voice"
+   "group": "@wren/voice",
+   "attrs": {
+    "description": "The smallest WebSocket server the media stream needs (RFC 6455): the upgrade handshake, text frames both ways, fragments, ping and close"
+   }
   },
   {
    "id": "@wren/voice/src/brain.ts",
@@ -49,25 +61,37 @@
    "id": "@wren/voice/src/call-now.ts",
    "role": "file",
    "parent": "@wren/voice",
-   "group": "@wren/voice"
+   "group": "@wren/voice",
+   "attrs": {
+    "description": "Speed to lead's call: a few minutes after the first text, the lead is called"
+   }
   },
   {
    "id": "@wren/voice/src/call.ts",
    "role": "file",
    "parent": "@wren/voice",
-   "group": "@wren/voice"
+   "group": "@wren/voice",
+   "attrs": {
+    "description": "The call loop: one session per call, the same on every pipeline"
+   }
   },
   {
    "id": "@wren/voice/src/components.ts",
    "role": "file",
    "parent": "@wren/voice",
-   "group": "@wren/voice"
+   "group": "@wren/voice",
+   "attrs": {
+    "description": "The voice agent as a Shop part"
+   }
   },
   {
    "id": "@wren/voice/src/consent.ts",
    "role": "file",
    "parent": "@wren/voice",
-   "group": "@wren/voice"
+   "group": "@wren/voice",
+   "attrs": {
+    "description": "The rules before any outbound dial, in code"
+   }
   },
   {
    "id": "@wren/voice/src/console-routes.ts",
@@ -79,133 +103,199 @@
    "id": "@wren/voice/src/console.ts",
    "role": "file",
    "parent": "@wren/voice",
-   "group": "@wren/voice"
+   "group": "@wren/voice",
+   "attrs": {
+    "description": "VoiceConsole: the Voice app's writes"
+   }
   },
   {
    "id": "@wren/voice/src/dictation-store.ts",
    "role": "file",
    "parent": "@wren/voice",
-   "group": "@wren/voice"
+   "group": "@wren/voice",
+   "attrs": {
+    "description": "Dictation's timings: each dictation is a `dictate` run in the run ledger, no words and no person, pruned at 30 days"
+   }
   },
   {
    "id": "@wren/voice/src/dictation/commands.ts",
    "role": "file",
    "parent": "@wren/voice",
-   "group": "@wren/voice"
+   "group": "@wren/voice",
+   "attrs": {
+    "description": "Spoken commands in dictated words: \"new line\" is a line break, \"period\" a full stop"
+   }
   },
   {
    "id": "@wren/voice/src/dictation/ears.ts",
    "role": "file",
    "parent": "@wren/voice",
-   "group": "@wren/voice"
+   "group": "@wren/voice",
+   "attrs": {
+    "description": "Ears from any batch model"
+   }
   },
   {
    "id": "@wren/voice/src/dictation/index.ts",
    "role": "file",
    "parent": "@wren/voice",
-   "group": "@wren/voice"
+   "group": "@wren/voice",
+   "attrs": {
+    "description": "Dictation: speech to text in the portal, through the voice agent's `Ears`"
+   }
   },
   {
    "id": "@wren/voice/src/dictation/route.ts",
    "role": "file",
    "parent": "@wren/voice",
-   "group": "@wren/voice"
+   "group": "@wren/voice",
+   "attrs": {
+    "description": "Which ears a dictation uses: the model in the browser when it has WebGPU, else our server when it's on, else the browser's own speech if the person allowed it, else none, with why"
+   }
   },
   {
    "id": "@wren/voice/src/dictation/session.ts",
    "role": "file",
    "parent": "@wren/voice",
-   "group": "@wren/voice"
+   "group": "@wren/voice",
+   "attrs": {
+    "description": "One dictation, from the press to the last words in the box: the mic's frames go to the ears, their words come back with the spoken commands applied, and each stage is timed"
+   }
   },
   {
    "id": "@wren/voice/src/dictation/transcriber.ts",
    "role": "file",
    "parent": "@wren/voice",
-   "group": "@wren/voice"
+   "group": "@wren/voice",
+   "attrs": {
+    "description": "A batch speech model, under the `Ears` seam: 16 kHz mono audio in, words out"
+   }
   },
   {
    "id": "@wren/voice/src/fakes.ts",
    "role": "file",
    "parent": "@wren/voice",
-   "group": "@wren/voice"
+   "group": "@wren/voice",
+   "attrs": {
+    "description": "A fake for every piece, so a whole call runs with no vendor: a scripted caller on a fake phone line, ears that read the fake audio as words, a mouth that turns words into fake audio, a brain that follows simple rules, and fake lead, calendar and message ports"
+   }
   },
   {
    "id": "@wren/voice/src/index.ts",
    "role": "file",
    "parent": "@wren/voice",
-   "group": "@wren/voice"
+   "group": "@wren/voice",
+   "attrs": {
+    "description": "The voice agent's isomorphic core: the interface, the agent, its tools, the call loop, the fakes and the text and browser transports"
+   }
   },
   {
    "id": "@wren/voice/src/node.ts",
    "role": "file",
    "parent": "@wren/voice",
-   "group": "@wren/voice"
+   "group": "@wren/voice",
+   "attrs": {
+    "description": "The voice agent's Node side: Postgres ports, the dial rules, saving calls, Telnyx"
+   }
   },
   {
    "id": "@wren/voice/src/ports.ts",
    "role": "file",
    "parent": "@wren/voice",
-   "group": "@wren/voice"
+   "group": "@wren/voice",
+   "attrs": {
+    "description": "The tools' ports on Postgres: who a number is (the SMS contact behind it), our calendar (`@wren/calendar`'s exported functions, nothing else), and messages"
+   }
   },
   {
    "id": "@wren/voice/src/reading.ts",
    "role": "file",
    "parent": "@wren/voice",
-   "group": "@wren/voice"
+   "group": "@wren/voice",
+   "attrs": {
+    "description": "Reading aloud: text to speech in the portal, through the voice agent's `Mouth`"
+   }
   },
   {
    "id": "@wren/voice/src/records.ts",
    "role": "file",
    "parent": "@wren/voice",
-   "group": "@wren/voice"
+   "group": "@wren/voice",
+   "attrs": {
+    "description": "The Voice app's records: calls (each with its transcript and timed turns) and latency (p50 and p95 per stage per pipeline)"
+   }
   },
   {
    "id": "@wren/voice/src/schema.ts",
    "role": "file",
    "parent": "@wren/voice",
-   "group": "@wren/voice"
+   "group": "@wren/voice",
+   "attrs": {
+    "description": "The voice agent's tables"
+   }
   },
   {
    "id": "@wren/voice/src/sentences.ts",
    "role": "file",
    "parent": "@wren/voice",
-   "group": "@wren/voice"
+   "group": "@wren/voice",
+   "attrs": {
+    "description": "Cut streamed text into sentences, so the first one goes to the mouth before the reply ends"
+   }
   },
   {
    "id": "@wren/voice/src/store.ts",
    "role": "file",
    "parent": "@wren/voice",
-   "group": "@wren/voice"
+   "group": "@wren/voice",
+   "attrs": {
+    "description": "A finished call into `voice_calls`, its turns into `voice_turns`, in one transaction"
+   }
   },
   {
    "id": "@wren/voice/src/tools.ts",
    "role": "file",
    "parent": "@wren/voice",
-   "group": "@wren/voice"
+   "group": "@wren/voice",
+   "attrs": {
+    "description": "What the agent can do on a call: look up the lead, offer times and book on our calendar, transfer to a person, take a message, end the call"
+   }
   },
   {
    "id": "@wren/voice/src/transports/browser.ts",
    "role": "file",
    "parent": "@wren/voice",
-   "group": "@wren/voice"
+   "group": "@wren/voice",
+   "attrs": {
+    "description": "A spoken test call in the browser at $0: the browser's own speech recognition is the ears and its speech synthesis the mouth, so the session sees text, as on a typed call"
+   }
   },
   {
    "id": "@wren/voice/src/transports/telnyx.ts",
    "role": "file",
    "parent": "@wren/voice",
-   "group": "@wren/voice"
+   "group": "@wren/voice",
+   "attrs": {
+    "description": "Telnyx media streaming: the phone network's audio over a WebSocket, both ways, and Call Control over REST for transfer, hang-up and dial"
+   }
   },
   {
    "id": "@wren/voice/src/transports/text.ts",
    "role": "file",
    "parent": "@wren/voice",
-   "group": "@wren/voice"
+   "group": "@wren/voice",
+   "attrs": {
+    "description": "A typed call: the caller's lines in, ours out as text"
+   }
   },
   {
    "id": "@wren/voice/src/types.ts",
    "role": "file",
    "parent": "@wren/voice",
-   "group": "@wren/voice"
+   "group": "@wren/voice",
+   "attrs": {
+    "description": "The voice agent's one interface"
+   }
   },
   {
    "id": "@wren/voice/vitest.config.ts",

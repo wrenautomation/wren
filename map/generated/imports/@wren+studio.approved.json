@@ -25,247 +25,370 @@
    "id": "@wren/studio/remotion/index.tsx",
    "role": "file",
    "parent": "@wren/studio",
-   "group": "@wren/studio"
+   "group": "@wren/studio",
+   "attrs": {
+    "description": "Adapted from heygen-com/hyperframes `registry/components/caption-*` and `skills/embedded-captions` @5c7f631 (Apache-2.0); changed: the caption styles and the words behind the speaker drawn as React on Remotion's frame clock from `src/caption-styles.ts` (no GSAP); the speaker's matte a VP9 alpha WebM per window over the big word (`OffthreadVideo transparent`)"
+   }
   },
   {
    "id": "@wren/studio/sfx/make.mjs",
    "role": "file",
    "parent": "@wren/studio",
-   "group": "@wren/studio"
+   "group": "@wren/studio",
+   "attrs": {
+    "description": "Makes the effects kit: earshot's `launch` kit, made in code, rendered once and kept"
+   }
   },
   {
    "id": "@wren/studio/src/align.ts",
    "role": "file",
    "parent": "@wren/studio",
-   "group": "@wren/studio"
+   "group": "@wren/studio",
+   "attrs": {
+    "description": "Tighter word edges: WhisperX's wav2vec2 forced alignment over whisper's own words"
+   }
   },
   {
    "id": "@wren/studio/src/bar.ts",
    "role": "file",
    "parent": "@wren/studio",
-   "group": "@wren/studio"
+   "group": "@wren/studio",
+   "attrs": {
+    "description": "The edit bar: one list the edit pass works to and the self-check judges a render by"
+   }
   },
   {
    "id": "@wren/studio/src/camera.ts",
    "role": "file",
    "parent": "@wren/studio",
-   "group": "@wren/studio"
+   "group": "@wren/studio",
+   "attrs": {
+    "description": "The auto camera on a filmed take: it pushes in on each run of acts, follows them, holds, and pulls back to the whole page"
+   }
   },
   {
    "id": "@wren/studio/src/cap.ts",
    "role": "file",
    "parent": "@wren/studio",
-   "group": "@wren/studio"
+   "group": "@wren/studio",
+   "attrs": {
+    "description": "Cap recordings (desktop 0.6, beside OBS): a `<name>.cap` project folder whose `recording-meta.json` names the screen, camera and mic files of each segment (a pause starts a new one), with each track's start time"
+   }
   },
   {
    "id": "@wren/studio/src/caption-styles.ts",
    "role": "file",
    "parent": "@wren/studio",
-   "group": "@wren/studio"
+   "group": "@wren/studio",
+   "attrs": {
+    "description": "Adapted from heygen-com/hyperframes `registry/components/caption-pill-karaoke` (pill), `caption-highlight` (sweep), `caption-emoji-pop` (pop), `caption-clip-wipe` (wipe) and `caption-editorial-emphasis` (stress) @5c7f631 (Apache-2.0); changed: GSAP tweens rewritten as pure easing of the time since a word starts; one word state for every style instead of a timeline per component; no emoji, keyword colours or exits; `pop` squeezes each word in (theirs pops the group); `pill` is dark with white said words; our line breakers group the words"
+   }
   },
   {
    "id": "@wren/studio/src/captions.ts",
    "role": "file",
    "parent": "@wren/studio",
-   "group": "@wren/studio"
+   "group": "@wren/studio",
+   "attrs": {
+    "description": "Reels-style caption lines, for the vertical video and Shorts: 2 to 4 words a line, one line on screen at a time"
+   }
   },
   {
    "id": "@wren/studio/src/change.ts",
    "role": "file",
    "parent": "@wren/studio",
-   "group": "@wren/studio"
+   "group": "@wren/studio",
+   "attrs": {
+    "description": "Change an edit in one sentence: the sentence and the edit go to the model, which answers a patch in `VideoDesk.set`'s shape and one plain line per change"
+   }
   },
   {
    "id": "@wren/studio/src/cursor.ts",
    "role": "file",
    "parent": "@wren/studio",
-   "group": "@wren/studio"
+   "group": "@wren/studio",
+   "attrs": {
+    "description": "The drawn cursor of a filmed take"
+   }
   },
   {
    "id": "@wren/studio/src/cuts.ts",
    "role": "file",
    "parent": "@wren/studio",
-   "group": "@wren/studio"
+   "group": "@wren/studio",
+   "attrs": {
+    "description": "Cuts he can trust"
+   }
   },
   {
    "id": "@wren/studio/src/duck.ts",
    "role": "file",
    "parent": "@wren/studio",
-   "group": "@wren/studio"
+   "group": "@wren/studio",
+   "attrs": {
+    "description": "The bed's duck under speech"
+   }
   },
   {
    "id": "@wren/studio/src/edit.ts",
    "role": "file",
    "parent": "@wren/studio",
-   "group": "@wren/studio"
+   "group": "@wren/studio",
+   "attrs": {
+    "description": "The edit row: add (ingest), read, write (checked, a `runs` row each, like `wren drafts set`), and the cut knobs in `wren_settings` under component `studio` (`{ cuts: {...} }`)"
+   }
   },
   {
    "id": "@wren/studio/src/film.ts",
    "role": "file",
    "parent": "@wren/studio",
-   "group": "@wren/studio"
+   "group": "@wren/studio",
+   "attrs": {
+    "description": "The edit as an OpenFilm film: `film.html`, the pages it plays, and the words as WebVTT, by OpenFilm's spec (github.com/openfilm/openfilm, SPEC.md §1 and Words)"
+   }
   },
   {
    "id": "@wren/studio/src/finish-look.ts",
    "role": "file",
    "parent": "@wren/studio",
-   "group": "@wren/studio"
+   "group": "@wren/studio",
+   "attrs": {
+    "description": "How text on the video, the corner camera and the captions look (finish.ts), with type imports only: the Remotion entry and the Studio page both draw from these, so the preview matches the render"
+   }
   },
   {
    "id": "@wren/studio/src/finish.ts",
    "role": "file",
    "parent": "@wren/studio",
-   "group": "@wren/studio"
+   "group": "@wren/studio",
+   "attrs": {
+    "description": "The finishing step: trims and cut edges, text on the video, where captions sit, the cover frame, and each format's crop"
+   }
   },
   {
    "id": "@wren/studio/src/fx.ts",
    "role": "file",
    "parent": "@wren/studio",
-   "group": "@wren/studio"
+   "group": "@wren/studio",
+   "attrs": {
+    "description": "The effects kit, written by `sfx/make.mjs` (do not edit): earshot 0.4.0 `launch`, bank forge_v2r6+forge04r1+fit1+pluck1"
+   }
   },
   {
    "id": "@wren/studio/src/index.ts",
    "role": "file",
    "parent": "@wren/studio",
-   "group": "@wren/studio"
+   "group": "@wren/studio",
+   "attrs": {
+    "description": "The video editor: OBS recordings in, whisper.cpp words, trusted silence cuts, ffmpeg cut pass, Remotion composition"
+   }
   },
   {
    "id": "@wren/studio/src/kit.ts",
    "role": "file",
    "parent": "@wren/studio",
-   "group": "@wren/studio"
+   "group": "@wren/studio",
+   "attrs": {
+    "description": "The sound kit on disk"
+   }
   },
   {
    "id": "@wren/studio/src/locks.ts",
    "role": "file",
    "parent": "@wren/studio",
-   "group": "@wren/studio"
+   "group": "@wren/studio",
+   "attrs": {
+    "description": "Locks: the parts of an edit a person set by hand, which the agent must keep"
+   }
   },
   {
    "id": "@wren/studio/src/look.ts",
    "role": "file",
    "parent": "@wren/studio",
-   "group": "@wren/studio"
+   "group": "@wren/studio",
+   "attrs": {
+    "description": "Looking at the picture: a model watches the cut file and writes moments, Shorts ideas, chapters and thumbnail frames onto the edit"
+   }
   },
   {
    "id": "@wren/studio/src/loudness.ts",
    "role": "file",
    "parent": "@wren/studio",
-   "group": "@wren/studio"
+   "group": "@wren/studio",
+   "attrs": {
+    "description": "Every render's audio to YouTube's level: -14 LUFS integrated, true peak -1.5 dB"
+   }
   },
   {
    "id": "@wren/studio/src/matte.ts",
    "role": "file",
    "parent": "@wren/studio",
-   "group": "@wren/studio"
+   "group": "@wren/studio",
+   "attrs": {
+    "description": "Adapted from heygen-com/hyperframes `packages/cli/src/background-removal/inference.ts`, `manager.ts` and `pipeline.ts` @5c7f631 (Apache-2.0); changed: ffmpeg does both resizes and merges the mask as alpha (no sharp); CPU execution provider only (their note: CoreML leaks alpha inside the face); the model checked by sha256 and cached under ~/.cache/wren/models; a window planner on the cut timeline"
+   }
   },
   {
    "id": "@wren/studio/src/media.ts",
    "role": "file",
    "parent": "@wren/studio",
-   "group": "@wren/studio"
+   "group": "@wren/studio",
+   "attrs": {
+    "description": "ffmpeg work on his Mac: probe, pull audio, hear silence, line up two tracks, apply cuts"
+   }
   },
   {
    "id": "@wren/studio/src/obs.ts",
    "role": "file",
    "parent": "@wren/studio",
-   "group": "@wren/studio"
+   "group": "@wren/studio",
+   "attrs": {
+    "description": "New OBS recordings, found on the Mac: the folder OBS records into, read from its profile, and the files there that are finished"
+   }
   },
   {
    "id": "@wren/studio/src/promo-clock.ts",
    "role": "file",
    "parent": "@wren/studio",
-   "group": "@wren/studio"
+   "group": "@wren/studio",
+   "attrs": {
+    "description": "The promo's clock (`./promo.ts`): easing, camera, counters, when each word and toast arrives"
+   }
   },
   {
    "id": "@wren/studio/src/promo.ts",
    "role": "file",
    "parent": "@wren/studio",
-   "group": "@wren/studio"
+   "group": "@wren/studio",
+   "attrs": {
+    "description": "A promo: a product video made from a script, no camera and no voice"
+   }
   },
   {
    "id": "@wren/studio/src/props.ts",
    "role": "file",
    "parent": "@wren/studio",
-   "group": "@wren/studio"
+   "group": "@wren/studio",
+   "attrs": {
+    "description": "What the Remotion compositions get: the cut files (named inside the edit's folder, which Remotion serves as its public dir) and the edit moved onto the cut timeline"
+   }
   },
   {
    "id": "@wren/studio/src/punctuate.ts",
    "role": "file",
    "parent": "@wren/studio",
-   "group": "@wren/studio"
+   "group": "@wren/studio",
+   "attrs": {
+    "description": "Punctuation for a transcript Whisper gave without any (`wren video words <id> --punctuate`): a model adds full stops, commas and capitals, and only the text of each word changes"
+   }
   },
   {
    "id": "@wren/studio/src/remotion.ts",
    "role": "file",
    "parent": "@wren/studio",
-   "group": "@wren/studio"
+   "group": "@wren/studio",
+   "attrs": {
+    "description": "Remotion runs as its own CLI from this package (its bundler and renderer never enter the wren bundle)"
+   }
   },
   {
    "id": "@wren/studio/src/render-hash.ts",
    "role": "file",
    "parent": "@wren/studio",
-   "group": "@wren/studio"
+   "group": "@wren/studio",
+   "attrs": {
+    "description": "Render only what changed"
+   }
   },
   {
    "id": "@wren/studio/src/safe-zones.ts",
    "role": "file",
    "parent": "@wren/studio",
-   "group": "@wren/studio"
+   "group": "@wren/studio",
+   "attrs": {
+    "description": "Adapted from heygen-com/hyperframes `skills/embedded-captions/scripts/safe-zones.cjs` @5c7f631 (Apache-2.0); changed: only its occupancy grid (the per-cell max of the matte's alpha over a window's frames, a cell his at 30/255) and its rule that the big word behind him must still read; we score the word's own box on that grid and move or shrink it until 70% of it is clear, where theirs profiles bands for an author to pick from"
+   }
   },
   {
    "id": "@wren/studio/src/schema.ts",
    "role": "file",
    "parent": "@wren/studio",
-   "group": "@wren/studio"
+   "group": "@wren/studio",
+   "attrs": {
+    "description": "One row per video being edited"
+   }
   },
   {
    "id": "@wren/studio/src/sentences.ts",
    "role": "file",
    "parent": "@wren/studio",
-   "group": "@wren/studio"
+   "group": "@wren/studio",
+   "attrs": {
+    "description": "Shorts that start and end on whole sentences (William, 2026-10-14: \"as long as they start and end on coherent sentences\")"
+   }
   },
   {
    "id": "@wren/studio/src/sounds.ts",
    "role": "file",
    "parent": "@wren/studio",
-   "group": "@wren/studio"
+   "group": "@wren/studio",
+   "attrs": {
+    "description": "Sound on the video: kit sounds at moments, and one music bed that ducks under speech"
+   }
   },
   {
    "id": "@wren/studio/src/storyboard.ts",
    "role": "file",
    "parent": "@wren/studio",
-   "group": "@wren/studio"
+   "group": "@wren/studio",
+   "attrs": {
+    "description": "The storyboard of an edit: the video as frames, one per beat, read from what the edit already holds"
+   }
   },
   {
    "id": "@wren/studio/src/stress.ts",
    "role": "file",
    "parent": "@wren/studio",
-   "group": "@wren/studio"
+   "group": "@wren/studio",
+   "attrs": {
+    "description": "Adapted from heygen-com/hyperframes `skills/embedded-captions/SKILL.md` @5c7f631 (Apache-2.0); changed: only its spacing rule (at most one hero per beat, never two on screen at once, at least 0.6 s apart), with a beat as our phrase and a pick shown from its start to `holdS` after its end"
+   }
   },
   {
    "id": "@wren/studio/src/take.ts",
    "role": "file",
    "parent": "@wren/studio",
-   "group": "@wren/studio"
+   "group": "@wren/studio",
+   "attrs": {
+    "description": "A filmed take: the folder `autobrowse film` writes"
+   }
   },
   {
    "id": "@wren/studio/src/video-check.ts",
    "role": "file",
    "parent": "@wren/studio",
-   "group": "@wren/studio"
+   "group": "@wren/studio",
+   "attrs": {
+    "description": "The self-check: a rendered file against the bar (`bar.ts`), before he Approves"
+   }
   },
   {
    "id": "@wren/studio/src/whisper.ts",
    "role": "file",
    "parent": "@wren/studio",
-   "group": "@wren/studio"
+   "group": "@wren/studio",
+   "attrs": {
+    "description": "whisper.cpp on this Mac's GPU (Metal): `brew install whisper-cpp`, the large-v3-turbo model in a cache outside the repo"
+   }
   },
   {
    "id": "@wren/studio/src/words.ts",
    "role": "file",
    "parent": "@wren/studio",
-   "group": "@wren/studio"
+   "group": "@wren/studio",
+   "attrs": {
+    "description": "Fixing a misheard word before render"
+   }
   },
   {
    "id": "@wren/studio/vitest.config.ts",

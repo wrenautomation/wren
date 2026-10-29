@@ -1,0 +1,200 @@
+{
+ "layer": "ui",
+ "nodes": [
+  {
+   "id": "ui:analytics",
+   "role": "app",
+   "group": "analytics",
+   "attrs": {
+    "areas": [
+     "team: Marketing"
+    ],
+    "blurb": "Visits, recordings, search and the funnel from first visit to booking.",
+    "file": "apps/portal/web/src/modules/analytics/index.ts",
+    "name": "Analytics",
+    "workspace": "wren"
+   }
+  },
+  {
+   "id": "ui:analytics/answers",
+   "role": "screen",
+   "parent": "ui:analytics",
+   "group": "analytics",
+   "attrs": {
+    "about": "What AI assistants say when asked your keywords.",
+    "file": "apps/portal/web/src/records.tsx",
+    "group": "Search",
+    "label": "AI answers",
+    "order": 9,
+    "record": "marketing.answer",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:analytics/experiments",
+   "role": "screen",
+   "parent": "ui:analytics",
+   "group": "analytics",
+   "attrs": {
+    "about": "Tests of a site's variants, and which one wins.",
+    "file": "apps/portal/web/src/records.tsx",
+    "group": "Visitors",
+    "label": "Experiments",
+    "order": 3,
+    "record": "marketing.experiment",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:analytics/funnel",
+   "role": "screen",
+   "parent": "ui:analytics",
+   "group": "analytics",
+   "attrs": {
+    "about": "Each channel's funnel, from first visit to booking.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Funnel",
+    "order": 10,
+    "record": "marketing.funnel",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:analytics/heatmaps",
+   "role": "screen",
+   "parent": "ui:analytics",
+   "group": "analytics",
+   "attrs": {
+    "about": "Where visitors click and how far they scroll, per page.",
+    "file": "apps/portal/web/src/records.tsx",
+    "group": "Visitors",
+    "label": "Heatmaps",
+    "order": 2,
+    "record": "marketing.heat",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:analytics/keywords",
+   "role": "screen",
+   "parent": "ui:analytics",
+   "group": "analytics",
+   "attrs": {
+    "about": "The searches you show up for, and where you rank.",
+    "file": "apps/portal/web/src/records.tsx",
+    "group": "Search",
+    "label": "Keywords",
+    "order": 8,
+    "record": "marketing.keyword",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:analytics/links",
+   "role": "screen",
+   "parent": "ui:analytics",
+   "group": "analytics",
+   "attrs": {
+    "about": "Who came through each tracked link, and what they did next.",
+    "file": "apps/portal/web/src/records.tsx",
+    "hidden": true,
+    "label": "Links",
+    "order": 11,
+    "record": "marketing.link_day",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:analytics/search",
+   "role": "screen",
+   "parent": "ui:analytics",
+   "group": "analytics",
+   "attrs": {
+    "about": "Your site's pages, and whether Google has them.",
+    "file": "apps/portal/web/src/records.tsx",
+    "group": "Search",
+    "label": "Search",
+    "order": 7,
+    "record": "marketing.search_page",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:analytics/search-days",
+   "role": "screen",
+   "parent": "ui:analytics",
+   "group": "analytics",
+   "attrs": {
+    "about": "Your Google search numbers, day by day.",
+    "file": "apps/portal/web/src/records.tsx",
+    "group": "Search",
+    "hidden": true,
+    "label": "Search days",
+    "order": 6,
+    "record": "marketing.search_day",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:analytics/sessions",
+   "role": "screen",
+   "parent": "ui:analytics",
+   "group": "analytics",
+   "attrs": {
+    "about": "Recordings of single visits to your site, to replay.",
+    "file": "apps/portal/web/src/records.tsx",
+    "group": "Visitors",
+    "label": "Sessions",
+    "order": 1,
+    "record": "marketing.session",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:analytics/survey-answers",
+   "role": "screen",
+   "parent": "ui:analytics",
+   "group": "analytics",
+   "attrs": {
+    "about": "The answers your surveys got.",
+    "file": "apps/portal/web/src/records.tsx",
+    "group": "Visitors",
+    "label": "Survey answers",
+    "order": 5,
+    "record": "marketing.survey_answer",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:analytics/surveys",
+   "role": "screen",
+   "parent": "ui:analytics",
+   "group": "analytics",
+   "attrs": {
+    "about": "One-question surveys for site visitors or clients.",
+    "file": "apps/portal/web/src/records.tsx",
+    "group": "Visitors",
+    "label": "Surveys",
+    "order": 4,
+    "record": "marketing.survey",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:analytics/visits",
+   "role": "screen",
+   "parent": "ui:analytics",
+   "group": "analytics",
+   "attrs": {
+    "about": "Visits to your site, day by day.",
+    "file": "apps/portal/web/src/records.tsx",
+    "group": "Visitors",
+    "label": "Visits",
+    "order": 0,
+    "record": "marketing.site_day",
+    "template": "list"
+   }
+  }
+ ],
+ "edges": []
+}

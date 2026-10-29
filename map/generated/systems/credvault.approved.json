@@ -1,0 +1,16 @@
+{
+ "layer": "systems",
+ "nodes": [
+  {
+   "id": "system:credvault",
+   "role": "system",
+   "group": "credvault",
+   "attrs": {
+    "description": "Keep the credentials an automation signs in with: sealed at rest, shared through SSM, every use audited, expiries watched.",
+    "kind": "repo",
+    "title": "credvault"
+   }
+  }
+ ],
+ "edges": []
+}

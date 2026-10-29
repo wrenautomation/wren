@@ -1,0 +1,48 @@
+{
+ "layer": "ui",
+ "nodes": [
+  {
+   "id": "ui:ads",
+   "role": "app",
+   "group": "ads",
+   "attrs": {
+    "areas": [
+     "team: Marketing"
+    ],
+    "blurb": "Every ad set by day: spend, reach, leads and what each one cost.",
+    "file": "apps/portal/web/src/modules/marketing/index.ts",
+    "name": "Ads",
+    "workspace": "wren"
+   }
+  },
+  {
+   "id": "ui:ads/formats",
+   "role": "screen",
+   "parent": "ui:ads",
+   "group": "ads",
+   "attrs": {
+    "about": "The ad formats we make, and how each one does.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Formats",
+    "order": 1,
+    "record": "ads.format",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:ads/sets",
+   "role": "screen",
+   "parent": "ui:ads",
+   "group": "ads",
+   "attrs": {
+    "about": "How each ad set did, day by day.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Ad sets",
+    "order": 0,
+    "record": "marketing.ad_day",
+    "template": "list"
+   }
+  }
+ ],
+ "edges": []
+}

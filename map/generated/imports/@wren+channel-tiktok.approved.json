@@ -14,7 +14,10 @@
    "id": "@wren/channel-tiktok/src/content.ts",
    "role": "file",
    "parent": "@wren/channel-tiktok",
-   "group": "@wren/channel-tiktok"
+   "group": "@wren/channel-tiktok",
+   "attrs": {
+    "description": "TikTok as a `ContentChannel` in the Content Posting API's shape: list = the account's videos, metrics = a video's counts"
+   }
   },
   {
    "id": "@wren/channel-tiktok/src/index.ts",
@@ -26,7 +29,10 @@
    "id": "@wren/channel-tiktok/src/insights.ts",
    "role": "file",
    "parent": "@wren/channel-tiktok",
-   "group": "@wren/channel-tiktok"
+   "group": "@wren/channel-tiktok",
+   "attrs": {
+    "description": "A TikTok video's deeper numbers off its TikTok Studio analytics page, read in the box's browser (`GET /web/videos/{id}/analytics`, autobrowse `tiktok/video-analytics`)"
+   }
   }
  ],
  "edges": [

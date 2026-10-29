@@ -7,6 +7,7 @@
    "parent": "repo:wren",
    "group": "@wren/portal",
    "attrs": {
+    "description": "The client portal and operator app.",
     "dir": "apps/portal/",
     "npm": [
      "node:assert",
@@ -26,13 +27,19 @@
    "id": "@wren/portal/.storybook/main.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Storybook for the portal's pages and shell: the real app on a fake server (MSW, `web/src/mocks/`)"
+   }
   },
   {
    "id": "@wren/portal/.storybook/preview.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The portal Storybook's preview: `@wren/ui`'s frame over the app's stylesheet, and a fake server (MSW) started before each story"
+   }
   },
   {
    "id": "@wren/portal/.storybook/public/mockServiceWorker.js",
@@ -44,187 +51,289 @@
    "id": "@wren/portal/.storybook/vitest.config.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The portal's page stories as tests (`@wren/ui/storybook/tests`)"
+   }
   },
   {
    "id": "@wren/portal/scripts/contrast.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The axe color-contrast scan: every portal page, in every look, all text at 4.5:1 with no large-text exception"
+   }
   },
   {
    "id": "@wren/portal/scripts/e2e-kit.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "What the portal's browser e2e scripts share (writes-e2e.ts, outreach-e2e.ts): the local preview's address, Chrome, a fake Restate for the handlers the preview can't run, the tab hidden and back, a fresh page, and the runner"
+   }
   },
   {
    "id": "@wren/portal/scripts/libs-e2e.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The portal's libraries in a real browser: the address on TanStack Router, the lists on TanStack Table and Virtual, the forms on React Hook Form"
+   }
   },
   {
    "id": "@wren/portal/scripts/outreach-e2e.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Engage (was Outreach) in a real browser: its tabs in the nav and gone from Content's, old Marketing and Outreach addresses landing on the new ones, Invites' To approve and To message, the Account filter, and two writes through the one write path: an invite approved by a double press goes once, and a comment on someone's post sent with the tab hidden goes once and lands on return"
+   }
   },
   {
    "id": "@wren/portal/scripts/preview.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The portal on your machine, against your local databases: the built app plus the same API, called in-process instead of through Restate and sign-in"
+   }
+  },
+  {
+   "id": "@wren/portal/scripts/screens.ts",
+   "role": "file",
+   "parent": "@wren/portal",
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The portal's screens as JSON, for kestrel's ui layer (kestrel.json `layers.ui.dump`): areas in order, each app (and the name it is exported as) and its pages, each page's template and record or its own file"
+   }
   },
   {
    "id": "@wren/portal/scripts/threads-e2e.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Comment threads in a real browser, on Marketing → Comments since Engage went outbound only (2026-10-16-outreach-app.md), on a local preview seeded by `packages/content/test/threads-preview.ts`: one person's two comments show as one row, newest first; the row's whole thread draws nested; Reply from Wren on a deep reply sends that comment's ref, once however often it's pressed; and on a phone the thread opens as its own sheet"
+   }
   },
   {
    "id": "@wren/portal/scripts/writes-e2e.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The one write path in a real browser: a send, a draft then a send, and a set-aside with undo, each with the tab hidden mid-write, a row switch or a reload, must end with the page matching the server"
+   }
   },
   {
    "id": "@wren/portal/scripts/ws.d.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The few parts of `ws` the preview uses (no @types/ws in the repo)"
+   }
   },
   {
    "id": "@wren/portal/src/agent.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "`/api/agent`: Wren for AI tools, by a CLI and a skill"
+   }
   },
   {
    "id": "@wren/portal/src/book.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A client's public booking page, no sign-in:  - On the client's own host: `/book`, `/book/<tag>`, `/booking/<token>`, and its API at `/__book/<handler>`"
+   }
   },
   {
    "id": "@wren/portal/src/build.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Which build of the app a tab runs (wa-ovo)"
+   }
   },
   {
    "id": "@wren/portal/src/dev.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The portal on this Mac against prod: `pnpm dev` runs this Worker in Vite (`@cloudflare/vite-plugin`) and reads prod through Restate"
+   }
   },
   {
    "id": "@wren/portal/src/dictate.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Dictation's server adapter: `/api/dictate`"
+   }
   },
   {
    "id": "@wren/portal/src/docs.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The signing page's paths, no sign-in:  - `GET /o/d/<token>`: the document, rendered by `Documents/serve`"
+   }
   },
   {
    "id": "@wren/portal/src/edge.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The Worker's small shared parts: JSON answers and calls to Restate's ingress"
+   }
   },
   {
    "id": "@wren/portal/src/env.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The Worker's bindings"
+   }
   },
   {
    "id": "@wren/portal/src/hosts.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The portal on a client's own host"
+   }
   },
   {
    "id": "@wren/portal/src/keys.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A pasted key's way in: `POST /api/keys/stage` here, then the sign-in Lambda, which seals it and answers a ref"
+   }
   },
   {
    "id": "@wren/portal/src/limit.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "One cap per visitor on every path anyone may post to without signing in: Sites forms and the tracker, site chat, document signing, booking and AI tools"
+   }
   },
   {
    "id": "@wren/portal/src/live.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Live notes: `/api/notes/live/<id>` opens a WebSocket to that note's room, one Durable Object per note (`NoteRoom`), which runs `@wren/notes/room`"
+   }
   },
   {
    "id": "@wren/portal/src/media.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Learn's pictures and audio through the app's own origin, so the page's CSP stays at 'self' for images and media, however many hosts thumbnails and podcasts live on"
+   }
   },
   {
    "id": "@wren/portal/src/oauth-landing.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "`/oauth/<kind>/<name>`: where a provider sends a person back after connecting something"
+   }
   },
   {
    "id": "@wren/portal/src/pay.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Stripe's webhook for pay links: `POST /__pay/stripe/<client>` on the app host"
+   }
   },
   {
    "id": "@wren/portal/src/pulse.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "`POST /api/pulse`: the app's reads that fall due together (the sidebar's counts, the bell, a badge) as one request"
+   }
   },
   {
    "id": "@wren/portal/src/services.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The portal's services: the first path part after /api/, the Restate service behind it, and each route's need (`@wren/core/access`), which that service's guard checks"
+   }
   },
   {
    "id": "@wren/portal/src/sites.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Sites' public paths, no sign-in:  - `/o/<slug>`: a live data page, Wren's on the apex, a client's on its own host"
+   }
   },
   {
    "id": "@wren/portal/src/turnstile.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Turnstile's check at the edge: the booking page and every Sites form submit"
+   }
   },
   {
    "id": "@wren/portal/src/watch.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Sends told live: one `WriteWatch` Durable Object per signed-in person and site"
+   }
   },
   {
    "id": "@wren/portal/src/worker.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The client portal (R14) and the public demo (R15), one Worker on two hosts"
+   }
   },
   {
    "id": "@wren/portal/src/writes.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A write's state, read from Restate's own record of it"
+   }
   },
   {
    "id": "@wren/portal/web/node-stubs.ts",
@@ -254,19 +363,28 @@
    "id": "@wren/portal/web/src/App.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The portal: who's signed in, whose workspace, and Wren's apps for it"
+   }
   },
   {
    "id": "@wren/portal/web/src/access.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "This login's access in one workspace, as `delivery/me` sent it: the same `Who` the server's guard reads, so the web's `canAt` and the server's `can` answer alike"
+   }
   },
   {
    "id": "@wren/portal/web/src/api.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The portal API: POST /api/<service>/<route> with JSON (`delivery/home`, `reactivation/recordsList`)"
+   }
   },
   {
    "id": "@wren/portal/web/src/app.css",
@@ -278,145 +396,226 @@
    "id": "@wren/portal/web/src/apps-context.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The apps this viewer may open in the workspace on screen: what `App` shows, handed to a page that lists them (Admin → Systems)"
+   }
   },
   {
    "id": "@wren/portal/web/src/areas.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The sidebar leads with five fixed items: the Map, then Inbox, People, Money and Admin (SIDEBAR)"
+   }
   },
   {
    "id": "@wren/portal/web/src/autotrack.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "What a portal command meant, for autotrack (the recorder in wren_automation/autotrack)"
+   }
   },
   {
    "id": "@wren/portal/web/src/book-path.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Where a booking page is: its API base (`/c/<client>` on the app host, nothing on the client's own host), and whether it books (`/book/<tag>`) or shows one call (`/booking/<token>`)"
+   }
   },
   {
    "id": "@wren/portal/web/src/book.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A client's public booking page (`book.html`), served by the portal Worker (`src/book.ts`) on the client's own host or at `/c/<client>` on the app host"
+   }
   },
   {
    "id": "@wren/portal/web/src/contained.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A page that throws breaks itself, never the shell around it"
+   }
   },
   {
    "id": "@wren/portal/web/src/dev-banner.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "`pnpm dev` only: a mark that this tab reads prod, and whether it may write"
+   }
   },
   {
    "id": "@wren/portal/web/src/dictation/engine.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The portal's dictation: routes each press to the browser's model, our server or the browser's own speech, runs the mic through `startDictation`, and hands the kit's `Dictate` its words"
+   }
   },
   {
    "id": "@wren/portal/web/src/dictation/index.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The page's one dictation engine (engine.ts); null where there's no browser"
+   }
   },
   {
    "id": "@wren/portal/web/src/dictation/kept.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Model files from the network, kept in Cache Storage: onnxruntime's wasm (gzipped, from our own origin) for dictation and reading aloud, and reading's voices"
+   }
   },
   {
    "id": "@wren/portal/web/src/dictation/mic.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The mic for dictation: 16 kHz mono slices and their loudness, until closed"
+   }
   },
   {
    "id": "@wren/portal/web/src/dictation/model.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The browser adapter's `Transcriber`: the speech model in its worker (model.worker.ts), loaded on the first mic press"
+   }
   },
   {
    "id": "@wren/portal/web/src/dictation/model.worker.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The browser's speech model, off the page's thread: Moonshine base on WebGPU through transformers.js"
+   }
   },
   {
    "id": "@wren/portal/web/src/dictation/protocol.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "What the page and the speech model's worker say to each other"
+   }
   },
   {
    "id": "@wren/portal/web/src/dictation/server.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The server adapter's `Transcriber`: each segment as a WAV to the portal Worker's `/api/dictate` (apps/portal/src/dictate.ts), which asks our speech server"
+   }
   },
   {
    "id": "@wren/portal/web/src/dictation/speech.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The fallback adapter: the browser's own speech recognition as `Ears`"
+   }
+  },
+  {
+   "id": "@wren/portal/web/src/embeds.ts",
+   "role": "file",
+   "parent": "@wren/portal",
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A post's own player address from its link: YouTube's id, and the embeds the CSP lets in (`public/_headers` frame-src)"
+   }
   },
   {
    "id": "@wren/portal/web/src/find.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "⌘K's record search: an app's `find` over the record type one of its list pages shows"
+   }
   },
   {
    "id": "@wren/portal/web/src/flags.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Feature flags for this login here, as `delivery/me` evaluated them (`@wren/core/flags`)"
+   }
   },
   {
    "id": "@wren/portal/web/src/kanban.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The column of a board of cards (Notes → Board, Journeys → Board): a drop target with its name and count, the cards, and a line when empty"
+   }
   },
   {
    "id": "@wren/portal/web/src/keys.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A pasted key goes to `/api/keys/stage` alone: it comes back as a ref and its last 4"
+   }
   },
   {
    "id": "@wren/portal/web/src/lanes.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "One record's calls run in the order made: words saved as a box lost focus land before the Approve that took it"
+   }
   },
   {
    "id": "@wren/portal/web/src/load.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Loading a portal call into a component: a TanStack Query read (`@wren/ui` data layer)"
+   }
   },
   {
    "id": "@wren/portal/web/src/local.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "What a viewer keeps in this browser (a remembered pick), never needed: a blocked store reads as nothing"
+   }
   },
   {
    "id": "@wren/portal/web/src/look-pref.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "His own look over Wren's workspace (Settings → Look), read by the frame and its settings page"
+   }
   },
   {
    "id": "@wren/portal/web/src/main.tsx",
@@ -428,1273 +627,1918 @@
    "id": "@wren/portal/web/src/map/BlameList.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The versions that touched one node or one line, newest first, as a section of a card (the node's details, its edit card, a line's edit card)"
+   }
   },
   {
    "id": "@wren/portal/web/src/map/DraftBanner.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The banner over the Map while a draft is open (`?draft=<id>`): its name, the version it started from, who made it, its state, and (when live moved on) the newest version"
+   }
   },
   {
    "id": "@wren/portal/web/src/map/DraftList.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The History card's Drafts tab: the shape's drafts, one row each (name, state, the version it started from, who, when)"
+   }
   },
   {
    "id": "@wren/portal/web/src/map/FocusPage.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A focus page: one part of the Map at `/map/<kind>/<id>`, a set at `/map/parts/<parts>`, a saved view at `/map/view/<id>`"
+   }
   },
   {
    "id": "@wren/portal/web/src/map/History.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The Map's History, a card over the canvas, in two tabs"
+   }
   },
   {
    "id": "@wren/portal/web/src/map/Home.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "\"/\" for Wren's team: the Map of the workspace's shape, and Today under it (artifact section 07)"
+   }
   },
   {
    "id": "@wren/portal/web/src/map/Import.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Importing a shape file onto the Map: the file is read by the server (`shapePreview`, which saves nothing)"
+   }
   },
   {
    "id": "@wren/portal/web/src/map/MapPage.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The Map: the shape of the workspace drawn as a metro map by `MetroMap`, edge to edge, in the app's own theme"
+   }
   },
   {
    "id": "@wren/portal/web/src/map/NodePanel.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The Map's details for one part (a pick), a card over the canvas"
+   }
   },
   {
    "id": "@wren/portal/web/src/map/Refused.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A server refusal as the server says it: one line, or a list when the reason has many lines"
+   }
   },
   {
    "id": "@wren/portal/web/src/map/TagForm.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Names a version: a short form under it (name, and a note if it helps)"
+   }
   },
   {
    "id": "@wren/portal/web/src/map/TodayTasks.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Today's tasks (artifact section 07): one card per person track, late first"
+   }
   },
   {
    "id": "@wren/portal/web/src/map/Undo.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Undo one line of a difference: the line of \"Version a to b\" that says what one change did"
+   }
   },
   {
    "id": "@wren/portal/web/src/map/drafts.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The Map's drafts and history lines, pure (no reads, so a test imports it alone): the address of an opened draft, what each draft state allows, and the words of a blame line"
+   }
   },
   {
    "id": "@wren/portal/web/src/map/file.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A file for the person: a text downloaded, and the text of a file they picked"
+   }
   },
   {
    "id": "@wren/portal/web/src/map/focus.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A focus page's model: what `/map/<kind>/<id>`, `/map/parts/<parts>` and `/map/view/<id>` name, read from the metro body"
+   }
   },
   {
    "id": "@wren/portal/web/src/map/kept.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "What one viewer keeps of the Map in this browser: the fold depth, the folds opened by hand and the open panel"
+   }
   },
   {
    "id": "@wren/portal/web/src/map/model.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The Map's data, pure (no reads, so a test imports it alone): the windows, what a read gives, and the lines a panel says"
+   }
   },
   {
    "id": "@wren/portal/web/src/map/overlay.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Where the Map's panels sit: over the canvas, never beside it, so the graph keeps its whole width"
+   }
   },
   {
    "id": "@wren/portal/web/src/map/read.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The Map's reads: the newest shape with its versions, the window's numbers per station, track and line, the open journeys, and the ghosts (a journey on a node the newest version dropped)"
+   }
   },
   {
    "id": "@wren/portal/web/src/map/routes.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Where a Map node opens: the app that manages it, one table"
+   }
   },
   {
    "id": "@wren/portal/web/src/map/stations.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The live shape, read light (the shape alone, no numbers): the graph nodes for Admin → Systems (an app is found by a node's `via` and `channel`) and the metro stations for ⌘K"
+   }
   },
   {
    "id": "@wren/portal/web/src/map/tasks.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Today's tasks, pure"
+   }
   },
   {
    "id": "@wren/portal/web/src/map/view.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The Map's drawing as plain data, pure: the stored metro body plus the window's numbers and the open journeys, as the `MetroView` that `MetroMap` draws"
+   }
   },
   {
    "id": "@wren/portal/web/src/map/views.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Saved views of the Map: a named set of parts kept in the workspace's `saved_views` under record `map`, its params `parts=<parts>`"
+   }
   },
   {
    "id": "@wren/portal/web/src/mocks/api.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The portal's server, faked in the browser for page stories"
+   }
   },
   {
    "id": "@wren/portal/web/src/mocks/data/account.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Account pages' reads and writes for stories (`../../modules/account/`): webhooks, AI tools, People, Connectors, Social, Mail, and a person's access"
+   }
   },
   {
    "id": "@wren/portal/web/src/mocks/data/apps.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Each app's own first read, past the records pages: the reactivation run, the delivery home, learn's shelves, notes, the calendar, deals' board"
+   }
   },
   {
    "id": "@wren/portal/web/src/mocks/data/canvas.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The workflow Canvas's answers: one small workflow (`wren`: leads in, a first touch, a follow-up, replies out) and the editor's writes (save, publish, ask Claude, a dry test)"
+   }
   },
   {
    "id": "@wren/portal/web/src/mocks/data/index.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The fake server's answers, path → body (`../api.ts`), for every page story"
+   }
   },
   {
    "id": "@wren/portal/web/src/mocks/data/journeys.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The Journeys board's reads and writes (`../../modules/deals/board.tsx`): one synthetic shape"
+   }
   },
   {
    "id": "@wren/portal/web/src/mocks/data/long.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Rows with long words, for the stories that hold a list's widths: names, roles and firms as long as real ones run, beside short figures"
+   }
   },
   {
    "id": "@wren/portal/web/src/mocks/data/map-drafts.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The Map's drafts, blame, tags and undo on the fake server: synthetic drafts of the sample shape (`pipeline.shape_draft`, a record the worker adds with the server half; until then the fake serves it here), and answers for every route the History and the panels call"
+   }
   },
   {
    "id": "@wren/portal/web/src/mocks/data/map-read.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "`pipeline/mapRead` from a story's record answers: the shape's detail, the window's number rows and the open journeys, as the server's `mapAnswerOf` gives them"
+   }
   },
   {
    "id": "@wren/portal/web/src/mocks/data/map.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The Map's reads beyond the shared ones (`journeys.ts`, `offers.ts`): the answers of the D1 contract (`@wren/pipeline/history`)"
+   }
   },
   {
    "id": "@wren/portal/web/src/mocks/data/marketing.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Wren's marketing, for Today and Marketing: pieces and their branches, and the week's cadence"
+   }
   },
   {
    "id": "@wren/portal/web/src/mocks/data/me.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Who is signed in, for page stories: a client's owner with every app, or Wren's admin"
+   }
   },
   {
    "id": "@wren/portal/web/src/mocks/data/moves.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "What waits on Wren's team (`../../moves.ts`), one record each: a call within a day, approvals, inbox items, replies, access asks"
+   }
   },
   {
    "id": "@wren/portal/web/src/mocks/data/offers.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The Offers and Numbers pages' reads (`../../modules/offers`, `../../modules/numbers`, the pipelines tabs) and the books pages that moved to Numbers"
+   }
   },
   {
    "id": "@wren/portal/web/src/mocks/data/records.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Every records page's reads (`<product>/recordsTypes`, `recordsList`, `recordsGet`, `recordsCounts`), answered with the server's own types: the meta of every record type the worker serves (`virtual:record-types`, made in `.storybook/main.ts` from `apps/worker/src/record-types.ts`)"
+   }
+  },
+  {
+   "id": "@wren/portal/web/src/mocks/data/research.ts",
+   "role": "file",
+   "parent": "@wren/portal",
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A made-up birdwatch run as `weaver serve` sends it: Research's story and tree test read it"
+   }
   },
   {
    "id": "@wren/portal/web/src/mocks/data/shell.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "What the shell reads on every page: the account, its bells and badges"
+   }
   },
   {
    "id": "@wren/portal/web/src/mocks/data/studio.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Studio's fakes: the drafts that wait (ContentDesk.waiting) and a shape with two offer lines"
+   }
   },
   {
    "id": "@wren/portal/web/src/mocks/data/wren-rows.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Sample data for the Wren pages that draw lists with `Rows`: Ask, made workflows, the home's client health, automations, the dossier, a split's ended arms"
+   }
   },
   {
    "id": "@wren/portal/web/src/mocks/page.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A page story: the whole portal at one address, on the fake server (`./api.ts`)"
+   }
   },
   {
    "id": "@wren/portal/web/src/mocks/record-types.d.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Every record type's meta the worker serves: `.storybook/main.ts` makes it in Node"
+   }
   },
   {
    "id": "@wren/portal/web/src/module.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "An app in the portal: a row in the sidebar under its area, its pages as tabs at /<app>/<page>"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/access/PersonAccess.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "One person's access, as sentences: their role's grants, then their extra grants with End now, Add, and the ended ones under History"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/access/index.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Access's pages and actions: roles, grants, issues and asks, the same for Wren's team (Team and Inbox) and a client's people (Account)"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/account/Accounts.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Accounts: each account the client has with Wren, what its setup has done and what's left"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/account/AiTools.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "AI tools: a person's access tokens for the `wren` CLI and its skill, which Claude Code and other agents run"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/account/Connectors.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Account → Connectors: the client's HubSpot, QuickBooks and Jobber, one framed section each with its state (Needs setup, Not connected, Connected, Broken), what it reads and what it tells workflows"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/account/Domain.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Domain: this portal on the client's own address, like portal.theirfirm.com"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/account/Fields.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Settings → Fields and Business facts"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/account/Included.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Billing's one quiet line: the live tools the client has installed that we built in place of a SaaS, and what they'd cost a month bought separately (`@wren/core/in-house`)"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/account/Limits.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Daily limits: each research bucket and daily count, what holds now and where it comes from"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/account/Look.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A workspace's look: Account's Look page for its owners, a client's record for Wren's team"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/account/Mail.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Account → Mail: the client's mailboxes, each with its state, what blocks it and the next step; above them, each domain's one admin step as a checklist with the links and the ID to paste"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/account/Now.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Now: the setup items waiting on whoever looks"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/account/Overview.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The account at a glance: who the company is to us, what they bought, who's on it, what's owed"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/account/OwnSocial.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Account → Social in Wren's own workspace, for the team: each channel Wren posts to, with its account, how it posts, its token, its last post and last failure, and a Check that asks autobrowse whether the account still answers"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/account/People.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "People: who sees this account's projects"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/account/SetupCard.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Get set up: Today's card over the owner's setups"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/account/Social.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Account → Social: the client's own social accounts, one framed section per platform with its state (Not connected, Waiting on review, Connected, Broken), what blocks it and the next step"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/account/Vendors.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Vendors: each vendor a client's parts read through, on Wren's key (managed) or its own, today's room and the month's use"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/account/Webhooks.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Webhooks: the client's own URLs that hear events as they happen, each signed"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/account/You.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Your settings: the mail this person gets from us (D9), dictation on this device, and how they sign in"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/account/billing.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Account → Billing: an invoice's detail says how to pay it by bank transfer, each value with its copy button, and offers its PDF"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/account/dictation.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Your settings, Dictation: which way this device turns speech into text, the browser's own speech as a fallback (off by default), and why the mic is missing when it is"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/account/index.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The client's account, reached from their name at top left: the company, its people, each person's own settings, billing"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/account/load.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The account's calls, one key each: a write re-reads its call (`retry`), never a new key"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/account/reading.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Your settings, Reading aloud: on or off on this device, the voice, the speed, and a sample"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/account/setups.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "How Accounts and Vendors say things: a setup run's state and steps, a vendor's mode"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/account/social-bits.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Account → Social's pieces for one connected account: its picture, and a connected TikTok's numbers (followers, likes, videos, its newest videos with their views), read as the page opened"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/account/summary.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Accounts and vendors from Wren's side: a client's in short on its Clients record, and this month's managed usage across clients"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/analytics/index.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Analytics: how people find and use the site"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/calendar/actions.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "What can be done to a call: the Calls list and the Schedule's side panel share them"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/calendar/grid.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The Calendar page's date maths, on the viewer's own clock: which days a view shows, the range it asks for, where a block sits in its day, and side-by-side lanes for calls that overlap"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/calendar/index.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Calendar: calls booked on our own calendar"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/calendar/recorder.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Calls recorded on William's Mac"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/calendar/schedule.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The Schedule: a calendar's calls the way a calendar shows them, on the viewer's own clock: Wren's in Wren's workspace, the client's own in a client's (its database, through `calendar/*`)"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/calls/actions.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "How a booked call went: Won, Not yet, No-show, Not a fit"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/calls/brief.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A booked call's page: the header says who, the company and when, with the outcome buttons; under it the three lines worth reading first, and how it went once it's marked"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/calls/index.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Calls: a client's booked calls, each with its pre-call brief and how it went"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/deals/board.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Journeys → Board: one board for the shape, a column per node that holds people (every node but a source), by depth then name, a card per open journey"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/deals/fit.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A journey's fit to the offer's ICP (`packages/pipeline/src/icp.ts`), on its detail: the score as a fact, the reasons and the checks with nothing to go on as a section"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/deals/id.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The id of Wren's pipelines app (`deals` until 2026-10-19)"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/deals/index.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Journeys: each person's way through the shape"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/deals/team-pages.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The tabs Wren's own pipelines app adds to the shared Journeys pages: the deals, the calls and the entries"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/documents/documents.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Documents → Documents and Templates: contracts, proposals and estimates written here, from a template or blank, sent by email or text to be signed"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/documents/index.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Documents: contracts, proposals and estimates from the client's templates, sent by text or email, signed on a page under its name, a deposit on signing"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/inbox-queues.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The Inbox's queues: one list, read by Overview E (what waits, ranked by the oldest wait) and by each queue's own page (`late`: the same date field and promise)"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/index.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The portal's apps, in this order within each sidebar area (areas.ts): a client's work first, then each product, the Marketplace, then Wren's own (Wren's workspace only)"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/learn/api.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Learn's calls and shapes, as LearnConsole answers them (packages/learn/src/drive.ts)"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/learn/bell.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The portal's bell, in the top bar of every workspace with Learn: what rang for you lately, new ones counted on it"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/learn/drive.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Learn's Items: a place from the sidebar (Inbox, Watch later, a collection, a source), as a feed of cards, a list or a compact list (remembered per viewer)"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/learn/find.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Find someone to follow by name or topic, on YouTube, Reddit, LinkedIn, X, Instagram and TikTok at once (`ReachDesk.findCreators`): no address needed"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/learn/frame.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Learn's places and collections, as tabs in the portal's sidebar like every app's pages: Items (Inbox, Watch later, Starred, Saved by you, All items, Archived), the collections tree, then tags"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/learn/home.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Learn's home: what you were watching, this week's best, then new from your sources, one shelf per type, and the SOPs items went into lately"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/learn/index.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Learn: what a workspace saves from a phone or the portal and what the sources it follows publish, read, scored against its SOPs, and kept like a drive: a home of shelves, items as cards, a list or a compact list, collections that nest, tags, a Watch later queue, and each item played or read in place"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/learn/item.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "One item, in place: a YouTube video plays here (youtube-nocookie, driven by postMessage, so no outside script loads) with its key moments above and its transcript beside, each line a seek; an episode plays through `/media`; an Instagram, TikTok or X post shows its own embed; an article reads clean"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/learn/kinds.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "What Learn draws for a type: its name, its mark, its length, and a picture through the app's own `/media` (apps/portal/src/media.ts), so the CSP stays at 'self' for every thumbnail host"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/learn/learn.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Learn's Save a link box, search across every transcript, and the phone's share target (/learn/add?url=)"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/learn/menus.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Learn's dialogs and menus: move to a collection, tag, add to an SOP, name a collection, the keys"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/learn/sources.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Learn's Sources, grouped by kind: follow a channel, podcast, newsletter or blog by its page or feed, say how loud each is, stop one"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/learn/today.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Learn's Today: your daily digest"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/library/flows.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The Library's Workflows: each one's steps, and a link onto the Workflows canvas, or for one saved as a template, to the Marketplace page that installs it, and Delete for Wren's team"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/library/index.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The Library: the words Wren sends and the sequences that send them (Wren's workspace)"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/library/media.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The Library's Media: the file itself, played or shown, signed for a while"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/library/numbers.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A template's numbers in the Library: each version's sends, replies and bookings, each variant point's options by reply rate, and the campaigns that sent it (`templates.template` detail)"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/library/sections.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Library → Sections: every block a Sections page is built from, with its blurb, its fields and a preview drawn from its sample words"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/library/sequence.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A sequence as the graph kit draws it, and the words its numbers read as: leads in, then each step with its template, what it sent, its reply rate and its variants, the wait on the wire before it"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/library/sequences.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A sequence's page in the Library: its steps drawn on the graph kit (the canvas the workflow editor draws on, read-only here), then a row per step with its template, live version, variants and numbers"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/library/snippets.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The Library's Snippets: saved replies and blocks, edited in place (the record's `edits`), with a star that makes one a favorite: favorites come first in every Insert picker"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/library/templates.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Library, Templates: every template in its folder (the kit's `Browser`), and the open one's editor with a live preview for the made-up lead, its history with a diff and restore, and its numbers"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/analytics.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A post's numbers on its page: how it did, with a sparkline a metric and its state where it isn't read; the retention curve; where viewers came from; its title, thumbnail and hook windows; what it brought to the site; its conversation"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/approval.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "To approve: templates, workflows, pages and retires asked to go live, replies waiting on a yes, the combined action list, and each page's draft box"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/ask.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Drafts finished in place: each page declares where its rows hold a draft and what sends it, and the detail draws it as `@wren/ui`'s draft box: typed and saved there, Ask Claude under it, the turns above, Undo beside the newest change"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/auto-reply.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Marketing → Auto-reply: per channel, what happens when someone writes in"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/blog-box.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Write's Blog box: a post for wrenautomation.com/blog in Markdown"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/carousel-box.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Write's Carousel box: slides typed as one block (a blank line between slides), a caption, and where it goes: Instagram's swipe, LinkedIn's document post"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/chart.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Booking clicks by first touch, a bar a week for 8 weeks: the Overview's one chart"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/comments.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Comment row actions, a comment's thread view, and activity"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/conversation.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "One conversation per Inbox thread: everything with the person on every channel, oldest at the top; a reply box that sends on the channel picked, or asks for a yes; and a note box for the team, never sent"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/desk.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A Wren service's handler through the console (`console/call`), as Studio's boxes call it"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/dm.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "DM row actions: reply, read and drop one of ours not sent yet"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/dms.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "DMs as the person meets them on a laptop and a phone: a thread's replies, and William's copy"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/draft-models.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Outreach → Engage: which model writes reach drafts, and how each one's drafts fared"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/draft-patch.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A post's fields and slides saves patch their page from the answer (ContentDesk `fields` and `slides` answer `saved`, the parts of the shape they moved): no read of the draft again after a save"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/drafts.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A post's row actions: drafts (approve, reject, edit, pass), promos, swaps and sends that may have gone out; ads and texts"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/engage.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Outreach → Engage: its draft boxes and actions, and Feed's Explore"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/experiments.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Marketing → Experiments (`marketing.experiment`): a site flag with a goal"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/facts.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Marketing → Facts: what every draft may claim about William and Wren (`@wren/core/facts`), one fact a row"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/feed.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Marketing → Feed"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/fields.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A post's fields past its words: its funnel first, then the form drawn from the platform's shape in three groups (Basics, Media, Details), each field saved on its own, and the post as its platform shows it beside them, live as he types"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/finish-caption.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Captions and text drawn over the video as the render draws them, shared with the storyboard's frames"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/finish-data.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The Finish view's data: the edit and record types, its constants, and the pure sums over them (times, stable JSON, what a format shows, what a version changed)"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/finish-hooks.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The Finish view's hooks and pointer helpers: a steady signed URL, a drag, a measured width"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/finish-panels.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The Finish panels: Text, Captions, Cover and Shapes, and the Short crops picker"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/finish-parts.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The Shorts and the layout in the finishing view: what `wren video set shorts`, `layout` and `camBox` change, as rows he edits and saves"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/finish-stage.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The Finish stage: the player over the recording with the view switch and the bar under it"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/finish-timeline.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The Finish timeline: filmstrip, in and out, cut edges, text bars, caption lines, cover, playhead"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/finish.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Finishing a video: the player over the recording's playback copy, skipping what's cut; text and captions drawn live over it; each shape's crop dragged in place; the timeline under it with the filmstrip, in and out, cut edges, text bars, caption lines, the cover and the playhead"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/funnel.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A post's place in the funnel: its stage, where it points and the link it carries"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/heat.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A lander page's heatmap, drawn on its newest replay in the `/replay` frame (`../../replay.ts`)"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/inbox.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The Inbox's row actions: typed ids, waiting states, the thread's assign, close and snooze"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/index.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Marketing's pages: content, ads, search, texts and site visits as one funnel"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/modules.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The Module objects: Wren's Ads and Content apps, and a client's Marketing"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/pages.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The pages: Inbox, Done and To approve, Content's day, reviews, ad days, the site's pages, and `MARKETING_PAGES`, the one list the team apps take from"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/piece-views.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Marketing → Pieces' built-in views: one press sets what, state and order together, so the usual looks (what waits on him, what is scheduled, the carousels) are a click, not three"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/pieces.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Pieces: each thing William made, once, with where it went under it"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/places.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Reads on his click (audience, discovery), comment keywords, and the places discovery found"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/plan.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Marketing → Today: what to make, by what he makes, not by platform"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/posts.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A post as its feed shows it on a laptop and a phone, from the record's detail"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/proof.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A sent comment's proof on its Engage page: Live, Hidden, Missing or Checking"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/reports.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Marketing → Reports: the Overview's numbers mailed to members every Monday or 1st at 9:00"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/send-box.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "What Write's Carousel and Story boxes share once the content is in: where it goes, the three ways to send it, and what ContentDesk said back"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/sessions.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A recorded lander view, played in the `/replay` frame (`../../replay.ts`) from signed chunk URLs"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/shape-preview.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A post as its platform shows it, live as he types: YouTube's home, search and watch page, a Short, a Reel, TikTok, a Reddit post, LinkedIn's feed and an X post"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/siblings.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A draft's editor shows the same idea's other platforms (`siblings` on the draft's detail), so every version of one piece is a click apart"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/slides.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A carousel's slides: edited in the draft, a strip of each slide as it renders, and the drawn files to download"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/social.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Accounts (operator API keys), invites and connects: the social logins' row actions"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/sop-check.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "One of our pieces beside its SOP: each standard number with ours, each closed set with ours, the patterns he kept or dropped, his calls judged, and up to 3 changes"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/story-box.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Write's Story box: a photo from the phone or laptop, or a clip he already cut, as a story on Instagram and the Facebook Page"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/storyboard.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A video's storyboard: the edit as frames, one per chapter (or run of sentences) and one per Short, each drawn as the Finish preview draws that moment: the picture, the corner camera, the captions, the text on it"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/studio-common.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "What Studio's parts share: the kinds it makes, the platforms its words go to, the read of the drafts that wait, and the small words and times its rows say"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/studio-compose.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Studio's compose view: one kind at a time, the kind tabs on top"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/studio-due.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Studio's head: what the plan still asks for this week, a card per piece, and the New row, a card per kind"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/studio-lines.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Offer lines in Studio: the shape's lines (read once, kept on the device), a line's colour square and its name"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/studio-waiting.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Studio's waiting drafts, on the shared `Rows`: an idea a row (kind, words, line, platforms, slot, age), a check to approve it in place with an Undo, and a click that opens its platforms side by side to edit, rewrite, post now or drop"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/studio.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Marketing → Studio: where content gets made"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/surveys.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Marketing → Surveys (`marketing.survey`): one question, with when and who as words on the row"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/texts.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "William's texts as the person gets them on a phone and a laptop, filled with sample facts"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/thread-context.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A comment's whole conversation: the post, our comment and every reply under it, nested, each with its own Reply from Wren and a link to it on the site"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/thread.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "An X thread in one draft: its posts edited one box each, counted as X counts them (the funnel link rides on the last), split, merged and moved; and the chain as X shows it"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/threads.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Thread row actions: a comment drafted on someone else's post, and a found thread's reply"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/tiktok.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A TikTok post's settings as TikTok's Direct Post rules ask (developers.tiktok.com/doc/ content-sharing-guidelines, `@wren/core/content/tiktok`): the account it posts to, who can see it with nothing picked for you, comments, duets and stitches off until turned on and greyed where the account turned them off, the content disclosure with its labels, the video against the account's longest, and TikTok's declaration above the yes"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/versions.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A draft's versions: each one with who wrote it and when, what was decided, and the kit's `Diff` between any two"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/video-patch.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A video edit's answer patches its page (`VideoDesk` set, line, cut, words and undo answer `view`, the edit as the page draws it): no read of the video again after a save"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/video-shelf-state.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The Videos shelf's reads, kept apart from the page so they test without a browser"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/video-shelf.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Studio's Videos: the newest recordings and rendered videos as cards (first frame, length, state, where each went), and the editor opened right there in Studio (`?video=<id>`), the Recordings page's own record body at full width"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/video.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Video row actions: approve (upload to YouTube), privacy, promos and the rest of a recording's life"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketing/videos.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A video's detail (`marketing.video`), edited in place: the preview; the title, description, tags, chapters, Shorts titles and thumbnail text, each saved on blur; the cuts with the words they strike, Keep or Cut; a span of transcript words picked and cut; Ask Claude with Undo"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketplace/AddOn.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Setup's one add-on (`Offer.addOn`): the component that fits what this client bought, checked already, with Install and Skip"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketplace/Catalog.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A component's record, below its fields (what's missing is one): what it takes and gives, what runs inside it, how we expect it to generalize, where it's used, what it needs and provides, and what the viewer may do"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketplace/Installed.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A client's record: its Templates, each with where it stands, and its Components, what it has installed, each with its settings, prices left out"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketplace/Map.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The Map: every component and what it builds on, left to right, drawn from the manifests' `requires` (the catalog's Needs), so it shows what actually runs"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketplace/Mods.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Browser mods: autobrowse mods on npm (keyword `autobrowse-mod`), each with what it may touch"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketplace/Template.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A template's page in the Shop: its parts with their settings and status, its copy, the workflow on the canvas, and Install"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketplace/art.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The Shop's art, as the main bundle holds it: a band in the row's stage hue, sized before its drawing loads, so nothing shifts"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketplace/art/index.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A Shop row's art, loaded on its own chunk: the scene its id names, and the vendors it runs on as their marks in the corner"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketplace/art/registry.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Which scene draws each part, workflow and template in the Shop"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketplace/art/scenes.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The Shop's art, drawn as code: one small set of scenes, each the thing a part makes (an inbox, a text thread, a booked slot, a lead sheet), on a 240 by 120 board"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketplace/boxes.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The Map's and the canvas's boxes: pure, so they test without a browser"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketplace/delete-saved.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Delete a saved template: Wren's team takes one off the Marketplace and the Library"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/marketplace/index.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The Marketplace, in a client's workspace: a shop of every template, part and workflow (`console.component`), each kind in its own section, filtered by stage, channel, status, type and effects, installed or not for this client"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/notes/api.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Notes' calls (NotesConsole, designs/2026-10-07-notes.md)"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/notes/backlinks.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "\"Notes\" on a record's page: the notes that @ it, which this viewer may open"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/notes/board-file.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A board as a sheet: Export CSV, and Import from a CSV file or a table pasted from Sheets"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/notes/board-settings.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Board dialogs: a new board, and a board's settings (its name and columns, who it is shared with, archive)"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/notes/board.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Notes → Board: a column per stage, a card per task"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/notes/capture.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Quick capture: N on any page (or ⌘K \"Note: …\") puts a thought down without leaving"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/notes/card.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A card is a note: this is what the doc page adds for one"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/notes/cards.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Make card: the selected lines (or the line the cursor is in) each become a card on the workspace's Work board"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/notes/comments.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Comments and suggestions, the side panel"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/notes/doc.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "One note at /notes/doc/<id>: its title, the editor, the outline, version history and sharing"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/notes/editor.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The note's editor: Tiptap over the note's Yjs doc, a toolbar, the `/` and `@` menus, find and replace, links, and images pasted or dropped in"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/notes/extensions.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The editor's parts: Tiptap's blocks (the schema the server's converter writes, in `@wren/notes/doc`), plus ours: find and replace, the `/` menu, and images kept in the files bucket under `wren-file:<key>`, shown through a signed link"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/notes/filelinks.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A pasted link to a file in Drive, Sheets, Dropbox or OneDrive becomes a link chip: its kind as the words, then (Google files) the file's name once Drive has said it"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/notes/files.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Notes in and out as files: Word out (`@wren/notes/docx`), and Word in, from a file or from Google Drive"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/notes/home.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Notes' home, like Docs': Recent, Owned by me, Shared with me, Starred and Archived, and a search over every note the viewer can open (Postgres full text)"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/notes/index.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Notes: Docs in the portal"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/notes/mentions.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Mentions: where someone `@`ed you, in a note's body, a comment or a client's Inbox note, newest first"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/notes/notes.css",
@@ -1706,637 +2550,991 @@
    "id": "@wren/portal/web/src/modules/notes/propose.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Turn into cards: Claude reads the note and proposes cards; you tick, fix titles, pick the board, then add"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/notes/share.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Share, as Docs does: people and groups by role (view, comment, edit), everyone in the workspace or only those added, a new owner"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/notes/suggesting.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Suggesting, as in Docs: in suggest mode what you type is marked as your suggestion (`suggestAdd`) and what you delete stays, struck through (`suggestDel`), until someone who can edit accepts or rejects it"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/notes/sync.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A note's Yjs doc kept in step with everyone else"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/notes/turn.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Turn rough into real: the selected words, or the whole note, as drafts in the workspace's Marketing or as a source of one of its SOPs"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/notes/versions.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A note's history, as Docs keeps it: one version per person's sitting, newest first, each with who and how much"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/numbers/index.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Numbers: how the business and its shape do"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/offers/index.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Offers: each offer Wren sells, its versions, and the terms it sells on"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/outreach/engage.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Outreach → Engage's head (`marketing.engage` is the queue under it): the paste box"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/outreach/index.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Engage: everything said to and with other people"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/payments/index.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Payments: a client's Stripe pay links, made here or from a texting thread, sent by text or email, marked paid, refunded or failed as Stripe says"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/payments/stripe.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The Payments head: is the client's Stripe connected, test or live, and does Stripe tell us when a link is paid"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/people/broadcasts.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "People > Broadcasts: one send to a group, by email or text"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/people/channels.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "People → Channels: each channel's funnel side by side"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/people/edit-json.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "`useEdit` for a value that isn't one string: a rule tree, a list of stages, a row of weights"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/people/import-form.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The Import head's plain parts: the file as base64, the lines under a preview and under a result"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/people/import.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "People > Import: a client loads a CSV of its contacts"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/people/index.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "People: one profile per person in the workspace, every address it goes by, its traits and its timeline"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/people/lead-check.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "People > a person: the lead check"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/people/research.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "\"Research this person\" on a profile: the action that starts a run, the Research section (the newest run, and what every run found, grouped by what was decided), and the Findings page where findings are kept or dropped in bulk"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/people/segments.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "People > Groups: named lists of people, by a rule or by hand"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/people/sent.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The sent log: everything we sent, on every channel, as one list with one ladder"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/people/timeline.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A profile's warmth (where they stand, what they did toward us, who they are), its newest lines on a short rail with its timeline counted by kind, each count a link to its lines on the Timeline page, and its site visits, read live from the site's log and never stored (Wren's own profiles)"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/reactivation/Glance.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Reactivation's service card on Today: the list, who moved, the briefs, and drafts waiting on an OK"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/reactivation/Real.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The demo's own page, opened from the top bar's \"Sample company\" chip: what in it is real"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/reactivation/Run.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The run, watched (P5): a run that's going now, line by line as it writes them; otherwise a replay of the work on the list, rebuilt from the records and labeled as one"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/reactivation/bits.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Pieces Reactivation's pages share: where someone is now, why they rank, and what we found"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/reactivation/email.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "An email in the Emails queue: the draft first, each line written from the brief able to show why, then what it cites"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/reactivation/index.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Reactivation: past clients checked for a reason to call, with a brief and an email for each"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/reactivation/keep.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Reactivation → Keep: accounts placed with in the last two years, ranked by the risk they go quiet, with the signals it reads"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/reactivation/nav.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Links between Reactivation's pages"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/reactivation/person.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "What a person's record adds under its fields: where they are now, why they rank, how we looked"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/reactivation/reply.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A reply in the Replies queue: what they wrote leads, and Mark booked undoes for 10 seconds"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/reactivation/steps.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Reactivation's pipeline in words: each step's name, its line on the rail, and where it opens"
+   }
+  },
+  {
+   "id": "@wren/portal/web/src/modules/research/index.ts",
+   "role": "file",
+   "parent": "@wren/portal",
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Research: birdwatch runs read from `weaver serve` on this Mac, live"
+   }
+  },
+  {
+   "id": "@wren/portal/web/src/modules/research/page.tsx",
+   "role": "file",
+   "parent": "@wren/portal",
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Research: a birdwatch run as it goes"
+   }
+  },
+  {
+   "id": "@wren/portal/web/src/modules/research/serve.ts",
+   "role": "file",
+   "parent": "@wren/portal",
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Research reads `weaver serve` on this Mac (engine `packages/weaver/src/app/serve.ts`): the browser asks 127.0.0.1 itself, so Chrome asks once to let the portal reach the local network"
+   }
+  },
+  {
+   "id": "@wren/portal/web/src/modules/research/tree.ts",
+   "role": "file",
+   "parent": "@wren/portal",
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A run as one drawing: the ask, its facets, every query (a follow from the page it started on), the pages read and the people who wrote them"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/settings/Display.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Layout: the sidebar, the pages column, rows, text, the frame"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/settings/Guide.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "How to get around the portal, drawn from the live app list: every app by area with what it's for and its pages, then the keys"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/settings/Look.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Colors and type for Wren's own workspace, kept for this person: a client's look stays theirs"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/settings/Systems.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Admin → Systems: every app this viewer may open, in two groups"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/settings/app-rows.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "An app per row, for the Guide and Systems: its icon and name (opens its first page), what it is for, and the pages or Map nodes it links"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/settings/index.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Admin"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/sites/actions.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "What can be done to pages (SitesConsole): make one from an offer, add a code page by its URL, copy as a variant, retire"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/sites/detail.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A page's detail in Sites: the draft in a frame beside the details, its copy as a form from the template's fields, then its numbers, where visits came from, the ads that link to it, its variants side by side and its versions"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/sites/forms.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A hosted form's detail in Sites: the builder (fields in order, each with its kind, label, rules and choices; the words after a submit; a booking step), a live preview on a laptop or a phone, the link and the embed tags, and its numbers by day and by source"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/sites/funnel-graph.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Sites → Funnel map: where visits came from, the pages they landed on, the forms sent and the calls booked, on the graph kit"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/sites/funnel-map.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The Funnel's rows as a graph: sources, pages, forms, bookings"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/sites/index.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Sites: every page we run, in one list"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/sites/links.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Tracked links: a `/go/` link to one page, with where it's posted and the post or ad id as its utm"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/sites/split.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A page's A/B split in its detail: the call in plain words, each version's numbers, the weights, stop, and \"Make B the page\", which waits on a yes like any version"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/texts/ask.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Review requests by hand: one customer's name and mobile or email, into the client's live template (`sms/askReview`)"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/texts/index.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Texts: a client's texting threads (O4), from its own database; Wren's team replies"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/voice/agent.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The agent: the `voice.agent` part's settings, Wren's own (`wren_settings`)"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/voice/bits.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "What the Voice app's pages share: the \"In development\" note, tool chips and a turn's timing bar"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/voice/calls.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A call's detail on the Calls page: its transcript as a chat, then each turn's timing"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/voice/dictation.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Voice dictation on the Latency page: p50 and p95 per way of dictating and stage, over the last 30 days of `dictate` runs (packages/voice/src/dictation-store.ts)"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/voice/index.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Voice: the phone agent"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/voice/latency.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Latency: per pipeline, how long after the caller stops each stage comes, p50 and p95 over the last 30 days (`voice_latency`)"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/voice/speech.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The browser's own speech, as `@wren/voice`'s `SpeechApi`: recognition for the ears, synthesis for the mouth"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/voice/test.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A test call: the real call loop (`runCall`) in this browser, on fakes"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/work/Contract.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The contract: its text as issued, then the signature, or the form an owner signs with"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/work/Feedback.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Under a project's numbers, on its app's Overview: the review asked at each moment (D13), what they can do next with us, and the weekly pulse (D10)"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/work/Glance.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The project's service card on Today: how far along it is, what's delivered, and what waits on the client"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/work/Welcome.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The welcome guide: what happens, who does what, and how we keep in touch"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/work/bits.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "What the work's and the account's pages share: the client's engagements, a write that reloads them, a small form, dates as the client reads them, and the classes they draw with"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/work/extras.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "What a project record's panel adds under its fields: the piece to open, the thread, the paper's link"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/work/index.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The engagement kit over the `delivery.*` records: the paperwork first, then the plan, updates, asks, deliverables and results"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/work/nav.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Links between the work's pages, inside whichever app shows them"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/work/rows-panel.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A list of records drawn with `Rows`, from records and a key for each (`PageRows` takes lines)"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/wren/Agents.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Agents: every part that runs for Wren as a card, by department, with its state, its last pass and what it made over the last 30 days and today"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/wren/agent-model.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The Agents page's model: each part that runs for Wren as an agent, its state read off its loops, grouped by department (its stage), with its counted outputs"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/wren/ask.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Ask: questions to Claude Code about the system, newest first, each with its answer"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/wren/automations.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Automations → All: everything that runs on its own, a card each in the Marketplace's look: what starts it, its runs over 30 days, what failed and waits, its last and next run, its last error and its switch"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/wren/canvas-edit.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The canvas editor's state, in one reducer: open or not, Undo, the card or wire picked, the palette, a drop's wire choices, Claude's answer, the publish confirm, the last error and the dry test"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/wren/canvas.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A drawn workflow as the graph kit's nodes and wires, with its live numbers: each node's count over the last 30 days and today, each wire's count and its rate from what came into the node it leaves"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/wren/cite.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A cited `path:line` as its page on GitHub (the repos are public), so anyone can check it"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/wren/credits.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Money → Payments in: every bank transfer into Wren's Wise account, what it paid or why it waits"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/wren/decisions.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Agents → Decisions: per kind, how often the machine's call matched William's, how often he overrode a pick he saw, and what it cost"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/wren/doors.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A Webhook or Form node's door, in its panel and over the canvas: the URL, its token masked with Show and Copy for a teammate with `manage`, Rotate, and its calls"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/wren/dossier.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A firm's dossier on its page: what the sheet holds on it, each fact with its source and day, its newest posts, and its people"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/wren/dry.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A dry test on the canvas: the steps `console/workflowTest` answers, as an execution's trace, so the same cards light"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/wren/editor.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The canvas's editor, n8n-style: a palette of logic nodes, triggers, parts and workflows to drag on or add with `/`; a node panel with its settings, test, copy, last output, numbers and wires; a wire panel with its rule and wait; and the bar that counts the draft's changes and what won't run"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/wren/executions.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Executions: each subject's walk through a workflow"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/wren/flags.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Loops → Flags: add and delete; rules, fallback and the kill switch edit in place (`loops.flag`)"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/wren/handlers.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Every public wren handler as a form: pick one, fill its boxes, run it, read its answer"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/wren/heads.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "What Wren's lists add beside their title (this month's AI spend), and a client's short name"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/wren/health.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Clients → Health and Flags: each client's score with its four parts, the rows behind each, its days, and the override beside the model's; one list of flags"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/wren/hosts.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Where Wren runs, as a graph: the hosts in docs/restate-operations.md and what calls what, each with the health the console already measures"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/wren/index.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Wren's own apps, in Wren's workspace only (team view): each an Overview of its numbers, then its records on the templates"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/wren/infra.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Where Wren runs: every host and what calls what, each with its health (`hosts.ts`)"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/wren/logic-form.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A logic node's or trigger's settings as a form, and what each trigger hears"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/wren/made.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Workflows made here: each one, live or a draft, and the builder"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/wren/mentions.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Inbox → Mentions: where someone `@`ed you in Wren's notes, yours only (`notes.mention`, a `mine` type)"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/wren/money.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Money's overview: where this month's spend goes, and whether spend grows"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/wren/play.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Play: a made-up lead walks a workflow on the canvas, a step at a time, each step showing the copy it would get (its own template's) and each wait cut to a second or two"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/wren/playback.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Play on the canvas: a made-up lead (`LEAD`) walks the workflow, a dot along each wire, the step lit, and beside the graph what the lead got at each step: the step's own template, live now, rendered for the lead"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/wren/replies.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A warm reply's answer (`email.reply`, keyed by its call invite): on the Inbox app's replies page and on the one queue's email rows"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/wren/tester.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Test step and Test workflow: the draft as it is on the canvas, walked dry on the server"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/wren/trace.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "One execution on its workflow's canvas: which cards it reached, how each went, and the in and out data of each step"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/wren/wiring.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Editing a workflow on the canvas: a draft of its routed wires and added nodes over what the server drew"
+   }
   },
   {
    "id": "@wren/portal/web/src/modules/wren/workflows.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Workflows: Wren's business drawn as its workflows"
+   }
   },
   {
    "id": "@wren/portal/web/src/moved.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Pages and apps that moved, by their old address: the router sends an old link on to the new one before anything draws, the rest of its path, search and hash kept"
+   }
   },
   {
    "id": "@wren/portal/web/src/moves.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "What waits on Wren's team, as moves: one line per thing to do, each from a record a page already counts"
+   }
   },
   {
    "id": "@wren/portal/web/src/page-rows.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A page's list of rows: the one shape every portal page uses for `Rows`"
+   }
   },
   {
    "id": "@wren/portal/web/src/palette-items.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "What the palette lists: Map or Today, then every app and page this viewer may open"
+   }
   },
   {
    "id": "@wren/portal/web/src/pdf-button.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A PDF the server draws, saved by the browser: a signed document, an invoice"
+   }
   },
   {
    "id": "@wren/portal/web/src/player/geometry.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Where the player shows over a slot, and how much of it a scrolling parent hides"
+   }
   },
   {
    "id": "@wren/portal/web/src/player/host.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The one player in the app shell, beside the page and never inside it (bead wa-0m4)"
+   }
   },
   {
    "id": "@wren/portal/web/src/player/index.ts",
@@ -2348,31 +3546,46 @@
    "id": "@wren/portal/web/src/player/instance.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The portal's one player store"
+   }
   },
   {
    "id": "@wren/portal/web/src/player/media.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "What the host actually plays, one component per kind"
+   }
   },
   {
    "id": "@wren/portal/web/src/player/pip.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Document Picture-in-Picture (`window.documentPictureInPicture`, Chromium): a small always-on-top window that holds our own DOM, so the player's element moves into it"
+   }
   },
   {
    "id": "@wren/portal/web/src/player/slot.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Where a page wants its player"
+   }
   },
   {
    "id": "@wren/portal/web/src/player/store.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The mini player's state (designs: bead wa-0m4)"
+   }
   },
   {
    "id": "@wren/portal/web/src/player/use.tsx",
@@ -2384,97 +3597,145 @@
    "id": "@wren/portal/web/src/pulse.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The app's one pulse"
+   }
   },
   {
    "id": "@wren/portal/web/src/reading/engine.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The portal's reading aloud: Kokoro in the browser as the `Mouth`, the page's speakers, one reading at a time"
+   }
   },
   {
    "id": "@wren/portal/web/src/reading/index.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The page's one reading-aloud engine (engine.ts); null where there's no browser"
+   }
   },
   {
    "id": "@wren/portal/web/src/reading/mouth.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The reading voice as the voice agent's `Mouth`: Kokoro in its worker (voice.worker.ts), loaded on the first press"
+   }
   },
   {
    "id": "@wren/portal/web/src/reading/phonemes.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Text to Kokoro's phonemes, after kokoro-js (Apache 2.0): numbers, money and titles in words, then espeak-ng through phonemizer, with Kokoro's own fixes"
+   }
   },
   {
    "id": "@wren/portal/web/src/reading/protocol.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "What the page and the reading voice's worker say to each other"
+   }
   },
   {
    "id": "@wren/portal/web/src/reading/speakers.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The page's speakers for reading aloud: Web Audio, one sentence after another"
+   }
   },
   {
    "id": "@wren/portal/web/src/reading/voice.worker.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The reading voice, off the page's thread: Kokoro 82M through transformers.js, WebGPU when there is one, else wasm"
+   }
   },
   {
    "id": "@wren/portal/web/src/records-api.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The record calls a page reads through (`RecordsApi`), made once per name and named, so their answers sit in the data layer's local copy: a list or side panel opened again, after a reload or a tab away, paints at once and reads behind it"
+   }
   },
   {
    "id": "@wren/portal/web/src/records.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A page declared as data (`template: \"list\"`, `\"queue\"`, `\"overview\"` or `\"day\"`), drawn by Wren's own workspace the console serves every record"
+   }
   },
   {
    "id": "@wren/portal/web/src/replay.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The session player, framed by Sites → Sessions (`modules/marketing/sessions.tsx`), and the heatmap, framed by Sites → Heatmaps (`modules/marketing/heat.tsx`)"
+   }
   },
   {
    "id": "@wren/portal/web/src/route.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The portal's address, on TanStack Router: the router (`./router.tsx`) owns history, back and forward, typed search and the redirects"
+   }
   },
   {
    "id": "@wren/portal/web/src/router.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The portal's routes on TanStack Router"
+   }
   },
   {
    "id": "@wren/portal/web/src/stale.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A tab older than the live build"
+   }
   },
   {
    "id": "@wren/portal/web/src/survey.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "A client login's portal survey (`console/surveysDue`): one question in the corner, answered once"
+   }
   },
   {
    "id": "@wren/portal/web/src/today.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "\"/\": Today"
+   }
   },
   {
    "id": "@wren/portal/web/src/use-folds.ts",
@@ -2486,31 +3747,46 @@
    "id": "@wren/portal/web/src/view-as-picker.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "The View as picker: find a client, then who to be there: a person on its team (its owner first), someone new in a role, or the sandbox's blank new client"
+   }
   },
   {
    "id": "@wren/portal/web/src/view-as.tsx",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "View as, the parts on every page: the strip on top while this tab views as someone, the Look / Act switch with its one ask, and a way to open the picker from anywhere (the sidebar's button, ⌘K, a person's Access page)"
+   }
   },
   {
    "id": "@wren/portal/web/src/waiting.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "What waits in each app, by page: pages with a `count` in Wren's workspace, pages with a `badge` in any"
+   }
   },
   {
    "id": "@wren/portal/web/src/write-socket.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Sends told live: one socket per tab to this person's `WriteWatch` (`/api/live/writes`)"
+   }
   },
   {
    "id": "@wren/portal/web/src/write.ts",
    "role": "file",
    "parent": "@wren/portal",
-   "group": "@wren/portal"
+   "group": "@wren/portal",
+   "attrs": {
+    "description": "Today's Write list: the content plan's goals (`modules/marketing/plan.tsx`) as one line per platform, with today's quota and how much of it went out"
+   }
   },
   {
    "id": "@wren/portal/web/vite.config.ts",
@@ -5652,6 +6928,14 @@
    "kind": "imports"
   },
   {
+   "from": "@wren/portal/web/src/mocks/data/research.ts",
+   "to": "@wren/portal/web/src/modules/research/serve.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
    "from": "@wren/portal/web/src/mocks/data/shell.ts",
    "to": "@wren/core/src/accounts-console.ts",
    "kind": "imports",
@@ -7322,6 +8606,11 @@
   },
   {
    "from": "@wren/portal/web/src/modules/index.ts",
+   "to": "@wren/portal/web/src/modules/research/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/portal/web/src/modules/index.ts",
    "to": "@wren/portal/web/src/modules/settings/index.ts",
    "kind": "imports"
   },
@@ -7587,6 +8876,11 @@
   {
    "from": "@wren/portal/web/src/modules/learn/index.ts",
    "to": "@wren/portal/web/src/route.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/portal/web/src/modules/learn/item.tsx",
+   "to": "@wren/portal/web/src/embeds.ts",
    "kind": "imports"
   },
   {
@@ -11996,6 +13290,88 @@
    "from": "@wren/portal/web/src/modules/reactivation/steps.ts",
    "to": "@wren/ui/src/index.ts",
    "kind": "imports"
+  },
+  {
+   "from": "@wren/portal/web/src/modules/research/index.ts",
+   "to": "@wren/portal/web/src/module.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/portal/web/src/modules/research/index.ts",
+   "to": "@wren/portal/web/src/modules/research/page.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/portal/web/src/modules/research/page.tsx",
+   "to": "@wren/portal/web/src/embeds.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/portal/web/src/modules/research/page.tsx",
+   "to": "@wren/portal/web/src/load.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/portal/web/src/modules/research/page.tsx",
+   "to": "@wren/portal/web/src/module.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/portal/web/src/modules/research/page.tsx",
+   "to": "@wren/portal/web/src/modules/research/serve.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/portal/web/src/modules/research/page.tsx",
+   "to": "@wren/portal/web/src/modules/research/tree.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/portal/web/src/modules/research/page.tsx",
+   "to": "@wren/portal/web/src/modules/work/bits.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/portal/web/src/modules/research/page.tsx",
+   "to": "@wren/portal/web/src/modules/work/rows-panel.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/portal/web/src/modules/research/page.tsx",
+   "to": "@wren/portal/web/src/player/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/portal/web/src/modules/research/page.tsx",
+   "to": "@wren/portal/web/src/route.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/portal/web/src/modules/research/page.tsx",
+   "to": "@wren/ui/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/portal/web/src/modules/research/tree.ts",
+   "to": "@wren/portal/web/src/modules/research/serve.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/portal/web/src/modules/research/tree.ts",
+   "to": "@wren/ui/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
   },
   {
    "from": "@wren/portal/web/src/modules/settings/Display.tsx",

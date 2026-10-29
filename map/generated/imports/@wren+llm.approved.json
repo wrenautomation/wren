@@ -18,19 +18,28 @@
    "id": "@wren/llm/src/audit.ts",
    "role": "file",
    "parent": "@wren/llm",
-   "group": "@wren/llm"
+   "group": "@wren/llm",
+   "attrs": {
+    "description": "The normalized per-call audit record"
+   }
   },
   {
    "id": "@wren/llm/src/client.ts",
    "role": "file",
    "parent": "@wren/llm",
-   "group": "@wren/llm"
+   "group": "@wren/llm",
+   "attrs": {
+    "description": "LlmClient seam: completion behind an interface so the paid provider is swappable and tests run on the fake"
+   }
   },
   {
    "id": "@wren/llm/src/embed.ts",
    "role": "file",
    "parent": "@wren/llm",
-   "group": "@wren/llm"
+   "group": "@wren/llm",
+   "attrs": {
+    "description": "Text embeddings: Gemini's `gemini-embedding-001` through the LLM gateway, cut to `EMBED_DIMS` and scaled to length 1, so a dot product is the cosine"
+   }
   },
   {
    "id": "@wren/llm/src/env.ts",
@@ -42,7 +51,10 @@
    "id": "@wren/llm/src/gateway.ts",
    "role": "file",
    "parent": "@wren/llm",
-   "group": "@wren/llm"
+   "group": "@wren/llm",
+   "attrs": {
+    "description": "Gemini's own API through the LLM gateway, as the `fetch` of a Gemini model (falcon's `geminiReader`): the gateway holds the keys and rotates them, so the caller passes any one placeholder key"
+   }
   },
   {
    "id": "@wren/llm/src/index.ts",
@@ -54,25 +66,37 @@
    "id": "@wren/llm/src/parsing.ts",
    "role": "file",
    "parent": "@wren/llm",
-   "group": "@wren/llm"
+   "group": "@wren/llm",
+   "attrs": {
+    "description": "Reading structured answers out of LLM replies the way real providers answer: fenced, prefaced with prose, trailed by notes that themselves contain braces"
+   }
   },
   {
    "id": "@wren/llm/src/stage.ts",
    "role": "file",
    "parent": "@wren/llm",
-   "group": "@wren/llm"
+   "group": "@wren/llm",
+   "attrs": {
+    "description": "One LLM step, the same way everywhere: complete, parse, and package the outcome for persistence"
+   }
   },
   {
    "id": "@wren/llm/src/tracing.ts",
    "role": "file",
    "parent": "@wren/llm",
-   "group": "@wren/llm"
+   "group": "@wren/llm",
+   "attrs": {
+    "description": "Tracing seam for LLM calls: a two-phase span, a null default, and an in-memory recorder for tests"
+   }
   },
   {
    "id": "@wren/llm/src/usage.ts",
    "role": "file",
    "parent": "@wren/llm",
-   "group": "@wren/llm"
+   "group": "@wren/llm",
+   "attrs": {
+    "description": "Usage at the client seam: wrap a client once and every response reports its token counts, so a caller that drops the response's record (the Monitor, drafts) is still counted"
+   }
   },
   {
    "id": "@wren/llm/vitest.config.ts",

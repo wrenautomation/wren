@@ -14,7 +14,10 @@
    "id": "@wren/channel-linkedin/src/content.ts",
    "role": "file",
    "parent": "@wren/channel-linkedin",
-   "group": "@wren/channel-linkedin"
+   "group": "@wren/channel-linkedin",
+   "attrs": {
+    "description": "LinkedIn as a `ContentChannel`, over autobrowse's site API in LinkedIn's own shape (Posts API, Social Actions)"
+   }
   },
   {
    "id": "@wren/channel-linkedin/src/index.ts",
@@ -26,7 +29,10 @@
    "id": "@wren/channel-linkedin/src/outreach.ts",
    "role": "file",
    "parent": "@wren/channel-linkedin",
-   "group": "@wren/channel-linkedin"
+   "group": "@wren/channel-linkedin",
+   "attrs": {
+    "description": "LinkedIn as an `OutreachChannel`, over autobrowse's `linkedin` site (the signed-in page on the Mac)"
+   }
   },
   {
    "id": "@wren/channel-linkedin/vitest.config.ts",

@@ -1,0 +1,47 @@
+{
+ "layer": "ui",
+ "nodes": [
+  {
+   "id": "ui:review",
+   "role": "app",
+   "group": "review",
+   "attrs": {
+    "areas": [
+     "team: Tools"
+    ],
+    "blurb": "Every parked idea, what unparks it, and a live check. Read it on Fridays.",
+    "file": "apps/portal/web/src/modules/wren/index.ts",
+    "name": "Review",
+    "workspace": "wren"
+   }
+  },
+  {
+   "id": "ui:review/overview",
+   "role": "screen",
+   "parent": "ui:review",
+   "group": "review",
+   "attrs": {
+    "about": "Parked ideas that need a look, read on Fridays.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Overview",
+    "order": 0,
+    "template": "overview"
+   }
+  },
+  {
+   "id": "ui:review/parked",
+   "role": "screen",
+   "parent": "ui:review",
+   "group": "review",
+   "attrs": {
+    "about": "Ideas we parked, and what would bring each one back.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Parked",
+    "order": 1,
+    "record": "wren.parked",
+    "template": "list"
+   }
+  }
+ ],
+ "edges": []
+}

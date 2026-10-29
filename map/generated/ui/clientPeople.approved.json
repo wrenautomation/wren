@@ -1,0 +1,206 @@
+{
+ "layer": "ui",
+ "nodes": [
+  {
+   "id": "ui:clientPeople",
+   "role": "app",
+   "group": "clientPeople",
+   "attrs": {
+    "areas": [
+     "client: Leads"
+    ],
+    "blurb": "Everyone you know, by every address they use, with all they did and got.",
+    "file": "apps/portal/web/src/modules/people/index.ts",
+    "name": "People",
+    "workspace": "client"
+   }
+  },
+  {
+   "id": "ui:clientPeople/addresses",
+   "role": "screen",
+   "parent": "ui:clientPeople",
+   "group": "clientPeople",
+   "attrs": {
+    "about": "Every email, phone, handle and cookie a profile goes by.",
+    "file": "apps/portal/web/src/records.tsx",
+    "hidden": true,
+    "label": "Addresses",
+    "order": 8,
+    "record": "people.key",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:clientPeople/broadcasts",
+   "role": "screen",
+   "parent": "ui:clientPeople",
+   "group": "clientPeople",
+   "attrs": {
+    "about": "One email or text to a group, sent once To approve says yes.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Broadcasts",
+    "order": 5,
+    "record": "people.broadcast",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:clientPeople/channels",
+   "role": "screen",
+   "parent": "ui:clientPeople",
+   "group": "clientPeople",
+   "attrs": {
+    "about": "Each channel's funnel side by side, from reached to paid.",
+    "file": "apps/portal/web/src/modules/people/channels.tsx",
+    "label": "Channels",
+    "order": 4,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:clientPeople/data",
+   "role": "screen",
+   "parent": "ui:clientPeople",
+   "group": "clientPeople",
+   "attrs": {
+    "about": "Every address kind, trait and timeline kind: where it comes from, who has it, what uses it.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Data",
+    "order": 7,
+    "record": "people.datum",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:clientPeople/groups",
+   "role": "screen",
+   "parent": "ui:clientPeople",
+   "group": "clientPeople",
+   "attrs": {
+    "about": "A group is a saved list of people: a live one follows its rule, a manual one holds who you put in it.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Groups",
+    "order": 3,
+    "record": "people.segment",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:clientPeople/import",
+   "role": "screen",
+   "parent": "ui:clientPeople",
+   "group": "clientPeople",
+   "attrs": {
+    "about": "Load a CSV of your contacts, and see what each file added.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Import",
+    "order": 12,
+    "record": "reactivation.import",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:clientPeople/members",
+   "role": "screen",
+   "parent": "ui:clientPeople",
+   "group": "clientPeople",
+   "attrs": {
+    "about": "Who is in each group, and since when.",
+    "file": "apps/portal/web/src/records.tsx",
+    "hidden": true,
+    "label": "Members",
+    "order": 11,
+    "record": "people.member",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:clientPeople/merges",
+   "role": "screen",
+   "parent": "ui:clientPeople",
+   "group": "clientPeople",
+   "attrs": {
+    "about": "Profiles that turned out to be one person, and what moved.",
+    "file": "apps/portal/web/src/records.tsx",
+    "hidden": true,
+    "label": "Merges",
+    "order": 10,
+    "record": "people.merge",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:clientPeople/people",
+   "role": "screen",
+   "parent": "ui:clientPeople",
+   "group": "clientPeople",
+   "attrs": {
+    "about": "Everyone, once each: where they stand, and whether they ever came toward us.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "People",
+    "order": 0,
+    "record": "people.profile",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:clientPeople/recipients",
+   "role": "screen",
+   "parent": "ui:clientPeople",
+   "group": "clientPeople",
+   "attrs": {
+    "about": "Each person a broadcast went to, or why it didn't.",
+    "file": "apps/portal/web/src/records.tsx",
+    "hidden": true,
+    "label": "Recipients",
+    "order": 6,
+    "record": "people.recipient",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:clientPeople/sent",
+   "role": "screen",
+   "parent": "ui:clientPeople",
+   "group": "clientPeople",
+   "attrs": {
+    "about": "Everything we sent, on every channel, and how far each one got.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Sent",
+    "order": 2,
+    "record": "people.sent",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:clientPeople/timeline",
+   "role": "screen",
+   "parent": "ui:clientPeople",
+   "group": "clientPeople",
+   "attrs": {
+    "about": "Everything that happened with anyone, newest first, each line linked to its source.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Timeline",
+    "order": 1,
+    "record": "people.event",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:clientPeople/traits",
+   "role": "screen",
+   "parent": "ui:clientPeople",
+   "group": "clientPeople",
+   "attrs": {
+    "about": "What we know about each person, one value per trait, every change kept.",
+    "file": "apps/portal/web/src/records.tsx",
+    "hidden": true,
+    "label": "Traits",
+    "order": 9,
+    "record": "people.trait",
+    "template": "list"
+   }
+  }
+ ],
+ "edges": []
+}

@@ -7,6 +7,7 @@
    "parent": "repo:wren",
    "group": "@wren/share",
    "attrs": {
+    "description": "share.wrenautomation.com: the shared library's ingest.",
     "dir": "apps/share/"
    }
   },
@@ -14,7 +15,10 @@
    "id": "@wren/share/src/worker.ts",
    "role": "file",
    "parent": "@wren/share",
-   "group": "@wren/share"
+   "group": "@wren/share",
+   "attrs": {
+    "description": "share.wrenautomation.com: where autobrowse installs send scrubbed run traces and flow packs (autobrowse designs/2026-10-24-shared-library.md)"
+   }
   }
  ],
  "edges": []

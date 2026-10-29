@@ -1,0 +1,33 @@
+{
+ "layer": "ui",
+ "nodes": [
+  {
+   "id": "ui:ask",
+   "role": "app",
+   "group": "ask",
+   "attrs": {
+    "areas": [
+     "team: Tools"
+    ],
+    "blurb": "Ask Claude Code about the system. It reads the code and prod; it changes nothing.",
+    "file": "apps/portal/web/src/modules/wren/index.ts",
+    "name": "Ask",
+    "workspace": "wren"
+   }
+  },
+  {
+   "id": "ui:ask/questions",
+   "role": "screen",
+   "parent": "ui:ask",
+   "group": "ask",
+   "attrs": {
+    "about": "Answers from the code, the designs and prod.",
+    "file": "apps/portal/web/src/modules/wren/ask.tsx",
+    "label": "Questions",
+    "order": 0,
+    "template": "hand"
+   }
+  }
+ ],
+ "edges": []
+}

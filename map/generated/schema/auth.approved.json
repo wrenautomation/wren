@@ -1,0 +1,338 @@
+{
+ "layer": "schema",
+ "nodes": [
+  {
+   "id": "index:auth.account.account_pkey",
+   "role": "index",
+   "parent": "table:auth.account",
+   "group": "auth",
+   "attrs": {
+    "def": "CREATE UNIQUE INDEX account_pkey ON auth.account USING btree (id)"
+   }
+  },
+  {
+   "id": "index:auth.account.ix_auth_account_user",
+   "role": "index",
+   "parent": "table:auth.account",
+   "group": "auth",
+   "attrs": {
+    "def": "CREATE INDEX ix_auth_account_user ON auth.account USING btree (user_id)"
+   }
+  },
+  {
+   "id": "index:auth.jwks.jwks_pkey",
+   "role": "index",
+   "parent": "table:auth.jwks",
+   "group": "auth",
+   "attrs": {
+    "def": "CREATE UNIQUE INDEX jwks_pkey ON auth.jwks USING btree (id)"
+   }
+  },
+  {
+   "id": "index:auth.passkey.ix_auth_passkey_user",
+   "role": "index",
+   "parent": "table:auth.passkey",
+   "group": "auth",
+   "attrs": {
+    "def": "CREATE INDEX ix_auth_passkey_user ON auth.passkey USING btree (user_id)"
+   }
+  },
+  {
+   "id": "index:auth.passkey.passkey_credential_id_unique",
+   "role": "index",
+   "parent": "table:auth.passkey",
+   "group": "auth",
+   "attrs": {
+    "def": "CREATE UNIQUE INDEX passkey_credential_id_unique ON auth.passkey USING btree (credential_id)"
+   }
+  },
+  {
+   "id": "index:auth.passkey.passkey_pkey",
+   "role": "index",
+   "parent": "table:auth.passkey",
+   "group": "auth",
+   "attrs": {
+    "def": "CREATE UNIQUE INDEX passkey_pkey ON auth.passkey USING btree (id)"
+   }
+  },
+  {
+   "id": "index:auth.rate_limit.rate_limit_key_unique",
+   "role": "index",
+   "parent": "table:auth.rate_limit",
+   "group": "auth",
+   "attrs": {
+    "def": "CREATE UNIQUE INDEX rate_limit_key_unique ON auth.rate_limit USING btree (key)"
+   }
+  },
+  {
+   "id": "index:auth.rate_limit.rate_limit_pkey",
+   "role": "index",
+   "parent": "table:auth.rate_limit",
+   "group": "auth",
+   "attrs": {
+    "def": "CREATE UNIQUE INDEX rate_limit_pkey ON auth.rate_limit USING btree (id)"
+   }
+  },
+  {
+   "id": "index:auth.session.ix_auth_session_user",
+   "role": "index",
+   "parent": "table:auth.session",
+   "group": "auth",
+   "attrs": {
+    "def": "CREATE INDEX ix_auth_session_user ON auth.session USING btree (user_id)"
+   }
+  },
+  {
+   "id": "index:auth.session.session_pkey",
+   "role": "index",
+   "parent": "table:auth.session",
+   "group": "auth",
+   "attrs": {
+    "def": "CREATE UNIQUE INDEX session_pkey ON auth.session USING btree (id)"
+   }
+  },
+  {
+   "id": "index:auth.session.session_token_unique",
+   "role": "index",
+   "parent": "table:auth.session",
+   "group": "auth",
+   "attrs": {
+    "def": "CREATE UNIQUE INDEX session_token_unique ON auth.session USING btree (token)"
+   }
+  },
+  {
+   "id": "index:auth.user.user_email_unique",
+   "role": "index",
+   "parent": "table:auth.user",
+   "group": "auth",
+   "attrs": {
+    "def": "CREATE UNIQUE INDEX user_email_unique ON auth.\"user\" USING btree (email)"
+   }
+  },
+  {
+   "id": "index:auth.user.user_pkey",
+   "role": "index",
+   "parent": "table:auth.user",
+   "group": "auth",
+   "attrs": {
+    "def": "CREATE UNIQUE INDEX user_pkey ON auth.\"user\" USING btree (id)"
+   }
+  },
+  {
+   "id": "index:auth.verification.ix_auth_verification_identifier",
+   "role": "index",
+   "parent": "table:auth.verification",
+   "group": "auth",
+   "attrs": {
+    "def": "CREATE INDEX ix_auth_verification_identifier ON auth.verification USING btree (identifier)"
+   }
+  },
+  {
+   "id": "index:auth.verification.verification_pkey",
+   "role": "index",
+   "parent": "table:auth.verification",
+   "group": "auth",
+   "attrs": {
+    "def": "CREATE UNIQUE INDEX verification_pkey ON auth.verification USING btree (id)"
+   }
+  },
+  {
+   "id": "schema:auth",
+   "role": "schema",
+   "group": "auth"
+  },
+  {
+   "id": "table:auth.account",
+   "role": "table",
+   "parent": "schema:auth",
+   "group": "auth",
+   "attrs": {
+    "columns": [
+     "access_token text null",
+     "access_token_expires_at timestamp with time zone null",
+     "account_id text",
+     "created_at timestamp with time zone = now()",
+     "id text",
+     "id_token text null",
+     "password text null",
+     "provider_id text",
+     "refresh_token text null",
+     "refresh_token_expires_at timestamp with time zone null",
+     "scope text null",
+     "updated_at timestamp with time zone = now()",
+     "user_id text"
+    ],
+    "constraints": [
+     "account_pkey: PRIMARY KEY (id)",
+     "account_user_id_user_id_fk: FOREIGN KEY (user_id) REFERENCES auth.\"user\"(id) ON DELETE CASCADE"
+    ],
+    "kind": "table"
+   }
+  },
+  {
+   "id": "table:auth.jwks",
+   "role": "table",
+   "parent": "schema:auth",
+   "group": "auth",
+   "attrs": {
+    "columns": [
+     "alg text null",
+     "created_at timestamp with time zone = now()",
+     "crv text null",
+     "expires_at timestamp with time zone null",
+     "id text",
+     "private_key text",
+     "public_key text"
+    ],
+    "constraints": [
+     "jwks_pkey: PRIMARY KEY (id)"
+    ],
+    "kind": "table"
+   }
+  },
+  {
+   "id": "table:auth.passkey",
+   "role": "table",
+   "parent": "schema:auth",
+   "group": "auth",
+   "attrs": {
+    "columns": [
+     "aaguid text null",
+     "backed_up boolean",
+     "counter integer",
+     "created_at timestamp with time zone null = now()",
+     "credential_id text",
+     "device_type text",
+     "id text",
+     "name text null",
+     "public_key text",
+     "transports text null",
+     "user_id text"
+    ],
+    "constraints": [
+     "passkey_credential_id_unique: UNIQUE (credential_id)",
+     "passkey_pkey: PRIMARY KEY (id)",
+     "passkey_user_id_user_id_fk: FOREIGN KEY (user_id) REFERENCES auth.\"user\"(id) ON DELETE CASCADE"
+    ],
+    "kind": "table"
+   }
+  },
+  {
+   "id": "table:auth.rate_limit",
+   "role": "table",
+   "parent": "schema:auth",
+   "group": "auth",
+   "attrs": {
+    "columns": [
+     "count integer",
+     "id text",
+     "key text",
+     "last_request bigint"
+    ],
+    "constraints": [
+     "rate_limit_key_unique: UNIQUE (key)",
+     "rate_limit_pkey: PRIMARY KEY (id)"
+    ],
+    "kind": "table"
+   }
+  },
+  {
+   "id": "table:auth.session",
+   "role": "table",
+   "parent": "schema:auth",
+   "group": "auth",
+   "attrs": {
+    "columns": [
+     "created_at timestamp with time zone = now()",
+     "expires_at timestamp with time zone",
+     "id text",
+     "ip_address text null",
+     "token text",
+     "updated_at timestamp with time zone = now()",
+     "user_agent text null",
+     "user_id text"
+    ],
+    "constraints": [
+     "session_pkey: PRIMARY KEY (id)",
+     "session_token_unique: UNIQUE (token)",
+     "session_user_id_user_id_fk: FOREIGN KEY (user_id) REFERENCES auth.\"user\"(id) ON DELETE CASCADE"
+    ],
+    "kind": "table"
+   }
+  },
+  {
+   "id": "table:auth.user",
+   "role": "table",
+   "parent": "schema:auth",
+   "group": "auth",
+   "attrs": {
+    "columns": [
+     "created_at timestamp with time zone = now()",
+     "email text",
+     "email_verified boolean = false",
+     "id text",
+     "image text null",
+     "name text",
+     "updated_at timestamp with time zone = now()"
+    ],
+    "constraints": [
+     "user_email_unique: UNIQUE (email)",
+     "user_pkey: PRIMARY KEY (id)"
+    ],
+    "kind": "table"
+   }
+  },
+  {
+   "id": "table:auth.verification",
+   "role": "table",
+   "parent": "schema:auth",
+   "group": "auth",
+   "attrs": {
+    "columns": [
+     "created_at timestamp with time zone = now()",
+     "expires_at timestamp with time zone",
+     "id text",
+     "identifier text",
+     "updated_at timestamp with time zone = now()",
+     "value text"
+    ],
+    "constraints": [
+     "verification_pkey: PRIMARY KEY (id)"
+    ],
+    "kind": "table"
+   }
+  }
+ ],
+ "edges": [
+  {
+   "from": "table:auth.account",
+   "to": "table:auth.user",
+   "kind": "references",
+   "attrs": {
+    "columns": [
+     "user_id → id"
+    ]
+   }
+  },
+  {
+   "from": "table:auth.passkey",
+   "to": "table:auth.user",
+   "kind": "references",
+   "attrs": {
+    "columns": [
+     "user_id → id"
+    ]
+   }
+  },
+  {
+   "from": "table:auth.session",
+   "to": "table:auth.user",
+   "kind": "references",
+   "attrs": {
+    "columns": [
+     "user_id → id"
+    ]
+   }
+  }
+ ]
+}

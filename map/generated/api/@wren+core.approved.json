@@ -31761,6 +31761,20 @@
    }
   },
   {
+   "id": "@wren/core#usageByPart",
+   "role": "export",
+   "parent": "@wren/core",
+   "group": "@wren/core",
+   "attrs": {
+    "entries": [
+     "@wren/core/vendors"
+    ],
+    "file": "packages/core/src/vendors.ts",
+    "kind": "function",
+    "sig": "(main: Queryable, o: { since: Date }): Promise<{ vendor: string; part: string | null; micros: number; calls: number }[]>"
+   }
+  },
+  {
    "id": "@wren/core#usageSince",
    "role": "export",
    "parent": "@wren/core",

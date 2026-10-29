@@ -1,0 +1,48 @@
+{
+ "layer": "ui",
+ "nodes": [
+  {
+   "id": "ui:documents",
+   "role": "app",
+   "group": "documents",
+   "attrs": {
+    "areas": [
+     "client: Business"
+    ],
+    "blurb": "Send an estimate or a contract to sign. See who signed and who paid the deposit.",
+    "file": "apps/portal/web/src/modules/documents/index.ts",
+    "name": "Documents",
+    "workspace": "client"
+   }
+  },
+  {
+   "id": "ui:documents/all",
+   "role": "screen",
+   "parent": "ui:documents",
+   "group": "documents",
+   "attrs": {
+    "about": "Estimates and contracts you sent, and whether they're signed.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Documents",
+    "order": 0,
+    "record": "documents.document",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:documents/templates",
+   "role": "screen",
+   "parent": "ui:documents",
+   "group": "documents",
+   "attrs": {
+    "about": "Saved documents to start an estimate or contract from.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Templates",
+    "order": 1,
+    "record": "documents.template",
+    "template": "list"
+   }
+  }
+ ],
+ "edges": []
+}

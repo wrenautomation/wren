@@ -14,49 +14,73 @@
    "id": "@wren/notes/src/access.ts",
    "role": "file",
    "parent": "@wren/notes",
-   "group": "@wren/notes"
+   "group": "@wren/notes",
+   "attrs": {
+    "description": "Who holds what on a note"
+   }
   },
   {
    "id": "@wren/notes/src/boards.ts",
    "role": "file",
    "parent": "@wren/notes",
-   "group": "@wren/notes"
+   "group": "@wren/notes",
+   "attrs": {
+    "description": "Boards: the kanban a card sits on"
+   }
   },
   {
    "id": "@wren/notes/src/chips.ts",
    "role": "file",
    "parent": "@wren/notes",
-   "group": "@wren/notes"
+   "group": "@wren/notes",
+   "attrs": {
+    "description": "The \"Card: <column>\" chip a line carries after Make card"
+   }
   },
   {
    "id": "@wren/notes/src/console-boards.ts",
    "role": "file",
    "parent": "@wren/notes",
-   "group": "@wren/notes"
+   "group": "@wren/notes",
+   "attrs": {
+    "description": "Boards and cards in NotesConsole"
+   }
   },
   {
    "id": "@wren/notes/src/console-comments.ts",
    "role": "file",
    "parent": "@wren/notes",
-   "group": "@wren/notes"
+   "group": "@wren/notes",
+   "attrs": {
+    "description": "Notes handlers for comments and mentions"
+   }
   },
   {
    "id": "@wren/notes/src/console-context.ts",
    "role": "file",
    "parent": "@wren/notes",
-   "group": "@wren/notes"
+   "group": "@wren/notes",
+   "attrs": {
+    "description": "The notes console's context, built once: where a request reads from, who is reading, and the helpers every handler group shares"
+   }
   },
   {
    "id": "@wren/notes/src/console-pages.ts",
    "role": "file",
    "parent": "@wren/notes",
-   "group": "@wren/notes"
+   "group": "@wren/notes",
+   "attrs": {
+    "description": "Notes handlers that read a note: the home list, a page, its versions, links, people, files and settings"
+   }
   },
   {
    "id": "@wren/notes/src/console-records.ts",
    "role": "file",
    "parent": "@wren/notes",
-   "group": "@wren/notes"
+   "group": "@wren/notes",
+   "attrs": {
+    "description": "Notes handlers behind the records list: boards and task cards"
+   }
   },
   {
    "id": "@wren/notes/src/console-routes.ts",
@@ -68,139 +92,208 @@
    "id": "@wren/notes/src/console-sharing.ts",
    "role": "file",
    "parent": "@wren/notes",
-   "group": "@wren/notes"
+   "group": "@wren/notes",
+   "attrs": {
+    "description": "Notes handlers for who sees a note and where it lives: share, general, transfer, archive, move"
+   }
   },
   {
    "id": "@wren/notes/src/console-training.ts",
    "role": "file",
    "parent": "@wren/notes",
-   "group": "@wren/notes"
+   "group": "@wren/notes",
+   "attrs": {
+    "description": "Notes handlers that mark notes as training for the drafting model, and turn text into an SOP"
+   }
   },
   {
    "id": "@wren/notes/src/console-writes.ts",
    "role": "file",
    "parent": "@wren/notes",
-   "group": "@wren/notes"
+   "group": "@wren/notes",
+   "attrs": {
+    "description": "Notes handlers that create or change a note: star, create, append, capture, rename, restore, upload, Drive"
+   }
   },
   {
    "id": "@wren/notes/src/console.ts",
    "role": "file",
    "parent": "@wren/notes",
-   "group": "@wren/notes"
+   "group": "@wren/notes",
+   "attrs": {
+    "description": "NotesConsole: Notes in the portal"
+   }
   },
   {
    "id": "@wren/notes/src/diff.ts",
    "role": "file",
    "parent": "@wren/notes",
-   "group": "@wren/notes"
+   "group": "@wren/notes",
+   "attrs": {
+    "description": "Compare two versions word by word, each change credited to the version that made it"
+   }
   },
   {
    "id": "@wren/notes/src/doc.ts",
    "role": "file",
    "parent": "@wren/notes",
-   "group": "@wren/notes"
+   "group": "@wren/notes",
+   "attrs": {
+    "description": "A note's doc: Yjs in, editor JSON, plain text, links and Markdown out, and back"
+   }
   },
   {
    "id": "@wren/notes/src/docx.ts",
    "role": "file",
    "parent": "@wren/notes",
-   "group": "@wren/notes"
+   "group": "@wren/notes",
+   "attrs": {
+    "description": "A note as a Word file: headings, lists, checklists, quotes, code, rules, tables, images and links, with open suggestions as Word's tracked changes"
+   }
   },
   {
    "id": "@wren/notes/src/drive.ts",
    "role": "file",
    "parent": "@wren/notes",
-   "group": "@wren/notes"
+   "group": "@wren/notes",
+   "attrs": {
+    "description": "A Google Doc or a Word file in Google Drive, read for import as `.docx` bytes"
+   }
   },
   {
    "id": "@wren/notes/src/inbox.ts",
    "role": "file",
    "parent": "@wren/notes",
-   "group": "@wren/notes"
+   "group": "@wren/notes",
+   "attrs": {
+    "description": "Inbox notes: the team's words on a thread or a person, never sent"
+   }
   },
   {
    "id": "@wren/notes/src/index.ts",
    "role": "file",
    "parent": "@wren/notes",
-   "group": "@wren/notes"
+   "group": "@wren/notes",
+   "attrs": {
+    "description": "Notes: docs in every workspace, kept as Yjs in Postgres"
+   }
   },
   {
    "id": "@wren/notes/src/mention-mail.ts",
    "role": "file",
    "parent": "@wren/notes",
-   "group": "@wren/notes"
+   "group": "@wren/notes",
+   "attrs": {
+    "description": "Mail for a mention: someone `@`ed in a note, a comment or an Inbox note hears of it by email once, unless they saw it first"
+   }
   },
   {
    "id": "@wren/notes/src/position.ts",
    "role": "file",
    "parent": "@wren/notes",
-   "group": "@wren/notes"
+   "group": "@wren/notes",
+   "attrs": {
+    "description": "Fractional positions: a card's place in its column as a string that sorts (byte order, so Postgres `collate \"C\"`) between its neighbours"
+   }
   },
   {
    "id": "@wren/notes/src/propose.ts",
    "role": "file",
    "parent": "@wren/notes",
-   "group": "@wren/notes"
+   "group": "@wren/notes",
+   "attrs": {
+    "description": "Turn into cards: Claude reads a note and proposes cards; the person ticks which to add"
+   }
   },
   {
    "id": "@wren/notes/src/records.ts",
    "role": "file",
    "parent": "@wren/notes",
-   "group": "@wren/notes"
+   "group": "@wren/notes",
+   "attrs": {
+    "description": "Notes as records: where the signed-in person was `@`ed"
+   }
   },
   {
    "id": "@wren/notes/src/room.ts",
    "role": "file",
    "parent": "@wren/notes",
-   "group": "@wren/notes"
+   "group": "@wren/notes",
+   "attrs": {
+    "description": "A note's live room: everyone with the note open on one socket each"
+   }
   },
   {
    "id": "@wren/notes/src/schema.ts",
    "role": "file",
    "parent": "@wren/notes",
-   "group": "@wren/notes"
+   "group": "@wren/notes",
+   "attrs": {
+    "description": "Notes: docs in every workspace, in every database"
+   }
   },
   {
    "id": "@wren/notes/src/sheet.ts",
    "role": "file",
    "parent": "@wren/notes",
-   "group": "@wren/notes"
+   "group": "@wren/notes",
+   "attrs": {
+    "description": "A board as a sheet: CSV out, CSV or a pasted table in"
+   }
   },
   {
    "id": "@wren/notes/src/store.ts",
    "role": "file",
    "parent": "@wren/notes",
-   "group": "@wren/notes"
+   "group": "@wren/notes",
+   "attrs": {
+    "description": "Notes in one database: create, change through Yjs, versions, sharing, lists and search"
+   }
   },
   {
    "id": "@wren/notes/src/suggest.ts",
    "role": "file",
    "parent": "@wren/notes",
-   "group": "@wren/notes"
+   "group": "@wren/notes",
+   "attrs": {
+    "description": "Suggestions: text added in suggest mode carries a `suggestAdd` mark and text removed stays with a `suggestDel` mark, each naming who and when"
+   }
   },
   {
    "id": "@wren/notes/src/task-records.ts",
    "role": "file",
    "parent": "@wren/notes",
-   "group": "@wren/notes"
+   "group": "@wren/notes",
+   "attrs": {
+    "description": "Cards as records: `notes.task`, so the Board's List toggle, saved views, CSV export and the agent API read them like any record"
+   }
   },
   {
    "id": "@wren/notes/src/tasks.ts",
    "role": "file",
    "parent": "@wren/notes",
-   "group": "@wren/notes"
+   "group": "@wren/notes",
+   "attrs": {
+    "description": "Cards: a note of kind `task` on a board, in a column"
+   }
   },
   {
    "id": "@wren/notes/src/train.ts",
    "role": "file",
    "parent": "@wren/notes",
-   "group": "@wren/notes"
+   "group": "@wren/notes",
+   "attrs": {
+    "description": "`wren train export --notes`: one `wren.note/1` line per note opted in"
+   }
   },
   {
    "id": "@wren/notes/src/types.ts",
    "role": "file",
    "parent": "@wren/notes",
-   "group": "@wren/notes"
+   "group": "@wren/notes",
+   "attrs": {
+    "description": "Notes' shared words: no imports, so the web bundles it alone"
+   }
   },
   {
    "id": "@wren/notes/vitest.config.ts",

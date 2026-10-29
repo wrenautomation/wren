@@ -1,0 +1,70 @@
+{
+ "layer": "ui",
+ "nodes": [
+  {
+   "id": "ui:notes",
+   "role": "app",
+   "group": "notes",
+   "attrs": {
+    "blurb": "Rough thoughts, plans and docs, with versions and sharing.",
+    "file": "apps/portal/web/src/modules/notes/index.ts",
+    "name": "Notes",
+    "parked": true,
+    "workspace": "wren"
+   }
+  },
+  {
+   "id": "ui:notes/board",
+   "role": "screen",
+   "parent": "ui:notes",
+   "group": "notes",
+   "attrs": {
+    "about": "Cards in columns, each one a note.",
+    "file": "apps/portal/web/src/modules/notes/board.tsx",
+    "label": "Board",
+    "order": 1,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:notes/doc",
+   "role": "screen",
+   "parent": "ui:notes",
+   "group": "notes",
+   "attrs": {
+    "about": "One note, with its versions and comments.",
+    "hidden": true,
+    "label": "Note",
+    "order": 3,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:notes/home",
+   "role": "screen",
+   "parent": "ui:notes",
+   "group": "notes",
+   "attrs": {
+    "about": "Your notes, plans and docs.",
+    "file": "apps/portal/web/src/modules/notes/home.tsx",
+    "label": "Notes",
+    "order": 0,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:notes/mentions",
+   "role": "screen",
+   "parent": "ui:notes",
+   "group": "notes",
+   "attrs": {
+    "about": "Notes where someone tagged you with @.",
+    "file": "apps/portal/web/src/modules/notes/mentions.tsx",
+    "label": "Mentions",
+    "order": 2,
+    "template": "hand"
+   }
+  }
+ ],
+ "edges": []
+}

@@ -1,0 +1,806 @@
+{
+ "layer": "schema",
+ "nodes": [
+  {
+   "id": "index:pipeline.deals.ix_deals_profile_id",
+   "role": "index",
+   "parent": "table:pipeline.deals",
+   "group": "pipeline",
+   "attrs": {
+    "def": "CREATE INDEX ix_deals_profile_id ON pipeline.deals USING btree (profile_id)"
+   }
+  },
+  {
+   "id": "index:pipeline.deals.ix_deals_terms_version",
+   "role": "index",
+   "parent": "table:pipeline.deals",
+   "group": "pipeline",
+   "attrs": {
+    "def": "CREATE INDEX ix_deals_terms_version ON pipeline.deals USING btree (terms_version)"
+   }
+  },
+  {
+   "id": "index:pipeline.deals.pk_deals",
+   "role": "index",
+   "parent": "table:pipeline.deals",
+   "group": "pipeline",
+   "attrs": {
+    "def": "CREATE UNIQUE INDEX pk_deals ON pipeline.deals USING btree (id)"
+   }
+  },
+  {
+   "id": "index:pipeline.deals.uq_deals_journey_node",
+   "role": "index",
+   "parent": "table:pipeline.deals",
+   "group": "pipeline",
+   "attrs": {
+    "def": "CREATE UNIQUE INDEX uq_deals_journey_node ON pipeline.deals USING btree (journey, node)"
+   }
+  },
+  {
+   "id": "index:pipeline.funnel_versions.pk_funnel_versions",
+   "role": "index",
+   "parent": "table:pipeline.funnel_versions",
+   "group": "pipeline",
+   "attrs": {
+    "def": "CREATE UNIQUE INDEX pk_funnel_versions ON pipeline.funnel_versions USING btree (id)"
+   }
+  },
+  {
+   "id": "index:pipeline.funnel_versions.uq_funnel_versions_number",
+   "role": "index",
+   "parent": "table:pipeline.funnel_versions",
+   "group": "pipeline",
+   "attrs": {
+    "def": "CREATE UNIQUE INDEX uq_funnel_versions_number ON pipeline.funnel_versions USING btree (funnel, number)"
+   }
+  },
+  {
+   "id": "index:pipeline.funnels.pk_funnels",
+   "role": "index",
+   "parent": "table:pipeline.funnels",
+   "group": "pipeline",
+   "attrs": {
+    "def": "CREATE UNIQUE INDEX pk_funnels ON pipeline.funnels USING btree (id)"
+   }
+  },
+  {
+   "id": "index:pipeline.instances.ix_instances_profile_status",
+   "role": "index",
+   "parent": "table:pipeline.instances",
+   "group": "pipeline",
+   "attrs": {
+    "def": "CREATE INDEX ix_instances_profile_status ON pipeline.instances USING btree (profile_id, status)"
+   }
+  },
+  {
+   "id": "index:pipeline.instances.ix_instances_shape_version",
+   "role": "index",
+   "parent": "table:pipeline.instances",
+   "group": "pipeline",
+   "attrs": {
+    "def": "CREATE INDEX ix_instances_shape_version ON pipeline.instances USING btree (version)"
+   }
+  },
+  {
+   "id": "index:pipeline.instances.pk_instances",
+   "role": "index",
+   "parent": "table:pipeline.instances",
+   "group": "pipeline",
+   "attrs": {
+    "def": "CREATE UNIQUE INDEX pk_instances ON pipeline.instances USING btree (id)"
+   }
+  },
+  {
+   "id": "index:pipeline.instances.uq_instances_legacy_deal",
+   "role": "index",
+   "parent": "table:pipeline.instances",
+   "group": "pipeline",
+   "attrs": {
+    "def": "CREATE UNIQUE INDEX uq_instances_legacy_deal ON pipeline.instances USING btree (legacy_deal) WHERE (legacy_deal IS NOT NULL)"
+   }
+  },
+  {
+   "id": "index:pipeline.instances.uq_instances_open_document",
+   "role": "index",
+   "parent": "table:pipeline.instances",
+   "group": "pipeline",
+   "attrs": {
+    "def": "CREATE UNIQUE INDEX uq_instances_open_document ON pipeline.instances USING btree (document_id, entry) WHERE (((status)::text = 'open'::text) AND ((subject_kind)::text = 'document'::text))"
+   }
+  },
+  {
+   "id": "index:pipeline.instances.uq_instances_open_person",
+   "role": "index",
+   "parent": "table:pipeline.instances",
+   "group": "pipeline",
+   "attrs": {
+    "def": "CREATE UNIQUE INDEX uq_instances_open_person ON pipeline.instances USING btree (profile_id) WHERE (((status)::text = 'open'::text) AND ((subject_kind)::text = 'person'::text))"
+   }
+  },
+  {
+   "id": "index:pipeline.journey_research.ix_journey_research_profile_id",
+   "role": "index",
+   "parent": "table:pipeline.journey_research",
+   "group": "pipeline",
+   "attrs": {
+    "def": "CREATE INDEX ix_journey_research_profile_id ON pipeline.journey_research USING btree (profile_id)"
+   }
+  },
+  {
+   "id": "index:pipeline.journey_research.pk_journey_research",
+   "role": "index",
+   "parent": "table:pipeline.journey_research",
+   "group": "pipeline",
+   "attrs": {
+    "def": "CREATE UNIQUE INDEX pk_journey_research ON pipeline.journey_research USING btree (journey, stage)"
+   }
+  },
+  {
+   "id": "index:pipeline.offer_versions.pk_offer_versions",
+   "role": "index",
+   "parent": "table:pipeline.offer_versions",
+   "group": "pipeline",
+   "attrs": {
+    "def": "CREATE UNIQUE INDEX pk_offer_versions ON pipeline.offer_versions USING btree (id)"
+   }
+  },
+  {
+   "id": "index:pipeline.offer_versions.uq_offer_versions_number",
+   "role": "index",
+   "parent": "table:pipeline.offer_versions",
+   "group": "pipeline",
+   "attrs": {
+    "def": "CREATE UNIQUE INDEX uq_offer_versions_number ON pipeline.offer_versions USING btree (offer, number)"
+   }
+  },
+  {
+   "id": "index:pipeline.shape_drafts.ix_shape_drafts_applied_version",
+   "role": "index",
+   "parent": "table:pipeline.shape_drafts",
+   "group": "pipeline",
+   "attrs": {
+    "def": "CREATE INDEX ix_shape_drafts_applied_version ON pipeline.shape_drafts USING btree (applied_version)"
+   }
+  },
+  {
+   "id": "index:pipeline.shape_drafts.ix_shape_drafts_base",
+   "role": "index",
+   "parent": "table:pipeline.shape_drafts",
+   "group": "pipeline",
+   "attrs": {
+    "def": "CREATE INDEX ix_shape_drafts_base ON pipeline.shape_drafts USING btree (base)"
+   }
+  },
+  {
+   "id": "index:pipeline.shape_drafts.pk_shape_drafts",
+   "role": "index",
+   "parent": "table:pipeline.shape_drafts",
+   "group": "pipeline",
+   "attrs": {
+    "def": "CREATE UNIQUE INDEX pk_shape_drafts ON pipeline.shape_drafts USING btree (id)"
+   }
+  },
+  {
+   "id": "index:pipeline.shape_mirrors.pk_shape_mirrors",
+   "role": "index",
+   "parent": "table:pipeline.shape_mirrors",
+   "group": "pipeline",
+   "attrs": {
+    "def": "CREATE UNIQUE INDEX pk_shape_mirrors ON pipeline.shape_mirrors USING btree (version)"
+   }
+  },
+  {
+   "id": "index:pipeline.shape_tags.ix_shape_tags_version",
+   "role": "index",
+   "parent": "table:pipeline.shape_tags",
+   "group": "pipeline",
+   "attrs": {
+    "def": "CREATE INDEX ix_shape_tags_version ON pipeline.shape_tags USING btree (version)"
+   }
+  },
+  {
+   "id": "index:pipeline.shape_tags.pk_shape_tags",
+   "role": "index",
+   "parent": "table:pipeline.shape_tags",
+   "group": "pipeline",
+   "attrs": {
+    "def": "CREATE UNIQUE INDEX pk_shape_tags ON pipeline.shape_tags USING btree (name)"
+   }
+  },
+  {
+   "id": "index:pipeline.shape_versions.ix_shape_versions_draft",
+   "role": "index",
+   "parent": "table:pipeline.shape_versions",
+   "group": "pipeline",
+   "attrs": {
+    "def": "CREATE INDEX ix_shape_versions_draft ON pipeline.shape_versions USING btree (draft)"
+   }
+  },
+  {
+   "id": "index:pipeline.shape_versions.ix_shape_versions_parent",
+   "role": "index",
+   "parent": "table:pipeline.shape_versions",
+   "group": "pipeline",
+   "attrs": {
+    "def": "CREATE INDEX ix_shape_versions_parent ON pipeline.shape_versions USING btree (parent)"
+   }
+  },
+  {
+   "id": "index:pipeline.shape_versions.pk_shape_versions",
+   "role": "index",
+   "parent": "table:pipeline.shape_versions",
+   "group": "pipeline",
+   "attrs": {
+    "def": "CREATE UNIQUE INDEX pk_shape_versions ON pipeline.shape_versions USING btree (number)"
+   }
+  },
+  {
+   "id": "index:pipeline.terms_versions.pk_terms_versions",
+   "role": "index",
+   "parent": "table:pipeline.terms_versions",
+   "group": "pipeline",
+   "attrs": {
+    "def": "CREATE UNIQUE INDEX pk_terms_versions ON pipeline.terms_versions USING btree (id)"
+   }
+  },
+  {
+   "id": "index:pipeline.terms_versions.uq_terms_versions_number",
+   "role": "index",
+   "parent": "table:pipeline.terms_versions",
+   "group": "pipeline",
+   "attrs": {
+    "def": "CREATE UNIQUE INDEX uq_terms_versions_number ON pipeline.terms_versions USING btree (offer, plan, number)"
+   }
+  },
+  {
+   "id": "schema:pipeline",
+   "role": "schema",
+   "group": "pipeline"
+  },
+  {
+   "id": "table:pipeline.deals",
+   "role": "table",
+   "parent": "schema:pipeline",
+   "group": "pipeline",
+   "attrs": {
+    "columns": [
+     "collected_cents bigint = 0",
+     "currency varchar(3) = 'USD'::character varying",
+     "ends_at timestamp with time zone null",
+     "engagement_id integer null",
+     "id uuid = gen_random_uuid()",
+     "journey uuid",
+     "node varchar(40) null",
+     "offer varchar(64)",
+     "offer_version integer",
+     "profile_id integer",
+     "signed_at timestamp with time zone = now()",
+     "status varchar(5) = 'open'::character varying",
+     "terms_version integer null"
+    ],
+    "constraints": [
+     "ck_deals_status: CHECK (((status)::text = ANY (ARRAY[('open'::character varying)::text, ('won'::character varying)::text, ('lost'::character varying)::text, ('ended'::character varying)::text])))",
+     "fk_deals_journey_instances: FOREIGN KEY (journey) REFERENCES pipeline.instances(id)",
+     "fk_deals_profile_id_profiles: FOREIGN KEY (profile_id) REFERENCES profiles(id)",
+     "fk_deals_terms_version_terms_versions: FOREIGN KEY (terms_version) REFERENCES pipeline.terms_versions(id)",
+     "pk_deals: PRIMARY KEY (id)",
+     "uq_deals_journey_node: UNIQUE (journey, node)"
+    ],
+    "kind": "table"
+   }
+  },
+  {
+   "id": "table:pipeline.edge_flow",
+   "role": "table",
+   "parent": "schema:pipeline",
+   "group": "pipeline",
+   "attrs": {
+    "columns": [
+     "crossings integer null",
+     "day date null",
+     "edge text null",
+     "from_node text null",
+     "to_node text null",
+     "version integer null"
+    ],
+    "constraints": [],
+    "kind": "view"
+   }
+  },
+  {
+   "id": "table:pipeline.entry_numbers",
+   "role": "table",
+   "parent": "schema:pipeline",
+   "group": "pipeline",
+   "attrs": {
+    "columns": [
+     "collected_cents bigint null",
+     "cost double precision null",
+     "day date null",
+     "deals integer null",
+     "entry varchar null",
+     "funnel varchar(40) null",
+     "opened integer null"
+    ],
+    "constraints": [],
+    "kind": "view"
+   }
+  },
+  {
+   "id": "table:pipeline.funnel_versions",
+   "role": "table",
+   "parent": "schema:pipeline",
+   "group": "pipeline",
+   "attrs": {
+    "columns": [
+     "body jsonb",
+     "created_at timestamp with time zone = now()",
+     "created_by text",
+     "funnel varchar(40)",
+     "id integer = nextval('pipeline.funnel_versions_id_seq'::regclass)",
+     "number integer",
+     "why text"
+    ],
+    "constraints": [
+     "fk_funnel_versions_funnel_funnels: FOREIGN KEY (funnel) REFERENCES pipeline.funnels(id)",
+     "pk_funnel_versions: PRIMARY KEY (id)",
+     "uq_funnel_versions_number: UNIQUE (funnel, number)"
+    ],
+    "kind": "table"
+   }
+  },
+  {
+   "id": "table:pipeline.funnels",
+   "role": "table",
+   "parent": "schema:pipeline",
+   "group": "pipeline",
+   "attrs": {
+    "columns": [
+     "created_at timestamp with time zone = now()",
+     "id varchar(40)",
+     "name text",
+     "status varchar(4) = 'live'::character varying"
+    ],
+    "constraints": [
+     "ck_funnels_status: CHECK (((status)::text = ANY (ARRAY[('live'::character varying)::text, ('off'::character varying)::text])))",
+     "pk_funnels: PRIMARY KEY (id)"
+    ],
+    "kind": "table"
+   }
+  },
+  {
+   "id": "table:pipeline.instances",
+   "role": "table",
+   "parent": "schema:pipeline",
+   "group": "pipeline",
+   "attrs": {
+    "columns": [
+     "closed_at timestamp with time zone null",
+     "document_id integer null",
+     "drop_reason text null",
+     "entry varchar(40)",
+     "entry_ref jsonb null",
+     "id uuid = gen_random_uuid()",
+     "legacy_deal uuid null",
+     "moved_at timestamp with time zone = now()",
+     "node varchar(40)",
+     "opened_at timestamp with time zone = now()",
+     "owner text null",
+     "profile_id integer null",
+     "status varchar(7) = 'open'::character varying",
+     "subject_kind varchar(8) = 'person'::character varying",
+     "trail jsonb = '[]'::jsonb",
+     "version integer"
+    ],
+    "constraints": [
+     "ck_instances_status: CHECK (((status)::text = ANY (ARRAY[('open'::character varying)::text, ('done'::character varying)::text, ('dropped'::character varying)::text])))",
+     "ck_instances_subject: CHECK (((((subject_kind)::text = 'person'::text) AND (profile_id IS NOT NULL) AND (document_id IS NULL)) OR (((subject_kind)::text = 'document'::text) AND (document_id IS NOT NULL) AND (profile_id IS NULL))))",
+     "ck_instances_subject_kind: CHECK (((subject_kind)::text = ANY (ARRAY[('person'::character varying)::text, ('document'::character varying)::text])))",
+     "fk_instances_document_id_documents: FOREIGN KEY (document_id) REFERENCES documents(id)",
+     "fk_instances_profile_id_profiles: FOREIGN KEY (profile_id) REFERENCES profiles(id)",
+     "fk_instances_shape_version: FOREIGN KEY (version) REFERENCES pipeline.shape_versions(number)",
+     "pk_instances: PRIMARY KEY (id)"
+    ],
+    "kind": "table"
+   }
+  },
+  {
+   "id": "table:pipeline.journey_research",
+   "role": "table",
+   "parent": "schema:pipeline",
+   "group": "pipeline",
+   "attrs": {
+    "columns": [
+     "icp jsonb null",
+     "journey uuid",
+     "level varchar(5)",
+     "lookup_id integer null",
+     "note text null",
+     "profile_id integer",
+     "requested_at timestamp with time zone = now()",
+     "result jsonb null",
+     "stage varchar(40)",
+     "state varchar(7) = 'queued'::character varying"
+    ],
+    "constraints": [
+     "ck_journey_research_level: CHECK (((level)::text = ANY (ARRAY[('light'::character varying)::text, ('full'::character varying)::text])))",
+     "ck_journey_research_state: CHECK (((state)::text = ANY (ARRAY[('queued'::character varying)::text, ('started'::character varying)::text, ('read'::character varying)::text, ('skipped'::character varying)::text])))",
+     "fk_journey_research_journey_instances: FOREIGN KEY (journey) REFERENCES pipeline.instances(id)",
+     "pk_journey_research: PRIMARY KEY (journey, stage)"
+    ],
+    "kind": "table"
+   }
+  },
+  {
+   "id": "table:pipeline.move_flow",
+   "role": "table",
+   "parent": "schema:pipeline",
+   "group": "pipeline",
+   "attrs": {
+    "columns": [
+     "day date null",
+     "from_node text null",
+     "loops integer null",
+     "moves integer null",
+     "skips integer null",
+     "to_node text null",
+     "version integer null"
+    ],
+    "constraints": [],
+    "kind": "view"
+   }
+  },
+  {
+   "id": "table:pipeline.node_counts",
+   "role": "table",
+   "parent": "schema:pipeline",
+   "group": "pipeline",
+   "attrs": {
+    "columns": [
+     "arrived integer null",
+     "day date null",
+     "left integer null",
+     "node text null",
+     "skipped integer null",
+     "version integer null"
+    ],
+    "constraints": [],
+    "kind": "view"
+   }
+  },
+  {
+   "id": "table:pipeline.offer_versions",
+   "role": "table",
+   "parent": "schema:pipeline",
+   "group": "pipeline",
+   "attrs": {
+    "columns": [
+     "body jsonb",
+     "created_at timestamp with time zone = now()",
+     "created_by text",
+     "hash varchar(64)",
+     "id integer = nextval('pipeline.offer_versions_id_seq'::regclass)",
+     "number integer",
+     "offer varchar(64)",
+     "why text"
+    ],
+    "constraints": [
+     "pk_offer_versions: PRIMARY KEY (id)",
+     "uq_offer_versions_number: UNIQUE (offer, number)"
+    ],
+    "kind": "table"
+   }
+  },
+  {
+   "id": "table:pipeline.shape_drafts",
+   "role": "table",
+   "parent": "schema:pipeline",
+   "group": "pipeline",
+   "attrs": {
+    "columns": [
+     "applied_version integer null",
+     "base integer",
+     "body jsonb",
+     "created_at timestamp with time zone = now()",
+     "created_by text",
+     "decided_at timestamp with time zone null",
+     "decided_by text null",
+     "drop_reason text null",
+     "id varchar(40)",
+     "moves jsonb = '{}'::jsonb",
+     "name text",
+     "note text = ''::text",
+     "state varchar(8) = 'draft'::character varying",
+     "updated_at timestamp with time zone = now()"
+    ],
+    "constraints": [
+     "ck_shape_drafts_state: CHECK (((state)::text = ANY (ARRAY[('draft'::character varying)::text, ('proposed'::character varying)::text, ('applied'::character varying)::text, ('dropped'::character varying)::text])))",
+     "fk_shape_drafts_applied_version_shape_versions: FOREIGN KEY (applied_version) REFERENCES pipeline.shape_versions(number)",
+     "fk_shape_drafts_base_shape_versions: FOREIGN KEY (base) REFERENCES pipeline.shape_versions(number)",
+     "pk_shape_drafts: PRIMARY KEY (id)"
+    ],
+    "kind": "table"
+   }
+  },
+  {
+   "id": "table:pipeline.shape_mirrors",
+   "role": "table",
+   "parent": "schema:pipeline",
+   "group": "pipeline",
+   "attrs": {
+    "columns": [
+     "at timestamp with time zone = now()",
+     "path text",
+     "repo text",
+     "sha text",
+     "version integer"
+    ],
+    "constraints": [
+     "fk_shape_mirrors_version_shape_versions: FOREIGN KEY (version) REFERENCES pipeline.shape_versions(number)",
+     "pk_shape_mirrors: PRIMARY KEY (version)"
+    ],
+    "kind": "table"
+   }
+  },
+  {
+   "id": "table:pipeline.shape_tags",
+   "role": "table",
+   "parent": "schema:pipeline",
+   "group": "pipeline",
+   "attrs": {
+    "columns": [
+     "created_at timestamp with time zone = now()",
+     "created_by text",
+     "name text",
+     "note text null",
+     "version integer"
+    ],
+    "constraints": [
+     "fk_shape_tags_version_shape_versions: FOREIGN KEY (version) REFERENCES pipeline.shape_versions(number)",
+     "pk_shape_tags: PRIMARY KEY (name)"
+    ],
+    "kind": "table"
+   }
+  },
+  {
+   "id": "table:pipeline.shape_versions",
+   "role": "table",
+   "parent": "schema:pipeline",
+   "group": "pipeline",
+   "attrs": {
+    "columns": [
+     "body jsonb",
+     "created_at timestamp with time zone = now()",
+     "created_by text",
+     "depths jsonb",
+     "draft varchar(40) null",
+     "note text",
+     "number integer",
+     "parent integer null",
+     "run jsonb"
+    ],
+    "constraints": [
+     "fk_shape_versions_draft_shape_drafts: FOREIGN KEY (draft) REFERENCES pipeline.shape_drafts(id)",
+     "fk_shape_versions_parent_shape_versions: FOREIGN KEY (parent) REFERENCES pipeline.shape_versions(number)",
+     "pk_shape_versions: PRIMARY KEY (number)"
+    ],
+    "kind": "table"
+   }
+  },
+  {
+   "id": "table:pipeline.source_numbers",
+   "role": "table",
+   "parent": "schema:pipeline",
+   "group": "pipeline",
+   "attrs": {
+    "columns": [
+     "booked integer null",
+     "collected_cents bigint null",
+     "cost double precision null",
+     "day date null",
+     "deals integer null",
+     "opened integer null",
+     "replied integer null",
+     "source varchar null"
+    ],
+    "constraints": [],
+    "kind": "view"
+   }
+  },
+  {
+   "id": "table:pipeline.stage_counts",
+   "role": "table",
+   "parent": "schema:pipeline",
+   "group": "pipeline",
+   "attrs": {
+    "columns": [
+     "day date null",
+     "entered integer null",
+     "funnel varchar(40) null",
+     "skipped integer null",
+     "stage text null",
+     "version integer null"
+    ],
+    "constraints": [],
+    "kind": "view"
+   }
+  },
+  {
+   "id": "table:pipeline.stage_flow",
+   "role": "table",
+   "parent": "schema:pipeline",
+   "group": "pipeline",
+   "attrs": {
+    "columns": [
+     "advanced integer null",
+     "conversion double precision null",
+     "funnel varchar(40) null",
+     "median_seconds double precision null",
+     "next_stage text null",
+     "reached integer null",
+     "stage text null"
+    ],
+    "constraints": [],
+    "kind": "view"
+   }
+  },
+  {
+   "id": "table:pipeline.terms_versions",
+   "role": "table",
+   "parent": "schema:pipeline",
+   "group": "pipeline",
+   "attrs": {
+    "columns": [
+     "body jsonb",
+     "created_at timestamp with time zone = now()",
+     "created_by text",
+     "effective_from date",
+     "id integer = nextval('pipeline.terms_versions_id_seq'::regclass)",
+     "number integer",
+     "offer varchar(64)",
+     "plan varchar(40)",
+     "why text"
+    ],
+    "constraints": [
+     "pk_terms_versions: PRIMARY KEY (id)",
+     "uq_terms_versions_number: UNIQUE (offer, plan, number)"
+    ],
+    "kind": "table"
+   }
+  }
+ ],
+ "edges": [
+  {
+   "from": "table:pipeline.deals",
+   "to": "table:pipeline.instances",
+   "kind": "references",
+   "attrs": {
+    "columns": [
+     "journey → id"
+    ]
+   }
+  },
+  {
+   "from": "table:pipeline.deals",
+   "to": "table:pipeline.terms_versions",
+   "kind": "references",
+   "attrs": {
+    "columns": [
+     "terms_version → id"
+    ]
+   }
+  },
+  {
+   "from": "table:pipeline.deals",
+   "to": "table:public.profiles",
+   "kind": "references",
+   "attrs": {
+    "columns": [
+     "profile_id → id"
+    ]
+   }
+  },
+  {
+   "from": "table:pipeline.funnel_versions",
+   "to": "table:pipeline.funnels",
+   "kind": "references",
+   "attrs": {
+    "columns": [
+     "funnel → id"
+    ]
+   }
+  },
+  {
+   "from": "table:pipeline.instances",
+   "to": "table:pipeline.shape_versions",
+   "kind": "references",
+   "attrs": {
+    "columns": [
+     "version → number"
+    ]
+   }
+  },
+  {
+   "from": "table:pipeline.instances",
+   "to": "table:public.documents",
+   "kind": "references",
+   "attrs": {
+    "columns": [
+     "document_id → id"
+    ]
+   }
+  },
+  {
+   "from": "table:pipeline.instances",
+   "to": "table:public.profiles",
+   "kind": "references",
+   "attrs": {
+    "columns": [
+     "profile_id → id"
+    ]
+   }
+  },
+  {
+   "from": "table:pipeline.journey_research",
+   "to": "table:pipeline.instances",
+   "kind": "references",
+   "attrs": {
+    "columns": [
+     "journey → id"
+    ]
+   }
+  },
+  {
+   "from": "table:pipeline.shape_drafts",
+   "to": "table:pipeline.shape_versions",
+   "kind": "references",
+   "attrs": {
+    "columns": [
+     "applied_version → number",
+     "base → number"
+    ]
+   }
+  },
+  {
+   "from": "table:pipeline.shape_mirrors",
+   "to": "table:pipeline.shape_versions",
+   "kind": "references",
+   "attrs": {
+    "columns": [
+     "version → number"
+    ]
+   }
+  },
+  {
+   "from": "table:pipeline.shape_tags",
+   "to": "table:pipeline.shape_versions",
+   "kind": "references",
+   "attrs": {
+    "columns": [
+     "version → number"
+    ]
+   }
+  },
+  {
+   "from": "table:pipeline.shape_versions",
+   "to": "table:pipeline.shape_drafts",
+   "kind": "references",
+   "attrs": {
+    "columns": [
+     "draft → id"
+    ]
+   }
+  },
+  {
+   "from": "table:pipeline.shape_versions",
+   "to": "table:pipeline.shape_versions",
+   "kind": "references",
+   "attrs": {
+    "columns": [
+     "parent → number"
+    ]
+   }
+  }
+ ]
+}

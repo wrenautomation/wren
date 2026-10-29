@@ -1,0 +1,145 @@
+{
+ "layer": "ui",
+ "nodes": [
+  {
+   "id": "ui:work",
+   "role": "app",
+   "group": "work",
+   "attrs": {
+    "areas": [
+     "client: Business"
+    ],
+    "blurb": "Your contract, the plan, how far along it is, and what we need from you next.",
+    "file": "apps/portal/web/src/modules/work/index.ts",
+    "name": "Your project",
+    "workspace": "client"
+   }
+  },
+  {
+   "id": "ui:work/contract",
+   "role": "screen",
+   "parent": "ui:work",
+   "group": "work",
+   "attrs": {
+    "about": "Your contract with Wren, to read and sign.",
+    "file": "apps/portal/web/src/modules/work/Contract.tsx",
+    "hidden": true,
+    "label": "Contract",
+    "order": 7,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:work/deliverables",
+   "role": "screen",
+   "parent": "ui:work",
+   "group": "work",
+   "attrs": {
+    "about": "What we hand over, waiting for your OK.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Deliverables",
+    "order": 5,
+    "record": "delivery.deliverable",
+    "template": "queue"
+   }
+  },
+  {
+   "id": "ui:work/needs-you",
+   "role": "screen",
+   "parent": "ui:work",
+   "group": "work",
+   "attrs": {
+    "about": "Questions and files we need from you.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Needs you",
+    "order": 3,
+    "record": "delivery.ask",
+    "template": "queue"
+   }
+  },
+  {
+   "id": "ui:work/overview",
+   "role": "screen",
+   "parent": "ui:work",
+   "group": "work",
+   "attrs": {
+    "about": "Where your project stands and what we need from you next.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Overview",
+    "order": 0,
+    "template": "overview"
+   }
+  },
+  {
+   "id": "ui:work/paperwork",
+   "role": "screen",
+   "parent": "ui:work",
+   "group": "work",
+   "attrs": {
+    "about": "Your contract, the setup fee and the access we need.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Paperwork",
+    "order": 4,
+    "record": "delivery.paperwork",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:work/plan",
+   "role": "screen",
+   "parent": "ui:work",
+   "group": "work",
+   "attrs": {
+    "about": "Every step of your project, with its dates.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Plan",
+    "order": 1,
+    "record": "delivery.step",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:work/results",
+   "role": "screen",
+   "parent": "ui:work",
+   "group": "work",
+   "attrs": {
+    "about": "The numbers that show whether the work paid off.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Results",
+    "order": 6,
+    "record": "delivery.result",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:work/updates",
+   "role": "screen",
+   "parent": "ui:work",
+   "group": "work",
+   "attrs": {
+    "about": "What we've done on your project, as we post it.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Updates",
+    "order": 2,
+    "record": "delivery.update",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:work/welcome",
+   "role": "screen",
+   "parent": "ui:work",
+   "group": "work",
+   "attrs": {
+    "about": "How this works, who does what, and where to find us.",
+    "file": "apps/portal/web/src/modules/work/Welcome.tsx",
+    "hidden": true,
+    "label": "Welcome guide",
+    "order": 8,
+    "template": "hand"
+   }
+  }
+ ],
+ "edges": []
+}

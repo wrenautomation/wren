@@ -17,19 +17,28 @@
    "id": "@wren/sites/scripts/seed-preview.ts",
    "role": "file",
    "parent": "@wren/sites",
-   "group": "@wren/sites"
+   "group": "@wren/sites",
+   "attrs": {
+    "description": "Synthetic pages for a local preview: a live lander with a new version waiting, a live variant, a live listicle, a code page, 30 days of visits from ads, organic and outreach, and one ad that links to the lander"
+   }
   },
   {
    "id": "@wren/sites/src/chat-widget.ts",
    "role": "file",
    "parent": "@wren/sites",
-   "group": "@wren/sites"
+   "group": "@wren/sites",
+   "attrs": {
+    "description": "The site chat bubble, served as `/o/__chat.js`"
+   }
   },
   {
    "id": "@wren/sites/src/components.ts",
    "role": "file",
    "parent": "@wren/sites",
-   "group": "@wren/sites"
+   "group": "@wren/sites",
+   "attrs": {
+    "description": "Sites as a part: landers, listicles and funnel pages, counted"
+   }
   },
   {
    "id": "@wren/sites/src/console-routes.ts",
@@ -41,175 +50,262 @@
    "id": "@wren/sites/src/console.ts",
    "role": "file",
    "parent": "@wren/sites",
-   "group": "@wren/sites"
+   "group": "@wren/sites",
+   "attrs": {
+    "description": "SitesConsole: the portal's page manager"
+   }
   },
   {
    "id": "@wren/sites/src/detail.ts",
    "role": "file",
    "parent": "@wren/sites",
-   "group": "@wren/sites"
+   "group": "@wren/sites",
+   "attrs": {
+    "description": "One page's detail, past its row in the list: its copy and versions (a data page), where it is (a code page), its numbers by day and by source, the ads that link to it with spend and arrivals per ad, and its variants side by side"
+   }
   },
   {
    "id": "@wren/sites/src/draft.ts",
    "role": "file",
    "parent": "@wren/sites",
-   "group": "@wren/sites"
+   "group": "@wren/sites",
+   "attrs": {
+    "description": "Claude's first draft of a page's copy from an offer, checked by the facts guard (`@wren/core/grounded`): a first-person claim no fact backs, or a number in neither the offer nor the facts, gets one more try; flagged again, it's dropped and the offer's own fill stays"
+   }
   },
   {
    "id": "@wren/sites/src/form-split.ts",
    "role": "file",
    "parent": "@wren/sites",
-   "group": "@wren/sites"
+   "group": "@wren/sites",
+   "attrs": {
+    "description": "A/B per hosted form: the form's address serves the form as it is (A) or `b`, by B's weight, and the `wab` cookie keeps a visitor on their arm"
+   }
   },
   {
    "id": "@wren/sites/src/form-store.ts",
    "role": "file",
    "parent": "@wren/sites",
-   "group": "@wren/sites"
+   "group": "@wren/sites",
+   "attrs": {
+    "description": "Hosted forms' reads and writes on the main database"
+   }
   },
   {
    "id": "@wren/sites/src/forms.ts",
    "role": "file",
    "parent": "@wren/sites",
-   "group": "@wren/sites"
+   "group": "@wren/sites",
+   "attrs": {
+    "description": "Hosted forms: a form is data, a `spec` of fields, rules, what happens after a submit and an optional booking step"
+   }
   },
   {
    "id": "@wren/sites/src/hops.ts",
    "role": "file",
    "parent": "@wren/sites",
-   "group": "@wren/sites"
+   "group": "@wren/sites",
+   "attrs": {
+    "description": "A client's tracked links: `/go/<link>[/<campaign>[/<content>]]?to=/o/<slug>` on its own host, the same shape as the lander's `/go/` (lander/functions/go/[[path]].ts)"
+   }
   },
   {
    "id": "@wren/sites/src/index.ts",
    "role": "file",
    "parent": "@wren/sites",
-   "group": "@wren/sites"
+   "group": "@wren/sites",
+   "attrs": {
+    "description": "Sites: every page we run, in one place"
+   }
   },
   {
    "id": "@wren/sites/src/kit.ts",
    "role": "file",
    "parent": "@wren/sites",
-   "group": "@wren/sites"
+   "group": "@wren/sites",
+   "attrs": {
+    "description": "The kit: one script every page and hosted form we run carries, data pages and code pages alike"
+   }
   },
   {
    "id": "@wren/sites/src/links.ts",
    "role": "file",
    "parent": "@wren/sites",
-   "group": "@wren/sites"
+   "group": "@wren/sites",
+   "attrs": {
+    "description": "Tracked links made in the portal: one `/go/` link per owner, page and utm, to copy into a post, an ad or a text"
+   }
   },
   {
    "id": "@wren/sites/src/model.ts",
    "role": "file",
    "parent": "@wren/sites",
-   "group": "@wren/sites"
+   "group": "@wren/sites",
+   "attrs": {
+    "description": "Sites: every page we run, in one list"
+   }
   },
   {
    "id": "@wren/sites/src/qr.ts",
    "role": "file",
    "parent": "@wren/sites",
-   "group": "@wren/sites"
+   "group": "@wren/sites",
+   "attrs": {
+    "description": "A QR code for a tracked link, made here: no service, no package"
+   }
   },
   {
    "id": "@wren/sites/src/records.ts",
    "role": "file",
    "parent": "@wren/sites",
-   "group": "@wren/sites"
+   "group": "@wren/sites",
+   "attrs": {
+    "description": "Sites as records: every page we run in one list, and each page's numbers by where its visits came from"
+   }
   },
   {
    "id": "@wren/sites/src/render.ts",
    "role": "file",
    "parent": "@wren/sites",
-   "group": "@wren/sites"
+   "group": "@wren/sites",
+   "attrs": {
+    "description": "One server template for every data page: the shell, the styles, the kit, and the template's body"
+   }
   },
   {
    "id": "@wren/sites/src/scan.ts",
    "role": "file",
    "parent": "@wren/sites",
-   "group": "@wren/sites"
+   "group": "@wren/sites",
+   "attrs": {
+    "description": "`wren sites scan`: pages that are live but not in the list"
+   }
   },
   {
    "id": "@wren/sites/src/schema.ts",
    "role": "file",
    "parent": "@wren/sites",
-   "group": "@wren/sites"
+   "group": "@wren/sites",
+   "attrs": {
+    "description": "Sites"
+   }
   },
   {
    "id": "@wren/sites/src/service.ts",
    "role": "file",
    "parent": "@wren/sites",
-   "group": "@wren/sites"
+   "group": "@wren/sites",
+   "attrs": {
+    "description": "`Sites`: what the portal Worker asks for on `/o/*`, no sign-in"
+   }
   },
   {
    "id": "@wren/sites/src/share.ts",
    "role": "file",
    "parent": "@wren/sites",
-   "group": "@wren/sites"
+   "group": "@wren/sites",
+   "attrs": {
+    "description": "A draft's share link: anyone with it sees one version for 7 days, no sign-in, nothing counted"
+   }
   },
   {
    "id": "@wren/sites/src/split-call.ts",
    "role": "file",
    "parent": "@wren/sites",
-   "group": "@wren/sites"
+   "group": "@wren/sites",
+   "attrs": {
+    "description": "The call on a page split, in words a person reads: \"B is ahead, 92% sure\" or \"Too early: 140 more visits\""
+   }
   },
   {
    "id": "@wren/sites/src/split.ts",
    "role": "file",
    "parent": "@wren/sites",
-   "group": "@wren/sites"
+   "group": "@wren/sites",
+   "attrs": {
+    "description": "Page splits: an A/B test at the edge"
+   }
   },
   {
    "id": "@wren/sites/src/store.ts",
    "role": "file",
    "parent": "@wren/sites",
-   "group": "@wren/sites"
+   "group": "@wren/sites",
+   "attrs": {
+    "description": "Sites' reads and writes on the main database"
+   }
   },
   {
    "id": "@wren/sites/src/templates/index.ts",
    "role": "file",
    "parent": "@wren/sites",
-   "group": "@wren/sites"
+   "group": "@wren/sites",
+   "attrs": {
+    "description": "The page templates by id, and the one check every save goes through"
+   }
   },
   {
    "id": "@wren/sites/src/templates/lander.ts",
    "role": "file",
    "parent": "@wren/sites",
-   "group": "@wren/sites"
+   "group": "@wren/sites",
+   "attrs": {
+    "description": "The lander: one offer, one ask"
+   }
   },
   {
    "id": "@wren/sites/src/templates/listicle.ts",
    "role": "file",
    "parent": "@wren/sites",
-   "group": "@wren/sites"
+   "group": "@wren/sites",
+   "attrs": {
+    "description": "The listicle: a title, ranked items with pros and cons, a verdict, then the form"
+   }
   },
   {
    "id": "@wren/sites/src/templates/page.ts",
    "role": "file",
    "parent": "@wren/sites",
-   "group": "@wren/sites"
+   "group": "@wren/sites",
+   "attrs": {
+    "description": "A Sections page: a title, a description and blocks from the library in any order"
+   }
   },
   {
    "id": "@wren/sites/src/templates/parts.ts",
    "role": "file",
    "parent": "@wren/sites",
-   "group": "@wren/sites"
+   "group": "@wren/sites",
+   "attrs": {
+    "description": "The pieces every template shares: escaping, reading a field, the form, a button"
+   }
   },
   {
    "id": "@wren/sites/src/templates/sections.ts",
    "role": "file",
    "parent": "@wren/sites",
-   "group": "@wren/sites"
+   "group": "@wren/sites",
+   "attrs": {
+    "description": "The section library: the blocks a Sections page (`page`) is made of, in any order"
+   }
   },
   {
    "id": "@wren/sites/src/templates/types.ts",
    "role": "file",
    "parent": "@wren/sites",
-   "group": "@wren/sites"
+   "group": "@wren/sites",
+   "attrs": {
+    "description": "A template: its copy fields and how it lays them out"
+   }
   },
   {
    "id": "@wren/sites/src/views.ts",
    "role": "file",
    "parent": "@wren/sites",
-   "group": "@wren/sites"
+   "group": "@wren/sites",
+   "attrs": {
+    "description": "The SQL views behind Sites' records (`./records.ts`), one row per record"
+   }
   },
   {
    "id": "@wren/sites/vitest.config.ts",

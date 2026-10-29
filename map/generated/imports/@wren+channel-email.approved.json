@@ -21,7 +21,10 @@
    "id": "@wren/channel-email/src/access/access.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "Mail access: a client's mailboxes, connected one sign-in each, after its Workspace admin trusts Wren's app or its Microsoft 365 admin consents"
+   }
   },
   {
    "id": "@wren/channel-email/src/access/console-routes.ts",
@@ -33,85 +36,127 @@
    "id": "@wren/channel-email/src/access/console.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "MailAccess: Account → Mail"
+   }
   },
   {
    "id": "@wren/channel-email/src/access/mailbox.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "A client's connected mailbox as the Monitor's `Mailbox`: Gmail's REST API or Microsoft Graph, on the mailbox's own OAuth token"
+   }
   },
   {
    "id": "@wren/channel-email/src/access/oauth.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "Wren's mail apps"
+   }
   },
   {
    "id": "@wren/channel-email/src/access/schema.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "Mail access: a client's mailboxes Wren may send from or read"
+   }
   },
   {
    "id": "@wren/channel-email/src/access/setups.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "Mail access as setups"
+   }
   },
   {
    "id": "@wren/channel-email/src/calls/brief.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "The pre-call brief: one screen on who booked, how they came in, what they wrote, what the dossier and signals say, and what to ask"
+   }
   },
   {
    "id": "@wren/channel-email/src/calls/index.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "Booked calls after the booking: the pre-call brief and the outcome"
+   }
   },
   {
    "id": "@wren/channel-email/src/calls/outcome.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "A call's outcome, marked by a person once it's over"
+   }
   },
   {
    "id": "@wren/channel-email/src/calls/recording.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "Recorded calls: what the Mac's desk asks for (the calls coming up), and what `wren calls add` keeps once a recording is transcribed: its row, its notes from the model, and one line on the person's timeline"
+   }
   },
   {
    "id": "@wren/channel-email/src/calls/restate.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "The brief on the executor and before the call"
+   }
   },
   {
    "id": "@wren/channel-email/src/calls/settings.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "The booked call's parts and their settings"
+   }
   },
   {
    "id": "@wren/channel-email/src/calls/site.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "A booked lead's visits to the lander, for the brief's \"On the site\" part: the visitors whose application carries the booking's email, then those visitors' pages and recorded sessions"
+   }
   },
   {
    "id": "@wren/channel-email/src/components.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "The email channel's components: sequences out, replies in, the inboxes' health, copy tests"
+   }
   },
   {
    "id": "@wren/channel-email/src/concurrent.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "Run `work` over `items` with at most `width` at once, in item order"
+   }
   },
   {
    "id": "@wren/channel-email/src/console-routes.ts",
@@ -123,67 +168,100 @@
    "id": "@wren/channel-email/src/dossier.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "The email side of a dossier: each person's addresses with their newest verdict, and the company's own inboxes (leads no person owns, such as info@), and each person's social touches (`touch`, designs/2026-10-07-touches.md)"
+   }
   },
   {
    "id": "@wren/channel-email/src/fetch-like.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "A `fetch`-shaped function: the seam every HTTP client in this package takes for tests"
+   }
   },
   {
    "id": "@wren/channel-email/src/follow.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "Email follow-ups on the executor"
+   }
   },
   {
    "id": "@wren/channel-email/src/guards.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "Send-time and spend-time gates shared by resolution, compose and send"
+   }
   },
   {
    "id": "@wren/channel-email/src/inbox/away.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "When an out-of-office says its person is back"
+   }
   },
   {
    "id": "@wren/channel-email/src/inbox/bookings.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "Calls booked on Wren's cal.com"
+   }
   },
   {
    "id": "@wren/channel-email/src/inbox/click-sync.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "Pull email link clicks from the lander into `email_clicks`"
+   }
   },
   {
    "id": "@wren/channel-email/src/inbox/clicks.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "The lander's export, and who clicked what in which email"
+   }
   },
   {
    "id": "@wren/channel-email/src/inbox/disposition.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "What a human reply meant, proposed by one LLM step and gated deterministically"
+   }
   },
   {
    "id": "@wren/channel-email/src/inbox/health.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "Sender reputation: what the domain looks like lately, and the switches that take it out of the rotation"
+   }
   },
   {
    "id": "@wren/channel-email/src/inbox/inbound.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "Classify one inbound message: bounce, auto-reply, unsubscribe, receipt, reply"
+   }
   },
   {
    "id": "@wren/channel-email/src/inbox/index.ts",
@@ -195,49 +273,73 @@
    "id": "@wren/channel-email/src/inbox/instantly.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "The carrier for an inbox only Instantly holds (roster `transport = \"instantly\"`): the Inbox Insiders fleet, whose Google logins stay with them"
+   }
   },
   {
    "id": "@wren/channel-email/src/inbox/invite.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "Speed to lead, with William's yes: a warm reply gets a proposal minutes after it lands, and only his approve books the call or sends a word"
+   }
   },
   {
    "id": "@wren/channel-email/src/inbox/marketing-bounces.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "Marketing bounce reading: one workspace's sending mailbox, read for delivery reports since its last check"
+   }
   },
   {
    "id": "@wren/channel-email/src/inbox/opens.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "Pull pixel fetches from the tracking host into `open_events`"
+   }
   },
   {
    "id": "@wren/channel-email/src/inbox/placement.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "What the seed copies say about each sending domain, and the pause that follows"
+   }
   },
   {
    "id": "@wren/channel-email/src/inbox/postmaster.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "Google Postmaster Tools: the complaint rate, pulled"
+   }
   },
   {
    "id": "@wren/channel-email/src/inbox/reply.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "The answer to a warm reply: code drafts it, William approves it, it goes out in the thread"
+   }
   },
   {
    "id": "@wren/channel-email/src/inbox/sync.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "The inbound sync: read every fleet mailbox, attach what belongs to us, act on it"
+   }
   },
   {
    "id": "@wren/channel-email/src/index.ts",
@@ -249,13 +351,19 @@
    "id": "@wren/channel-email/src/listmonk/campaign.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "An issue as a Listmonk campaign, and the tags that carry it back"
+   }
   },
   {
    "id": "@wren/channel-email/src/listmonk/client.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "A thin client for Listmonk's REST API"
+   }
   },
   {
    "id": "@wren/channel-email/src/listmonk/index.ts",
@@ -267,13 +375,19 @@
    "id": "@wren/channel-email/src/listmonk/setup.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "What Wren needs Listmonk's settings to say: the postback messenger that sends every message to Wren, a slow steady rate under Gmail's daily cap, and none of Listmonk's own tracking or public pages (sign-up stays on the lander, where the proof of consent is kept)"
+   }
   },
   {
    "id": "@wren/channel-email/src/listmonk/sync.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "The sync between Wren's consents and Listmonk's lists"
+   }
   },
   {
    "id": "@wren/channel-email/src/outreach/authoring.ts",
@@ -285,7 +399,10 @@
    "id": "@wren/channel-email/src/outreach/compose.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "Compose: turn eligible recipients into enrollments full of pinned drafts"
+   }
   },
   {
    "id": "@wren/channel-email/src/outreach/facts.ts",
@@ -297,7 +414,10 @@
    "id": "@wren/channel-email/src/outreach/fills.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "AI fills: facts a model writes, checked by code before any email can use them"
+   }
   },
   {
    "id": "@wren/channel-email/src/outreach/index.ts",
@@ -309,19 +429,28 @@
    "id": "@wren/channel-email/src/outreach/live.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "A niche's emails as the template store has them live (`@wren/core/templates`, kind email, system the niche)"
+   }
   },
   {
    "id": "@wren/channel-email/src/outreach/pages.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "Sites pages in an email: `{page.<slug>}` renders one of Wren's pages at `/o/<slug>` with the email's utm, its link code as `utm_content` so the visit and the form name the email"
+   }
   },
   {
    "id": "@wren/channel-email/src/outreach/plan.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "An enrollment plan: which sequence a company gets, decided by its facts and whether it is new or coming back"
+   }
   },
   {
    "id": "@wren/channel-email/src/outreach/preview.ts",
@@ -333,31 +462,46 @@
    "id": "@wren/channel-email/src/outreach/provenance.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "Where an address came from, pinned on every draft"
+   }
   },
   {
    "id": "@wren/channel-email/src/outreach/readable.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "Stored values are not sentence-ready"
+   }
   },
   {
    "id": "@wren/channel-email/src/outreach/refresh.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "Keeps the approved queue current"
+   }
   },
   {
    "id": "@wren/channel-email/src/outreach/review.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "Review by hand: drafts listed with how each address was come by, approve (the exact stored text becomes sendable), reject with a fixed reason vocabulary (the earliest copy signal there is), edit with the original pinned as data, stop"
+   }
   },
   {
    "id": "@wren/channel-email/src/outreach/sequences.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "Follow-up cadence as data"
+   }
   },
   {
    "id": "@wren/channel-email/src/outreach/templates.ts",
@@ -369,19 +513,28 @@
    "id": "@wren/channel-email/src/recontact.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "When a company may get another cold sequence"
+   }
   },
   {
    "id": "@wren/channel-email/src/record-views.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "The SQL views behind the console's email records (`./records.ts`), one row per record"
+   }
   },
   {
    "id": "@wren/channel-email/src/records.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "Wren's own email work as console records (`@wren/core/records`): campaigns, inboxes, warm replies, the firms in the pipeline, model usage"
+   }
   },
   {
    "id": "@wren/channel-email/src/report/index.ts",
@@ -393,31 +546,46 @@
    "id": "@wren/channel-email/src/report/schedule.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "When the report is due: Friday 19:00 on the fleet's clock, every week"
+   }
   },
   {
    "id": "@wren/channel-email/src/report/send.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "One weekly pass: collect, render, store, mail"
+   }
   },
   {
    "id": "@wren/channel-email/src/report/stats.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "Rates live in core now (every channel states them the same way); re-exported for the report"
+   }
   },
   {
    "id": "@wren/channel-email/src/report/variants.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "How each variant option did"
+   }
   },
   {
    "id": "@wren/channel-email/src/report/weekly.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "The Friday report (E8): what the campaign did this week, in numbers, from the same rows every other read surface uses"
+   }
   },
   {
    "id": "@wren/channel-email/src/resolution/index.ts",
@@ -429,61 +597,91 @@
    "id": "@wren/channel-email/src/resolution/listed.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "Listed contacts: a lead an import named (SBA's point of contact, with their own address) is a person at its firm, and that address is theirs"
+   }
   },
   {
    "id": "@wren/channel-email/src/resolution/service.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "Contact resolution (funnel L4): the only code allowed to spend verifier credits, built so every rule in the credit policy is a visible branch"
+   }
   },
   {
    "id": "@wren/channel-email/src/restate/bounce-scheduler.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "`BounceScheduler/all`: marketing email bounces, read hourly from every sending mailbox (`../inbox/marketing-bounces.ts`)"
+   }
   },
   {
    "id": "@wren/channel-email/src/restate/call-bookings.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "`CallBookings.ingest`: cal.com's booking webhook, forwarded by the phone Worker after the signature check, with trigger + uid + start as the idempotency key"
+   }
   },
   {
    "id": "@wren/channel-email/src/restate/clicks-scheduler.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "The email click pull as a Virtual Object with one key: every pass reads the lander's `hits` from the last view id we hold and counts the ones that came from an email link (`email_clicks`, `../inbox/click-sync.ts`)"
+   }
   },
   {
    "id": "@wren/channel-email/src/restate/compose-scheduler.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "The queue-keeper: `ComposeScheduler/{niche}` keeps the approved opener queue a few send days ahead of what the fleet may send, so the send loops never starve and nobody composes by hand"
+   }
   },
   {
    "id": "@wren/channel-email/src/restate/console.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "EmailConsole: Wren's team answers warm replies, pauses inboxes and sets campaigns from the console, with the same acts as `wren email answers` and `wren email senders pause|resume`"
+   }
   },
   {
    "id": "@wren/channel-email/src/restate/digest-scheduler.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "The morning email digest: `DigestScheduler/fleet` posts to the email lane once a day at `DIGEST_HOUR` on the fleet's clock"
+   }
   },
   {
    "id": "@wren/channel-email/src/restate/disposition.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "Reply disposition as a Virtual Object with one key: `classify` runs one pass of `runDisposition` over every pending human reply"
+   }
   },
   {
    "id": "@wren/channel-email/src/restate/inbox-scheduler.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "The inbox sync as a Virtual Object keyed by sender address: one key = one mailbox = one loop"
+   }
   },
   {
    "id": "@wren/channel-email/src/restate/index.ts",
@@ -495,67 +693,100 @@
    "id": "@wren/channel-email/src/restate/listmonk.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "Listmonk's three parts in Wren"
+   }
   },
   {
    "id": "@wren/channel-email/src/restate/marketing.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "`Marketing`: the lander's signup form and preference center, through the phone Worker"
+   }
   },
   {
    "id": "@wren/channel-email/src/restate/newsletter.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "`Newsletter`: one blog post mailed to everyone confirmed on its topic, keyed `<topic>:<slug>`"
+   }
   },
   {
    "id": "@wren/channel-email/src/restate/opens-scheduler.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "The open-pixel pull as a Virtual Object with one key: every pass reads the tracking host's export from the last row id we hold"
+   }
   },
   {
    "id": "@wren/channel-email/src/restate/placement-scheduler.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "Inbox placement: `PlacementScheduler/fleet` mails two copies from each ramped inbox to every seed Gmail (`WREN_PLACEMENT_SEEDS`) once a send day, at the window's open, through the inbox's own transport: a short personal note (`plain`, tests the domain) and the newest opener (`real`, tests the copy)"
+   }
   },
   {
    "id": "@wren/channel-email/src/restate/pool-scheduler.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "The pool-feeder: `PoolScheduler/{niche}` walks the research chain once per pass — discover, verify, crawl, render, scan, extract, pick, applyPicks, resolveMailboxes, verifyMailboxes, profiles — each stage one bounded call to its own object, journaled by Restate"
+   }
   },
   {
    "id": "@wren/channel-email/src/restate/postmaster-scheduler.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "The daily Postmaster pull (U-D12) as a Virtual Object with one key"
+   }
   },
   {
    "id": "@wren/channel-email/src/restate/queue-refresh.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "The queue follows the templates"
+   }
   },
   {
    "id": "@wren/channel-email/src/restate/report-scheduler.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "The Friday report (E8) as a Virtual Object with one key"
+   }
   },
   {
    "id": "@wren/channel-email/src/restate/resolution.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "Resolution as a Restate Virtual Object with one key: verifier credits are one global budget, so paid spend never runs concurrently (free probes may, many domains at once, in `resolveNewDomains` and `verifyLeads`)"
+   }
   },
   {
    "id": "@wren/channel-email/src/restate/send-scheduler.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "The send daemon as a loop object (`makeLoopObject`) keyed by sender address"
+   }
   },
   {
    "id": "@wren/channel-email/src/schema.ts",
@@ -567,37 +798,55 @@
    "id": "@wren/channel-email/src/send/call-times.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "`{call.times}`: two open times on the calendar, said in the lead's clock, filled when the email SENDS, not when it is composed, so a queued email never offers a time that passed or got taken"
+   }
   },
   {
    "id": "@wren/channel-email/src/send/campaign-controls.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "The console's per-campaign overrides of the send policy (`campaign_controls`): read once per tick and merged by `SendPolicy.withCampaigns`, written by EmailConsole"
+   }
   },
   {
    "id": "@wren/channel-email/src/send/dates.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "Calendar dates and clock times without a timezone, plus business-day cadence math (D36)"
+   }
   },
   {
    "id": "@wren/channel-email/src/send/deliver.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "The send tick: one paced walk of the outbox"
+   }
   },
   {
    "id": "@wren/channel-email/src/send/gmail.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "Gmail over domain-wide delegation: the send tick's side of it"
+   }
   },
   {
    "id": "@wren/channel-email/src/send/holidays.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "Days offices are closed, so nothing sends on them"
+   }
   },
   {
    "id": "@wren/channel-email/src/send/index.ts",
@@ -609,31 +858,46 @@
    "id": "@wren/channel-email/src/send/lead-timezone.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "The lead's own clock: location text → IANA zone"
+   }
   },
   {
    "id": "@wren/channel-email/src/send/mailboxes.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "SMTP/IMAP logins for the roster's `transport = \"smtp\"` inboxes: one JSON file, `{ \"<address>\": { smtp: {host, port, user, pass}, imap: {...} } }`, written by autobrowse (SSM `/wren/prod/mailboxes` on Lambda)"
+   }
   },
   {
    "id": "@wren/channel-email/src/send/mime.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "The message exactly as it goes on the wire, utf-8, our Message-ID verbatim"
+   }
   },
   {
    "id": "@wren/channel-email/src/send/policy.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "When the harness may send, and how far apart (C-D2)"
+   }
   },
   {
    "id": "@wren/channel-email/src/send/reconcile.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "Reconcile: ask the mailbox what actually happened to an in-flight send"
+   }
   },
   {
    "id": "@wren/channel-email/src/send/rng.ts",
@@ -645,61 +909,91 @@
    "id": "@wren/channel-email/src/send/roster.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "The sending-fleet roster: who may send, for which niches (D43)"
+   }
   },
   {
    "id": "@wren/channel-email/src/send/smtp.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "`Transport` over SMTP for an inbox with its own login (roster `transport = \"smtp\"`)"
+   }
   },
   {
    "id": "@wren/channel-email/src/send/suppress.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "Email's side of suppression: which stops become promises, bulk import, CSV"
+   }
   },
   {
    "id": "@wren/channel-email/src/send/tick.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "One send tick — kill switches, reconcile, the paced walk — as a function, so the scheduler and any operator command cannot drift"
+   }
   },
   {
    "id": "@wren/channel-email/src/send/transport.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "The transport contract: what a way-to-actually-send must offer (§4)"
+   }
   },
   {
    "id": "@wren/channel-email/src/send/tz.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "Zone arithmetic moved to core (`@wren/core/time`); re-exported so the send code reads as before"
+   }
   },
   {
    "id": "@wren/channel-email/src/sequences-settings.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "A client's `email.sequences` and `email.replies` blocks"
+   }
   },
   {
    "id": "@wren/channel-email/src/sequences.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "Email sequences for a client: its mailboxes, its database, Wren's send rules under the client's caps, and the client's own kill switch and opener brakes (`campaign_controls` in its database)"
+   }
   },
   {
    "id": "@wren/channel-email/src/setups.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "Sending domains and inboxes as setups: one domain account per sending domain, one inbox account per address"
+   }
   },
   {
    "id": "@wren/channel-email/src/spam/coverage.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "Every option of a template rendered at least once, in as few emails as the widest variant point has options: render `i` takes option `i` at every point (or its last, when a point has fewer)"
+   }
   },
   {
    "id": "@wren/channel-email/src/spam/index.ts",
@@ -711,7 +1005,10 @@
    "id": "@wren/channel-email/src/spam/spamassassin.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "SpamAssassin in Docker on the Mac: one `spamd --local` container per run, each message piped through `spamc -R`"
+   }
   },
   {
    "id": "@wren/channel-email/src/state.ts",
@@ -723,13 +1020,19 @@
    "id": "@wren/channel-email/src/verification/checks.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "Cross-checks: is this the right person at the right address? An SMTP verdict says the mailbox exists, not that it is this person's or that they still work there"
+   }
   },
   {
    "id": "@wren/channel-email/src/verification/domain-health.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "Each mail domain's standing, for the morning digest: is it on a domain blocklist (Spamhaus DBL, SURBL, URIBL), does its DNS carry what mail needs (one SPF, DKIM, DMARC, MX), does each fleet domain have NS, and is an SMTP sender's host IP on the prober check's IP lists"
+   }
   },
   {
    "id": "@wren/channel-email/src/verification/index.ts",
@@ -741,49 +1044,73 @@
    "id": "@wren/channel-email/src/verification/lead-checks.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "Stores the cross-checks (`checks.ts`) per lead"
+   }
   },
   {
    "id": "@wren/channel-email/src/verification/local.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "The stage-1 port: what the funnel needs to know about an address before anything dials a mail server"
+   }
   },
   {
    "id": "@wren/channel-email/src/verification/mailifier.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "The one file in wren that knows the mailbox checker is `mailifier`"
+   }
   },
   {
    "id": "@wren/channel-email/src/verification/prober-health.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "Each prober IP's standing, for the morning digest: does its PTR name the host (its HELO), is it on a blocklist, and what share of yesterday's checks were refused for our IP (`blocked`, `no_ptr`) rather than answered"
+   }
   },
   {
    "id": "@wren/channel-email/src/verification/retry.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "How long a `risky` verdict waits before the same server is asked again, by the prober's reason"
+   }
   },
   {
    "id": "@wren/channel-email/src/verification/service.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "The verification funnel over the DB: stage-1 local checks, then the configured EmailVerifier, writing verifications and advancing lead status"
+   }
   },
   {
    "id": "@wren/channel-email/src/verification/shared.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "Verdicts are public facts about an address, kept on main for every client"
+   }
   },
   {
    "id": "@wren/channel-email/src/verification/verifier.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "EmailVerifier: what the funnel depends on, and what it wants to know about a verdict — may it move a lead, and did it cost anything"
+   }
   },
   {
    "id": "@wren/channel-email/src/views.ts",
@@ -795,13 +1122,19 @@
    "id": "@wren/channel-email/test/integration/compose-fixtures.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "Shared fixtures for the compose and role-inbox suites: firms, people with a verified address, raw enrollments"
+   }
   },
   {
    "id": "@wren/channel-email/test/integration/inbox-fixtures.ts",
    "role": "file",
    "parent": "@wren/channel-email",
-   "group": "@wren/channel-email"
+   "group": "@wren/channel-email",
+   "attrs": {
+    "description": "Fixture mail and an in-memory Gmail read side, shared by the inbox and scheduler suites"
+   }
   },
   {
    "id": "@wren/channel-email/vitest.config.ts",

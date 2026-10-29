@@ -14,7 +14,10 @@
    "id": "@wren/channel-x/src/content.ts",
    "role": "file",
    "parent": "@wren/channel-x",
-   "group": "@wren/channel-x"
+   "group": "@wren/channel-x",
+   "attrs": {
+    "description": "X as a `ContentChannel`, over autobrowse's `x` site in API v2's shape"
+   }
   },
   {
    "id": "@wren/channel-x/src/index.ts",

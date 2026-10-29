@@ -1,0 +1,85 @@
+{
+ "layer": "ui",
+ "nodes": [
+  {
+   "id": "ui:settings",
+   "role": "app",
+   "group": "settings",
+   "attrs": {
+    "areas": [
+     "team: Tools"
+    ],
+    "blurb": "Your layout, your themes and colors, and a guide to every app and key.",
+    "file": "apps/portal/web/src/modules/settings/index.ts",
+    "name": "Settings",
+    "workspace": "wren"
+   }
+  },
+  {
+   "id": "ui:settings/guide",
+   "role": "screen",
+   "parent": "ui:settings",
+   "group": "settings",
+   "attrs": {
+    "about": "Where everything is, and the fastest ways to reach it.",
+    "file": "apps/portal/web/src/modules/settings/Guide.tsx",
+    "label": "Guide",
+    "order": 3,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:settings/layout",
+   "role": "screen",
+   "parent": "ui:settings",
+   "group": "settings",
+   "attrs": {
+    "about": "How the portal sits on your screen.",
+    "file": "apps/portal/web/src/modules/settings/Display.tsx",
+    "label": "Layout",
+    "order": 0,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:settings/look",
+   "role": "screen",
+   "parent": "ui:settings",
+   "group": "settings",
+   "attrs": {
+    "about": "Colors and type in Wren's workspace.",
+    "file": "apps/portal/web/src/modules/settings/Look.tsx",
+    "label": "Look",
+    "order": 2,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:settings/systems",
+   "role": "screen",
+   "parent": "ui:settings",
+   "group": "settings",
+   "attrs": {
+    "about": "Every app, and where it sits on your shape.",
+    "file": "apps/portal/web/src/modules/settings/Systems.tsx",
+    "label": "Systems",
+    "order": 4,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:settings/themes",
+   "role": "screen",
+   "parent": "ui:settings",
+   "group": "settings",
+   "attrs": {
+    "about": "Try a look on Wren's workspace.",
+    "file": "apps/portal/web/src/modules/settings/Look.tsx",
+    "label": "Themes",
+    "order": 1,
+    "template": "hand"
+   }
+  }
+ ],
+ "edges": []
+}

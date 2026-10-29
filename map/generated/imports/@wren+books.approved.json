@@ -19,13 +19,19 @@
    "id": "@wren/books/src/alerts.ts",
    "role": "file",
    "parent": "@wren/books",
-   "group": "@wren/books"
+   "group": "@wren/books",
+   "attrs": {
+    "description": "What the books should tell the operator, as edges"
+   }
   },
   {
    "id": "@wren/books/src/bills.ts",
    "role": "file",
    "parent": "@wren/books",
-   "group": "@wren/books"
+   "group": "@wren/books",
+   "attrs": {
+    "description": "The Monitor's mail on the executor: mail a vendor rule matches runs the books' pass now, not at tomorrow's"
+   }
   },
   {
    "id": "@wren/books/src/capture.ts",
@@ -37,7 +43,10 @@
    "id": "@wren/books/src/card.ts",
    "role": "file",
    "parent": "@wren/books",
-   "group": "@wren/books"
+   "group": "@wren/books",
+   "attrs": {
+    "description": "The card's own record of what it paid: statement files (OFX/QFX or CSV) and the bank's alert mail, one line per charge"
+   }
   },
   {
    "id": "@wren/books/src/chart.ts",
@@ -49,7 +58,10 @@
    "id": "@wren/books/src/components.ts",
    "role": "file",
    "parent": "@wren/books",
-   "group": "@wren/books"
+   "group": "@wren/books",
+   "attrs": {
+    "description": "Wren's own books"
+   }
   },
   {
    "id": "@wren/books/src/console-routes.ts",
@@ -61,37 +73,55 @@
    "id": "@wren/books/src/console.ts",
    "role": "file",
    "parent": "@wren/books",
-   "group": "@wren/books"
+   "group": "@wren/books",
+   "attrs": {
+    "description": "BooksConsole: Wren's team sets where an account's spend counts (unit economics) from the console: its bucket and its channel"
+   }
   },
   {
    "id": "@wren/books/src/daily.ts",
    "role": "file",
    "parent": "@wren/books",
-   "group": "@wren/books"
+   "group": "@wren/books",
+   "attrs": {
+    "description": "One day of the books, unattended: keep new billing mail from every mailbox, read it, post the journal, take in metered spend, then say what changed"
+   }
   },
   {
    "id": "@wren/books/src/day.ts",
    "role": "file",
    "parent": "@wren/books",
-   "group": "@wren/books"
+   "group": "@wren/books",
+   "attrs": {
+    "description": "Calendar days as `YYYY-MM-DD` strings: how bills print them and Postgres `date` stores them"
+   }
   },
   {
    "id": "@wren/books/src/decrypts.ts",
    "role": "file",
    "parent": "@wren/books",
-   "group": "@wren/books"
+   "group": "@wren/books",
+   "attrs": {
+    "description": "KMS Decrypt calls per principal per day, from CloudTrail's event history (90 days, free for management events)"
+   }
   },
   {
    "id": "@wren/books/src/economics.ts",
    "role": "file",
    "parent": "@wren/books",
-   "group": "@wren/books"
+   "group": "@wren/books",
+   "attrs": {
+    "description": "Unit economics: what a client costs to win, what one is worth, who leaves, and what each funnel stage costs per channel"
+   }
   },
   {
    "id": "@wren/books/src/ground.ts",
    "role": "file",
    "parent": "@wren/books",
-   "group": "@wren/books"
+   "group": "@wren/books",
+   "attrs": {
+    "description": "The reader's answer checked against the document it read"
+   }
   },
   {
    "id": "@wren/books/src/index.ts",
@@ -109,7 +139,10 @@
    "id": "@wren/books/src/money.ts",
    "role": "file",
    "parent": "@wren/books",
-   "group": "@wren/books"
+   "group": "@wren/books",
+   "attrs": {
+    "description": "Money as vendors print it, turned into whole cents without floats, and back into text"
+   }
   },
   {
    "id": "@wren/books/src/post.ts",
@@ -133,7 +166,10 @@
    "id": "@wren/books/src/records.ts",
    "role": "file",
    "parent": "@wren/books",
-   "group": "@wren/books"
+   "group": "@wren/books",
+   "attrs": {
+    "description": "The books as console records (`@wren/core/records`): spend lines, subscriptions, unit economics (months, channels, cohorts) and the chart of accounts"
+   }
   },
   {
    "id": "@wren/books/src/report.ts",
@@ -145,7 +181,10 @@
    "id": "@wren/books/src/restate.ts",
    "role": "file",
    "parent": "@wren/books",
-   "group": "@wren/books"
+   "group": "@wren/books",
+   "attrs": {
+    "description": "`Books/all`: the books' day (`booksDay`) once a day, unattended"
+   }
   },
   {
    "id": "@wren/books/src/schema.ts",
@@ -169,13 +208,19 @@
    "id": "@wren/books/src/usage-lines.ts",
    "role": "file",
    "parent": "@wren/books",
-   "group": "@wren/books"
+   "group": "@wren/books",
+   "attrs": {
+    "description": "Managed usage as draft lines: each owner's month of each vendor on Wren's key, at cost plus Wren's markup"
+   }
   },
   {
    "id": "@wren/books/src/usage.ts",
    "role": "file",
    "parent": "@wren/books",
-   "group": "@wren/books"
+   "group": "@wren/books",
+   "attrs": {
+    "description": "Metered spend, daily, from the provider's cost API: the early look before the month's bill"
+   }
   },
   {
    "id": "@wren/books/vitest.config.ts",

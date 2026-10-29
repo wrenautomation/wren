@@ -1,0 +1,103 @@
+{
+ "layer": "ui",
+ "nodes": [
+  {
+   "id": "ui:sites",
+   "role": "app",
+   "group": "sites",
+   "attrs": {
+    "areas": [
+     "team: Tools"
+    ],
+    "blurb": "Every lander, listicle, funnel page and hosted form, with its visits, submits and bookings.",
+    "file": "apps/portal/web/src/modules/sites/index.ts",
+    "name": "Sites",
+    "workspace": "wren"
+   }
+  },
+  {
+   "id": "ui:sites/forms",
+   "role": "screen",
+   "parent": "ui:sites",
+   "group": "sites",
+   "attrs": {
+    "about": "The forms on your pages.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Forms",
+    "order": 4,
+    "record": "sites.form",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:sites/funnel",
+   "role": "screen",
+   "parent": "ui:sites",
+   "group": "sites",
+   "attrs": {
+    "about": "Each page's visits, forms and bookings.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Funnel",
+    "order": 1,
+    "record": "sites.funnel",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:sites/funnel-map",
+   "role": "screen",
+   "parent": "ui:sites",
+   "group": "sites",
+   "attrs": {
+    "about": "Where visits came from, where they landed, and what they did next.",
+    "file": "apps/portal/web/src/modules/sites/funnel-graph.tsx",
+    "label": "Funnel map",
+    "order": 2,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:sites/links",
+   "role": "screen",
+   "parent": "ui:sites",
+   "group": "sites",
+   "attrs": {
+    "about": "Tracked links to your pages, one for each place you post them.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Links",
+    "order": 3,
+    "record": "sites.link",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:sites/pages",
+   "role": "screen",
+   "parent": "ui:sites",
+   "group": "sites",
+   "attrs": {
+    "about": "The pages Wren built for you, and how each one does.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Pages",
+    "order": 0,
+    "record": "sites.page",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:sites/submissions",
+   "role": "screen",
+   "parent": "ui:sites",
+   "group": "sites",
+   "attrs": {
+    "about": "Every form someone sent from your pages, in full.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Submissions",
+    "order": 5,
+    "record": "sites.entry",
+    "template": "list"
+   }
+  }
+ ],
+ "edges": []
+}

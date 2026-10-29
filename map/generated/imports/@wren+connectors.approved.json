@@ -17,13 +17,19 @@
    "id": "@wren/connectors/src/apps.ts",
    "role": "file",
    "parent": "@wren/connectors",
-   "group": "@wren/connectors"
+   "group": "@wren/connectors",
+   "attrs": {
+    "description": "The apps a client connects: where each signs in, what it reads, and how its token endpoint wants the app's keys"
+   }
   },
   {
    "id": "@wren/connectors/src/connectors.ts",
    "role": "file",
    "parent": "@wren/connectors",
-   "group": "@wren/connectors"
+   "group": "@wren/connectors",
+   "attrs": {
+    "description": "A client's connected apps: the page's view, the sign-in and its landing, a live token, and disconnect"
+   }
   },
   {
    "id": "@wren/connectors/src/console-routes.ts",
@@ -41,43 +47,64 @@
    "id": "@wren/connectors/src/pull/hubspot.ts",
    "role": "file",
    "parent": "@wren/connectors",
-   "group": "@wren/connectors"
+   "group": "@wren/connectors",
+   "attrs": {
+    "description": "HubSpot: contacts changed since the cursor, oldest change first, through the CRM search API"
+   }
   },
   {
    "id": "@wren/connectors/src/pull/jobber.ts",
    "role": "file",
    "parent": "@wren/connectors",
-   "group": "@wren/connectors"
+   "group": "@wren/connectors",
+   "attrs": {
+    "description": "Jobber: clients changed since their cursor, then jobs completed since theirs, through its GraphQL API"
+   }
   },
   {
    "id": "@wren/connectors/src/pull/quickbooks.ts",
    "role": "file",
    "parent": "@wren/connectors",
-   "group": "@wren/connectors"
+   "group": "@wren/connectors",
+   "attrs": {
+    "description": "QuickBooks Online: customers, then invoices, each changed since its cursor, through the query API"
+   }
   },
   {
    "id": "@wren/connectors/src/pull/types.ts",
    "role": "file",
    "parent": "@wren/connectors",
-   "group": "@wren/connectors"
+   "group": "@wren/connectors",
+   "attrs": {
+    "description": "What a read of one app hands the sync, whichever app"
+   }
   },
   {
    "id": "@wren/connectors/src/restate.ts",
    "role": "file",
    "parent": "@wren/connectors",
-   "group": "@wren/connectors"
+   "group": "@wren/connectors",
+   "attrs": {
+    "description": "Connectors on Restate: `Connectors` is Account → Connectors, `ConnectorCallback/land` where each app sends the person back, and `ConnectorSync/<link>` the hourly read, one at a time per link so a rotating refresh token never races itself"
+   }
   },
   {
    "id": "@wren/connectors/src/schema.ts",
    "role": "file",
    "parent": "@wren/connectors",
-   "group": "@wren/connectors"
+   "group": "@wren/connectors",
+   "attrs": {
+    "description": "Connectors: sign-ins in flight, connected apps, and what each already told the executor"
+   }
   },
   {
    "id": "@wren/connectors/src/sync.ts",
    "role": "file",
    "parent": "@wren/connectors",
-   "group": "@wren/connectors"
+   "group": "@wren/connectors",
+   "attrs": {
+    "description": "One sync of a link: read what changed, land the people in the client's CRM by the import a CSV export takes, and hand back what to tell the executor"
+   }
   },
   {
    "id": "@wren/connectors/vitest.config.ts",

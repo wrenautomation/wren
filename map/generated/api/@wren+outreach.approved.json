@@ -26,7 +26,7 @@
     "entries": [
      "@wren/outreach"
     ],
-    "file": "packages/outreach/src/reach-posts.ts",
+    "file": "packages/outreach/src/reach-posts/acts.ts",
     "inferred": true,
     "kind": "const",
     "sig": "5"
@@ -84,7 +84,7 @@
     "entries": [
      "@wren/outreach"
     ],
-    "file": "packages/outreach/src/reach-posts.ts",
+    "file": "packages/outreach/src/reach-posts/acts.ts",
     "kind": "interface",
     "sig": "interface ActsStats { liked: number; followed: number; held: string[]; errors: string[]; }"
    }
@@ -169,7 +169,7 @@
     "entries": [
      "@wren/outreach"
     ],
-    "file": "packages/outreach/src/reach-posts.ts",
+    "file": "packages/outreach/src/reach-posts/settings.ts",
     "kind": "const",
     "sig": "Readonly<Record<ReachPostPlatform, string>>"
    }
@@ -228,7 +228,7 @@
     "entries": [
      "@wren/outreach"
     ],
-    "file": "packages/outreach/src/reach-posts.ts",
+    "file": "packages/outreach/src/reach-posts/settings.ts",
     "inferred": true,
     "kind": "const",
     "sig": "Record<\"linkedin\" | \"youtube\" | \"x\" | \"tiktok\" | \"instagram\" | \"threads\", z.ZodObject<{ account: z.ZodDefault<z.ZodString>; perDay: z.ZodDefault<z.ZodNumber>; autoSend: z.ZodDefault<z.ZodBoolean>; topics: z.ZodDefault<z.ZodArray<z.ZodString>>; pages: z.ZodDefault<z.ZodArray<z.ZodString>>; people: z.…"
@@ -296,6 +296,20 @@
    }
   },
   {
+   "id": "@wren/outreach#COMMENT_LENGTH",
+   "role": "export",
+   "parent": "@wren/outreach",
+   "group": "@wren/outreach",
+   "attrs": {
+    "entries": [
+     "@wren/outreach"
+    ],
+    "file": "packages/outreach/src/reach-posts/settings.ts",
+    "kind": "const",
+    "sig": "Readonly<Record<ReachPostPlatform, string>>"
+   }
+  },
+  {
    "id": "@wren/outreach#COMMENT_MAX",
    "role": "export",
    "parent": "@wren/outreach",
@@ -304,7 +318,7 @@
     "entries": [
      "@wren/outreach"
     ],
-    "file": "packages/outreach/src/reach-posts.ts",
+    "file": "packages/outreach/src/reach-posts/settings.ts",
     "kind": "const",
     "sig": "Readonly<Record<ReachPostPlatform, number>>"
    }
@@ -543,7 +557,7 @@
     "entries": [
      "@wren/outreach"
     ],
-    "file": "packages/outreach/src/reach-posts.ts",
+    "file": "packages/outreach/src/reach-posts/settings.ts",
     "kind": "type",
     "sig": "type CommentsSettings = z.infer<ReturnType<typeof commentsSettingsSchemaFor>>;"
    }
@@ -586,7 +600,7 @@
     "entries": [
      "@wren/outreach"
     ],
-    "file": "packages/outreach/src/reach-posts.ts",
+    "file": "packages/outreach/src/reach-posts/settings.ts",
     "inferred": true,
     "kind": "const",
     "sig": "readonly [\"business\", \"compan\", \"firm\", \"agency\", \"founder\", \"owner\", \"ceo\", \"b2b\", \"startup\", \"client\", \"customer\"]"
@@ -823,7 +837,7 @@
     "entries": [
      "@wren/outreach"
     ],
-    "file": "packages/outreach/src/reach-posts.ts",
+    "file": "packages/outreach/src/reach-posts/read.ts",
     "kind": "interface",
     "sig": "interface FeedPost { ref: string; author: string; authorUrl: string | null; handle?: string | null; headline?: string; text: string; age?: string; at?: string; approx?: true; reactions: number; comments: number; url: string; off?: string; raw?: unknown; }"
    }
@@ -1004,6 +1018,20 @@
    }
   },
   {
+   "id": "@wren/outreach#KeyPerson",
+   "role": "export",
+   "parent": "@wren/outreach",
+   "group": "@wren/outreach",
+   "attrs": {
+    "entries": [
+     "@wren/outreach"
+    ],
+    "file": "packages/outreach/src/reach-posts/read.ts",
+    "kind": "interface",
+    "sig": "interface KeyPerson { handle: string; name: string; }"
+   }
+  },
+  {
    "id": "@wren/outreach#LIMIT_HOLD_MS",
    "role": "export",
    "parent": "@wren/outreach",
@@ -1090,10 +1118,25 @@
     "entries": [
      "@wren/outreach"
     ],
-    "file": "packages/outreach/src/reach-posts.ts",
+    "file": "packages/outreach/src/reach-posts/settings.ts",
     "inferred": true,
     "kind": "const",
     "sig": "70"
+   }
+  },
+  {
+   "id": "@wren/outreach#MOMENTUM_MAX",
+   "role": "export",
+   "parent": "@wren/outreach",
+   "group": "@wren/outreach",
+   "attrs": {
+    "entries": [
+     "@wren/outreach"
+    ],
+    "file": "packages/outreach/src/reach-posts/rank.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "14"
    }
   },
   {
@@ -1275,6 +1318,20 @@
     "inferred": true,
     "kind": "const",
     "sig": "Record<\"reddit\" | \"linkedin\" | \"youtube\" | \"x\" | \"tiktok\" | \"instagram\" | \"google_business\" | \"facebook\", import(\"@wren/core/records\").State>"
+   }
+  },
+  {
+   "id": "@wren/outreach#PLATFORM_NAME",
+   "role": "export",
+   "parent": "@wren/outreach",
+   "group": "@wren/outreach",
+   "attrs": {
+    "entries": [
+     "@wren/outreach"
+    ],
+    "file": "packages/outreach/src/reach-posts/settings.ts",
+    "kind": "const",
+    "sig": "Readonly<Record<ReachPostPlatform, string>>"
    }
   },
   {
@@ -1469,6 +1526,20 @@
    }
   },
   {
+   "id": "@wren/outreach#PostReader",
+   "role": "export",
+   "parent": "@wren/outreach",
+   "group": "@wren/outreach",
+   "attrs": {
+    "entries": [
+     "@wren/outreach"
+    ],
+    "file": "packages/outreach/src/reach-posts/read.ts",
+    "kind": "interface",
+    "sig": "interface PostReader { search(keywords: string, since: Since): Promise<FeedPost[]>; page(handle: string): Promise<FeedPost[]>; person(k: KeyPerson, since: Since): Promise<FeedPost[]>; one(ref: string): Promise<FeedPost | null>; feed(): Promise<FeedPost[]>; }"
+   }
+  },
+  {
    "id": "@wren/outreach#PostSettle",
    "role": "export",
    "parent": "@wren/outreach",
@@ -1491,7 +1562,7 @@
     "entries": [
      "@wren/outreach"
     ],
-    "file": "packages/outreach/src/reach-posts.ts",
+    "file": "packages/outreach/src/reach-posts/pass.ts",
     "kind": "interface",
     "sig": "interface PostsStats { platform: ReachPostPlatform; account: string; reads: number; kept: number; dropped: number; queued: number; scheduled?: number; acts?: ActsStats; capped: boolean; topics: string[]; rested: string[]; errors: string[]; }"
    }
@@ -1700,7 +1771,7 @@
     "entries": [
      "@wren/outreach"
     ],
-    "file": "packages/outreach/src/reach-posts.ts",
+    "file": "packages/outreach/src/reach-posts/topics.ts",
     "inferred": true,
     "kind": "const",
     "sig": "15"
@@ -2063,7 +2134,7 @@
     "entries": [
      "@wren/outreach"
     ],
-    "file": "packages/outreach/src/reach-posts.ts",
+    "file": "packages/outreach/src/reach-posts/draft.ts",
     "kind": "interface",
     "sig": "interface RedraftResult { redrafted: number[]; dropped: { id: number; why: string }[]; skipped: { id: number; why: string }[]; }"
    }
@@ -2341,7 +2412,7 @@
     "entries": [
      "@wren/outreach"
     ],
-    "file": "packages/outreach/src/reach-posts.ts",
+    "file": "packages/outreach/src/reach-posts/read.ts",
     "kind": "type",
     "sig": "type Since = \"past-24h\" | \"past-week\" | \"past-month\";"
    }
@@ -2802,7 +2873,7 @@
     "entries": [
      "@wren/outreach"
     ],
-    "file": "packages/outreach/src/reach-posts.ts",
+    "file": "packages/outreach/src/reach-posts/read.ts",
     "kind": "interface",
     "sig": "interface YtVideo { id: string; snippet?: { title?: string; description?: string; channelId?: string; channelTitle?: string; publishedAt?: string; categoryId?: string; defaultAudioLanguage?: string; }; statistics?: { likeCount?: string; commentCount?: string }; }"
    }
@@ -2986,7 +3057,7 @@
     "entries": [
      "@wren/outreach"
     ],
-    "file": "packages/outreach/src/reach-posts.ts",
+    "file": "packages/outreach/src/reach-posts/settings.ts",
     "kind": "function",
     "sig": "(db: Queryable): Promise<Record<ReachPostPlatform, CommentsSettings>>"
    }
@@ -3127,7 +3198,7 @@
     "entries": [
      "@wren/outreach"
     ],
-    "file": "packages/outreach/src/reach-posts.ts",
+    "file": "packages/outreach/src/reach-posts/rank.ts",
     "kind": "function",
     "sig": "(headline: string, audience: readonly string[]): { points: number; kind: \"buyer\" | \"seller\" | \"owner\" | \"manager\" | null }"
    }
@@ -3141,7 +3212,7 @@
     "entries": [
      "@wren/outreach"
     ],
-    "file": "packages/outreach/src/reach-posts.ts",
+    "file": "packages/outreach/src/reach-posts/acts.ts",
     "kind": "function",
     "sig": "(db: Queryable, o: { platform: ReachPostPlatform; settings: Pick<CommentsSettings, \"like\" | \"follow\" | \"minFit\">; call: (act: SiteAct) => Promise<unknown>; step: <T>(name: string, fn: () => Promise<T>) => Promise<T>; holds: CapHolds; now: Date; followsLeft?: number; }): Promise<ActsStats>"
    }
@@ -3520,7 +3591,7 @@
     "entries": [
      "@wren/outreach"
     ],
-    "file": "packages/outreach/src/reach-posts.ts",
+    "file": "packages/outreach/src/reach-posts/settings.ts",
     "kind": "function",
     "sig": "(db: Queryable, platform: ReachPostPlatform): Promise<CommentsSettings>"
    }
@@ -3794,7 +3865,7 @@
     "entries": [
      "@wren/outreach"
     ],
-    "file": "packages/outreach/src/reach-posts.ts",
+    "file": "packages/outreach/src/reach-posts/draft.ts",
     "kind": "function",
     "sig": "(db: Queryable, llm: LlmClient, id: number, o: CommentDraftOptions & { now: Date }): Promise<\"queued\" | \"dropped\" | \"gone\">"
    }
@@ -4118,7 +4189,7 @@
     "entries": [
      "@wren/outreach"
     ],
-    "file": "packages/outreach/src/reach-posts.ts",
+    "file": "packages/outreach/src/reach-posts/acts.ts",
     "kind": "function",
     "sig": "(platform: ReachPostPlatform, who: { handle: string } | { company: string }): SiteAct"
    }
@@ -4346,7 +4417,7 @@
     "entries": [
      "@wren/outreach"
     ],
-    "file": "packages/outreach/src/reach-posts.ts",
+    "file": "packages/outreach/src/reach-posts/rank.ts",
     "kind": "function",
     "sig": "(text: string, headline = \"\"): boolean"
    }
@@ -4474,7 +4545,7 @@
     "entries": [
      "@wren/outreach"
     ],
-    "file": "packages/outreach/src/reach-posts.ts",
+    "file": "packages/outreach/src/reach-posts/rank.ts",
     "kind": "function",
     "sig": "(text: string, headline = \"\"): JobPost | null"
    }
@@ -4558,7 +4629,7 @@
     "entries": [
      "@wren/outreach"
     ],
-    "file": "packages/outreach/src/reach-posts.ts",
+    "file": "packages/outreach/src/reach-posts/pass.ts",
     "kind": "function",
     "sig": "(db: Queryable, posts: readonly FeedPost[], o: { platform: ReachPostPlatform; foundBy: string; account: string; topics: readonly string[]; audience?: readonly string[]; key?: boolean; ours: readonly string[]; halfLifeHours: number; maxAgeHours: number; now: Date; }): Promise<{ found: number[]; dropped: number }>"
    }
@@ -4756,7 +4827,7 @@
     "entries": [
      "@wren/outreach"
     ],
-    "file": "packages/outreach/src/reach-posts.ts",
+    "file": "packages/outreach/src/reach-posts/acts.ts",
     "inferred": true,
     "kind": "function",
     "sig": "(db: Queryable, o: { state?: string; limit?: number } = {}): Promise<{ id: number; platform: \"linkedin\" | \"youtube\" | \"x\" | \"tiktok\" | \"instagram\" | \"threads\"; state: \"dropped\" | \"skipped\" | \"queued\" | \"found\" | \"commented\"; author: string; fit: number | null; why: string | null; draft: string | null; url: string; foundBy: string; }[]>"
@@ -4959,7 +5030,7 @@
     "entries": [
      "@wren/outreach"
     ],
-    "file": "packages/outreach/src/reach-posts.ts",
+    "file": "packages/outreach/src/reach-posts/acts.ts",
     "kind": "function",
     "sig": "(db: Queryable, id: number, act: \"like\" | \"follow\", now: Date): Promise<void>"
    }
@@ -4973,7 +5044,7 @@
     "entries": [
      "@wren/outreach"
     ],
-    "file": "packages/outreach/src/reach-posts.ts",
+    "file": "packages/outreach/src/reach-posts/acts.ts",
     "kind": "function",
     "sig": "(db: Queryable, post: ReachPost, r: { body: string; by: string; now: Date }): Promise<void>"
    }
@@ -5043,7 +5114,7 @@
     "entries": [
      "@wren/outreach"
     ],
-    "file": "packages/outreach/src/reach-posts.ts",
+    "file": "packages/outreach/src/reach-posts/rank.ts",
     "kind": "function",
     "sig": "(p: Pick<FeedPost, \"reactions\" | \"comments\">, ageH: number | null, halfLifeHours: number): number"
    }
@@ -5071,7 +5142,7 @@
     "entries": [
      "@wren/outreach"
     ],
-    "file": "packages/outreach/src/reach-posts.ts",
+    "file": "packages/outreach/src/reach-posts/read.ts",
     "inferred": true,
     "kind": "function",
     "sig": "(vanity: string): string"
@@ -5157,7 +5228,7 @@
     "entries": [
      "@wren/outreach"
     ],
-    "file": "packages/outreach/src/reach-posts.ts",
+    "file": "packages/outreach/src/reach-posts/acts.ts",
     "kind": "function",
     "sig": "(p: Pick<ReachPost, \"platform\" | \"handle\" | \"author\" | \"headline\" | \"text\">): boolean"
    }
@@ -5424,7 +5495,7 @@
     "entries": [
      "@wren/outreach"
     ],
-    "file": "packages/outreach/src/reach-posts.ts",
+    "file": "packages/outreach/src/reach-posts/read.ts",
     "kind": "function",
     "sig": "(keywords: string): string"
    }
@@ -5624,7 +5695,7 @@
     "entries": [
      "@wren/outreach"
     ],
-    "file": "packages/outreach/src/reach-posts.ts",
+    "file": "packages/outreach/src/reach-posts/acts.ts",
     "kind": "function",
     "sig": "(db: Queryable, id: number, act: \"like\" | \"follow\"): Promise<ReachPost>"
    }
@@ -5638,7 +5709,7 @@
     "entries": [
      "@wren/outreach"
     ],
-    "file": "packages/outreach/src/reach-posts.ts",
+    "file": "packages/outreach/src/reach-posts/acts.ts",
     "kind": "function",
     "sig": "(db: Queryable, id: number): Promise<ReachPost>"
    }
@@ -5680,7 +5751,7 @@
     "entries": [
      "@wren/outreach"
     ],
-    "file": "packages/outreach/src/reach-posts.ts",
+    "file": "packages/outreach/src/reach-posts/topics.ts",
     "kind": "function",
     "sig": "(own: readonly string[], yields: readonly TopicYield[], fresh: readonly string[], extra: number, audience?: readonly string[]): { topics: string[]; rested: string[] }"
    }
@@ -5722,7 +5793,7 @@
     "entries": [
      "@wren/outreach"
     ],
-    "file": "packages/outreach/src/reach-posts.ts",
+    "file": "packages/outreach/src/reach-posts/acts.ts",
     "kind": "function",
     "sig": "(p: ReachPost, s: Pick<CommentsSettings, \"like\" | \"follow\">, body: string): { comment: SiteAct | null; like: SiteAct | null; follow: SiteAct | null }"
    }
@@ -5736,7 +5807,7 @@
     "entries": [
      "@wren/outreach"
     ],
-    "file": "packages/outreach/src/reach-posts.ts",
+    "file": "packages/outreach/src/reach-posts/read.ts",
     "kind": "function",
     "sig": "(sites: SiteClient, platform: ReachPostPlatform, account: string, o: { authorTitle?: string; now: Date }): PostReader"
    }
@@ -5750,7 +5821,7 @@
     "entries": [
      "@wren/outreach"
     ],
-    "file": "packages/outreach/src/reach-posts.ts",
+    "file": "packages/outreach/src/reach-posts/pass.ts",
     "kind": "function",
     "sig": "(db: Queryable, o: { platform: ReachPostPlatform; settings: CommentsSettings; read: PostReader; llm: LlmClient | null; guide?: () => Promise<string>; voice?: string; facts?: () => Promise<readonly string[]>; ours?: () => Promise<readonly OurPost[]>; now: Date; step: <T>(name: string, fn: () => Promise<T>) => Promise<T>; capped?: (err: unknown) => boolean; }): Promise<PostsStats>"
    }
@@ -5879,7 +5950,7 @@
     "entries": [
      "@wren/outreach"
     ],
-    "file": "packages/outreach/src/reach-posts.ts",
+    "file": "packages/outreach/src/reach-posts/topics.ts",
     "kind": "function",
     "sig": "(llm: LlmClient, o: { platform?: ReachPostPlatform; about: string; n: number; yields: readonly TopicYield[]; known: readonly string[]; audience?: readonly string[]; }): Promise<string[]>"
    }
@@ -5978,7 +6049,7 @@
     "entries": [
      "@wren/outreach"
     ],
-    "file": "packages/outreach/src/reach-posts.ts",
+    "file": "packages/outreach/src/reach-posts/rank.ts",
     "kind": "function",
     "sig": "(p: FeedPost, o: { topics: readonly string[]; audience?: readonly string[]; key: boolean; foundBy: string; halfLifeHours: number; now: Date; }): { fit: number; why: string; off: string | null }"
    }
@@ -6334,7 +6405,7 @@
     "entries": [
      "@wren/outreach"
     ],
-    "file": "packages/outreach/src/reach-posts.ts",
+    "file": "packages/outreach/src/reach-posts/draft.ts",
     "kind": "function",
     "sig": "(db: Queryable, llm: LlmClient, ids: readonly number[], o: CommentDraftOptions & { settings: Readonly<Record<ReachPostPlatform, CommentsSettings>>; why?: string; now: Date; }): Promise<RedraftResult>"
    }
@@ -6719,7 +6790,7 @@
     "entries": [
      "@wren/outreach"
     ],
-    "file": "packages/outreach/src/reach-posts.ts",
+    "file": "packages/outreach/src/reach-posts/read.ts",
     "kind": "function",
     "sig": "(code: string): Date | null"
    }
@@ -6789,7 +6860,7 @@
     "entries": [
      "@wren/outreach"
     ],
-    "file": "packages/outreach/src/reach-posts.ts",
+    "file": "packages/outreach/src/reach-posts/acts.ts",
     "kind": "function",
     "sig": "(db: Queryable, ids: readonly number[], o: { by?: string; reason?: RejectReason | null; note?: string | null } = {}): Promise<number[]>"
    }
@@ -7121,7 +7192,7 @@
     "entries": [
      "@wren/outreach"
     ],
-    "file": "packages/outreach/src/reach-posts.ts",
+    "file": "packages/outreach/src/reach-posts/rank.ts",
     "kind": "function",
     "sig": "(topic: string): string"
    }
@@ -7135,7 +7206,7 @@
     "entries": [
      "@wren/outreach"
     ],
-    "file": "packages/outreach/src/reach-posts.ts",
+    "file": "packages/outreach/src/reach-posts/topics.ts",
     "kind": "function",
     "sig": "(db: Queryable, o: { platform: ReachPostPlatform; minFit: number; now: Date }): Promise<TopicYield[]>"
    }
@@ -7337,7 +7408,7 @@
     "entries": [
      "@wren/outreach"
     ],
-    "file": "packages/outreach/src/reach-posts.ts",
+    "file": "packages/outreach/src/reach-posts/read.ts",
     "inferred": true,
     "kind": "function",
     "sig": "(url: string | null | undefined): string | null"
@@ -7496,7 +7567,7 @@
     "entries": [
      "@wren/outreach"
     ],
-    "file": "packages/outreach/src/reach-posts.ts",
+    "file": "packages/outreach/src/reach-posts/read.ts",
     "kind": "function",
     "sig": "(v: YtVideo): FeedPost | null"
    }

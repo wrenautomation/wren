@@ -18,37 +18,55 @@
    "id": "@wren/learn/src/alerts.ts",
    "role": "file",
    "parent": "@wren/learn",
-   "group": "@wren/learn"
+   "group": "@wren/learn",
+   "attrs": {
+    "description": "Learn's alerts, for every workspace's people"
+   }
   },
   {
    "id": "@wren/learn/src/breakdown.ts",
    "role": "file",
    "parent": "@wren/learn",
-   "group": "@wren/learn"
+   "group": "@wren/learn",
+   "attrs": {
+    "description": "How an item is made: its hook style from a fixed set, the hook line and why it works, the beats, the call to action, and its kind's facts"
+   }
   },
   {
    "id": "@wren/learn/src/calls.ts",
    "role": "file",
    "parent": "@wren/learn",
-   "group": "@wren/learn"
+   "group": "@wren/learn",
+   "attrs": {
+    "description": "His calls on a breakdown's facts: keep, tune or drop, with his words, on the item's document (kind `document`, `doc:<id>`) or on one fact of it (kind `finding`, the finding's key: `doc:<id>/beats/2`, `doc:<id>/facts/shots/5`)"
+   }
   },
   {
    "id": "@wren/learn/src/catalog.ts",
    "role": "file",
    "parent": "@wren/learn",
-   "group": "@wren/learn"
+   "group": "@wren/learn",
+   "attrs": {
+    "description": "A creator's back catalog: following reads only what comes next, so what a creator posted before is read on ask, a few at a time"
+   }
   },
   {
    "id": "@wren/learn/src/check.ts",
    "role": "file",
    "parent": "@wren/learn",
-   "group": "@wren/learn"
+   "group": "@wren/learn",
+   "attrs": {
+    "description": "One of our pieces held to an SOP: each standard number beside ours, each closed set beside ours, and each pattern he kept or dropped that ours meets or breaks"
+   }
   },
   {
    "id": "@wren/learn/src/components.ts",
    "role": "file",
    "parent": "@wren/learn",
-   "group": "@wren/learn"
+   "group": "@wren/learn",
+   "attrs": {
+    "description": "Learn: saved links and feed items, read, scored, kept"
+   }
   },
   {
    "id": "@wren/learn/src/console-routes.ts",
@@ -60,55 +78,82 @@
    "id": "@wren/learn/src/console.ts",
    "role": "file",
    "parent": "@wren/learn",
-   "group": "@wren/learn"
+   "group": "@wren/learn",
+   "attrs": {
+    "description": "LearnConsole: the Learn app's hands"
+   }
   },
   {
    "id": "@wren/learn/src/creators.ts",
    "role": "file",
    "parent": "@wren/learn",
-   "group": "@wren/learn"
+   "group": "@wren/learn",
+   "attrs": {
+    "description": "Creators followed on sites with no feed: Instagram, X and TikTok"
+   }
   },
   {
    "id": "@wren/learn/src/decide.ts",
    "role": "file",
    "parent": "@wren/learn",
-   "group": "@wren/learn"
+   "group": "@wren/learn",
+   "attrs": {
+    "description": "Decide's Learn side, Wren's own workspace only"
+   }
   },
   {
    "id": "@wren/learn/src/drive.ts",
    "role": "file",
    "parent": "@wren/learn",
-   "group": "@wren/learn"
+   "group": "@wren/learn",
+   "attrs": {
+    "description": "The drive: every item as something to watch, hear or read, organized like files"
+   }
   },
   {
    "id": "@wren/learn/src/embed.ts",
    "role": "file",
    "parent": "@wren/learn",
-   "group": "@wren/learn"
+   "group": "@wren/learn",
+   "attrs": {
+    "description": "Search by meaning: each read item embedded once (title, summary and the start of its transcript), kept on the row as a unit vector, and compared in memory"
+   }
   },
   {
    "id": "@wren/learn/src/feeds.ts",
    "role": "file",
    "parent": "@wren/learn",
-   "group": "@wren/learn"
+   "group": "@wren/learn",
+   "attrs": {
+    "description": "The sources Learn follows: RSS and Atom only"
+   }
   },
   {
    "id": "@wren/learn/src/film.ts",
    "role": "file",
    "parent": "@wren/learn",
-   "group": "@wren/learn"
+   "group": "@wren/learn",
+   "attrs": {
+    "description": "A film's facts: the cut count the detectors agree on, how long its shots run, where the cuts cluster, and each shot"
+   }
   },
   {
    "id": "@wren/learn/src/findings.ts",
    "role": "file",
    "parent": "@wren/learn",
-   "group": "@wren/learn"
+   "group": "@wren/learn",
+   "attrs": {
+    "description": "A breakdown as findings on its item's document"
+   }
   },
   {
    "id": "@wren/learn/src/hunt.ts",
    "role": "file",
    "parent": "@wren/learn",
-   "group": "@wren/learn"
+   "group": "@wren/learn",
+   "attrs": {
+    "description": "The hunt: nobody scrolls a platform for an SOP's examples"
+   }
   },
   {
    "id": "@wren/learn/src/index.ts",
@@ -120,67 +165,100 @@
    "id": "@wren/learn/src/items.ts",
    "role": "file",
    "parent": "@wren/learn",
-   "group": "@wren/learn"
+   "group": "@wren/learn",
+   "attrs": {
+    "description": "Items by hand: saving a link (the portal box, the phone's Shortcut, the CLI), search across every transcript, and one item whole for its page"
+   }
   },
   {
    "id": "@wren/learn/src/learnback.ts",
    "role": "file",
    "parent": "@wren/learn",
-   "group": "@wren/learn"
+   "group": "@wren/learn",
+   "attrs": {
+    "description": "Learn back: our own posted pieces go through the same breakdown as anyone's, as Learn items tied to their draft (`draft_id`)"
+   }
   },
   {
    "id": "@wren/learn/src/links.ts",
    "role": "file",
    "parent": "@wren/learn",
-   "group": "@wren/learn"
+   "group": "@wren/learn",
+   "attrs": {
+    "description": "Links as Learn keeps them: one address per thing, whoever shared it"
+   }
   },
   {
    "id": "@wren/learn/src/pictures.ts",
    "role": "file",
    "parent": "@wren/learn",
-   "group": "@wren/learn"
+   "group": "@wren/learn",
+   "attrs": {
+    "description": "Learn's pictures in our own store"
+   }
   },
   {
    "id": "@wren/learn/src/read.ts",
    "role": "file",
    "parent": "@wren/learn",
-   "group": "@wren/learn"
+   "group": "@wren/learn",
+   "attrs": {
+    "description": "Reading: an item's words, kept as its transcript"
+   }
   },
   {
    "id": "@wren/learn/src/records.ts",
    "role": "file",
    "parent": "@wren/learn",
-   "group": "@wren/learn"
+   "group": "@wren/learn",
+   "attrs": {
+    "description": "Learn as console records, in the Learn app: every item (feed or saved), what William saved, the sources it follows, and the SOP library"
+   }
   },
   {
    "id": "@wren/learn/src/schema.ts",
    "role": "file",
    "parent": "@wren/learn",
-   "group": "@wren/learn"
+   "group": "@wren/learn",
+   "attrs": {
+    "description": "Learn's tables: the sources followed, every item they bring or someone saves, and the items asked into an SOP"
+   }
   },
   {
    "id": "@wren/learn/src/score.ts",
    "role": "file",
    "parent": "@wren/learn",
-   "group": "@wren/learn"
+   "group": "@wren/learn",
+   "attrs": {
+    "description": "Scoring: each read item judged 0-10 against how its workspace works today"
+   }
   },
   {
    "id": "@wren/learn/src/sops.ts",
    "role": "file",
    "parent": "@wren/learn",
-   "group": "@wren/learn"
+   "group": "@wren/learn",
+   "attrs": {
+    "description": "Items into SOPs"
+   }
   },
   {
    "id": "@wren/learn/src/standard.ts",
    "role": "file",
    "parent": "@wren/learn",
-   "group": "@wren/learn"
+   "group": "@wren/learn",
+   "attrs": {
+    "description": "What an SOP's pieces measure and what he called on them"
+   }
   },
   {
    "id": "@wren/learn/src/tell.ts",
    "role": "file",
    "parent": "@wren/learn",
-   "group": "@wren/learn"
+   "group": "@wren/learn",
+   "attrs": {
+    "description": "Telling William: per source, \"Tell me\" is every item, 8 and up, or the digest only"
+   }
   },
   {
    "id": "@wren/learn/vitest.config.ts",

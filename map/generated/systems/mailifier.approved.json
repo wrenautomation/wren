@@ -1,0 +1,16 @@
+{
+ "layer": "systems",
+ "nodes": [
+  {
+   "id": "system:mailifier",
+   "role": "system",
+   "group": "mailifier",
+   "attrs": {
+    "description": "Ask a mail server whether an address exists, over SMTP, without sending anything.",
+    "kind": "repo",
+    "title": "mailifier"
+   }
+  }
+ ],
+ "edges": []
+}

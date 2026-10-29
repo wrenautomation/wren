@@ -1,0 +1,33 @@
+{
+ "layer": "ui",
+ "nodes": [
+  {
+   "id": "ui:clientSettings",
+   "role": "app",
+   "group": "clientSettings",
+   "attrs": {
+    "areas": [
+     "client: Tools"
+    ],
+    "blurb": "Every app in your workspace, and where it sits on your shape.",
+    "file": "apps/portal/web/src/modules/settings/index.ts",
+    "name": "Admin",
+    "workspace": "client"
+   }
+  },
+  {
+   "id": "ui:clientSettings/systems",
+   "role": "screen",
+   "parent": "ui:clientSettings",
+   "group": "clientSettings",
+   "attrs": {
+    "about": "Every app, and where it sits on your shape.",
+    "file": "apps/portal/web/src/modules/settings/Systems.tsx",
+    "label": "Systems",
+    "order": 0,
+    "template": "hand"
+   }
+  }
+ ],
+ "edges": []
+}

@@ -1,0 +1,84 @@
+{
+ "layer": "ui",
+ "nodes": [
+  {
+   "id": "ui:voice",
+   "role": "app",
+   "group": "voice",
+   "attrs": {
+    "blurb": "An AI agent that answers the phone, books calls and takes messages.",
+    "file": "apps/portal/web/src/modules/voice/index.ts",
+    "name": "Voice",
+    "parked": true,
+    "workspace": "wren"
+   }
+  },
+  {
+   "id": "ui:voice/agent",
+   "role": "screen",
+   "parent": "ui:voice",
+   "group": "voice",
+   "attrs": {
+    "about": "Who answers the phone, what it says and what it may do.",
+    "file": "apps/portal/web/src/modules/voice/agent.tsx",
+    "label": "Agent",
+    "order": 4,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:voice/calls",
+   "role": "screen",
+   "parent": "ui:voice",
+   "group": "voice",
+   "attrs": {
+    "about": "Every call the agent took, and how it went.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Calls",
+    "order": 2,
+    "record": "voice.call",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:voice/latency",
+   "role": "screen",
+   "parent": "ui:voice",
+   "group": "voice",
+   "attrs": {
+    "about": "How fast the agent answers after a caller stops talking.",
+    "file": "apps/portal/web/src/modules/voice/latency.tsx",
+    "label": "Latency",
+    "order": 3,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:voice/overview",
+   "role": "screen",
+   "parent": "ui:voice",
+   "group": "voice",
+   "attrs": {
+    "about": "Your phone agent at a glance.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Overview",
+    "order": 0,
+    "template": "overview"
+   }
+  },
+  {
+   "id": "ui:voice/test",
+   "role": "screen",
+   "parent": "ui:voice",
+   "group": "voice",
+   "attrs": {
+    "about": "Call the agent the way a caller would.",
+    "file": "apps/portal/web/src/modules/voice/test.tsx",
+    "label": "Test call",
+    "order": 1,
+    "template": "hand"
+   }
+  }
+ ],
+ "edges": []
+}

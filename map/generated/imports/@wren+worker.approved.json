@@ -7,6 +7,7 @@
    "parent": "repo:wren",
    "group": "@wren/worker",
    "attrs": {
+    "description": "Every Restate service, served from Lambda and the box.",
     "dir": "apps/worker/",
     "npm": [
      "node:child_process",
@@ -21,241 +22,361 @@
    "id": "@wren/worker/scripts/build-lambda.mjs",
    "role": "file",
    "parent": "@wren/worker",
-   "group": "@wren/worker"
+   "group": "@wren/worker",
+   "attrs": {
+    "description": "Bundle the Lambda handler: dist/lambda.zip with app/lambda.mjs (one ESM file, handler `app/lambda.handler`) and app/box.mjs (the pool chain on the Postgres box, `node app/box.mjs`), the niche templates beside it (the niches resolve `../templates` from their module), the migrations (the db resolves `../drizzle`, so the worker can migrate a new client's database: the SQL files and the journal, not the snapshots), the sender roster when the repo has one, and playwright-core for the Browserbase render tier"
+   }
   },
   {
    "id": "@wren/worker/scripts/gallery-export.ts",
    "role": "file",
    "parent": "@wren/worker",
-   "group": "@wren/worker"
+   "group": "@wren/worker",
+   "attrs": {
+    "description": "`pnpm templates:export <file> [--check]`: write the gallery snapshot for the lander, or (with --check) exit 1 when the file on disk differs"
+   }
   },
   {
    "id": "@wren/worker/src/box-slot.ts",
    "role": "file",
    "parent": "@wren/worker",
-   "group": "@wren/worker"
+   "group": "@wren/worker",
+   "attrs": {
+    "description": "The box worker's two slots"
+   }
   },
   {
    "id": "@wren/worker/src/box.ts",
    "role": "file",
    "parent": "@wren/worker",
-   "group": "@wren/worker"
+   "group": "@wren/worker",
+   "attrs": {
+    "description": "The pool chain served from the Postgres box"
+   }
   },
   {
    "id": "@wren/worker/src/components.ts",
    "role": "file",
    "parent": "@wren/worker",
-   "group": "@wren/worker"
+   "group": "@wren/worker",
+   "attrs": {
+    "description": "Every component, from every package: the source for the catalog, installs and gating"
+   }
   },
   {
    "id": "@wren/worker/src/console-records.ts",
    "role": "file",
    "parent": "@wren/worker",
-   "group": "@wren/worker"
+   "group": "@wren/worker",
+   "attrs": {
+    "description": "Wren's console records (`makeConsolePortal`'s `records`): the one list the worker, the portal preview (`apps/portal/scripts/preview.ts`) and the page stories' types (`./record-types.ts`) serve"
+   }
   },
   {
    "id": "@wren/worker/src/gallery.ts",
    "role": "file",
    "parent": "@wren/worker",
-   "group": "@wren/worker"
+   "group": "@wren/worker",
+   "attrs": {
+    "description": "The public template gallery: the code's client templates as JSON for the lander to build pages from"
+   }
   },
   {
    "id": "@wren/worker/src/journey-research.ts",
    "role": "file",
    "parent": "@wren/worker",
-   "group": "@wren/worker"
+   "group": "@wren/worker",
+   "attrs": {
+    "description": "What a journey's node `research` runs (packages/pipeline/src/research.ts), from the research code that exists"
+   }
   },
   {
    "id": "@wren/worker/src/lambda.ts",
    "role": "file",
    "parent": "@wren/worker",
-   "group": "@wren/worker"
+   "group": "@wren/worker",
+   "attrs": {
+    "description": "The same services as `main.ts`, served to Restate Cloud from AWS Lambda"
+   }
   },
   {
    "id": "@wren/worker/src/line-feed.ts",
    "role": "file",
    "parent": "@wren/worker",
-   "group": "@wren/worker"
+   "group": "@wren/worker",
+   "attrs": {
+    "description": "`LineFeed/all`: Wren's content lines fed to the executor"
+   }
   },
   {
    "id": "@wren/worker/src/main.ts",
    "role": "file",
    "parent": "@wren/worker",
-   "group": "@wren/worker"
+   "group": "@wren/worker",
+   "attrs": {
+    "description": "Restate endpoint on Node: serves every channel's services on :9080"
+   }
   },
   {
    "id": "@wren/worker/src/marketing.ts",
    "role": "file",
    "parent": "@wren/worker",
-   "group": "@wren/worker"
+   "group": "@wren/worker",
+   "attrs": {
+    "description": "The Marketing app's records, from each channel that keeps the numbers"
+   }
   },
   {
    "id": "@wren/worker/src/pain-feed.ts",
    "role": "file",
    "parent": "@wren/worker",
-   "group": "@wren/worker"
+   "group": "@wren/worker",
+   "attrs": {
+    "description": "`PainFeed/all`: the pain points line"
+   }
   },
   {
    "id": "@wren/worker/src/planned.ts",
    "role": "file",
    "parent": "@wren/worker",
-   "group": "@wren/worker"
+   "group": "@wren/worker",
+   "attrs": {
+    "description": "Parts we need and haven't built: designs, not catalog"
+   }
   },
   {
    "id": "@wren/worker/src/record-edits.ts",
    "role": "file",
    "parent": "@wren/worker",
-   "group": "@wren/worker"
+   "group": "@wren/worker",
+   "attrs": {
+    "description": "The copy records' `edits` (`@wren/core/edits`): William's words for a text or a DM slot, edited in place on the record with History, Undo and Ask Claude"
+   }
   },
   {
    "id": "@wren/worker/src/record-types.ts",
    "role": "file",
    "parent": "@wren/worker",
-   "group": "@wren/worker"
+   "group": "@wren/worker",
+   "attrs": {
+    "description": "Every record type the worker serves, built without a database, a bucket or the lander: Wren's console (`consoleRecords` and the console's own), each client component's, People's and a client's Marketing"
+   }
   },
   {
    "id": "@wren/worker/src/review.ts",
    "role": "file",
    "parent": "@wren/worker",
-   "group": "@wren/worker"
+   "group": "@wren/worker",
+   "attrs": {
+    "description": "The Friday review (direction doc, \"How to juggle\"): every parked idea, what unparks it, and a live check where prod keeps the number"
+   }
   },
   {
    "id": "@wren/worker/src/services.ts",
    "role": "file",
    "parent": "@wren/worker",
-   "group": "@wren/worker"
+   "group": "@wren/worker",
+   "attrs": {
+    "description": "Every Restate service the worker serves, built once from settings"
+   }
   },
   {
    "id": "@wren/worker/src/services/accounts.ts",
    "role": "file",
    "parent": "@wren/worker",
-   "group": "@wren/worker"
+   "group": "@wren/worker",
+   "attrs": {
+    "description": "Client accounts: setups watched and run, the Accounts console, mail, social and connector access with their callbacks, the social inbox, the mail reader and marketing bounces"
+   }
   },
   {
    "id": "@wren/worker/src/services/apps.ts",
    "role": "file",
    "parent": "@wren/worker",
-   "group": "@wren/worker"
+   "group": "@wren/worker",
+   "attrs": {
+    "description": "The portal's product apps: voice, templates, notes, sites, payments, documents, journeys and the pipeline console"
+   }
   },
   {
    "id": "@wren/worker/src/services/books.ts",
    "role": "file",
    "parent": "@wren/worker",
-   "group": "@wren/worker"
+   "group": "@wren/worker",
+   "attrs": {
+    "description": "The books' day and its console"
+   }
   },
   {
    "id": "@wren/worker/src/services/calendar.ts",
    "role": "file",
    "parent": "@wren/worker",
-   "group": "@wren/worker"
+   "group": "@wren/worker",
+   "attrs": {
+    "description": "Our booking calendar and each client's, through the phone Worker's /calendar door"
+   }
   },
   {
    "id": "@wren/worker/src/services/clients.ts",
    "role": "file",
    "parent": "@wren/worker",
-   "group": "@wren/worker"
+   "group": "@wren/worker",
+   "attrs": {
+    "description": "Clients: health and flags, delivery and billing with their portals, domains, Ask, tokens and call briefs"
+   }
   },
   {
    "id": "@wren/worker/src/services/content-channels.ts",
    "role": "file",
    "parent": "@wren/worker",
-   "group": "@wren/worker"
+   "group": "@wren/worker",
+   "attrs": {
+    "description": "The content channels per invocation and a client's, Meta ads' dependencies, and where Reddit calls go: what `Content`, `Ads` and the research chain are wired with"
+   }
   },
   {
    "id": "@wren/worker/src/services/content.ts",
    "role": "file",
    "parent": "@wren/worker",
-   "group": "@wren/worker"
+   "group": "@wren/worker",
+   "attrs": {
+    "description": "Content: the Blog box and Pieces, the channels and Meta ads, the content loop (desk, scheduler, metrics, planner), the social inbox and desk, auto-reply, comment keywords and the site chat"
+   }
   },
   {
    "id": "@wren/worker/src/services/deps.ts",
    "role": "file",
    "parent": "@wren/worker",
-   "group": "@wren/worker"
+   "group": "@wren/worker",
+   "attrs": {
+    "description": "The shared objects every domain file wires its services from (`buildDeps`), the module-level helpers more than one domain uses, and the `Deps` type they all take"
+   }
   },
   {
    "id": "@wren/worker/src/services/email.ts",
    "role": "file",
    "parent": "@wren/worker",
-   "group": "@wren/worker"
+   "group": "@wren/worker",
+   "attrs": {
+    "description": "Cold email: the send and inbox schedulers, disposition, call bookings, marketing mail and the newsletter, compose and the queue, placement, Postmaster, opens and clicks, the Friday report, and the Email console"
+   }
   },
   {
    "id": "@wren/worker/src/services/executor.ts",
    "role": "file",
    "parent": "@wren/worker",
-   "group": "@wren/worker"
+   "group": "@wren/worker",
+   "attrs": {
+    "description": "The executor: every workspace's journeys stepped, and each Schedule node's clock"
+   }
   },
   {
    "id": "@wren/worker/src/services/people.ts",
    "role": "file",
    "parent": "@wren/worker",
-   "group": "@wren/worker"
+   "group": "@wren/worker",
+   "attrs": {
+    "description": "People: a client's People console, segments, the people map, the touch and sourced feeds, and broadcasts"
+   }
   },
   {
    "id": "@wren/worker/src/services/platform.ts",
    "role": "file",
    "parent": "@wren/worker",
-   "group": "@wren/worker"
+   "group": "@wren/worker",
+   "attrs": {
+    "description": "The platform's own loops: token renewal, the vault's keys, audit seals, Decide, webhooks, dead letters and the loop watch, and the console portal every page calls"
+   }
   },
   {
    "id": "@wren/worker/src/services/reach.ts",
    "role": "file",
    "parent": "@wren/worker",
-   "group": "@wren/worker"
+   "group": "@wren/worker",
+   "attrs": {
+    "description": "Cold outreach on Reddit and LinkedIn over the Mac's desk worker: sender, watch, desk, comment proofs and Reddit reads"
+   }
   },
   {
    "id": "@wren/worker/src/services/reactivation.ts",
    "role": "file",
    "parent": "@wren/worker",
-   "group": "@wren/worker"
+   "group": "@wren/worker",
+   "attrs": {
+    "description": "Reactivation: a client's portal, the loop, and the CLI's `crm run` door"
+   }
   },
   {
    "id": "@wren/worker/src/services/research.ts",
    "role": "file",
    "parent": "@wren/worker",
-   "group": "@wren/worker"
+   "group": "@wren/worker",
+   "attrs": {
+    "description": "The research chain: enrichment, profile research, discovery and resolution over the pool, the pool-feeder that walks them per niche, and the page archive that moves old page HTML off the box"
+   }
   },
   {
    "id": "@wren/worker/src/services/search.ts",
    "role": "file",
    "parent": "@wren/worker",
-   "group": "@wren/worker"
+   "group": "@wren/worker",
+   "attrs": {
+    "description": "Search: Search Console daily, the answer engines and edit proposals weekly"
+   }
   },
   {
    "id": "@wren/worker/src/services/sms.ts",
    "role": "file",
    "parent": "@wren/worker",
-   "group": "@wren/worker"
+   "group": "@wren/worker",
+   "attrs": {
+    "description": "Cold SMS: the sender, events, reviews, desk, watch, site forms and console"
+   }
   },
   {
    "id": "@wren/worker/src/services/watch.ts",
    "role": "file",
    "parent": "@wren/worker",
-   "group": "@wren/worker"
+   "group": "@wren/worker",
+   "attrs": {
+    "description": "The Monitor: new mail onto the `watch` workflow, Learn's pictures, and the Watch and Learn consoles"
+   }
   },
   {
    "id": "@wren/worker/src/setups.ts",
    "role": "file",
    "parent": "@wren/worker",
-   "group": "@wren/worker"
+   "group": "@wren/worker",
+   "attrs": {
+    "description": "Every setup: core's Google and Meta, the phone's, email's, Stripe's for pay links, client mail access, client social accounts"
+   }
   },
   {
    "id": "@wren/worker/src/sourced-feed.ts",
    "role": "file",
    "parent": "@wren/worker",
-   "group": "@wren/worker"
+   "group": "@wren/worker",
+   "attrs": {
+    "description": "`SourcedFeed/all`: a person added to a list that a live sourced source of the shape takes people from is told to the executor as a `trigger.source` fire, and the shape opens a journey"
+   }
   },
   {
    "id": "@wren/worker/src/wake.ts",
    "role": "file",
    "parent": "@wren/worker",
-   "group": "@wren/worker"
+   "group": "@wren/worker",
+   "attrs": {
+    "description": "Wake on row: a row a loop must act on fires `pg_notify('wren_wake', '<Service>/<unit>')` at commit (migration 0235)"
+   }
   },
   {
    "id": "@wren/worker/src/workflows.ts",
    "role": "file",
    "parent": "@wren/worker",
-   "group": "@wren/worker"
+   "group": "@wren/worker",
+   "attrs": {
+    "description": "Every workflow: each package's own, and here the ones that cross packages"
+   }
   }
  ],
  "edges": [

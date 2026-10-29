@@ -1,0 +1,60 @@
+{
+ "layer": "ui",
+ "nodes": [
+  {
+   "id": "ui:marketplace",
+   "role": "app",
+   "group": "marketplace",
+   "attrs": {
+    "areas": [
+     "client: Automations"
+    ],
+    "blurb": "Everything Wren can run for you, and what each part needs.",
+    "file": "apps/portal/web/src/modules/marketplace/index.ts",
+    "name": "Marketplace",
+    "workspace": "client"
+   }
+  },
+  {
+   "id": "ui:marketplace/catalog",
+   "role": "screen",
+   "parent": "ui:marketplace",
+   "group": "marketplace",
+   "attrs": {
+    "about": "Add-ons you can install, and the ones you have.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Catalog",
+    "order": 0,
+    "record": "console.component",
+    "template": "shop"
+   }
+  },
+  {
+   "id": "ui:marketplace/map",
+   "role": "screen",
+   "parent": "ui:marketplace",
+   "group": "marketplace",
+   "attrs": {
+    "about": "How each part builds on the others.",
+    "file": "apps/portal/web/src/modules/marketplace/Map.tsx",
+    "label": "Map",
+    "order": 1,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:marketplace/mods",
+   "role": "screen",
+   "parent": "ui:marketplace",
+   "group": "marketplace",
+   "attrs": {
+    "about": "Browser mods, and what each one can touch.",
+    "file": "apps/portal/web/src/modules/marketplace/Mods.tsx",
+    "label": "Browser mods",
+    "order": 2,
+    "template": "hand"
+   }
+  }
+ ],
+ "edges": []
+}

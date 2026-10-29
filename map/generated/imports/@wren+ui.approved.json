@@ -23,13 +23,19 @@
    "id": "@wren/ui/.engine/entry.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "The engine for claude.ai artifacts: the kit, the metro map and its samples as one script, so a design artifact draws with the app's own code"
+   }
   },
   {
    "id": "@wren/ui/.engine/vite.config.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "Builds `wren-engine.js` and `wren-engine.css` for claude.ai artifacts: one script, React inside, `window.Wren` outside"
+   }
   },
   {
    "id": "@wren/ui/.storybook/feedback.tsx",
@@ -47,133 +53,199 @@
    "id": "@wren/ui/.storybook/look.mjs",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "Layout problems on local pages, as text"
+   }
   },
   {
    "id": "@wren/ui/.storybook/look.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "Layout problems on the page as it is drawn, as text: words over other words, words past their box, a pane that scrolls sideways"
+   }
   },
   {
    "id": "@wren/ui/.storybook/looks.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "The looks each story is tested in: both themes, and both widths, a phone's and a desktop's"
+   }
   },
   {
    "id": "@wren/ui/.storybook/main.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "Storybook, the component workbench for `@wren/ui`"
+   }
   },
   {
    "id": "@wren/ui/.storybook/match.mjs",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "Artifact match: each part in `match/parts.ts` is read on the artifact page and in its story with getComputedStyle, day and night, at 390 and 1280"
+   }
   },
   {
    "id": "@wren/ui/.storybook/preview.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "The `@wren/ui` Storybook's preview: the shared frame (frame.tsx) over the kit's stylesheet"
+   }
   },
   {
    "id": "@wren/ui/.storybook/run.mjs",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "Stories as tests: each renders, its `play` runs, axe checks it"
+   }
   },
   {
    "id": "@wren/ui/.storybook/serve.mjs",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "One Storybook per port: the package it is called from, on the port it is given (default 61000)"
+   }
   },
   {
    "id": "@wren/ui/.storybook/shot.mjs",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "Screenshots of stories from a running Storybook (`pnpm --filter @wren/ui storybook`), for a look while you edit"
+   }
   },
   {
    "id": "@wren/ui/.storybook/static.mjs",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "A built Storybook (or any folder), served on a free local port for one run"
+   }
   },
   {
    "id": "@wren/ui/.storybook/story-tests.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "Every story as a test: it renders, its `play` runs, axe checks it"
+   }
   },
   {
    "id": "@wren/ui/.storybook/vitest.config.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "The `@wren/ui` stories as tests (story-tests.ts)"
+   }
   },
   {
    "id": "@wren/ui/.storybook/vitest.setup.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "Stories as tests: a fixed clock, nothing moving, and links that keep the test frame"
+   }
   },
   {
    "id": "@wren/ui/match/parts.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "Artifact match pairs: each part names one artifact node and the same part in a story, with the properties measured on each"
+   }
   },
   {
    "id": "@wren/ui/src/access.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "Who may see a node, page, app or action"
+   }
   },
   {
    "id": "@wren/ui/src/accounts.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "Accounts on records: the badge, the list's Account filter and the draft's account picker"
+   }
   },
   {
    "id": "@wren/ui/src/action.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "A record's actions: `useRun` asks first when the action says to, calls the handler by id, says how it went in a toast, and offers undo"
+   }
   },
   {
    "id": "@wren/ui/src/browser.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "A browser: folders at the left, the folder's rows in the middle, the open row at the right"
+   }
   },
   {
    "id": "@wren/ui/src/busy.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "The busy ring, the one mark for any wait (William, 10-21): a faint track and one arc that turns, 0.8 s a turn"
+   }
   },
   {
    "id": "@wren/ui/src/charts/draw.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "The portal's charts, drawn by Recharts through shadcn's chart pieces, in the tokens' colors"
+   }
   },
   {
    "id": "@wren/ui/src/charts/heat.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "A figure for each pair of two steps (day by hour): one hue, light for few and deep for many, a 2px paper gap between cells"
+   }
   },
   {
    "id": "@wren/ui/src/charts/index.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "Charts, loaded on first show: Recharts is its own chunk, so a page without a chart never loads it"
+   }
   },
   {
    "id": "@wren/ui/src/components/ui/badge.tsx",
@@ -191,7 +263,10 @@
    "id": "@wren/ui/src/components/ui/chart.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "shadcn's chart pieces on Recharts, kept to what the portal draws"
+   }
   },
   {
    "id": "@wren/ui/src/components/ui/command.tsx",
@@ -251,523 +326,784 @@
    "id": "@wren/ui/src/contrast.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "Every text color on every ground a look makes, by WCAG 2.1: 4.5:1 for all text, no large-text exception"
+   }
   },
   {
    "id": "@wren/ui/src/controls.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "Things you press: square buttons, and pill tags for status"
+   }
   },
   {
    "id": "@wren/ui/src/copy.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "Copy to the clipboard, one way everywhere: the button says \"Copied\" for a moment, and a copy the browser refuses says so in a toast"
+   }
   },
   {
    "id": "@wren/ui/src/customize.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "What a viewer arranges for himself, kept in his prefs (`KeepApi`): pages pinned to the rail in his order, and which Overview tiles show in what order"
+   }
   },
   {
    "id": "@wren/ui/src/data.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "Facts: label and value pairs"
+   }
   },
   {
    "id": "@wren/ui/src/data/delta.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "A list read that asks only for what changed (`@wren/core/records/delta`): it sends the hashes of the rows it already holds and fills the stubs that come back from them"
+   }
   },
   {
    "id": "@wren/ui/src/data/edits.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "The edits store: every word typed into the portal that the server doesn't hold yet, in one place"
+   }
   },
   {
    "id": "@wren/ui/src/data/index.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "The data layer"
+   }
   },
   {
    "id": "@wren/ui/src/data/local.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "The local copy: the read cache (`./query.ts`) kept in this browser's IndexedDB, so the next load paints at once and reads again behind it, and shared live with the portal's other tabs (BroadcastChannel)"
+   }
   },
   {
    "id": "@wren/ui/src/data/query.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "The portal's one read cache: TanStack Query"
+   }
   },
   {
    "id": "@wren/ui/src/data/status.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "The two pieces every page shows of the write path: `SendStatus`, the line under a box that sent something (going, trying again and why, sent, refused and why), and `WritesIndicator`, the shell's mark for offline and for writes not yet answered"
+   }
   },
   {
    "id": "@wren/ui/src/data/use-edit.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "One field's unsaved words"
+   }
   },
   {
    "id": "@wren/ui/src/day.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "The Day template: one day of work across record types, grouped by one field under its cue (Content's platforms)"
+   }
   },
   {
    "id": "@wren/ui/src/dictate-text.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "Dictated words in a text box: the spacing and the capital they take from what's around the cursor, and the caret's place on screen for the greyed partial"
+   }
   },
   {
    "id": "@wren/ui/src/dictate.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "Dictate: a mic button for a text box, inside it through `DictateField` (bottom right of a textarea, the right end of a one-line input)"
+   }
   },
   {
    "id": "@wren/ui/src/diff.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "Two texts compared line by line: side by side on a wide screen, one column (unified) on a phone"
+   }
   },
   {
    "id": "@wren/ui/src/display.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "How a viewer sets the frame for himself, kept in his prefs (`DISPLAY_PREF`): the sidebar's and the page column's widths, either folded away, how tight rows sit, the text size, the canvas around the window, the counts, the motion"
+   }
   },
   {
    "id": "@wren/ui/src/draft-save.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "How a draft box saves, apart from how it draws: the engine's options for one draft, and the live words a preview beside the box reads without the page drawing again on each key"
+   }
   },
   {
    "id": "@wren/ui/src/draft.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "A draft finished in place: the record declares its draft (`RecordExtras.draft`) and the detail shows it as a box, not a dialog"
+   }
   },
   {
    "id": "@wren/ui/src/edit-form.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "Every portal form on React Hook Form"
+   }
   },
   {
    "id": "@wren/ui/src/edits.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "A record's edits, drawn from its declaration, never per page: each field it lets a person change edits in place, History lists every change with Undo, and Ask Claude answers with a patch shown as a diff that Accept applies through the same edit path"
+   }
   },
   {
    "id": "@wren/ui/src/feedback.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "What a screen says while it waits, when it has nothing, and when something broke"
+   }
   },
   {
    "id": "@wren/ui/src/fields.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "Field kinds, drawn (console standard): each kind's table cell, its detail line and its filter"
+   }
   },
   {
    "id": "@wren/ui/src/fixtures/accounts.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "Fixtures for `accounts.tsx`: a record type with an account field, the accounts, and the picker's options"
+   }
   },
   {
    "id": "@wren/ui/src/fixtures/action.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "Actions and form boxes for the action stories and tests: the actions a record offers, the form fields of every type, and a `Call` that answers, never answers or fails"
+   }
   },
   {
    "id": "@wren/ui/src/fixtures/charts.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "Fixtures for `charts/`: a month of daily figures, a funnel, and the worst values"
+   }
   },
   {
    "id": "@wren/ui/src/fixtures/dashboard.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "A made-up content business for the dashboard story: 180 days of views, replies, calls and signings on five platforms, the same every run (a seeded draw), so a delta always has a period before it"
+   }
   },
   {
    "id": "@wren/ui/src/fixtures/day.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "Fixtures for `day.tsx`: two record types of work, their rows around today, and fake reads"
+   }
   },
   {
    "id": "@wren/ui/src/fixtures/diff.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "Fixtures for `diff.tsx`: two versions of one email, and the worst texts"
+   }
   },
   {
    "id": "@wren/ui/src/fixtures/draft.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "Fixtures for `draft.tsx`: a draft a record holds, its turns, its actions and fake calls"
+   }
   },
   {
    "id": "@wren/ui/src/fixtures/edit-form.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "Fixtures for `edit-form.tsx`: one contact form with every field kind, and its schema"
+   }
   },
   {
    "id": "@wren/ui/src/fixtures/graph.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "Graph fixtures: a made-up business shape (people flow from sources through steps to an offer and its plans), for the ribbon stories"
+   }
   },
   {
    "id": "@wren/ui/src/fixtures/index.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "One fixture set for `@wren/ui`, shared by stories (`*.stories.tsx`) and unit tests"
+   }
   },
   {
    "id": "@wren/ui/src/fixtures/list-bar.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "What a list bar reads besides its rows: the viewer's saved views (`KeepApi`), the rows per state under the other filters (`facets`) and the tab counts"
+   }
   },
   {
    "id": "@wren/ui/src/fixtures/load.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "Fixture reads for stories and unit tests: the states a `useLoad` read can be in, with no `/api`"
+   }
   },
   {
    "id": "@wren/ui/src/fixtures/overview.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "A fake workspace for the Inbox Overview (E): six queue records with rows that waited a set number of hours (counted back from now, so \"late\" never drifts), and two period records whose stats come back as a 30-day series"
+   }
   },
   {
    "id": "@wren/ui/src/fixtures/place.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "Where a record template sits (`Place`), with no router"
+   }
   },
   {
    "id": "@wren/ui/src/fixtures/records.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "A fake records workspace for stories and unit tests: one record type (\"Lead\"), its rows, the four record calls answered from them (views, search, filters, sort, group, paging, counts), and the actions on it"
+   }
   },
   {
    "id": "@wren/ui/src/fixtures/shell.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "An app list for the shell's stories: a workspace, areas with apps, the open app with its pages, a phone's dock and the pins"
+   }
   },
   {
    "id": "@wren/ui/src/fixtures/table.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "Fixtures for `table.tsx`: a small table of a template's versions, and positional facts"
+   }
   },
   {
    "id": "@wren/ui/src/fixtures/worst.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "Worst-case values (the `break-ui` list): every story set has a worst-case story built from these"
+   }
   },
   {
    "id": "@wren/ui/src/flow-map-graph.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "A FlowMap on the graph kit: each box a node, each `after` a wire carrying its label"
+   }
   },
   {
    "id": "@wren/ui/src/flow-map.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "What feeds what, left to right: parts and what each builds on, on the graph kit"
+   }
   },
   {
    "id": "@wren/ui/src/flow.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "A run's steps as a graph: which step builds on which, the column each sits in, and the line from one to the next"
+   }
   },
   {
    "id": "@wren/ui/src/fold.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "A folded row's messages: one person's comments in one thread, newest first, each marked waiting or answered"
+   }
   },
   {
    "id": "@wren/ui/src/form.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "The Form template: a record type read as one form, a line per record, in sections by its first status field"
+   }
   },
   {
    "id": "@wren/ui/src/format.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "Numbers, dates and names as people read them"
+   }
   },
   {
    "id": "@wren/ui/src/frame.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "The frame as the viewer sets it (`display.ts`): kept in his prefs and mirrored in the browser so the first paint is already his; the edge he drags a panel by; the Layout panel; and the keys sheet on ?, which lists the frame's keys and each page's own"
+   }
   },
   {
    "id": "@wren/ui/src/graph/canvas.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "A graph from the kit: elk lays out the nodes and wires, the frame pans and zooms it"
+   }
   },
   {
    "id": "@wren/ui/src/graph/frame.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "The kit's React Flow shell, the same for every graph: pan, zoom, fit, a minimap and controls"
+   }
   },
   {
    "id": "@wren/ui/src/graph/index.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "The graph kit: every graph in the portal draws through it"
+   }
   },
   {
    "id": "@wren/ui/src/graph/journey.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "A lead's journey as a graph: every touch in time order, a lane per channel, each wire saying how long after the one before it came"
+   }
   },
   {
    "id": "@wren/ui/src/graph/lanes.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "A layout for things in time order: a column each, left to right, a row per lane (a channel), so a lead's touches read as a timeline with a line per channel"
+   }
   },
   {
    "id": "@wren/ui/src/graph/layout.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "Auto layout with elkjs (layered): columns left to right, or rows top to bottom on a phone"
+   }
   },
   {
    "id": "@wren/ui/src/graph/look.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "How a node looks as a node: a tile colored by its role, ports as handles colored by the kind of event on them, inputs left and outputs right, and curved wires with an arrow"
+   }
   },
   {
    "id": "@wren/ui/src/graph/model.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "The graph kit's data: what a node and a wire say, how big each draws, what a wire's numbers read as, what search and filters keep, and the drawing as an SVG file"
+   }
   },
   {
    "id": "@wren/ui/src/graph/palette.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "The palette beside a graph editor: things to drag onto the canvas or click to add, in groups, with a search"
+   }
   },
   {
    "id": "@wren/ui/src/handler.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "A handler as a form: its key first when it's an object's, a box per input field (or one JSON box), its effect named and its name typed in before it runs, and the last answer under it"
+   }
   },
   {
    "id": "@wren/ui/src/hint-layer.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "Hover text, drawn once for the page"
+   }
   },
   {
    "id": "@wren/ui/src/hint.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "Hover text, the pure half"
+   }
   },
   {
    "id": "@wren/ui/src/hover-pop.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "A list menu that opens on hover"
+   }
   },
   {
    "id": "@wren/ui/src/icons.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "The kit's named icons: Lucide's (ISC), the one icon vendor"
+   }
   },
   {
    "id": "@wren/ui/src/index.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "Wren's component kit: the lander's look as React pieces"
+   }
   },
   {
    "id": "@wren/ui/src/item-link.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "A touch's item link and the words for a touch with none: shared by every place a touch shows"
+   }
   },
   {
    "id": "@wren/ui/src/launcher.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "The launcher: one card per app, each opening into that app's pages"
+   }
   },
   {
    "id": "@wren/ui/src/layout.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "How a page is laid out: a title with its lede, then framed sections"
+   }
   },
   {
    "id": "@wren/ui/src/lineage-graph.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "A genome's versions on the graph kit, oldest at the top: each node says what that version added and retired, the line runs from its parent"
+   }
   },
   {
    "id": "@wren/ui/src/lineage.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "A genome's lineage: its versions as a graph, React Flow loaded only when one shows"
+   }
   },
   {
    "id": "@wren/ui/src/list-bar.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "What sits over a list: its views as tabs, the ones the viewer saved after the built-in ones; search; Filter, as a popover or at phone width one sheet, its likely fields first (`quickFilters`); a pill per filter once set, in plain words (\"Campaign is SEC RIA\"); Save view; and the list's Display at the end"
+   }
   },
   {
    "id": "@wren/ui/src/list-search.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "A record list's address, typed"
+   }
   },
   {
    "id": "@wren/ui/src/look.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "A workspace's look, edited: a preset, typed colors, or one brand color (palette-brand.ts), with a live preview on the kit's own parts and, for a brand, its contrast report"
+   }
   },
   {
    "id": "@wren/ui/src/marks.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "Platform and channel marks, and the kit's 8 tints"
+   }
   },
   {
    "id": "@wren/ui/src/metro/data.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "Sample maps for stories and tests"
+   }
   },
   {
    "id": "@wren/ui/src/metro/draw.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "`MetroSvg`: a positioned scene drawn as React SVG"
+   }
   },
   {
    "id": "@wren/ui/src/metro/focus.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "Focus: draw one part of the map, or a set of parts (a saved view), and nothing else"
+   }
   },
   {
    "id": "@wren/ui/src/metro/fold.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "Zoom as data"
+   }
   },
   {
    "id": "@wren/ui/src/metro/geometry.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "The metro map's geometry: octilinear paths with rounded corners, marker boxes, the leaf, and the boxes every mark fills"
+   }
   },
   {
    "id": "@wren/ui/src/metro/glide.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "The glide between two states of a map (a depth step, a node opened or folded)"
+   }
   },
   {
    "id": "@wren/ui/src/metro/index.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "The metro map: marks, drawing, layout and zoom"
+   }
   },
   {
    "id": "@wren/ui/src/metro/lab/cases.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "The lab's cases: each a view, with the hand-placed scene when the artifact draws one"
+   }
   },
   {
    "id": "@wren/ui/src/metro/lab/engines.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "The layout lab's engine: the map's one layout, ELK with Brandes-Köpf (place.ts)"
+   }
   },
   {
    "id": "@wren/ui/src/metro/lab/generate.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "`funnel(n, seed, shape)`: a made-up business map of about `n` stations, the same for the same seed"
+   }
   },
   {
    "id": "@wren/ui/src/metro/lab/score.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "How good a laid-out scene is"
+   }
   },
   {
    "id": "@wren/ui/src/metro/lab/to-view.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "`sceneToView(scene)`: a hand-placed scene back to plain data, so the layout lab can lay it out and score it against the hand"
+   }
   },
   {
    "id": "@wren/ui/src/metro/layout.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "`finishMetro(view, placement)`: a placer's points made into a `MetroScene`"
+   }
   },
   {
    "id": "@wren/ui/src/metro/map.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "`MetroMap`: a metro map you can fold"
+   }
   },
   {
    "id": "@wren/ui/src/metro/marks.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "The metro map's marks"
+   }
   },
   {
    "id": "@wren/ui/src/metro/metro.css",
@@ -779,247 +1115,370 @@
    "id": "@wren/ui/src/metro/money-models.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "Money models as metro views: each play from the $100M Money Models video (sops/money-models), one map each, in the SOP's stage order"
+   }
   },
   {
    "id": "@wren/ui/src/metro/place.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "The map's layout: ELK layered with Brandes-Köpf placement, the view's columns as partitions"
+   }
   },
   {
    "id": "@wren/ui/src/metro/samples.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "Sample data for stories and tests, beside the scenes in data.ts: the glyph tables of sections 04 and 09, the retainer loop (section 08, a view), and the sales protocol that folds by hand-built groups (section 09)"
+   }
   },
   {
    "id": "@wren/ui/src/metro/skeleton.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "`MetroSkeleton`: what the map shows while it loads"
+   }
   },
   {
    "id": "@wren/ui/src/metro/tree.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "The fold tree"
+   }
   },
   {
    "id": "@wren/ui/src/metro/types.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "The metro map's scene: a drawing with every mark placed"
+   }
   },
   {
    "id": "@wren/ui/src/metro/view.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "`MetroView`: the map as the store holds it"
+   }
   },
   {
    "id": "@wren/ui/src/motion.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "Motion (motion.dev) in the artifact's values: one place for the curves, the timings and the parts that grow and shrink"
+   }
   },
   {
    "id": "@wren/ui/src/overview-queues.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "Overview E (artifact section 15, `.ix-e`): the Inbox's number first"
+   }
   },
   {
    "id": "@wren/ui/src/overview.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "The Overview template (console standard): an app's numbers first, each one a link to the rows behind it, then its top records"
+   }
   },
   {
    "id": "@wren/ui/src/page-bar.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "A list's page bar: ‹ Prev  1 2 3 … 12  Next › (the artifact's `.pager`): small ink-2 numbers with a leaf of 3 and 8, the page you are on in the accent's tint"
+   }
   },
   {
    "id": "@wren/ui/src/pager.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "A list's numbered pages, as Google draws them: first, last, a few around the one you are on, and a gap where the rest hide"
+   }
   },
   {
    "id": "@wren/ui/src/palette-brand.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "A look from one brand color"
+   }
   },
   {
    "id": "@wren/ui/src/palette-scope.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "What ⌘K offers about where you are: the open page says it (`useScope`), the shell's palette reads it (`useScoped`)"
+   }
   },
   {
    "id": "@wren/ui/src/palette.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "⌘K: what you can do here first (this view, the open record: `./palette-scope.ts`), then jump to any app or page"
+   }
   },
   {
    "id": "@wren/ui/src/peek.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "The peek: what a row click opens beside its list"
+   }
   },
   {
    "id": "@wren/ui/src/phone-nav.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "How a phone walks the portal, as the big apps do: Home and Apps hold the bar's ends, the three tabs between are the section's own pages, each tab keeps the stack of pages walked from it, and the bar at the top goes back one step, named for where it goes"
+   }
   },
   {
    "id": "@wren/ui/src/phone-shell.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "The shell on a phone, under 900px, walked as the big apps are walked"
+   }
   },
   {
    "id": "@wren/ui/src/phone.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "A phone's own moves, as iOS makes them: a sheet that rests at half or full height and follows the finger, rows that swipe to their actions, pull to refresh, and the segmented control"
+   }
   },
   {
    "id": "@wren/ui/src/preview.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "A message as its reader meets it, on a laptop and on a phone: first the inbox row or lock screen (what shows before the click, cut where those apps cut it), then the message opened"
+   }
   },
   {
    "id": "@wren/ui/src/queue.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "The Queue template, for anything waiting on a person: items on the left, the open one on the right with its context and an action bar on keys"
+   }
   },
   {
    "id": "@wren/ui/src/rail.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "A workflow as one line of steps, grouped into phases: where the work is, what's done and what's next"
+   }
   },
   {
    "id": "@wren/ui/src/read-aloud.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "Read aloud: a speaker button that speaks a piece of text, sentence by sentence"
+   }
   },
   {
    "id": "@wren/ui/src/record-access.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "Raise an issue and ask for access on any record: an Issues tab beside History, and a quiet \"Ask for access\" under the head's actions where the login can read but not act"
+   }
   },
   {
    "id": "@wren/ui/src/record-head.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "What a record page's header shows, so the Details below say each field once: the subtitle under the title, every state on the meta line, and up to four short key facts"
+   }
   },
   {
    "id": "@wren/ui/src/record-patch.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "Write-through for records: a save that landed patches the row in every answer the workspace holds (its detail, each list it sits in), so the page shows it without reading it again"
+   }
   },
   {
    "id": "@wren/ui/src/records-columns.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "Which columns a list shows and how wide: the address's or the page's pick (`columnsOf`), the Display popover, each column's width from text measured in the page's font (`widthsOf`), and the fit to the room (`fitColumns`): word columns give up room before the title drops under 220px, never a state, number or date"
+   }
   },
   {
    "id": "@wren/ui/src/records-list.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "The List template: `RecordList` reads the type and draws `List`, the rows under the list bar with their views, filters, sort, tiers (Needs you, For info), picks and the bulk bar (`Bulk`), the reply box under a row, and the open record beside or docked"
+   }
   },
   {
    "id": "@wren/ui/src/records-local.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "The demo's actions, in the browser: an action's `sets` lays over the server's answer, so a buyer approves a draft and watches it move to Approved"
+   }
   },
   {
    "id": "@wren/ui/src/records-page.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "The Record template: one record as its own page (`RecordPage`) or as a panel's body (`RecordBody`): its head, then tabs for details with the live preview beside them, each related type, activity and sources"
+   }
   },
   {
    "id": "@wren/ui/src/records-panel.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "A record beside its list (`Panel`): a floating panel on a wide screen, a bottom sheet on a phone; up and down walk the list, a link opens it as a page"
+   }
   },
   {
    "id": "@wren/ui/src/records-swipes.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "A phone row's swipes, as Mail's: right for the first action that moves a row on, left for the ones that set it aside, and the page's Reply added when it has one"
+   }
   },
   {
    "id": "@wren/ui/src/records-types.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "What the List and Record templates share: the `RecordsApi` they read through, the `Place` (the address as state), what a page hands them (`RecordTemplateProps`, extras, actions), and the helpers every part reads: a row's title and words, the version a record showed, needs tiers (`tiersOf`), the actions this viewer may run and the keys that run them, a list's walk"
+   }
   },
   {
    "id": "@wren/ui/src/records.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "The List and Record templates (console standard): a record type's rows and one record, drawn from what the server's `recordsTypes` says, never per page"
+   }
   },
   {
    "id": "@wren/ui/src/row-acts.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "A row's own actions, run where it sits: on a wide screen one quiet icon sits at the row's end and its other main icons show on hover or focus, the rest behind ⋯; a phone swipes them"
+   }
   },
   {
    "id": "@wren/ui/src/rows.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "One rows part for every list: the design language's Inbox F2, F3 and F4 in one"
+   }
   },
   {
    "id": "@wren/ui/src/run-graph.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "A run's steps drawn on React Flow, read-only, in the graph kit's frame (pan, zoom, fit, keys): `flow.ts` places them, since each step measures its own height and the replay's timing rides on those places"
+   }
   },
   {
    "id": "@wren/ui/src/run.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "A run, watched: the workflow as a graph of steps, a spark along each line as work moves through it, a feed of what each step does, and what came of it at the end"
+   }
   },
   {
    "id": "@wren/ui/src/safe-triangle.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "The invisible triangle (a hover submenu's grace area): leaving a row toward its flyout, the pointer may cross the rows below on its diagonal"
+   }
   },
   {
    "id": "@wren/ui/src/save/clock.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "A tick per read and per save answer, in this tab"
+   }
   },
   {
    "id": "@wren/ui/src/save/engine.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "The save engine's core, plain TypeScript (no React): one `Saver` per thing a person types into"
+   }
   },
   {
    "id": "@wren/ui/src/save/env.ts",
@@ -1031,109 +1490,163 @@
    "id": "@wren/ui/src/save/index.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "One way to save, everywhere a person types"
+   }
   },
   {
    "id": "@wren/ui/src/save/journal.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "The journal: what a person typed and the server doesn't hold yet, on this device"
+   }
   },
   {
    "id": "@wren/ui/src/save/latest.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "Writes of one value that only the newest matters for: a pref, a playback position, a select"
+   }
   },
   {
    "id": "@wren/ui/src/save/lock.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "One writer per key: saves for a key run one at a time, across tabs where the browser has Web Locks, and within this tab always (a chain per key)"
+   }
   },
   {
    "id": "@wren/ui/src/save/once.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "A page's own button, by key (Accounts, AI tools): a press in `WRITES`"
+   }
   },
   {
    "id": "@wren/ui/src/save/page.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "Every box a page holds (a record's words, fields, slides, a video's finish): `flush` saves each dirty one, then answers"
+   }
   },
   {
    "id": "@wren/ui/src/save/react.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "The save engine in React, kept thin: `useSaved` holds one `Saver` per key and draws its state; `SaveStatus` is the one status line; `SaveConflict` asks Keep mine or Use theirs"
+   }
   },
   {
    "id": "@wren/ui/src/save/test-kit.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "Fakes for the save engine's tests: storage, locks, page events, a server that answers by hand"
+   }
   },
   {
    "id": "@wren/ui/src/save/writes.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "The portal's one write path"
+   }
   },
   {
    "id": "@wren/ui/src/settings.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "A part's settings in words, never JSON: each leaf a labelled row, labels from its form's fields (`a.b` paths, as `formOf` makes them), booleans On or Off, nothing set \"Not set\", a list as its items"
+   }
   },
   {
    "id": "@wren/ui/src/shell.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "The app frame: one white window on the gray canvas"
+   }
   },
   {
    "id": "@wren/ui/src/shop.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "The Shop template, for browsing a catalog: facets down the side with how many each would show, search on top, a card per record"
+   }
   },
   {
    "id": "@wren/ui/src/snippets.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "Snippets in any draft or reply box: Insert opens the team's saved replies and blocks (the Library's), favorites first, and puts the one picked where the cursor is"
+   }
   },
   {
    "id": "@wren/ui/src/sources.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "Where a claim came from: numbered chips in the text, a card per source with how sure the reading is, and a trail from a line back to the pages behind it"
+   }
   },
   {
    "id": "@wren/ui/src/split.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "A whole and its parts (artifact section 15, `.ix-e`): the total first, one bar split by part, then the parts as rows, each a link to its rows"
+   }
   },
   {
    "id": "@wren/ui/src/steps.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "Steps: the wait of a job with stages (research, send, import, a video render, the map)"
+   }
   },
   {
    "id": "@wren/ui/src/sweep.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "The sweep: a lavender line along the two round tips of a leaf panel or band (the mark's feather)"
+   }
   },
   {
    "id": "@wren/ui/src/switch-bar.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "A filter across the top of every page that carries it, one field's states as marks with what waits in each: Content's platforms"
+   }
   },
   {
    "id": "@wren/ui/src/tab-bar.tsx",
@@ -1145,7 +1658,10 @@
    "id": "@wren/ui/src/table.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "Every table in the portal, on TanStack Table"
+   }
   },
   {
    "id": "@wren/ui/src/tailwind.css",
@@ -1157,43 +1673,64 @@
    "id": "@wren/ui/src/theme.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "A look for the kit, as data"
+   }
   },
   {
    "id": "@wren/ui/src/timeline-axis.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "The timeline's math (`./timeline.tsx`): which days a zoom shows, each day's count from the server's `stats` series, weeks and months bucketed from days, empty stretches folded, and the `where` that pages one day's lines"
+   }
   },
   {
    "id": "@wren/ui/src/timeline.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "The Timeline template: a record with a date field drawn as an axis you move through"
+   }
   },
   {
    "id": "@wren/ui/src/toast.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "The kit's toasts, for an app that offers its own undo; `say` covers the rest"
+   }
   },
   {
    "id": "@wren/ui/src/vendor-marks.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "Vendor marks: the accounts, connectors and tools a part runs on or stands in for (Gmail, Stripe, Cal.com, HubSpot)"
+   }
   },
   {
    "id": "@wren/ui/src/view-says.ts",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "What a view or a filter keeps, in plain words, for the hover on its tab, chip or pill"
+   }
   },
   {
    "id": "@wren/ui/src/work.tsx",
    "role": "file",
    "parent": "@wren/ui",
-   "group": "@wren/ui"
+   "group": "@wren/ui",
+   "attrs": {
+    "description": "The work behind one result, the way an answer engine shows its search: each thing it did in order, what it searched for, the pages it read and what each said, then the fact it kept and how sure it is"
+   }
   }
  ],
  "edges": [

@@ -18,49 +18,73 @@
    "id": "@wren/pipeline/src/attach.ts",
    "role": "file",
    "parent": "@wren/pipeline",
-   "group": "@wren/pipeline"
+   "group": "@wren/pipeline",
+   "attrs": {
+    "description": "Attach and detach from a focus page: one `attach` or `detach` op on the newest body, saved as the next version with a note that says what changed"
+   }
   },
   {
    "id": "@wren/pipeline/src/attribution.ts",
    "role": "file",
    "parent": "@wren/pipeline",
-   "group": "@wren/pipeline"
+   "group": "@wren/pipeline",
+   "attrs": {
+    "description": "Where an ad click came from, read off a cause"
+   }
   },
   {
    "id": "@wren/pipeline/src/blame.ts",
    "role": "file",
    "parent": "@wren/pipeline",
-   "group": "@wren/pipeline"
+   "group": "@wren/pipeline",
+   "attrs": {
+    "description": "Blame: one node's or one edge's own history"
+   }
   },
   {
    "id": "@wren/pipeline/src/carry.ts",
    "role": "file",
    "parent": "@wren/pipeline",
-   "group": "@wren/pipeline"
+   "group": "@wren/pipeline",
+   "attrs": {
+    "description": "New version, same journeys: open journeys on an older version move to `toVersion`"
+   }
   },
   {
    "id": "@wren/pipeline/src/chain-methods.ts",
    "role": "file",
    "parent": "@wren/pipeline",
-   "group": "@wren/pipeline"
+   "group": "@wren/pipeline",
+   "attrs": {
+    "description": "What reads a trail chain (`chain.ts`), behind interfaces, so a better method can take a slot without a change to the callers"
+   }
   },
   {
    "id": "@wren/pipeline/src/chain.ts",
    "role": "file",
    "parent": "@wren/pipeline",
-   "group": "@wren/pipeline"
+   "group": "@wren/pipeline",
+   "attrs": {
+    "description": "The trail chain: the shape as an absorbing Markov chain, with the moves people made as its counts"
+   }
   },
   {
    "id": "@wren/pipeline/src/collect.ts",
    "role": "file",
    "parent": "@wren/pipeline",
-   "group": "@wren/pipeline"
+   "group": "@wren/pipeline",
+   "attrs": {
+    "description": "Collected money: `pipeline.money` hears every payment change and `pipeline.collect` folds it into the deal it names"
+   }
   },
   {
    "id": "@wren/pipeline/src/components.ts",
    "role": "file",
    "parent": "@wren/pipeline",
-   "group": "@wren/pipeline"
+   "group": "@wren/pipeline",
+   "attrs": {
+    "description": "The pipeline as a part"
+   }
   },
   {
    "id": "@wren/pipeline/src/console-routes.ts",
@@ -72,247 +96,370 @@
    "id": "@wren/pipeline/src/console.ts",
    "role": "file",
    "parent": "@wren/pipeline",
-   "group": "@wren/pipeline"
+   "group": "@wren/pipeline",
+   "attrs": {
+    "description": "PipelineConsole: a workspace's pipeline records and the hand moves on them"
+   }
   },
   {
    "id": "@wren/pipeline/src/convert-shape.ts",
    "role": "file",
    "parent": "@wren/pipeline",
-   "group": "@wren/pipeline"
+   "group": "@wren/pipeline",
+   "attrs": {
+    "description": "Move the shape from the graph model to the metro model"
+   }
   },
   {
    "id": "@wren/pipeline/src/convert.ts",
    "role": "file",
    "parent": "@wren/pipeline",
-   "group": "@wren/pipeline"
+   "group": "@wren/pipeline",
+   "attrs": {
+    "description": "The graph and the metro model, one into the other\")"
+   }
   },
   {
    "id": "@wren/pipeline/src/diff.ts",
    "role": "file",
    "parent": "@wren/pipeline",
-   "group": "@wren/pipeline"
+   "group": "@wren/pipeline",
+   "attrs": {
+    "description": "What changed between two shape bodies, by id"
+   }
   },
   {
    "id": "@wren/pipeline/src/drafts.ts",
    "role": "file",
    "parent": "@wren/pipeline",
-   "group": "@wren/pipeline"
+   "group": "@wren/pipeline",
+   "attrs": {
+    "description": "Drafts: a shape body saved beside the live shape"
+   }
   },
   {
    "id": "@wren/pipeline/src/edit.ts",
    "role": "file",
    "parent": "@wren/pipeline",
-   "group": "@wren/pipeline"
+   "group": "@wren/pipeline",
+   "attrs": {
+    "description": "Small edits of a shape body: add a node, connect two nodes, remove a node or an edge"
+   }
   },
   {
    "id": "@wren/pipeline/src/entry.ts",
    "role": "file",
    "parent": "@wren/pipeline",
-   "group": "@wren/pipeline"
+   "group": "@wren/pipeline",
+   "attrs": {
+    "description": "Which source opened a journey"
+   }
   },
   {
    "id": "@wren/pipeline/src/history.ts",
    "role": "file",
    "parent": "@wren/pipeline",
-   "group": "@wren/pipeline"
+   "group": "@wren/pipeline",
+   "attrs": {
+    "description": "The shape's history like git: what the console routes and the records answer for drafts, proposals, blame, undo, tags and the git mirror"
+   }
   },
   {
    "id": "@wren/pipeline/src/icp.ts",
    "role": "file",
    "parent": "@wren/pipeline",
-   "group": "@wren/pipeline"
+   "group": "@wren/pipeline",
+   "attrs": {
+    "description": "ICP fit: how well a person matches an offer's `Icp`"
+   }
   },
   {
    "id": "@wren/pipeline/src/journeys.ts",
    "role": "file",
    "parent": "@wren/pipeline",
-   "group": "@wren/pipeline"
+   "group": "@wren/pipeline",
+   "attrs": {
+    "description": "The journey rows the executor steps and the Journeys service share: who a cause is about, the shape workflows a workspace lists, and a drop"
+   }
   },
   {
    "id": "@wren/pipeline/src/lines.ts",
    "role": "file",
    "parent": "@wren/pipeline",
-   "group": "@wren/pipeline"
+   "group": "@wren/pipeline",
+   "attrs": {
+    "description": "The content lines' feed"
+   }
   },
   {
    "id": "@wren/pipeline/src/map-read.ts",
    "role": "file",
    "parent": "@wren/pipeline",
-   "group": "@wren/pipeline"
+   "group": "@wren/pipeline",
+   "attrs": {
+    "description": "The Map page's read in one call: the newest shape, its numbers for one window, the open journeys and the ghosts"
+   }
   },
   {
    "id": "@wren/pipeline/src/metro-blame.ts",
    "role": "file",
    "parent": "@wren/pipeline",
-   "group": "@wren/pipeline"
+   "group": "@wren/pipeline",
+   "attrs": {
+    "description": "Blame for the metro model: one line's, station's, track's, group's, frame's or flow's own history"
+   }
   },
   {
    "id": "@wren/pipeline/src/metro-diff.ts",
    "role": "file",
    "parent": "@wren/pipeline",
-   "group": "@wren/pipeline"
+   "group": "@wren/pipeline",
+   "attrs": {
+    "description": "What changed between two metro bodies, by id"
+   }
   },
   {
    "id": "@wren/pipeline/src/metro-edit.ts",
    "role": "file",
    "parent": "@wren/pipeline",
-   "group": "@wren/pipeline"
+   "group": "@wren/pipeline",
+   "attrs": {
+    "description": "Undo one change of a metro body: the twin of `undoChange` in `edit.ts`"
+   }
   },
   {
    "id": "@wren/pipeline/src/metro-file.ts",
    "role": "file",
    "parent": "@wren/pipeline",
-   "group": "@wren/pipeline"
+   "group": "@wren/pipeline",
+   "attrs": {
+    "description": "The metro body as a YAML file: the twin of `exportShape` and `parseShape`"
+   }
   },
   {
    "id": "@wren/pipeline/src/metro-merge.ts",
    "role": "file",
    "parent": "@wren/pipeline",
-   "group": "@wren/pipeline"
+   "group": "@wren/pipeline",
+   "attrs": {
+    "description": "The three-way merge of metro bodies, by id"
+   }
   },
   {
    "id": "@wren/pipeline/src/metro-ops.ts",
    "role": "file",
    "parent": "@wren/pipeline",
-   "group": "@wren/pipeline"
+   "group": "@wren/pipeline",
+   "attrs": {
+    "description": "Typed edit ops for a metro body"
+   }
   },
   {
    "id": "@wren/pipeline/src/metro-parts.ts",
    "role": "file",
    "parent": "@wren/pipeline",
-   "group": "@wren/pipeline"
+   "group": "@wren/pipeline",
+   "attrs": {
+    "description": "A part of a metro body: a line, a group, a station or a shared flow, named by kind and id"
+   }
   },
   {
    "id": "@wren/pipeline/src/metro.ts",
    "role": "file",
    "parent": "@wren/pipeline",
-   "group": "@wren/pipeline"
+   "group": "@wren/pipeline",
+   "attrs": {
+    "description": "The metro model of the shape"
+   }
   },
   {
    "id": "@wren/pipeline/src/mirror.ts",
    "role": "file",
    "parent": "@wren/pipeline",
-   "group": "@wren/pipeline"
+   "group": "@wren/pipeline",
+   "attrs": {
+    "description": "The shape's git mirror: every version lands as one commit of `shapes/<workspace>.yaml` in a private repo, so git log and git blame read the shape's history"
+   }
   },
   {
    "id": "@wren/pipeline/src/model.ts",
    "role": "file",
    "parent": "@wren/pipeline",
-   "group": "@wren/pipeline"
+   "group": "@wren/pipeline",
+   "attrs": {
+    "description": "The shape: one directed graph per database"
+   }
   },
   {
    "id": "@wren/pipeline/src/moves.ts",
    "role": "file",
    "parent": "@wren/pipeline",
-   "group": "@wren/pipeline"
+   "group": "@wren/pipeline",
+   "attrs": {
+    "description": "Manual and agent moves"
+   }
   },
   {
    "id": "@wren/pipeline/src/numbers.ts",
    "role": "file",
    "parent": "@wren/pipeline",
-   "group": "@wren/pipeline"
+   "group": "@wren/pipeline",
+   "attrs": {
+    "description": "The numbers: reads of the views in `views.ts` and of the deals, as the CLI and the `pipeline.number` record show them"
+   }
   },
   {
    "id": "@wren/pipeline/src/records.ts",
    "role": "file",
    "parent": "@wren/pipeline",
-   "group": "@wren/pipeline"
+   "group": "@wren/pipeline",
+   "attrs": {
+    "description": "The pipeline as records: offers, the shape, journeys, deals and numbers"
+   }
   },
   {
    "id": "@wren/pipeline/src/refused.ts",
    "role": "file",
    "parent": "@wren/pipeline",
-   "group": "@wren/pipeline"
+   "group": "@wren/pipeline",
+   "attrs": {
+    "description": "A write the rules refuse"
+   }
   },
   {
    "id": "@wren/pipeline/src/research.ts",
    "role": "file",
    "parent": "@wren/pipeline",
-   "group": "@wren/pipeline"
+   "group": "@wren/pipeline",
+   "attrs": {
+    "description": "Research on arrival"
+   }
   },
   {
    "id": "@wren/pipeline/src/restate.ts",
    "role": "file",
    "parent": "@wren/pipeline",
-   "group": "@wren/pipeline"
+   "group": "@wren/pipeline",
+   "attrs": {
+    "description": "`Journeys`: the hand and agent moves on a journey"
+   }
   },
   {
    "id": "@wren/pipeline/src/schedule.ts",
    "role": "file",
    "parent": "@wren/pipeline",
-   "group": "@wren/pipeline"
+   "group": "@wren/pipeline",
+   "attrs": {
+    "description": "The dated lines a deal's terms imply"
+   }
   },
   {
    "id": "@wren/pipeline/src/schema.ts",
    "role": "file",
    "parent": "@wren/pipeline",
-   "group": "@wren/pipeline"
+   "group": "@wren/pipeline",
+   "attrs": {
+    "description": "Journeys and the shape"
+   }
   },
   {
    "id": "@wren/pipeline/src/shape-file.ts",
    "role": "file",
    "parent": "@wren/pipeline",
-   "group": "@wren/pipeline"
+   "group": "@wren/pipeline",
+   "attrs": {
+    "description": "The shape as a YAML file: the way to read it, diff it in git, and write a whole new version at once"
+   }
   },
   {
    "id": "@wren/pipeline/src/sourced.ts",
    "role": "file",
    "parent": "@wren/pipeline",
-   "group": "@wren/pipeline"
+   "group": "@wren/pipeline",
+   "attrs": {
+    "description": "Sourced sources"
+   }
   },
   {
    "id": "@wren/pipeline/src/starter.ts",
    "role": "file",
    "parent": "@wren/pipeline",
-   "group": "@wren/pipeline"
+   "group": "@wren/pipeline",
+   "attrs": {
+    "description": "The starter shape: kinds only, no account, amount or terms"
+   }
   },
   {
    "id": "@wren/pipeline/src/steps.ts",
    "role": "file",
    "parent": "@wren/pipeline",
-   "group": "@wren/pipeline"
+   "group": "@wren/pipeline",
+   "attrs": {
+    "description": "The two executor steps of a shape workflow"
+   }
   },
   {
    "id": "@wren/pipeline/src/store.ts",
    "role": "file",
    "parent": "@wren/pipeline",
-   "group": "@wren/pipeline"
+   "group": "@wren/pipeline",
+   "attrs": {
+    "description": "The version store: offers by hash, terms by date, the business shape by number"
+   }
   },
   {
    "id": "@wren/pipeline/src/stored.ts",
    "role": "file",
    "parent": "@wren/pipeline",
-   "group": "@wren/pipeline"
+   "group": "@wren/pipeline",
+   "attrs": {
+    "description": "A stored shape body is one of two models: a body with `model: \"metro\"` is the metro model, a body without `model` is the graph"
+   }
   },
   {
    "id": "@wren/pipeline/src/tags.ts",
    "role": "file",
    "parent": "@wren/pipeline",
-   "group": "@wren/pipeline"
+   "group": "@wren/pipeline",
+   "attrs": {
+    "description": "Tags: a name on one version, like a git tag"
+   }
   },
   {
    "id": "@wren/pipeline/src/undo.ts",
    "role": "file",
    "parent": "@wren/pipeline",
-   "group": "@wren/pipeline"
+   "group": "@wren/pipeline",
+   "attrs": {
+    "description": "Undo one change of a past diff: the console and the CLI plan and save it here, one path"
+   }
   },
   {
    "id": "@wren/pipeline/src/views.ts",
    "role": "file",
    "parent": "@wren/pipeline",
-   "group": "@wren/pipeline"
+   "group": "@wren/pipeline",
+   "attrs": {
+    "description": "The numbers views"
+   }
   },
   {
    "id": "@wren/pipeline/src/workflow.ts",
    "role": "file",
    "parent": "@wren/pipeline",
-   "group": "@wren/pipeline"
+   "group": "@wren/pipeline",
+   "attrs": {
+    "description": "A shape version as an executor workflow"
+   }
   },
   {
    "id": "@wren/pipeline/test/fixtures.ts",
    "role": "file",
    "parent": "@wren/pipeline",
-   "group": "@wren/pipeline"
+   "group": "@wren/pipeline",
+   "attrs": {
+    "description": "Synthetic shapes for the pipeline tests"
+   }
   },
   {
    "id": "@wren/pipeline/vitest.config.ts",

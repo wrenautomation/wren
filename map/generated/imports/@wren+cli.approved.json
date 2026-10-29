@@ -7,6 +7,7 @@
    "parent": "repo:wren",
    "group": "@wren/cli",
    "attrs": {
+    "description": "The `wren` CLI: operator commands over the Restate services and the database.",
     "dir": "apps/cli/",
     "npm": [
      "node:child_process",
@@ -23,397 +24,595 @@
    "id": "@wren/cli/scripts/build.mjs",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "Bundle the CLI into one file so `wren` starts in ~0.1s instead of compiling TypeScript on every run: dist/app/wren.mjs plus the niche templates beside it (the niches resolve `../templates` from their module, as in the Lambda)"
+   }
   },
   {
    "id": "@wren/cli/src/accounts.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "`wren accounts`: every account we speak as, the same rows as Outreach → Accounts; one in full; a subreddit moved to another account; and the account a draft goes out as, as the draft box's picker sets it"
+   }
   },
   {
    "id": "@wren/cli/src/ads.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "`wren ads …`: Meta ads from the keyboard, through the `Ads` Restate service (every Graph call journaled, the box's spend gate in front of anything ACTIVE)"
+   }
   },
   {
    "id": "@wren/cli/src/answers.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "`wren email answers …`: William's yes on every answer to a warm reply"
+   }
   },
   {
    "id": "@wren/cli/src/app-reviews.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "`wren app-reviews`: the platform reviews Wren's social apps wait on"
+   }
   },
   {
    "id": "@wren/cli/src/args.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "Commander's reducer for a repeatable option: each use adds one value"
+   }
   },
   {
    "id": "@wren/cli/src/books.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "`wren books …`: the business's books"
+   }
   },
   {
    "id": "@wren/cli/src/calendar.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "`wren calendar`: our own booking calendar"
+   }
   },
   {
    "id": "@wren/cli/src/calls.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "`wren calls`: recorded calls"
+   }
   },
   {
    "id": "@wren/cli/src/client-scope.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "Which commands honour `--client`"
+   }
   },
   {
    "id": "@wren/cli/src/clients.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "`wren clients …`: the client registry"
+   }
   },
   {
    "id": "@wren/cli/src/content.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "`wren content …`: the content loop from the keyboard"
+   }
   },
   {
    "id": "@wren/cli/src/crm.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "`wren --client <id> crm …`: a client's CRM export in, then `crm run` does every stage that is due, `crm status` says where things stand and `crm top` shows who to call first"
+   }
   },
   {
    "id": "@wren/cli/src/decide.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "`wren decide …`: the machine's calls beside William's"
+   }
   },
   {
    "id": "@wren/cli/src/deliverability.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "`wren email spamcheck` and `wren email deliverability`: the three tests of designs/2026-10-05-deliverability-tests.md from the operator's chair"
+   }
   },
   {
    "id": "@wren/cli/src/delivery.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "`wren --client <id> delivery …`: what we do for a client, as Wren's team"
+   }
   },
   {
    "id": "@wren/cli/src/dlq.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "`wren dlq …`: the dead-letter queue"
+   }
   },
   {
    "id": "@wren/cli/src/dossier.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "`wren dossier …`: everything we know about a company and its people, read back from what the runners wrote (findings, enrichments, checks, emails)"
+   }
   },
   {
    "id": "@wren/cli/src/drafts.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "`wren drafts …`: every draft waiting on William, from a terminal, so a Claude Code session reads and rewrites the drafts the console shows"
+   }
   },
   {
    "id": "@wren/cli/src/email.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "`wren email …`: the operator's hands on the email channel"
+   }
   },
   {
    "id": "@wren/cli/src/enrich.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "`wren enrich`: research stages run from the operator's machine, wide"
+   }
   },
   {
    "id": "@wren/cli/src/fetch.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "`wren fetch`: pull a niche's bulk files from their publisher into `<data>/<niche>/bulk/<dataset>/`, newest first, skipping what is already on disk"
+   }
   },
   {
    "id": "@wren/cli/src/groups.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "`wren groups …` and `wren channels`: People groups as text for agents, and the funnel per channel"
+   }
   },
   {
    "id": "@wren/cli/src/health.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "`wren health …` and `wren flags …`: each client's score, its parts and inputs, its days; Wren's rating and an override; and the one list of flags"
+   }
   },
   {
    "id": "@wren/cli/src/hooks.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "`wren [--client <id>] hooks …`: the door's webhooks"
+   }
   },
   {
    "id": "@wren/cli/src/keys.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "`wren keys …`: the key store"
+   }
   },
   {
    "id": "@wren/cli/src/lake-sync.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "The lake: every table of Wren's database and each client's as a DuckLake table (Parquet under `WREN_LAKE_PATH`, catalog in the `wren_lake` Postgres database), and the warehouse's models (`lake/models/*.sql`) built over them"
+   }
   },
   {
    "id": "@wren/cli/src/lake-track.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "autotrack's bucket as lake sources"
+   }
   },
   {
    "id": "@wren/cli/src/lake.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "`wren lake …`: Wren's data lake and warehouse"
+   }
   },
   {
    "id": "@wren/cli/src/learn-readers.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "The Mac's readers for Learn, shared by `wren learn` and `wren sop hunt`: the video reader (a film is watched for its cuts, YouTube read from captions plus the screen, other video by Cohere, audio cut by ffmpeg), the scoring judge per workspace, and the creator pager (Instagram through the desk, TikTok by yt-dlp here)"
+   }
   },
   {
    "id": "@wren/cli/src/learn.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "`wren learn …`: save a link, follow a source, list, show, move, archive and search what Learn kept, and the Mac's reader"
+   }
   },
   {
    "id": "@wren/cli/src/limits.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "`wren limits …`: the limits over the code's defaults"
+   }
   },
   {
    "id": "@wren/cli/src/listmonk.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "`wren listmonk …`: the newsletter's lists, subscribers and campaigns live in Listmonk"
+   }
   },
   {
    "id": "@wren/cli/src/loops.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "`wren loops …`: every self-rescheduling loop's health, read from Restate's admin SQL (`WREN_RESTATE_ADMIN_URL`), and the `LoopWatch` loop that wakes a dead one and names a stuck one"
+   }
   },
   {
    "id": "@wren/cli/src/main.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "`wren` ops CLI"
+   }
   },
   {
    "id": "@wren/cli/src/newsletter.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "`wren newsletter …`: a blog post mailed to everyone confirmed on its topic"
+   }
   },
   {
    "id": "@wren/cli/src/notes.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "`wren [--client <id>] notes …`: Notes from the terminal"
+   }
   },
   {
    "id": "@wren/cli/src/objects.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "`wren objects …`: the platform objects behind every post, comment and group"
+   }
   },
   {
    "id": "@wren/cli/src/pages.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "`wren pages`: crawled page HTML, inline in Postgres or archived to the pages bucket"
+   }
   },
   {
    "id": "@wren/cli/src/people.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "`wren people …`: one profile per person"
+   }
   },
   {
    "id": "@wren/cli/src/pipeline.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "`wren offers|terms|journeys|deals|numbers …`: the version store, the journeys and the numbers"
+   }
   },
   {
    "id": "@wren/cli/src/poll.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "A desk call that runs longer than an HTTP request may wait (a posts pass reads and drafts for minutes): sent once under an idempotency key, then its output asked for every few seconds until it is there"
+   }
   },
   {
    "id": "@wren/cli/src/products.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "The products a client's `products` blocks belong to, each with its own parser"
+   }
   },
   {
    "id": "@wren/cli/src/reach.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "`wren reach …`: cold outreach on Reddit and LinkedIn, and comments on others' posts, from the keyboard"
+   }
   },
   {
    "id": "@wren/cli/src/review.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "`wren email drafts|show|approve|reject|edit|stop|preview|reply|event`: the review seat"
+   }
   },
   {
    "id": "@wren/cli/src/search.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "`wren search …`: the site in Google and the answer engines"
+   }
   },
   {
    "id": "@wren/cli/src/shape.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "`wren [--client <id>] shape …`: read the shape, change it one version at a time, start from the starter, and move a journey"
+   }
   },
   {
    "id": "@wren/cli/src/site-pages.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "`wren sites`: every page we run"
+   }
   },
   {
    "id": "@wren/cli/src/sites.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "autobrowse's site APIs from the CLI: the `sites` service through Restate's ingress (`ingressSites`), the same door the worker uses, so no box port is ever reached"
+   }
   },
   {
    "id": "@wren/cli/src/sms.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "`wren sms …`: cold SMS from the keyboard"
+   }
   },
   {
    "id": "@wren/cli/src/social.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "`wren social`: SocialWatch's loop on the box"
+   }
   },
   {
    "id": "@wren/cli/src/sop.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "`wren sop …`: SOPs built from videos, Drive Docs and files, kept as folders under the SOPs directory (`SOP.md`, `notes.md`, `calls.md`, `standard.md`, `sources/`)"
+   }
   },
   {
    "id": "@wren/cli/src/studio.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "`wren video add|list|show|set|words|stress|approve|cuts|keep|knobs|cut|studio|render|look|find|promo`: the video editor"
+   }
   },
   {
    "id": "@wren/cli/src/study.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "`wren study …`: research a question from the open web into a report where every line cites a quote on a page we read"
+   }
   },
   {
    "id": "@wren/cli/src/tasks.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "`wren [--client <id>] tasks …`: the board's cards from the terminal"
+   }
   },
   {
    "id": "@wren/cli/src/template-prune.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "`wren templates prune`: a niche's email templates whose default file is gone (a retired arm, a dropped sequence) leave the Library"
+   }
   },
   {
    "id": "@wren/cli/src/templates.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "`wren [--client <id>] templates …`: every channel's copy and every prompt in one store"
+   }
   },
   {
    "id": "@wren/cli/src/touches.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "`wren touches …`: every social touch with someone, newest first"
+   }
   },
   {
    "id": "@wren/cli/src/train.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "`wren train …`: the training record out as JSONL"
+   }
   },
   {
    "id": "@wren/cli/src/video-ask.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "`wren video storyboard` and `wren video ask`: the edit as frames, and a change said in a sentence"
+   }
   },
   {
    "id": "@wren/cli/src/video-watch.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "`wren video watch <url|file>`: read a video with the shared core (`watch` in screen read when a key still works"
+   }
   },
   {
    "id": "@wren/cli/src/video.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "`wren video …`: the video editor (./studio.ts), and under `wren video demo …` per-lead demo videos"
+   }
   },
   {
    "id": "@wren/cli/src/watch.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "`wren monitor`: the Monitor's loop on the Postgres box"
+   }
   },
   {
    "id": "@wren/cli/src/webhooks.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "`wren [--client <id>] webhooks …`: outbound webhooks"
+   }
   },
   {
    "id": "@wren/cli/src/workflows.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "`wren --client <id> workflows …`: templates onto a client"
+   }
   },
   {
    "id": "@wren/cli/src/write.ts",
    "role": "file",
    "parent": "@wren/cli",
-   "group": "@wren/cli"
+   "group": "@wren/cli",
+   "attrs": {
+    "description": "`wren [--client <id>] write`: one post in your own words, stored as a draft per platform and waiting in To approve (what Marketing → Write does, with no model)"
+   }
   },
   {
    "id": "@wren/cli/vitest.config.ts",
@@ -701,6 +900,11 @@
   {
    "from": "@wren/cli/src/books.ts",
    "to": "@wren/core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/books.ts",
+   "to": "@wren/core/src/vendors.ts",
    "kind": "imports"
   },
   {

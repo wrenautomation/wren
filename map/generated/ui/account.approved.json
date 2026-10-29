@@ -1,0 +1,331 @@
+{
+ "layer": "ui",
+ "nodes": [
+  {
+   "id": "ui:account",
+   "role": "app",
+   "group": "account",
+   "attrs": {
+    "blurb": "Your company's details, who can see your projects, your email settings, your look, your mailboxes, your social accounts, the accounts and vendors Wren works in, webhooks, AI tools, your own fields and business facts, invoices and who changed what.",
+    "file": "apps/portal/web/src/modules/account/index.ts",
+    "menu": true,
+    "name": "Account",
+    "workspace": "client"
+   }
+  },
+  {
+   "id": "ui:account/accounts",
+   "role": "screen",
+   "parent": "ui:account",
+   "group": "account",
+   "attrs": {
+    "about": "Each account Wren works in for you, and what's left to set up.",
+    "file": "apps/portal/web/src/modules/account/Accounts.tsx",
+    "group": "Setup",
+    "label": "Accounts",
+    "order": 9,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:account/ai",
+   "role": "screen",
+   "parent": "ui:account",
+   "group": "account",
+   "attrs": {
+    "about": "Let Claude Code or your own script use your Wren.",
+    "file": "apps/portal/web/src/modules/account/AiTools.tsx",
+    "group": "Setup",
+    "label": "AI tools",
+    "order": 15,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:account/asks",
+   "role": "screen",
+   "parent": "ui:account",
+   "group": "account",
+   "attrs": {
+    "about": "Requests for access, waiting on an answer.",
+    "file": "apps/portal/web/src/records.tsx",
+    "group": "People",
+    "label": "Access asks",
+    "order": 6,
+    "record": "access.ask",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:account/billing",
+   "role": "screen",
+   "parent": "ui:account",
+   "group": "account",
+   "attrs": {
+    "about": "Your invoices from Wren, paid and due.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Billing",
+    "order": 19,
+    "record": "delivery.invoice",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:account/changes",
+   "role": "screen",
+   "parent": "ui:account",
+   "group": "account",
+   "attrs": {
+    "about": "Who changed what in your account.",
+    "file": "apps/portal/web/src/records.tsx",
+    "group": "Activity",
+    "label": "Changes",
+    "order": 21,
+    "record": "delivery.change",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:account/connectors",
+   "role": "screen",
+   "parent": "ui:account",
+   "group": "account",
+   "attrs": {
+    "about": "The apps you already use, which Wren reads every hour.",
+    "file": "apps/portal/web/src/modules/account/Connectors.tsx",
+    "group": "Setup",
+    "label": "Connectors",
+    "order": 12,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:account/domain",
+   "role": "screen",
+   "parent": "ui:account",
+   "group": "account",
+   "attrs": {
+    "about": "Open this portal at your own web address.",
+    "file": "apps/portal/web/src/modules/account/Domain.tsx",
+    "group": "Setup",
+    "label": "Domain",
+    "order": 8,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:account/facts",
+   "role": "screen",
+   "parent": "ui:account",
+   "group": "account",
+   "attrs": {
+    "about": "Your phone, address, hours and the like, kept in one place.",
+    "file": "apps/portal/web/src/modules/account/Fields.tsx",
+    "group": "Setup",
+    "label": "Business facts",
+    "order": 17,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:account/fields",
+   "role": "screen",
+   "parent": "ui:account",
+   "group": "account",
+   "attrs": {
+    "about": "Your own fields on your lists.",
+    "file": "apps/portal/web/src/modules/account/Fields.tsx",
+    "group": "Setup",
+    "label": "Fields",
+    "order": 16,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:account/grants",
+   "role": "screen",
+   "parent": "ui:account",
+   "group": "account",
+   "attrs": {
+    "about": "Extra access given to someone beyond their role.",
+    "file": "apps/portal/web/src/records.tsx",
+    "group": "People",
+    "label": "Grants",
+    "order": 4,
+    "record": "access.grant",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:account/issues",
+   "role": "screen",
+   "parent": "ui:account",
+   "group": "account",
+   "attrs": {
+    "about": "Problems raised on a record, waiting on a fix.",
+    "file": "apps/portal/web/src/records.tsx",
+    "group": "Activity",
+    "label": "Issues",
+    "order": 20,
+    "record": "access.issue",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:account/look",
+   "role": "screen",
+   "parent": "ui:account",
+   "group": "account",
+   "attrs": {
+    "about": "Your workspace's colors.",
+    "file": "apps/portal/web/src/modules/account/Look.tsx",
+    "group": "Setup",
+    "label": "Look",
+    "order": 7,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:account/mail",
+   "role": "screen",
+   "parent": "ui:account",
+   "group": "account",
+   "attrs": {
+    "about": "The mailboxes Wren sends from and reads.",
+    "file": "apps/portal/web/src/modules/account/Mail.tsx",
+    "group": "Setup",
+    "label": "Mail",
+    "order": 10,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:account/messaging",
+   "role": "screen",
+   "parent": "ui:account",
+   "group": "account",
+   "attrs": {
+    "about": "How many marketing messages one person gets, and how links are tagged.",
+    "file": "apps/portal/web/src/records.tsx",
+    "group": "Setup",
+    "label": "Messaging",
+    "order": 18,
+    "record": "delivery.messaging",
+    "template": "form"
+   }
+  },
+  {
+   "id": "ui:account/overview",
+   "role": "screen",
+   "parent": "ui:account",
+   "group": "account",
+   "attrs": {
+    "about": "What you have with us, who's on your account and what's owed.",
+    "file": "apps/portal/web/src/modules/account/Overview.tsx",
+    "label": "Overview",
+    "order": 0,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:account/people",
+   "role": "screen",
+   "parent": "ui:account",
+   "group": "account",
+   "attrs": {
+    "about": "Everyone on your account, and their roles.",
+    "file": "apps/portal/web/src/modules/account/People.tsx",
+    "group": "People",
+    "label": "People",
+    "order": 2,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:account/review",
+   "role": "screen",
+   "parent": "ui:account",
+   "group": "account",
+   "attrs": {
+    "about": "Who can reach what, to check it's still right.",
+    "file": "apps/portal/web/src/records.tsx",
+    "group": "People",
+    "label": "Access review",
+    "order": 5,
+    "record": "access.review",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:account/roles",
+   "role": "screen",
+   "parent": "ui:account",
+   "group": "account",
+   "attrs": {
+    "about": "The roles people can hold, and what each one may do.",
+    "file": "apps/portal/web/src/records.tsx",
+    "group": "People",
+    "label": "Roles",
+    "order": 3,
+    "record": "access.role",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:account/social",
+   "role": "screen",
+   "parent": "ui:account",
+   "group": "account",
+   "attrs": {
+    "about": "The social accounts Wren posts from and answers on.",
+    "file": "apps/portal/web/src/modules/account/Social.tsx",
+    "group": "Setup",
+    "label": "Social",
+    "order": 11,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:account/vendors",
+   "role": "screen",
+   "parent": "ui:account",
+   "group": "account",
+   "attrs": {
+    "about": "The services your work runs on, and this month's use.",
+    "file": "apps/portal/web/src/modules/account/Vendors.tsx",
+    "group": "Setup",
+    "label": "Vendors",
+    "order": 13,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:account/webhooks",
+   "role": "screen",
+   "parent": "ui:account",
+   "group": "account",
+   "attrs": {
+    "about": "Send events to your own tools as they happen.",
+    "file": "apps/portal/web/src/modules/account/Webhooks.tsx",
+    "group": "Setup",
+    "label": "Webhooks",
+    "order": 14,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:account/you",
+   "role": "screen",
+   "parent": "ui:account",
+   "group": "account",
+   "attrs": {
+    "about": "Settings that are just for you.",
+    "file": "apps/portal/web/src/modules/account/You.tsx",
+    "label": "Your settings",
+    "order": 1,
+    "template": "hand"
+   }
+  }
+ ],
+ "edges": []
+}

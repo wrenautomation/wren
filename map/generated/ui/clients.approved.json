@@ -1,0 +1,118 @@
+{
+ "layer": "ui",
+ "nodes": [
+  {
+   "id": "ui:clients",
+   "role": "app",
+   "group": "clients",
+   "attrs": {
+    "areas": [
+     "team: Tools"
+    ],
+    "blurb": "Every client, how each is doing, and what needs a look.",
+    "file": "apps/portal/web/src/modules/wren/index.ts",
+    "name": "Clients",
+    "workspace": "wren"
+   }
+  },
+  {
+   "id": "ui:clients/all",
+   "role": "screen",
+   "parent": "ui:clients",
+   "group": "clients",
+   "attrs": {
+    "about": "Every client, with what they bought and how it's going.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Clients",
+    "order": 1,
+    "record": "console.client",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:clients/days",
+   "role": "screen",
+   "parent": "ui:clients",
+   "group": "clients",
+   "attrs": {
+    "about": "Each client's health score, day by day.",
+    "file": "apps/portal/web/src/records.tsx",
+    "hidden": true,
+    "label": "Health by day",
+    "order": 4,
+    "record": "console.health_day",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:clients/flags",
+   "role": "screen",
+   "parent": "ui:clients",
+   "group": "clients",
+   "attrs": {
+    "about": "Risks and openings flagged on clients, to own and close.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Flags",
+    "order": 3,
+    "record": "console.flag",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:clients/health",
+   "role": "screen",
+   "parent": "ui:clients",
+   "group": "clients",
+   "attrs": {
+    "about": "Each client's health score, lowest first.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Health",
+    "order": 2,
+    "record": "console.health",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:clients/inputs",
+   "role": "screen",
+   "parent": "ui:clients",
+   "group": "clients",
+   "attrs": {
+    "about": "The numbers behind each health score.",
+    "file": "apps/portal/web/src/records.tsx",
+    "hidden": true,
+    "label": "Health inputs",
+    "order": 5,
+    "record": "console.health_input",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:clients/overview",
+   "role": "screen",
+   "parent": "ui:clients",
+   "group": "clients",
+   "attrs": {
+    "about": "How your clients are doing, at a glance.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Overview",
+    "order": 0,
+    "template": "overview"
+   }
+  },
+  {
+   "id": "ui:clients/usage",
+   "role": "screen",
+   "parent": "ui:clients",
+   "group": "clients",
+   "attrs": {
+    "about": "What each client used of each vendor this month.",
+    "file": "apps/portal/web/src/modules/account/summary.tsx",
+    "label": "Vendor usage",
+    "order": 6,
+    "template": "hand"
+   }
+  }
+ ],
+ "edges": []
+}

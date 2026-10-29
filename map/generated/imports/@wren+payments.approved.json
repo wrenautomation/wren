@@ -17,7 +17,10 @@
    "id": "@wren/payments/src/components.ts",
    "role": "file",
    "parent": "@wren/payments",
-   "group": "@wren/payments"
+   "group": "@wren/payments",
+   "attrs": {
+    "description": "Text-to-pay as a part"
+   }
   },
   {
    "id": "@wren/payments/src/console-routes.ts",
@@ -29,55 +32,82 @@
    "id": "@wren/payments/src/console.ts",
    "role": "file",
    "parent": "@wren/payments",
-   "group": "@wren/payments"
+   "group": "@wren/payments",
+   "attrs": {
+    "description": "PaymentsConsole: the portal's Payments page and the Texts thread action"
+   }
   },
   {
    "id": "@wren/payments/src/reconcile.ts",
    "role": "file",
    "parent": "@wren/payments",
-   "group": "@wren/payments"
+   "group": "@wren/payments",
+   "attrs": {
+    "description": "`PayReconcile/all`: once a day, every connected client's recent links held against Stripe"
+   }
   },
   {
    "id": "@wren/payments/src/records.ts",
    "role": "file",
    "parent": "@wren/payments",
-   "group": "@wren/payments"
+   "group": "@wren/payments",
+   "attrs": {
+    "description": "Payments as records: one client's pay links with status, amount and what was paid"
+   }
   },
   {
    "id": "@wren/payments/src/schema.ts",
    "role": "file",
    "parent": "@wren/payments",
-   "group": "@wren/payments"
+   "group": "@wren/payments",
+   "attrs": {
+    "description": "Text-to-pay"
+   }
   },
   {
    "id": "@wren/payments/src/service.ts",
    "role": "file",
    "parent": "@wren/payments",
-   "group": "@wren/payments"
+   "group": "@wren/payments",
+   "attrs": {
+    "description": "Text-to-pay on Restate"
+   }
   },
   {
    "id": "@wren/payments/src/setups.ts",
    "role": "file",
    "parent": "@wren/payments",
-   "group": "@wren/payments"
+   "group": "@wren/payments",
+   "attrs": {
+    "description": "Stripe for pay links: the client's own key, then the webhook that tells us a link was paid"
+   }
   },
   {
    "id": "@wren/payments/src/states.ts",
    "role": "file",
    "parent": "@wren/payments",
-   "group": "@wren/payments"
+   "group": "@wren/payments",
+   "attrs": {
+    "description": "A pay link's money, step by step"
+   }
   },
   {
    "id": "@wren/payments/src/store.ts",
    "role": "file",
    "parent": "@wren/payments",
-   "group": "@wren/payments"
+   "group": "@wren/payments",
+   "attrs": {
+    "description": "Pay links' reads and writes"
+   }
   },
   {
    "id": "@wren/payments/src/stripe.ts",
    "role": "file",
    "parent": "@wren/payments",
-   "group": "@wren/payments"
+   "group": "@wren/payments",
+   "attrs": {
+    "description": "Stripe, the calls pay links make, on the client's own key, through Stripe's official SDK"
+   }
   },
   {
    "id": "@wren/payments/vitest.config.ts",

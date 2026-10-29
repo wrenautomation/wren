@@ -18,49 +18,73 @@
    "id": "@wren/offers/src/catalog/growth-partner.ts",
    "role": "file",
    "parent": "@wren/offers",
-   "group": "@wren/offers"
+   "group": "@wren/offers",
+   "attrs": {
+    "description": "Growth Partner: we fix the offer, then run acquisition end to end; the client closes their own calls"
+   }
   },
   {
    "id": "@wren/offers/src/catalog/operations.ts",
    "role": "file",
    "parent": "@wren/offers",
-   "group": "@wren/offers"
+   "group": "@wren/offers",
+   "attrs": {
+    "description": "Operations: any industry"
+   }
   },
   {
    "id": "@wren/offers/src/catalog/recruiting.ts",
    "role": "file",
    "parent": "@wren/offers",
-   "group": "@wren/offers"
+   "group": "@wren/offers",
+   "attrs": {
+    "description": "Recruiting firms"
+   }
   },
   {
    "id": "@wren/offers/src/export-cli.ts",
    "role": "file",
    "parent": "@wren/offers",
-   "group": "@wren/offers"
+   "group": "@wren/offers",
+   "attrs": {
+    "description": "`pnpm offers:export <file> [--check]`: write the registry snapshot, or (with --check) exit 1 when the file on disk differs"
+   }
   },
   {
    "id": "@wren/offers/src/index.ts",
    "role": "file",
    "parent": "@wren/offers",
-   "group": "@wren/offers"
+   "group": "@wren/offers",
+   "attrs": {
+    "description": "The offer registry"
+   }
   },
   {
    "id": "@wren/offers/src/offer.ts",
    "role": "file",
    "parent": "@wren/offers",
-   "group": "@wren/offers"
+   "group": "@wren/offers",
+   "attrs": {
+    "description": "The typed offer contract"
+   }
   },
   {
    "id": "@wren/offers/src/snapshot.ts",
    "role": "file",
    "parent": "@wren/offers",
-   "group": "@wren/offers"
+   "group": "@wren/offers",
+   "attrs": {
+    "description": "The registry as JSON, for readers outside this repo (the lander builds from it)"
+   }
   },
   {
    "id": "@wren/offers/src/terms.ts",
    "role": "file",
    "parent": "@wren/offers",
-   "group": "@wren/offers"
+   "group": "@wren/offers",
+   "attrs": {
+    "description": "What a client pays for an offer: one plan, in cents (null = none)"
+   }
   },
   {
    "id": "@wren/offers/vitest.config.ts",

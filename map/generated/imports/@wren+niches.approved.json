@@ -20,91 +20,136 @@
    "id": "@wren/niches/src/agencies.ts",
    "role": "file",
    "parent": "@wren/niches",
-   "group": "@wren/niches"
+   "group": "@wren/niches",
+   "attrs": {
+    "description": "Marketing / build agencies: directory-sourced firms, people crawled from their sites"
+   }
   },
   {
    "id": "@wren/niches/src/agencies/clutch-pages.ts",
    "role": "file",
    "parent": "@wren/niches",
-   "group": "@wren/niches"
+   "group": "@wren/niches",
+   "attrs": {
+    "description": "Saved Clutch listing pages -> import rows"
+   }
   },
   {
    "id": "@wren/niches/src/agencies/directory.ts",
    "role": "file",
    "parent": "@wren/niches",
-   "group": "@wren/niches"
+   "group": "@wren/niches",
+   "attrs": {
+    "description": "Agency-directory exports (Clutch, DesignRush, Sortlist, …) as import rows"
+   }
   },
   {
    "id": "@wren/niches/src/agencies/facts.ts",
    "role": "file",
    "parent": "@wren/niches",
-   "group": "@wren/niches"
+   "group": "@wren/niches",
+   "attrs": {
+    "description": "The agencies fact vocabulary: normalized `agency.*` keys"
+   }
   },
   {
    "id": "@wren/niches/src/agencies/profiles.ts",
    "role": "file",
    "parent": "@wren/niches",
-   "group": "@wren/niches"
+   "group": "@wren/niches",
+   "attrs": {
+    "description": "The one sanctioned fetching path in the agencies niche: Shopify partner profile pages for exactly the slugs a human already found in the hand-saved listing pages"
+   }
   },
   {
    "id": "@wren/niches/src/agencies/shopify-pages.ts",
    "role": "file",
    "parent": "@wren/niches",
-   "group": "@wren/niches"
+   "group": "@wren/niches",
+   "attrs": {
+    "description": "Shopify Partners directory: saved listing pages plus fetched profiles"
+   }
   },
   {
    "id": "@wren/niches/src/index.ts",
    "role": "file",
    "parent": "@wren/niches",
-   "group": "@wren/niches"
+   "group": "@wren/niches",
+   "attrs": {
+    "description": "The niche registry"
+   }
   },
   {
    "id": "@wren/niches/src/niche.ts",
    "role": "file",
    "parent": "@wren/niches",
-   "group": "@wren/niches"
+   "group": "@wren/niches",
+   "attrs": {
+    "description": "The typed niche contract"
+   }
   },
   {
    "id": "@wren/niches/src/recruiting.ts",
    "role": "file",
    "parent": "@wren/niches",
-   "group": "@wren/niches"
+   "group": "@wren/niches",
+   "attrs": {
+    "description": "Recruiting and staffing firms: the dead lead reactivation pilot, sold to the owner or MD"
+   }
   },
   {
    "id": "@wren/niches/src/recruiting/sources.ts",
    "role": "file",
    "parent": "@wren/niches",
-   "group": "@wren/niches"
+   "group": "@wren/niches",
+   "attrs": {
+    "description": "Where recruiting leads come from: free public data, US and Canada only"
+   }
   },
   {
    "id": "@wren/niches/src/sec-ria.ts",
    "role": "file",
    "parent": "@wren/niches",
-   "group": "@wren/niches"
+   "group": "@wren/niches",
+   "attrs": {
+    "description": "SEC-registered investment advisers: regulator bulk files, one arm"
+   }
   },
   {
    "id": "@wren/niches/src/sec-ria/datasets.ts",
    "role": "file",
    "parent": "@wren/niches",
-   "group": "@wren/niches"
+   "group": "@wren/niches",
+   "attrs": {
+    "description": "SEC/IAPD bulk datasets for the RIA niche"
+   }
   },
   {
    "id": "@wren/niches/src/sec-ria/filing-data.ts",
    "role": "file",
    "parent": "@wren/niches",
-   "group": "@wren/niches"
+   "group": "@wren/niches",
+   "attrs": {
+    "description": "The SEC's monthly ADV filing-data zip as person rows"
+   }
   },
   {
    "id": "@wren/niches/src/sec-ria/firm-feed.ts",
    "role": "file",
    "parent": "@wren/niches",
-   "group": "@wren/niches"
+   "group": "@wren/niches",
+   "attrs": {
+    "description": "The SEC's daily firm feed (full Part 1A as XML for every registered firm) as import rows"
+   }
   },
   {
    "id": "@wren/niches/src/sec-ria/roster.ts",
    "role": "file",
    "parent": "@wren/niches",
-   "group": "@wren/niches"
+   "group": "@wren/niches",
+   "attrs": {
+    "description": "The SEC's investment-adviser firm roster (monthly FOIA CSV) as import rows"
+   }
   },
   {
    "id": "@wren/niches/vitest.config.ts",

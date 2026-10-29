@@ -1,0 +1,47 @@
+{
+ "layer": "ui",
+ "nodes": [
+  {
+   "id": "ui:handlers",
+   "role": "app",
+   "group": "handlers",
+   "attrs": {
+    "areas": [
+     "team: Tools"
+    ],
+    "blurb": "Run any handler from a form built from its input, or from your AI tools with the wren CLI.",
+    "file": "apps/portal/web/src/modules/wren/handlers.ts",
+    "name": "Handlers",
+    "workspace": "wren"
+   }
+  },
+  {
+   "id": "ui:handlers/ai",
+   "role": "screen",
+   "parent": "ui:handlers",
+   "group": "handlers",
+   "attrs": {
+    "about": "Let Claude Code or your own script use your Wren.",
+    "file": "apps/portal/web/src/modules/account/AiTools.tsx",
+    "label": "AI tools",
+    "order": 1,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:handlers/all",
+   "role": "screen",
+   "parent": "ui:handlers",
+   "group": "handlers",
+   "attrs": {
+    "about": "Every action a form can run.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Handlers",
+    "order": 0,
+    "record": "console.handler",
+    "template": "list"
+   }
+  }
+ ],
+ "edges": []
+}

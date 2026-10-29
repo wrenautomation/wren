@@ -1,0 +1,131 @@
+{
+ "layer": "ui",
+ "nodes": [
+  {
+   "id": "ui:money",
+   "role": "app",
+   "group": "money",
+   "attrs": {
+    "areas": [
+     "team: Tools"
+    ],
+    "blurb": "What Wren spends, what renews soon, and what a client costs and earns.",
+    "file": "apps/portal/web/src/modules/wren/index.ts",
+    "name": "Money",
+    "workspace": "wren"
+   }
+  },
+  {
+   "id": "ui:money/accounts",
+   "role": "screen",
+   "parent": "ui:money",
+   "group": "money",
+   "attrs": {
+    "about": "Expense accounts, and where each one's spend counts.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Accounts",
+    "order": 7,
+    "record": "books.account",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:money/card",
+   "role": "screen",
+   "parent": "ui:money",
+   "group": "money",
+   "attrs": {
+    "about": "Charges on the company card, and the bill each one paid.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Card",
+    "order": 5,
+    "record": "books.card",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:money/in-house",
+   "role": "screen",
+   "parent": "ui:money",
+   "group": "money",
+   "attrs": {
+    "about": "Tools we built instead of buying, and what they save.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "In-house",
+    "order": 6,
+    "record": "books.in_house",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:money/models",
+   "role": "screen",
+   "parent": "ui:money",
+   "group": "money",
+   "attrs": {
+    "about": "AI model calls, and what they cost.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Model usage",
+    "order": 2,
+    "record": "email.model",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:money/overview",
+   "role": "screen",
+   "parent": "ui:money",
+   "group": "money",
+   "attrs": {
+    "about": "Where Wren's money goes, at a glance.",
+    "file": "apps/portal/web/src/modules/wren/money.tsx",
+    "label": "Overview",
+    "order": 0,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:money/payments-in",
+   "role": "screen",
+   "parent": "ui:money",
+   "group": "money",
+   "attrs": {
+    "about": "Bank transfers from clients, and the invoice each one paid.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Payments in",
+    "order": 3,
+    "record": "console.credit",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:money/spend",
+   "role": "screen",
+   "parent": "ui:money",
+   "group": "money",
+   "attrs": {
+    "about": "Everything we spend, by vendor and month.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Spend",
+    "order": 1,
+    "record": "books.spend",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:money/subscriptions",
+   "role": "screen",
+   "parent": "ui:money",
+   "group": "money",
+   "attrs": {
+    "about": "Every subscription we pay for.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Subscriptions",
+    "order": 4,
+    "record": "books.subscription",
+    "template": "list"
+   }
+  }
+ ],
+ "edges": []
+}

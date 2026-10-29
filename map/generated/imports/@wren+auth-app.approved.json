@@ -7,6 +7,7 @@
    "parent": "repo:wren",
    "group": "@wren/auth-app",
    "attrs": {
+    "description": "Edge Worker for sign-in: forwards /api/auth to the auth Lambda.",
     "dir": "apps/auth/",
     "npm": [
      "node:child_process",
@@ -21,43 +22,64 @@
    "id": "@wren/auth-app/lambda/build.mjs",
    "role": "file",
    "parent": "@wren/auth-app",
-   "group": "@wren/auth-app"
+   "group": "@wren/auth-app",
+   "attrs": {
+    "description": "Bundle the sign-in Lambda: dist/lambda.zip holding index.mjs (one ESM file, handler `index.handler`)"
+   }
   },
   {
    "id": "@wren/auth-app/lambda/http.ts",
    "role": "file",
    "parent": "@wren/auth-app",
-   "group": "@wren/auth-app"
+   "group": "@wren/auth-app",
+   "attrs": {
+    "description": "A Lambda function URL call as a web Request, and a web Response back"
+   }
   },
   {
    "id": "@wren/auth-app/lambda/index.ts",
    "role": "file",
    "parent": "@wren/auth-app",
-   "group": "@wren/auth-app"
+   "group": "@wren/auth-app",
+   "attrs": {
+    "description": "Wren's sign-in, on Lambda"
+   }
   },
   {
    "id": "@wren/auth-app/lambda/keys.ts",
    "role": "file",
    "parent": "@wren/auth-app",
-   "group": "@wren/auth-app"
+   "group": "@wren/auth-app",
+   "attrs": {
+    "description": "`/api/keys/stage`: a pasted key, sealed with the store's public key and set aside for an hour; the answer is its ref and last 4"
+   }
   },
   {
    "id": "@wren/auth-app/src/headers.ts",
    "role": "file",
    "parent": "@wren/auth-app",
-   "group": "@wren/auth-app"
+   "group": "@wren/auth-app",
+   "attrs": {
+    "description": "Headers our Worker sets on every call it forwards to the sign-in Lambda"
+   }
   },
   {
    "id": "@wren/auth-app/src/worker.ts",
    "role": "file",
    "parent": "@wren/auth-app",
-   "group": "@wren/auth-app"
+   "group": "@wren/auth-app",
+   "attrs": {
+    "description": "auth.wrenautomation.com: the sign-in pages, and `/api/auth/*` forwarded to the sign-in Lambda with the edge secret and the caller's address (A5)"
+   }
   },
   {
    "id": "@wren/auth-app/web/src/App.tsx",
    "role": "file",
    "parent": "@wren/auth-app",
-   "group": "@wren/auth-app"
+   "group": "@wren/auth-app",
+   "attrs": {
+    "description": "The sign-in pages (A2, A3, A4, A8): a passkey, an emailed code or its link, Google, Microsoft, or a password"
+   }
   },
   {
    "id": "@wren/auth-app/web/src/app.css",
@@ -75,7 +97,10 @@
    "id": "@wren/auth-app/web/src/next.ts",
    "role": "file",
    "parent": "@wren/auth-app",
-   "group": "@wren/auth-app"
+   "group": "@wren/auth-app",
+   "attrs": {
+    "description": "Where to go once signed in: `?next=` when it's one of our hosts over https, else the portal"
+   }
   },
   {
    "id": "@wren/auth-app/web/vite.config.ts",

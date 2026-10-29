@@ -1,0 +1,1467 @@
+{
+ "layer": "schema",
+ "nodes": [
+  {
+   "id": "index:books.accounts.pk_accounts",
+   "role": "index",
+   "parent": "table:books.accounts",
+   "group": "books",
+   "attrs": {
+    "def": "CREATE UNIQUE INDEX pk_accounts ON books.accounts USING btree (id)"
+   }
+  },
+  {
+   "id": "index:books.accounts.uq_accounts_key",
+   "role": "index",
+   "parent": "table:books.accounts",
+   "group": "books",
+   "attrs": {
+    "def": "CREATE UNIQUE INDEX uq_accounts_key ON books.accounts USING btree (key)"
+   }
+  },
+  {
+   "id": "index:books.alerts.ix_alerts_open",
+   "role": "index",
+   "parent": "table:books.alerts",
+   "group": "books",
+   "attrs": {
+    "def": "CREATE INDEX ix_alerts_open ON books.alerts USING btree (kind) WHERE (cleared_at IS NULL)"
+   }
+  },
+  {
+   "id": "index:books.alerts.pk_alerts",
+   "role": "index",
+   "parent": "table:books.alerts",
+   "group": "books",
+   "attrs": {
+    "def": "CREATE UNIQUE INDEX pk_alerts ON books.alerts USING btree (key)"
+   }
+  },
+  {
+   "id": "index:books.bill_documents.ix_bill_documents_document_id",
+   "role": "index",
+   "parent": "table:books.bill_documents",
+   "group": "books",
+   "attrs": {
+    "def": "CREATE INDEX ix_bill_documents_document_id ON books.bill_documents USING btree (document_id)"
+   }
+  },
+  {
+   "id": "index:books.bill_documents.pk_bill_documents",
+   "role": "index",
+   "parent": "table:books.bill_documents",
+   "group": "books",
+   "attrs": {
+    "def": "CREATE UNIQUE INDEX pk_bill_documents ON books.bill_documents USING btree (bill_id, document_id)"
+   }
+  },
+  {
+   "id": "index:books.bill_lines.pk_bill_lines",
+   "role": "index",
+   "parent": "table:books.bill_lines",
+   "group": "books",
+   "attrs": {
+    "def": "CREATE UNIQUE INDEX pk_bill_lines ON books.bill_lines USING btree (id)"
+   }
+  },
+  {
+   "id": "index:books.bill_lines.uq_bill_lines_position",
+   "role": "index",
+   "parent": "table:books.bill_lines",
+   "group": "books",
+   "attrs": {
+    "def": "CREATE UNIQUE INDEX uq_bill_lines_position ON books.bill_lines USING btree (bill_id, \"position\")"
+   }
+  },
+  {
+   "id": "index:books.bill_payments.ix_bill_payments_bill_id",
+   "role": "index",
+   "parent": "table:books.bill_payments",
+   "group": "books",
+   "attrs": {
+    "def": "CREATE INDEX ix_bill_payments_bill_id ON books.bill_payments USING btree (bill_id)"
+   }
+  },
+  {
+   "id": "index:books.bill_payments.ix_bill_payments_document_id",
+   "role": "index",
+   "parent": "table:books.bill_payments",
+   "group": "books",
+   "attrs": {
+    "def": "CREATE INDEX ix_bill_payments_document_id ON books.bill_payments USING btree (document_id)"
+   }
+  },
+  {
+   "id": "index:books.bill_payments.pk_bill_payments",
+   "role": "index",
+   "parent": "table:books.bill_payments",
+   "group": "books",
+   "attrs": {
+    "def": "CREATE UNIQUE INDEX pk_bill_payments ON books.bill_payments USING btree (id)"
+   }
+  },
+  {
+   "id": "index:books.bill_payments.uq_bill_payments_key",
+   "role": "index",
+   "parent": "table:books.bill_payments",
+   "group": "books",
+   "attrs": {
+    "def": "CREATE UNIQUE INDEX uq_bill_payments_key ON books.bill_payments USING btree (vendor_id, invoice_number, key) NULLS NOT DISTINCT"
+   }
+  },
+  {
+   "id": "index:books.bill_taxes.pk_bill_taxes",
+   "role": "index",
+   "parent": "table:books.bill_taxes",
+   "group": "books",
+   "attrs": {
+    "def": "CREATE UNIQUE INDEX pk_bill_taxes ON books.bill_taxes USING btree (id)"
+   }
+  },
+  {
+   "id": "index:books.bill_taxes.uq_bill_taxes_position",
+   "role": "index",
+   "parent": "table:books.bill_taxes",
+   "group": "books",
+   "attrs": {
+    "def": "CREATE UNIQUE INDEX uq_bill_taxes_position ON books.bill_taxes USING btree (bill_id, \"position\")"
+   }
+  },
+  {
+   "id": "index:books.bills.ix_bills_account_id",
+   "role": "index",
+   "parent": "table:books.bills",
+   "group": "books",
+   "attrs": {
+    "def": "CREATE INDEX ix_bills_account_id ON books.bills USING btree (account_id)"
+   }
+  },
+  {
+   "id": "index:books.bills.ix_bills_document_id",
+   "role": "index",
+   "parent": "table:books.bills",
+   "group": "books",
+   "attrs": {
+    "def": "CREATE INDEX ix_bills_document_id ON books.bills USING btree (document_id)"
+   }
+  },
+  {
+   "id": "index:books.bills.ix_bills_issued_on",
+   "role": "index",
+   "parent": "table:books.bills",
+   "group": "books",
+   "attrs": {
+    "def": "CREATE INDEX ix_bills_issued_on ON books.bills USING btree (issued_on)"
+   }
+  },
+  {
+   "id": "index:books.bills.ix_bills_run_id",
+   "role": "index",
+   "parent": "table:books.bills",
+   "group": "books",
+   "attrs": {
+    "def": "CREATE INDEX ix_bills_run_id ON books.bills USING btree (run_id)"
+   }
+  },
+  {
+   "id": "index:books.bills.pk_bills",
+   "role": "index",
+   "parent": "table:books.bills",
+   "group": "books",
+   "attrs": {
+    "def": "CREATE UNIQUE INDEX pk_bills ON books.bills USING btree (id)"
+   }
+  },
+  {
+   "id": "index:books.bills.uq_bills_vendor_number",
+   "role": "index",
+   "parent": "table:books.bills",
+   "group": "books",
+   "attrs": {
+    "def": "CREATE UNIQUE INDEX uq_bills_vendor_number ON books.bills USING btree (vendor_id, number)"
+   }
+  },
+  {
+   "id": "index:books.card_lines.ix_card_lines_bill_id",
+   "role": "index",
+   "parent": "table:books.card_lines",
+   "group": "books",
+   "attrs": {
+    "def": "CREATE INDEX ix_card_lines_bill_id ON books.card_lines USING btree (bill_id)"
+   }
+  },
+  {
+   "id": "index:books.card_lines.ix_card_lines_document_id",
+   "role": "index",
+   "parent": "table:books.card_lines",
+   "group": "books",
+   "attrs": {
+    "def": "CREATE INDEX ix_card_lines_document_id ON books.card_lines USING btree (document_id)"
+   }
+  },
+  {
+   "id": "index:books.card_lines.ix_card_lines_on",
+   "role": "index",
+   "parent": "table:books.card_lines",
+   "group": "books",
+   "attrs": {
+    "def": "CREATE INDEX ix_card_lines_on ON books.card_lines USING btree (\"on\")"
+   }
+  },
+  {
+   "id": "index:books.card_lines.ix_card_lines_vendor_id",
+   "role": "index",
+   "parent": "table:books.card_lines",
+   "group": "books",
+   "attrs": {
+    "def": "CREATE INDEX ix_card_lines_vendor_id ON books.card_lines USING btree (vendor_id)"
+   }
+  },
+  {
+   "id": "index:books.card_lines.pk_card_lines",
+   "role": "index",
+   "parent": "table:books.card_lines",
+   "group": "books",
+   "attrs": {
+    "def": "CREATE UNIQUE INDEX pk_card_lines ON books.card_lines USING btree (id)"
+   }
+  },
+  {
+   "id": "index:books.card_lines.uq_card_lines_fingerprint",
+   "role": "index",
+   "parent": "table:books.card_lines",
+   "group": "books",
+   "attrs": {
+    "def": "CREATE UNIQUE INDEX uq_card_lines_fingerprint ON books.card_lines USING btree (fingerprint)"
+   }
+  },
+  {
+   "id": "index:books.card_rules.ix_card_rules_vendor_id",
+   "role": "index",
+   "parent": "table:books.card_rules",
+   "group": "books",
+   "attrs": {
+    "def": "CREATE INDEX ix_card_rules_vendor_id ON books.card_rules USING btree (vendor_id)"
+   }
+  },
+  {
+   "id": "index:books.card_rules.pk_card_rules",
+   "role": "index",
+   "parent": "table:books.card_rules",
+   "group": "books",
+   "attrs": {
+    "def": "CREATE UNIQUE INDEX pk_card_rules ON books.card_rules USING btree (descriptor)"
+   }
+  },
+  {
+   "id": "index:books.documents.ix_documents_parent_id",
+   "role": "index",
+   "parent": "table:books.documents",
+   "group": "books",
+   "attrs": {
+    "def": "CREATE INDEX ix_documents_parent_id ON books.documents USING btree (parent_id)"
+   }
+  },
+  {
+   "id": "index:books.documents.ix_documents_run_id",
+   "role": "index",
+   "parent": "table:books.documents",
+   "group": "books",
+   "attrs": {
+    "def": "CREATE INDEX ix_documents_run_id ON books.documents USING btree (run_id)"
+   }
+  },
+  {
+   "id": "index:books.documents.ix_documents_vendor_id",
+   "role": "index",
+   "parent": "table:books.documents",
+   "group": "books",
+   "attrs": {
+    "def": "CREATE INDEX ix_documents_vendor_id ON books.documents USING btree (vendor_id)"
+   }
+  },
+  {
+   "id": "index:books.documents.pk_documents",
+   "role": "index",
+   "parent": "table:books.documents",
+   "group": "books",
+   "attrs": {
+    "def": "CREATE UNIQUE INDEX pk_documents ON books.documents USING btree (id)"
+   }
+  },
+  {
+   "id": "index:books.documents.uq_documents_mailbox_key",
+   "role": "index",
+   "parent": "table:books.documents",
+   "group": "books",
+   "attrs": {
+    "def": "CREATE UNIQUE INDEX uq_documents_mailbox_key ON books.documents USING btree (mailbox, mailbox_key)"
+   }
+  },
+  {
+   "id": "index:books.documents.uq_documents_sha256",
+   "role": "index",
+   "parent": "table:books.documents",
+   "group": "books",
+   "attrs": {
+    "def": "CREATE UNIQUE INDEX uq_documents_sha256 ON books.documents USING btree (sha256)"
+   }
+  },
+  {
+   "id": "index:books.entries.ix_entries_bill_id",
+   "role": "index",
+   "parent": "table:books.entries",
+   "group": "books",
+   "attrs": {
+    "def": "CREATE INDEX ix_entries_bill_id ON books.entries USING btree (bill_id)"
+   }
+  },
+  {
+   "id": "index:books.entries.ix_entries_posted_on",
+   "role": "index",
+   "parent": "table:books.entries",
+   "group": "books",
+   "attrs": {
+    "def": "CREATE INDEX ix_entries_posted_on ON books.entries USING btree (posted_on)"
+   }
+  },
+  {
+   "id": "index:books.entries.ix_entries_run_id",
+   "role": "index",
+   "parent": "table:books.entries",
+   "group": "books",
+   "attrs": {
+    "def": "CREATE INDEX ix_entries_run_id ON books.entries USING btree (run_id)"
+   }
+  },
+  {
+   "id": "index:books.entries.pk_entries",
+   "role": "index",
+   "parent": "table:books.entries",
+   "group": "books",
+   "attrs": {
+    "def": "CREATE UNIQUE INDEX pk_entries ON books.entries USING btree (id)"
+   }
+  },
+  {
+   "id": "index:books.entries.uq_entries_reverses_id",
+   "role": "index",
+   "parent": "table:books.entries",
+   "group": "books",
+   "attrs": {
+    "def": "CREATE UNIQUE INDEX uq_entries_reverses_id ON books.entries USING btree (reverses_id)"
+   }
+  },
+  {
+   "id": "index:books.lines.ix_lines_account_id",
+   "role": "index",
+   "parent": "table:books.lines",
+   "group": "books",
+   "attrs": {
+    "def": "CREATE INDEX ix_lines_account_id ON books.lines USING btree (account_id)"
+   }
+  },
+  {
+   "id": "index:books.lines.ix_lines_entry_id",
+   "role": "index",
+   "parent": "table:books.lines",
+   "group": "books",
+   "attrs": {
+    "def": "CREATE INDEX ix_lines_entry_id ON books.lines USING btree (entry_id)"
+   }
+  },
+  {
+   "id": "index:books.lines.pk_lines",
+   "role": "index",
+   "parent": "table:books.lines",
+   "group": "books",
+   "attrs": {
+    "def": "CREATE UNIQUE INDEX pk_lines ON books.lines USING btree (id)"
+   }
+  },
+  {
+   "id": "index:books.rates.pk_rates",
+   "role": "index",
+   "parent": "table:books.rates",
+   "group": "books",
+   "attrs": {
+    "def": "CREATE UNIQUE INDEX pk_rates ON books.rates USING btree (\"on\", currency, source)"
+   }
+  },
+  {
+   "id": "index:books.subscription_ends.pk_subscription_ends",
+   "role": "index",
+   "parent": "table:books.subscription_ends",
+   "group": "books",
+   "attrs": {
+    "def": "CREATE UNIQUE INDEX pk_subscription_ends ON books.subscription_ends USING btree (vendor_id, plan)"
+   }
+  },
+  {
+   "id": "index:books.usage.pk_usage",
+   "role": "index",
+   "parent": "table:books.usage",
+   "group": "books",
+   "attrs": {
+    "def": "CREATE UNIQUE INDEX pk_usage ON books.usage USING btree (\"on\", provider, service)"
+   }
+  },
+  {
+   "id": "index:books.usage_lines.ix_usage_lines_month",
+   "role": "index",
+   "parent": "table:books.usage_lines",
+   "group": "books",
+   "attrs": {
+    "def": "CREATE INDEX ix_usage_lines_month ON books.usage_lines USING btree (month)"
+   }
+  },
+  {
+   "id": "index:books.usage_lines.pk_usage_lines",
+   "role": "index",
+   "parent": "table:books.usage_lines",
+   "group": "books",
+   "attrs": {
+    "def": "CREATE UNIQUE INDEX pk_usage_lines ON books.usage_lines USING btree (id)"
+   }
+  },
+  {
+   "id": "index:books.usage_lines.uq_usage_lines_month",
+   "role": "index",
+   "parent": "table:books.usage_lines",
+   "group": "books",
+   "attrs": {
+    "def": "CREATE UNIQUE INDEX uq_usage_lines_month ON books.usage_lines USING btree (client, vendor, month) NULLS NOT DISTINCT"
+   }
+  },
+  {
+   "id": "index:books.vendors.ix_vendors_account_id",
+   "role": "index",
+   "parent": "table:books.vendors",
+   "group": "books",
+   "attrs": {
+    "def": "CREATE INDEX ix_vendors_account_id ON books.vendors USING btree (account_id)"
+   }
+  },
+  {
+   "id": "index:books.vendors.pk_vendors",
+   "role": "index",
+   "parent": "table:books.vendors",
+   "group": "books",
+   "attrs": {
+    "def": "CREATE UNIQUE INDEX pk_vendors ON books.vendors USING btree (id)"
+   }
+  },
+  {
+   "id": "index:books.vendors.uq_vendors_key",
+   "role": "index",
+   "parent": "table:books.vendors",
+   "group": "books",
+   "attrs": {
+    "def": "CREATE UNIQUE INDEX uq_vendors_key ON books.vendors USING btree (key)"
+   }
+  },
+  {
+   "id": "schema:books",
+   "role": "schema",
+   "group": "books"
+  },
+  {
+   "id": "table:books.accounts",
+   "role": "table",
+   "parent": "schema:books",
+   "group": "books",
+   "attrs": {
+    "columns": [
+     "bucket varchar(16) null",
+     "channel varchar(16) null",
+     "created_at timestamp with time zone = now()",
+     "id integer = nextval('books.accounts_id_seq'::regclass)",
+     "key varchar(64)",
+     "name text",
+     "t2125_line varchar(8) null",
+     "type varchar(16)"
+    ],
+    "constraints": [
+     "ck_accounts_bucket: CHECK (((bucket)::text = ANY (ARRAY[('acquisition'::character varying)::text, ('delivery'::character varying)::text, ('overhead'::character varying)::text])))",
+     "ck_accounts_channel: CHECK (((channel)::text = ANY (ARRAY[('email'::character varying)::text, ('sms'::character varying)::text, ('ads'::character varying)::text, ('content'::character varying)::text, ('search'::character varying)::text, ('reach'::character varying)::text])))",
+     "ck_accounts_type: CHECK (((type)::text = ANY (ARRAY[('asset'::character varying)::text, ('liability'::character varying)::text, ('equity'::character varying)::text, ('income'::character varying)::text, ('expense'::character varying)::text])))",
+     "pk_accounts: PRIMARY KEY (id)",
+     "uq_accounts_key: UNIQUE (key)"
+    ],
+    "kind": "table"
+   }
+  },
+  {
+   "id": "table:books.alerts",
+   "role": "table",
+   "parent": "schema:books",
+   "group": "books",
+   "attrs": {
+    "columns": [
+     "cleared_at timestamp with time zone null",
+     "key text",
+     "kind varchar(32)",
+     "message text",
+     "raised_at timestamp with time zone = now()"
+    ],
+    "constraints": [
+     "ck_alerts_kind: CHECK (((kind)::text = ANY (ARRAY[('capture'::character varying)::text, ('held'::character varying)::text, ('unread'::character varying)::text, ('new_subscription'::character varying)::text, ('renewal'::character varying)::text, ('lapsed'::character varying)::text, ('spike'::character varying)::text, ('card'::character varying)::text])))",
+     "pk_alerts: PRIMARY KEY (key)"
+    ],
+    "kind": "table"
+   }
+  },
+  {
+   "id": "table:books.bill_costs",
+   "role": "table",
+   "parent": "schema:books",
+   "group": "books",
+   "attrs": {
+    "columns": [
+     "account varchar(64) null",
+     "bill_id integer null",
+     "cad_cents bigint null",
+     "cost_cad_cents bigint null",
+     "currency character(3) null",
+     "cycle varchar(16) null",
+     "entry_id integer null",
+     "issued_on date null",
+     "kind varchar(16) null",
+     "number text null",
+     "paid_cents bigint null",
+     "period_end date null",
+     "period_start date null",
+     "plan text null",
+     "review varchar(16) null",
+     "tax_cents bigint null",
+     "total_cents bigint null",
+     "vendor varchar(64) null",
+     "vendor_id integer null",
+     "vendor_name text null"
+    ],
+    "constraints": [],
+    "kind": "view"
+   }
+  },
+  {
+   "id": "table:books.bill_documents",
+   "role": "table",
+   "parent": "schema:books",
+   "group": "books",
+   "attrs": {
+    "columns": [
+     "bill_id integer",
+     "document_id integer"
+    ],
+    "constraints": [
+     "fk_bill_documents_bill_id_bills: FOREIGN KEY (bill_id) REFERENCES books.bills(id)",
+     "fk_bill_documents_document_id_documents: FOREIGN KEY (document_id) REFERENCES books.documents(id)",
+     "pk_bill_documents: PRIMARY KEY (bill_id, document_id)"
+    ],
+    "kind": "table"
+   }
+  },
+  {
+   "id": "table:books.bill_lines",
+   "role": "table",
+   "parent": "schema:books",
+   "group": "books",
+   "attrs": {
+    "columns": [
+     "amount_cents bigint",
+     "bill_id integer",
+     "description text",
+     "id integer = nextval('books.bill_lines_id_seq'::regclass)",
+     "period_end date null",
+     "period_start date null",
+     "position integer",
+     "quantity text null",
+     "unit_price text null"
+    ],
+    "constraints": [
+     "fk_bill_lines_bill_id_bills: FOREIGN KEY (bill_id) REFERENCES books.bills(id)",
+     "pk_bill_lines: PRIMARY KEY (id)",
+     "uq_bill_lines_position: UNIQUE (bill_id, \"position\")"
+    ],
+    "kind": "table"
+   }
+  },
+  {
+   "id": "table:books.bill_payments",
+   "role": "table",
+   "parent": "schema:books",
+   "group": "books",
+   "attrs": {
+    "columns": [
+     "amount_cents bigint",
+     "bill_id integer null",
+     "created_at timestamp with time zone = now()",
+     "currency character(3)",
+     "document_id integer",
+     "id integer = nextval('books.bill_payments_id_seq'::regclass)",
+     "invoice_number text null",
+     "key text",
+     "method text null",
+     "paid_on date",
+     "reference text null",
+     "vendor_id integer"
+    ],
+    "constraints": [
+     "fk_bill_payments_bill_id_bills: FOREIGN KEY (bill_id) REFERENCES books.bills(id)",
+     "fk_bill_payments_document_id_documents: FOREIGN KEY (document_id) REFERENCES books.documents(id)",
+     "fk_bill_payments_vendor_id_vendors: FOREIGN KEY (vendor_id) REFERENCES books.vendors(id)",
+     "pk_bill_payments: PRIMARY KEY (id)",
+     "uq_bill_payments_key: UNIQUE NULLS NOT DISTINCT (vendor_id, invoice_number, key)"
+    ],
+    "kind": "table"
+   }
+  },
+  {
+   "id": "table:books.bill_taxes",
+   "role": "table",
+   "parent": "schema:books",
+   "group": "books",
+   "attrs": {
+    "columns": [
+     "amount_cents bigint",
+     "bill_id integer",
+     "claimable boolean",
+     "id integer = nextval('books.bill_taxes_id_seq'::regclass)",
+     "name text",
+     "position integer",
+     "rate_percent numeric(7,4) null",
+     "tax_number text null"
+    ],
+    "constraints": [
+     "fk_bill_taxes_bill_id_bills: FOREIGN KEY (bill_id) REFERENCES books.bills(id)",
+     "pk_bill_taxes: PRIMARY KEY (id)",
+     "uq_bill_taxes_position: UNIQUE (bill_id, \"position\")"
+    ],
+    "kind": "table"
+   }
+  },
+  {
+   "id": "table:books.bills",
+   "role": "table",
+   "parent": "schema:books",
+   "group": "books",
+   "attrs": {
+    "columns": [
+     "account_id integer",
+     "billed_to text null",
+     "charged_cad_cents bigint null",
+     "created_at timestamp with time zone = now()",
+     "currency character(3)",
+     "cycle varchar(16) null",
+     "document_id integer",
+     "due_on date null",
+     "id integer = nextval('books.bills_id_seq'::regclass)",
+     "issued_on date",
+     "kind varchar(16)",
+     "number text",
+     "payment_method text null",
+     "period_end date null",
+     "period_start date null",
+     "plan text null",
+     "review varchar(16)",
+     "review_reasons jsonb = '[]'::jsonb",
+     "run_id uuid null",
+     "subtotal_cents bigint",
+     "tax_cents bigint",
+     "total_cents bigint",
+     "updated_at timestamp with time zone = now()",
+     "vendor_id integer",
+     "vendor_tax_number text null"
+    ],
+    "constraints": [
+     "ck_bills_cycle: CHECK (((cycle)::text = ANY (ARRAY[('monthly'::character varying)::text, ('yearly'::character varying)::text, ('usage'::character varying)::text, ('once'::character varying)::text])))",
+     "ck_bills_kind: CHECK (((kind)::text = ANY (ARRAY[('invoice'::character varying)::text, ('receipt'::character varying)::text, ('credit_note'::character varying)::text])))",
+     "ck_bills_review: CHECK (((review)::text = ANY (ARRAY[('ok'::character varying)::text, ('needs_review'::character varying)::text, ('accepted'::character varying)::text, ('personal'::character varying)::text, ('void'::character varying)::text])))",
+     "fk_bills_account_id_accounts: FOREIGN KEY (account_id) REFERENCES books.accounts(id)",
+     "fk_bills_document_id_documents: FOREIGN KEY (document_id) REFERENCES books.documents(id)",
+     "fk_bills_run_id_runs: FOREIGN KEY (run_id) REFERENCES runs(id)",
+     "fk_bills_vendor_id_vendors: FOREIGN KEY (vendor_id) REFERENCES books.vendors(id)",
+     "pk_bills: PRIMARY KEY (id)",
+     "uq_bills_vendor_number: UNIQUE (vendor_id, number)"
+    ],
+    "kind": "table"
+   }
+  },
+  {
+   "id": "table:books.card_lines",
+   "role": "table",
+   "parent": "schema:books",
+   "group": "books",
+   "attrs": {
+    "columns": [
+     "amount_cents bigint",
+     "bill_id integer null",
+     "card varchar(4)",
+     "created_at timestamp with time zone = now()",
+     "currency character(3)",
+     "description text",
+     "descriptor text",
+     "document_id integer",
+     "fingerprint text",
+     "id integer = nextval('books.card_lines_id_seq'::regclass)",
+     "on date",
+     "personal boolean = false",
+     "source varchar(16)",
+     "vendor_id integer null"
+    ],
+    "constraints": [
+     "ck_card_lines_source: CHECK (((source)::text = ANY (ARRAY[('statement'::character varying)::text, ('alert'::character varying)::text])))",
+     "fk_card_lines_bill_id_bills: FOREIGN KEY (bill_id) REFERENCES books.bills(id)",
+     "fk_card_lines_document_id_documents: FOREIGN KEY (document_id) REFERENCES books.documents(id)",
+     "fk_card_lines_vendor_id_vendors: FOREIGN KEY (vendor_id) REFERENCES books.vendors(id)",
+     "pk_card_lines: PRIMARY KEY (id)",
+     "uq_card_lines_fingerprint: UNIQUE (fingerprint)"
+    ],
+    "kind": "table"
+   }
+  },
+  {
+   "id": "table:books.card_records",
+   "role": "table",
+   "parent": "schema:books",
+   "group": "books",
+   "attrs": {
+    "columns": [
+     "amount numeric null",
+     "bill text null",
+     "card text null",
+     "currency text null",
+     "description text null",
+     "descriptor text null",
+     "id integer null",
+     "on date null",
+     "source text null",
+     "state text null",
+     "vendor text null"
+    ],
+    "constraints": [],
+    "kind": "view"
+   }
+  },
+  {
+   "id": "table:books.card_rules",
+   "role": "table",
+   "parent": "schema:books",
+   "group": "books",
+   "attrs": {
+    "columns": [
+     "created_at timestamp with time zone = now()",
+     "descriptor text",
+     "personal boolean = false",
+     "vendor_id integer null"
+    ],
+    "constraints": [
+     "fk_card_rules_vendor_id_vendors: FOREIGN KEY (vendor_id) REFERENCES books.vendors(id)",
+     "pk_card_rules: PRIMARY KEY (descriptor)"
+    ],
+    "kind": "table"
+   }
+  },
+  {
+   "id": "table:books.documents",
+   "role": "table",
+   "parent": "schema:books",
+   "group": "books",
+   "attrs": {
+    "columns": [
+     "created_at timestamp with time zone = now()",
+     "filename text null",
+     "from_address text null",
+     "from_name text null",
+     "id integer = nextval('books.documents_id_seq'::regclass)",
+     "kind varchar(16) null",
+     "mailbox text null",
+     "mailbox_key text null",
+     "media_type varchar(128)",
+     "message_id text null",
+     "parent_id integer null",
+     "read_at timestamp with time zone null",
+     "reading jsonb null",
+     "run_id uuid null",
+     "sent_at timestamp with time zone null",
+     "sha256 character(64)",
+     "size integer",
+     "source varchar(16)",
+     "store_key text",
+     "subject text null",
+     "text text null",
+     "vendor_id integer null"
+    ],
+    "constraints": [
+     "ck_documents_kind: CHECK (((kind)::text = ANY (ARRAY[('bill'::character varying)::text, ('payment'::character varying)::text, ('notice'::character varying)::text, ('other'::character varying)::text])))",
+     "ck_documents_source: CHECK (((source)::text = ANY (ARRAY[('mailbox'::character varying)::text, ('file'::character varying)::text, ('attachment'::character varying)::text])))",
+     "fk_documents_parent_id_documents: FOREIGN KEY (parent_id) REFERENCES books.documents(id)",
+     "fk_documents_run_id_runs: FOREIGN KEY (run_id) REFERENCES runs(id)",
+     "fk_documents_vendor_id_vendors: FOREIGN KEY (vendor_id) REFERENCES books.vendors(id)",
+     "pk_documents: PRIMARY KEY (id)",
+     "uq_documents_mailbox_key: UNIQUE (mailbox, mailbox_key)",
+     "uq_documents_sha256: UNIQUE (sha256)"
+    ],
+    "kind": "table"
+   }
+  },
+  {
+   "id": "table:books.econ_channels",
+   "role": "table",
+   "parent": "schema:books",
+   "group": "books",
+   "attrs": {
+    "columns": [
+     "booked integer null",
+     "cac_12 numeric null",
+     "cac_3 numeric null",
+     "cac_6 numeric null",
+     "channel text null",
+     "currency text null",
+     "id text null",
+     "interested integer null",
+     "latest boolean null",
+     "leads integer null",
+     "month date null",
+     "new_clients integer null",
+     "per_booked numeric null",
+     "per_interested numeric null",
+     "per_lead numeric null",
+     "per_reply numeric null",
+     "per_send numeric null",
+     "replies integer null",
+     "sends integer null",
+     "spend numeric null"
+    ],
+    "constraints": [],
+    "kind": "view"
+   }
+  },
+  {
+   "id": "table:books.econ_client_months",
+   "role": "table",
+   "parent": "schema:books",
+   "group": "books",
+   "attrs": {
+    "columns": [
+     "channel text null",
+     "churned boolean null",
+     "client_id text null",
+     "first_month date null",
+     "is_new boolean null",
+     "kept_cents bigint null",
+     "month date null",
+     "mrr_cents bigint null",
+     "paying boolean null",
+     "revenue_cents bigint null"
+    ],
+    "constraints": [],
+    "kind": "view"
+   }
+  },
+  {
+   "id": "table:books.econ_cohorts",
+   "role": "table",
+   "parent": "schema:books",
+   "group": "books",
+   "attrs": {
+    "columns": [
+     "clients integer null",
+     "cohort date null",
+     "currency text null",
+     "id text null",
+     "months_since integer null",
+     "paying integer null",
+     "revenue numeric null",
+     "revenue_kept numeric null",
+     "still_paying numeric null"
+    ],
+    "constraints": [],
+    "kind": "view"
+   }
+  },
+  {
+   "id": "table:books.econ_months",
+   "role": "table",
+   "parent": "schema:books",
+   "group": "books",
+   "attrs": {
+    "columns": [
+     "acquisition numeric null",
+     "arpa numeric null",
+     "arpa_3 numeric null",
+     "cac_12 numeric null",
+     "cac_3 numeric null",
+     "cac_6 numeric null",
+     "churned integer null",
+     "currency text null",
+     "delivery numeric null",
+     "gross_margin numeric null",
+     "id text null",
+     "latest boolean null",
+     "logo_churn numeric null",
+     "ltv numeric null",
+     "ltv_cac numeric null",
+     "month date null",
+     "mrr numeric null",
+     "new_clients integer null",
+     "overhead numeric null",
+     "payback numeric null",
+     "paying integer null",
+     "paying_start integer null",
+     "realized_ltv numeric null",
+     "realized_ltv_all numeric null",
+     "revenue numeric null",
+     "revenue_churn numeric null",
+     "spend numeric null"
+    ],
+    "constraints": [],
+    "kind": "view"
+   }
+  },
+  {
+   "id": "table:books.econ_paid",
+   "role": "table",
+   "parent": "schema:books",
+   "group": "books",
+   "attrs": {
+    "columns": [
+     "cad_cents bigint null",
+     "client_id text null",
+     "engagement_id integer null",
+     "invoice_id integer null",
+     "month date null",
+     "mrr_cents bigint null",
+     "paid_on date null",
+     "period text null",
+     "setup boolean null"
+    ],
+    "constraints": [],
+    "kind": "view"
+   }
+  },
+  {
+   "id": "table:books.entries",
+   "role": "table",
+   "parent": "schema:books",
+   "group": "books",
+   "attrs": {
+    "columns": [
+     "bill_id integer null",
+     "created_at timestamp with time zone = now()",
+     "id integer = nextval('books.entries_id_seq'::regclass)",
+     "memo text",
+     "posted_on date",
+     "reverses_id integer null",
+     "run_id uuid null"
+    ],
+    "constraints": [
+     "entries_balance: CREATE CONSTRAINT TRIGGER entries_balance AFTER INSERT ON books.entries DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION books.entry_balances()",
+     "fk_entries_bill_id_bills: FOREIGN KEY (bill_id) REFERENCES books.bills(id)",
+     "fk_entries_reverses_id_entries: FOREIGN KEY (reverses_id) REFERENCES books.entries(id)",
+     "fk_entries_run_id_runs: FOREIGN KEY (run_id) REFERENCES runs(id)",
+     "pk_entries: PRIMARY KEY (id)",
+     "uq_entries_reverses_id: UNIQUE (reverses_id)"
+    ],
+    "kind": "table"
+   }
+  },
+  {
+   "id": "table:books.lines",
+   "role": "table",
+   "parent": "schema:books",
+   "group": "books",
+   "attrs": {
+    "columns": [
+     "account_id integer",
+     "amount_cents bigint",
+     "cad_cents bigint",
+     "currency character(3)",
+     "entry_id integer",
+     "id integer = nextval('books.lines_id_seq'::regclass)",
+     "memo text null",
+     "rate numeric(18,8)",
+     "rate_source varchar(16)"
+    ],
+    "constraints": [
+     "ck_lines_rate_source: CHECK (((rate_source)::text = ANY (ARRAY[('same'::character varying)::text, ('boc'::character varying)::text, ('stated'::character varying)::text, ('card'::character varying)::text])))",
+     "fk_lines_account_id_accounts: FOREIGN KEY (account_id) REFERENCES books.accounts(id)",
+     "fk_lines_entry_id_entries: FOREIGN KEY (entry_id) REFERENCES books.entries(id)",
+     "lines_balance: CREATE CONSTRAINT TRIGGER lines_balance AFTER INSERT ON books.lines DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION books.entry_balances()",
+     "pk_lines: PRIMARY KEY (id)"
+    ],
+    "kind": "table"
+   }
+  },
+  {
+   "id": "table:books.rates",
+   "role": "table",
+   "parent": "schema:books",
+   "group": "books",
+   "attrs": {
+    "columns": [
+     "cad_per_unit numeric(18,8)",
+     "created_at timestamp with time zone = now()",
+     "currency character(3)",
+     "on date",
+     "source varchar(16)"
+    ],
+    "constraints": [
+     "ck_rates_source: CHECK (((source)::text = ANY (ARRAY[('same'::character varying)::text, ('boc'::character varying)::text, ('stated'::character varying)::text, ('card'::character varying)::text])))",
+     "pk_rates: PRIMARY KEY (\"on\", currency, source)"
+    ],
+    "kind": "table"
+   }
+  },
+  {
+   "id": "table:books.spend",
+   "role": "table",
+   "parent": "schema:books",
+   "group": "books",
+   "attrs": {
+    "columns": [
+     "account varchar(64) null",
+     "account_name text null",
+     "cad_cents bigint null",
+     "month date null",
+     "t2125_line varchar(8) null",
+     "vendor varchar(64) null",
+     "vendor_name text null"
+    ],
+    "constraints": [],
+    "kind": "view"
+   }
+  },
+  {
+   "id": "table:books.spend_records",
+   "role": "table",
+   "parent": "schema:books",
+   "group": "books",
+   "attrs": {
+    "columns": [
+     "account text null",
+     "age text null",
+     "amount numeric null",
+     "currency text null",
+     "id text null",
+     "month date null",
+     "t2125_line text null",
+     "vendor text null"
+    ],
+    "constraints": [],
+    "kind": "view"
+   }
+  },
+  {
+   "id": "table:books.subscription_ends",
+   "role": "table",
+   "parent": "schema:books",
+   "group": "books",
+   "attrs": {
+    "columns": [
+     "created_at timestamp with time zone = now()",
+     "ended_on date",
+     "plan text = ''::text",
+     "vendor_id integer"
+    ],
+    "constraints": [
+     "fk_subscription_ends_vendor_id_vendors: FOREIGN KEY (vendor_id) REFERENCES books.vendors(id)",
+     "pk_subscription_ends: PRIMARY KEY (vendor_id, plan)"
+    ],
+    "kind": "table"
+   }
+  },
+  {
+   "id": "table:books.subscription_records",
+   "role": "table",
+   "parent": "schema:books",
+   "group": "books",
+   "attrs": {
+    "columns": [
+     "billed_for text null",
+     "bills integer null",
+     "cad text null",
+     "cost numeric null",
+     "currency text null",
+     "cycle text null",
+     "id text null",
+     "last_billed_on date null",
+     "monthly numeric null",
+     "plan text null",
+     "renewal text null",
+     "renews_on date null",
+     "since date null",
+     "vendor text null"
+    ],
+    "constraints": [],
+    "kind": "view"
+   }
+  },
+  {
+   "id": "table:books.subscriptions",
+   "role": "table",
+   "parent": "schema:books",
+   "group": "books",
+   "attrs": {
+    "columns": [
+     "bills integer null",
+     "currency character(3) null",
+     "cycle varchar(16) null",
+     "last_billed_on date null",
+     "last_cad_cents bigint null",
+     "last_total_cents bigint null",
+     "monthly_cad_cents bigint null",
+     "plan text null",
+     "renews_on date null",
+     "since date null",
+     "vendor varchar(64) null",
+     "vendor_id integer null",
+     "vendor_name text null"
+    ],
+    "constraints": [],
+    "kind": "view"
+   }
+  },
+  {
+   "id": "table:books.usage",
+   "role": "table",
+   "parent": "schema:books",
+   "group": "books",
+   "attrs": {
+    "columns": [
+     "amount numeric(18,6)",
+     "currency character(3)",
+     "fetched_at timestamp with time zone = now()",
+     "on date",
+     "provider varchar(16)",
+     "service text"
+    ],
+    "constraints": [
+     "ck_usage_provider: CHECK (((provider)::text = ANY (ARRAY[('aws'::character varying)::text])))",
+     "pk_usage: PRIMARY KEY (\"on\", provider, service)"
+    ],
+    "kind": "table"
+   }
+  },
+  {
+   "id": "table:books.usage_by_month",
+   "role": "table",
+   "parent": "schema:books",
+   "group": "books",
+   "attrs": {
+    "columns": [
+     "amount numeric null",
+     "currency character(3) null",
+     "month date null",
+     "provider varchar(16) null",
+     "service text null"
+    ],
+    "constraints": [],
+    "kind": "view"
+   }
+  },
+  {
+   "id": "table:books.usage_lines",
+   "role": "table",
+   "parent": "schema:books",
+   "group": "books",
+   "attrs": {
+    "columns": [
+     "amount_cents bigint",
+     "client varchar(40) null",
+     "computed_at timestamp with time zone = now()",
+     "cost_cents bigint",
+     "currency character(3) = 'USD'::bpchar",
+     "id integer = nextval('books.usage_lines_id_seq'::regclass)",
+     "markup_pct integer",
+     "month date",
+     "state varchar(12) = 'draft'::character varying",
+     "units bigint",
+     "vendor varchar(32)"
+    ],
+    "constraints": [
+     "ck_usage_lines_state: CHECK (((state)::text = ANY (ARRAY[('draft'::character varying)::text, ('on_invoice'::character varying)::text])))",
+     "pk_usage_lines: PRIMARY KEY (id)",
+     "uq_usage_lines_month: UNIQUE NULLS NOT DISTINCT (client, vendor, month)"
+    ],
+    "kind": "table"
+   }
+  },
+  {
+   "id": "table:books.vendors",
+   "role": "table",
+   "parent": "schema:books",
+   "group": "books",
+   "attrs": {
+    "columns": [
+     "account_id integer",
+     "created_at timestamp with time zone = now()",
+     "cycle varchar(16) null",
+     "gst_claimable boolean null",
+     "id integer = nextval('books.vendors_id_seq'::regclass)",
+     "key varchar(64)",
+     "name text"
+    ],
+    "constraints": [
+     "ck_vendors_cycle: CHECK (((cycle)::text = ANY (ARRAY[('monthly'::character varying)::text, ('yearly'::character varying)::text, ('usage'::character varying)::text, ('once'::character varying)::text])))",
+     "fk_vendors_account_id_accounts: FOREIGN KEY (account_id) REFERENCES books.accounts(id)",
+     "pk_vendors: PRIMARY KEY (id)",
+     "uq_vendors_key: UNIQUE (key)"
+    ],
+    "kind": "table"
+   }
+  }
+ ],
+ "edges": [
+  {
+   "from": "table:books.bill_documents",
+   "to": "table:books.bills",
+   "kind": "references",
+   "attrs": {
+    "columns": [
+     "bill_id → id"
+    ]
+   }
+  },
+  {
+   "from": "table:books.bill_documents",
+   "to": "table:books.documents",
+   "kind": "references",
+   "attrs": {
+    "columns": [
+     "document_id → id"
+    ]
+   }
+  },
+  {
+   "from": "table:books.bill_lines",
+   "to": "table:books.bills",
+   "kind": "references",
+   "attrs": {
+    "columns": [
+     "bill_id → id"
+    ]
+   }
+  },
+  {
+   "from": "table:books.bill_payments",
+   "to": "table:books.bills",
+   "kind": "references",
+   "attrs": {
+    "columns": [
+     "bill_id → id"
+    ]
+   }
+  },
+  {
+   "from": "table:books.bill_payments",
+   "to": "table:books.documents",
+   "kind": "references",
+   "attrs": {
+    "columns": [
+     "document_id → id"
+    ]
+   }
+  },
+  {
+   "from": "table:books.bill_payments",
+   "to": "table:books.vendors",
+   "kind": "references",
+   "attrs": {
+    "columns": [
+     "vendor_id → id"
+    ]
+   }
+  },
+  {
+   "from": "table:books.bill_taxes",
+   "to": "table:books.bills",
+   "kind": "references",
+   "attrs": {
+    "columns": [
+     "bill_id → id"
+    ]
+   }
+  },
+  {
+   "from": "table:books.bills",
+   "to": "table:books.accounts",
+   "kind": "references",
+   "attrs": {
+    "columns": [
+     "account_id → id"
+    ]
+   }
+  },
+  {
+   "from": "table:books.bills",
+   "to": "table:books.documents",
+   "kind": "references",
+   "attrs": {
+    "columns": [
+     "document_id → id"
+    ]
+   }
+  },
+  {
+   "from": "table:books.bills",
+   "to": "table:books.vendors",
+   "kind": "references",
+   "attrs": {
+    "columns": [
+     "vendor_id → id"
+    ]
+   }
+  },
+  {
+   "from": "table:books.bills",
+   "to": "table:public.runs",
+   "kind": "references",
+   "attrs": {
+    "columns": [
+     "run_id → id"
+    ]
+   }
+  },
+  {
+   "from": "table:books.card_lines",
+   "to": "table:books.bills",
+   "kind": "references",
+   "attrs": {
+    "columns": [
+     "bill_id → id"
+    ]
+   }
+  },
+  {
+   "from": "table:books.card_lines",
+   "to": "table:books.documents",
+   "kind": "references",
+   "attrs": {
+    "columns": [
+     "document_id → id"
+    ]
+   }
+  },
+  {
+   "from": "table:books.card_lines",
+   "to": "table:books.vendors",
+   "kind": "references",
+   "attrs": {
+    "columns": [
+     "vendor_id → id"
+    ]
+   }
+  },
+  {
+   "from": "table:books.card_rules",
+   "to": "table:books.vendors",
+   "kind": "references",
+   "attrs": {
+    "columns": [
+     "vendor_id → id"
+    ]
+   }
+  },
+  {
+   "from": "table:books.documents",
+   "to": "table:books.documents",
+   "kind": "references",
+   "attrs": {
+    "columns": [
+     "parent_id → id"
+    ]
+   }
+  },
+  {
+   "from": "table:books.documents",
+   "to": "table:books.vendors",
+   "kind": "references",
+   "attrs": {
+    "columns": [
+     "vendor_id → id"
+    ]
+   }
+  },
+  {
+   "from": "table:books.documents",
+   "to": "table:public.runs",
+   "kind": "references",
+   "attrs": {
+    "columns": [
+     "run_id → id"
+    ]
+   }
+  },
+  {
+   "from": "table:books.entries",
+   "to": "table:books.bills",
+   "kind": "references",
+   "attrs": {
+    "columns": [
+     "bill_id → id"
+    ]
+   }
+  },
+  {
+   "from": "table:books.entries",
+   "to": "table:books.entries",
+   "kind": "references",
+   "attrs": {
+    "columns": [
+     "reverses_id → id"
+    ]
+   }
+  },
+  {
+   "from": "table:books.entries",
+   "to": "table:public.runs",
+   "kind": "references",
+   "attrs": {
+    "columns": [
+     "run_id → id"
+    ]
+   }
+  },
+  {
+   "from": "table:books.lines",
+   "to": "table:books.accounts",
+   "kind": "references",
+   "attrs": {
+    "columns": [
+     "account_id → id"
+    ]
+   }
+  },
+  {
+   "from": "table:books.lines",
+   "to": "table:books.entries",
+   "kind": "references",
+   "attrs": {
+    "columns": [
+     "entry_id → id"
+    ]
+   }
+  },
+  {
+   "from": "table:books.subscription_ends",
+   "to": "table:books.vendors",
+   "kind": "references",
+   "attrs": {
+    "columns": [
+     "vendor_id → id"
+    ]
+   }
+  },
+  {
+   "from": "table:books.vendors",
+   "to": "table:books.accounts",
+   "kind": "references",
+   "attrs": {
+    "columns": [
+     "account_id → id"
+    ]
+   }
+  }
+ ]
+}

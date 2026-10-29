@@ -1,0 +1,16 @@
+{
+ "layer": "systems",
+ "nodes": [
+  {
+   "id": "system:engine",
+   "role": "system",
+   "group": "engine",
+   "attrs": {
+    "description": "The research engine: models, raven, falcon and weaver, one npm package each.",
+    "kind": "repo",
+    "title": "engine"
+   }
+  }
+ ],
+ "edges": []
+}

@@ -34,19 +34,28 @@
    "id": "@wren/db/src/audit/acting.ts",
    "role": "file",
    "parent": "@wren/db",
-   "group": "@wren/db"
+   "group": "@wren/db",
+   "attrs": {
+    "description": "View as, Act: who really acts, and whom as, for the rest of one portal call"
+   }
   },
   {
    "id": "@wren/db/src/audit/index.ts",
    "role": "file",
    "parent": "@wren/db",
-   "group": "@wren/db"
+   "group": "@wren/db",
+   "attrs": {
+    "description": "The audit log in every database (main and each client's): which row changed, how, when, and who by"
+   }
   },
   {
    "id": "@wren/db/src/audit/install.ts",
    "role": "file",
    "parent": "@wren/db",
-   "group": "@wren/db"
+   "group": "@wren/db",
+   "attrs": {
+    "description": "The audit layer's SQL, applied by `installAudit` on every migrate"
+   }
   },
   {
    "id": "@wren/db/src/audit/schema.ts",
@@ -58,7 +67,10 @@
    "id": "@wren/db/src/clients.ts",
    "role": "file",
    "parent": "@wren/db",
-   "group": "@wren/db"
+   "group": "@wren/db",
+   "attrs": {
+    "description": "Client databases"
+   }
   },
   {
    "id": "@wren/db/src/columns.ts",
@@ -82,7 +94,10 @@
    "id": "@wren/db/src/listen.ts",
    "role": "file",
    "parent": "@wren/db",
-   "group": "@wren/db"
+   "group": "@wren/db",
+   "attrs": {
+    "description": "LISTEN on one database: one connection of its own that stays open and comes back by itself after a drop (postgres.js re-listens on reconnect)"
+   }
   },
   {
    "id": "@wren/db/src/migrate-cli.ts",
@@ -94,13 +109,19 @@
    "id": "@wren/db/src/testing-global-setup.ts",
    "role": "file",
    "parent": "@wren/db",
-   "group": "@wren/db"
+   "group": "@wren/db",
+   "attrs": {
+    "description": "Vitest global setup for an integration run: one Postgres for the whole run, not one per test file"
+   }
   },
   {
    "id": "@wren/db/src/testing-vitest.ts",
    "role": "file",
    "parent": "@wren/db",
-   "group": "@wren/db"
+   "group": "@wren/db",
+   "attrs": {
+    "description": "The one vitest config of every package, `export { default } from \"@wren/db/testing/vitest\"`"
+   }
   },
   {
    "id": "@wren/db/src/testing.ts",

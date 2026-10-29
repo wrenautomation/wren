@@ -24,85 +24,127 @@
    "id": "@wren/delivery/src/billing/console.ts",
    "role": "file",
    "parent": "@wren/delivery",
-   "group": "@wren/delivery"
+   "group": "@wren/delivery",
+   "attrs": {
+    "description": "BillingConsole: a person's hands on Wise credits"
+   }
   },
   {
    "id": "@wren/delivery/src/billing/credits.ts",
    "role": "file",
    "parent": "@wren/delivery",
-   "group": "@wren/delivery"
+   "group": "@wren/delivery",
+   "attrs": {
+    "description": "Credits on record: each Wise transaction stored once by its id, matched or set to wait on William, and the by-hand match and dismiss"
+   }
   },
   {
    "id": "@wren/delivery/src/billing/index.ts",
    "role": "file",
    "parent": "@wren/delivery",
-   "group": "@wren/delivery"
+   "group": "@wren/delivery",
+   "attrs": {
+    "description": "Wren's own billing, paid by bank transfer into Wise"
+   }
   },
   {
    "id": "@wren/delivery/src/billing/mail.ts",
    "role": "file",
    "parent": "@wren/delivery",
-   "group": "@wren/delivery"
+   "group": "@wren/delivery",
+   "attrs": {
+    "description": "An invoice out the door: its PDF, drawn by `@wren/documents`, mailed from portal@ to the client's owners with how to pay by bank transfer"
+   }
   },
   {
    "id": "@wren/delivery/src/billing/match.ts",
    "role": "file",
    "parent": "@wren/delivery",
-   "group": "@wren/delivery"
+   "group": "@wren/delivery",
+   "attrs": {
+    "description": "Which invoice a credit pays: the invoice number in the memo first, then the exact amount in the same currency from a payer named like the client"
+   }
   },
   {
    "id": "@wren/delivery/src/billing/receive.ts",
    "role": "file",
    "parent": "@wren/delivery",
-   "group": "@wren/delivery"
+   "group": "@wren/delivery",
+   "attrs": {
+    "description": "Where a client wires us, per currency: Wise's receive details, read from the environment (`WISE_RECEIVE_DETAILS`) at runtime and never kept in the repo"
+   }
   },
   {
    "id": "@wren/delivery/src/billing/records.ts",
    "role": "file",
    "parent": "@wren/delivery",
-   "group": "@wren/delivery"
+   "group": "@wren/delivery",
+   "attrs": {
+    "description": "Money in, as a console record in Money: every credit BillingWatch read from Wise, what it paid or why it waits"
+   }
   },
   {
    "id": "@wren/delivery/src/billing/tell.ts",
    "role": "file",
    "parent": "@wren/delivery",
-   "group": "@wren/delivery"
+   "group": "@wren/delivery",
+   "attrs": {
+    "description": "Our invoices as the executor hears them (`trigger.payment`, source `invoice`): issued, paid, refunded, past due"
+   }
   },
   {
    "id": "@wren/delivery/src/billing/watch.ts",
    "role": "file",
    "parent": "@wren/delivery",
-   "group": "@wren/delivery"
+   "group": "@wren/delivery",
+   "attrs": {
+    "description": "BillingWatch/fleet: every 15 minutes it makes the month's bills from the 1st, mails each new invoice with its PDF, and reads our Wise balances for money in"
+   }
   },
   {
    "id": "@wren/delivery/src/billing/wise.ts",
    "role": "file",
    "parent": "@wren/delivery",
-   "group": "@wren/delivery"
+   "group": "@wren/delivery",
+   "attrs": {
+    "description": "Wise, read only"
+   }
   },
   {
    "id": "@wren/delivery/src/components.ts",
    "role": "file",
    "parent": "@wren/delivery",
-   "group": "@wren/delivery"
+   "group": "@wren/delivery",
+   "attrs": {
+    "description": "Client delivery: the portal's project, invoices, reviews and contract; and Wren's offers"
+   }
   },
   {
    "id": "@wren/delivery/src/contract.ts",
    "role": "file",
    "parent": "@wren/delivery",
-   "group": "@wren/delivery"
+   "group": "@wren/delivery",
+   "attrs": {
+    "description": "The services agreement: one template, filled with the offer and the terms when it's issued"
+   }
   },
   {
    "id": "@wren/delivery/src/domains.ts",
    "role": "file",
    "parent": "@wren/delivery",
-   "group": "@wren/delivery"
+   "group": "@wren/delivery",
+   "attrs": {
+    "description": "Account > Domain: a client's portal on its own host"
+   }
   },
   {
    "id": "@wren/delivery/src/files.ts",
    "role": "file",
    "parent": "@wren/delivery",
-   "group": "@wren/delivery"
+   "group": "@wren/delivery",
+   "attrs": {
+    "description": "Client files in the private bucket (D11), under `clients/<id>/`"
+   }
   },
   {
    "id": "@wren/delivery/src/health/console-routes.ts",
@@ -114,91 +156,136 @@
    "id": "@wren/delivery/src/health/console.ts",
    "role": "file",
    "parent": "@wren/delivery",
-   "group": "@wren/delivery"
+   "group": "@wren/delivery",
+   "attrs": {
+    "description": "HealthConsole: the Clients app's hands on health and flags"
+   }
   },
   {
    "id": "@wren/delivery/src/health/flags.ts",
    "role": "file",
    "parent": "@wren/delivery",
-   "group": "@wren/delivery"
+   "group": "@wren/delivery",
+   "attrs": {
+    "description": "Client flags: one list of risks and opportunities"
+   }
   },
   {
    "id": "@wren/delivery/src/health/hand.ts",
    "role": "file",
    "parent": "@wren/delivery",
-   "group": "@wren/delivery"
+   "group": "@wren/delivery",
+   "attrs": {
+    "description": "A person's say on a client's health: Wren's own 1 to 5 rating, which counts in sentiment, and an override that stands beside the model's score until cleared"
+   }
   },
   {
    "id": "@wren/delivery/src/health/index.ts",
    "role": "file",
    "parent": "@wren/delivery",
-   "group": "@wren/delivery"
+   "group": "@wren/delivery",
+   "attrs": {
+    "description": "Client health and flags"
+   }
   },
   {
    "id": "@wren/delivery/src/health/pass.ts",
    "role": "file",
    "parent": "@wren/delivery",
-   "group": "@wren/delivery"
+   "group": "@wren/delivery",
+   "attrs": {
+    "description": "Each running client's health, read from what delivery already keeps, written as today's row"
+   }
   },
   {
    "id": "@wren/delivery/src/health/records.ts",
    "role": "file",
    "parent": "@wren/delivery",
-   "group": "@wren/delivery"
+   "group": "@wren/delivery",
+   "attrs": {
+    "description": "Client health and flags as console records in the Clients app, each over a view in `./views.ts`"
+   }
   },
   {
    "id": "@wren/delivery/src/health/schema.ts",
    "role": "file",
    "parent": "@wren/delivery",
-   "group": "@wren/delivery"
+   "group": "@wren/delivery",
+   "attrs": {
+    "description": "Client health and flags in main, beside the delivery schema"
+   }
   },
   {
    "id": "@wren/delivery/src/health/score.ts",
    "role": "file",
    "parent": "@wren/delivery",
-   "group": "@wren/delivery"
+   "group": "@wren/delivery",
+   "attrs": {
+    "description": "Client health's arithmetic: four sub-scores from 0 to 100, weighted, a missing one handing its weight to the rest"
+   }
   },
   {
    "id": "@wren/delivery/src/health/views.ts",
    "role": "file",
    "parent": "@wren/delivery",
-   "group": "@wren/delivery"
+   "group": "@wren/delivery",
+   "attrs": {
+    "description": "The views behind health's console records (`./records.ts`), one row per record, in main"
+   }
   },
   {
    "id": "@wren/delivery/src/index.ts",
    "role": "file",
    "parent": "@wren/delivery",
-   "group": "@wren/delivery"
+   "group": "@wren/delivery",
+   "attrs": {
+    "description": "Delivery: what we do for each client (D1–D12)"
+   }
   },
   {
    "id": "@wren/delivery/src/invoices.ts",
    "role": "file",
    "parent": "@wren/delivery",
-   "group": "@wren/delivery"
+   "group": "@wren/delivery",
+   "attrs": {
+    "description": "Billing an engagement: our invoices and bills, paid by bank transfer into Wise; refunds and disputes (D15)"
+   }
   },
   {
    "id": "@wren/delivery/src/messaging.ts",
    "role": "file",
    "parent": "@wren/delivery",
-   "group": "@wren/delivery"
+   "group": "@wren/delivery",
+   "attrs": {
+    "description": "Account > Messaging: the rules a client sets for marketing messages, kept in its own database (`@wren/core/message-settings`): the most messages one person gets a day and a week across email, texts and DMs, whether links carry `utm_*` tags, the connected mailbox email marketing sends from and the postal address it carries"
+   }
   },
   {
    "id": "@wren/delivery/src/moments.ts",
    "role": "file",
    "parent": "@wren/delivery",
-   "group": "@wren/delivery"
+   "group": "@wren/delivery",
+   "attrs": {
+    "description": "Moments a client reaches, their reviews, the next offers put to them, and what mail they get (D9, D13)"
+   }
   },
   {
    "id": "@wren/delivery/src/onboarding.ts",
    "role": "file",
    "parent": "@wren/delivery",
-   "group": "@wren/delivery"
+   "group": "@wren/delivery",
+   "attrs": {
+    "description": "Onboarding: the contract and its terms, the setup fee, signing, and access to the client's systems"
+   }
   },
   {
    "id": "@wren/delivery/src/records.ts",
    "role": "file",
    "parent": "@wren/delivery",
-   "group": "@wren/delivery"
+   "group": "@wren/delivery",
+   "attrs": {
+    "description": "The project as records: steps, updates, asks, deliverables, paperwork and results"
+   }
   },
   {
    "id": "@wren/delivery/src/routes.ts",
@@ -210,13 +297,19 @@
    "id": "@wren/delivery/src/rows.ts",
    "role": "file",
    "parent": "@wren/delivery",
-   "group": "@wren/delivery"
+   "group": "@wren/delivery",
+   "attrs": {
+    "description": "A client's rows and the checks before anything changes them: the refusals (400, 404, 409), day arithmetic, text and link hygiene, and finding the engagement or milestone a write names"
+   }
   },
   {
    "id": "@wren/delivery/src/sample.ts",
    "role": "file",
    "parent": "@wren/delivery",
-   "group": "@wren/delivery"
+   "group": "@wren/delivery",
+   "attrs": {
+    "description": "The demo's sample project (D12): a lead reactivation a few weeks in, so a visitor sees what a client's Home, plan, timeline, deliverables, asks and results look like"
+   }
   },
   {
    "id": "@wren/delivery/src/schema.ts",
@@ -228,37 +321,55 @@
    "id": "@wren/delivery/src/service.ts",
    "role": "file",
    "parent": "@wren/delivery",
-   "group": "@wren/delivery"
+   "group": "@wren/delivery",
+   "attrs": {
+    "description": "Delivery as a Restate service on the worker, beside each product's portal service: the edge Worker checks who is asking and passes the viewer, this picks the client"
+   }
   },
   {
    "id": "@wren/delivery/src/source.ts",
    "role": "file",
    "parent": "@wren/delivery",
-   "group": "@wren/delivery"
+   "group": "@wren/delivery",
+   "attrs": {
+    "description": "How a client came in, suggested for its engagement's source (unit economics): the lander's first touch on an application sent from a member's email, and a member's reply to a campaign"
+   }
   },
   {
    "id": "@wren/delivery/src/views.ts",
    "role": "file",
    "parent": "@wren/delivery",
-   "group": "@wren/delivery"
+   "group": "@wren/delivery",
+   "attrs": {
+    "description": "What the portal reads: paperwork, pulses, threads, Home, the timeline, invoices and what was bought (D7)"
+   }
   },
   {
    "id": "@wren/delivery/src/watch.ts",
    "role": "file",
    "parent": "@wren/delivery",
-   "group": "@wren/delivery"
+   "group": "@wren/delivery",
+   "attrs": {
+    "description": "DeliveryWatch/fleet (D8–D10): one pass an hour over every client's work"
+   }
   },
   {
    "id": "@wren/delivery/src/webhooks.ts",
    "role": "file",
    "parent": "@wren/delivery",
-   "group": "@wren/delivery"
+   "group": "@wren/delivery",
+   "attrs": {
+    "description": "Account > Webhooks: a client's URLs, the events each hears, its log and the buttons on it"
+   }
   },
   {
    "id": "@wren/delivery/src/work.ts",
    "role": "file",
    "parent": "@wren/delivery",
-   "group": "@wren/delivery"
+   "group": "@wren/delivery",
+   "attrs": {
+    "description": "The work on an engagement (D1–D10): start an offer, post and take down updates, deliverables and the client's decision on them, comments, asks and answers, milestones done or slipped, results and the weekly pulse"
+   }
   },
   {
    "id": "@wren/delivery/vitest.config.ts",

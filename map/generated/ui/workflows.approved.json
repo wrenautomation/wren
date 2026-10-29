@@ -1,0 +1,116 @@
+{
+ "layer": "ui",
+ "nodes": [
+  {
+   "id": "ui:workflows",
+   "role": "app",
+   "group": "workflows",
+   "attrs": {
+    "areas": [
+     "team: Tools"
+    ],
+    "blurb": "How Wren wins clients and runs, drawn with live numbers.",
+    "file": "apps/portal/web/src/modules/wren/index.ts",
+    "name": "Workflows",
+    "workspace": "wren"
+   }
+  },
+  {
+   "id": "ui:workflows/all",
+   "role": "screen",
+   "parent": "ui:workflows",
+   "group": "workflows",
+   "attrs": {
+    "about": "Everything that runs on its own: what starts it, how it went, its switch.",
+    "file": "apps/portal/web/src/modules/wren/automations.tsx",
+    "label": "All",
+    "order": 0,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:workflows/canvas",
+   "role": "screen",
+   "parent": "ui:workflows",
+   "group": "workflows",
+   "attrs": {
+    "about": "Every workflow as it's wired, with its numbers.",
+    "file": "apps/portal/web/src/modules/wren/workflows.tsx",
+    "label": "Canvas",
+    "order": 2,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:workflows/checks",
+   "role": "screen",
+   "parent": "ui:workflows",
+   "group": "workflows",
+   "attrs": {
+    "about": "How often each check passes, by stage and source.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Checks",
+    "order": 6,
+    "record": "console.check",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:workflows/events",
+   "role": "screen",
+   "parent": "ui:workflows",
+   "group": "workflows",
+   "attrs": {
+    "about": "Workflow steps that failed, and why.",
+    "file": "apps/portal/web/src/records.tsx",
+    "hidden": true,
+    "label": "Events",
+    "order": 4,
+    "record": "console.event",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:workflows/holds",
+   "role": "screen",
+   "parent": "ui:workflows",
+   "group": "workflows",
+   "attrs": {
+    "about": "Work a check held back, and until when.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Holds",
+    "order": 5,
+    "record": "console.hold",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:workflows/new",
+   "role": "screen",
+   "parent": "ui:workflows",
+   "group": "workflows",
+   "attrs": {
+    "about": "Start from a template, describe one, or start blank.",
+    "file": "apps/portal/web/src/modules/wren/automations.tsx",
+    "label": "New",
+    "order": 1,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:workflows/runs",
+   "role": "screen",
+   "parent": "ui:workflows",
+   "group": "workflows",
+   "attrs": {
+    "about": "Each person's path through a workflow, and where they are now.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Executions",
+    "order": 3,
+    "record": "console.execution",
+    "template": "list"
+   }
+  }
+ ],
+ "edges": []
+}

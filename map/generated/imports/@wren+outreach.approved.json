@@ -17,127 +17,190 @@
    "id": "@wren/outreach/src/accounts.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "The accounts we speak as"
+   }
   },
   {
    "id": "@wren/outreach/src/clients.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "Reach per client: a client's comments, discovery, DMs and invites run on its own logins (`clients.accounts.reddit`, `.linkedin`) into its own database"
+   }
   },
   {
    "id": "@wren/outreach/src/comments.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "Comments as an event source"
+   }
   },
   {
    "id": "@wren/outreach/src/components.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "Cold outreach on social sites: a person's warmed account, paced"
+   }
   },
   {
    "id": "@wren/outreach/src/contacts.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "People on a platform"
+   }
   },
   {
    "id": "@wren/outreach/src/creator-search.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "Find someone to follow by name or topic, on every site at once (Marketing → Feed): no link needed"
+   }
   },
   {
    "id": "@wren/outreach/src/decide.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "Decide's comment source: drafted comments still waiting on him whose newest model draft has no decision yet, each with what the draft answers"
+   }
   },
   {
    "id": "@wren/outreach/src/discovery/people.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "People: a Reddit profile read into who they are"
+   }
   },
   {
    "id": "@wren/outreach/src/discovery/places.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "Places: subreddits where our buyers ask questions"
+   }
   },
   {
    "id": "@wren/outreach/src/discovery/reads.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "Reddit read signed out: every call goes to autobrowse's `reddit-public` site, never to one of our accounts"
+   }
   },
   {
    "id": "@wren/outreach/src/discovery/requirements.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "What a subreddit asks of an account before our comment stays up"
+   }
   },
   {
    "id": "@wren/outreach/src/discovery/threads.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "Threads: new posts in watched places, filtered in code, ranked by a model, the day's best queued with a researched draft in William's voice"
+   }
   },
   {
    "id": "@wren/outreach/src/draft-accounts.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "Which account a draft goes out as"
+   }
   },
   {
    "id": "@wren/outreach/src/draft-llm.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "The model that drafts for reach, split by arm"
+   }
   },
   {
    "id": "@wren/outreach/src/draft-models.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "The draft-model scorecard: for each model that wrote a reach draft since a date, how its drafts ended"
+   }
   },
   {
    "id": "@wren/outreach/src/drafts.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "DM drafts: the model writes our next message on a thread waiting on William (a reply to their last word) or to an accepted invite (a first message), kept on the contact (`draft`, `draft_for`)"
+   }
   },
   {
    "id": "@wren/outreach/src/enroll.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "Enroll: pick `new` contacts on a platform, give each the lightest active account, and queue the first thing to go: the invite (LinkedIn) or step 1 (Reddit), or propose the invite for his yes (`first: \"proposed\"`)"
+   }
   },
   {
    "id": "@wren/outreach/src/examples.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "His comment decisions as few-shot examples"
+   }
   },
   {
    "id": "@wren/outreach/src/follow-ups.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "Follow-ups in a thread"
+   }
   },
   {
    "id": "@wren/outreach/src/follow.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "DM follow-ups on the executor, as texts do (channel-sms/src/follow.ts)"
+   }
   },
   {
    "id": "@wren/outreach/src/from-people.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "Message and Invite from People: a person we hold (`li:<people.id>` with a LinkedIn page, `reddit:<handle>` read from Reddit, `linkedin:<vanity>` seen only through a touch) becomes a reach contact (`found_in = people`) on first use"
+   }
   },
   {
    "id": "@wren/outreach/src/index.ts",
@@ -149,271 +212,460 @@
    "id": "@wren/outreach/src/intercept.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "His own picks, by link (Outreach → Engage, the paste box)"
+   }
   },
   {
    "id": "@wren/outreach/src/invite-notes.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "Drafted invite notes: the model writes a short note on a proposed LinkedIn invite while the account's free notes last this month"
+   }
   },
   {
    "id": "@wren/outreach/src/invites.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "LinkedIn invites from our own people"
+   }
   },
   {
    "id": "@wren/outreach/src/limits.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "Outreach's day caps (William, 10-26): follows a day per platform, each on the shared warm-up ramp from its first follow"
+   }
   },
   {
    "id": "@wren/outreach/src/pacing.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "When approved comments go out: one account's lane, spaced, inside waking hours in its zone, under a cap a day"
+   }
   },
   {
    "id": "@wren/outreach/src/pain.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "Pain points line"
+   }
   },
   {
    "id": "@wren/outreach/src/passes.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "Engage's Pass: he's done with a person (not a lead, not worth a reply, spam)"
+   }
   },
   {
    "id": "@wren/outreach/src/policy.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "How much each account may do today: one settings object, and the pure checks the loop runs against it"
+   }
   },
   {
    "id": "@wren/outreach/src/proofs.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "Comment proofs: what to check for a sent item, and the `comment_proofs` row each check overwrites"
+   }
   },
   {
-   "id": "@wren/outreach/src/reach-posts.ts",
+   "id": "@wren/outreach/src/reach-posts/acts.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "His calls on a post (comment, like, follow, skip) and the likes and follows sent with no yes"
+   }
+  },
+  {
+   "id": "@wren/outreach/src/reach-posts/draft.ts",
+   "role": "file",
+   "parent": "@wren/outreach",
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "The model's comment for a post, guarded against made-up claims, and its redraft"
+   }
+  },
+  {
+   "id": "@wren/outreach/src/reach-posts/pass.ts",
+   "role": "file",
+   "parent": "@wren/outreach",
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "Comments on others' posts on LinkedIn, X, Instagram, YouTube, TikTok and Threads"
+   }
+  },
+  {
+   "id": "@wren/outreach/src/reach-posts/rank.ts",
+   "role": "file",
+   "parent": "@wren/outreach",
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "Code's rank of a post: the audience's world, growth, who wrote it, timing; job ads are off"
+   }
+  },
+  {
+   "id": "@wren/outreach/src/reach-posts/read.ts",
+   "role": "file",
+   "parent": "@wren/outreach",
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "The platform reads: each site's posts as one `FeedPost` shape, through autobrowse as the account"
+   }
+  },
+  {
+   "id": "@wren/outreach/src/reach-posts/settings.ts",
+   "role": "file",
+   "parent": "@wren/outreach",
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "Each platform's comments settings block (`<platform>.comments`), its limits and defaults"
+   }
+  },
+  {
+   "id": "@wren/outreach/src/reach-posts/topics.ts",
+   "role": "file",
+   "parent": "@wren/outreach",
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "The pass's search words: his own by yield, rested when they find nothing, and the model's new ones"
+   }
   },
   {
    "id": "@wren/outreach/src/records.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "DMs as console records for the Marketing app: each person's thread (`marketing.dm`), each template slot William writes (`marketing.dm_copy`), with what the preview needs to draw them, each comment on our posts (`marketing.comment`), each LinkedIn invite (`marketing.invite`), and the people we can write to from Outreach → People (`marketing.person`)"
+   }
   },
   {
    "id": "@wren/outreach/src/refusal.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "Our own no (bad input, an opted-out person, an empty template): an answer, not an outage"
+   }
   },
   {
    "id": "@wren/outreach/src/replies.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "Replies in: each account's new inbound, one row per platform id (the unique index dedupes), the contact marked `replied` and its queued steps skipped"
+   }
   },
   {
    "id": "@wren/outreach/src/reply-drafts.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "Reply boxes when he writes replies himself (`drafts.replies` = you)"
+   }
   },
   {
    "id": "@wren/outreach/src/restate/deps.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "What the three objects share: `ReachDeps` as the worker wires it, a client's own copy of it (`clientDeps`: its logins' rows, its keys), the channels an account sends through (`channelsFor`), the wake to the watch, and a site's refusal that never retries"
+   }
   },
   {
    "id": "@wren/outreach/src/restate/desk-accounts.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "`ReachDesk`'s accounts: the list, one added, its state, its health now"
+   }
   },
   {
    "id": "@wren/outreach/src/restate/desk-comments.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "`ReachDesk`'s comments: answered in their thread, read again, armed, DMed, dropped"
+   }
   },
   {
    "id": "@wren/outreach/src/restate/desk-contacts.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "`ReachDesk`'s contacts: finds, one added, the list, enrich, enroll, and the sequence templates"
+   }
   },
   {
    "id": "@wren/outreach/src/restate/desk-context.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "The context of `ReachDesk`: the request shapes several handler groups share, and `deskContext(deps)`, the closures they all use (one invite, the terminal map of a refusal, the clock, a client's database, the sender's nudge, one comment answered)"
+   }
   },
   {
    "id": "@wren/outreach/src/restate/desk-invites.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "`ReachDesk`'s LinkedIn invites: the pass, the proposed, his yes and no, a withdrawal"
+   }
   },
   {
    "id": "@wren/outreach/src/restate/desk-people.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "`ReachDesk`'s People: a person drafted, messaged, followed or invited, and a DM from an Engage row"
+   }
   },
   {
    "id": "@wren/outreach/src/restate/desk-posts.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "`ReachDesk`'s posts to comment on: the comment, a like or follow, passes, skips, redrafts, the list, the pass now"
+   }
   },
   {
    "id": "@wren/outreach/src/restate/desk-schedule.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "`ReachDesk`'s schedule: drafted comments onto spaced slots, and off them"
+   }
   },
   {
    "id": "@wren/outreach/src/restate/desk-settle.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "`ReachDesk/settleSend`: a person's word on a send autobrowse could not call"
+   }
   },
   {
    "id": "@wren/outreach/src/restate/desk-stats.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "`ReachDesk`'s numbers: the draft models' scorecard and the reach stats"
+   }
   },
   {
    "id": "@wren/outreach/src/restate/desk-threads.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "`ReachDesk`'s DM threads: the list, one thread, read, a reply queued for the sender"
+   }
   },
   {
    "id": "@wren/outreach/src/restate/desk.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "`ReachDesk`: the operator's reads and writes (accounts, finds, enrich, enroll, templates, threads, comments, invites, posts, schedules), each one journaled"
+   }
   },
   {
    "id": "@wren/outreach/src/restate/discovery.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "Reddit discovery on Restate: `RedditReads/wren` reads signed out (autobrowse `reddit-public`, paced and capped by the desk)"
+   }
   },
   {
    "id": "@wren/outreach/src/restate/index.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "Cold outreach on Restate:  - `ReachSender/fleet`: the send loop"
+   }
   },
   {
    "id": "@wren/outreach/src/restate/maybe-sent.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "A send that lands at most once, on Restate"
+   }
   },
   {
    "id": "@wren/outreach/src/restate/paste.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "ReachDesk.paste: a link he pastes in Outreach → Engage (`../intercept.ts`)"
+   }
   },
   {
    "id": "@wren/outreach/src/restate/proofs.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "`CommentProofs`: each sent comment checked at 2 minutes, an hour and a day (`scheduleProofs`, called by the send handlers), or now by hand"
+   }
   },
   {
    "id": "@wren/outreach/src/restate/schedule.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "Scheduled comments: the slots `scheduled.ts` keeps in `send_at`, each fired as a ReachDesk call delayed to its slot"
+   }
   },
   {
    "id": "@wren/outreach/src/restate/sender.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "`ReachSender/fleet`: the send loop"
+   }
   },
   {
    "id": "@wren/outreach/src/restate/watch.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "`ReachWatch/daily`: reads each account's inbox on the warm cadence (`@wren/core/warm`): every 2 minutes right after a touch, easing to 30"
+   }
   },
   {
    "id": "@wren/outreach/src/scheduled.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "Approved comments on a schedule: each drafted, queued comment gets a slot on its account's lane (`pacing.ts`), kept in `send_at`"
+   }
   },
   {
    "id": "@wren/outreach/src/schema.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "Cold outreach on Reddit and LinkedIn: three tables, each one fact"
+   }
   },
   {
    "id": "@wren/outreach/src/send-attempts.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "The send ledger: one row per item that must land at most once"
+   }
   },
   {
    "id": "@wren/outreach/src/sequences.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "Outreach copy: William writes every word"
+   }
   },
   {
    "id": "@wren/outreach/src/settings.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "The policy from `WREN_REACH_*` settings"
+   }
   },
   {
    "id": "@wren/outreach/src/settle-send.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "A person settles an unsure send: he saw it on the site, so it is recorded as sent the way a send records it (the item's state, a touch, the draft record), he asks for it again, or he drops it: it did not go out and he does not want it sent"
+   }
   },
   {
    "id": "@wren/outreach/src/store.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "William's words for the slots sequences.ts declares, kept in the template store (`@wren/core/templates`, kind dm, system `reach`): every save a version, the live one what goes out"
+   }
   },
   {
    "id": "@wren/outreach/src/threads.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "The operator's reads: threads, one thread, counts"
+   }
   },
   {
    "id": "@wren/outreach/src/tick.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "The send tick, in steps a journal can bracket: every database move is one step (`run`), every platform call sits between two of them"
+   }
   },
   {
    "id": "@wren/outreach/src/touches.ts",
    "role": "file",
    "parent": "@wren/outreach",
-   "group": "@wren/outreach"
+   "group": "@wren/outreach",
+   "attrs": {
+    "description": "The outreach tables as touches: one function per source row, called where the row is written and again by the backfill, so both keep the same line under the same ref"
+   }
   },
   {
    "id": "@wren/outreach/vitest.config.ts",
@@ -673,7 +925,7 @@
   },
   {
    "from": "@wren/outreach/src/components.ts",
-   "to": "@wren/outreach/src/reach-posts.ts",
+   "to": "@wren/outreach/src/reach-posts/settings.ts",
    "kind": "imports"
   },
   {
@@ -1522,7 +1774,37 @@
   },
   {
    "from": "@wren/outreach/src/index.ts",
-   "to": "@wren/outreach/src/reach-posts.ts",
+   "to": "@wren/outreach/src/reach-posts/acts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/outreach/src/index.ts",
+   "to": "@wren/outreach/src/reach-posts/draft.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/outreach/src/index.ts",
+   "to": "@wren/outreach/src/reach-posts/pass.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/outreach/src/index.ts",
+   "to": "@wren/outreach/src/reach-posts/rank.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/outreach/src/index.ts",
+   "to": "@wren/outreach/src/reach-posts/read.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/outreach/src/index.ts",
+   "to": "@wren/outreach/src/reach-posts/settings.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/outreach/src/index.ts",
+   "to": "@wren/outreach/src/reach-posts/topics.ts",
    "kind": "imports"
   },
   {
@@ -1610,7 +1892,12 @@
   },
   {
    "from": "@wren/outreach/src/intercept.ts",
-   "to": "@wren/outreach/src/reach-posts.ts",
+   "to": "@wren/outreach/src/reach-posts/read.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/outreach/src/intercept.ts",
+   "to": "@wren/outreach/src/reach-posts/settings.ts",
    "kind": "imports"
   },
   {
@@ -1842,7 +2129,7 @@
   },
   {
    "from": "@wren/outreach/src/pain.ts",
-   "to": "@wren/outreach/src/reach-posts.ts",
+   "to": "@wren/outreach/src/reach-posts/settings.ts",
    "kind": "imports"
   },
   {
@@ -1885,7 +2172,7 @@
   },
   {
    "from": "@wren/outreach/src/passes.ts",
-   "to": "@wren/outreach/src/reach-posts.ts",
+   "to": "@wren/outreach/src/reach-posts/acts.ts",
    "kind": "imports"
   },
   {
@@ -1946,47 +2233,22 @@
    "kind": "imports"
   },
   {
-   "from": "@wren/outreach/src/reach-posts.ts",
+   "from": "@wren/outreach/src/reach-posts/acts.ts",
    "to": "@wren/core/src/ask.ts",
    "kind": "imports"
   },
   {
-   "from": "@wren/outreach/src/reach-posts.ts",
-   "to": "@wren/core/src/clients/index.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/outreach/src/reach-posts.ts",
+   "from": "@wren/outreach/src/reach-posts/acts.ts",
    "to": "@wren/core/src/content/index.ts",
    "kind": "imports"
   },
   {
-   "from": "@wren/outreach/src/reach-posts.ts",
+   "from": "@wren/outreach/src/reach-posts/acts.ts",
    "to": "@wren/core/src/draft-record.ts",
    "kind": "imports"
   },
   {
-   "from": "@wren/outreach/src/reach-posts.ts",
-   "to": "@wren/core/src/facts.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/outreach/src/reach-posts.ts",
-   "to": "@wren/core/src/grounded.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/outreach/src/reach-posts.ts",
-   "to": "@wren/core/src/objects/index.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/outreach/src/reach-posts.ts",
-   "to": "@wren/core/src/our-posts.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/outreach/src/reach-posts.ts",
+   "from": "@wren/outreach/src/reach-posts/acts.ts",
    "to": "@wren/core/src/reject-reasons.ts",
    "kind": "imports",
    "attrs": {
@@ -1994,49 +2256,253 @@
    }
   },
   {
-   "from": "@wren/outreach/src/reach-posts.ts",
-   "to": "@wren/core/src/reply-drafts.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/outreach/src/reach-posts.ts",
+   "from": "@wren/outreach/src/reach-posts/acts.ts",
    "to": "@wren/db/src/index.ts",
-   "kind": "imports"
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
   },
   {
-   "from": "@wren/outreach/src/reach-posts.ts",
-   "to": "@wren/llm/src/index.ts",
-   "kind": "imports"
+   "from": "@wren/outreach/src/reach-posts/acts.ts",
+   "to": "@wren/outreach/src/reach-posts/settings.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
   },
   {
-   "from": "@wren/outreach/src/reach-posts.ts",
-   "to": "@wren/outreach/src/draft-llm.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/outreach/src/reach-posts.ts",
-   "to": "@wren/outreach/src/examples.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/outreach/src/reach-posts.ts",
-   "to": "@wren/outreach/src/passes.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/outreach/src/reach-posts.ts",
+   "from": "@wren/outreach/src/reach-posts/acts.ts",
    "to": "@wren/outreach/src/refusal.ts",
    "kind": "imports"
   },
   {
-   "from": "@wren/outreach/src/reach-posts.ts",
+   "from": "@wren/outreach/src/reach-posts/acts.ts",
    "to": "@wren/outreach/src/schema.ts",
    "kind": "imports"
   },
   {
-   "from": "@wren/outreach/src/reach-posts.ts",
+   "from": "@wren/outreach/src/reach-posts/acts.ts",
    "to": "@wren/outreach/src/touches.ts",
    "kind": "imports"
+  },
+  {
+   "from": "@wren/outreach/src/reach-posts/draft.ts",
+   "to": "@wren/core/src/ask.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/outreach/src/reach-posts/draft.ts",
+   "to": "@wren/core/src/draft-record.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/outreach/src/reach-posts/draft.ts",
+   "to": "@wren/core/src/facts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/outreach/src/reach-posts/draft.ts",
+   "to": "@wren/core/src/grounded.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/outreach/src/reach-posts/draft.ts",
+   "to": "@wren/core/src/our-posts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/outreach/src/reach-posts/draft.ts",
+   "to": "@wren/core/src/reject-reasons.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/outreach/src/reach-posts/draft.ts",
+   "to": "@wren/core/src/reply-drafts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/outreach/src/reach-posts/draft.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/outreach/src/reach-posts/draft.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/outreach/src/reach-posts/draft.ts",
+   "to": "@wren/outreach/src/draft-llm.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/outreach/src/reach-posts/draft.ts",
+   "to": "@wren/outreach/src/examples.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/outreach/src/reach-posts/draft.ts",
+   "to": "@wren/outreach/src/reach-posts/rank.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/outreach/src/reach-posts/draft.ts",
+   "to": "@wren/outreach/src/reach-posts/settings.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/outreach/src/reach-posts/draft.ts",
+   "to": "@wren/outreach/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/outreach/src/reach-posts/pass.ts",
+   "to": "@wren/core/src/objects/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/outreach/src/reach-posts/pass.ts",
+   "to": "@wren/core/src/our-posts.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/outreach/src/reach-posts/pass.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/outreach/src/reach-posts/pass.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/outreach/src/reach-posts/pass.ts",
+   "to": "@wren/outreach/src/passes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/outreach/src/reach-posts/pass.ts",
+   "to": "@wren/outreach/src/reach-posts/acts.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/outreach/src/reach-posts/pass.ts",
+   "to": "@wren/outreach/src/reach-posts/draft.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/outreach/src/reach-posts/pass.ts",
+   "to": "@wren/outreach/src/reach-posts/rank.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/outreach/src/reach-posts/pass.ts",
+   "to": "@wren/outreach/src/reach-posts/read.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/outreach/src/reach-posts/pass.ts",
+   "to": "@wren/outreach/src/reach-posts/settings.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/outreach/src/reach-posts/pass.ts",
+   "to": "@wren/outreach/src/reach-posts/topics.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/outreach/src/reach-posts/pass.ts",
+   "to": "@wren/outreach/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/outreach/src/reach-posts/rank.ts",
+   "to": "@wren/outreach/src/reach-posts/read.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/outreach/src/reach-posts/rank.ts",
+   "to": "@wren/outreach/src/reach-posts/settings.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/outreach/src/reach-posts/read.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/outreach/src/reach-posts/read.ts",
+   "to": "@wren/outreach/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/outreach/src/reach-posts/settings.ts",
+   "to": "@wren/core/src/clients/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/outreach/src/reach-posts/settings.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/outreach/src/reach-posts/settings.ts",
+   "to": "@wren/outreach/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/outreach/src/reach-posts/topics.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/outreach/src/reach-posts/topics.ts",
+   "to": "@wren/llm/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/outreach/src/reach-posts/topics.ts",
+   "to": "@wren/outreach/src/reach-posts/settings.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/outreach/src/reach-posts/topics.ts",
+   "to": "@wren/outreach/src/schema.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
   },
   {
    "from": "@wren/outreach/src/records.ts",
@@ -2599,7 +3065,12 @@
   },
   {
    "from": "@wren/outreach/src/restate/desk-people.ts",
-   "to": "@wren/outreach/src/reach-posts.ts",
+   "to": "@wren/outreach/src/reach-posts/acts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/outreach/src/restate/desk-people.ts",
+   "to": "@wren/outreach/src/reach-posts/settings.ts",
    "kind": "imports"
   },
   {
@@ -2647,7 +3118,25 @@
   },
   {
    "from": "@wren/outreach/src/restate/desk-posts.ts",
-   "to": "@wren/outreach/src/reach-posts.ts",
+   "to": "@wren/outreach/src/reach-posts/acts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/outreach/src/restate/desk-posts.ts",
+   "to": "@wren/outreach/src/reach-posts/draft.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/outreach/src/restate/desk-posts.ts",
+   "to": "@wren/outreach/src/reach-posts/pass.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/outreach/src/restate/desk-posts.ts",
+   "to": "@wren/outreach/src/reach-posts/settings.ts",
    "kind": "imports"
   },
   {
@@ -2695,7 +3184,7 @@
   },
   {
    "from": "@wren/outreach/src/restate/desk-schedule.ts",
-   "to": "@wren/outreach/src/reach-posts.ts",
+   "to": "@wren/outreach/src/reach-posts/settings.ts",
    "kind": "imports"
   },
   {
@@ -3132,7 +3621,17 @@
   },
   {
    "from": "@wren/outreach/src/restate/paste.ts",
-   "to": "@wren/outreach/src/reach-posts.ts",
+   "to": "@wren/outreach/src/reach-posts/draft.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/outreach/src/restate/paste.ts",
+   "to": "@wren/outreach/src/reach-posts/read.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/outreach/src/restate/paste.ts",
+   "to": "@wren/outreach/src/reach-posts/settings.ts",
    "kind": "imports"
   },
   {
@@ -3322,7 +3821,22 @@
   },
   {
    "from": "@wren/outreach/src/restate/watch.ts",
-   "to": "@wren/outreach/src/reach-posts.ts",
+   "to": "@wren/outreach/src/reach-posts/acts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/outreach/src/restate/watch.ts",
+   "to": "@wren/outreach/src/reach-posts/pass.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/outreach/src/restate/watch.ts",
+   "to": "@wren/outreach/src/reach-posts/read.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/outreach/src/restate/watch.ts",
+   "to": "@wren/outreach/src/reach-posts/settings.ts",
    "kind": "imports"
   },
   {
@@ -3388,7 +3902,7 @@
   },
   {
    "from": "@wren/outreach/src/scheduled.ts",
-   "to": "@wren/outreach/src/reach-posts.ts",
+   "to": "@wren/outreach/src/reach-posts/settings.ts",
    "kind": "imports",
    "attrs": {
     "type": true
@@ -3503,7 +4017,7 @@
   },
   {
    "from": "@wren/outreach/src/settle-send.ts",
-   "to": "@wren/outreach/src/reach-posts.ts",
+   "to": "@wren/outreach/src/reach-posts/acts.ts",
    "kind": "imports"
   },
   {

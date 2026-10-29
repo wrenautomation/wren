@@ -19,127 +19,190 @@
    "id": "@wren/reactivation/src/approve.ts",
    "role": "file",
    "parent": "@wren/reactivation",
-   "group": "@wren/reactivation"
+   "group": "@wren/reactivation",
+   "attrs": {
+    "description": "The client's say on drafts (R11): approve some, or don't send some"
+   }
   },
   {
    "id": "@wren/reactivation/src/brief.ts",
    "role": "file",
    "parent": "@wren/reactivation",
-   "group": "@wren/reactivation"
+   "group": "@wren/reactivation",
+   "attrs": {
+    "description": "`crm run` brief stage: why reach out to this person now (R9)"
+   }
   },
   {
    "id": "@wren/reactivation/src/components.ts",
    "role": "file",
    "parent": "@wren/reactivation",
-   "group": "@wren/reactivation"
+   "group": "@wren/reactivation",
+   "attrs": {
+    "description": "Lead reactivation, and the demo video it records per lead"
+   }
   },
   {
    "id": "@wren/reactivation/src/compose.ts",
    "role": "file",
    "parent": "@wren/reactivation",
-   "group": "@wren/reactivation"
+   "group": "@wren/reactivation",
+   "attrs": {
+    "description": "The compose stage (R11): an opener and one follow-up per contact, written by the model as the recruiter who owns the contact, from the brief only"
+   }
   },
   {
    "id": "@wren/reactivation/src/crm-run.ts",
    "role": "file",
    "parent": "@wren/reactivation",
-   "group": "@wren/reactivation"
+   "group": "@wren/reactivation",
+   "attrs": {
+    "description": "`CrmRun`: the CLI's `crm run`, `lookup`, `redraft` and `settle` on the worker, one object per client"
+   }
   },
   {
    "id": "@wren/reactivation/src/crm/dates.ts",
    "role": "file",
    "parent": "@wren/reactivation",
-   "group": "@wren/reactivation"
+   "group": "@wren/reactivation",
+   "attrs": {
+    "description": "CRM dates to ISO days"
+   }
   },
   {
    "id": "@wren/reactivation/src/crm/formats.ts",
    "role": "file",
    "parent": "@wren/reactivation",
-   "group": "@wren/reactivation"
+   "group": "@wren/reactivation",
+   "attrs": {
+    "description": "CRM exports: which header means which field, per CRM"
+   }
   },
   {
    "id": "@wren/reactivation/src/crm/health.ts",
    "role": "file",
    "parent": "@wren/reactivation",
-   "group": "@wren/reactivation"
+   "group": "@wren/reactivation",
+   "attrs": {
+    "description": "The CRM health report: what the export says about the list before anything is sent"
+   }
   },
   {
    "id": "@wren/reactivation/src/crm/import.ts",
    "role": "file",
    "parent": "@wren/reactivation",
-   "group": "@wren/reactivation"
+   "group": "@wren/reactivation",
+   "attrs": {
+    "description": "CRM import: the people importer does people and companies; this adds, per row, the crm_contacts record and the CRM's email as a contact candidate (evidence `crm`, unverified)"
+   }
   },
   {
    "id": "@wren/reactivation/src/crm/job-orders.ts",
    "role": "file",
    "parent": "@wren/reactivation",
-   "group": "@wren/reactivation"
+   "group": "@wren/reactivation",
+   "attrs": {
+    "description": "Job orders from an ATS export"
+   }
   },
   {
    "id": "@wren/reactivation/src/crm/landing.ts",
    "role": "file",
    "parent": "@wren/reactivation",
-   "group": "@wren/reactivation"
+   "group": "@wren/reactivation",
+   "attrs": {
+    "description": "Connected apps land here: a sync's people as a CSV through the CRM import, so a live read and an export of the same record are one `crm_contacts` row"
+   }
   },
   {
    "id": "@wren/reactivation/src/crm/source.ts",
    "role": "file",
    "parent": "@wren/reactivation",
-   "group": "@wren/reactivation"
+   "group": "@wren/reactivation",
+   "attrs": {
+    "description": "A CRM export as a PersonSource"
+   }
   },
   {
    "id": "@wren/reactivation/src/crm/verify.ts",
    "role": "file",
    "parent": "@wren/reactivation",
-   "group": "@wren/reactivation"
+   "group": "@wren/reactivation",
+   "attrs": {
+    "description": "Check the addresses the CRM gave us"
+   }
   },
   {
    "id": "@wren/reactivation/src/delivery.ts",
    "role": "file",
    "parent": "@wren/reactivation",
-   "group": "@wren/reactivation"
+   "group": "@wren/reactivation",
+   "attrs": {
+    "description": "Reactivation fills the client's delivery portal (delivery D6, plan step 6): the measures it can count (contacts reached, replies, meetings booked), the running bill on meetings (R18), and one timeline line a day when the numbers moved"
+   }
   },
   {
    "id": "@wren/reactivation/src/demo/history.ts",
    "role": "file",
    "parent": "@wren/reactivation",
-   "group": "@wren/reactivation"
+   "group": "@wren/reactivation",
+   "attrs": {
+    "description": "The made-up half of a demo CRM: who owned the contact, when they were added, last contacted, last placed with"
+   }
   },
   {
    "id": "@wren/reactivation/src/demo/seed.ts",
    "role": "file",
    "parent": "@wren/reactivation",
-   "group": "@wren/reactivation"
+   "group": "@wren/reactivation",
+   "attrs": {
+    "description": "A demo client list built from an agency's own site, so a prospect sees the product on companies they know"
+   }
   },
   {
    "id": "@wren/reactivation/src/events.ts",
    "role": "file",
    "parent": "@wren/reactivation",
-   "group": "@wren/reactivation"
+   "group": "@wren/reactivation",
+   "attrs": {
+    "description": "`crm run` events stage: each CRM company's dated news, and each found mover's new firm's"
+   }
   },
   {
    "id": "@wren/reactivation/src/family.ts",
    "role": "file",
    "parent": "@wren/reactivation",
-   "group": "@wren/reactivation"
+   "group": "@wren/reactivation",
+   "attrs": {
+    "description": "A move to the same employer under another name is no move: \"Disney\" to \"The Walt Disney Company\" (a spelling), or CBS to Paramount (its owner since a merger)"
+   }
   },
   {
    "id": "@wren/reactivation/src/feed.ts",
    "role": "file",
    "parent": "@wren/reactivation",
-   "group": "@wren/reactivation"
+   "group": "@wren/reactivation",
+   "attrs": {
+    "description": "What `crm run` says as it works, in a client's words: one line per person or company a stage handles, and one as each stage starts and ends"
+   }
   },
   {
    "id": "@wren/reactivation/src/forward.ts",
    "role": "file",
    "parent": "@wren/reactivation",
-   "group": "@wren/reactivation"
+   "group": "@wren/reactivation",
+   "attrs": {
+    "description": "Handing replies to the client (R13, step 7e)"
+   }
   },
   {
    "id": "@wren/reactivation/src/handoff.ts",
    "role": "file",
    "parent": "@wren/reactivation",
-   "group": "@wren/reactivation"
+   "group": "@wren/reactivation",
+   "attrs": {
+    "description": "Replies go to the client (R13)"
+   }
   },
   {
    "id": "@wren/reactivation/src/index.ts",
@@ -151,73 +214,109 @@
    "id": "@wren/reactivation/src/keep.ts",
    "role": "file",
    "parent": "@wren/reactivation",
-   "group": "@wren/reactivation"
+   "group": "@wren/reactivation",
+   "attrs": {
+    "description": "Keep's site visits: forms sent on the client's own Sites pages and forms in the last 30 days, matched to its accounts"
+   }
   },
   {
    "id": "@wren/reactivation/src/lookup.ts",
    "role": "file",
    "parent": "@wren/reactivation",
-   "group": "@wren/reactivation"
+   "group": "@wren/reactivation",
+   "attrs": {
+    "description": "`wren crm lookup`: where is each CRM contact now (R7)? One person per unit: a person is looked up, written, and never picked again unless a cap parked them (then once the cap lifts) or `again` asks for a fresh pass"
+   }
   },
   {
    "id": "@wren/reactivation/src/loop.ts",
    "role": "file",
    "parent": "@wren/reactivation",
-   "group": "@wren/reactivation"
+   "group": "@wren/reactivation",
+   "attrs": {
+    "description": "`Reactivation`: one loop per client, keyed by client id"
+   }
   },
   {
    "id": "@wren/reactivation/src/movers.ts",
    "role": "file",
    "parent": "@wren/reactivation",
-   "group": "@wren/reactivation"
+   "group": "@wren/reactivation",
+   "attrs": {
+    "description": "`crm run` movers stage: a mover's address at the new firm"
+   }
   },
   {
    "id": "@wren/reactivation/src/portal/import-log.ts",
    "role": "file",
    "parent": "@wren/reactivation",
-   "group": "@wren/reactivation"
+   "group": "@wren/reactivation",
+   "attrs": {
+    "description": "The Import page's list: each file loaded into a client's contacts (`runCrmImport`), with what it did"
+   }
   },
   {
    "id": "@wren/reactivation/src/portal/import.ts",
    "role": "file",
    "parent": "@wren/reactivation",
-   "group": "@wren/reactivation"
+   "group": "@wren/reactivation",
+   "attrs": {
+    "description": "The Import page: a client loads a CSV of its own contacts"
+   }
   },
   {
    "id": "@wren/reactivation/src/portal/journey.ts",
    "role": "file",
    "parent": "@wren/reactivation",
-   "group": "@wren/reactivation"
+   "group": "@wren/reactivation",
+   "attrs": {
+    "description": "One person's journey, oldest first: each email sent, what came back (a reply, a bounce, an opt-out), the meeting booked off a reply, each call logged, and each Follow-up or Nurture touch with the wait it is in now"
+   }
   },
   {
    "id": "@wren/reactivation/src/portal/mask.ts",
    "role": "file",
    "parent": "@wren/reactivation",
-   "group": "@wren/reactivation"
+   "group": "@wren/reactivation",
+   "attrs": {
+    "description": "The demo mask (R15): every demo response passes through here before it leaves the server"
+   }
   },
   {
    "id": "@wren/reactivation/src/portal/outbox.ts",
    "role": "file",
    "parent": "@wren/reactivation",
-   "group": "@wren/reactivation"
+   "group": "@wren/reactivation",
+   "attrs": {
+    "description": "The portal's Emails and Replies pages (R11, R13): what the composer wrote and where each stands, and every reply with its handoff and whether a meeting came of it"
+   }
   },
   {
    "id": "@wren/reactivation/src/portal/pipeline.ts",
    "role": "file",
    "parent": "@wren/reactivation",
-   "group": "@wren/reactivation"
+   "group": "@wren/reactivation",
+   "attrs": {
+    "description": "The work as one line of steps, for the portal's rail: from the list as it came in to the replies"
+   }
   },
   {
    "id": "@wren/reactivation/src/portal/record-views.ts",
    "role": "file",
    "parent": "@wren/reactivation",
-   "group": "@wren/reactivation"
+   "group": "@wren/reactivation",
+   "attrs": {
+    "description": "The SQL views behind the portal's record types (`./records.ts`), one row per record, in every client database through the migrations"
+   }
   },
   {
    "id": "@wren/reactivation/src/portal/records.ts",
    "role": "file",
    "parent": "@wren/reactivation",
-   "group": "@wren/reactivation"
+   "group": "@wren/reactivation",
+   "attrs": {
+    "description": "Reactivation's record types: people, their emails, the replies, and what research found"
+   }
   },
   {
    "id": "@wren/reactivation/src/portal/routes.ts",
@@ -229,49 +328,73 @@
    "id": "@wren/reactivation/src/portal/run.ts",
    "role": "file",
    "parent": "@wren/reactivation",
-   "group": "@wren/reactivation"
+   "group": "@wren/reactivation",
+   "attrs": {
+    "description": "The Run page (P5): the run being watched, line by line, and the replay of what was done on the list"
+   }
   },
   {
    "id": "@wren/reactivation/src/portal/service.ts",
    "role": "file",
    "parent": "@wren/reactivation",
-   "group": "@wren/reactivation"
+   "group": "@wren/reactivation",
+   "attrs": {
+    "description": "The portal API (R14) as a Restate service on the worker, the way the phone app reads SMS: the edge Worker checks who is asking and passes the viewer, this picks the client and reads its database in a read-only transaction"
+   }
   },
   {
    "id": "@wren/reactivation/src/portal/setup.ts",
    "role": "file",
    "parent": "@wren/reactivation",
-   "group": "@wren/reactivation"
+   "group": "@wren/reactivation",
+   "attrs": {
+    "description": "What a client plugged in, for the portal's Setup page: the CRM export, the sites researched with, how their emails sound and who they come from, and the send rule"
+   }
   },
   {
    "id": "@wren/reactivation/src/portal/story.ts",
    "role": "file",
    "parent": "@wren/reactivation",
-   "group": "@wren/reactivation"
+   "group": "@wren/reactivation",
+   "attrs": {
+    "description": "The replay (P5): what was done on this list, rebuilt from the records every stage keeps, in story order (verify, look up, check hiring, rank, brief, draft), in the same words a live run writes"
+   }
   },
   {
    "id": "@wren/reactivation/src/portal/views.ts",
    "role": "file",
    "parent": "@wren/reactivation",
-   "group": "@wren/reactivation"
+   "group": "@wren/reactivation",
+   "attrs": {
+    "description": "What the portal shows (R14), read from one client's database: the overview, the people list, one person with their brief and its sources, and every finding"
+   }
   },
   {
    "id": "@wren/reactivation/src/portal/work.ts",
    "role": "file",
    "parent": "@wren/reactivation",
-   "group": "@wren/reactivation"
+   "group": "@wren/reactivation",
+   "attrs": {
+    "description": "The work behind one line of a run (P5): what was searched, which pages were read and what each said, the fact it settled on and how sure it is"
+   }
   },
   {
    "id": "@wren/reactivation/src/profile.ts",
    "role": "file",
    "parent": "@wren/reactivation",
-   "group": "@wren/reactivation"
+   "group": "@wren/reactivation",
+   "attrs": {
+    "description": "The firm's profile (R11): who they are, how they write, which recruiter owns which contacts"
+   }
   },
   {
    "id": "@wren/reactivation/src/ranked.ts",
    "role": "file",
    "parent": "@wren/reactivation",
-   "group": "@wren/reactivation"
+   "group": "@wren/reactivation",
+   "attrs": {
+    "description": "The list the client works from: CRM people best score first, with why and their brief"
+   }
   },
   {
    "id": "@wren/reactivation/src/restate.ts",
@@ -283,7 +406,10 @@
    "id": "@wren/reactivation/src/run.ts",
    "role": "file",
    "parent": "@wren/reactivation",
-   "group": "@wren/reactivation"
+   "group": "@wren/reactivation",
+   "attrs": {
+    "description": "`crm run`: every stage that is due, in order, so nobody has to remember the order"
+   }
   },
   {
    "id": "@wren/reactivation/src/schema.ts",
@@ -295,61 +421,91 @@
    "id": "@wren/reactivation/src/score.ts",
    "role": "file",
    "parent": "@wren/reactivation",
-   "group": "@wren/reactivation"
+   "group": "@wren/reactivation",
+   "attrs": {
+    "description": "`crm run` score stage: who goes first (R10)"
+   }
   },
   {
    "id": "@wren/reactivation/src/sending.ts",
    "role": "file",
    "parent": "@wren/reactivation",
-   "group": "@wren/reactivation"
+   "group": "@wren/reactivation",
+   "attrs": {
+    "description": "What a client's mailbox sends under (R4): its own database, its own fleet, and Wren's send rules with the client's caps"
+   }
   },
   {
    "id": "@wren/reactivation/src/settings.ts",
    "role": "file",
    "parent": "@wren/reactivation",
-   "group": "@wren/reactivation"
+   "group": "@wren/reactivation",
+   "attrs": {
+    "description": "Reactivation's block in `clients.products` (R21): what this product does for one client"
+   }
   },
   {
    "id": "@wren/reactivation/src/signals.ts",
    "role": "file",
    "parent": "@wren/reactivation",
-   "group": "@wren/reactivation"
+   "group": "@wren/reactivation",
+   "attrs": {
+    "description": "`crm run` signals stage: is each CRM company hiring (R8)? One company per unit, checked, written, and not picked again until its answer goes stale: a week for an answer, a month for \"couldn't tell\", the cap's own time for a capped one"
+   }
   },
   {
    "id": "@wren/reactivation/src/status.ts",
    "role": "file",
    "parent": "@wren/reactivation",
-   "group": "@wren/reactivation"
+   "group": "@wren/reactivation",
+   "attrs": {
+    "description": "Where a client's reactivation stands and what runs next: one screen, so nobody has to remember the order of the stages"
+   }
   },
   {
    "id": "@wren/reactivation/src/video/brief.ts",
    "role": "file",
    "parent": "@wren/reactivation",
-   "group": "@wren/reactivation"
+   "group": "@wren/reactivation",
+   "attrs": {
+    "description": "What a lead's video says about them: their firm's name, and nothing else on screen"
+   }
   },
   {
    "id": "@wren/reactivation/src/video/index.ts",
    "role": "file",
    "parent": "@wren/reactivation",
-   "group": "@wren/reactivation"
+   "group": "@wren/reactivation",
+   "attrs": {
+    "description": "Per-lead demo videos: who a video is for, and the walk that records it"
+   }
   },
   {
    "id": "@wren/reactivation/src/video/lead.ts",
    "role": "file",
    "parent": "@wren/reactivation",
-   "group": "@wren/reactivation"
+   "group": "@wren/reactivation",
+   "attrs": {
+    "description": "One firm's video, start to stored: skip it when this walk version already made one, else record, publish and keep it as a `video` enrichment (model = the walk, prompt version = its version)"
+   }
   },
   {
    "id": "@wren/reactivation/src/video/walk.ts",
    "role": "file",
    "parent": "@wren/reactivation",
-   "group": "@wren/reactivation"
+   "group": "@wren/reactivation",
+   "attrs": {
+    "description": "The reactivation demo, recorded for one firm: the demo portal with the firm's name where the sample's is, walked the way a buyer would look at it"
+   }
   },
   {
    "id": "@wren/reactivation/test/integration/demo-fixture.ts",
    "role": "file",
    "parent": "@wren/reactivation",
-   "group": "@wren/reactivation"
+   "group": "@wren/reactivation",
+   "attrs": {
+    "description": "The demo seed on fakes: the agency's site names two customers and search finds three people who hire there (Cara has moved on)"
+   }
   },
   {
    "id": "@wren/reactivation/vitest.config.ts",

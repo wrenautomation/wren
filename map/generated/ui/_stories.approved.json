@@ -1,0 +1,434 @@
+{
+ "layer": "ui",
+ "nodes": [
+  {
+   "id": "story:accounts",
+   "role": "story",
+   "group": "_stories",
+   "attrs": {
+    "file": "packages/ui/src/accounts.stories.tsx",
+    "shows": [
+     "packages/ui/src/accounts.tsx"
+    ],
+    "title": "Forms/Accounts"
+   }
+  },
+  {
+   "id": "story:action",
+   "role": "story",
+   "group": "_stories",
+   "attrs": {
+    "file": "packages/ui/src/action.stories.tsx",
+    "shows": [
+     "packages/ui/src/action.tsx",
+     "packages/ui/src/controls.tsx"
+    ],
+    "title": "Parts/Action"
+   }
+  },
+  {
+   "id": "story:busy",
+   "role": "story",
+   "group": "_stories",
+   "attrs": {
+    "file": "packages/ui/src/busy.stories.tsx",
+    "shows": [
+     "packages/ui/src/busy.tsx",
+     "packages/ui/src/controls.tsx",
+     "packages/ui/src/phone.tsx"
+    ],
+    "title": "Parts/Busy"
+   }
+  },
+  {
+   "id": "story:charts",
+   "role": "story",
+   "group": "_stories",
+   "attrs": {
+    "file": "packages/ui/src/charts/charts.stories.tsx",
+    "shows": [
+     "packages/ui/src/charts/index.tsx",
+     "packages/ui/src/split.tsx"
+    ],
+    "title": "Charts/Parts"
+   }
+  },
+  {
+   "id": "story:controls",
+   "role": "story",
+   "group": "_stories",
+   "attrs": {
+    "file": "packages/ui/src/controls.stories.tsx",
+    "shows": [
+     "packages/ui/src/components/ui/input.tsx",
+     "packages/ui/src/controls.tsx"
+    ],
+    "title": "Parts/Controls"
+   }
+  },
+  {
+   "id": "story:dashboard",
+   "role": "story",
+   "group": "_stories",
+   "attrs": {
+    "file": "packages/ui/src/charts/dashboard.stories.tsx",
+    "shows": [
+     "packages/ui/src/charts/index.tsx",
+     "packages/ui/src/controls.tsx"
+    ],
+    "title": "Charts/Dashboard"
+   }
+  },
+  {
+   "id": "story:day",
+   "role": "story",
+   "group": "_stories",
+   "attrs": {
+    "file": "packages/ui/src/day.stories.tsx",
+    "shows": [
+     "packages/ui/src/day.tsx"
+    ],
+    "title": "Pages/Day"
+   }
+  },
+  {
+   "id": "story:diff",
+   "role": "story",
+   "group": "_stories",
+   "attrs": {
+    "file": "packages/ui/src/diff.stories.tsx",
+    "shows": [
+     "packages/ui/src/diff.tsx"
+    ],
+    "title": "Parts/Diff"
+   }
+  },
+  {
+   "id": "story:draft",
+   "role": "story",
+   "group": "_stories",
+   "attrs": {
+    "file": "packages/ui/src/draft.stories.tsx",
+    "shows": [
+     "packages/ui/src/draft.tsx"
+    ],
+    "title": "Forms/Draft"
+   }
+  },
+  {
+   "id": "story:edit-form",
+   "role": "story",
+   "group": "_stories",
+   "attrs": {
+    "file": "packages/ui/src/edit-form.stories.tsx",
+    "shows": [
+     "packages/ui/src/controls.tsx",
+     "packages/ui/src/data/edits.ts",
+     "packages/ui/src/edit-form.tsx",
+     "packages/ui/src/save/journal.ts"
+    ],
+    "title": "Forms/Edit form"
+   }
+  },
+  {
+   "id": "story:gp",
+   "role": "story",
+   "group": "_stories",
+   "attrs": {
+    "file": "packages/ui/src/metro/metro.stories.tsx",
+    "shows": [
+     "packages/ui/src/metro/draw.tsx",
+     "packages/ui/src/metro/map.tsx",
+     "packages/ui/src/metro/place.ts",
+     "packages/ui/src/metro/samples.ts",
+     "packages/ui/src/metro/tree.ts",
+     "packages/ui/src/table.tsx"
+    ],
+    "title": "Metro"
+   }
+  },
+  {
+   "id": "story:graph-ribbons",
+   "role": "story",
+   "group": "_stories",
+   "attrs": {
+    "file": "packages/ui/src/graph/ribbons.stories.tsx",
+    "shows": [
+     "packages/ui/src/graph/index.tsx",
+     "packages/ui/src/theme.tsx"
+    ],
+    "title": "Charts/Ribbons"
+   }
+  },
+  {
+   "id": "story:lab",
+   "role": "story",
+   "group": "_stories",
+   "attrs": {
+    "file": "packages/ui/src/metro/lab/lab.stories.tsx",
+    "shows": [
+     "packages/ui/src/metro/draw.tsx",
+     "packages/ui/src/metro/fold.ts",
+     "packages/ui/src/metro/lab/cases.ts",
+     "packages/ui/src/metro/lab/engines.ts",
+     "packages/ui/src/metro/lab/generate.ts",
+     "packages/ui/src/metro/lab/score.ts",
+     "packages/ui/src/metro/map.tsx",
+     "packages/ui/src/table.tsx"
+    ],
+    "title": "Metro/Lab"
+   }
+  },
+  {
+   "id": "story:leaf-and-sweep",
+   "role": "story",
+   "group": "_stories",
+   "attrs": {
+    "file": "packages/ui/src/sweep.stories.tsx",
+    "shows": [
+     "packages/ui/src/controls.tsx",
+     "packages/ui/src/layout.tsx",
+     "packages/ui/src/sweep.tsx"
+    ],
+    "title": "Parts/Leaf and sweep"
+   }
+  },
+  {
+   "id": "story:list-bar",
+   "role": "story",
+   "group": "_stories",
+   "attrs": {
+    "file": "packages/ui/src/list-bar.stories.tsx",
+    "shows": [
+     "packages/ui/src/list-bar.tsx"
+    ],
+    "title": "Lists/List bar"
+   }
+  },
+  {
+   "id": "story:money-models",
+   "role": "story",
+   "group": "_stories",
+   "attrs": {
+    "file": "packages/ui/src/metro/money-models.stories.tsx",
+    "shows": [
+     "packages/ui/src/metro/map.tsx",
+     "packages/ui/src/metro/money-models.ts"
+    ],
+    "title": "Metro/Money models"
+   }
+  },
+  {
+   "id": "story:overview",
+   "role": "story",
+   "group": "_stories",
+   "attrs": {
+    "file": "packages/ui/src/overview.stories.tsx",
+    "shows": [
+     "packages/ui/src/overview.tsx"
+    ],
+    "title": "Pages/Overview"
+   }
+  },
+  {
+   "id": "story:pages-account",
+   "role": "story",
+   "group": "_stories",
+   "attrs": {
+    "file": "apps/portal/web/src/pages-account.stories.tsx",
+    "shows": [],
+    "title": "Revamp/Account"
+   }
+  },
+  {
+   "id": "story:pages-client",
+   "role": "story",
+   "group": "_stories",
+   "attrs": {
+    "file": "apps/portal/web/src/pages-client.stories.tsx",
+    "shows": [],
+    "title": "Revamp/Client"
+   }
+  },
+  {
+   "id": "story:pages-journeys",
+   "role": "story",
+   "group": "_stories",
+   "attrs": {
+    "file": "apps/portal/web/src/pages-journeys.stories.tsx",
+    "shows": [],
+    "title": "Revamp/Journeys"
+   }
+  },
+  {
+   "id": "story:pages-learn",
+   "role": "story",
+   "group": "_stories",
+   "attrs": {
+    "file": "apps/portal/web/src/pages-learn.stories.tsx",
+    "shows": [],
+    "title": "Revamp/Learn"
+   }
+  },
+  {
+   "id": "story:pages-limits",
+   "role": "story",
+   "group": "_stories",
+   "attrs": {
+    "file": "apps/portal/web/src/pages-limits.stories.tsx",
+    "shows": [],
+    "title": "Revamp/Account/Limits"
+   }
+  },
+  {
+   "id": "story:pages-map",
+   "role": "story",
+   "group": "_stories",
+   "attrs": {
+    "file": "apps/portal/web/src/pages-map.stories.tsx",
+    "shows": [
+     "apps/portal/web/src/map/TodayTasks.tsx",
+     "apps/portal/web/src/map/view.ts"
+    ],
+    "title": "Done/Map"
+   }
+  },
+  {
+   "id": "story:pages-notes-dialogs",
+   "role": "story",
+   "group": "_stories",
+   "attrs": {
+    "file": "apps/portal/web/src/notes-dialogs.stories.tsx",
+    "shows": [
+     "apps/portal/web/src/modules/notes/share.tsx"
+    ],
+    "title": "Revamp/Notes dialogs"
+   }
+  },
+  {
+   "id": "story:pages-player",
+   "role": "story",
+   "group": "_stories",
+   "attrs": {
+    "file": "apps/portal/web/src/pages-player.stories.tsx",
+    "shows": [
+     "apps/portal/web/src/player/index.ts"
+    ],
+    "title": "Revamp/Player"
+   }
+  },
+  {
+   "id": "story:pages-wren",
+   "role": "story",
+   "group": "_stories",
+   "attrs": {
+    "file": "apps/portal/web/src/pages-wren.stories.tsx",
+    "shows": [],
+    "title": "Revamp/Wren"
+   }
+  },
+  {
+   "id": "story:pages-wren-apps",
+   "role": "story",
+   "group": "_stories",
+   "attrs": {
+    "file": "apps/portal/web/src/pages-wren-tabs.stories.tsx",
+    "shows": [],
+    "title": "Revamp/Wren apps"
+   }
+  },
+  {
+   "id": "story:pages-wren-rows",
+   "role": "story",
+   "group": "_stories",
+   "attrs": {
+    "file": "apps/portal/web/src/pages-wren-rows.stories.tsx",
+    "shows": [],
+    "title": "Revamp/Wren rows"
+   }
+  },
+  {
+   "id": "story:peek",
+   "role": "story",
+   "group": "_stories",
+   "attrs": {
+    "file": "packages/ui/src/peek.stories.tsx",
+    "shows": [
+     "packages/ui/src/action.tsx",
+     "packages/ui/src/data/query.ts",
+     "packages/ui/src/records.tsx"
+    ],
+    "title": "Lists/Peek"
+   }
+  },
+  {
+   "id": "story:records",
+   "role": "story",
+   "group": "_stories",
+   "attrs": {
+    "file": "packages/ui/src/records.stories.tsx",
+    "shows": [
+     "packages/ui/src/records.tsx"
+    ],
+    "title": "Lists/Records"
+   }
+  },
+  {
+   "id": "story:rows",
+   "role": "story",
+   "group": "_stories",
+   "attrs": {
+    "file": "packages/ui/src/rows.stories.tsx",
+    "shows": [
+     "packages/ui/src/action.tsx",
+     "packages/ui/src/format.ts",
+     "packages/ui/src/list-bar.tsx",
+     "packages/ui/src/marks.tsx",
+     "packages/ui/src/records.tsx",
+     "packages/ui/src/rows.tsx"
+    ],
+    "title": "Lists/Rows"
+   }
+  },
+  {
+   "id": "story:shell",
+   "role": "story",
+   "group": "_stories",
+   "attrs": {
+    "file": "packages/ui/src/shell.stories.tsx",
+    "shows": [
+     "packages/ui/src/feedback.tsx",
+     "packages/ui/src/layout.tsx",
+     "packages/ui/src/shell.tsx"
+    ],
+    "title": "Pages/Shell"
+   }
+  },
+  {
+   "id": "story:steps",
+   "role": "story",
+   "group": "_stories",
+   "attrs": {
+    "file": "packages/ui/src/steps.stories.tsx",
+    "shows": [
+     "packages/ui/src/steps.tsx"
+    ],
+    "title": "Parts/Steps"
+   }
+  },
+  {
+   "id": "story:table",
+   "role": "story",
+   "group": "_stories",
+   "attrs": {
+    "file": "packages/ui/src/table.stories.tsx",
+    "shows": [
+     "packages/ui/src/controls.tsx",
+     "packages/ui/src/table.tsx"
+    ],
+    "title": "Lists/Table"
+   }
+  }
+ ],
+ "edges": []
+}

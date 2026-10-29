@@ -1,0 +1,135 @@
+{
+ "layer": "ui",
+ "nodes": [
+  {
+   "id": "ui:inbox",
+   "role": "app",
+   "group": "inbox",
+   "attrs": {
+    "areas": [
+     "team: Tools"
+    ],
+    "blurb": "Every lead's answer, by email, text or DM, and the mail that needs you.",
+    "file": "apps/portal/web/src/modules/wren/index.ts",
+    "name": "Inbox",
+    "workspace": "wren"
+   }
+  },
+  {
+   "id": "ui:inbox/asks",
+   "role": "screen",
+   "parent": "ui:inbox",
+   "group": "inbox",
+   "attrs": {
+    "about": "Requests for access, waiting on an answer.",
+    "file": "apps/portal/web/src/records.tsx",
+    "hidden": true,
+    "label": "Access asks",
+    "order": 5,
+    "record": "access.ask",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:inbox/done",
+   "role": "screen",
+   "parent": "ui:inbox",
+   "group": "inbox",
+   "attrs": {
+    "about": "What you approved, rejected, edited or sent, newest first.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Done",
+    "order": 2,
+    "record": "marketing.done",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:inbox/issues",
+   "role": "screen",
+   "parent": "ui:inbox",
+   "group": "inbox",
+   "attrs": {
+    "about": "Problems raised on a record, waiting on a fix.",
+    "file": "apps/portal/web/src/records.tsx",
+    "hidden": true,
+    "label": "Issues",
+    "order": 4,
+    "record": "access.issue",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:inbox/mail",
+   "role": "screen",
+   "parent": "ui:inbox",
+   "group": "inbox",
+   "attrs": {
+    "about": "Your own email that needs you, pulled from the rest.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Your mail",
+    "order": 1,
+    "record": "watch.mail",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:inbox/mentions",
+   "role": "screen",
+   "parent": "ui:inbox",
+   "group": "inbox",
+   "attrs": {
+    "about": "Notes where someone tagged you with @.",
+    "file": "apps/portal/web/src/records.tsx",
+    "hidden": true,
+    "label": "Mentions",
+    "order": 6,
+    "record": "notes.mention",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:inbox/overview",
+   "role": "screen",
+   "parent": "ui:inbox",
+   "group": "inbox",
+   "attrs": {
+    "about": "Everything that waits on you, across channels.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Overview",
+    "order": 0,
+    "template": "overview"
+   }
+  },
+  {
+   "id": "ui:inbox/replies",
+   "role": "screen",
+   "parent": "ui:inbox",
+   "group": "inbox",
+   "attrs": {
+    "about": "Warm email replies, each with a drafted answer.",
+    "file": "apps/portal/web/src/records.tsx",
+    "hidden": true,
+    "label": "Email replies",
+    "order": 7,
+    "record": "email.reply",
+    "template": "queue"
+   }
+  },
+  {
+   "id": "ui:inbox/rules",
+   "role": "screen",
+   "parent": "ui:inbox",
+   "group": "inbox",
+   "attrs": {
+    "about": "Rules that hide email you don't need to see.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Mail rules",
+    "order": 3,
+    "record": "watch.rule",
+    "template": "list"
+   }
+  }
+ ],
+ "edges": []
+}

@@ -19,115 +19,172 @@
    "id": "@wren/content/src/analytics/catalog.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "Every number a post or an account can earn, per platform: what it is, the API and scope behind it, whether we read it, and the one step that would let us"
+   }
   },
   {
    "id": "@wren/content/src/analytics/digest.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "The week's \"what worked\": per platform and for all of them, the best and worst post, the number that moved most against the week before, what to make next, and cadence against the goals"
+   }
   },
   {
    "id": "@wren/content/src/analytics/goals.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "His posting plan as a setting (`marketing.cadence`): the goals Plan, the digest and Today measure against"
+   }
   },
   {
    "id": "@wren/content/src/analytics/records.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "Analytics as console records: how conversations go (`marketing.conversation`), the week's digest (`marketing.digest`), cadence against goals (`marketing.cadence`) and every metric's state (`marketing.metric`)"
+   }
   },
   {
    "id": "@wren/content/src/analytics/store.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "Where insights land: a post's numbers per day (`post_metric_days`), an account's (`account_metric_days`), and each metric's last state (`metric_sources`)"
+   }
   },
   {
    "id": "@wren/content/src/analytics/variants.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "A post's titles, thumbnails and hooks over time"
+   }
   },
   {
    "id": "@wren/content/src/attach.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "A file on a post's field: YouTube's thumbnail and subtitles, a Reel's cover, a LinkedIn image or PDF, X's images"
+   }
   },
   {
    "id": "@wren/content/src/blog.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "The blog from Write"
+   }
   },
   {
    "id": "@wren/content/src/carousel.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "Carousels: one slide set from a video (`draftCarousel` in ./promo.ts), drafted as two posts that share it: a LinkedIn document post (its words plus the slides as a PDF) and an Instagram carousel (a caption plus a square image per slide)"
+   }
   },
   {
    "id": "@wren/content/src/chat/store.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "Site chat's store: a visitor's thread by the key their browser holds, their messages and ours, and the Inbox's rows"
+   }
   },
   {
    "id": "@wren/content/src/check.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "A post draft checked against its platform's SOP"
+   }
   },
   {
    "id": "@wren/content/src/client-reports/schema.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "Client reports: what each report carries and to whom, and every run kept"
+   }
   },
   {
    "id": "@wren/content/src/client-reports/store.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "Client reports: save and list them, work out when each runs, read one period's numbers through `recordsStats`, keep the run, mail each member theirs"
+   }
   },
   {
    "id": "@wren/content/src/client-reports/tiles.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "The numbers a client report carries: the Marketing Overview's, read the same way (`recordsStats` on the view its tile links to, else the type's first), so the mail and the Overview agree"
+   }
   },
   {
    "id": "@wren/content/src/clients.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "Content per client: a client's plan, drafts, posts and social reads run on its own logins into its own database"
+   }
   },
   {
    "id": "@wren/content/src/components.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "Organic content: posting to each channel, and the plan of what to post"
+   }
   },
   {
    "id": "@wren/content/src/connect/access.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "Client social access: a client's own accounts, connected one sign-in each on Wren's apps"
+   }
   },
   {
    "id": "@wren/content/src/connect/app-reviews.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "The platform reviews Wren's social apps wait on: what each needs, the text to paste, the screencast to record, and live checks of the public pages and callbacks they point at"
+   }
   },
   {
    "id": "@wren/content/src/connect/business.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "A client's Google Business Profile as a `ContentChannel`: local posts and reviews through the Business Profile API (v4) on the connected location"
+   }
   },
   {
    "id": "@wren/content/src/connect/console-routes.ts",
@@ -139,13 +196,19 @@
    "id": "@wren/content/src/connect/console.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "SocialAccess: Account → Social"
+   }
   },
   {
    "id": "@wren/content/src/connect/dms.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "A client's DMs: its Facebook Page's, Instagram's and X's conversations read into its own `reach_contacts` and `reach_messages`, so they land in its Inbox as `dm:<id>` threads; an answer goes back through the same account"
+   }
   },
   {
    "id": "@wren/content/src/connect/index.ts",
@@ -157,97 +220,145 @@
    "id": "@wren/content/src/connect/oauth.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "Each platform's sign-in: what a token answer means to Wren"
+   }
   },
   {
    "id": "@wren/content/src/connect/own.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "Wren's own channels on Account → Social, for the team only: each platform Wren posts to, its handle, how it posts (from config), its token's lapse and last renewal (TokenRenewal's `runs` rows), its last post and last failure (`content_drafts`, `draft_events`), and a Check that runs autobrowse's site check through the same `sites`/`desk` service the channels use: `status` for the site's probe, then that one who-am-I read, then `renew {dry}` for the lapse date"
+   }
   },
   {
    "id": "@wren/content/src/connect/platforms.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "The social accounts a client connects: each platform's app, its sign-in, the scopes it asks, what its review gates and what works before it"
+   }
   },
   {
    "id": "@wren/content/src/connect/review-log.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "The access review log: each step a person or an agent records moves the review's state and is kept"
+   }
   },
   {
    "id": "@wren/content/src/connect/reviews-schema.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "Access reviews: each platform review a client waits on, Wren's own under client `wren`, and every step of it"
+   }
   },
   {
    "id": "@wren/content/src/connect/schema.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "Client social access: sign-ins in flight and connected accounts"
+   }
   },
   {
    "id": "@wren/content/src/connect/setups.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "A connected social account as a setup: one step, its token, checked every hour"
+   }
   },
   {
    "id": "@wren/content/src/connect/sites.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "A client's connected accounts as a `SiteClient`: the same calls Wren's adapters make through autobrowse, sent straight to each platform's official API on the client's token"
+   }
   },
   {
    "id": "@wren/content/src/connect/tiktok-numbers.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "A connected TikTok's numbers on Account → Social: followers, likes and video count (`user.info.stats`) and its newest videos with their views (`video.list`)"
+   }
   },
   {
    "id": "@wren/content/src/connect/video-length.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "A video's length from its MP4 or QuickTime boxes, read by byte range so the file never sits in memory: walk the top-level boxes to `moov`, then its `mvhd` duration over its timescale"
+   }
   },
   {
    "id": "@wren/content/src/costs.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "What drafting costs, from the envelope every draft row keeps (`llm.call.usage`): calls and tokens by platform and model over a window"
+   }
   },
   {
    "id": "@wren/content/src/draft-ask.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "Every draft William finishes, by kind: a post (`content_drafts.text`), a comment's answer (`comments.draft`), a Reddit thread's comment (`reddit_threads.draft`)"
+   }
   },
   {
    "id": "@wren/content/src/draft-calls.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "A draft's handlers and the input key naming it: what a login limited to a channel may call on a draft it may act on (`calls` in `@wren/core/records`)"
+   }
   },
   {
    "id": "@wren/content/src/draft.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "The one paid step: an idea in William's words → one draft per platform"
+   }
   },
   {
    "id": "@wren/content/src/film-check.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "A Studio edit beside the film standard"
+   }
   },
   {
    "id": "@wren/content/src/funnel.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "The funnel on a post: video → site → booking"
+   }
   },
   {
    "id": "@wren/content/src/ideas.ts",
@@ -259,67 +370,100 @@
    "id": "@wren/content/src/ideas/chapters.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "A chapter of a video that is up on YouTube, as a post of its own: the chapter's title and what he said in it (the words the cut keeps, between its start and the next chapter's), with the video's link"
+   }
   },
   {
    "id": "@wren/content/src/ideas/questions.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "A reader's question, answered as a post: the newest `question` comment (as `comments.sort` sorted it) from the last 14 days that no idea came from yet"
+   }
   },
   {
    "id": "@wren/content/src/inbox/auto.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "Auto-reply: what happens when someone writes in, per channel"
+   }
   },
   {
    "id": "@wren/content/src/inbox/conversation.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "One Inbox thread as a conversation: the person behind it, every message and touch with them on any channel, our notes, and the channels a reply can take"
+   }
   },
   {
    "id": "@wren/content/src/inbox/index.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "Reply from the Inbox, with notes and assignees"
+   }
   },
   {
    "id": "@wren/content/src/inbox/mail-reply.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "A reply to mail in a client's connected mailbox: kept in `watch.mail_sent` as `sending` before the provider call, then `sent` or `failed`"
+   }
   },
   {
    "id": "@wren/content/src/inbox/review.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "A review's reply brief: what Suggest and a draft on arrival write under a review of the business, by its stars"
+   }
   },
   {
    "id": "@wren/content/src/inbox/routes.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "Where a client's DM or comment reply can go: only through the client's own connected account for that platform, never Wren's"
+   }
   },
   {
    "id": "@wren/content/src/inbox/send.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "A reply from the Inbox: Send or Ask to send, then the channel's own path"
+   }
   },
   {
    "id": "@wren/content/src/inbox/suggest.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "A suggested reply for the Inbox's box"
+   }
   },
   {
    "id": "@wren/content/src/inbox/threads.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "An Inbox thread's team state: who has it, open, waiting or closed, snoozed until when"
+   }
   },
   {
    "id": "@wren/content/src/index.ts",
@@ -331,163 +475,244 @@
    "id": "@wren/content/src/learn-back.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "Our posted pieces for learn back: the published drafts an SOP's scope covers, each as the Learn kind it is and with its one real number (`MEASURE_OF`)"
+   }
   },
   {
    "id": "@wren/content/src/lessons.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "What the loop has learned for one platform, read fresh before each draft: the author's recent redraft notes (\"shorter\", \"keep the discord line\") and the posts that did best"
+   }
   },
   {
    "id": "@wren/content/src/library.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "The Library's Media and SOPs, read only"
+   }
   },
   {
    "id": "@wren/content/src/media.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "The media store: an S3 bucket only this repo reads"
+   }
   },
   {
    "id": "@wren/content/src/metrics.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "What a post did, as rows"
+   }
   },
   {
    "id": "@wren/content/src/our-posts.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "Our posts for comment drafts (`@wren/core/our-posts`): published or approved, newest first"
+   }
   },
   {
    "id": "@wren/content/src/own.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "Posts in the person's own words, stored: an idea and a draft per platform (`./write.ts`)"
+   }
   },
   {
    "id": "@wren/content/src/pieces.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "Pieces: what William makes, each once, with where it went hanging under it"
+   }
   },
   {
    "id": "@wren/content/src/plan.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "Tomorrow's content plan: each platform's slots against the drafts that hold them, and what is waiting upstream (drafts to review, ideas to draft)"
+   }
   },
   {
    "id": "@wren/content/src/platforms.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "What each platform takes: the length it allows, whether a file is required, and the shape the model is told to write"
+   }
   },
   {
    "id": "@wren/content/src/playbook.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "A platform's playbook (an SOP pushed from the private sops folder) goes into every draft prompt for that platform"
+   }
   },
   {
    "id": "@wren/content/src/promo.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "Promo posts: one YouTube video → one draft per platform, each in its platform's tone, pointing at the video"
+   }
   },
   {
    "id": "@wren/content/src/queue.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "The publish queue as rows: approved drafts whose time has come"
+   }
   },
   {
    "id": "@wren/content/src/records.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "Posts as console records for the Marketing app: drafts waiting on a person (`marketing_draft_records`) and published ones (`marketing_post_records`)"
+   }
   },
   {
    "id": "@wren/content/src/restate/after-publish.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "What follows a post that is up: the row marked, the ledger settled, the first comment, the warm-replies hook"
+   }
   },
   {
    "id": "@wren/content/src/restate/auto-reply.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "AutoReply: a reply drafted the moment someone writes in, so it waits in To approve before anyone opens the thread"
+   }
   },
   {
    "id": "@wren/content/src/restate/blog.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "`Blog/wren`: Write's Blog box"
+   }
   },
   {
    "id": "@wren/content/src/restate/chat.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "Chat: the site bubble's two calls, through the portal Worker, which names the owner from the host"
+   }
   },
   {
    "id": "@wren/content/src/restate/desk-approvals.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "ContentDesk handlers for verdicts: approve, settle, approve a video, pick a thumbnail, reject"
+   }
   },
   {
    "id": "@wren/content/src/restate/desk-context.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "The content desk's context, built once per desk: the scope a call drafts in and the drafting steps every group shares"
+   }
   },
   {
    "id": "@wren/content/src/restate/desk-drafting.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "ContentDesk handlers that add, draft, redraft and write posts"
+   }
   },
   {
    "id": "@wren/content/src/restate/desk-edits.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "ContentDesk handlers that change a draft in place: fields, promotion, funnel, attachments, text"
+   }
   },
   {
    "id": "@wren/content/src/restate/desk-formats.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "ContentDesk handlers for the formats beyond a post: stories, carousels and slides"
+   }
   },
   {
    "id": "@wren/content/src/restate/desk-swaps.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "ContentDesk handlers that propose a replacement post and settle it"
+   }
   },
   {
    "id": "@wren/content/src/restate/desk.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "`ContentDesk/default`: the loop's writes that must not run twice"
+   }
   },
   {
    "id": "@wren/content/src/restate/draft-ask.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "`DraftAsk`: Ask Claude on any draft"
+   }
   },
   {
    "id": "@wren/content/src/restate/inbox-desk.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "InboxDesk: reply from the Inbox on the thread's own channel, ask for a yes when the gate says so, keep notes, assign, close and snooze"
+   }
   },
   {
    "id": "@wren/content/src/restate/index.ts",
@@ -499,265 +724,397 @@
    "id": "@wren/content/src/restate/keyword-dm.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "KeywordDm: a comment that says a keyword gets the keyword's DM through Meta's private reply, then its public reply when it has one"
+   }
   },
   {
    "id": "@wren/content/src/restate/mail-reply.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "MailReply: a reply from the Inbox to mail in a client's connected mailbox, sent through that mailbox (Gmail API or Graph), in the same thread"
+   }
   },
   {
    "id": "@wren/content/src/restate/marketing-console.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "MarketingConsole: a client's Marketing numbers in the portal"
+   }
   },
   {
    "id": "@wren/content/src/restate/metrics.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "`ContentMetrics/default`: looks at each young published post on its tier (`LOOK_TIERS`: every 6 hours at first, then daily, then weekly) through the `Content` service and writes a snapshot row"
+   }
   },
   {
    "id": "@wren/content/src/restate/pieces.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "`Pieces/wren`: Marketing's Today and Pieces read every piece William made, each with its branches"
+   }
   },
   {
    "id": "@wren/content/src/restate/planner.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "`ContentPlanner/default`: once a day, at `hour` on the fleet's clock, reads tomorrow's plan (slots vs drafts per platform) and says it on Discord"
+   }
   },
   {
    "id": "@wren/content/src/restate/reports.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "`ClientReport/<id>`: sleeps until the report's next Monday or 1st at 9:00, runs it, sleeps again"
+   }
   },
   {
    "id": "@wren/content/src/restate/scheduler.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "`ContentScheduler/default`: publishes approved drafts when they are due"
+   }
   },
   {
    "id": "@wren/content/src/restate/social-inbox.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "SocialInbox: a client's DMs and comment answers through its own connected accounts"
+   }
   },
   {
    "id": "@wren/content/src/restate/social-push.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "Pushes into the social loops"
+   }
   },
   {
    "id": "@wren/content/src/restate/social.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "`SocialWatch/wren`: every 30 minutes, 07:00-23:00 on the fleet's clock, reads comments on our posts of the last 14 days, activity since the newest kept row, and the follower count once a day, through the `Content` service"
+   }
   },
   {
    "id": "@wren/content/src/restate/video-desk.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "`VideoDesk`: a video edited from its page"
+   }
   },
   {
    "id": "@wren/content/src/review.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "The review seat: a person reads drafts and approves, rejects or edits them"
+   }
   },
   {
    "id": "@wren/content/src/schema.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "The content loop's tables"
+   }
   },
   {
    "id": "@wren/content/src/shape-view.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "A draft as the field editor and the platform preview draw it: its fields with their UI, its words, and a short-lived link for each stored file (thumbnail, cover, the video)"
+   }
   },
   {
    "id": "@wren/content/src/site-posts.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "Posts made on the site by hand, read back as published drafts, so `ContentMetrics` reads their numbers like any other post"
+   }
   },
   {
    "id": "@wren/content/src/slide-paint.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "The slide painter: a chromium draws `slidesHtml`'s page, a 1080 square JPEG per slide (Instagram takes JPEG only) and the whole page as a PDF (one square page each) for LinkedIn"
+   }
   },
   {
    "id": "@wren/content/src/slots.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "When a platform's posts go out when nobody said: the platform's default slots on the fleet's clock"
+   }
   },
   {
    "id": "@wren/content/src/social/ad-formats.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "Ads → Formats: the creative shapes we make ads in"
+   }
   },
   {
    "id": "@wren/content/src/social/done-record.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "Inbox → Done: what was approved, rejected, edited and sent, from `draft_events`, newest first, with Today and This week as tabs"
+   }
   },
   {
    "id": "@wren/content/src/social/keywords.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "Comment keywords: a word in a comment on our Instagram or Facebook post sends that person the keyword's DM, through Meta's private reply"
+   }
   },
   {
    "id": "@wren/content/src/social/maps-reviews.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "A client's Google reviews read off Maps: autobrowse's `web GET /place/reviews`, by the client's Place ID, for a client whose Business Profile isn't reading them through the API"
+   }
   },
   {
    "id": "@wren/content/src/social/records.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "Marketing → Inbox and the Inbox app's \"Waiting on you\": everything waiting on William's click in one list (`marketing.inbox`): post drafts, comments, DMs, Reddit threads to answer, accepted invites, email replies, text threads and activity"
+   }
   },
   {
    "id": "@wren/content/src/social/review-record.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "Marketing → Reviews (`marketing.review`, designs/2026-10-09-review-replies.md): every review of the business with its stars and where its reply stands"
+   }
   },
   {
    "id": "@wren/content/src/social/review-ring.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "A 1 or 2 star review rings like an `@` mention: a note on its Inbox thread `@`s the client's owners, and the mention mail tells them once"
+   }
   },
   {
    "id": "@wren/content/src/social/store.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "What SocialWatch keeps: comments on our recent posts as `comments` rows (`channel = content`), activity as `social_activity`, and one follower count per platform per day in `social_days`"
+   }
   },
   {
    "id": "@wren/content/src/status.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "`wren status`: is the content week on track? One screen from live tables"
+   }
   },
   {
    "id": "@wren/content/src/story.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "Stories (Marketing → Write's Story box): a photo he uploads, or a clip already cut, as a story on Instagram and the Facebook Page at once"
+   }
   },
   {
    "id": "@wren/content/src/subreddit.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "Where a Reddit draft posts when nobody named a subreddit: the watched places that take posts, best fit first, less any whose gate holds every account"
+   }
   },
   {
    "id": "@wren/content/src/thumbs.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "A picture for each row of a card view (`RecordType.thumbs`): a draft's image, else its poster (thumbnail or cover), else its video; a recording's picked thumbnail, else its first, else a cover, else its preview"
+   }
   },
   {
    "id": "@wren/content/src/touches.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "Touches from our own accounts' activity, and the whole backfill"
+   }
   },
   {
    "id": "@wren/content/src/train-backfill.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "The training record's backfill: the drafts made before `draft_events` existed, folded in from where their history sits"
+   }
   },
   {
    "id": "@wren/content/src/video-ask.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "Editing a video from its page: Ask Claude's prompt and answer, the page's turns, Undo"
+   }
   },
   {
    "id": "@wren/content/src/video-edit.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "The editing agent's pass on one video: the prompt, its answer, writing it, and what the page shows of it: the steps every video run took and the checks he reads before Approve"
+   }
   },
   {
    "id": "@wren/content/src/video.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "Marketing → Videos: each `video_edits` row as a record, and Approve"
+   }
   },
   {
    "id": "@wren/content/src/voice.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "How the posts sound"
+   }
   },
   {
    "id": "@wren/content/src/write.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "Posts in the person's own words (Marketing → Write): one draft per platform, no model"
+   }
   },
   {
    "id": "@wren/content/test/inbox-preview.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "A local database for looking at the Inbox: migrated, then the synthetic threads, a note with a mention, an asked reply, and threads assigned to the preview's operator"
+   }
   },
   {
    "id": "@wren/content/test/inbox-seed.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "Synthetic Inbox threads for tests and the local preview"
+   }
   },
   {
    "id": "@wren/content/test/libs-preview.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "A local database for the libraries' browser pass: the Inbox's synthetic threads (`inbox-preview.ts` runs first), then 600 made-up people at one made-up firm, each with a 555 number and so a profile, so People runs long enough to scroll"
+   }
   },
   {
    "id": "@wren/content/test/mail-preview.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "A local client for looking at mail replies in its Inbox: a synthetic client with Marketing, two mailboxes (one connected to send, one not), and mail in each"
+   }
   },
   {
    "id": "@wren/content/test/outreach-preview.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "A local database for looking at Outreach: the Inbox's synthetic seed (its LinkedIn DM is a DMs row), plus a second LinkedIn account, an invite waiting on his yes from that account, an accepted one no one has written to yet, and someone else's post with our comment drafted"
+   }
   },
   {
    "id": "@wren/content/test/threads-preview.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "A local database for looking at Engage's threads: the Inbox's synthetic seed, plus a Reddit thread where one person replied under our comment, then replied to their own reply, and a third person answered them"
+   }
   },
   {
    "id": "@wren/content/test/touch-links-preview.ts",
    "role": "file",
    "parent": "@wren/content",
-   "group": "@wren/content"
+   "group": "@wren/content",
+   "attrs": {
+    "description": "A local database for looking at touch links: one person with touches that open their item (a Reddit comment, a LinkedIn comment) and touches with no link of their own (our comment, an invite, an Instagram comment whose old url is the numeric media form), all on one profile"
+   }
   },
   {
    "id": "@wren/content/vitest.config.ts",

@@ -14,55 +14,82 @@
    "id": "@wren/channel-search/src/answers.ts",
    "role": "file",
    "parent": "@wren/channel-search",
-   "group": "@wren/channel-search"
+   "group": "@wren/channel-search",
+   "attrs": {
+    "description": "Does an answer engine cite the site? Google's page (the AI Overview, the organic results, \"People also ask\") and Perplexity, each through autobrowse (`web` `/google`, `perplexity` `/chat/completions`)"
+   }
   },
   {
    "id": "@wren/channel-search/src/apply.ts",
    "role": "file",
    "parent": "@wren/channel-search",
-   "group": "@wren/channel-search"
+   "group": "@wren/channel-search",
+   "attrs": {
+    "description": "Proposals onto the site's source files, for a pull request a person reads"
+   }
   },
   {
    "id": "@wren/channel-search/src/brief.ts",
    "role": "file",
    "parent": "@wren/channel-search",
-   "group": "@wren/channel-search"
+   "group": "@wren/channel-search",
+   "attrs": {
+    "description": "The brief: every active keyword with what Google and the engines say about it, plus each page's index state and search traffic"
+   }
   },
   {
    "id": "@wren/channel-search/src/citability.ts",
    "role": "file",
    "parent": "@wren/channel-search",
-   "group": "@wren/channel-search"
+   "group": "@wren/channel-search",
+   "attrs": {
+    "description": "How likely an answer engine is to lift a passage whole: a 0-100 heuristic over five parts (answer quality 30, self-containment 25, structure 20, figures 15, first-hand signals 10)"
+   }
   },
   {
    "id": "@wren/channel-search/src/components.ts",
    "role": "file",
    "parent": "@wren/channel-search",
-   "group": "@wren/channel-search"
+   "group": "@wren/channel-search",
+   "attrs": {
+    "description": "Search Console: the site's search numbers, watched daily and summed weekly"
+   }
   },
   {
    "id": "@wren/channel-search/src/console.ts",
    "role": "file",
    "parent": "@wren/channel-search",
-   "group": "@wren/channel-search"
+   "group": "@wren/channel-search",
+   "attrs": {
+    "description": "Google Search Console over `fetch`: search analytics, URL inspection, the sitemap list and one write, submitting the sitemap (`webmasters`); the service account is a site owner, so no delegation"
+   }
   },
   {
    "id": "@wren/channel-search/src/experiments.ts",
    "role": "file",
    "parent": "@wren/channel-search",
-   "group": "@wren/channel-search"
+   "group": "@wren/channel-search",
+   "attrs": {
+    "description": "The bandit over site experiments: each pass, every running experiment's variants are scored on its goal since it started, and the shares move (`@wren/experiments`, Thompson)"
+   }
   },
   {
    "id": "@wren/channel-search/src/flag-days.ts",
    "role": "file",
    "parent": "@wren/channel-search",
-   "group": "@wren/channel-search"
+   "group": "@wren/channel-search",
+   "attrs": {
+    "description": "`flag_days` (`@wren/core/schema`): each site flag's variants per day of first exposure and first-touch channel"
+   }
   },
   {
    "id": "@wren/channel-search/src/heat.ts",
    "role": "file",
    "parent": "@wren/channel-search",
-   "group": "@wren/channel-search"
+   "group": "@wren/channel-search",
+   "attrs": {
+    "description": "Heatmaps: the lander's `click`, `rage` and `scroll` events rolled up per day, page and width into `heat_days` and `scroll_days`"
+   }
   },
   {
    "id": "@wren/channel-search/src/index.ts",
@@ -74,25 +101,37 @@
    "id": "@wren/channel-search/src/keywords.ts",
    "role": "file",
    "parent": "@wren/channel-search",
-   "group": "@wren/channel-search"
+   "group": "@wren/channel-search",
+   "attrs": {
+    "description": "The keywords: seeds a person adds, the questions each seed fans out into, and the queries people already found the site with"
+   }
   },
   {
    "id": "@wren/channel-search/src/link-days.ts",
    "role": "file",
    "parent": "@wren/channel-search",
-   "group": "@wren/channel-search"
+   "group": "@wren/channel-search",
+   "attrs": {
+    "description": "`link_days`: the lander's export per day and `/go/` link"
+   }
   },
   {
    "id": "@wren/channel-search/src/propose.ts",
    "role": "file",
    "parent": "@wren/channel-search",
-   "group": "@wren/channel-search"
+   "group": "@wren/channel-search",
+   "attrs": {
+    "description": "Site edits for the keywords"
+   }
   },
   {
    "id": "@wren/channel-search/src/records.ts",
    "role": "file",
    "parent": "@wren/channel-search",
-   "group": "@wren/channel-search"
+   "group": "@wren/channel-search",
+   "attrs": {
+    "description": "Search and site numbers as console records for the Marketing app (views in `./schema.ts`)"
+   }
   },
   {
    "id": "@wren/channel-search/src/restate/index.ts",
@@ -104,7 +143,10 @@
    "id": "@wren/channel-search/src/restate/watch.ts",
    "role": "file",
    "parent": "@wren/channel-search",
-   "group": "@wren/channel-search"
+   "group": "@wren/channel-search",
+   "attrs": {
+    "description": "`SearchWatch/<client>/daily`: the same daily read for a client with Search watch installed and its `search_console` account set, into its own database"
+   }
   },
   {
    "id": "@wren/channel-search/src/schema.ts",
@@ -116,31 +158,46 @@
    "id": "@wren/channel-search/src/setups.ts",
    "role": "file",
    "parent": "@wren/channel-search",
-   "group": "@wren/channel-search"
+   "group": "@wren/channel-search",
+   "attrs": {
+    "description": "The Search Console setup's check: does Wren's service account see the client's property? One free read of the properties it's on"
+   }
   },
   {
    "id": "@wren/channel-search/src/site-days.ts",
    "role": "file",
    "parent": "@wren/channel-search",
-   "group": "@wren/channel-search"
+   "group": "@wren/channel-search",
+   "attrs": {
+    "description": "`site_days`: the lander's export rolled up per day, first-touch channel and campaign"
+   }
   },
   {
    "id": "@wren/channel-search/src/site.ts",
    "role": "file",
    "parent": "@wren/channel-search",
-   "group": "@wren/channel-search"
+   "group": "@wren/channel-search",
+   "attrs": {
+    "description": "The site as the model reads it: each page's title and description (what a search result shows), then `/llms.txt` (the words, from the same content files as the pages)"
+   }
   },
   {
    "id": "@wren/channel-search/src/survey-days.ts",
    "role": "file",
    "parent": "@wren/channel-search",
-   "group": "@wren/channel-search"
+   "group": "@wren/channel-search",
+   "attrs": {
+    "description": "`survey_days` (`@wren/core/schema`): each site survey's answers per day, value and the visitor's first-touch channel, from the lander's `answers` export (cookie yes only)"
+   }
   },
   {
    "id": "@wren/channel-search/src/sync.ts",
    "role": "file",
    "parent": "@wren/channel-search",
-   "group": "@wren/channel-search"
+   "group": "@wren/channel-search",
+   "attrs": {
+    "description": "The daily read: Search Console's last `days` (upserted, since Google fills them in late) and one URL inspection per sitemap page"
+   }
   },
   {
    "id": "@wren/channel-search/vitest.config.ts",

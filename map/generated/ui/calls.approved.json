@@ -1,0 +1,47 @@
+{
+ "layer": "ui",
+ "nodes": [
+  {
+   "id": "ui:calls",
+   "role": "app",
+   "group": "calls",
+   "attrs": {
+    "areas": [
+     "client: Leads"
+    ],
+    "blurb": "Booked calls, a brief before each, and how each went.",
+    "file": "apps/portal/web/src/modules/calls/index.ts",
+    "name": "Calls",
+    "workspace": "client"
+   }
+  },
+  {
+   "id": "ui:calls/calls",
+   "role": "screen",
+   "parent": "ui:calls",
+   "group": "calls",
+   "attrs": {
+    "about": "Sales calls booked with you, past and coming up.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Calls",
+    "order": 1,
+    "record": "email.call",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:calls/overview",
+   "role": "screen",
+   "parent": "ui:calls",
+   "group": "calls",
+   "attrs": {
+    "about": "Your booked sales calls at a glance.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Overview",
+    "order": 0,
+    "template": "overview"
+   }
+  }
+ ],
+ "edges": []
+}

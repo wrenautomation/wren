@@ -1,0 +1,1635 @@
+{
+ "layer": "systems",
+ "nodes": [
+  {
+   "id": "system:wren",
+   "role": "system",
+   "group": "wren",
+   "attrs": {
+    "description": "Wren Automation: campaigns, channels and client products.",
+    "kind": "repo",
+    "title": "wren"
+   }
+  },
+  {
+   "id": "system:wren.cdn:videos",
+   "role": "part",
+   "parent": "system:wren",
+   "group": "wren",
+   "attrs": {
+    "code": [
+     "deploy/terraform/videos.tf"
+    ],
+    "description": "Serves demo videos under v/ from the private bucket",
+    "kind": "cdn",
+    "technology": "CloudFront",
+    "title": "videos"
+   }
+  },
+  {
+   "id": "system:wren.container:box-caddy",
+   "role": "part",
+   "parent": "system:wren.host:pg",
+   "group": "wren",
+   "attrs": {
+    "code": [
+     "deploy/scripts/box-restate.sh"
+    ],
+    "description": "TLS in front of the Restate ingress, Listmonk and the box browser.",
+    "kind": "container",
+    "technology": "container",
+    "title": "box-caddy"
+   }
+  },
+  {
+   "id": "system:wren.container:browser",
+   "role": "part",
+   "parent": "system:wren.host:pg",
+   "group": "wren",
+   "attrs": {
+    "code": [
+     "deploy/terraform/user-data.sh"
+    ],
+    "description": "Headless Chromium for page renders.",
+    "kind": "container",
+    "technology": "container",
+    "title": "browser"
+   }
+  },
+  {
+   "id": "system:wren.container:desk-hop",
+   "role": "part",
+   "parent": "system:wren.host:pg",
+   "group": "wren",
+   "attrs": {
+    "code": [
+     "deploy/scripts/box-restate.sh"
+    ],
+    "description": "The hop to the desk's Cloudflare Tunnel.",
+    "kind": "container",
+    "technology": "container",
+    "title": "desk-hop"
+   }
+  },
+  {
+   "id": "system:wren.container:documenso-app",
+   "role": "part",
+   "parent": "system:wren",
+   "group": "wren",
+   "attrs": {
+    "code": [
+     "deploy/documenso/compose.yml"
+    ],
+    "description": "Documenso: Wren's e-signatures",
+    "kind": "container",
+    "technology": "documenso/documenso:v2.21.0",
+    "title": "app"
+   }
+  },
+  {
+   "id": "system:wren.container:documenso-caddy",
+   "role": "part",
+   "parent": "system:wren",
+   "group": "wren",
+   "attrs": {
+    "code": [
+     "deploy/documenso/compose.yml"
+    ],
+    "description": "TLS for DOCUMENSO_HOST; holds the only public ports",
+    "kind": "container",
+    "technology": "public.ecr.aws/docker/library/caddy:2-alpine",
+    "title": "caddy"
+   }
+  },
+  {
+   "id": "system:wren.container:documenso-db",
+   "role": "part",
+   "parent": "system:wren",
+   "group": "wren",
+   "attrs": {
+    "code": [
+     "deploy/documenso/compose.yml"
+    ],
+    "description": "Documenso's own Postgres",
+    "kind": "container",
+    "technology": "public.ecr.aws/docker/library/postgres:16-alpine",
+    "title": "db"
+   }
+  },
+  {
+   "id": "system:wren.container:listmonk",
+   "role": "part",
+   "parent": "system:wren.host:pg",
+   "group": "wren",
+   "attrs": {
+    "code": [
+     "deploy/scripts/box-listmonk.sh"
+    ],
+    "description": "Newsletter lists and campaigns; posts each message to Restate.",
+    "kind": "container",
+    "technology": "container",
+    "title": "listmonk"
+   }
+  },
+  {
+   "id": "system:wren.container:pgbouncer",
+   "role": "part",
+   "parent": "system:wren.host:pg",
+   "group": "wren",
+   "attrs": {
+    "code": [
+     "deploy/scripts/box-pgbouncer.sh"
+    ],
+    "description": "Pools the worker's Postgres connections on 6432.",
+    "kind": "container",
+    "technology": "container",
+    "title": "pgbouncer"
+   }
+  },
+  {
+   "id": "system:wren.container:postgres",
+   "role": "part",
+   "parent": "system:wren.host:pg",
+   "group": "wren",
+   "attrs": {
+    "code": [
+     "deploy/terraform/user-data.sh"
+    ],
+    "description": "The main database.",
+    "kind": "container",
+    "technology": "container",
+    "title": "postgres"
+   }
+  },
+  {
+   "id": "system:wren.container:restate",
+   "role": "part",
+   "parent": "system:wren.host:pg",
+   "group": "wren",
+   "attrs": {
+    "code": [
+     "deploy/scripts/box-restate.sh"
+    ],
+    "description": "The box's own Restate server, for the pool chain.",
+    "kind": "container",
+    "technology": "container",
+    "title": "restate"
+   }
+  },
+  {
+   "id": "system:wren.container:valkey",
+   "role": "part",
+   "parent": "system:wren.host:pg",
+   "group": "wren",
+   "attrs": {
+    "code": [
+     "deploy/scripts/box-valkey.sh"
+    ],
+    "description": "The shared cache; holds the Restate admin reads for 5 minutes.",
+    "kind": "container",
+    "technology": "container",
+    "title": "valkey"
+   }
+  },
+  {
+   "id": "system:wren.container:vps-caddy",
+   "role": "part",
+   "parent": "system:wren.host:vps",
+   "group": "wren",
+   "attrs": {
+    "code": [
+     "deploy/vps/compose.yml"
+    ],
+    "description": "TLS for each name; holds the only public ports",
+    "kind": "container",
+    "technology": "public.ecr.aws/docker/library/caddy:2-alpine",
+    "title": "caddy"
+   }
+  },
+  {
+   "id": "system:wren.container:vps-prober",
+   "role": "part",
+   "parent": "system:wren.host:vps",
+   "group": "wren",
+   "attrs": {
+    "code": [
+     "deploy/vps/compose.yml"
+    ],
+    "description": "SMTP prober: checks an address over port 25, which AWS keeps closed",
+    "kind": "container",
+    "technology": "public.ecr.aws/docker/library/node:22-alpine",
+    "title": "prober"
+   }
+  },
+  {
+   "id": "system:wren.container:vps-searxng",
+   "role": "part",
+   "parent": "system:wren.host:vps",
+   "group": "wren",
+   "attrs": {
+    "code": [
+     "deploy/vps/compose.yml"
+    ],
+    "description": "SearXNG metasearch for the research engine (box 1 only)",
+    "kind": "container",
+    "technology": "docker.io/searxng/searxng:2026.10.27-ef7bae9dd",
+    "title": "searxng"
+   }
+  },
+  {
+   "id": "system:wren.container:worker",
+   "role": "part",
+   "parent": "system:wren.host:pg",
+   "group": "wren",
+   "attrs": {
+    "code": [
+     "apps/worker/src/box.ts",
+     "deploy/scripts/box-worker.sh"
+    ],
+    "description": "The pool chain's waiting-heavy services, on the box.",
+    "kind": "container",
+    "technology": "container",
+    "title": "worker"
+   }
+  },
+  {
+   "id": "system:wren.d1:wren-pixel",
+   "role": "part",
+   "parent": "system:wren",
+   "group": "wren",
+   "attrs": {
+    "code": [
+     "deploy/pixel/wrangler.toml"
+    ],
+    "description": "Each pixel fetch, until OpensScheduler pulls it into Postgres",
+    "kind": "d1",
+    "technology": "Cloudflare D1",
+    "title": "wren-pixel"
+   }
+  },
+  {
+   "id": "system:wren.host:pg",
+   "role": "part",
+   "parent": "system:wren",
+   "group": "wren",
+   "attrs": {
+    "code": [
+     "deploy/terraform/postgres.tf"
+    ],
+    "description": "The box: Postgres and the long-running containers beside it",
+    "kind": "host",
+    "technology": "EC2",
+    "title": "pg"
+   }
+  },
+  {
+   "id": "system:wren.host:vps",
+   "role": "part",
+   "parent": "system:wren",
+   "group": "wren",
+   "attrs": {
+    "code": [
+     "deploy/vps/compose.yml"
+    ],
+    "description": "The RackNerd VPS: SMTP prober and SearXNG.",
+    "kind": "host",
+    "title": "vps"
+   }
+  },
+  {
+   "id": "system:wren.kv:CRED_LINKS",
+   "role": "part",
+   "parent": "system:wren",
+   "group": "wren",
+   "attrs": {
+    "code": [
+     "apps/phone/wrangler.toml"
+    ],
+    "description": "Credential links: ciphertext only, 10 minutes unless minted longer (designs/2026-10-06-credential-links.md)",
+    "kind": "kv",
+    "technology": "Cloudflare KV",
+    "title": "CRED_LINKS"
+   }
+  },
+  {
+   "id": "system:wren.lambda:auth",
+   "role": "part",
+   "parent": "system:wren",
+   "group": "wren",
+   "attrs": {
+    "code": [
+     "apps/auth/lambda/index.ts",
+     "deploy/terraform/auth.tf"
+    ],
+    "description": "Sign-in: Better Auth over the main database, behind the auth Worker",
+    "kind": "lambda",
+    "technology": "Lambda",
+    "title": "auth"
+   }
+  },
+  {
+   "id": "system:wren.lambda:turbo_cache",
+   "role": "part",
+   "parent": "system:wren",
+   "group": "wren",
+   "attrs": {
+    "code": [
+     "deploy/terraform/turbo-cache.tf"
+    ],
+    "description": "Turborepo remote cache for the gates and CI",
+    "kind": "lambda",
+    "technology": "Lambda",
+    "title": "turbo_cache"
+   }
+  },
+  {
+   "id": "system:wren.lambda:worker",
+   "role": "part",
+   "parent": "system:wren",
+   "group": "wren",
+   "attrs": {
+    "code": [
+     "apps/worker/src/lambda.ts",
+     "deploy/terraform/lambda.tf"
+    ],
+    "description": "The worker: every Restate service, invoked by Restate Cloud",
+    "kind": "lambda",
+    "technology": "Lambda",
+    "title": "worker"
+   }
+  },
+  {
+   "id": "system:wren.process:voice",
+   "role": "part",
+   "parent": "system:wren.host:pg",
+   "group": "wren",
+   "attrs": {
+    "code": [
+     "deploy/voice/wren-voice.service",
+     "packages/voice/src/box/main.ts"
+    ],
+    "description": "The voice agent's call loop. Not installed yet.",
+    "kind": "process",
+    "title": "voice"
+   }
+  },
+  {
+   "id": "system:wren.r2:autobrowse-share",
+   "role": "part",
+   "parent": "system:wren",
+   "group": "wren",
+   "attrs": {
+    "code": [
+     "apps/share/wrangler.toml"
+    ],
+    "description": "The shared library's uploads",
+    "kind": "r2",
+    "technology": "Cloudflare R2",
+    "title": "autobrowse-share"
+   }
+  },
+  {
+   "id": "system:wren.s3:backups",
+   "role": "part",
+   "parent": "system:wren",
+   "group": "wren",
+   "attrs": {
+    "code": [
+     "deploy/terraform/postgres.tf"
+    ],
+    "description": "Nightly Postgres and Restate backups, and worker bundles",
+    "kind": "s3",
+    "technology": "S3 bucket",
+    "title": "backups"
+   }
+  },
+  {
+   "id": "system:wren.s3:files",
+   "role": "part",
+   "parent": "system:wren",
+   "group": "wren",
+   "attrs": {
+    "code": [
+     "deploy/terraform/files.tf"
+    ],
+    "description": "Client files (D11): what we hand over and what a client uploads to answer an ask, under clients/<id>/",
+    "kind": "s3",
+    "technology": "S3 bucket",
+    "title": "files"
+   }
+  },
+  {
+   "id": "system:wren.s3:lake",
+   "role": "part",
+   "parent": "system:wren",
+   "group": "wren",
+   "attrs": {
+    "code": [
+     "deploy/terraform/lake.tf"
+    ],
+    "description": "The lake (designs/2026-10-11-lake.md): every database's tables as Parquet, all history, written by `wren lake sync` (nightly in CI, .github/workflows/lake.yml) and read by `wren lake sql`",
+    "kind": "s3",
+    "technology": "S3 bucket",
+    "title": "lake"
+   }
+  },
+  {
+   "id": "system:wren.s3:media",
+   "role": "part",
+   "parent": "system:wren",
+   "group": "wren",
+   "attrs": {
+    "code": [
+     "deploy/terraform/media.tf"
+    ],
+    "description": "The media store: a video or image a post carries",
+    "kind": "s3",
+    "technology": "S3 bucket",
+    "title": "media"
+   }
+  },
+  {
+   "id": "system:wren.s3:pages",
+   "role": "part",
+   "parent": "system:wren",
+   "group": "wren",
+   "attrs": {
+    "code": [
+     "deploy/terraform/pages.tf"
+    ],
+    "description": "Crawled page HTML a day old (`PageArchive`, served on the Postgres box): gzip under pages/<document id>.html.gz",
+    "kind": "s3",
+    "technology": "S3 bucket",
+    "title": "pages"
+   }
+  },
+  {
+   "id": "system:wren.s3:turbo_cache",
+   "role": "part",
+   "parent": "system:wren",
+   "group": "wren",
+   "attrs": {
+    "code": [
+     "deploy/terraform/turbo-cache.tf"
+    ],
+    "description": "Turborepo cache artifacts, kept 30 days",
+    "kind": "s3",
+    "technology": "S3 bucket",
+    "title": "turbo_cache"
+   }
+  },
+  {
+   "id": "system:wren.s3:videos",
+   "role": "part",
+   "parent": "system:wren",
+   "group": "wren",
+   "attrs": {
+    "code": [
+     "deploy/terraform/videos.tf"
+    ],
+    "description": "Per-lead demo videos: `v/<id>.mp4`, `.jpg` and `.json`, uploaded by the CLI (`wren video render`), played by the lander's /v/<id> page through CloudFront",
+    "kind": "s3",
+    "technology": "S3 bucket",
+    "title": "videos"
+   }
+  },
+  {
+   "id": "system:wren.worker:auth",
+   "role": "part",
+   "parent": "system:wren",
+   "group": "wren",
+   "attrs": {
+    "code": [
+     "apps/auth/src/worker.ts",
+     "apps/auth/wrangler.toml"
+    ],
+    "description": "Edge Worker for sign-in: forwards /api/auth to the auth Lambda.",
+    "kind": "worker",
+    "technology": "Cloudflare Worker",
+    "title": "wren-auth"
+   }
+  },
+  {
+   "id": "system:wren.worker:llm-gateway",
+   "role": "part",
+   "parent": "system:wren",
+   "group": "wren",
+   "attrs": {
+    "code": [
+     "apps/llm-gateway/src/worker.ts",
+     "apps/llm-gateway/wrangler.toml"
+    ],
+    "description": "Free-tier model gateway: rotates Gemini, OpenRouter and Cohere keys.",
+    "kind": "worker",
+    "technology": "Cloudflare Worker",
+    "title": "wren-llm-gateway"
+   }
+  },
+  {
+   "id": "system:wren.worker:phone",
+   "role": "part",
+   "parent": "system:wren",
+   "group": "wren",
+   "attrs": {
+    "code": [
+     "apps/phone/src/worker.ts",
+     "apps/phone/wrangler.toml"
+    ],
+    "description": "Webhooks in: Telnyx calls and texts, Linq, Cal.com bookings.",
+    "kind": "worker",
+    "technology": "Cloudflare Worker",
+    "title": "wren-phone"
+   }
+  },
+  {
+   "id": "system:wren.worker:pixel",
+   "role": "part",
+   "parent": "system:wren",
+   "group": "wren",
+   "attrs": {
+    "code": [
+     "deploy/pixel/src/worker.js",
+     "deploy/pixel/wrangler.toml"
+    ],
+    "description": "Open-tracking pixel on t.wrenautomation.com; off by default.",
+    "kind": "worker",
+    "technology": "Cloudflare Worker",
+    "title": "wren-pixel"
+   }
+  },
+  {
+   "id": "system:wren.worker:portal",
+   "role": "part",
+   "parent": "system:wren",
+   "group": "wren",
+   "attrs": {
+    "code": [
+     "apps/portal/src/worker.ts",
+     "apps/portal/wrangler.toml"
+    ],
+    "description": "The client portal and operator app.",
+    "kind": "worker",
+    "technology": "Cloudflare Worker",
+    "title": "wren-portal"
+   }
+  },
+  {
+   "id": "system:wren.worker:share",
+   "role": "part",
+   "parent": "system:wren",
+   "group": "wren",
+   "attrs": {
+    "code": [
+     "apps/share/src/worker.ts",
+     "apps/share/wrangler.toml"
+    ],
+    "description": "share.wrenautomation.com: the shared library's ingest.",
+    "kind": "worker",
+    "technology": "Cloudflare Worker",
+    "title": "wren-share"
+   }
+  }
+ ],
+ "edges": [
+  {
+   "from": "system:wren",
+   "to": "system:autobrowse",
+   "kind": "uses",
+   "attrs": {
+    "here": [
+     "apps/auth/package.json",
+     "apps/cli/package.json",
+     "apps/worker/package.json",
+     "packages/calendar/package.json",
+     "packages/channel-email/package.json",
+     "packages/channel-search/package.json",
+     "packages/connectors/package.json",
+     "packages/content/package.json"
+    ],
+    "title": [
+     "npm `@wrenautomation/autobrowse`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren",
+   "to": "system:engine",
+   "kind": "uses",
+   "attrs": {
+    "here": [
+     "apps/cli/package.json",
+     "apps/worker/package.json",
+     "packages/books/package.json",
+     "packages/channel-email/package.json",
+     "packages/core/package.json",
+     "packages/learn/package.json",
+     "packages/llm/package.json",
+     "packages/niches/package.json",
+     "packages/reactivation/package.json",
+     "packages/research/package.json",
+     "packages/studio/package.json",
+     "packages/voice/package.json"
+    ],
+    "title": [
+     "npm `@wrenautomation/falcon`",
+     "npm `@wrenautomation/models`",
+     "npm `@wrenautomation/weaver`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren",
+   "to": "system:mailifier",
+   "kind": "uses",
+   "attrs": {
+    "here": [
+     "packages/channel-email/package.json"
+    ],
+    "title": [
+     "npm `mailifier`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.cdn:videos",
+   "to": "system:wren.s3:videos",
+   "kind": "uses",
+   "attrs": {
+    "here": [
+     "deploy/terraform/videos.tf"
+    ],
+    "title": [
+     "`aws_s3_bucket.videos`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.container:worker",
+   "to": "system:restate",
+   "kind": "calls",
+   "attrs": {
+    "here": [
+     "apps/worker/src/services/content.ts",
+     "apps/worker/src/services/platform.ts",
+     "packages/core/src/dead-letters.ts"
+    ],
+    "title": [
+     "`WREN_RESTATE_ADMIN_URL`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.container:worker",
+   "to": "system:wren.container:browser",
+   "kind": "calls",
+   "attrs": {
+    "here": [
+     "apps/worker/src/services/content.ts",
+     "apps/worker/src/services/deps.ts",
+     "packages/content/src/slide-paint.ts",
+     "packages/research/src/enrichment/remote-browser.ts"
+    ],
+    "title": [
+     "`WREN_CDP_URL`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.container:worker",
+   "to": "system:wren.container:documenso-app",
+   "kind": "calls",
+   "attrs": {
+    "here": [
+     "apps/worker/src/services/apps.ts",
+     "packages/documents/src/components.ts",
+     "packages/documents/src/service.ts"
+    ],
+    "title": [
+     "`WREN_DOCUMENSO_URL`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.container:worker",
+   "to": "system:wren.container:listmonk",
+   "kind": "calls",
+   "attrs": {
+    "here": [
+     "apps/worker/src/services/email.ts",
+     "packages/channel-email/src/components.ts",
+     "packages/channel-email/src/restate/listmonk.ts"
+    ],
+    "title": [
+     "`WREN_LISTMONK_URL`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.container:worker",
+   "to": "system:wren.container:pgbouncer",
+   "kind": "calls",
+   "attrs": {
+    "here": [
+     "apps/worker/src/services/deps.ts"
+    ],
+    "title": [
+     "`WREN_DATABASE_POOL_PORT`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.container:worker",
+   "to": "system:wren.container:postgres",
+   "kind": "calls",
+   "attrs": {
+    "here": [
+     "apps/worker/src/box.ts",
+     "apps/worker/src/services/deps.ts",
+     "apps/worker/src/services/platform.ts",
+     "apps/worker/src/services/research.ts",
+     "apps/worker/src/wake.ts",
+     "packages/db/src/index.ts",
+     "packages/db/src/listen.ts"
+    ],
+    "title": [
+     "`WREN_DATABASE_URL`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.container:worker",
+   "to": "system:wren.container:valkey",
+   "kind": "calls",
+   "attrs": {
+    "here": [
+     "apps/worker/src/services/platform.ts",
+     "packages/core/src/cache.ts"
+    ],
+    "title": [
+     "`WREN_CACHE_URL`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.container:worker",
+   "to": "system:wren.container:vps-prober",
+   "kind": "calls",
+   "attrs": {
+    "here": [
+     "apps/worker/src/services/deps.ts",
+     "apps/worker/src/services/email.ts",
+     "packages/channel-email/src/restate/digest-scheduler.ts",
+     "packages/channel-email/src/verification/prober-health.ts",
+     "packages/channel-email/src/verification/verifier.ts"
+    ],
+    "title": [
+     "`WREN_SMTP_PROBE_URL`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.container:worker",
+   "to": "system:wren.s3:files",
+   "kind": "calls",
+   "attrs": {
+    "here": [
+     "apps/worker/src/services/apps.ts",
+     "apps/worker/src/services/clients.ts",
+     "apps/worker/src/services/deps.ts",
+     "apps/worker/src/services/platform.ts"
+    ],
+    "title": [
+     "`WREN_FILES_BUCKET`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.container:worker",
+   "to": "system:wren.s3:media",
+   "kind": "calls",
+   "attrs": {
+    "here": [
+     "apps/worker/src/services/content-channels.ts",
+     "apps/worker/src/services/content.ts",
+     "apps/worker/src/services/deps.ts",
+     "apps/worker/src/services/reach.ts",
+     "apps/worker/src/services/watch.ts",
+     "packages/content/src/connect/own.ts"
+    ],
+    "title": [
+     "`WREN_MEDIA_BUCKET`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.container:worker",
+   "to": "system:wren.s3:pages",
+   "kind": "calls",
+   "attrs": {
+    "here": [
+     "apps/worker/src/services/research.ts",
+     "packages/research/src/restate/page-archive.ts"
+    ],
+    "title": [
+     "`WREN_PAGES_BUCKET`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.container:worker",
+   "to": "system:wren.worker:pixel",
+   "kind": "calls",
+   "attrs": {
+    "here": [
+     "apps/worker/src/services/deps.ts",
+     "apps/worker/src/services/email.ts",
+     "packages/channel-email/src/restate/send-scheduler.ts",
+     "packages/channel-email/src/send/deliver.ts",
+     "packages/channel-email/src/send/tick.ts",
+     "packages/channel-email/src/sequences.ts",
+     "packages/reactivation/src/sending.ts"
+    ],
+    "title": [
+     "`WREN_PIXEL_BASE_URL`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.container:worker",
+   "to": "system:autobrowse",
+   "kind": "uses",
+   "attrs": {
+    "here": [
+     "apps/worker/src/services/deps.ts",
+     "apps/worker/src/services/email.ts",
+     "apps/worker/src/services/research.ts",
+     "apps/worker/src/services/watch.ts",
+     "packages/calendar/src/google.ts",
+     "packages/channel-email/src/access/access.ts",
+     "packages/channel-email/src/access/setups.ts",
+     "packages/channel-email/src/inbox/postmaster.ts",
+     "packages/channel-email/src/inbox/sync.ts",
+     "packages/channel-email/src/restate/inbox-scheduler.ts",
+     "packages/channel-email/src/send/gmail.ts",
+     "packages/channel-email/src/send/mailboxes.ts",
+     "packages/channel-email/src/send/smtp.ts",
+     "packages/channel-search/src/console.ts",
+     "packages/channel-search/src/restate/watch.ts",
+     "packages/channel-search/src/site.ts",
+     "packages/connectors/src/connectors.ts",
+     "packages/content/src/connect/access.ts",
+     "packages/content/src/connect/oauth.ts",
+     "packages/content/src/connect/sites.ts"
+    ],
+    "title": [
+     "`@wrenautomation/autobrowse/google`",
+     "`@wrenautomation/autobrowse/mail`",
+     "`@wrenautomation/autobrowse/oauth`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.container:worker",
+   "to": "system:engine",
+   "kind": "uses",
+   "attrs": {
+    "here": [
+     "apps/worker/src/services/deps.ts",
+     "apps/worker/src/services/executor.ts",
+     "apps/worker/src/services/reactivation.ts",
+     "apps/worker/src/services/research.ts",
+     "packages/books/src/capture.ts",
+     "packages/books/src/text.ts",
+     "packages/channel-email/src/inbox/inbound.ts",
+     "packages/core/src/model-prices.ts",
+     "packages/learn/src/breakdown.ts",
+     "packages/learn/src/creators.ts",
+     "packages/learn/src/film.ts",
+     "packages/learn/src/hunt.ts",
+     "packages/learn/src/read.ts",
+     "packages/llm/src/client.ts",
+     "packages/niches/src/agencies/profiles.ts",
+     "packages/niches/src/sec-ria/datasets.ts",
+     "packages/reactivation/src/demo/seed.ts",
+     "packages/reactivation/src/run.ts",
+     "packages/reactivation/src/signals.ts",
+     "packages/research/src/companies/boards.ts",
+     "packages/research/src/companies/customers.ts",
+     "packages/research/src/companies/events.ts",
+     "packages/research/src/companies/hiring.ts",
+     "packages/research/src/discovery/find.ts",
+     "packages/research/src/discovery/homepage.ts",
+     "packages/research/src/enrichment/crawler.ts",
+     "packages/research/src/enrichment/email-scan.ts",
+     "packages/research/src/enrichment/news-triggers.ts",
+     "packages/research/src/enrichment/opener.ts",
+     "packages/research/src/enrichment/render.ts",
+     "packages/research/src/enrichment/shared-pages.ts",
+     "packages/research/src/fetch/datasets.ts",
+     "packages/research/src/fetch/overture.ts",
+     "packages/research/src/fetch/ppp.ts",
+     "packages/research/src/fetch/sba.ts",
+     "packages/research/src/fetch/tier-memory.ts",
+     "packages/research/src/restate/discovery.ts",
+     "packages/research/src/restate/enrichment-context.ts",
+     "packages/research/src/schema.ts",
+     "packages/research/src/signals/index.ts",
+     "packages/research/src/signals/site.ts",
+     "packages/research/src/sops/index.ts"
+    ],
+    "title": [
+     "`@wrenautomation/falcon/study`",
+     "`@wrenautomation/falcon/text`",
+     "`@wrenautomation/falcon/video`",
+     "`@wrenautomation/models/command`",
+     "`@wrenautomation/models/prices`",
+     "`@wrenautomation/models`",
+     "`@wrenautomation/weaver/fetch`",
+     "`@wrenautomation/weaver/video`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.container:worker",
+   "to": "system:mailifier",
+   "kind": "uses",
+   "attrs": {
+    "here": [
+     "packages/channel-email/src/verification/mailifier.ts"
+    ],
+    "title": [
+     "`mailifier`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.container:worker",
+   "to": "system:restate",
+   "kind": "uses",
+   "attrs": {
+    "here": [
+     "packages/core/src/content/ingress.ts"
+    ],
+    "title": [
+     "`@restatedev/restate-sdk-clients`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.container:worker",
+   "to": "system:ssm",
+   "kind": "uses",
+   "attrs": {
+    "here": [
+     "packages/config/src/ssm.ts"
+    ],
+    "title": [
+     "`@aws-sdk/client-ssm`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.container:worker",
+   "to": "system:stripe",
+   "kind": "uses",
+   "attrs": {
+    "here": [
+     "packages/payments/src/stripe.ts"
+    ],
+    "title": [
+     "`stripe`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.host:pg",
+   "to": "system:wren.s3:backups",
+   "kind": "uses",
+   "attrs": {
+    "here": [
+     "deploy/terraform/postgres.tf"
+    ],
+    "title": [
+     "`aws_s3_bucket.backups`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.lambda:auth",
+   "to": "system:wren.container:postgres",
+   "kind": "calls",
+   "attrs": {
+    "here": [
+     "apps/auth/lambda/index.ts",
+     "packages/db/src/index.ts",
+     "packages/db/src/listen.ts"
+    ],
+    "title": [
+     "`WREN_DATABASE_URL`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.lambda:auth",
+   "to": "system:autobrowse",
+   "kind": "uses",
+   "attrs": {
+    "here": [
+     "apps/auth/lambda/index.ts",
+     "packages/channel-email/src/send/gmail.ts"
+    ],
+    "title": [
+     "`@wrenautomation/autobrowse/google`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.lambda:auth",
+   "to": "system:ssm",
+   "kind": "uses",
+   "attrs": {
+    "here": [
+     "packages/config/src/ssm.ts"
+    ],
+    "title": [
+     "`@aws-sdk/client-ssm`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.lambda:turbo_cache",
+   "to": "system:wren.s3:turbo_cache",
+   "kind": "uses",
+   "attrs": {
+    "here": [
+     "deploy/terraform/turbo-cache.tf"
+    ],
+    "title": [
+     "`aws_s3_bucket.turbo_cache`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.lambda:worker",
+   "to": "system:restate",
+   "kind": "calls",
+   "attrs": {
+    "here": [
+     "apps/worker/src/services/content.ts",
+     "apps/worker/src/services/platform.ts",
+     "packages/core/src/dead-letters.ts"
+    ],
+    "title": [
+     "`WREN_RESTATE_ADMIN_URL`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.lambda:worker",
+   "to": "system:wren.container:browser",
+   "kind": "calls",
+   "attrs": {
+    "here": [
+     "apps/worker/src/services/content.ts",
+     "apps/worker/src/services/deps.ts",
+     "packages/content/src/slide-paint.ts",
+     "packages/research/src/enrichment/remote-browser.ts"
+    ],
+    "title": [
+     "`WREN_CDP_URL`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.lambda:worker",
+   "to": "system:wren.container:documenso-app",
+   "kind": "calls",
+   "attrs": {
+    "here": [
+     "apps/worker/src/services/apps.ts",
+     "packages/documents/src/components.ts",
+     "packages/documents/src/service.ts"
+    ],
+    "title": [
+     "`WREN_DOCUMENSO_URL`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.lambda:worker",
+   "to": "system:wren.container:listmonk",
+   "kind": "calls",
+   "attrs": {
+    "here": [
+     "apps/worker/src/services/email.ts",
+     "packages/channel-email/src/components.ts",
+     "packages/channel-email/src/restate/listmonk.ts"
+    ],
+    "title": [
+     "`WREN_LISTMONK_URL`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.lambda:worker",
+   "to": "system:wren.container:pgbouncer",
+   "kind": "calls",
+   "attrs": {
+    "here": [
+     "apps/worker/src/services/deps.ts"
+    ],
+    "title": [
+     "`WREN_DATABASE_POOL_PORT`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.lambda:worker",
+   "to": "system:wren.container:postgres",
+   "kind": "calls",
+   "attrs": {
+    "here": [
+     "apps/worker/src/services/deps.ts",
+     "apps/worker/src/services/platform.ts",
+     "apps/worker/src/services/research.ts",
+     "packages/db/src/index.ts",
+     "packages/db/src/listen.ts"
+    ],
+    "title": [
+     "`WREN_DATABASE_URL`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.lambda:worker",
+   "to": "system:wren.container:valkey",
+   "kind": "calls",
+   "attrs": {
+    "here": [
+     "apps/worker/src/services/platform.ts",
+     "packages/core/src/cache.ts"
+    ],
+    "title": [
+     "`WREN_CACHE_URL`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.lambda:worker",
+   "to": "system:wren.container:vps-prober",
+   "kind": "calls",
+   "attrs": {
+    "here": [
+     "apps/worker/src/services/deps.ts",
+     "apps/worker/src/services/email.ts",
+     "packages/channel-email/src/restate/digest-scheduler.ts",
+     "packages/channel-email/src/verification/prober-health.ts",
+     "packages/channel-email/src/verification/verifier.ts"
+    ],
+    "title": [
+     "`WREN_SMTP_PROBE_URL`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.lambda:worker",
+   "to": "system:wren.s3:files",
+   "kind": "calls",
+   "attrs": {
+    "here": [
+     "apps/worker/src/services/apps.ts",
+     "apps/worker/src/services/clients.ts",
+     "apps/worker/src/services/deps.ts",
+     "apps/worker/src/services/platform.ts"
+    ],
+    "title": [
+     "`WREN_FILES_BUCKET`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.lambda:worker",
+   "to": "system:wren.s3:media",
+   "kind": "calls",
+   "attrs": {
+    "here": [
+     "apps/worker/src/services/content-channels.ts",
+     "apps/worker/src/services/content.ts",
+     "apps/worker/src/services/deps.ts",
+     "apps/worker/src/services/reach.ts",
+     "apps/worker/src/services/watch.ts",
+     "packages/content/src/connect/own.ts"
+    ],
+    "title": [
+     "`WREN_MEDIA_BUCKET`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.lambda:worker",
+   "to": "system:wren.s3:pages",
+   "kind": "calls",
+   "attrs": {
+    "here": [
+     "apps/worker/src/services/research.ts",
+     "packages/research/src/restate/page-archive.ts"
+    ],
+    "title": [
+     "`WREN_PAGES_BUCKET`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.lambda:worker",
+   "to": "system:wren.worker:pixel",
+   "kind": "calls",
+   "attrs": {
+    "here": [
+     "apps/worker/src/services/deps.ts",
+     "apps/worker/src/services/email.ts",
+     "packages/channel-email/src/restate/send-scheduler.ts",
+     "packages/channel-email/src/send/deliver.ts",
+     "packages/channel-email/src/send/tick.ts",
+     "packages/channel-email/src/sequences.ts",
+     "packages/reactivation/src/sending.ts"
+    ],
+    "title": [
+     "`WREN_PIXEL_BASE_URL`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.lambda:worker",
+   "to": "system:autobrowse",
+   "kind": "uses",
+   "attrs": {
+    "here": [
+     "apps/worker/src/services/deps.ts",
+     "apps/worker/src/services/email.ts",
+     "apps/worker/src/services/research.ts",
+     "apps/worker/src/services/watch.ts",
+     "packages/calendar/src/google.ts",
+     "packages/channel-email/src/access/access.ts",
+     "packages/channel-email/src/access/setups.ts",
+     "packages/channel-email/src/inbox/postmaster.ts",
+     "packages/channel-email/src/inbox/sync.ts",
+     "packages/channel-email/src/restate/inbox-scheduler.ts",
+     "packages/channel-email/src/send/gmail.ts",
+     "packages/channel-email/src/send/mailboxes.ts",
+     "packages/channel-email/src/send/smtp.ts",
+     "packages/channel-search/src/console.ts",
+     "packages/channel-search/src/restate/watch.ts",
+     "packages/channel-search/src/site.ts",
+     "packages/connectors/src/connectors.ts",
+     "packages/content/src/connect/access.ts",
+     "packages/content/src/connect/oauth.ts",
+     "packages/content/src/connect/sites.ts"
+    ],
+    "title": [
+     "`@wrenautomation/autobrowse/google`",
+     "`@wrenautomation/autobrowse/mail`",
+     "`@wrenautomation/autobrowse/oauth`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.lambda:worker",
+   "to": "system:engine",
+   "kind": "uses",
+   "attrs": {
+    "here": [
+     "apps/worker/src/services/deps.ts",
+     "apps/worker/src/services/executor.ts",
+     "apps/worker/src/services/reactivation.ts",
+     "apps/worker/src/services/research.ts",
+     "packages/books/src/capture.ts",
+     "packages/books/src/text.ts",
+     "packages/channel-email/src/inbox/inbound.ts",
+     "packages/core/src/model-prices.ts",
+     "packages/learn/src/breakdown.ts",
+     "packages/learn/src/creators.ts",
+     "packages/learn/src/film.ts",
+     "packages/learn/src/hunt.ts",
+     "packages/learn/src/read.ts",
+     "packages/llm/src/client.ts",
+     "packages/niches/src/agencies/profiles.ts",
+     "packages/niches/src/sec-ria/datasets.ts",
+     "packages/reactivation/src/demo/seed.ts",
+     "packages/reactivation/src/run.ts",
+     "packages/reactivation/src/signals.ts",
+     "packages/research/src/companies/boards.ts",
+     "packages/research/src/companies/customers.ts",
+     "packages/research/src/companies/events.ts",
+     "packages/research/src/companies/hiring.ts",
+     "packages/research/src/discovery/find.ts",
+     "packages/research/src/discovery/homepage.ts",
+     "packages/research/src/enrichment/crawler.ts",
+     "packages/research/src/enrichment/email-scan.ts",
+     "packages/research/src/enrichment/news-triggers.ts",
+     "packages/research/src/enrichment/opener.ts",
+     "packages/research/src/enrichment/render.ts",
+     "packages/research/src/enrichment/shared-pages.ts",
+     "packages/research/src/fetch/datasets.ts",
+     "packages/research/src/fetch/overture.ts",
+     "packages/research/src/fetch/ppp.ts",
+     "packages/research/src/fetch/sba.ts",
+     "packages/research/src/fetch/tier-memory.ts",
+     "packages/research/src/restate/discovery.ts",
+     "packages/research/src/restate/enrichment-context.ts",
+     "packages/research/src/schema.ts",
+     "packages/research/src/signals/index.ts",
+     "packages/research/src/signals/site.ts",
+     "packages/research/src/sops/index.ts"
+    ],
+    "title": [
+     "`@wrenautomation/falcon/study`",
+     "`@wrenautomation/falcon/text`",
+     "`@wrenautomation/falcon/video`",
+     "`@wrenautomation/models/command`",
+     "`@wrenautomation/models/prices`",
+     "`@wrenautomation/models`",
+     "`@wrenautomation/weaver/fetch`",
+     "`@wrenautomation/weaver/video`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.lambda:worker",
+   "to": "system:mailifier",
+   "kind": "uses",
+   "attrs": {
+    "here": [
+     "packages/channel-email/src/verification/mailifier.ts"
+    ],
+    "title": [
+     "`mailifier`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.lambda:worker",
+   "to": "system:restate",
+   "kind": "uses",
+   "attrs": {
+    "here": [
+     "packages/core/src/content/ingress.ts"
+    ],
+    "title": [
+     "`@restatedev/restate-sdk-clients`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.lambda:worker",
+   "to": "system:ssm",
+   "kind": "uses",
+   "attrs": {
+    "here": [
+     "packages/config/src/ssm.ts"
+    ],
+    "title": [
+     "`@aws-sdk/client-ssm`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.lambda:worker",
+   "to": "system:stripe",
+   "kind": "uses",
+   "attrs": {
+    "here": [
+     "packages/payments/src/stripe.ts"
+    ],
+    "title": [
+     "`stripe`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.lambda:worker",
+   "to": "system:wren.s3:files",
+   "kind": "uses",
+   "attrs": {
+    "here": [
+     "deploy/terraform/lambda.tf"
+    ],
+    "title": [
+     "`aws_s3_bucket.files`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.lambda:worker",
+   "to": "system:wren.s3:media",
+   "kind": "uses",
+   "attrs": {
+    "here": [
+     "deploy/terraform/lambda.tf"
+    ],
+    "title": [
+     "`aws_s3_bucket.media`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.process:voice",
+   "to": "system:wren.container:postgres",
+   "kind": "calls",
+   "attrs": {
+    "here": [
+     "packages/db/src/index.ts",
+     "packages/db/src/listen.ts",
+     "packages/voice/src/box/main.ts"
+    ],
+    "title": [
+     "`WREN_DATABASE_URL`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.process:voice",
+   "to": "system:wren.worker:pixel",
+   "kind": "calls",
+   "attrs": {
+    "here": [
+     "packages/channel-email/src/send/deliver.ts"
+    ],
+    "title": [
+     "`WREN_PIXEL_BASE_URL`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.process:voice",
+   "to": "system:autobrowse",
+   "kind": "uses",
+   "attrs": {
+    "here": [
+     "packages/calendar/src/google.ts",
+     "packages/channel-email/src/inbox/postmaster.ts",
+     "packages/channel-email/src/inbox/sync.ts"
+    ],
+    "title": [
+     "`@wrenautomation/autobrowse/google`",
+     "`@wrenautomation/autobrowse/mail`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.process:voice",
+   "to": "system:engine",
+   "kind": "uses",
+   "attrs": {
+    "here": [
+     "packages/channel-email/src/inbox/inbound.ts",
+     "packages/llm/src/client.ts",
+     "packages/research/src/schema.ts"
+    ],
+    "title": [
+     "`@wrenautomation/falcon/study`",
+     "`@wrenautomation/falcon/text`",
+     "`@wrenautomation/models/command`",
+     "`@wrenautomation/models`",
+     "`@wrenautomation/weaver/fetch`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.process:voice",
+   "to": "system:mailifier",
+   "kind": "uses",
+   "attrs": {
+    "here": [
+     "packages/channel-email/src/verification/mailifier.ts"
+    ],
+    "title": [
+     "`mailifier`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.process:voice",
+   "to": "system:ssm",
+   "kind": "uses",
+   "attrs": {
+    "here": [
+     "packages/config/src/ssm.ts"
+    ],
+    "title": [
+     "`@aws-sdk/client-ssm`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.worker:auth",
+   "to": "system:wren.lambda:auth",
+   "kind": "calls",
+   "attrs": {
+    "here": [
+     "apps/auth/src/worker.ts"
+    ],
+    "title": [
+     "`LAMBDA_URL`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.worker:phone",
+   "to": "system:wren.kv:CRED_LINKS",
+   "kind": "binds",
+   "attrs": {
+    "here": [
+     "apps/phone/wrangler.toml"
+    ],
+    "title": [
+     "binding `CRED_LINKS`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.worker:phone",
+   "to": "system:restate",
+   "kind": "calls",
+   "attrs": {
+    "here": [
+     "apps/phone/src/worker.ts"
+    ],
+    "title": [
+     "`RESTATE_INGRESS_URL`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.worker:pixel",
+   "to": "system:wren.d1:wren-pixel",
+   "kind": "binds",
+   "attrs": {
+    "here": [
+     "deploy/pixel/wrangler.toml"
+    ],
+    "title": [
+     "binding `wren-pixel`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.worker:portal",
+   "to": "system:restate",
+   "kind": "calls",
+   "attrs": {
+    "here": [
+     "apps/portal/src/book.ts",
+     "apps/portal/src/docs.ts",
+     "apps/portal/src/edge.ts",
+     "apps/portal/src/hosts.ts",
+     "apps/portal/src/pay.ts",
+     "apps/portal/src/sites.ts",
+     "apps/portal/src/writes.ts"
+    ],
+    "title": [
+     "`RESTATE_INGRESS_URL`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.worker:portal",
+   "to": "system:wren.lambda:auth",
+   "kind": "calls",
+   "attrs": {
+    "here": [
+     "apps/portal/src/hosts.ts",
+     "apps/portal/src/keys.ts"
+    ],
+    "title": [
+     "`LAMBDA_URL`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.worker:portal",
+   "to": "system:engine",
+   "kind": "uses",
+   "attrs": {
+    "here": [
+     "packages/voice/src/dictation/transcriber.ts"
+    ],
+    "title": [
+     "`@wrenautomation/models/hear`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.worker:share",
+   "to": "system:wren.r2:autobrowse-share",
+   "kind": "binds",
+   "attrs": {
+    "here": [
+     "apps/share/wrangler.toml"
+    ],
+    "title": [
+     "binding `autobrowse-share`"
+    ]
+   }
+  }
+ ]
+}

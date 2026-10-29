@@ -17,25 +17,37 @@
    "id": "@wren/channel-sms/src/bookings.ts",
    "role": "file",
    "parent": "@wren/channel-sms",
-   "group": "@wren/channel-sms"
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "description": "Calls booked on cal.com"
+   }
   },
   {
    "id": "@wren/channel-sms/src/classify.ts",
    "role": "file",
    "parent": "@wren/channel-sms",
-   "group": "@wren/channel-sms"
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "description": "What a reply meant, proposed by one LLM call and gated deterministically (the email classifier's shape)"
+   }
   },
   {
    "id": "@wren/channel-sms/src/clients.ts",
    "role": "file",
    "parent": "@wren/channel-sms",
-   "group": "@wren/channel-sms"
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "description": "Texts and call reminders for a client: its numbers (the Telnyx messaging profile in `clients.accounts.telnyx`, inside Wren's Telnyx account), its database, its cal.com (the autobrowse login in `clients.accounts.calcom`) and its own booking calendar (`calendar.booking`)"
+   }
   },
   {
    "id": "@wren/channel-sms/src/components.ts",
    "role": "file",
    "parent": "@wren/channel-sms",
-   "group": "@wren/channel-sms"
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "description": "The SMS channel's components: texts, booking reminders, speed to lead and its parts"
+   }
   },
   {
    "id": "@wren/channel-sms/src/console-routes.ts",
@@ -47,49 +59,73 @@
    "id": "@wren/channel-sms/src/contacts.ts",
    "role": "file",
    "parent": "@wren/channel-sms",
-   "group": "@wren/channel-sms"
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "description": "A contact added by hand: someone who asked to be texted, or the operator's own phone for a test"
+   }
   },
   {
    "id": "@wren/channel-sms/src/deliver.ts",
    "role": "file",
    "parent": "@wren/channel-sms",
-   "group": "@wren/channel-sms"
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "description": "The send tick: due messages out, at most one per number per tick, inside the lead's window, under every cap"
+   }
   },
   {
    "id": "@wren/channel-sms/src/enroll.ts",
    "role": "file",
    "parent": "@wren/channel-sms",
-   "group": "@wren/channel-sms"
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "description": "Enroll: pick `new` contacts the policy may text, confirm each is a mobile (one carrier lookup, stored), give it its sticky number, and queue step 1"
+   }
   },
   {
    "id": "@wren/channel-sms/src/events.ts",
    "role": "file",
    "parent": "@wren/channel-sms",
-   "group": "@wren/channel-sms"
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "description": "Webhooks in: delivery receipts and inbound texts"
+   }
   },
   {
    "id": "@wren/channel-sms/src/follow.ts",
    "role": "file",
    "parent": "@wren/channel-sms",
-   "group": "@wren/channel-sms"
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "description": "Text follow-ups on the executor"
+   }
   },
   {
    "id": "@wren/channel-sms/src/form-after.ts",
    "role": "file",
    "parent": "@wren/channel-sms",
-   "group": "@wren/channel-sms"
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "description": "After a site applicant's first text (form.ts): the email with the booking link, and the one notice when no text went"
+   }
   },
   {
    "id": "@wren/channel-sms/src/form.ts",
    "role": "file",
    "parent": "@wren/channel-sms",
-   "group": "@wren/channel-sms"
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "description": "Texts for people who asked on the site"
+   }
   },
   {
    "id": "@wren/channel-sms/src/health.ts",
    "role": "file",
    "parent": "@wren/channel-sms",
-   "group": "@wren/channel-sms"
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "description": "Health: the checks that stop sending before a carrier does"
+   }
   },
   {
    "id": "@wren/channel-sms/src/index.ts",
@@ -101,181 +137,271 @@
    "id": "@wren/channel-sms/src/keyed.ts",
    "role": "file",
    "parent": "@wren/channel-sms",
-   "group": "@wren/channel-sms"
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "description": "A client's texts on whose Telnyx key: its own, from the key store, or Wren's, gated and metered on its share"
+   }
   },
   {
    "id": "@wren/channel-sms/src/lift.ts",
    "role": "file",
    "parent": "@wren/channel-sms",
-   "group": "@wren/channel-sms"
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "description": "Lift the phone numbers the pool's `contacts` stage read off firms' own pages (`own_contact_points`, kind phone: never a number on many firms' sites) into texting contacts"
+   }
   },
   {
    "id": "@wren/channel-sms/src/linq.ts",
    "role": "file",
    "parent": "@wren/channel-sms",
-   "group": "@wren/channel-sms"
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "description": "Linq: texts from our own line as iMessage first, then RCS, then SMS, Linq's own fallback"
+   }
   },
   {
    "id": "@wren/channel-sms/src/missed.ts",
    "role": "file",
    "parent": "@wren/channel-sms",
-   "group": "@wren/channel-sms"
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "description": "Missed-call text back"
+   }
   },
   {
    "id": "@wren/channel-sms/src/operator.ts",
    "role": "file",
    "parent": "@wren/channel-sms",
-   "group": "@wren/channel-sms"
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "description": "Texts to William: a `Notifier` that sends the ping to his phone from one of our numbers in his country (a number texts its own country only; a US one only once registered)"
+   }
   },
   {
    "id": "@wren/channel-sms/src/phone.ts",
    "role": "file",
    "parent": "@wren/channel-sms",
-   "group": "@wren/channel-sms"
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "description": "Phone numbers as E.164"
+   }
   },
   {
    "id": "@wren/channel-sms/src/policy.ts",
    "role": "file",
    "parent": "@wren/channel-sms",
-   "group": "@wren/channel-sms"
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "description": "When and how much the fleet may send: one plain settings object, and the pure checks the sender runs against it"
+   }
   },
   {
    "id": "@wren/channel-sms/src/pool.ts",
    "role": "file",
    "parent": "@wren/channel-sms",
-   "group": "@wren/channel-sms"
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "description": "The number pool (PH-D10): a fixed set of numbers on one registered campaign, each lead texted from the same number every time"
+   }
   },
   {
    "id": "@wren/channel-sms/src/provider.ts",
    "role": "file",
    "parent": "@wren/channel-sms",
-   "group": "@wren/channel-sms"
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "description": "The SMS provider port"
+   }
   },
   {
    "id": "@wren/channel-sms/src/push.ts",
    "role": "file",
    "parent": "@wren/channel-sms",
-   "group": "@wren/channel-sms"
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "description": "Reply alerts on the phone app: web push to every device that turned them on"
+   }
   },
   {
    "id": "@wren/channel-sms/src/records.ts",
    "role": "file",
    "parent": "@wren/channel-sms",
-   "group": "@wren/channel-sms"
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "description": "The console's SMS records: a client's texting threads (O4) and its speed-to-lead runs, read from its own database, and for the Marketing app texted contacts (`marketing_text_contact_records`) and William's words"
+   }
   },
   {
    "id": "@wren/channel-sms/src/refusal.ts",
    "role": "file",
    "parent": "@wren/channel-sms",
-   "group": "@wren/channel-sms"
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "description": "A request we answer \"no\" to (bad input, an opted-out number): terminal on Restate, never retried"
+   }
   },
   {
    "id": "@wren/channel-sms/src/registration.ts",
    "role": "file",
    "parent": "@wren/channel-sms",
-   "group": "@wren/channel-sms"
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "description": "US numbers onto the registered 10DLC campaign, by themselves"
+   }
   },
   {
    "id": "@wren/channel-sms/src/reminders.ts",
    "role": "file",
    "parent": "@wren/channel-sms",
-   "group": "@wren/channel-sms"
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "description": "Reminders for booked calls (cal.com's and our own calendar's)"
+   }
   },
   {
    "id": "@wren/channel-sms/src/restate/answers.ts",
    "role": "file",
    "parent": "@wren/channel-sms",
-   "group": "@wren/channel-sms"
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "description": "The restate side of missed-call text back and review requests"
+   }
   },
   {
    "id": "@wren/channel-sms/src/restate/console.ts",
    "role": "file",
    "parent": "@wren/channel-sms",
-   "group": "@wren/channel-sms"
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "description": "SmsConsole: a client's texting desk in the portal (O4)"
+   }
   },
   {
    "id": "@wren/channel-sms/src/restate/forms.ts",
    "role": "file",
    "parent": "@wren/channel-sms",
-   "group": "@wren/channel-sms"
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "description": "`SmsForms`: a site application, pushed"
+   }
   },
   {
    "id": "@wren/channel-sms/src/restate/index.ts",
    "role": "file",
    "parent": "@wren/channel-sms",
-   "group": "@wren/channel-sms"
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "description": "The SMS channel on Restate:  - `SmsSender/fleet`: the send loop"
+   }
   },
   {
    "id": "@wren/channel-sms/src/reviews.ts",
    "role": "file",
    "parent": "@wren/channel-sms",
-   "group": "@wren/channel-sms"
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "description": "Review requests"
+   }
   },
   {
    "id": "@wren/channel-sms/src/schema.ts",
    "role": "file",
    "parent": "@wren/channel-sms",
-   "group": "@wren/channel-sms"
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "description": "The SMS channel's tables, each one fact:  - `sms_numbers`: the pool we send from (PH-D10)"
+   }
   },
   {
    "id": "@wren/channel-sms/src/settings.ts",
    "role": "file",
    "parent": "@wren/channel-sms",
-   "group": "@wren/channel-sms"
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "description": "Settings → the channel's policy objects and provider: one place, shared by the worker and the CLI"
+   }
   },
   {
    "id": "@wren/channel-sms/src/setups.ts",
    "role": "file",
    "parent": "@wren/channel-sms",
-   "group": "@wren/channel-sms"
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "description": "The client's own texting setup on Telnyx, the path Wren went through: a brand with The Campaign Registry, a campaign the carriers approve, and each number on that campaign"
+   }
   },
   {
    "id": "@wren/channel-sms/src/signer.ts",
    "role": "file",
    "parent": "@wren/channel-sms",
-   "group": "@wren/channel-sms"
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "description": "Whose Telnyx account signed a webhook"
+   }
   },
   {
    "id": "@wren/channel-sms/src/speed.ts",
    "role": "file",
    "parent": "@wren/channel-sms",
-   "group": "@wren/channel-sms"
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "description": "Speed to lead's texts"
+   }
   },
   {
    "id": "@wren/channel-sms/src/stats.ts",
    "role": "file",
    "parent": "@wren/channel-sms",
-   "group": "@wren/channel-sms"
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "description": "The numbers: per sequence step (a reminder counts under its template, not the contact's sequence), how many went out, arrived, got a reply, said yes, opted out; each rate with its Wilson interval (core/stats), so a 2-of-9 week never reads as \"22% reply rate\""
+   }
   },
   {
    "id": "@wren/channel-sms/src/telnyx.ts",
    "role": "file",
    "parent": "@wren/channel-sms",
-   "group": "@wren/channel-sms"
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "description": "Telnyx: the one file that names the vendor (PH-D8)"
+   }
   },
   {
    "id": "@wren/channel-sms/src/template-store.ts",
    "role": "file",
    "parent": "@wren/channel-sms",
-   "group": "@wren/channel-sms"
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "description": "William's words for the slots templates.ts declares, kept in the template store (`@wren/core/templates`, kind sms, system `texts`): every save a version, the live one what goes out"
+   }
   },
   {
    "id": "@wren/channel-sms/src/templates.ts",
    "role": "file",
    "parent": "@wren/channel-sms",
-   "group": "@wren/channel-sms"
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "description": "SMS copy: William writes every word"
+   }
   },
   {
    "id": "@wren/channel-sms/src/threads.ts",
    "role": "file",
    "parent": "@wren/channel-sms",
-   "group": "@wren/channel-sms"
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "description": "The inbox's reads: threads by last activity, one thread in full, and \"read up to now\""
+   }
   },
   {
    "id": "@wren/channel-sms/src/webhook.ts",
    "role": "file",
    "parent": "@wren/channel-sms",
-   "group": "@wren/channel-sms"
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "description": "Telnyx webhook signatures, WebCrypto only, so the same file runs in the Cloudflare Worker that receives webhooks and in Node tests"
+   }
   },
   {
    "id": "@wren/channel-sms/test/integration/fixtures.ts",

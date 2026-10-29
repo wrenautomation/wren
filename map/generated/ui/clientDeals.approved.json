@@ -1,0 +1,47 @@
+{
+ "layer": "ui",
+ "nodes": [
+  {
+   "id": "ui:clientDeals",
+   "role": "app",
+   "group": "clientDeals",
+   "attrs": {
+    "areas": [
+     "client: Leads"
+    ],
+    "blurb": "Every person by node of the shape, and how long they have been there.",
+    "file": "apps/portal/web/src/modules/deals/index.ts",
+    "name": "Journeys",
+    "workspace": "client"
+   }
+  },
+  {
+   "id": "ui:clientDeals/board",
+   "role": "screen",
+   "parent": "ui:clientDeals",
+   "group": "clientDeals",
+   "attrs": {
+    "about": "Everyone by node, to drag down the shape as they move.",
+    "file": "apps/portal/web/src/modules/deals/board.tsx",
+    "label": "Board",
+    "order": 0,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:clientDeals/journeys",
+   "role": "screen",
+   "parent": "ui:clientDeals",
+   "group": "clientDeals",
+   "attrs": {
+    "about": "Every journey, open, done and dropped.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Journeys",
+    "order": 1,
+    "record": "pipeline.journey",
+    "template": "list"
+   }
+  }
+ ],
+ "edges": []
+}

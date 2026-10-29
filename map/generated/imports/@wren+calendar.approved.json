@@ -17,13 +17,19 @@
    "id": "@wren/calendar/src/book.ts",
    "role": "file",
    "parent": "@wren/calendar",
-   "group": "@wren/calendar"
+   "group": "@wren/calendar",
+   "attrs": {
+    "description": "Booking in Postgres: claim a slot, move it, cancel it, say how it went"
+   }
   },
   {
    "id": "@wren/calendar/src/components.ts",
    "role": "file",
    "parent": "@wren/calendar",
-   "group": "@wren/calendar"
+   "group": "@wren/calendar",
+   "attrs": {
+    "description": "Our own booking calendar, replacing Cal.com: Wren's, and each client's on its own host, its own Google Calendar and its own database"
+   }
   },
   {
    "id": "@wren/calendar/src/console-routes.ts",
@@ -35,19 +41,28 @@
    "id": "@wren/calendar/src/console.ts",
    "role": "file",
    "parent": "@wren/calendar",
-   "group": "@wren/calendar"
+   "group": "@wren/calendar",
+   "attrs": {
+    "description": "CalendarConsole: the Calendar app, Wren's and each client's"
+   }
   },
   {
    "id": "@wren/calendar/src/contact.ts",
    "role": "file",
    "parent": "@wren/calendar",
-   "group": "@wren/calendar"
+   "group": "@wren/calendar",
+   "attrs": {
+    "description": "\"Or message me directly\": a client's own contact links on its booking page, from the part's `contact` settings"
+   }
   },
   {
    "id": "@wren/calendar/src/google.ts",
    "role": "file",
    "parent": "@wren/calendar",
-   "group": "@wren/calendar"
+   "group": "@wren/calendar",
+   "attrs": {
+    "description": "The calendar a booking lands on: Google Calendar over its REST API, acting as the account by domain-wide delegation (the service account Gmail sending already uses, on the `calendar` scope)"
+   }
   },
   {
    "id": "@wren/calendar/src/index.ts",
@@ -59,61 +74,91 @@
    "id": "@wren/calendar/src/links.ts",
    "role": "file",
    "parent": "@wren/calendar",
-   "group": "@wren/calendar"
+   "group": "@wren/calendar",
+   "attrs": {
+    "description": "Signatures, with no new secret: both come from the token the lander and Wren already share (`WREN_SITE_EXPORT_TOKEN`, the lander's `EXPORT_TOKEN`)"
+   }
   },
   {
    "id": "@wren/calendar/src/mail.ts",
    "role": "file",
    "parent": "@wren/calendar",
-   "group": "@wren/calendar"
+   "group": "@wren/calendar",
+   "attrs": {
+    "description": "The booker's mail: booked, moved, cancelled, and the reminders a day and an hour before"
+   }
   },
   {
    "id": "@wren/calendar/src/recorder.ts",
    "role": "file",
    "parent": "@wren/calendar",
-   "group": "@wren/calendar"
+   "group": "@wren/calendar",
+   "attrs": {
+    "description": "The Mac's call recorder: autobrowse's desk serves it as Restate service `calls`; no import from that repo"
+   }
   },
   {
    "id": "@wren/calendar/src/records.ts",
    "role": "file",
    "parent": "@wren/calendar",
-   "group": "@wren/calendar"
+   "group": "@wren/calendar",
+   "attrs": {
+    "description": "Calls booked on our calendar, as console records: the portal's Calendar app lists them by status, and its buttons (CalendarConsole) say how a past one went or cancel an upcoming one"
+   }
   },
   {
    "id": "@wren/calendar/src/restate.ts",
    "role": "file",
    "parent": "@wren/calendar",
-   "group": "@wren/calendar"
+   "group": "@wren/calendar",
+   "attrs": {
+    "description": "Booking, two services over one set of steps:  - `Calendar`: Wren's own, public through the phone Worker's `/calendar/<handler>` door"
+   }
   },
   {
    "id": "@wren/calendar/src/rules.ts",
    "role": "file",
    "parent": "@wren/calendar",
-   "group": "@wren/calendar"
+   "group": "@wren/calendar",
+   "attrs": {
+    "description": "A calendar's availability: weekly hours on the owner's clock, then notice, buffer, length, step, a daily cap and how far ahead"
+   }
   },
   {
    "id": "@wren/calendar/src/schema.ts",
    "role": "file",
    "parent": "@wren/calendar",
-   "group": "@wren/calendar"
+   "group": "@wren/calendar",
+   "attrs": {
+    "description": "Calls booked on our own calendar, in their own Postgres schema"
+   }
   },
   {
    "id": "@wren/calendar/src/setups.ts",
    "role": "file",
    "parent": "@wren/calendar",
-   "group": "@wren/calendar"
+   "group": "@wren/calendar",
+   "attrs": {
+    "description": "The Calendar setup's check: may Wren's service account act as the calendar's address? One free/busy read for the next hour, a free read"
+   }
   },
   {
    "id": "@wren/calendar/src/slots.ts",
    "role": "file",
    "parent": "@wren/calendar",
-   "group": "@wren/calendar"
+   "group": "@wren/calendar",
+   "attrs": {
+    "description": "Open start times: the weekly hours walked day by day on the owner's clock, each start turned into an instant with `zonedInstant`, so a call at 10:00 stays at 10:00 across a DST change"
+   }
   },
   {
    "id": "@wren/calendar/src/sms.ts",
    "role": "file",
    "parent": "@wren/calendar",
-   "group": "@wren/calendar"
+   "group": "@wren/calendar",
+   "attrs": {
+    "description": "Our calls as SmsWatch reads bookings, so its reminder pass texts them with the consent, number and cap checks it already has"
+   }
   },
   {
    "id": "@wren/calendar/vitest.config.ts",

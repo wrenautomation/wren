@@ -17,7 +17,10 @@
    "id": "@wren/experiments/src/engine.ts",
    "role": "file",
    "parent": "@wren/experiments",
-   "group": "@wren/experiments"
+   "group": "@wren/experiments",
+   "attrs": {
+    "description": "The bandit over one locus: counts in, shares and decisions out"
+   }
   },
   {
    "id": "@wren/experiments/src/index.ts",
@@ -29,25 +32,37 @@
    "id": "@wren/experiments/src/names.ts",
    "role": "file",
    "parent": "@wren/experiments",
-   "group": "@wren/experiments"
+   "group": "@wren/experiments",
+   "attrs": {
+    "description": "The strategies' names"
+   }
   },
   {
    "id": "@wren/experiments/src/rng.ts",
    "role": "file",
    "parent": "@wren/experiments",
-   "group": "@wren/experiments"
+   "group": "@wren/experiments",
+   "attrs": {
+    "description": "A seeded random source, so a run with the same seed gives the same numbers"
+   }
   },
   {
    "id": "@wren/experiments/src/settings.ts",
    "role": "file",
    "parent": "@wren/experiments",
-   "group": "@wren/experiments"
+   "group": "@wren/experiments",
+   "attrs": {
+    "description": "An experiment's settings: one schema, every field defaulted, so `{}` is valid"
+   }
   },
   {
    "id": "@wren/experiments/src/simulate.ts",
    "role": "file",
    "parent": "@wren/experiments",
-   "group": "@wren/experiments"
+   "group": "@wren/experiments",
+   "attrs": {
+    "description": "The simulator: selection strategies on synthetic truth, no database and no LLM"
+   }
   },
   {
    "id": "@wren/experiments/vitest.config.ts",

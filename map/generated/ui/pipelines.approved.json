@@ -1,0 +1,89 @@
+{
+ "layer": "ui",
+ "nodes": [
+  {
+   "id": "ui:pipelines",
+   "role": "app",
+   "group": "pipelines",
+   "attrs": {
+    "areas": [
+     "team: Primary"
+    ],
+    "blurb": "Wren's own people by node of the shape: who is booked, who is signed, who has stalled.",
+    "file": "apps/portal/web/src/modules/deals/index.ts",
+    "name": "Pipelines",
+    "workspace": "wren"
+   }
+  },
+  {
+   "id": "ui:pipelines/board",
+   "role": "screen",
+   "parent": "ui:pipelines",
+   "group": "pipelines",
+   "attrs": {
+    "about": "Everyone by node, to drag down the shape as they move.",
+    "file": "apps/portal/web/src/modules/deals/board.tsx",
+    "label": "Board",
+    "order": 0,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:pipelines/calls",
+   "role": "screen",
+   "parent": "ui:pipelines",
+   "group": "pipelines",
+   "attrs": {
+    "about": "Sales calls booked with you, past and coming up.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Calls",
+    "order": 3,
+    "record": "email.call",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:pipelines/deals",
+   "role": "screen",
+   "parent": "ui:pipelines",
+   "group": "pipelines",
+   "attrs": {
+    "about": "Every deal, open, won and lost, with its signed terms.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Deals",
+    "order": 2,
+    "record": "pipeline.deal",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:pipelines/entries",
+   "role": "screen",
+   "parent": "ui:pipelines",
+   "group": "pipelines",
+   "attrs": {
+    "about": "Each source of the shape: what opens a journey, and when one last did.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Entries",
+    "order": 4,
+    "record": "pipeline.entry",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:pipelines/journeys",
+   "role": "screen",
+   "parent": "ui:pipelines",
+   "group": "pipelines",
+   "attrs": {
+    "about": "Every journey, open, done and dropped.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Journeys",
+    "order": 1,
+    "record": "pipeline.journey",
+    "template": "list"
+   }
+  }
+ ],
+ "edges": []
+}

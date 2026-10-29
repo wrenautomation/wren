@@ -1,0 +1,260 @@
+{
+ "layer": "ui",
+ "nodes": [
+  {
+   "id": "ui:content",
+   "role": "app",
+   "group": "content",
+   "attrs": {
+    "areas": [
+     "team: Marketing"
+    ],
+    "blurb": "Every platform's posts: plan, make, and how each did.",
+    "file": "apps/portal/web/src/modules/marketing/index.ts",
+    "name": "Content",
+    "workspace": "wren"
+   }
+  },
+  {
+   "id": "ui:content/cadence",
+   "role": "screen",
+   "parent": "ui:content",
+   "group": "content",
+   "attrs": {
+    "about": "Your posting goals against what went out this week.",
+    "file": "apps/portal/web/src/records.tsx",
+    "hidden": true,
+    "label": "Cadence",
+    "order": 15,
+    "record": "marketing.cadence",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:content/content",
+   "role": "screen",
+   "parent": "ui:content",
+   "group": "content",
+   "attrs": {
+    "about": "Every post that went out, best first.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Posts",
+    "order": 3,
+    "record": "marketing.post",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:content/digest",
+   "role": "screen",
+   "parent": "ui:content",
+   "group": "content",
+   "attrs": {
+    "about": "What worked last week, by platform.",
+    "file": "apps/portal/web/src/records.tsx",
+    "hidden": true,
+    "label": "What worked",
+    "order": 13,
+    "record": "marketing.digest",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:content/drafts",
+   "role": "screen",
+   "parent": "ui:content",
+   "group": "content",
+   "attrs": {
+    "about": "Every post draft: edit it, approve it, it goes out.",
+    "file": "apps/portal/web/src/records.tsx",
+    "hidden": true,
+    "label": "Drafts",
+    "order": 8,
+    "record": "marketing.draft",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:content/explore",
+   "role": "screen",
+   "parent": "ui:content",
+   "group": "content",
+   "attrs": {
+    "about": "New posts the topic searches found, to reply to or follow.",
+    "file": "apps/portal/web/src/records.tsx",
+    "hidden": true,
+    "label": "Feed",
+    "order": 11,
+    "record": "marketing.explore",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:content/facts",
+   "role": "screen",
+   "parent": "ui:content",
+   "group": "content",
+   "attrs": {
+    "about": "What drafts may say about you and Wren.",
+    "file": "apps/portal/web/src/modules/marketing/facts.tsx",
+    "group": "Setup",
+    "label": "Facts",
+    "order": 7,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:content/feed",
+   "role": "screen",
+   "parent": "ui:content",
+   "group": "content",
+   "attrs": {
+    "about": "Posts from the people and topics you follow.",
+    "file": "apps/portal/web/src/modules/marketing/feed.tsx",
+    "label": "Feed",
+    "order": 5,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:content/metrics",
+   "role": "screen",
+   "parent": "ui:content",
+   "group": "content",
+   "attrs": {
+    "about": "Every number we track, and what each missing one needs.",
+    "file": "apps/portal/web/src/records.tsx",
+    "hidden": true,
+    "label": "Every number",
+    "order": 14,
+    "record": "marketing.metric",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:content/overview",
+   "role": "screen",
+   "parent": "ui:content",
+   "group": "content",
+   "attrs": {
+    "about": "Your marketing numbers at a glance.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Numbers",
+    "order": 4,
+    "template": "overview"
+   }
+  },
+  {
+   "id": "ui:content/pieces",
+   "role": "screen",
+   "parent": "ui:content",
+   "group": "content",
+   "attrs": {
+    "about": "Everything you made, each with everywhere it went.",
+    "file": "apps/portal/web/src/modules/marketing/pieces.tsx",
+    "label": "Pieces",
+    "order": 2,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:content/plan",
+   "role": "screen",
+   "parent": "ui:content",
+   "group": "content",
+   "attrs": {
+    "about": "What to make today, what waits on you, and what went out.",
+    "file": "apps/portal/web/src/modules/marketing/plan.tsx",
+    "label": "Plan",
+    "order": 0,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:content/reports",
+   "role": "screen",
+   "parent": "ui:content",
+   "group": "content",
+   "attrs": {
+    "about": "Your numbers by email each week or month, against the one before.",
+    "file": "apps/portal/web/src/modules/marketing/reports.tsx",
+    "hidden": true,
+    "label": "Reports",
+    "order": 16,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:content/studio",
+   "role": "screen",
+   "parent": "ui:content",
+   "group": "content",
+   "attrs": {
+    "about": "Make posts, threads, carousels, stories, blog posts and videos, and finish drafts.",
+    "file": "apps/portal/web/src/modules/marketing/studio.tsx",
+    "label": "Studio",
+    "order": 1,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:content/today",
+   "role": "screen",
+   "parent": "ui:content",
+   "group": "content",
+   "attrs": {
+    "about": "Each platform's day: what went out and what waits on you.",
+    "file": "apps/portal/web/src/records.tsx",
+    "hidden": true,
+    "label": "Today",
+    "order": 12,
+    "template": "day"
+   }
+  },
+  {
+   "id": "ui:content/topics",
+   "role": "screen",
+   "parent": "ui:content",
+   "group": "content",
+   "attrs": {
+    "about": "The email topics people can sign up for.",
+    "file": "apps/portal/web/src/records.tsx",
+    "group": "Setup",
+    "label": "Topics",
+    "order": 6,
+    "record": "marketing.topic",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:content/videos",
+   "role": "screen",
+   "parent": "ui:content",
+   "group": "content",
+   "attrs": {
+    "about": "Recordings: the agent edits, you review, they go out as videos and Shorts.",
+    "file": "apps/portal/web/src/records.tsx",
+    "hidden": true,
+    "label": "Recordings",
+    "order": 10,
+    "record": "marketing.video",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:content/write",
+   "role": "screen",
+   "parent": "ui:content",
+   "group": "content",
+   "attrs": {
+    "about": "Opens Studio's New.",
+    "file": "apps/portal/web/src/modules/marketing/studio.tsx",
+    "hidden": true,
+    "label": "Write",
+    "order": 9,
+    "template": "hand"
+   }
+  }
+ ],
+ "edges": []
+}

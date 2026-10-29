@@ -7,6 +7,7 @@
    "parent": "repo:wren",
    "group": "@wren/phone",
    "attrs": {
+    "description": "Webhooks in: Telnyx calls and texts, Linq, Cal.com bookings.",
     "dir": "apps/phone/"
    }
   },
@@ -38,13 +39,19 @@
    "id": "@wren/phone/src/env.ts",
    "role": "file",
    "parent": "@wren/phone",
-   "group": "@wren/phone"
+   "group": "@wren/phone",
+   "attrs": {
+    "description": "The Worker's bindings"
+   }
   },
   {
    "id": "@wren/phone/src/worker.ts",
    "role": "file",
    "parent": "@wren/phone",
-   "group": "@wren/phone"
+   "group": "@wren/phone",
+   "attrs": {
+    "description": "phone.wrenautomation.com: the SMS inbox for the iPhone, the Seeker and the Mac, and the door Telnyx webhooks come in by"
+   }
   }
  ],
  "edges": [

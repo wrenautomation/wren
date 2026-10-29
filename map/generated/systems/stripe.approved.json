@@ -1,0 +1,16 @@
+{
+ "layer": "systems",
+ "nodes": [
+  {
+   "id": "system:stripe",
+   "role": "system",
+   "group": "stripe",
+   "attrs": {
+    "description": "Payments and invoices.",
+    "kind": "vendor",
+    "title": "Stripe"
+   }
+  }
+ ],
+ "edges": []
+}

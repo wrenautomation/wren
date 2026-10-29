@@ -1,0 +1,103 @@
+{
+ "layer": "ui",
+ "nodes": [
+  {
+   "id": "ui:numbers",
+   "role": "app",
+   "group": "numbers",
+   "attrs": {
+    "areas": [
+     "team: Primary"
+    ],
+    "blurb": "How each node, edge and offer of the shape converts, and what a client costs and earns.",
+    "file": "apps/portal/web/src/modules/numbers/index.ts",
+    "name": "Numbers",
+    "workspace": "wren"
+   }
+  },
+  {
+   "id": "ui:numbers/channels",
+   "role": "screen",
+   "parent": "ui:numbers",
+   "group": "numbers",
+   "attrs": {
+    "about": "Spend and the cost of a client for each channel, by month.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Channels",
+    "order": 4,
+    "record": "books.channel",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:numbers/cohorts",
+   "role": "screen",
+   "parent": "ui:numbers",
+   "group": "numbers",
+   "attrs": {
+    "about": "Clients grouped by the month they first paid.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Cohorts",
+    "order": 5,
+    "record": "books.cohort",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:numbers/economics",
+   "role": "screen",
+   "parent": "ui:numbers",
+   "group": "numbers",
+   "attrs": {
+    "about": "What it costs to win a client, and what a client brings in.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Economics",
+    "order": 2,
+    "template": "overview"
+   }
+  },
+  {
+   "id": "ui:numbers/funnels",
+   "role": "screen",
+   "parent": "ui:numbers",
+   "group": "numbers",
+   "attrs": {
+    "about": "Each node and edge: who arrived, who went on, and how long it took.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Shape",
+    "order": 0,
+    "record": "pipeline.number",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:numbers/months",
+   "role": "screen",
+   "parent": "ui:numbers",
+   "group": "numbers",
+   "attrs": {
+    "about": "Every cost and revenue figure, month by month.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Months",
+    "order": 3,
+    "record": "books.month",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:numbers/offers",
+   "role": "screen",
+   "parent": "ui:numbers",
+   "group": "numbers",
+   "attrs": {
+    "about": "Each offer's journeys, deals and what was collected.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Offers",
+    "order": 1,
+    "record": "pipeline.number",
+    "template": "list"
+   }
+  }
+ ],
+ "edges": []
+}

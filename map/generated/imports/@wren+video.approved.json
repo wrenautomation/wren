@@ -20,43 +20,64 @@
    "id": "@wren/video/src/capture.ts",
    "role": "file",
    "parent": "@wren/video",
-   "group": "@wren/video"
+   "group": "@wren/video",
+   "attrs": {
+    "description": "One still of a page, for a promo's screen scene (`@wren/studio` promo)"
+   }
   },
   {
    "id": "@wren/video/src/encode.ts",
    "role": "file",
    "parent": "@wren/video",
-   "group": "@wren/video"
+   "group": "@wren/video",
+   "attrs": {
+    "description": "A recording into an mp4 and a poster, with ffmpeg"
+   }
   },
   {
    "id": "@wren/video/src/index.ts",
    "role": "file",
    "parent": "@wren/video",
-   "group": "@wren/video"
+   "group": "@wren/video",
+   "attrs": {
+    "description": "Screen videos of web pages, made in code: `openRecorder` walks a page while the browser streams frames, `encode` turns the frames into an mp4 and a poster"
+   }
   },
   {
    "id": "@wren/video/src/overlay.ts",
    "role": "file",
    "parent": "@wren/video",
-   "group": "@wren/video"
+   "group": "@wren/video",
+   "attrs": {
+    "description": "What the recorder draws inside the page: a cursor that follows the real mouse, a ripple on each press, and a full-screen card"
+   }
   },
   {
    "id": "@wren/video/src/publish.ts",
    "role": "file",
    "parent": "@wren/video",
-   "group": "@wren/video"
+   "group": "@wren/video",
+   "attrs": {
+    "description": "An encoded video, put where a watch page can play it: `v/<id>.mp4`, `v/<id>.jpg` and `v/<id>.json` (what the page shows around the player) in a bucket a CDN serves"
+   }
   },
   {
    "id": "@wren/video/src/recorder.ts",
    "role": "file",
    "parent": "@wren/video",
-   "group": "@wren/video"
+   "group": "@wren/video",
+   "attrs": {
+    "description": "Records a walk through a web page as a screen video would show it"
+   }
   },
   {
    "id": "@wren/video/src/timeline.ts",
    "role": "file",
    "parent": "@wren/video",
-   "group": "@wren/video"
+   "group": "@wren/video",
+   "attrs": {
+    "description": "What a recording is once the browser closes: frames on disk with the second each one appeared, plus the zooms and captions the walk asked for at given seconds"
+   }
   },
   {
    "id": "@wren/video/vitest.config.ts",

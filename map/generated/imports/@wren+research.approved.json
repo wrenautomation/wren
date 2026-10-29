@@ -23,25 +23,37 @@
    "id": "@wren/research/src/companies/boards.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "Public job boards (R8): which ATS a company's own careers page points at, and that ATS's official postings API"
+   }
   },
   {
    "id": "@wren/research/src/companies/customers.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "The companies a firm's own site names as its customers: logo walls, case studies, testimonials"
+   }
   },
   {
    "id": "@wren/research/src/companies/events.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "A firm's dated news: an acquisition, a merger, a funding round or a new leader in the last 6 months, each kept as a `news` finding with its date and source"
+   }
   },
   {
    "id": "@wren/research/src/companies/hiring.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "Is this company hiring (R8)? Layered, exact and free first:  1"
+   }
   },
   {
    "id": "@wren/research/src/companies/index.ts",
@@ -53,49 +65,73 @@
    "id": "@wren/research/src/companies/ppp-size.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "Size a niche's companies from PPP loan files (`wren fetch get <niche>'s ppp dataset`): jobs reported and a yearly payroll estimate, stored as a `firmographics` enrichment (model `ppp-foia`, prompt_version = the release)"
+   }
   },
   {
    "id": "@wren/research/src/companies/profile.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "The company's LinkedIn page, read from Exa's cache of LinkedIn (`web` `/linkedin/company`; nothing reaches linkedin.com)"
+   }
   },
   {
    "id": "@wren/research/src/companies/store.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "Writes a hiring check: the finding and its source (upserts, so re-checking is safe), then where the check stands, pointing at the finding it stands on"
+   }
   },
   {
    "id": "@wren/research/src/components.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "Research's components: firms found, pages kept, people named, addresses proven"
+   }
   },
   {
    "id": "@wren/research/src/discovery/candidates.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "Domain-candidate generation from a company name (funnel L1)"
+   }
   },
   {
    "id": "@wren/research/src/discovery/find.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "One firm's own site from its name, with no database: a stated site first, then the name's guessed domains"
+   }
   },
   {
    "id": "@wren/research/src/discovery/gate.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "The ownership gate"
+   }
   },
   {
    "id": "@wren/research/src/discovery/homepage.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "The default HomepageFetcher: the domain's homepage as text, trying https, then www, then http"
+   }
   },
   {
    "id": "@wren/research/src/discovery/index.ts",
@@ -107,73 +143,109 @@
    "id": "@wren/research/src/discovery/service.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "Website discovery over the DB (funnel L1)"
+   }
   },
   {
    "id": "@wren/research/src/dossier.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "Everything we know about a company and its people, in one shape"
+   }
   },
   {
    "id": "@wren/research/src/enrichment/ad-library.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "The `adLibrary` stage: firms running Facebook ads now, by niche keyword"
+   }
   },
   {
    "id": "@wren/research/src/enrichment/audit-backfill.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "Give pre-ledger LLM enrichment rows the same `call` record and envelope layout new rows get"
+   }
   },
   {
    "id": "@wren/research/src/enrichment/contacts.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "Every phone, LinkedIn link and social profile a firm put on its own pages, read once per page"
+   }
   },
   {
    "id": "@wren/research/src/enrichment/crawler.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "Site crawler (funnel L2): a bounded, polite visit to one firm's website, storing team/about-flavored pages as documents"
+   }
   },
   {
    "id": "@wren/research/src/enrichment/email-pick/graph.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "The email-pick decision graph: pure state in, pure state out"
+   }
   },
   {
    "id": "@wren/research/src/enrichment/email-pick/run.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "The database side of the email pick: assemble PickState, walk companies under the cache, persist verdicts, fold them into the funnel"
+   }
   },
   {
    "id": "@wren/research/src/enrichment/email-scan.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "Deterministic email discovery over stored documents"
+   }
   },
   {
    "id": "@wren/research/src/enrichment/exa-search.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "The `exaSearch` stage: firms by niche and city from Exa's company index"
+   }
   },
   {
    "id": "@wren/research/src/enrichment/extraction.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "LLM people-extraction over stored documents (funnel L2)"
+   }
   },
   {
    "id": "@wren/research/src/enrichment/fb-groups.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "The `fbGroups` stage: Facebook groups as a lead source and enrichment, read signed out through autobrowse's `fb-public` on the Mac"
+   }
   },
   {
    "id": "@wren/research/src/enrichment/index.ts",
@@ -185,97 +257,145 @@
    "id": "@wren/research/src/enrichment/instagram.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "The `instagram` stage: the Instagram account a firm's own site links, and its newest posts, kept as findings"
+   }
   },
   {
    "id": "@wren/research/src/enrichment/news-triggers.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "The `triggers` stage: news turns into leads"
+   }
   },
   {
    "id": "@wren/research/src/enrichment/opener.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "One personal line per company for the top of an email: a specific, checkable thing from the firm's own site"
+   }
   },
   {
    "id": "@wren/research/src/enrichment/profiles.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "The `profiles` stage: the lead sheet's LinkedIn columns for the people next in line to be emailed, read from Exa's cache (nothing reaches linkedin.com)"
+   }
   },
   {
    "id": "@wren/research/src/enrichment/readings.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "Outside readings: people extraction done by a reader outside the LLM seam (an operator's agent session), carried in and out as files"
+   }
   },
   {
    "id": "@wren/research/src/enrichment/remote-browser.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "The render tier over CDP: a chromium somewhere else, for hosts with no browser of their own (Lambda)"
+   }
   },
   {
    "id": "@wren/research/src/enrichment/render.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "Tier-2 rendered fetch: Playwright chromium for JS-shell sites"
+   }
   },
   {
    "id": "@wren/research/src/enrichment/shard.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "Splitting a long loop across processes: `i/n` keeps the units whose id % n == i"
+   }
   },
   {
    "id": "@wren/research/src/enrichment/shared-pages.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "Crawled pages are public facts, kept on main for every client"
+   }
   },
   {
    "id": "@wren/research/src/enrichment/store.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "Persisting an LLM enrichment: one row per (subject, kind, model, prompt_version)"
+   }
   },
   {
    "id": "@wren/research/src/enrichment/team.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "The `team` stage: one people search per firm (`searchTeam`), and everyone with a current role there becomes a person with their LinkedIn and title"
+   }
   },
   {
    "id": "@wren/research/src/enrichment/testimonials.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "Deterministic testimonial-author tagging over already-extracted people"
+   }
   },
   {
    "id": "@wren/research/src/enrichment/urls.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "URL judgments shared by the crawl and render tiers"
+   }
   },
   {
    "id": "@wren/research/src/enrichment/youtube-search.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "The `youtubeSearch` stage: firms by niche from YouTube's channel search"
+   }
   },
   {
    "id": "@wren/research/src/enrichment/youtube.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "The `youtube` stage: the channel a firm's own site links, and its newest uploads, kept as findings"
+   }
   },
   {
    "id": "@wren/research/src/fetch/datasets.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "Bulk-dataset vocabulary for the fetch command"
+   }
   },
   {
    "id": "@wren/research/src/fetch/index.ts",
@@ -287,31 +407,46 @@
    "id": "@wren/research/src/fetch/overture.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "Overture Maps places as a bulk dataset"
+   }
   },
   {
    "id": "@wren/research/src/fetch/ppp.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "The SBA's Paycheck Protection Program loan files (data.sba.gov, dataset `ppp-foia`), kept to a niche's NAICS codes"
+   }
   },
   {
    "id": "@wren/research/src/fetch/sba.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "SBA Small Business Search (search.certifications.sba.gov) as a bulk dataset: every firm that lists one of a niche's NAICS codes, one file per code per day"
+   }
   },
   {
    "id": "@wren/research/src/fetch/tier-memory.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "The fetch ladder's memory: per domain, what the render pass learned, so the crawl skips a domain it cannot fetch plain and the pass does not try a dead one again"
+   }
   },
   {
    "id": "@wren/research/src/findings.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "Writing findings (R6) about anyone: the source into `documents` once per url and text, the fact upserted on its `fact_key` (seen again = `observed_at` moves, the value is the latest reading)"
+   }
   },
   {
    "id": "@wren/research/src/index.ts",
@@ -323,43 +458,64 @@
    "id": "@wren/research/src/limits.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "Research's limits: each bucket and daily count, with its code default"
+   }
   },
   {
    "id": "@wren/research/src/linkedin-reads.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "LinkedIn research reads, search first"
+   }
   },
   {
    "id": "@wren/research/src/pacing.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "Calling autobrowse sites politely: a short 429 is pacing (wait, ask again), a long one is a daily cap (stop asking until then)"
+   }
   },
   {
    "id": "@wren/research/src/pages.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "Page HTML out of Postgres"
+   }
   },
   {
    "id": "@wren/research/src/people/contacts.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "People at a company in a given line of work, from a people search (autobrowse `web` `/people`, Exa's index of public profiles): no profile is opened"
+   }
   },
   {
    "id": "@wren/research/src/people/elsewhere.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "Where else is this person online? Asks the `web` site's search (Exa) for their name with each handle we hold and the firm, and keeps result pages on known platforms"
+   }
   },
   {
    "id": "@wren/research/src/people/fit-traits.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "What the workspace knows of a person for scoring their fit to an offer's ICP (`@wren/pipeline` `scoreFit`): free reads of rows we hold, no network"
+   }
   },
   {
    "id": "@wren/research/src/people/index.ts",
@@ -371,97 +527,145 @@
    "id": "@wren/research/src/people/lookup.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "Person lookup (R7): where is this person now? Layered, cheapest and safest first, and never a guess:  1"
+   }
   },
   {
    "id": "@wren/research/src/people/names.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "Is this the same person, the same firm? The match rule (R7) is name plus a past employer or the email domain, so both halves must be strict: a miss leaves a contact unresolved, a false hit cites a stranger"
+   }
   },
   {
    "id": "@wren/research/src/people/profile-link.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "One LinkedIn profile, however a link to it was spelled"
+   }
   },
   {
    "id": "@wren/research/src/people/profile-research.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "\"Research this person\" on a profile: who to look for (`subjectOf`), what a lookup found as findings on the profile (`findingsOf`), and the rows that carry a run (`profile_lookups`, `profile_findings`)"
+   }
   },
   {
    "id": "@wren/research/src/people/store.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "Writes a lookup: every page read and each finding's source into `documents` (once per url and text), the finding itself (seen again = `observed_at` moves), the person's trusted profile, and where the lookup stands"
+   }
   },
   {
    "id": "@wren/research/src/people/team.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "A firm's public team from one people search (autobrowse `web` `/people`, Exa's index of public profiles): the firm's name, up to 25 profiles, and everyone whose current role is at the firm"
+   }
   },
   {
    "id": "@wren/research/src/phones.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "Phone numbers a firm published on its own pages, as US E.164"
+   }
   },
   {
    "id": "@wren/research/src/records.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "Research as console records: signals, under Outbound"
+   }
   },
   {
    "id": "@wren/research/src/restate/discovery.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "Website discovery as a Virtual Object keyed by niche (\"all\" = every niche; `<client>/<niche>` = the same in that client's database): `discover` guesses and proves domains for companies that have none, `verify` proves domains that were asserted at import"
+   }
   },
   {
    "id": "@wren/research/src/restate/enrichment-context.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "The enrichment object's context, built once: the scope a unit runs in, the run journal, the browser pool and the model and key lookups every group shares"
+   }
   },
   {
    "id": "@wren/research/src/restate/enrichment-crawl.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "Enrichment handlers that crawl, render and scan sites and extract from them"
+   }
   },
   {
    "id": "@wren/research/src/restate/enrichment-people.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "Enrichment handlers for people: profiles, teams and signals"
+   }
   },
   {
    "id": "@wren/research/src/restate/enrichment-picks.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "Enrichment handlers that pick who to contact and what to open with"
+   }
   },
   {
    "id": "@wren/research/src/restate/enrichment-search.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "Enrichment handlers that search: the ad library, Exa and trigger events"
+   }
   },
   {
    "id": "@wren/research/src/restate/enrichment-social.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "Enrichment handlers that read YouTube, Instagram and Facebook groups"
+   }
   },
   {
    "id": "@wren/research/src/restate/enrichment.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "Enrichment as a Restate Virtual Object keyed by population: \"all\" or a niche"
+   }
   },
   {
    "id": "@wren/research/src/restate/index.ts",
@@ -473,19 +677,28 @@
    "id": "@wren/research/src/restate/page-archive.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "`PageArchive/all`: moves page HTML older than a day out of Postgres to the pages bucket (`archivePages`)"
+   }
   },
   {
    "id": "@wren/research/src/restate/profile-research.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "`ProfileResearch/<profile id>/run`: one \"Research this person\" run, durable"
+   }
   },
   {
    "id": "@wren/research/src/restate/units.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "A pass's units in batches: up to `perRun` units share one `ctx.run`, so a pass of 50 companies journals 3 steps, not 50"
+   }
   },
   {
    "id": "@wren/research/src/schema.ts",
@@ -497,85 +710,127 @@
    "id": "@wren/research/src/signals/collectors.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "The collector registry"
+   }
   },
   {
    "id": "@wren/research/src/signals/demand.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "Demand posts (S8): someone saying in public that they need what a firm in our lists could buy"
+   }
   },
   {
    "id": "@wren/research/src/signals/funding.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "Funding (S3): SEC EDGAR full-text search for Form D filings by the firm's bare name, kept as `news` with event funding"
+   }
   },
   {
    "id": "@wren/research/src/signals/hiring.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "Job postings (S1): the pool's adapter over the built `checkHiring`"
+   }
   },
   {
    "id": "@wren/research/src/signals/index.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "Signals: specific, timely, citable facts that make a message relevant now, kept as dated findings"
+   }
   },
   {
    "id": "@wren/research/src/signals/linkedin.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "LinkedIn activity (S5): a person's posts, search first"
+   }
   },
   {
    "id": "@wren/research/src/signals/news.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "Company news (S2): `searchEvents` over Google News RSS, then the Google page (50 a day of the shared budget), then Exa"
+   }
   },
   {
    "id": "@wren/research/src/signals/site.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "Website changes (S7)"
+   }
   },
   {
    "id": "@wren/research/src/signals/stack-prints.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "Tech stack prints (S4): our own list of the tools that matter to our pitch"
+   }
   },
   {
    "id": "@wren/research/src/signals/stack.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "Tech stack (S4): which tools a firm runs, from the pages the crawl already stored and the domain's DNS TXT and MX"
+   }
   },
   {
    "id": "@wren/research/src/signals/talks.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "Podcasts and talks (S6): episodes and videos a firm's owner appears in"
+   }
   },
   {
    "id": "@wren/research/src/social-schema.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "Social groups as a lead source: what a search found, the groups it found, and the public posts in them"
+   }
   },
   {
    "id": "@wren/research/src/sops/cites.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "Citations as numbers"
+   }
   },
   {
    "id": "@wren/research/src/sops/index.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "SOPs built from sources"
+   }
   },
   {
    "id": "@wren/research/src/studies/index.ts",
@@ -587,25 +842,37 @@
    "id": "@wren/research/src/studies/plan.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "The study planner falcon 0.5.0 dropped (raven plans, weaver runs there now): plan an angle into searches, pick which pages to read, read one page into claims on every angle"
+   }
   },
   {
    "id": "@wren/research/src/studies/recipes.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "Ready-made studies"
+   }
   },
   {
    "id": "@wren/research/src/studies/run.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "Running a study: plan, search, ask, read, claims, drafts, in that order"
+   }
   },
   {
    "id": "@wren/research/test/integration/fixtures.ts",
    "role": "file",
    "parent": "@wren/research",
-   "group": "@wren/research"
+   "group": "@wren/research",
+   "attrs": {
+    "description": "Shared fakes for the enrichment integration suites: canned pages, no network, no sleeping"
+   }
   },
   {
    "id": "@wren/research/vitest.config.ts",

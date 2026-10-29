@@ -30,7 +30,10 @@
    "id": "@wren/config/src/ssm.ts",
    "role": "file",
    "parent": "@wren/config",
-   "group": "@wren/config"
+   "group": "@wren/config",
+   "attrs": {
+    "description": "Secrets for Lambda: SSM SecureStrings each holding a JSON object of env names to values, applied to `process.env` before settings load"
+   }
   }
  ],
  "edges": [

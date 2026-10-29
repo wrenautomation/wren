@@ -1,0 +1,60 @@
+{
+ "layer": "ui",
+ "nodes": [
+  {
+   "id": "ui:clientCalendar",
+   "role": "app",
+   "group": "clientCalendar",
+   "attrs": {
+    "areas": [
+     "client: Tools"
+    ],
+    "blurb": "Calls booked on your page, a brief before each, and how each went.",
+    "file": "apps/portal/web/src/modules/calendar/index.ts",
+    "name": "Calendar",
+    "workspace": "client"
+   }
+  },
+  {
+   "id": "ui:clientCalendar/calls",
+   "role": "screen",
+   "parent": "ui:clientCalendar",
+   "group": "clientCalendar",
+   "attrs": {
+    "about": "Every booked call, past and coming up.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Calls",
+    "order": 2,
+    "record": "calendar.booking",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:clientCalendar/overview",
+   "role": "screen",
+   "parent": "ui:clientCalendar",
+   "group": "clientCalendar",
+   "attrs": {
+    "about": "Your calls at a glance.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Overview",
+    "order": 1,
+    "template": "overview"
+   }
+  },
+  {
+   "id": "ui:clientCalendar/schedule",
+   "role": "screen",
+   "parent": "ui:clientCalendar",
+   "group": "clientCalendar",
+   "attrs": {
+    "about": "Your calls on a calendar, by day, week or month.",
+    "file": "apps/portal/web/src/modules/calendar/schedule.tsx",
+    "label": "Schedule",
+    "order": 0,
+    "template": "hand"
+   }
+  }
+ ],
+ "edges": []
+}

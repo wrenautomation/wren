@@ -1,0 +1,114 @@
+{
+ "layer": "ui",
+ "nodes": [
+  {
+   "id": "ui:clientLearn",
+   "role": "app",
+   "group": "clientLearn",
+   "attrs": {
+    "areas": [
+     "client: Marketing"
+    ],
+    "blurb": "Links you save and sources you follow, read, scored and kept like a drive.",
+    "file": "apps/portal/web/src/modules/learn/index.ts",
+    "name": "Learn",
+    "workspace": "client"
+   }
+  },
+  {
+   "id": "ui:clientLearn/add",
+   "role": "screen",
+   "parent": "ui:clientLearn",
+   "group": "clientLearn",
+   "attrs": {
+    "about": "Save a link to read and learn from.",
+    "file": "apps/portal/web/src/modules/learn/learn.tsx",
+    "hidden": true,
+    "label": "Save a link",
+    "order": 6,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:clientLearn/items",
+   "role": "screen",
+   "parent": "ui:clientLearn",
+   "group": "clientLearn",
+   "attrs": {
+    "about": "One saved item, with its transcript and notes.",
+    "file": "apps/portal/web/src/modules/learn/drive.tsx",
+    "hidden": true,
+    "label": "Items",
+    "order": 4,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:clientLearn/overview",
+   "role": "screen",
+   "parent": "ui:clientLearn",
+   "group": "clientLearn",
+   "attrs": {
+    "about": "The best of what you follow, scored against your SOPs.",
+    "file": "apps/portal/web/src/modules/learn/home.tsx",
+    "label": "Home",
+    "order": 0,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:clientLearn/saved",
+   "role": "screen",
+   "parent": "ui:clientLearn",
+   "group": "clientLearn",
+   "attrs": {
+    "about": "Everything you saved to come back to.",
+    "hidden": true,
+    "label": "Saved",
+    "order": 5,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:clientLearn/search",
+   "role": "screen",
+   "parent": "ui:clientLearn",
+   "group": "clientLearn",
+   "attrs": {
+    "about": "Search every transcript, word for word.",
+    "file": "apps/portal/web/src/modules/learn/learn.tsx",
+    "label": "Search",
+    "order": 2,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:clientLearn/sources",
+   "role": "screen",
+   "parent": "ui:clientLearn",
+   "group": "clientLearn",
+   "attrs": {
+    "about": "The creators and feeds you follow.",
+    "file": "apps/portal/web/src/modules/learn/sources.tsx",
+    "group": "Setup",
+    "label": "Sources",
+    "order": 3,
+    "template": "hand"
+   }
+  },
+  {
+   "id": "ui:clientLearn/today",
+   "role": "screen",
+   "parent": "ui:clientLearn",
+   "group": "clientLearn",
+   "attrs": {
+    "about": "The last day's best from what you follow.",
+    "file": "apps/portal/web/src/modules/learn/today.tsx",
+    "label": "Today",
+    "order": 1,
+    "template": "hand"
+   }
+  }
+ ],
+ "edges": []
+}

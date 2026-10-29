@@ -14,13 +14,19 @@
    "id": "@wren/auth/src/handoff.ts",
    "role": "file",
    "parent": "@wren/auth",
-   "group": "@wren/auth"
+   "group": "@wren/auth",
+   "attrs": {
+    "description": "Sign-in carried to a client's own host"
+   }
   },
   {
    "id": "@wren/auth/src/index.ts",
    "role": "file",
    "parent": "@wren/auth",
-   "group": "@wren/auth"
+   "group": "@wren/auth",
+   "attrs": {
+    "description": "Wren's sign-in: Better Auth over our Postgres, tables in schema `auth`"
+   }
   },
   {
    "id": "@wren/auth/src/schema.ts",
@@ -32,7 +38,10 @@
    "id": "@wren/auth/src/verify.ts",
    "role": "file",
    "parent": "@wren/auth",
-   "group": "@wren/auth"
+   "group": "@wren/auth",
+   "attrs": {
+    "description": "Who signed in, for an app: the short-lived token our sign-in signs (A6), checked against its published keys"
+   }
   },
   {
    "id": "@wren/auth/vitest.config.ts",

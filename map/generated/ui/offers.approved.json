@@ -1,0 +1,48 @@
+{
+ "layer": "ui",
+ "nodes": [
+  {
+   "id": "ui:offers",
+   "role": "app",
+   "group": "offers",
+   "attrs": {
+    "areas": [
+     "team: Primary"
+    ],
+    "blurb": "Each offer Wren sells, its versions, and the terms it sells on.",
+    "file": "apps/portal/web/src/modules/offers/index.ts",
+    "name": "Offers",
+    "workspace": "wren"
+   }
+  },
+  {
+   "id": "ui:offers/all",
+   "role": "screen",
+   "parent": "ui:offers",
+   "group": "offers",
+   "attrs": {
+    "about": "Every offer, its live plans and open journeys, with its versions and terms.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Offers",
+    "order": 0,
+    "record": "pipeline.offer",
+    "template": "list"
+   }
+  },
+  {
+   "id": "ui:offers/terms",
+   "role": "screen",
+   "parent": "ui:offers",
+   "group": "offers",
+   "attrs": {
+    "about": "The terms each plan sells on, with a button to propose the next version.",
+    "file": "apps/portal/web/src/records.tsx",
+    "label": "Terms",
+    "order": 1,
+    "record": "pipeline.terms",
+    "template": "list"
+   }
+  }
+ ],
+ "edges": []
+}
