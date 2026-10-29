@@ -1059,3 +1059,34 @@ Follow-ups, not in this pass:
   and plan files.
 - The across-runs store William named: saved plans, patterns, verdicts and SOPs as linked,
   versioned records, two-way, a change upstream marks what rests on it stale.
+
+### 10-29: the agent is the only driver, engine 0.30.0 (WA-975)
+
+William: delete raven; the agent owns plan, triage and review, with guiding prompts and
+commands; the tree and fan-out stay. He accepted the three 0.29.0 deviations (the User-Agent,
+raven's three commands gone, the `birdwatch` caller label).
+
+Options weighed:
+- A (taken): agent only. Delete propose, triage, review, the run loop, `run`, `--decider` and the
+  plan files' prompts. One driver, so no second copy of the same judgment drifts from the skill.
+- B: `run` starts a headless agent with the skill. Unattended runs, but a second layer, and no
+  user needs it: the desk can start a Claude session itself.
+- C: keep both. Nothing removed; the prompts drift from the skill (the raven smell).
+Ranked: the 10-28 rule first, then one driver, then fewer names.
+
+Moves:
+- `src/plan` and the `./plan` subpath go. The ask and plan-file shapes are `src/engine/types.ts`,
+  the stock plan files `src/engine/plans/`, both exported from `./engine`.
+- A plan file has `rules` per kind (the hints the old prompts held: a clip under 60 s, a page
+  about a namesake). `brief.guide` shows them with the age sentence; `learn --rule` tunes them.
+  A stored file with prompts parses; they drop. The stock version stays 6.
+- `Deps.runner` is `Deps.writer`. The model does only the bulk `extract` and `check`.
+- The runner tests that held shared mechanics (a Transient tried again, a cut extract
+  continued, a batch that fails half way, an opener that only opens) now run through agent
+  commands. Old ledgers fold and brief the same.
+- The top-level `raven/ falcon/ weaver/` folders are deleted; their history is on GitHub.
+
+Release: models and orrery by CI. read and birdwatch got a 403 "OIDC permission denied" even
+with the new trust config (WA-972), so they went out by hand again.
+
+Follow-up still open: the across-runs store (above).
