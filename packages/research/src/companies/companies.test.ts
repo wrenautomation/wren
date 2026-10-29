@@ -4,7 +4,7 @@
  * guessed. Canned pages and a fake SiteClient, no network.
  */
 import { SiteCallError, type SiteClient } from "@wren/core/content";
-import { FetchError, type Fetcher, type FetchResponse } from "@wrenautomation/weaver/fetch";
+import { FetchError, type Fetcher, type FetchResponse } from "@wrenautomation/read/fetch";
 import { describe, expect, it } from "vitest";
 import { findBoards, readBoard } from "./boards.js";
 import { type CompanySubject, checkHiring } from "./hiring.js";

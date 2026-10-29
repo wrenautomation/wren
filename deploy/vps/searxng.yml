@@ -1,4 +1,4 @@
-# SearXNG for the research engine (weaver's `searxng` source: GET /search?q=&format=json).
+# SearXNG for the research engine (birdwatch's `searxng` source: GET /search?q=&format=json).
 # Everything else is SearXNG's default; the secret, base URL, limiter and image proxy
 # come from the environment (compose.yml).
 use_default_settings: true

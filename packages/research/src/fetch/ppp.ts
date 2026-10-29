@@ -13,7 +13,7 @@ import { mkdir, rename, stat, unlink } from "node:fs/promises";
 import { dirname } from "node:path";
 import { Readable } from "node:stream";
 import type { ReadableStream as WebReadableStream } from "node:stream/web";
-import { type DownloadResult, FetchError } from "@wrenautomation/weaver/fetch";
+import { type DownloadResult, FetchError } from "@wrenautomation/read/fetch";
 import { parse } from "csv-parse";
 import type { Dataset, RemoteFile } from "./datasets.js";
 

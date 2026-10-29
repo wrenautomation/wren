@@ -1,6 +1,6 @@
 /** PPP loans: file links off the dataset page, and the streaming NAICS filter. No network. */
 import { Readable, Writable } from "node:stream";
-import { FetchError, PoliteFetcher } from "@wrenautomation/weaver/fetch";
+import { FetchError, PoliteFetcher } from "@wrenautomation/read/fetch";
 import { parse } from "csv-parse/sync";
 import { describe, expect, it } from "vitest";
 import { filterLoanCsv, PPP_DATASET_PAGE, parsePppFileLinks, pppLoans } from "./ppp.js";

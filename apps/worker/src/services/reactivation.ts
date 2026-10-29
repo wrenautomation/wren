@@ -8,7 +8,7 @@ import { ingressSites } from "@wren/core/content/ingress";
 import { meteredModel, meteredSites } from "@wren/core/metered";
 import { llmForKey } from "@wren/llm";
 import { makeCrmRun, makeReactivation, makeReactivationPortal } from "@wren/reactivation/restate";
-import { PoliteFetcher } from "@wrenautomation/weaver/fetch";
+import { PoliteFetcher } from "@wrenautomation/read/fetch";
 import { type AnyService, BOOKS_DESK_TIMEOUT_MS, type Deps } from "./deps.js";
 
 /** The reactivation domain's services, in the order they were served from `services.ts`. */

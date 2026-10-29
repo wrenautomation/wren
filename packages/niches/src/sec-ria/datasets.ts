@@ -11,7 +11,7 @@
  */
 
 import type { Dataset, RemoteFile } from "@wren/research/fetch";
-import { FetchError, type PoliteFetcher } from "@wrenautomation/weaver/fetch";
+import { FetchError, type PoliteFetcher } from "@wrenautomation/read/fetch";
 
 export const SEC_REPORTS_BASE = "https://reports.adviserinfo.sec.gov/reports";
 

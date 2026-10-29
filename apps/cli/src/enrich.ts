@@ -42,7 +42,7 @@ import {
   SIGNALS_LIMIT,
   signalSettings,
 } from "@wren/research/signals";
-import { PoliteFetcher, userAgent } from "@wrenautomation/weaver/fetch";
+import { PoliteFetcher, userAgent } from "@wrenautomation/read/fetch";
 import type { Command } from "commander";
 import { ingressSites } from "./sites.js";
 

@@ -2,7 +2,7 @@
 import * as restate from "@restatedev/restate-sdk";
 import { exclusiveHandler } from "@wren/core/restate";
 import { atomic } from "@wren/db";
-import type { RobotsCache } from "@wrenautomation/weaver/fetch";
+import type { RobotsCache } from "@wrenautomation/read/fetch";
 import { z } from "zod";
 import {
   CONTACTS_MODEL,

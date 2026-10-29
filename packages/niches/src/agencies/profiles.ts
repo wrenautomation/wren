@@ -12,7 +12,7 @@
 import { readdirSync, readFileSync, statSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
 import type { Dataset, RemoteFile } from "@wren/research/fetch";
-import { type DownloadResult, FetchError, type PoliteFetcher } from "@wrenautomation/weaver/fetch";
+import { type DownloadResult, FetchError, type PoliteFetcher } from "@wrenautomation/read/fetch";
 import {
   listingSlugs,
   looksLikeProfile,

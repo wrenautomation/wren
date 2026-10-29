@@ -4,7 +4,7 @@
  * Tests state what SHOULD happen; a failing one is a bug.
  */
 import { FakeLlm } from "@wren/llm";
-import type { Fetcher } from "@wrenautomation/weaver/fetch";
+import type { Fetcher } from "@wrenautomation/read/fetch";
 import { describe, expect, it } from "vitest";
 import { siteName } from "../discovery/find.js";
 import { findCustomers, gateCustomers, imageNames } from "./customers.js";

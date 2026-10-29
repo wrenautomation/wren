@@ -31,7 +31,7 @@ Citations: `packages/video/src/index.ts:1`, `packages/video/src/publish.ts:32`
 
 - **owned-by:** none (a tool for products)
 - **joins:** lander `functions/v/[id].ts` (the watch page reads `v/<id>.json`)
-- **looks-like-but-is-not:** [[content/video-edit]] (an edit of a filmed video); falcon `watch` (reads a video, never makes one)
+- **looks-like-but-is-not:** [[content/video-edit]] (an edit of a filmed video); read's `watch` (reads a video, never makes one)
 
 ## If you change this
 

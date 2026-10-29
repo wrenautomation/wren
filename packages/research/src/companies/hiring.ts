@@ -17,8 +17,8 @@
  * and a SiteClient: it returns the finding and the trail, `store.ts` writes.
  */
 import type { SiteClient } from "@wren/core/content";
-import { readPage } from "@wrenautomation/falcon/text";
-import { FetchError, type Fetcher } from "@wrenautomation/weaver/fetch";
+import { FetchError, type Fetcher } from "@wrenautomation/read/fetch";
+import { readPage } from "@wrenautomation/read/text";
 import type { CompanyFindingDraft } from "../findings.js";
 import type { ReadSource } from "../linkedin-reads.js";
 import { Capped, paced, realSleep, refusedBy, searchStopped } from "../pacing.js";

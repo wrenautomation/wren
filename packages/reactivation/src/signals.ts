@@ -17,7 +17,7 @@ import {
   recordCompanyCheck,
 } from "@wren/research/companies";
 import { failedRead } from "@wren/research/pacing";
-import type { Fetcher } from "@wrenautomation/weaver/fetch";
+import type { Fetcher } from "@wrenautomation/read/fetch";
 import { type SQL, sql } from "drizzle-orm";
 import { failedLine, hiringLine } from "./feed.js";
 import { LATEST_CRM_ROW } from "./score.js";

@@ -8,14 +8,14 @@
 import { createHash } from "node:crypto";
 import { type Company, companies, inPlay } from "@wren/core";
 import { atomic, type Queryable } from "@wren/db";
-import { looksLikeJsShell, readPage } from "@wrenautomation/falcon/text";
 import {
   canFetch,
   FetchError,
   type Fetcher,
   type FetchResponse,
   type RobotsCache,
-} from "@wrenautomation/weaver/fetch";
+} from "@wrenautomation/read/fetch";
+import { looksLikeJsShell, readPage } from "@wrenautomation/read/text";
 import { and, asc, count, eq, isNotNull, isNull, sql } from "drizzle-orm";
 import { domainOf, type TierMemory } from "../fetch/tier-memory.js";
 import { documents } from "../schema.js";

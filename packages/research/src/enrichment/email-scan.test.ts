@@ -1,4 +1,4 @@
-import { readPage } from "@wrenautomation/falcon/text";
+import { readPage } from "@wrenautomation/read/text";
 import { describe, expect, it } from "vitest";
 import { type EmailSignal, scanPage } from "./email-scan.js";
 

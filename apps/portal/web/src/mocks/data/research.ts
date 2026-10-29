@@ -1,4 +1,4 @@
-/** A made-up birdwatch run as `weaver serve` sends it: Research's story and tree test read it. */
+/** A made-up birdwatch run as `birdwatch serve` sends it: Research's story and tree test read it. */
 import type { RunRow, RunView } from "../../modules/research/serve.js";
 
 const ai = { from: "ai", by: "claude-code" };

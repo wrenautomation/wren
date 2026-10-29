@@ -12,7 +12,7 @@ import type { Queryable } from "@wren/db";
 import type { LlmClient } from "@wren/llm";
 import { keepingAnswers } from "@wren/research";
 import { politeHomepageFetcher } from "@wren/research/discovery";
-import type { Fetcher } from "@wrenautomation/weaver/fetch";
+import type { Fetcher } from "@wrenautomation/read/fetch";
 import { type CrmBriefStats, writeCrmBriefs } from "./brief.js";
 import { type CrmComposeStats, composeCrmEmails } from "./compose.js";
 import { type CrmVerifyStats, checkCrmEmails } from "./crm/verify.js";

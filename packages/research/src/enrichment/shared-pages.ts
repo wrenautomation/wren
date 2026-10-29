@@ -6,7 +6,7 @@
  * still written by its crawl, in its database: extraction joins on it there.
  */
 import type { Db } from "@wren/db";
-import { type Fetcher, type FetchResponse, LADDER_TIERS } from "@wrenautomation/weaver/fetch";
+import { type Fetcher, type FetchResponse, LADDER_TIERS } from "@wrenautomation/read/fetch";
 import { and, desc, eq, gt, inArray, or } from "drizzle-orm";
 import { htmlOf, type PageStore } from "../pages.js";
 import { documents } from "../schema.js";

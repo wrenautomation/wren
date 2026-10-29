@@ -404,7 +404,7 @@ The research engine's free web search is a SearXNG on box 1 (`deploy/vps/`, prof
 `https://search.wrenautomation.com` and answers 401 without the bearer (SSM
 `/wren/prod/searxng_token`); `/healthz` is open. SearXNG's own cookie key is SSM
 `/wren/prod/searxng_secret`. The A record is Cloudflare, DNS only. On the Mac the model keys
-file at the org root holds `SEARXNG_URL` and `SEARXNG_TOKEN`; weaver's `searxng` source sends
+file at the org root holds `SEARXNG_URL` and `SEARXNG_TOKEN`; birdwatch's `searxng` source sends
 the bearer when the token is set. Box 2 runs the prober alone (`SEARCH_HOST=` empty).
 
 ```sh

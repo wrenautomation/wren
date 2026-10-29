@@ -11,7 +11,7 @@ import type { Step } from "@wren/core/executor";
 import { gate, meter } from "@wren/core/vendors";
 import type { Db } from "@wren/db";
 import { pgSafe } from "@wren/db/columns";
-import { type Fetcher, PoliteFetcher } from "@wrenautomation/weaver/fetch";
+import { type Fetcher, PoliteFetcher } from "@wrenautomation/read/fetch";
 import { and, asc, desc, eq, isNotNull, isNull, sql } from "drizzle-orm";
 import { decode, ogImageOf, plain, secondsOf } from "./feeds.js";
 import { needsMac, youtubeId } from "./links.js";
@@ -123,7 +123,7 @@ export function frontField(md: string, key: string): string | null {
 type ReadResult = "read" | "mac" | "failed" | null;
 
 /**
- * The page reader for saved links: weaver's door, under learn's own UA. One try: the walk reads
+ * The page reader for saved links: `@wrenautomation/read`'s door, under learn's own UA. One try: the walk reads
  * items one by one in a Lambda, and a failed read is tried again on a later pass.
  */
 export const pageFetcher = (): Fetcher =>

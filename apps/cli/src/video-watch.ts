@@ -8,6 +8,7 @@
  */
 import type { Settings } from "@wren/config";
 import { fleetKeys, loadLlmEnv } from "@wren/llm";
+import type { Model } from "@wrenautomation/models";
 import {
   cohereEye,
   cohereSpeech,
@@ -15,9 +16,8 @@ import {
   geminiVideo,
   renderWatched,
   type WatchOptions,
-} from "@wrenautomation/falcon/video";
-import type { Model } from "@wrenautomation/models";
-import { watch } from "@wrenautomation/weaver/video";
+  watch,
+} from "@wrenautomation/read/video";
 import type { Command } from "commander";
 
 /** Cohere's eye and ear on llm.env's keys (never logged), and the ffmpeg path. */

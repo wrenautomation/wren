@@ -28,7 +28,7 @@ import {
   pageEvidence,
   type StudyDraftSpec,
   terms,
-} from "@wrenautomation/falcon/study";
+} from "@wrenautomation/read/study";
 import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import type { ZodType } from "zod";
 import { keepDocument, keepingAnswers } from "../findings.js";

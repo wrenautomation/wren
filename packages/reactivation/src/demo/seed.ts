@@ -19,7 +19,7 @@ import {
   siteName,
 } from "@wren/research/discovery";
 import { findContacts } from "@wren/research/people";
-import { canFetch, type Fetcher } from "@wrenautomation/weaver/fetch";
+import { canFetch, type Fetcher } from "@wrenautomation/read/fetch";
 import { sql } from "drizzle-orm";
 import { CRM_FORMATS } from "../crm/formats.js";
 import { type CrmImportStats, runCrmImport } from "../crm/import.js";

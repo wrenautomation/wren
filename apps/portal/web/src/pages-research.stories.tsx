@@ -1,5 +1,5 @@
 /**
- * Research (WA-938): birdwatch runs read from `weaver serve` on this Mac. msw answers serve's
+ * Research (WA-938): birdwatch runs read from `birdwatch serve` on this Mac. msw answers serve's
  * address with a made-up run (`./mocks/data/research.ts`). No pixel compare: render, axe.
  */
 import type { Meta, StoryObj } from "@storybook/react-vite";
@@ -88,7 +88,7 @@ export const Sources = story("/research/runs?run=r1&tab=sources&hits=all", async
 export const NoServe = story(
   "/research/runs",
   async (page) => {
-    await within(page).findByText("Can't reach weaver serve");
+    await within(page).findByText("Can't reach birdwatch serve");
   },
   REFUSED,
 );

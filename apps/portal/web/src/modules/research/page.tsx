@@ -3,7 +3,7 @@
  * The runs on the left; the one open on the right as the tree (ask, facets, queries, follows,
  * pages, people), the back and forth (every decision with its why and who made it), and every
  * source with its link, its embed where the CSP lets one in, and the copy the run stored.
- * Read only: the agent and the CLI write. Live: `weaver serve` sends an event per changed run.
+ * Read only: the agent and the CLI write. Live: `birdwatch serve` sends an event per changed run.
  */
 import {
   Button,
@@ -74,7 +74,7 @@ const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? o
 function NoServe({ error, onRetry }: { error: unknown; onRetry: () => void }) {
   return (
     <Empty
-      title="Can't reach weaver serve"
+      title="Can't reach birdwatch serve"
       action={
         <Button size="dense" tone="secondary" onClick={onRetry}>
           Try again
@@ -83,8 +83,8 @@ function NoServe({ error, onRetry }: { error: unknown; onRetry: () => void }) {
     >
       <span className="grid gap-1">
         <span>
-          Run <code>weaver serve --ledger &lt;the run's folder&gt;</code> on this Mac. It listens on{" "}
-          {SERVE}.
+          Run <code>birdwatch serve --ledger &lt;the run's folder&gt;</code> on this Mac. It listens
+          on {SERVE}.
         </span>
         <span>If Chrome asks to let this site reach your local network, allow it.</span>
         <span className={QUIET}>{error instanceof Error ? error.message : String(error)}</span>

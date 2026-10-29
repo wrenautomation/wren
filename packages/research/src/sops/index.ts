@@ -7,16 +7,16 @@
  * video (Instagram reel, TikTok, X), Drive Doc or local file, with `priority` in its front matter,
  * and `points/*.md` is each source's generated list of points. `buildSop` asks one
  * model for the next SOP.md from all of it; iterating is editing notes.md, calling on
- * pieces, or editing SOP.md and building again. The videos and audio are read by weaver
- * (`@wrenautomation/weaver/video`, over falcon); this file only files what it read. Nothing here touches a
+ * pieces, or editing SOP.md and building again. The videos and audio are read by
+ * `@wrenautomation/read/video`; this file only files what it read. Nothing here touches a
  * database.
  */
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 import type { LlmClient } from "@wren/llm";
-import type { VideoRead, WatchOptions } from "@wrenautomation/falcon/video";
 import type { Model } from "@wrenautomation/models";
-import { readAudio, readVideo, readYoutube, readYoutubeByUrl } from "@wrenautomation/weaver/video";
+import type { VideoRead, WatchOptions } from "@wrenautomation/read/video";
+import { readAudio, readVideo, readYoutube, readYoutubeByUrl } from "@wrenautomation/read/video";
 import { expandCites, numberCites } from "./cites.js";
 
 export { expandCites, numberCites };
@@ -35,7 +35,7 @@ const frontMatter = (fields: Record<string, string | number>) =>
     .join("\n")}\n---\n\n`;
 
 /**
- * A weaver read filed as a source: the read's facts and the SOP's `priority` as front matter,
+ * A read filed as a source: the read's facts and the SOP's `priority` as front matter,
  * then its title and sections. Named `<kind>-<id>.md`.
  */
 export function toSource(read: VideoRead, priority = DEFAULT_PRIORITY): Source {
@@ -57,7 +57,7 @@ export function toSource(read: VideoRead, priority = DEFAULT_PRIORITY): Source {
 /**
  * A YouTube video's captions and chapters through `yt-dlp` (`ytDlp` is the command, split on
  * spaces: `uvx yt-dlp`), plus what it showed on screen when a video model is given (`geminiVideo`):
- * weaver's `readYoutube`, filed with the SOP's priority.
+ * `readYoutube`, filed with the SOP's priority.
  */
 export const youtubeSource = async (
   url: string,
@@ -67,8 +67,8 @@ export const youtubeSource = async (
 ): Promise<Source> => toSource(await readYoutube(url, { ytDlp, ...opts }), priority);
 
 /**
- * A YouTube video read from its URL alone, no download and no home IP (weaver's
- * `readYoutubeByUrl`): what the worker reads with, through the gateway (`geminiReader` over
+ * A YouTube video read from its URL alone, no download and no home IP
+ * (`readYoutubeByUrl`): what the worker reads with, through the gateway (`geminiReader` over
  * `gatewayGemini` in `@wren/llm`); the Mac's `youtubeSource` uses the captions instead.
  */
 export const youtubeByUrl = async (
@@ -83,7 +83,7 @@ export const youtubeByUrl = async (
 ): Promise<Source> => toSource(await readYoutubeByUrl(url, opts), opts.priority);
 
 /**
- * Any other video `yt-dlp` fetches (Instagram reel, TikTok, X), watched (weaver's `readVideo`):
+ * Any other video `yt-dlp` fetches (Instagram reel, TikTok, X), watched (`readVideo`):
  * the caption, then its Speech, On screen and Cuts.
  */
 export const videoSource = async (
@@ -94,7 +94,7 @@ export const videoSource = async (
 ): Promise<Source> => toSource(await readVideo(url, { ...opts, ytDlp }), priority);
 
 /**
- * A podcast episode heard from its audio file (weaver's `readAudio`): cut by ffmpeg, each clip
+ * A podcast episode heard from its audio file (`readAudio`): cut by ffmpeg, each clip
  * transcribed by a model that takes audio (`geminiVideo`). `url` is the episode's page; `title`
  * and `creator` are what its feed said.
  */

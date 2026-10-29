@@ -8,8 +8,8 @@
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { runFor, sceneCuts, TOOL_MS } from "@wrenautomation/falcon/video";
 import type { Model } from "@wrenautomation/models";
+import { runFor, sceneCuts, TOOL_MS } from "@wrenautomation/read/video";
 import { z } from "zod";
 import { BAR_IDS, type BarFormat, barLines, VIDEO_CHECK } from "./bar.js";
 

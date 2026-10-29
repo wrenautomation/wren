@@ -5,7 +5,7 @@
  * against the hand seed (`designs/studies/2026-10-25-launch-films.json`). The same numbers come
  * from a hand shot list, so a seed film and a read one compare on one rule.
  */
-import type { WatchFacts } from "@wrenautomation/falcon/video";
+import type { WatchFacts } from "@wrenautomation/read/video";
 import { z } from "zod";
 import {
   CUTS_TRUSTS,

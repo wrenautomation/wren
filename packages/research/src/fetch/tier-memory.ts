@@ -4,7 +4,7 @@
  * dead one again. It lives on main only: a domain is the same fact for every client.
  */
 import type { Queryable } from "@wren/db";
-import { LADDER_TIERS } from "@wrenautomation/weaver/fetch";
+import { LADDER_TIERS } from "@wrenautomation/read/fetch";
 import { eq } from "drizzle-orm";
 import { fetchTiers } from "../schema.js";
 

@@ -3,7 +3,7 @@
  * sees, and the gate that keeps only names the pages carry.
  */
 import { FakeLlm } from "@wren/llm";
-import type { Fetcher } from "@wrenautomation/weaver/fetch";
+import type { Fetcher } from "@wrenautomation/read/fetch";
 import { describe, expect, it } from "vitest";
 import { buildCustomersPrompt, findCustomers, gateCustomers, imageNames } from "./customers.js";
 

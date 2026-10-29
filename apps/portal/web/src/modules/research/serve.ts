@@ -1,7 +1,7 @@
 /**
- * Research reads `weaver serve` on this Mac (engine `packages/weaver/src/app/serve.ts`): the
+ * Research reads `birdwatch serve` on this Mac (engine `packages/birdwatch/src/app/serve.ts`): the
  * browser asks 127.0.0.1 itself, so Chrome asks once to let the portal reach the local network.
- * The seam is the JSON: these types copy what the page reads from weaver's `view.ts` (`v: 1`).
+ * The seam is the JSON: these types copy what the page reads from birdwatch's `view.ts` (`v: 1`).
  */
 import { useEffect, useRef } from "react";
 

@@ -62,7 +62,7 @@ import { journeySteps } from "@wren/pipeline/steps";
 import { youtubeByUrl } from "@wren/research/sops";
 import { CALL_NOW, callNowStep } from "@wren/voice/node";
 import { clientTriageStep, triageStep, mail as watchMail } from "@wren/watch";
-import { geminiReader } from "@wrenautomation/falcon/video";
+import { geminiReader } from "@wrenautomation/read/video";
 import { eq } from "drizzle-orm";
 import { COMPONENTS } from "../components.js";
 import { journeyResearcher } from "../journey-research.js";

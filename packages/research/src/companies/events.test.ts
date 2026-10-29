@@ -1,5 +1,5 @@
 import { SiteCallError, type SiteClient } from "@wren/core/content";
-import { FetchError, type Fetcher } from "@wrenautomation/weaver/fetch";
+import { FetchError, type Fetcher } from "@wrenautomation/read/fetch";
 import { describe, expect, it } from "vitest";
 import {
   eventDate,

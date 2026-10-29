@@ -17,7 +17,7 @@ import {
   numbersQuoted,
   pageQuoted,
   words,
-} from "@wrenautomation/falcon/study";
+} from "@wrenautomation/read/study";
 import { and, asc, desc, eq, exists, inArray, notInArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { documents, enrichments } from "../schema.js";

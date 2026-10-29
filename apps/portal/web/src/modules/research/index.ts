@@ -1,5 +1,5 @@
 /**
- * Research: birdwatch runs read from `weaver serve` on this Mac, live. Wren's team only, read only.
+ * Research: birdwatch runs read from `birdwatch serve` on this Mac, live. Wren's team only, read only.
  */
 import type { Module } from "../../module.js";
 import { RunsPage } from "./page.js";

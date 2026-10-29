@@ -10,7 +10,7 @@
 import { IDENTITY_KEY, type LeadSource, type RawRow, runImport } from "@wren/core";
 import { atomic, type Queryable } from "@wren/db";
 import { completeAndParse, type LlmClient } from "@wren/llm";
-import { FetchError, type Fetcher } from "@wrenautomation/weaver/fetch";
+import { FetchError, type Fetcher } from "@wrenautomation/read/fetch";
 import { sql } from "drizzle-orm";
 import { z } from "zod";
 import {

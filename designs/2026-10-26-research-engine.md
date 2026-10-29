@@ -1023,3 +1023,39 @@ broken site. Options and the Restate transport choice: autobrowse
 Same day: wren's `SiteCallError` carries the code (HTTP `code`, Restate `metadata.code`; a live
 probe on the desk confirmed the ingress keeps it). Analytics: `need_login` is a `needs_william`
 gap, `platform_blocked` an `error`. Reddit's signed-out `/api/me` is `need_login` now, not a wait.
+
+### 10-29: three packages, birdwatch is the product, engine 0.29.0 (WA-970)
+
+William: birdwatch is the process, so the bird names under it cost more than they say. wren
+imports only the read half (`weaver/fetch` 60 lines, `falcon/text` 13, `falcon/study` 9,
+`falcon/video` 9, `weaver/video` 6); nothing of the engine, the ledger or raven. The old seam
+(falcon reads bytes, weaver reads a URL) split one job across two packages.
+
+Options weighed:
+- Keep models, raven, falcon, weaver. Raven has one user (weaver); the read layer spans two.
+- One `birdwatch` package with subpaths. One name, but books and learn install the research
+  engine to read a PDF, and the read layer never using the runner holds by lint only.
+- Four: models, read, weaver (one run), birdwatch (across runs). weaver would have one user,
+  the same smell as raven. Split it out when a second user comes.
+- Three (taken): `models` (every model call), `read` (the web and files in: fetch ladder,
+  robots, HTML and PDF to text, video over a URL or a file, the study core), `birdwatch`
+  (everything else: `./plan` from raven, `./document` from falcon, `./engine`, `./ledger`,
+  `./sources`, one CLI). Ranked: each user pulls only what it uses, then the package graph
+  holds the direction (read never imports birdwatch), then fewer names.
+
+Moves, no behavior change:
+- `read`: no bin (`read` is a shell builtin). falcon's file-only `watch` is `watchFile`;
+  `watch` (a URL or a file) keeps its name.
+- `birdwatch` bin: every engine command, plus `fetch`, `read`, `list` (was weaver), `text`,
+  `page`, `watch` (was falcon) and `plans` (was raven). raven's `plan`, `triage` and `review`
+  commands go: `birdwatch plan` and the agent cover them.
+- `WEAVER_*` env is `BIRDWATCH_*`; `RAVEN_MODEL` goes with raven's CLI. Stock plan-file ids
+  `raven/<kind>` are `birdwatch/<kind>` (a tuned file matches by kind; old ledgers keep their
+  ids). The User-Agent is `wrenautomation/0.1 (<contact>)`.
+- npm: `@wrenautomation/{raven,falcon,weaver}` stop at 0.28.0 and get deprecated with a pointer.
+
+Follow-ups, not in this pass:
+- raven's code planner under the 10-28 rule: the agent plans; what of `./plan` stays is types
+  and plan files.
+- The across-runs store William named: saved plans, patterns, verdicts and SOPs as linked,
+  versioned records, two-way, a change upstream marks what rests on it stale.

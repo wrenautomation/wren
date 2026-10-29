@@ -10,6 +10,7 @@
  */
 import { readFile } from "node:fs/promises";
 import { basename } from "node:path";
+import { cohere, geminiFile } from "@wrenautomation/models";
 import {
   COHERE_TEXT_MODEL,
   clock,
@@ -17,9 +18,8 @@ import {
   cutsLine,
   geminiReader,
   onScreenLines,
-} from "@wrenautomation/falcon/video";
-import { cohere, geminiFile } from "@wrenautomation/models";
-import { watch } from "@wrenautomation/weaver/video";
+  watch,
+} from "@wrenautomation/read/video";
 import { z } from "zod";
 import { fromCutTime, type Span, toCutTime } from "./cuts.js";
 import type { Look, Word } from "./schema.js";

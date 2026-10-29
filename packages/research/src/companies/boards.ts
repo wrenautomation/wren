@@ -4,7 +4,7 @@
  * entry per ATS; adding one is adding an entry.
  */
 
-import type { Fetcher } from "@wrenautomation/weaver/fetch";
+import type { Fetcher } from "@wrenautomation/read/fetch";
 import { z } from "zod";
 
 export interface Job {

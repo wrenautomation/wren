@@ -1,7 +1,7 @@
 import { companies, imports, people, runs } from "@wren/core/schema";
 import { oneOf } from "@wren/db/columns";
-import type { StudyDraftSpec } from "@wrenautomation/falcon/study";
-import type { FetchStep } from "@wrenautomation/weaver/fetch";
+import type { FetchStep } from "@wrenautomation/read/fetch";
+import type { StudyDraftSpec } from "@wrenautomation/read/study";
 import { sql } from "drizzle-orm";
 import {
   boolean,

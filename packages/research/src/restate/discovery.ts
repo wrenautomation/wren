@@ -12,7 +12,7 @@ import * as restate from "@restatedev/restate-sdk";
 import { type Company, companies, finishRun, openRun } from "@wren/core";
 import { exclusiveHandler } from "@wren/core/restate";
 import type { Db } from "@wren/db";
-import type { Fetcher } from "@wrenautomation/weaver/fetch";
+import type { Fetcher } from "@wrenautomation/read/fetch";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { politeHomepageFetcher } from "../discovery/homepage.js";

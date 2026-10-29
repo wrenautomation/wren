@@ -3,8 +3,9 @@
  * www, then http. robots.txt is honored per host: the ownership gate fetches pages
  * exactly like the crawler does and owes the same etiquette.
  */
-import { readPage } from "@wrenautomation/falcon/text";
-import { canFetch, FetchError, type Fetcher, type RobotsCache } from "@wrenautomation/weaver/fetch";
+
+import { canFetch, FetchError, type Fetcher, type RobotsCache } from "@wrenautomation/read/fetch";
+import { readPage } from "@wrenautomation/read/text";
 import type { HomepageFetcher } from "./service.js";
 
 export function politeHomepageFetcher(fetcher: Fetcher): HomepageFetcher {

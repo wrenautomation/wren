@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { geminiReader } from "@wrenautomation/falcon/video";
+import { geminiReader } from "@wrenautomation/read/video";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { barLines } from "./bar.js";
 import { checkPrompt, checkRender, parseCheck, sheetGrid } from "./video-check.js";

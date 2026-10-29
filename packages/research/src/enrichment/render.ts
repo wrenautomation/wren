@@ -17,7 +17,6 @@ import { createHash } from "node:crypto";
 import { type Company, companies, inPlay } from "@wren/core";
 import type { SiteClient, SiteMethod } from "@wren/core/content";
 import { atomic, type Queryable } from "@wren/db";
-import { looksLikeJsShell, readPage } from "@wrenautomation/falcon/text";
 import {
   type Fetcher,
   type FetchStep,
@@ -26,7 +25,8 @@ import {
   LADDER_TIERS,
   type LadderClient,
   type RobotsCache,
-} from "@wrenautomation/weaver/fetch";
+} from "@wrenautomation/read/fetch";
+import { looksLikeJsShell, readPage } from "@wrenautomation/read/text";
 import {
   and,
   asc,
@@ -341,7 +341,7 @@ export async function renderCompany(
   return stats;
 }
 
-/** weaver's client shape: account in an options bag, not positional. */
+/** `@wrenautomation/read`'s client shape: account in an options bag, not positional. */
 const ladderOf = (sites: SiteClient): LadderClient => ({
   call: (site, method, path, input, o) =>
     sites.call(site, method as SiteMethod, path, input as Record<string, unknown>, o?.account),

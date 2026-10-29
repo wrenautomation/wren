@@ -11,7 +11,7 @@
 import { isVendorStop } from "@wren/core/metered";
 import type { Db } from "@wren/db";
 import { completeAndParse } from "@wren/llm";
-import { readWatchFacts } from "@wrenautomation/falcon/video";
+import { readWatchFacts } from "@wrenautomation/read/video";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { secondsOf } from "./feeds.js";

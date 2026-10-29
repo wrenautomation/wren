@@ -15,7 +15,7 @@ import type { Notifier } from "@wren/core/notify";
 import type { PortalRequest } from "@wren/core/portal";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { type Embed, FakeLlm } from "@wren/llm";
-import { PoliteFetcher } from "@wrenautomation/weaver/fetch";
+import { PoliteFetcher } from "@wrenautomation/read/fetch";
 import { asc, eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { LEARN_COMPONENTS, LEARN_WORKFLOWS } from "../../src/components.js";

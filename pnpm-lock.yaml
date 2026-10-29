@@ -177,15 +177,12 @@ importers:
       '@wrenautomation/autobrowse':
         specifier: 0.8.4
         version: 0.8.4(@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.1))
-      '@wrenautomation/falcon':
-        specifier: 0.28.0
-        version: 0.28.0
       '@wrenautomation/models':
-        specifier: 0.28.0
-        version: 0.28.0
-      '@wrenautomation/weaver':
-        specifier: 0.28.0
-        version: 0.28.0
+        specifier: 0.29.0
+        version: 0.29.0
+      '@wrenautomation/read':
+        specifier: 0.29.0
+        version: 0.29.0
       commander:
         specifier: 15.0.0
         version: 15.0.0
@@ -600,12 +597,9 @@ importers:
       '@wrenautomation/autobrowse':
         specifier: 0.8.4
         version: 0.8.4(@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.1))
-      '@wrenautomation/falcon':
-        specifier: 0.28.0
-        version: 0.28.0
-      '@wrenautomation/weaver':
-        specifier: 0.28.0
-        version: 0.28.0
+      '@wrenautomation/read':
+        specifier: 0.29.0
+        version: 0.29.0
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
@@ -677,12 +671,9 @@ importers:
       '@wren/llm':
         specifier: workspace:*
         version: link:../llm
-      '@wrenautomation/falcon':
-        specifier: 0.28.0
-        version: 0.28.0
-      '@wrenautomation/weaver':
-        specifier: 0.28.0
-        version: 0.28.0
+      '@wrenautomation/read':
+        specifier: 0.29.0
+        version: 0.29.0
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
@@ -772,12 +763,9 @@ importers:
       '@wrenautomation/autobrowse':
         specifier: 0.8.4
         version: 0.8.4(@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.1))
-      '@wrenautomation/falcon':
-        specifier: 0.28.0
-        version: 0.28.0
-      '@wrenautomation/weaver':
-        specifier: 0.28.0
-        version: 0.28.0
+      '@wrenautomation/read':
+        specifier: 0.29.0
+        version: 0.29.0
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
@@ -1172,8 +1160,8 @@ importers:
         specifier: workspace:*
         version: link:../db
       '@wrenautomation/models':
-        specifier: 0.28.0
-        version: 0.28.0
+        specifier: 0.29.0
+        version: 0.29.0
       csv-parse:
         specifier: 7.0.2
         version: 7.0.2
@@ -1359,12 +1347,9 @@ importers:
       '@wren/research':
         specifier: workspace:*
         version: link:../research
-      '@wrenautomation/falcon':
-        specifier: 0.28.0
-        version: 0.28.0
-      '@wrenautomation/weaver':
-        specifier: 0.28.0
-        version: 0.28.0
+      '@wrenautomation/read':
+        specifier: 0.29.0
+        version: 0.29.0
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
@@ -1385,8 +1370,8 @@ importers:
   packages/llm:
     dependencies:
       '@wrenautomation/models':
-        specifier: 0.28.0
-        version: 0.28.0
+        specifier: 0.29.0
+        version: 0.29.0
       zod:
         specifier: 4.6.5
         version: 4.6.5
@@ -1415,12 +1400,9 @@ importers:
       '@wren/research':
         specifier: workspace:*
         version: link:../research
-      '@wrenautomation/falcon':
-        specifier: 0.28.0
-        version: 0.28.0
-      '@wrenautomation/weaver':
-        specifier: 0.28.0
-        version: 0.28.0
+      '@wrenautomation/read':
+        specifier: 0.29.0
+        version: 0.29.0
       fflate:
         specifier: 0.8.3
         version: 0.8.3
@@ -1657,12 +1639,9 @@ importers:
       '@wren/video':
         specifier: workspace:*
         version: link:../video
-      '@wrenautomation/falcon':
-        specifier: 0.28.0
-        version: 0.28.0
-      '@wrenautomation/weaver':
-        specifier: 0.28.0
-        version: 0.28.0
+      '@wrenautomation/read':
+        specifier: 0.29.0
+        version: 0.29.0
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
@@ -1709,15 +1688,12 @@ importers:
       '@wren/llm':
         specifier: workspace:*
         version: link:../llm
-      '@wrenautomation/falcon':
-        specifier: 0.28.0
-        version: 0.28.0
       '@wrenautomation/models':
-        specifier: 0.28.0
-        version: 0.28.0
-      '@wrenautomation/weaver':
-        specifier: 0.28.0
-        version: 0.28.0
+        specifier: 0.29.0
+        version: 0.29.0
+      '@wrenautomation/read':
+        specifier: 0.29.0
+        version: 0.29.0
       csv-parse:
         specifier: 7.0.2
         version: 7.0.2
@@ -1813,15 +1789,12 @@ importers:
       '@wren/video':
         specifier: workspace:*
         version: link:../video
-      '@wrenautomation/falcon':
-        specifier: 0.28.0
-        version: 0.28.0
       '@wrenautomation/models':
-        specifier: 0.28.0
-        version: 0.28.0
-      '@wrenautomation/weaver':
-        specifier: 0.28.0
-        version: 0.28.0
+        specifier: 0.29.0
+        version: 0.29.0
+      '@wrenautomation/read':
+        specifier: 0.29.0
+        version: 0.29.0
       diff:
         specifier: 8.0.4
         version: 8.0.4
@@ -2039,8 +2012,8 @@ importers:
         specifier: workspace:*
         version: link:../llm
       '@wrenautomation/models':
-        specifier: 0.28.0
-        version: 0.28.0
+        specifier: 0.29.0
+        version: 0.29.0
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
@@ -5792,27 +5765,16 @@ packages:
     engines: {node: '>=24'}
     hasBin: true
 
-  '@wrenautomation/falcon@0.28.0':
-    resolution: {integrity: sha512-mW5ffXGhy0TvvFlukIHsTNoy0cmuIWf7ZMFIRCl/dt7jKbQ6zOOovqj8tuRWNhOLaNLZrJnMJnsIxzNctSyteA==}
-    engines: {node: '>=24'}
-    hasBin: true
-
-  '@wrenautomation/models@0.28.0':
-    resolution: {integrity: sha512-UX+as5mcnjtDjK30O/xcFcTuJzNTWUNDVO0n7lSD8fsSqQaDjI1P6ORmCPyrGrhN3OOU5TnP4bewqTZtX96G5w==}
+  '@wrenautomation/models@0.29.0':
+    resolution: {integrity: sha512-Z6m5V+XOPdtCwmJ7V/sSrVQ//kZ104GBdNgogVICqy2LrheiLMDQnPXmClEa0DyJmbdjPybzYMHQPSrx1bEXZw==}
     engines: {node: '>=24'}
 
   '@wrenautomation/orrery@0.28.0':
     resolution: {integrity: sha512-tXkv2xlDmnJw9cj+SllTtZAuK9pFPPDDJ2ZCPkYQeQoSnivZPyk7j/jk39S/7OgcTR5sJ0IFlP+YYcae04Tx6g==}
 
-  '@wrenautomation/raven@0.28.0':
-    resolution: {integrity: sha512-IaKN17VKNFUkBzHkTQAlBsqXX2+HbSz4I6rEJHoUHcoVtq0/xR7kJJ3W52qLwmpDL+j07CxPMqQAD/OZ/7/+Kw==}
+  '@wrenautomation/read@0.29.0':
+    resolution: {integrity: sha512-5c83MG3jLA4Ldg1ZSs48scvwYD/jpAp2pU7EEHwW5SM+XKAHPmWBN4TXGiGfj+s3/GFDZuHQZb6Zx0tnWRX6XA==}
     engines: {node: '>=24'}
-    hasBin: true
-
-  '@wrenautomation/weaver@0.28.0':
-    resolution: {integrity: sha512-Ah2J97y1rV0lsn0tnMtFTSpaeEg4CB3TU9cYO8PSYhwF/pfCu7GLOb5Nnp0DaaIaRGHLDw0fYUIQJv3GgNlvFQ==}
-    engines: {node: '>=24'}
-    hasBin: true
 
   '@xmldom/xmldom@0.8.15':
     resolution: {integrity: sha512-/5NV/vDALVFDXgLmfsy9TRCBlKwO2LNBFzpzvb9iIj+jR+eSc6DLYYvVOdivT/jm7MtU6TebYuRmzEOI7w40UA==}
@@ -7911,9 +7873,6 @@ packages:
     resolution: {integrity: sha512-tEBHqDnIoM/1rXME1zgka9g6Q2lcoCkxHLuc7ODJ5BxbP5d4c2Z5cGgtXAku59200Cx7diuHTOYfSBD8n6mm8A==}
     engines: {node: '>=16 || 14 >=14.17'}
 
-  minisearch@7.2.0:
-    resolution: {integrity: sha512-dqT2XBYUOZOiC5t2HRnwADjhNS2cecp9u+TJRiJ1Qp/f5qjkeT5APcGPjHw+bz89Ms8Jp+cG4AlE+QZ/QnDglg==}
-
   mitt@3.0.1:
     resolution: {integrity: sha512-vKivATfr97l2/QBCYAkXYDbrIWPM2IIKEl7YPhjCvKlG3kE2gm+uBo6nEXK3M5/Ffh/FLpKExzOQ3JJoJGFKBw==}
 
@@ -9213,10 +9172,6 @@ packages:
   typical@7.3.0:
     resolution: {integrity: sha512-ya4mg/30vm+DOWfBg4YK3j2WD6TWtRkCbasOJr40CseYENzCUby/7rIvXA99JGsQHeNxLbnXdyLLxKSv3tauFw==}
     engines: {node: '>=12.17'}
-
-  ulid@3.0.2:
-    resolution: {integrity: sha512-yu26mwteFYzBAot7KVMqFGCVpsF6g8wXfJzQUHvu1no3+rRRSFcSV2nKeYvNPLD2J4b08jYBDhHUjeH0ygIl9w==}
-    hasBin: true
 
   underscore@1.13.8:
     resolution: {integrity: sha512-DXtD3ZtEQzc7M8m4cXotyHR+FAS18C64asBYY5vqZexfYryNNnDc02W4hKg3rdQuqOYas1jkseX0+nZXjTXnvQ==}
@@ -13343,18 +13298,7 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  '@wrenautomation/falcon@0.28.0':
-    dependencies:
-      '@wrenautomation/models': 0.28.0
-      commander: 15.0.0
-      entities: 8.1.0
-      htmlparser2: 12.0.0
-      unpdf: 1.8.1
-      zod: 4.6.5
-    transitivePeerDependencies:
-      - '@napi-rs/canvas'
-
-  '@wrenautomation/models@0.28.0':
+  '@wrenautomation/models@0.29.0':
     dependencies:
       '@ai-sdk/anthropic': 4.0.90(zod@4.6.5)
       '@ai-sdk/cohere': 4.0.71(zod@4.6.5)
@@ -13366,24 +13310,13 @@ snapshots:
 
   '@wrenautomation/orrery@0.28.0': {}
 
-  '@wrenautomation/raven@0.28.0':
+  '@wrenautomation/read@0.29.0':
     dependencies:
-      '@wrenautomation/models': 0.28.0
-      commander: 15.0.0
-      zod: 4.6.5
-
-  '@wrenautomation/weaver@0.28.0':
-    dependencies:
-      '@hono/node-server': 2.1.3(hono@4.13.12)
-      '@wrenautomation/falcon': 0.28.0
-      '@wrenautomation/models': 0.28.0
-      '@wrenautomation/raven': 0.28.0
-      commander: 15.0.0
-      hono: 4.13.12
+      '@wrenautomation/models': 0.29.0
+      entities: 8.1.0
       htmlparser2: 12.0.0
-      minisearch: 7.2.0
       robots-parser: 3.0.1
-      ulid: 3.0.2
+      unpdf: 1.8.1
       zod: 4.6.5
     transitivePeerDependencies:
       - '@napi-rs/canvas'
@@ -15312,8 +15245,6 @@ snapshots:
 
   minipass@7.1.3: {}
 
-  minisearch@7.2.0: {}
-
   mitt@3.0.1: {}
 
   mkdirp-classic@0.5.3: {}
@@ -16819,8 +16750,6 @@ snapshots:
   typical@4.0.0: {}
 
   typical@7.3.0: {}
-
-  ulid@3.0.2: {}
 
   underscore@1.13.8: {}
 
