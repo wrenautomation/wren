@@ -31,6 +31,18 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "media" {
   }
 }
 
+# A portal file (a post's thumbnail, a story photo): the browser PUTs it on a link
+# the worker signs, with the SHA-256 it hashed (packages/content/src/media.ts).
+resource "aws_s3_bucket_cors_configuration" "media" {
+  bucket = aws_s3_bucket.media.id
+  cors_rule {
+    allowed_origins = ["https://app.${var.auth_domain}"]
+    allowed_methods = ["PUT"]
+    allowed_headers = ["content-type", "x-amz-checksum-sha256"]
+    max_age_seconds = 3600
+  }
+}
+
 # The worker signs GETs (a URL signed by a role that cannot read is refused) and
 # uploads a local path of its own.
 data "aws_iam_policy_document" "worker_media" {

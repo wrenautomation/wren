@@ -1,6 +1,6 @@
 # @wren/content: interface
 
-Exports: 632. Files: 88.
+Exports: 636. Files: 88.
 
 ## packages/content/src/analytics/catalog.ts
 
@@ -30,8 +30,9 @@ Exports: 632. Files: 88.
 ## packages/content/src/attach.ts
 
 - **ATTACH_MAX_BYTES** (const) `number`
-- **attachFile** (function) `(db: Queryable, store: MediaStoreOptions, req: { draftId: string; field: string; name: string; data: string }, who: { by: string }): Promise<ContentDraft>`
-- **attachmentOf** (function) `(platform: ContentDraft["platform"], field: string, name: string, bytes: Uint8Array): string`
+- **attachFile** (function) `(db: Queryable, store: MediaStoreOptions, req: { draftId: string; field: string; name: string; source: string }, who: { by: string }): Promise<ContentDraft>`
+- **attachUpload** (function) `(db: Queryable, store: MediaStoreOptions, req: { draftId: string; field: string; name: string; size: number; sha256: string }): Promise<{ url: string; headers: Record<string, string>; source: string; }>`
+- **attachmentOf** (function) `(platform: ContentDraft["platform"], field: string, name: string, head: Uint8Array, size = head.length): string`
 
 ## packages/content/src/blog.ts
 
@@ -427,6 +428,8 @@ Exports: 632. Files: 88.
 - **putKey** (function) `(path: string, key: string, o: MediaStoreOptions): Promise<string>`
 - **putMedia** (function) `(bytes: Uint8Array, ext: string, o: MediaStoreOptions): Promise<string>`
 - **s3MediaHost** (function) `(o: MediaStoreOptions & { expiresSeconds?: number }): MediaHost`
+- **signMediaPut** (function) `(o: MediaStoreOptions, f: { sha256: string; ext: string; type: string; size: number }): Promise<{ url: string; headers: Record<string, string>; source: string }>`
+- **storedHead** (function) `(o: MediaStoreOptions, source: string, n = 8): Promise<{ size: number; head: Uint8Array }>`
 - **uploadMedia** (function) `(path: string, o: MediaStoreOptions): Promise<string>`
 
 ## packages/content/src/metrics.ts
@@ -600,8 +603,9 @@ Exports: 632. Files: 88.
 
 ## packages/content/src/restate/marketing-console.ts
 
-- **AttachRequest** (interface) `interface AttachRequest extends PortalRequest { draftId: string; field: string; name: string; data: string; }`
+- **AttachRequest** (interface) `interface AttachRequest extends PortalRequest { draftId: string; field: string; name: string; source: string; }`
 - **MarketingConsoleService** (type) `type MarketingConsoleService = ReturnType<typeof makeMarketingConsole>;`
+- **UploadRequest** (interface) `interface UploadRequest extends PortalRequest { draftId: string; field: string; name: string; size: number; sha256: string; }`
 - **makeMarketingConsole** (function) `(deps: MarketingConsoleDeps): restate.ServiceDefinition<"MarketingConsole", { recordsTypes: (_: restate.Context, req: PortalRequest) => Promise<import("@wren/core/records").RecordMeta[]>; recordsList: (_: restate.Context, req: PortalRequest & ListAsk) => Promise<import("@wren/core/records/serve").RecordsPage>; recordsGet: (_: re…`
 - **marketingConsoleApi** (function) `({ db, open, records, tiktokCreator, reportMail, zone, }: MarketingConsoleDeps): { recordsTypes: (req: PortalRequest) => Promise<import("@wren/core/records").RecordMeta[]>; recordsList: (req: PortalRequest & ListAsk) => Promise<import("@wren/core/records/serve").RecordsPage>; recordsGet: (req: PortalRequest & GetAsk) => Promise<import("@wren/core/records/serve").RecordAnswer>; r…`
 

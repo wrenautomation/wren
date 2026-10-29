@@ -513,6 +513,41 @@ if (TOKEN_URL) startWriteSocket({ token, writes: WRITES });
 // Reads the data layer starts together (a return to the tab, the network back) go as one.
 readTogether(batched);
 
+/** Bytes to a URL the server signed, with the headers it signed. `what` names it in the error. */
+export async function putSigned(
+  url: string,
+  headers: Record<string, string>,
+  body: Blob,
+  what = "The file",
+): Promise<void> {
+  const res = await fetch(url, { method: "PUT", headers, body }).catch(() => null);
+  if (!res?.ok) throw new ApiError(`${what} didn't go up. Try again.`, res?.status ?? 0);
+}
+
+/** A file's SHA-256, hex: the media store keys and checks bytes by it. */
+export async function sha256Of(file: Blob): Promise<string> {
+  const d = new Uint8Array(await crypto.subtle.digest("SHA-256", await file.arrayBuffer()));
+  return Array.from(d, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/**
+ * A file into the media store: hashed here, signed by `sign` (a handler that checks it first),
+ * PUT straight to the bucket. Answers its `s3://` ref; no bytes pass through a call.
+ */
+export async function uploadMedia(
+  file: Blob,
+  name: string,
+  sign: (meta: { name: string; size: number; sha256: string }) => Promise<unknown>,
+): Promise<string> {
+  const up = (await sign({ name, size: file.size, sha256: await sha256Of(file) })) as {
+    url: string;
+    headers: Record<string, string>;
+    source: string;
+  };
+  await putSigned(up.url, up.headers, file);
+  return up.source;
+}
+
 /** Straight to the private bucket on a signed PUT; the portal only signs (D11). Answers its key. */
 export async function uploadFile(client: string | undefined, file: File): Promise<string> {
   const type = FILE_TYPES[file.type] ? file.type : typeOfName(file.name);
@@ -526,11 +561,6 @@ export async function uploadFile(client: string | undefined, file: File): Promis
     type,
     size: file.size,
   });
-  const res = await fetch(url, {
-    method: "PUT",
-    headers: { "content-type": type },
-    body: file,
-  }).catch(() => null);
-  if (!res?.ok) throw new ApiError("The file didn't go up. Try again.", res?.status ?? 0);
+  await putSigned(url, { "content-type": type }, file);
   return key;
 }

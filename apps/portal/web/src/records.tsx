@@ -282,10 +282,13 @@ const ONE: Record<string, (id: string, input: Input) => [string, Input]> = {
   "marketing/rejectDraft": (id, { reason, note }) =>
     desk("reject", { ids: [bare(id)], reason, note }),
   "marketing/redraft": (id, { note }) => desk("redraft", { draftId: bare(id), note }),
-  // A post's fields (designs/2026-10-07-post-shapes.md): a change, or a file's bytes on one.
+  // A post's fields (designs/2026-10-07-post-shapes.md): a change, or a file on one, PUT to the
+  // store on the link draftUpload signs.
   "marketing/draftFields": (id, { patch }) => desk("fields", { draftId: draftOf(id), patch }),
-  "marketing/draftAttach": (id, { field, name, data }) =>
-    desk("attach", { draftId: draftOf(id), field, name, data }),
+  "marketing/draftUpload": (id, { field, name, size, sha256 }) =>
+    desk("attachUpload", { draftId: draftOf(id), field, name, size, sha256 }),
+  "marketing/draftAttach": (id, { field, name, source }) =>
+    desk("attach", { draftId: draftOf(id), field, name, source }),
   // Its stage, target, video and link switch (designs/2026-10-07-content-funnel.md).
   "marketing/draftFunnel": (id, { stage, to, video, linked }) =>
     desk("funnel", { draftId: draftOf(id), stage, to, video, linked }),
@@ -671,9 +674,13 @@ const CLIENT_ONE: Record<string, (id: string, input: Input) => [string, Input]> 
     "marketing/draftFields",
     { draftId: draftOf(id), patch },
   ],
-  "marketing/draftAttach": (id, { field, name, data }) => [
+  "marketing/draftUpload": (id, { field, name, size, sha256 }) => [
+    "marketing/draftUpload",
+    { draftId: draftOf(id), field, name, size, sha256 },
+  ],
+  "marketing/draftAttach": (id, { field, name, source }) => [
     "marketing/draftAttach",
-    { draftId: draftOf(id), field, name, data },
+    { draftId: draftOf(id), field, name, source },
   ],
   "marketing/draftFunnel": (id, { stage, to, video, linked }) => [
     "marketing/draftFunnel",

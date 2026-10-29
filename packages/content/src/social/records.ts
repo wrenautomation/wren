@@ -1286,6 +1286,7 @@ const approvalRecordOf = (signer?: VideoSigner) =>
       "marketing.draftUndo",
       "marketing.draftFields",
       "marketing.draftFunnel",
+      "marketing.draftUpload",
       "marketing.draftAttach",
       "marketing.draftSlides",
       "templates.approve",

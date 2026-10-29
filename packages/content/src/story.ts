@@ -1,7 +1,8 @@
 /**
  * Stories (Marketing → Write's Story box): a photo he uploads, or a clip already cut, as a story on
  * Instagram and the Facebook Page at once. No words ride on it: the APIs take none. Each platform
- * gets a draft of kind `story` on one idea. A photo goes to the media store under its hash; a clip
+ * gets a draft of kind `story` on one idea. A photo goes to the media store under its hash, PUT
+ * there by the browser (`storyUpload` signs it); a clip
  * is a Reel's stored file, so the APIs fetch it by a signed link.
  */
 import type { Media } from "@wren/core/content";
@@ -9,14 +10,14 @@ import type { Queryable } from "@wren/db";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import type { DraftResult } from "./draft.js";
 import { addIdea } from "./ideas.js";
-import { type MediaStoreOptions, putMedia } from "./media.js";
+import { type MediaStoreOptions, signMediaPut, storedHead } from "./media.js";
 import { contentDrafts, contentIdeas } from "./schema.js";
 import { OWN_WORDS } from "./write.js";
 
 export const STORY_PLATFORMS = ["instagram", "facebook"] as const;
 export type StoryPlatform = (typeof STORY_PLATFORMS)[number];
 
-/** A photo the call carries, as base64: the same 2 MB as a field's file. */
+/** The same 2 MB as a field's file. */
 export const STORY_PHOTO_MAX = 2 * 1024 * 1024;
 const PHOTOS: Record<string, { ext: string; magic: number[] }> = {
   ".jpg": { ext: ".jpg", magic: [0xff, 0xd8, 0xff] },
@@ -24,16 +25,31 @@ const PHOTOS: Record<string, { ext: string; magic: number[] }> = {
   ".png": { ext: ".png", magic: [0x89, 0x50, 0x4e, 0x47] },
 };
 
-/** The stored extension of a story photo, or why it isn't one. */
-export function storyPhotoOf(name: string, bytes: Uint8Array): string {
+function photoKind(name: string, size: number) {
   const dot = name.lastIndexOf(".");
   const kind = PHOTOS[dot < 0 ? "" : name.slice(dot).toLowerCase()];
   if (!kind) throw new Error("A story photo is a JPG or PNG");
-  if (bytes.length === 0) throw new Error("The photo is empty");
-  if (bytes.length > STORY_PHOTO_MAX) throw new Error("A story photo is up to 2 MB");
-  if (!kind.magic.every((b, i) => bytes[i] === b))
+  if (size === 0) throw new Error("The photo is empty");
+  if (size > STORY_PHOTO_MAX) throw new Error("A story photo is up to 2 MB");
+  return kind;
+}
+
+/** The stored extension of a story photo, or why it isn't one. `head`: its first bytes. */
+export function storyPhotoOf(name: string, head: Uint8Array, size = head.length): string {
+  const kind = photoKind(name, size);
+  if (!kind.magic.every((b, i) => head[i] === b))
     throw new Error(`The photo isn't the ${kind.ext.slice(1).toUpperCase()} its name says`);
   return kind.ext;
+}
+
+/** Where the browser PUTs a story photo, checked by name and size first. */
+export function storyUpload(
+  store: MediaStoreOptions,
+  photo: { name: string; size: number; sha256: string },
+) {
+  const { ext } = photoKind(photo.name, photo.size);
+  const type = ext === ".png" ? "image/png" : "image/jpeg";
+  return signMediaPut(store, { sha256: photo.sha256, ext, type, size: photo.size });
 }
 
 export interface StoryClip {
@@ -86,7 +102,8 @@ export async function writeStory(
   store: MediaStoreOptions | null,
   o: {
     platforms: readonly StoryPlatform[];
-    photo?: { name: string; data: string } | null;
+    /** `source`: the `s3://` ref `storyUpload` answered, once the PUT is done. */
+    photo?: { name: string; source: string } | null;
     clip?: string | null;
   },
 ): Promise<{ ideaId: string; results: DraftResult[] }> {
@@ -95,9 +112,10 @@ export async function writeStory(
   let about: string;
   if (o.photo) {
     if (!store) throw new Error("No media store here");
-    const bytes = Buffer.from(o.photo.data, "base64");
-    const source = await putMedia(bytes, storyPhotoOf(o.photo.name, bytes), store);
-    media = { kind: "image", source };
+    const { size, head } = await storedHead(store, o.photo.source);
+    if (!o.photo.source.endsWith(storyPhotoOf(o.photo.name, head, size)))
+      throw new Error("The photo isn't the one its name says");
+    media = { kind: "image", source: o.photo.source };
     about = `Story: ${o.photo.name}`;
   } else {
     const [c] = await db

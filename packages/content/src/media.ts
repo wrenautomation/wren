@@ -96,6 +96,74 @@ export async function putMedia(
   return `s3://${o.bucket}/${key}`;
 }
 
+const SHA256 = /^[0-9a-f]{64}$/;
+const MEDIA_KEY = /^media\/[0-9a-f]{32}\.[a-z0-9]+$/;
+
+/**
+ * A browser's PUT straight to the store, at the key `putMedia` would give its bytes. The PUT
+ * signs the SHA-256 the browser hashed: S3 refuses other bytes, so a hash key can't be poisoned.
+ * The headers go on the PUT as they are.
+ */
+export async function signMediaPut(
+  o: MediaStoreOptions,
+  f: { sha256: string; ext: string; type: string; size: number },
+): Promise<{ url: string; headers: Record<string, string>; source: string }> {
+  if (!SHA256.test(f.sha256)) throw new Error("That file's hash isn't a SHA-256");
+  const key = `media/${f.sha256.slice(0, 32)}${f.ext}`;
+  const checksum = Buffer.from(f.sha256, "hex").toString("base64");
+  // a presigned PUT carries no checksum of its own: only the one signed here
+  const s3 =
+    o.client ??
+    new S3Client({
+      ...(o.region ? { region: o.region } : {}),
+      requestChecksumCalculation: "WHEN_REQUIRED",
+    });
+  const url = await getSignedUrl(
+    s3,
+    new PutObjectCommand({
+      Bucket: o.bucket,
+      Key: key,
+      ContentType: f.type,
+      ContentLength: f.size,
+      ChecksumSHA256: checksum,
+    }),
+    {
+      expiresIn: 600,
+      signableHeaders: new Set(["content-type", "content-length"]),
+      unhoistableHeaders: new Set(["x-amz-checksum-sha256"]),
+    },
+  );
+  return {
+    url,
+    headers: { "content-type": f.type, "x-amz-checksum-sha256": checksum },
+    source: `s3://${o.bucket}/${key}`,
+  };
+}
+
+/** A stored file's size and first `n` bytes, in one ranged GET; only a hash key in this store. */
+export async function storedHead(
+  o: MediaStoreOptions,
+  source: string,
+  n = 8,
+): Promise<{ size: number; head: Uint8Array }> {
+  const at = parseStored(source);
+  if (!at || at.bucket !== o.bucket || !MEDIA_KEY.test(at.key))
+    throw new Error("That file isn't in the media store");
+  try {
+    const r = await clientOf(o).send(
+      new GetObjectCommand({ Bucket: at.bucket, Key: at.key, Range: `bytes=0-${n - 1}` }),
+    );
+    const size = Number(/\/(\d+)$/.exec(r.ContentRange ?? "")?.[1] ?? r.ContentLength ?? 0);
+    return { size, head: r.Body ? await r.Body.transformToByteArray() : new Uint8Array() };
+  } catch (err) {
+    const name = err instanceof Error ? err.name : "";
+    // a range on an empty object
+    if (name === "InvalidRange") return { size: 0, head: new Uint8Array() };
+    if (name === "NoSuchKey") throw new Error("The file didn't go up. Try again.");
+    throw err;
+  }
+}
+
 /**
  * A file at a fixed key, not its hash: the sound kit's bucket files (`sfx/<id>.wav`), whose
  * licence keeps them out of the public repo.

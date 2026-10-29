@@ -193,12 +193,32 @@
      "llm",
      "media"
     ],
-    "input": "{ draftId: string; field: string; name: string; data: string; viewer?: unknown }",
+    "input": "{ draftId: string; field: string; name: string; source: string; viewer?: unknown }",
     "npm": [
      "@aws-sdk/client-s3",
-     "@smithy/core"
+     "@smithy/core",
+     "@smithy/types"
     ],
     "output": "{ done: string[]; }",
+    "wrap": "exclusiveHandler"
+   }
+  },
+  {
+   "id": "route:ContentDesk/attachUpload",
+   "role": "route",
+   "parent": "service:ContentDesk",
+   "group": "@wren/content",
+   "attrs": {
+    "deps": [
+     "db",
+     "media"
+    ],
+    "input": "{ draftId: string; field: string; name: string; size: number; sha256: string }",
+    "npm": [
+     "@aws-sdk/client-s3",
+     "@aws-sdk/s3-request-presigner"
+    ],
+    "output": "{ url: string; headers: Record<string, string>; source: string; }",
     "wrap": "exclusiveHandler"
    }
   },
@@ -423,10 +443,11 @@
      "media",
      "platforms"
     ],
-    "input": "{ platforms: StoryPlatform[]; photo?: { name: string; data: string } | null; clip?: string | null; go?: WriteGo | null; viewer?: unknown; }",
+    "input": "{ platforms: StoryPlatform[]; photo?: { name: string; source: string } | null; clip?: string | null; go?: WriteGo | null; viewer?: unknown; }",
     "npm": [
      "@aws-sdk/client-s3",
-     "@smithy/core"
+     "@smithy/core",
+     "@smithy/types"
     ],
     "output": "{ posts: { ideaId: string; results: import(\"./desk-context.js\").WriteResult[]; }[]; }",
     "wrap": "exclusiveHandler"
@@ -444,6 +465,24 @@
     ],
     "input": "void",
     "output": "{ clips: import(\"../story.js\").StoryClip[]; }",
+    "wrap": "sharedHandler"
+   }
+  },
+  {
+   "id": "route:ContentDesk/storyUpload",
+   "role": "route",
+   "parent": "service:ContentDesk",
+   "group": "@wren/content",
+   "attrs": {
+    "deps": [
+     "media"
+    ],
+    "input": "{ name: string; size: number; sha256: string }",
+    "npm": [
+     "@aws-sdk/client-s3",
+     "@aws-sdk/s3-request-presigner"
+    ],
+    "output": "{ url: string; headers: Record<string, string>; source: string; }",
     "wrap": "sharedHandler"
    }
   },
@@ -897,7 +936,8 @@
     "input": "AttachRequest",
     "npm": [
      "@aws-sdk/client-s3",
-     "@smithy/core"
+     "@smithy/core",
+     "@smithy/types"
     ],
     "output": "{ done: string[]; }",
     "wrap": "serviceHandler"
@@ -946,6 +986,24 @@
      "@smithy/core"
     ],
     "output": "{ done: string[]; saved?: import(\"../shape-view.js\").SlidesSaved; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:MarketingConsole/draftUpload",
+   "role": "route",
+   "parent": "service:MarketingConsole",
+   "group": "@wren/content",
+   "attrs": {
+    "deps": [
+     "db"
+    ],
+    "input": "UploadRequest",
+    "npm": [
+     "@aws-sdk/client-s3",
+     "@aws-sdk/s3-request-presigner"
+    ],
+    "output": "{ url: string; headers: Record<string, string>; source: string; }",
     "wrap": "serviceHandler"
    }
   },
@@ -2737,6 +2795,26 @@
    "from": "route:ContentDesk/attach",
    "to": "table:public.platform_objects",
    "kind": "writes"
+  },
+  {
+   "from": "route:ContentDesk/attachUpload",
+   "to": "table:public.content_drafts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/attachUpload",
+   "to": "table:public.content_ideas",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/attachUpload",
+   "to": "table:public.content_playbooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ContentDesk/attachUpload",
+   "to": "table:public.platform_objects",
+   "kind": "reads"
   },
   {
    "from": "route:ContentDesk/carousel",
@@ -5567,6 +5645,56 @@
    "from": "route:MarketingConsole/draftSlides",
    "to": "table:public.platform_objects",
    "kind": "writes"
+  },
+  {
+   "from": "route:MarketingConsole/draftUpload",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/draftUpload",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/draftUpload",
+   "to": "table:public.content_drafts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/draftUpload",
+   "to": "table:public.content_ideas",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/draftUpload",
+   "to": "table:public.content_playbooks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/draftUpload",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/draftUpload",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/draftUpload",
+   "to": "table:public.platform_objects",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/draftUpload",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "route:MarketingConsole/draftUpload",
+   "to": "table:public.roles",
+   "kind": "reads"
   },
   {
    "from": "route:MarketingConsole/inboxApprove",

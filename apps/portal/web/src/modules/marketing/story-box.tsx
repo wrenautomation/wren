@@ -1,13 +1,15 @@
 /**
  * Write's Story box: a photo from the phone or laptop, or a clip he already cut, as a story on
  * Instagram and the Facebook Page. Stories take no words, so the box is media and where. A photo
- * shrinks here to a JPEG of at most 1920px and 2 MB before it goes; a clip is a Reel's stored file.
- * ContentDesk `story` and `storyClips` through the console.
+ * shrinks here to a JPEG of at most 1920px and 2 MB, then goes straight to the media store on the
+ * link `storyUpload` signs; a clip is a Reel's stored file. ContentDesk `storyUpload`, `story` and
+ * `storyClips` through the console.
  */
 
 import type { Platform } from "@wren/core/content";
 import { ACTIONS, Button, cx, messageOf, Section } from "@wren/ui";
 import { useState } from "react";
+import { uploadMedia } from "../../api.js";
 import { useCall } from "../../load.js";
 import { QUIET } from "../work/bits.js";
 import { contentDesk } from "./desk.js";
@@ -30,7 +32,7 @@ const day = (at: string) =>
   new Date(at).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 
 /** The photo as a JPEG that fits: longest side 1920px, quality stepped down until it's 2 MB. */
-async function shrink(file: File): Promise<{ name: string; data: string; url: string }> {
+async function shrink(file: File): Promise<{ name: string; blob: Blob; url: string }> {
   const bitmap = await createImageBitmap(file).catch(() => {
     throw new Error("Can't read that photo here. Try a JPG or PNG.");
   });
@@ -43,12 +45,8 @@ async function shrink(file: File): Promise<{ name: string; data: string; url: st
   for (const q of [0.88, 0.8, 0.7, 0.6, 0.5]) {
     const blob = await new Promise<Blob | null>((ok) => canvas.toBlob(ok, "image/jpeg", q));
     if (blob && blob.size <= MAX) {
-      const bytes = new Uint8Array(await blob.arrayBuffer());
-      let bin = "";
-      for (let i = 0; i < bytes.length; i += 0x8000)
-        bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
       const name = `${file.name.replace(/\.[^.]*$/, "") || "story"}.jpg`;
-      return { name, data: btoa(bin), url: URL.createObjectURL(blob) };
+      return { name, blob, url: URL.createObjectURL(blob) };
     }
   }
   throw new Error("That photo won't fit in 2 MB");
@@ -58,7 +56,7 @@ export function StoryBox(props: { demo?: boolean; only: Platform | null; made: (
   const [where, setWhere] = useState<Where[]>(() =>
     props.only === "instagram" || props.only === "facebook" ? [props.only] : [...WHERE],
   );
-  const [photo, setPhoto] = useState<{ name: string; data: string; url: string } | null>(null);
+  const [photo, setPhoto] = useState<{ name: string; blob: Blob; url: string } | null>(null);
   const [clip, setClip] = useState<string | null>(null);
   const [busy, setBusy] = useState<Go | "shrink" | null>(null);
   const [sure, setSure] = useState(false);
@@ -92,10 +90,19 @@ export function StoryBox(props: { demo?: boolean; only: Platform | null; made: (
     setLines([]);
     try {
       // One press, one story: a second while it's out gets the first's answer.
-      const out = (await ACTIONS.run(`studio:story:${go}`, (requestId) =>
+      const out = (await ACTIONS.run(`studio:story:${go}`, async (requestId) =>
         desk<{ posts: { results: Result<Where>[] }[] }>("story", {
           platforms: where,
-          ...(photo ? { photo: { name: photo.name, data: photo.data } } : { clip }),
+          ...(photo
+            ? {
+                photo: {
+                  name: photo.name,
+                  source: await uploadMedia(photo.blob, photo.name, (meta) =>
+                    desk("storyUpload", meta),
+                  ),
+                },
+              }
+            : { clip }),
           go,
           requestId,
         }),

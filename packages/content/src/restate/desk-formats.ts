@@ -13,7 +13,13 @@ import {
   writeCarousel,
 } from "../carousel.js";
 import { type SlidesSaved, slidesSaved } from "../shape-view.js";
-import { STORY_PLATFORMS, type StoryPlatform, storyClips, writeStory } from "../story.js";
+import {
+  STORY_PLATFORMS,
+  type StoryPlatform,
+  storyClips,
+  storyUpload,
+  writeStory,
+} from "../story.js";
 import {
   byLine,
   type ContentDeskContext,
@@ -25,13 +31,14 @@ import {
   type WriteGo,
   written,
 } from "./desk-context.js";
+import { UPLOAD_META } from "./desk-edits.js";
 
 const STORY = z.looseObject({
   platforms: z.array(z.enum(STORY_PLATFORMS)).min(1).describe("Where the story goes"),
   photo: z
-    .object({ name: z.string().min(1), data: z.string().min(1) })
+    .object({ name: z.string().min(1), source: z.string().startsWith("s3://") })
     .nullish()
-    .describe("A JPG or PNG as base64, up to 2 MB"),
+    .describe("A JPG or PNG up to 2 MB, PUT where `storyUpload` said"),
   clip: z.string().nullish().describe("A Reel draft's id: its stored video"),
   go: z.enum(WRITE_GO).nullish().describe("draft (default), slot or now"),
 });
@@ -59,6 +66,18 @@ const SLIDES = z.looseObject({
 export function formatsHandlers(desk: ContentDeskContext) {
   const { deps, scopeOf, goOn } = desk;
   return {
+    /** A signed PUT for a story photo: the browser sends the bytes to the store. */
+    storyUpload: sharedHandler(
+      { input: z.looseObject({ name: z.string().min(1), ...UPLOAD_META }) },
+      async (
+        ctx: restate.ObjectSharedContext,
+        req: { name: string; size: number; sha256: string },
+      ) => {
+        const media = deps.media;
+        if (!media) throw new restate.TerminalError("no media store here", { errorCode: 503 });
+        return ctx.run("sign", () => verdictOf(() => storyUpload(media, req)));
+      },
+    ),
     /** A story on Instagram and the Page from a photo or a clip; Write's draft, slot or now. */
     story: exclusiveHandler(
       { input: STORY },
@@ -66,7 +85,7 @@ export function formatsHandlers(desk: ContentDeskContext) {
         ctx: restate.ObjectContext,
         req: {
           platforms: StoryPlatform[];
-          photo?: { name: string; data: string } | null;
+          photo?: { name: string; source: string } | null;
           clip?: string | null;
           go?: WriteGo | null;
           viewer?: unknown;

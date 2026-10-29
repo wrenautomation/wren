@@ -8,7 +8,7 @@ import { PASS_LABELS, PASS_REASONS } from "@wren/core/pass-reasons";
 import { REJECT_LABELS, REJECT_NOTE_MAX, REJECT_REASONS } from "@wren/core/reject-reasons";
 import { type Action, type FormField, said } from "@wren/ui";
 import { draftActions } from "./ask.js";
-import { ATTACH, FIELDS } from "./fields.js";
+import { ATTACH, FIELDS, UPLOAD } from "./fields.js";
 import { FUNNEL } from "./funnel.js";
 import { SLIDES } from "./slides.js";
 
@@ -140,6 +140,7 @@ export const OPEN = { state: ["draft", "failed", "approved"] };
 /** A post's fields and files, saved from inside the detail (fields.tsx), never from the head. */
 export const fieldActions = (when: NonNullable<Action["when"]>): Action[] => [
   { id: FIELDS, label: "Save", handler: "marketing/draftFields", inline: true, when },
+  { id: UPLOAD, label: "Upload", handler: "marketing/draftUpload", inline: true, when },
   { id: ATTACH, label: "Upload", handler: "marketing/draftAttach", inline: true, when },
   { id: FUNNEL, label: "Save", handler: "marketing/draftFunnel", inline: true, when },
   { id: SLIDES, label: "Save", handler: "marketing/draftSlides", inline: true, when },

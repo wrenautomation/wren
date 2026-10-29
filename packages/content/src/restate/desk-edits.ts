@@ -5,7 +5,7 @@ import { byOf } from "@wren/core/ask";
 import { SHAPES } from "@wren/core/content/shapes";
 import { exclusiveHandler, PORTAL_FIELDS } from "@wren/core/restate";
 import { z } from "zod";
-import { ATTACH_MAX_BYTES, attachFile } from "../attach.js";
+import { ATTACH_MAX_BYTES, attachFile, attachUpload } from "../attach.js";
 import { keepSlideFiles, paintSlides, slidesToDraw } from "../carousel.js";
 import { DRAFT_STAGE, type DraftResult } from "../draft.js";
 import { type FunnelPatch, setFunnel } from "../funnel.js";
@@ -42,16 +42,25 @@ const FIELDS = z.looseObject({
     .describe("Fields of the draft's platform shape; null unsets one"),
 });
 
-const ATTACH = z.looseObject({
+const FILE_ON = {
   viewer: PORTAL_FIELDS.viewer,
   draftId: z.string(),
   field: z.string().describe("The file's field: thumbnail, captions, cover"),
   name: z.string().describe("The file's name; its extension names the type"),
-  data: z
-    .string()
-    .max(Math.ceil((ATTACH_MAX_BYTES * 4) / 3) + 4)
-    .describe("The bytes, base64"),
+};
+const ATTACH = z.looseObject({
+  ...FILE_ON,
+  source: z.string().startsWith("s3://").describe("The `s3://` ref `attachUpload` answered"),
 });
+/** A file the browser hashed: where to PUT it. */
+export const UPLOAD_META = {
+  size: z.number().int().positive().max(ATTACH_MAX_BYTES),
+  sha256: z
+    .string()
+    .regex(/^[0-9a-f]{64}$/)
+    .describe("The file's SHA-256, hex"),
+};
+const ATTACH_UPLOAD = z.looseObject({ ...FILE_ON, ...UPLOAD_META });
 
 const FUNNEL = z.looseObject({
   viewer: PORTAL_FIELDS.viewer,
@@ -269,11 +278,24 @@ export function editsHandlers(desk: ContentDeskContext) {
       },
     ),
     /** A file on a field (thumbnail, subtitles, cover): to the media store, then the field. */
+    /** A signed PUT for a file on a draft's field: the browser sends the bytes to the store. */
+    attachUpload: exclusiveHandler(
+      { input: ATTACH_UPLOAD },
+      async (
+        ctx: restate.ObjectContext,
+        req: { draftId: string; field: string; name: string; size: number; sha256: string },
+      ) => {
+        const media = deps.media;
+        if (!media) throw new restate.TerminalError("no media store here", { errorCode: 503 });
+        const { db } = await scopeOf(ctx);
+        return ctx.run("sign", () => verdictOf(() => attachUpload(db, media, req)));
+      },
+    ),
     attach: exclusiveHandler(
       { input: ATTACH },
       async (
         ctx: restate.ObjectContext,
-        req: { draftId: string; field: string; name: string; data: string; viewer?: unknown },
+        req: { draftId: string; field: string; name: string; source: string; viewer?: unknown },
       ) => {
         const media = deps.media;
         if (!media) throw new restate.TerminalError("no media store here", { errorCode: 503 });

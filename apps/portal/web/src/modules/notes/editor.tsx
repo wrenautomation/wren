@@ -10,7 +10,7 @@ import { cx, Icon, Input, say, TextField, tipProps, useEditForm } from "@wren/ui
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import type { Awareness } from "y-protocols/awareness";
 import type * as Y from "yjs";
-import { ApiError } from "../../api.js";
+import { ApiError, putSigned } from "../../api.js";
 import { navigate } from "../../route.js";
 import { mentionHref, type NotePeople, notes } from "./api.js";
 import { cardLines, makeCards } from "./cards.js";
@@ -42,12 +42,7 @@ export async function uploadImage(client: string, id: string, file: File): Promi
     type: file.type,
     size: file.size,
   });
-  const res = await fetch(up.url, {
-    method: "PUT",
-    headers: { "content-type": file.type },
-    body: file,
-  }).catch(() => null);
-  if (!res?.ok) throw new ApiError("The image didn't go up. Try again.", res?.status ?? 0);
+  await putSigned(up.url, { "content-type": file.type }, file, "The image");
   return up.src;
 }
 

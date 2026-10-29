@@ -26,6 +26,7 @@ import {
   useSaved,
 } from "@wren/ui";
 import { type ReactNode, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { uploadMedia } from "../../api.js";
 import type { ListPage } from "../../module.js";
 import { SELECT } from "../work/bits.js";
 import { SHAPED } from "./draft-patch.js";
@@ -69,6 +70,7 @@ export type Shape = {
 
 export const FIELDS = "marketing.draftFields";
 export const ATTACH = "marketing.draftAttach";
+export const UPLOAD = "marketing.draftUpload";
 
 const nameOf = (s: string) => s.slice(s.lastIndexOf("/") + 1);
 
@@ -465,14 +467,26 @@ function SwitchField({ f, act, draftId }: FieldProps) {
   );
 }
 
-/** The file's bytes as base64, for the desk's attach (2 MB at most). */
-const base64Of = (file: File) =>
-  new Promise<string>((done, fail) => {
-    const r = new FileReader();
-    r.onload = () => done(String(r.result).slice(String(r.result).indexOf(",") + 1));
-    r.onerror = () => fail(r.error ?? new Error("Couldn't read the file."));
-    r.readAsDataURL(file);
-  });
+/** The file to the media store on the link its field signs, then on the field. */
+async function attach(
+  act: RecordAct,
+  run: (action: string, input: Record<string, unknown>) => Promise<boolean>,
+  fail: (why: string) => void,
+  field: string,
+  file: File,
+) {
+  let source: string;
+  try {
+    // the sign answer changes nothing on the page: no read again
+    source = await uploadMedia(file, file.name, (meta) =>
+      act(UPLOAD, { field, ...meta }, { patch: () => ({}) }),
+    );
+  } catch (err) {
+    fail(messageOf(err));
+    return;
+  }
+  await run(ATTACH, { field, name: file.name, source });
+}
 
 /** A thumbnail, cover or subtitles file: picked and uploaded, or removed. */
 function FileField({ f, act, link }: FieldProps & { link: string | null }) {
@@ -488,7 +502,7 @@ function FileField({ f, act, link }: FieldProps & { link: string | null }) {
     }
     setBusy(true);
     try {
-      await run(ATTACH, { field: f.key, name: file.name, data: await base64Of(file) });
+      await attach(act, run, fail, f.key, file);
     } finally {
       setBusy(false);
     }
@@ -554,7 +568,7 @@ function FilesField({ f, act, links }: FieldProps & { links: Record<string, stri
     }
     setBusy(true);
     try {
-      await run(ATTACH, { field: f.key, name: file.name, data: await base64Of(file) });
+      await attach(act, run, fail, f.key, file);
     } finally {
       setBusy(false);
     }

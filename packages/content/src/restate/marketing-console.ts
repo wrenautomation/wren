@@ -148,7 +148,16 @@ export interface AttachRequest extends PortalRequest {
   draftId: string;
   field: string;
   name: string;
-  data: string;
+  /** The `s3://` ref `draftUpload` answered, once the browser's PUT is done. */
+  source: string;
+}
+
+export interface UploadRequest extends PortalRequest {
+  draftId: string;
+  field: string;
+  name: string;
+  size: number;
+  sha256: string;
 }
 
 const CREATOR_TTL_MS = 30_000;
@@ -752,7 +761,33 @@ export function makeMarketingConsole(deps: MarketingConsoleDeps) {
             );
           }),
       ),
-      /** A file on a client draft's field (thumbnail, subtitles, cover). */
+      /** Where the browser PUTs a file for a client draft's field: the bytes skip the call. */
+      draftUpload: serviceHandler(
+        {
+          input: z.looseObject({
+            ...PORTAL_FIELDS,
+            draftId: z.union([z.string(), z.number()]).describe("The draft's id"),
+            field: z.string(),
+            name: z.string(),
+            size: z.number(),
+            sha256: z.string().describe("The file's SHA-256, hex"),
+          }),
+        },
+        (ctx: restate.Context, req: UploadRequest) =>
+          answer(async () => {
+            const key = await ctx.run("check", () => answer(() => api.deciding(req)));
+            return desk(() =>
+              deskOf(ctx, key).attachUpload({
+                draftId: String(req.draftId),
+                field: req.field,
+                name: req.name,
+                size: req.size,
+                sha256: req.sha256,
+              }),
+            );
+          }),
+      ),
+      /** A file on a client draft's field (thumbnail, subtitles, cover), once it is up. */
       draftAttach: serviceHandler(
         {
           input: z.looseObject({
@@ -760,7 +795,7 @@ export function makeMarketingConsole(deps: MarketingConsoleDeps) {
             draftId: z.union([z.string(), z.number()]).describe("The draft's id"),
             field: z.string(),
             name: z.string(),
-            data: z.string().describe("The bytes, base64"),
+            source: z.string().describe("The `s3://` ref draftUpload answered"),
           }),
         },
         (ctx: restate.Context, req: AttachRequest) =>
@@ -771,7 +806,7 @@ export function makeMarketingConsole(deps: MarketingConsoleDeps) {
                 draftId: String(req.draftId),
                 field: req.field,
                 name: req.name,
-                data: req.data,
+                source: req.source,
                 viewer: req.viewer,
               }),
             );
