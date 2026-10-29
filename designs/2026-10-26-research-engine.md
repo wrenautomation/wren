@@ -919,3 +919,37 @@ Decisions, ranked by live demo, checking accuracy, then least plumbing:
 - Design: the design language has no research section. The page composes Graph, RowsPanel,
   Seg and the Learn player's embeds (moved to `src/embeds.ts`). Reddit, Facebook and Google
   hits stay links: frame-src has no Reddit, and Google gives no embed.
+
+### 10-28 night: arXiv, Jev reads pages whole, criteria, engine 0.25.0 (WA-950)
+
+What shipped: an `arxiv` source (search and read), `--criterion name="question"` on `run` and
+`plan`, and a judge that reads a page whole. Public benchmarks are parked (William: overkill now).
+Decisions, ranked by signal per dollar, then least plumbing:
+- Jev reads the whole page, not the first 4,000 characters. Jev input is $0.042/M, about 24x under
+  Haiku. Its cap, probed: 30k tokens pass, about 43k gives a 400 (no silent cut). So parts of
+  64,000 characters, 4 at most, each answer the most yes of any part. The body ends at the last
+  References heading; an appendix stays (ablations live there). A paper costs about $0.0005.
+- Criteria: one question per test, all in one call, on every hit and every page. Their mean sorts
+  `hits.uncalled` and `documents.toExtract`. A sort and a hint, never a gate (Jev rule).
+- Not a hard Jev filter on arXiv, as first asked. Today's data does not earn it (the 0.22.0
+  `worth` AUC was 0.60 on 16 pages). Fixed filters (categories) cut first, Jev ranks, the reads cap
+  cuts, Claude makes every drop.
+- arXiv through export.arxiv.org, the host arXiv names for programs: one call at a time, 3 s apart.
+  HTML first (tables, sections), the PDF when it has none. Every-word search, topped up with
+  any-word results when short.
+- Citations from OpenAlex, not Semantic Scholar: S2's keyless pool gave 429. OpenAlex is keyless on a
+  shared daily budget; `OPENALEX_API_KEY` (free) gives its own. A merged work can carry the
+  published DOI, so an id matches anywhere in the row. Counts run low (ReAct: 603).
+- arXiv stays out of the stock web plan file: most asks are not papers. `--sources arxiv` names it.
+- A second label for the judge's AUCs: the extract's verdict "rich". Papers nearly all yield a
+  kept finding, so "a finding was kept" had no negatives.
+Dogfood (one runner run, cs.AI/CL/MA/IR, 5 criteria, $0.13, 13 papers read, 1 rich). Thin data,
+one positive; read as direction only:
+- On the page, `worth` AUC 1.0, `ablation` 0.92, `gain` 0.88. On the hit (abstract): 0.50, 0.42.
+  Abstracts rarely state ablations or code; full text does.
+- `research_task` on the hit caught both off-topic reads Haiku's triage picked (0.08, 0.12).
+  The one criterion that would have routed them away.
+- `gain` sat near 0.95 on 12 of 13 pages: nearly every paper claims a gain, so it sorts little.
+  A criterion most sources pass is a weak router.
+- `code` ranked badly (0.25): release of code does not predict a rich page for this ask.
+Not done: the 30-paper side by side of full-text Jev, abstract Jev and Claude. More runs first.
