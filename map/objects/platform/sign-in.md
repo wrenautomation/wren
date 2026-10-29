@@ -6,7 +6,7 @@ status: verified
 verified: 2026-10-29 @ ef481a93
 entity: packages/auth/src/index.ts:109
 covers: ["@wren/auth", "@wren/auth-app"]
-stamp: 239b7ff7
+stamp: 48a74306
 ---
 
 # sign-in

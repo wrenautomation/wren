@@ -268,6 +268,50 @@
    }
   },
   {
+   "id": "system:wren.do:KeyLedger",
+   "role": "part",
+   "parent": "system:wren",
+   "group": "wren",
+   "attrs": {
+    "code": [
+     "apps/llm-gateway/wrangler.toml"
+    ],
+    "kind": "do",
+    "technology": "Durable Object",
+    "title": "KeyLedger"
+   }
+  },
+  {
+   "id": "system:wren.do:NoteRoom",
+   "role": "part",
+   "parent": "system:wren",
+   "group": "wren",
+   "attrs": {
+    "code": [
+     "apps/portal/wrangler.toml"
+    ],
+    "description": "Live notes: one room per open note (src/live.ts)",
+    "kind": "do",
+    "technology": "Durable Object",
+    "title": "NoteRoom"
+   }
+  },
+  {
+   "id": "system:wren.do:WriteWatch",
+   "role": "part",
+   "parent": "system:wren",
+   "group": "wren",
+   "attrs": {
+    "code": [
+     "apps/portal/wrangler.toml"
+    ],
+    "description": "Sends told live: one watch per signed-in person and site (src/watch.ts)",
+    "kind": "do",
+    "technology": "Durable Object",
+    "title": "WriteWatch"
+   }
+  },
+  {
    "id": "system:wren.host:pg",
    "role": "part",
    "parent": "system:wren",
@@ -386,6 +430,50 @@
     "kind": "r2",
     "technology": "Cloudflare R2",
     "title": "autobrowse-share"
+   }
+  },
+  {
+   "id": "system:wren.ratelimit:INSTALL_LIMIT",
+   "role": "part",
+   "parent": "system:wren",
+   "group": "wren",
+   "attrs": {
+    "code": [
+     "apps/share/wrangler.toml"
+    ],
+    "description": "One cap per install id and one per IP, so a fresh id buys nothing",
+    "kind": "ratelimit",
+    "technology": "Cloudflare rate limit",
+    "title": "INSTALL_LIMIT"
+   }
+  },
+  {
+   "id": "system:wren.ratelimit:IP_LIMIT",
+   "role": "part",
+   "parent": "system:wren",
+   "group": "wren",
+   "attrs": {
+    "code": [
+     "apps/share/wrangler.toml"
+    ],
+    "kind": "ratelimit",
+    "technology": "Cloudflare rate limit",
+    "title": "IP_LIMIT"
+   }
+  },
+  {
+   "id": "system:wren.ratelimit:PUBLIC_LIMIT",
+   "role": "part",
+   "parent": "system:wren",
+   "group": "wren",
+   "attrs": {
+    "code": [
+     "apps/portal/wrangler.toml"
+    ],
+    "description": "One cap per visitor on public posts: forms, chat, signing, booking, AI tools (src/limit.ts)",
+    "kind": "ratelimit",
+    "technology": "Cloudflare rate limit",
+    "title": "PUBLIC_LIMIT"
    }
   },
   {
@@ -1679,6 +1767,19 @@
    }
   },
   {
+   "from": "system:wren.worker:llm-gateway",
+   "to": "system:wren.do:KeyLedger",
+   "kind": "binds",
+   "attrs": {
+    "here": [
+     "apps/llm-gateway/wrangler.toml"
+    ],
+    "title": [
+     "binding `KeyLedger`"
+    ]
+   }
+  },
+  {
    "from": "system:wren.worker:phone",
    "to": "system:wren.kv:CRED_LINKS",
    "kind": "binds",
@@ -1714,6 +1815,45 @@
     ],
     "title": [
      "binding `wren-pixel`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.worker:portal",
+   "to": "system:wren.do:NoteRoom",
+   "kind": "binds",
+   "attrs": {
+    "here": [
+     "apps/portal/wrangler.toml"
+    ],
+    "title": [
+     "binding `NoteRoom`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.worker:portal",
+   "to": "system:wren.do:WriteWatch",
+   "kind": "binds",
+   "attrs": {
+    "here": [
+     "apps/portal/wrangler.toml"
+    ],
+    "title": [
+     "binding `WriteWatch`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.worker:portal",
+   "to": "system:wren.ratelimit:PUBLIC_LIMIT",
+   "kind": "binds",
+   "attrs": {
+    "here": [
+     "apps/portal/wrangler.toml"
+    ],
+    "title": [
+     "binding `PUBLIC_LIMIT`"
     ]
    }
   },
@@ -1773,6 +1913,32 @@
     ],
     "title": [
      "binding `autobrowse-share`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.worker:share",
+   "to": "system:wren.ratelimit:INSTALL_LIMIT",
+   "kind": "binds",
+   "attrs": {
+    "here": [
+     "apps/share/wrangler.toml"
+    ],
+    "title": [
+     "binding `INSTALL_LIMIT`"
+    ]
+   }
+  },
+  {
+   "from": "system:wren.worker:share",
+   "to": "system:wren.ratelimit:IP_LIMIT",
+   "kind": "binds",
+   "attrs": {
+    "here": [
+     "apps/share/wrangler.toml"
+    ],
+    "title": [
+     "binding `IP_LIMIT`"
     ]
    }
   }

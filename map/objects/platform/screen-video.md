@@ -6,7 +6,7 @@ status: verified
 verified: 2026-10-29 @ ef481a93
 entity: packages/video/src/recorder.ts:283
 covers: ["@wren/video"]
-stamp: 96cf846f
+stamp: 3d842e44
 ---
 
 # screen-video

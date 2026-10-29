@@ -6,7 +6,7 @@ status: verified
 verified: 2026-10-29 @ ef481a93
 entity: packages/experiments/src/engine.ts:228
 covers: ["@wren/experiments"]
-stamp: 531f32eb
+stamp: d423bcdd
 ---
 
 # experiment-engine

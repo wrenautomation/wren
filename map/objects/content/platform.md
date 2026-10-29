@@ -6,7 +6,7 @@ status: verified
 verified: 2026-10-16 (callers on the verdict: no looks, direct send journal, keyword DMs on the ledger)
 entity: packages/core/src/content/index.ts:12
 covers: ["@wren/channel-linkedin", "@wren/channel-reddit", "@wren/channel-tiktok", "@wren/channel-x", "@wren/channel-youtube"]
-stamp: d128ac77
+stamp: bc39ac37
 ---
 
 # platform

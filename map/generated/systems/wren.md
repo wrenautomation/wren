@@ -21,6 +21,9 @@ Wren Automation: campaigns, channels and client products.
 - **searxng** (docker.io/searxng/searxng:2026.10.27-ef7bae9dd): SearXNG metasearch for the research engine (box 1 only)
 - **worker** (container): The pool chain's waiting-heavy services, on the box.
 - **wren-pixel** (Cloudflare D1): Each pixel fetch, until OpensScheduler pulls it into Postgres
+- **KeyLedger** (Durable Object)
+- **NoteRoom** (Durable Object): Live notes: one room per open note (src/live.ts)
+- **WriteWatch** (Durable Object): Sends told live: one watch per signed-in person and site (src/watch.ts)
 - **pg** (EC2): The box: Postgres and the long-running containers beside it
 - **vps** (host): The RackNerd VPS: SMTP prober and SearXNG.
 - **CRED_LINKS** (Cloudflare KV): Credential links: ciphertext only, 10 minutes unless minted longer (designs/2026-10-06-credential-links.md)
@@ -29,6 +32,9 @@ Wren Automation: campaigns, channels and client products.
 - **worker** (Lambda): The worker: every Restate service, invoked by Restate Cloud
 - **voice** (process): The voice agent's call loop. Not installed yet.
 - **autobrowse-share** (Cloudflare R2): The shared library's uploads
+- **INSTALL_LIMIT** (Cloudflare rate limit): One cap per install id and one per IP, so a fresh id buys nothing
+- **IP_LIMIT** (Cloudflare rate limit)
+- **PUBLIC_LIMIT** (Cloudflare rate limit): One cap per visitor on public posts: forms, chat, signing, booking, AI tools (src/limit.ts)
 - **backups** (S3 bucket): Nightly Postgres and Restate backups, and worker bundles
 - **files** (S3 bucket): Client files (D11): what we hand over and what a client uploads to answer an ask, under clients/<id>/
 - **lake** (S3 bucket): The lake (designs/2026-10-11-lake.md): every database's tables as Parquet, all history, written by `wren lake sync` (nightly in CI, .github/workflows/lake.yml) and read by `wren lake sql`
@@ -175,12 +181,20 @@ Wren Automation: campaigns, channels and client products.
   - in `packages/config/src/ssm.ts`
 - wren.worker:auth calls wren.lambda:auth: `LAMBDA_URL`
   - in `apps/auth/src/worker.ts`
+- wren.worker:llm-gateway binds wren.do:KeyLedger: binding `KeyLedger`
+  - in `apps/llm-gateway/wrangler.toml`
 - wren.worker:phone binds wren.kv:CRED_LINKS: binding `CRED_LINKS`
   - in `apps/phone/wrangler.toml`
 - wren.worker:phone calls restate: `RESTATE_INGRESS_URL`
   - in `apps/phone/src/worker.ts`
 - wren.worker:pixel binds wren.d1:wren-pixel: binding `wren-pixel`
   - in `deploy/pixel/wrangler.toml`
+- wren.worker:portal binds wren.do:NoteRoom: binding `NoteRoom`
+  - in `apps/portal/wrangler.toml`
+- wren.worker:portal binds wren.do:WriteWatch: binding `WriteWatch`
+  - in `apps/portal/wrangler.toml`
+- wren.worker:portal binds wren.ratelimit:PUBLIC_LIMIT: binding `PUBLIC_LIMIT`
+  - in `apps/portal/wrangler.toml`
 - wren.worker:portal calls restate: `RESTATE_INGRESS_URL`
   - in `apps/portal/src/book.ts`, `apps/portal/src/docs.ts`, `apps/portal/src/edge.ts`, `apps/portal/src/hosts.ts`, `apps/portal/src/pay.ts`, `apps/portal/src/sites.ts`, `apps/portal/src/writes.ts`
 - wren.worker:portal calls wren.lambda:auth: `LAMBDA_URL`
@@ -188,4 +202,8 @@ Wren Automation: campaigns, channels and client products.
 - wren.worker:portal uses engine: `@wrenautomation/models/hear`
   - in `packages/voice/src/dictation/transcriber.ts`
 - wren.worker:share binds wren.r2:autobrowse-share: binding `autobrowse-share`
+  - in `apps/share/wrangler.toml`
+- wren.worker:share binds wren.ratelimit:INSTALL_LIMIT: binding `INSTALL_LIMIT`
+  - in `apps/share/wrangler.toml`
+- wren.worker:share binds wren.ratelimit:IP_LIMIT: binding `IP_LIMIT`
   - in `apps/share/wrangler.toml`
