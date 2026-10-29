@@ -203,7 +203,14 @@ export function autobrowseSites(o: {
       const body = text ? (JSON.parse(text) as unknown) : null;
       if (!res.ok) {
         const b = body as { error?: string; code?: string } | null;
-        throw new SiteCallError(site, method, path, res.status, b?.error ?? res.statusText, b?.code);
+        throw new SiteCallError(
+          site,
+          method,
+          path,
+          res.status,
+          b?.error ?? res.statusText,
+          b?.code,
+        );
       }
       return body as never;
     },
