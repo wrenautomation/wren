@@ -94,7 +94,13 @@
       "aws:Amazon Virtual Private Cloud": "system:wren",
       "aws:AWS Lambda": "system:wren.lambda:worker",
       "aws:AWS Cost Explorer": "@wren/books",
-      "aws:AWS Systems Manager": "system:ssm"
+      "aws:AWS Systems Manager": "system:ssm",
+      "aws:Amazon Simple Storage Service": "system:autobrowse",
+      "aws:Amazon EC2 Container Registry (ECR)": "system:autobrowse",
+      "aws:Amazon Route 53": "@wren/channel-email",
+      "aws:AWS Key Management Service": "system:ssm",
+      "aws:Tax": "system:wren",
+      "anthropic:llm": "@wren/llm"
     }
   }
 }
