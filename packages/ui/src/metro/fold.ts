@@ -6,9 +6,10 @@
  * A fold hides stations, never lines. The hub folds like any station; an exit folds with its source. Tracks
  * reattach to the capsule. A late track inside rings it amber; a bad station inside shows as a count.
  */
+
+import { type FoldNode, openKey } from "@wrenautomation/orrery";
 import { foldAt, foldSteps, foldWidth } from "./geometry.js";
 import { type Frame, type PlaceBox, placeMetro } from "./place.js";
-import { type FoldNode, openKey } from "./tree.js";
 import {
   type CapsuleStation,
   isMark,

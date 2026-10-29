@@ -1,4 +1,6 @@
 // @vitest-environment happy-dom
+
+import { openSet } from "@wrenautomation/orrery";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -20,7 +22,6 @@ import {
   ZOOM_SCENE,
   zoomScenario,
 } from "./samples.js";
-import { openSet } from "./tree.js";
 import type { MetroView } from "./view.js";
 
 /** Lay a view out at this depth ahead, so a render draws it at once (ELK is async). */

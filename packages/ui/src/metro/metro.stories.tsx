@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { fullDepth } from "@wrenautomation/orrery";
 import { type ReactNode, useState } from "react";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import { FactsTable } from "../table.js";
@@ -30,7 +31,6 @@ import {
   WEBINAR_VIEW,
   zoomScenario,
 } from "./samples.js";
-import { fullDepth } from "./tree.js";
 import type { MetroPart, MetroScene } from "./types.js";
 
 export default { title: "Metro", parameters: { layout: "padded" } } satisfies Meta;

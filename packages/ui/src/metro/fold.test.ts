@@ -1,3 +1,4 @@
+import { allOpen, fullDepth, openSet } from "@wrenautomation/orrery";
 import { beforeAll, describe, expect, it } from "vitest";
 import { autoZoom, capsuleMark, foldScene, twinRuns, viewScene, viewZoom } from "./fold.js";
 import {
@@ -12,7 +13,6 @@ import {
 import { GROWTH_RETAINER } from "./money-models.js";
 import { layoutView } from "./place.js";
 import { DIFF_VIEW, loopZoom, protocolZoom, TWINS_VIEW, ZOOM_SCENE, ZOOM_VIEW } from "./samples.js";
-import { allOpen, fullDepth, openSet } from "./tree.js";
 import { isCapsule, isMark, type MetroScene } from "./types.js";
 import type { MetroView } from "./view.js";
 

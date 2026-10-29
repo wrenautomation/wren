@@ -12,27 +12,32 @@
  * at the top, and scrolls a map wider or taller than itself, so a label reads at its real size on any
  * screen.
  */
-import { type ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Button } from "../controls.js";
-import { cx } from "../format.js";
-import { MetroSvg } from "./draw.js";
-import { type FocusSpec, focusScene, nameOf, partsOfSpec, specKey } from "./focus.js";
-import { autoZoom, type MetroZoom, viewZoom } from "./fold.js";
-import { centreOf, fadeIn, glide, glideHeight } from "./glide.js";
-import { MARK_GLYPH, MARK_WORD } from "./marks.js";
-import { MetroSkeleton } from "./skeleton.js";
+
 import {
   allOpen,
+  centreOf,
   type Fold,
   type FoldNode,
+  fadeIn,
   fullDepth,
+  glide,
+  glideHeight,
   type OpenMap,
   openKey,
   openSet,
   pathTo,
   stepDepth,
   toggle,
-} from "./tree.js";
+} from "@wrenautomation/orrery";
+import { type ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Button } from "../controls.js";
+import { cx } from "../format.js";
+import { MetroSvg } from "./draw.js";
+import { type FocusSpec, focusScene, nameOf, partsOfSpec, specKey } from "./focus.js";
+import { autoZoom, type MetroZoom, viewZoom } from "./fold.js";
+import { METRO_MARKS } from "./glide.js";
+import { MARK_GLYPH, MARK_WORD } from "./marks.js";
+import { MetroSkeleton } from "./skeleton.js";
 import type { Mark, MetroPart, MetroScene, Point } from "./types.js";
 import type { MetroView } from "./view.js";
 import "./metro.css";
@@ -193,7 +198,7 @@ export function MetroMap(props: MetroMapProps) {
   // Callbacks and state the native listeners read; they never go stale.
   const live = useRef({ depth, open, zoom, onPick, onStub: props.onStub, focused: !!focus });
   live.current = { depth, open, zoom, onPick, onStub: props.onStub, focused: !!focus };
-  const anchor = useRef<Point | null>(null);
+  const anchor = useRef<readonly [number, number] | null>(null);
   const anchorKey = useRef<string | null>(null);
   /** Where the map stood on the screen when a fold began: the old frame lies there while it glides. */
   const was = useRef<DOMRect | null>(null);
@@ -404,6 +409,7 @@ export function MetroMap(props: MetroMapProps) {
     const stay = glide({
       old: prev.frame,
       next: s,
+      marks: METRO_MARKS,
       anchor: anchor.current,
       anchorKey: anchorKey.current,
     });

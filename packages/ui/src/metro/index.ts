@@ -1,5 +1,18 @@
 /** The metro map: marks, drawing, layout and zoom. Import from `@wren/ui/metro`. */
 
+export {
+  allOpen,
+  type Fold,
+  type FoldNode,
+  fullDepth,
+  type OpenMap,
+  openKey,
+  openSet,
+  pathTo,
+  reveal,
+  stepDepth,
+  toggle,
+} from "@wrenautomation/orrery";
 export { elkOf as preloadMetro } from "../graph/layout.js";
 export { landTimes, MetroSvg, type MetroSvgProps } from "./draw.js";
 export {
@@ -75,19 +88,6 @@ export {
 } from "./marks.js";
 export { type Frame, layoutView, type PlaceBox, type Placed, placeMetro, STEP } from "./place.js";
 export { MetroSkeleton } from "./skeleton.js";
-export {
-  allOpen,
-  type Fold,
-  type FoldNode,
-  fullDepth,
-  type OpenMap,
-  openKey,
-  openSet,
-  pathTo,
-  reveal,
-  stepDepth,
-  toggle,
-} from "./tree.js";
 export {
   type BadgeStation,
   type CapsuleStation,
