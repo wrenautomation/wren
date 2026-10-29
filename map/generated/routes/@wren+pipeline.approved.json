@@ -1020,11 +1020,6 @@
   },
   {
    "from": "route:PipelineConsole/recordsExport",
-   "to": "table:public.changes",
-   "kind": "reads"
-  },
-  {
-   "from": "route:PipelineConsole/recordsExport",
    "to": "table:public.client_members",
    "kind": "reads"
   },
@@ -1076,11 +1071,6 @@
   {
    "from": "route:PipelineConsole/recordsExport",
    "to": "table:public.roles",
-   "kind": "reads"
-  },
-  {
-   "from": "route:PipelineConsole/recordsExport",
-   "to": "table:public.runs",
    "kind": "reads"
   },
   {
@@ -1115,21 +1105,6 @@
   },
   {
    "from": "route:PipelineConsole/recordsGet",
-   "to": "table:public.draft_events",
-   "kind": "reads"
-  },
-  {
-   "from": "route:PipelineConsole/recordsGet",
-   "to": "table:public.draft_outcomes",
-   "kind": "reads"
-  },
-  {
-   "from": "route:PipelineConsole/recordsGet",
-   "to": "table:public.draft_people",
-   "kind": "reads"
-  },
-  {
-   "from": "route:PipelineConsole/recordsGet",
    "to": "table:public.grants",
    "kind": "reads"
   },
@@ -1160,11 +1135,6 @@
   },
   {
    "from": "route:PipelineConsole/recordsList",
-   "to": "table:public.changes",
-   "kind": "reads"
-  },
-  {
-   "from": "route:PipelineConsole/recordsList",
    "to": "table:public.client_members",
    "kind": "reads"
   },
@@ -1185,21 +1155,6 @@
   },
   {
    "from": "route:PipelineConsole/recordsList",
-   "to": "table:public.draft_events",
-   "kind": "reads"
-  },
-  {
-   "from": "route:PipelineConsole/recordsList",
-   "to": "table:public.draft_outcomes",
-   "kind": "reads"
-  },
-  {
-   "from": "route:PipelineConsole/recordsList",
-   "to": "table:public.draft_people",
-   "kind": "reads"
-  },
-  {
-   "from": "route:PipelineConsole/recordsList",
    "to": "table:public.grants",
    "kind": "reads"
   },
@@ -1216,11 +1171,6 @@
   {
    "from": "route:PipelineConsole/recordsList",
    "to": "table:public.roles",
-   "kind": "reads"
-  },
-  {
-   "from": "route:PipelineConsole/recordsList",
-   "to": "table:public.runs",
    "kind": "reads"
   },
   {
@@ -1230,11 +1180,6 @@
   },
   {
    "from": "route:PipelineConsole/recordsStats",
-   "to": "table:public.changes",
-   "kind": "reads"
-  },
-  {
-   "from": "route:PipelineConsole/recordsStats",
    "to": "table:public.client_members",
    "kind": "reads"
   },
@@ -1255,21 +1200,6 @@
   },
   {
    "from": "route:PipelineConsole/recordsStats",
-   "to": "table:public.draft_events",
-   "kind": "reads"
-  },
-  {
-   "from": "route:PipelineConsole/recordsStats",
-   "to": "table:public.draft_outcomes",
-   "kind": "reads"
-  },
-  {
-   "from": "route:PipelineConsole/recordsStats",
-   "to": "table:public.draft_people",
-   "kind": "reads"
-  },
-  {
-   "from": "route:PipelineConsole/recordsStats",
    "to": "table:public.grants",
    "kind": "reads"
   },
@@ -1286,11 +1216,6 @@
   {
    "from": "route:PipelineConsole/recordsStats",
    "to": "table:public.roles",
-   "kind": "reads"
-  },
-  {
-   "from": "route:PipelineConsole/recordsStats",
-   "to": "table:public.runs",
    "kind": "reads"
   },
   {

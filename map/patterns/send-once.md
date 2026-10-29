@@ -2,7 +2,7 @@
 type: pattern
 covers: ["@wren/core/src/send-verdict.ts", "@wren/core/src/maybe-sent.ts", "@wren/outreach/src/settle-send.ts"]
 rule:
-  when: { reaches: ["SiteClient.call(_, !GET)"] }
+  when: { tags: ["effect:sends", "effect:posts"], reaches: ["SiteClient.call(_, !GET)"] }
   must: [withSendKey, sendOnce, deliveryOf, maybeSent]
 ---
 
@@ -28,4 +28,13 @@ Every send of ours that must go out at most once: claim a row, send under a key,
 
 ## Rule
 
-kestrel `patterns` layer: a route whose walk makes a site write (`SiteClient.call` with a method that is not `GET`; a method in a variable counts) also calls one of `withSendKey`, `sendOnce`, `deliveryOf`, `maybeSent`. The walk ends at an injected call, so a key set in a callee service is not seen: approve such a route as an exception.
+kestrel `patterns` layer: a route whose form says it sends to a person or posts (`effect: "sends"` or `"posts"`) and whose walk makes a site write (`SiteClient.call`, a method not `GET`) also calls one of `withSendKey`, `sendOnce`, `deliveryOf`, `maybeSent`. A site write with no such effect (an ad's status, a like, a follow, a read sent as POST) is not a send: a second one changes nothing. The walk ends at an injected call, so a key set in a callee service is not seen: approve such a route as an exception.
+
+## Accepted exceptions
+
+Each declares `effect: "sends"` and makes a site write with no key. A second call changes nothing, so no key is needed (2026-10-29):
+
+- `ReachDesk/actOnPost`: a like or a follow on a post's author.
+- `ReachDesk/followPerson`: a follow.
+- `ReachDesk/withdrawInvite`: a withdraw of one pending invite.
+- `ReachDesk/invites`: the sweep's withdraws. The invites themselves go out from the tick, under `sendOnce`.

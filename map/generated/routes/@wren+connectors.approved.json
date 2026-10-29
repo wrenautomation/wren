@@ -41,6 +41,9 @@
      "@wrenautomation/autobrowse"
     ],
     "output": "{ state: string; people: number; fired: number }",
+    "tags": [
+     "ingressPrivate:true"
+    ],
     "wrap": "restate.handlers.object.exclusive"
    }
   },

@@ -1928,11 +1928,6 @@
   },
   {
    "from": "route:SitesConsole/recordsExport",
-   "to": "table:public.changes",
-   "kind": "reads"
-  },
-  {
-   "from": "route:SitesConsole/recordsExport",
    "to": "table:public.client_domains",
    "kind": "reads"
   },
@@ -1979,11 +1974,6 @@
   {
    "from": "route:SitesConsole/recordsExport",
    "to": "table:public.roles",
-   "kind": "reads"
-  },
-  {
-   "from": "route:SitesConsole/recordsExport",
-   "to": "table:public.runs",
    "kind": "reads"
   },
   {
@@ -2098,21 +2088,6 @@
   },
   {
    "from": "route:SitesConsole/recordsGet",
-   "to": "table:public.draft_events",
-   "kind": "reads"
-  },
-  {
-   "from": "route:SitesConsole/recordsGet",
-   "to": "table:public.draft_outcomes",
-   "kind": "reads"
-  },
-  {
-   "from": "route:SitesConsole/recordsGet",
-   "to": "table:public.draft_people",
-   "kind": "reads"
-  },
-  {
-   "from": "route:SitesConsole/recordsGet",
    "to": "table:public.hooks",
    "kind": "reads"
   },
@@ -2208,11 +2183,6 @@
   },
   {
    "from": "route:SitesConsole/recordsList",
-   "to": "table:public.changes",
-   "kind": "reads"
-  },
-  {
-   "from": "route:SitesConsole/recordsList",
    "to": "table:public.client_domains",
    "kind": "reads"
   },
@@ -2238,32 +2208,12 @@
   },
   {
    "from": "route:SitesConsole/recordsList",
-   "to": "table:public.draft_events",
-   "kind": "reads"
-  },
-  {
-   "from": "route:SitesConsole/recordsList",
-   "to": "table:public.draft_outcomes",
-   "kind": "reads"
-  },
-  {
-   "from": "route:SitesConsole/recordsList",
-   "to": "table:public.draft_people",
-   "kind": "reads"
-  },
-  {
-   "from": "route:SitesConsole/recordsList",
    "to": "table:public.hooks",
    "kind": "reads"
   },
   {
    "from": "route:SitesConsole/recordsList",
    "to": "table:public.roles",
-   "kind": "reads"
-  },
-  {
-   "from": "route:SitesConsole/recordsList",
-   "to": "table:public.runs",
    "kind": "reads"
   },
   {
@@ -2348,11 +2298,6 @@
   },
   {
    "from": "route:SitesConsole/recordsStats",
-   "to": "table:public.changes",
-   "kind": "reads"
-  },
-  {
-   "from": "route:SitesConsole/recordsStats",
    "to": "table:public.client_domains",
    "kind": "reads"
   },
@@ -2378,32 +2323,12 @@
   },
   {
    "from": "route:SitesConsole/recordsStats",
-   "to": "table:public.draft_events",
-   "kind": "reads"
-  },
-  {
-   "from": "route:SitesConsole/recordsStats",
-   "to": "table:public.draft_outcomes",
-   "kind": "reads"
-  },
-  {
-   "from": "route:SitesConsole/recordsStats",
-   "to": "table:public.draft_people",
-   "kind": "reads"
-  },
-  {
-   "from": "route:SitesConsole/recordsStats",
    "to": "table:public.hooks",
    "kind": "reads"
   },
   {
    "from": "route:SitesConsole/recordsStats",
    "to": "table:public.roles",
-   "kind": "reads"
-  },
-  {
-   "from": "route:SitesConsole/recordsStats",
-   "to": "table:public.runs",
    "kind": "reads"
   },
   {

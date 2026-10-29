@@ -23,6 +23,9 @@
     ],
     "input": "BookRequest",
     "output": "BookingView & { manage: string; }",
+    "tags": [
+     "effect:sends"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -65,6 +68,9 @@
     ],
     "input": "{ token: string; reason?: string }",
     "output": "BookingView",
+    "tags": [
+     "effect:sends"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -86,6 +92,10 @@
     ],
     "input": "RemindRequest",
     "output": "{ sent: boolean; }",
+    "tags": [
+     "effect:sends",
+     "ingressPrivate:true"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -111,6 +121,9 @@
     ],
     "input": "{ token: string; start: string }",
     "output": "BookingView",
+    "tags": [
+     "effect:sends"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -143,6 +156,9 @@
     ],
     "input": "IdsRequest",
     "output": "{ cancelled: number; }",
+    "tags": [
+     "effect:sends"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -357,6 +373,9 @@
     ],
     "input": "z.infer<typeof CLIENT_BOOK>",
     "output": "BookingView & { manage: string; }",
+    "tags": [
+     "effect:sends"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -399,6 +418,9 @@
     ],
     "input": "{ client: string; token: string; reason?: string }",
     "output": "BookingView",
+    "tags": [
+     "effect:sends"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -420,6 +442,10 @@
     ],
     "input": "RemindRequest",
     "output": "{ sent: boolean; }",
+    "tags": [
+     "effect:sends",
+     "ingressPrivate:true"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -441,6 +467,9 @@
     ],
     "input": "{ client: string; token: string; start: string }",
     "output": "BookingView",
+    "tags": [
+     "effect:sends"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -1038,11 +1067,6 @@
   },
   {
    "from": "route:CalendarConsole/clear",
-   "to": "table:pipeline.shape_versions",
-   "kind": "reads"
-  },
-  {
-   "from": "route:CalendarConsole/clear",
    "to": "table:public.client_domains",
    "kind": "reads"
   },
@@ -1058,27 +1082,12 @@
   },
   {
    "from": "route:CalendarConsole/clear",
-   "to": "table:public.companies",
+   "to": "table:public.enrollments",
    "kind": "reads"
   },
   {
    "from": "route:CalendarConsole/clear",
-   "to": "table:public.contact_candidates",
-   "kind": "reads"
-  },
-  {
-   "from": "route:CalendarConsole/clear",
-   "to": "table:public.leads",
-   "kind": "reads"
-  },
-  {
-   "from": "route:CalendarConsole/clear",
-   "to": "table:public.people",
-   "kind": "reads"
-  },
-  {
-   "from": "route:CalendarConsole/clear",
-   "to": "table:public.reach_contacts",
+   "to": "table:public.messages",
    "kind": "reads"
   },
   {
@@ -1088,103 +1097,8 @@
   },
   {
    "from": "route:CalendarConsole/clear",
-   "to": "table:public.runs",
-   "kind": "reads"
-  },
-  {
-   "from": "route:CalendarConsole/clear",
-   "to": "table:public.social_handles",
-   "kind": "reads"
-  },
-  {
-   "from": "route:CalendarConsole/clear",
-   "to": "table:public.touches",
-   "kind": "reads"
-  },
-  {
-   "from": "route:CalendarConsole/clear",
-   "to": "table:calendar.bookings",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/clear",
-   "to": "table:pipeline.deals",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/clear",
-   "to": "table:pipeline.instances",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/clear",
    "to": "table:public.call_bookings",
    "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/clear",
-   "to": "table:public.enrollments",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/clear",
-   "to": "table:public.messages",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/clear",
-   "to": "table:public.profile_events",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/clear",
-   "to": "table:public.profile_findings",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/clear",
-   "to": "table:public.profile_keys",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/clear",
-   "to": "table:public.profile_lookups",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/clear",
-   "to": "table:public.profile_merges",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/clear",
-   "to": "table:public.profile_trait_events",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/clear",
-   "to": "table:public.profile_traits",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/clear",
-   "to": "table:public.profiles",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/clear",
-   "to": "table:public.suppression_events",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/clear",
-   "to": "table:public.suppressions",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/noShow",
-   "to": "table:pipeline.shape_versions",
-   "kind": "reads"
   },
   {
    "from": "route:CalendarConsole/noShow",
@@ -1203,27 +1117,12 @@
   },
   {
    "from": "route:CalendarConsole/noShow",
-   "to": "table:public.companies",
+   "to": "table:public.enrollments",
    "kind": "reads"
   },
   {
    "from": "route:CalendarConsole/noShow",
-   "to": "table:public.contact_candidates",
-   "kind": "reads"
-  },
-  {
-   "from": "route:CalendarConsole/noShow",
-   "to": "table:public.leads",
-   "kind": "reads"
-  },
-  {
-   "from": "route:CalendarConsole/noShow",
-   "to": "table:public.people",
-   "kind": "reads"
-  },
-  {
-   "from": "route:CalendarConsole/noShow",
-   "to": "table:public.reach_contacts",
+   "to": "table:public.messages",
    "kind": "reads"
   },
   {
@@ -1233,103 +1132,8 @@
   },
   {
    "from": "route:CalendarConsole/noShow",
-   "to": "table:public.runs",
-   "kind": "reads"
-  },
-  {
-   "from": "route:CalendarConsole/noShow",
-   "to": "table:public.social_handles",
-   "kind": "reads"
-  },
-  {
-   "from": "route:CalendarConsole/noShow",
-   "to": "table:public.touches",
-   "kind": "reads"
-  },
-  {
-   "from": "route:CalendarConsole/noShow",
-   "to": "table:calendar.bookings",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/noShow",
-   "to": "table:pipeline.deals",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/noShow",
-   "to": "table:pipeline.instances",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/noShow",
    "to": "table:public.call_bookings",
    "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/noShow",
-   "to": "table:public.enrollments",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/noShow",
-   "to": "table:public.messages",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/noShow",
-   "to": "table:public.profile_events",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/noShow",
-   "to": "table:public.profile_findings",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/noShow",
-   "to": "table:public.profile_keys",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/noShow",
-   "to": "table:public.profile_lookups",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/noShow",
-   "to": "table:public.profile_merges",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/noShow",
-   "to": "table:public.profile_trait_events",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/noShow",
-   "to": "table:public.profile_traits",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/noShow",
-   "to": "table:public.profiles",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/noShow",
-   "to": "table:public.suppression_events",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/noShow",
-   "to": "table:public.suppressions",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/notFit",
-   "to": "table:pipeline.shape_versions",
-   "kind": "reads"
   },
   {
    "from": "route:CalendarConsole/notFit",
@@ -1348,27 +1152,12 @@
   },
   {
    "from": "route:CalendarConsole/notFit",
-   "to": "table:public.companies",
+   "to": "table:public.enrollments",
    "kind": "reads"
   },
   {
    "from": "route:CalendarConsole/notFit",
-   "to": "table:public.contact_candidates",
-   "kind": "reads"
-  },
-  {
-   "from": "route:CalendarConsole/notFit",
-   "to": "table:public.leads",
-   "kind": "reads"
-  },
-  {
-   "from": "route:CalendarConsole/notFit",
-   "to": "table:public.people",
-   "kind": "reads"
-  },
-  {
-   "from": "route:CalendarConsole/notFit",
-   "to": "table:public.reach_contacts",
+   "to": "table:public.messages",
    "kind": "reads"
   },
   {
@@ -1378,103 +1167,8 @@
   },
   {
    "from": "route:CalendarConsole/notFit",
-   "to": "table:public.runs",
-   "kind": "reads"
-  },
-  {
-   "from": "route:CalendarConsole/notFit",
-   "to": "table:public.social_handles",
-   "kind": "reads"
-  },
-  {
-   "from": "route:CalendarConsole/notFit",
-   "to": "table:public.touches",
-   "kind": "reads"
-  },
-  {
-   "from": "route:CalendarConsole/notFit",
-   "to": "table:calendar.bookings",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/notFit",
-   "to": "table:pipeline.deals",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/notFit",
-   "to": "table:pipeline.instances",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/notFit",
    "to": "table:public.call_bookings",
    "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/notFit",
-   "to": "table:public.enrollments",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/notFit",
-   "to": "table:public.messages",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/notFit",
-   "to": "table:public.profile_events",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/notFit",
-   "to": "table:public.profile_findings",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/notFit",
-   "to": "table:public.profile_keys",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/notFit",
-   "to": "table:public.profile_lookups",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/notFit",
-   "to": "table:public.profile_merges",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/notFit",
-   "to": "table:public.profile_trait_events",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/notFit",
-   "to": "table:public.profile_traits",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/notFit",
-   "to": "table:public.profiles",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/notFit",
-   "to": "table:public.suppression_events",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/notFit",
-   "to": "table:public.suppressions",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/notYet",
-   "to": "table:pipeline.shape_versions",
-   "kind": "reads"
   },
   {
    "from": "route:CalendarConsole/notYet",
@@ -1493,27 +1187,12 @@
   },
   {
    "from": "route:CalendarConsole/notYet",
-   "to": "table:public.companies",
+   "to": "table:public.enrollments",
    "kind": "reads"
   },
   {
    "from": "route:CalendarConsole/notYet",
-   "to": "table:public.contact_candidates",
-   "kind": "reads"
-  },
-  {
-   "from": "route:CalendarConsole/notYet",
-   "to": "table:public.leads",
-   "kind": "reads"
-  },
-  {
-   "from": "route:CalendarConsole/notYet",
-   "to": "table:public.people",
-   "kind": "reads"
-  },
-  {
-   "from": "route:CalendarConsole/notYet",
-   "to": "table:public.reach_contacts",
+   "to": "table:public.messages",
    "kind": "reads"
   },
   {
@@ -1523,97 +1202,7 @@
   },
   {
    "from": "route:CalendarConsole/notYet",
-   "to": "table:public.runs",
-   "kind": "reads"
-  },
-  {
-   "from": "route:CalendarConsole/notYet",
-   "to": "table:public.social_handles",
-   "kind": "reads"
-  },
-  {
-   "from": "route:CalendarConsole/notYet",
-   "to": "table:public.touches",
-   "kind": "reads"
-  },
-  {
-   "from": "route:CalendarConsole/notYet",
-   "to": "table:calendar.bookings",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/notYet",
-   "to": "table:pipeline.deals",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/notYet",
-   "to": "table:pipeline.instances",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/notYet",
    "to": "table:public.call_bookings",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/notYet",
-   "to": "table:public.enrollments",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/notYet",
-   "to": "table:public.messages",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/notYet",
-   "to": "table:public.profile_events",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/notYet",
-   "to": "table:public.profile_findings",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/notYet",
-   "to": "table:public.profile_keys",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/notYet",
-   "to": "table:public.profile_lookups",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/notYet",
-   "to": "table:public.profile_merges",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/notYet",
-   "to": "table:public.profile_trait_events",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/notYet",
-   "to": "table:public.profile_traits",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/notYet",
-   "to": "table:public.profiles",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/notYet",
-   "to": "table:public.suppression_events",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/notYet",
-   "to": "table:public.suppressions",
    "kind": "writes"
   },
   {
@@ -1654,11 +1243,6 @@
   {
    "from": "route:CalendarConsole/range",
    "to": "table:public.roles",
-   "kind": "reads"
-  },
-  {
-   "from": "route:CalendarConsole/recordsExport",
-   "to": "table:public.changes",
    "kind": "reads"
   },
   {
@@ -1702,11 +1286,6 @@
    "kind": "reads"
   },
   {
-   "from": "route:CalendarConsole/recordsExport",
-   "to": "table:public.runs",
-   "kind": "reads"
-  },
-  {
    "from": "route:CalendarConsole/recordsGet",
    "to": "table:public.changes",
    "kind": "reads"
@@ -1733,32 +1312,12 @@
   },
   {
    "from": "route:CalendarConsole/recordsGet",
-   "to": "table:public.draft_events",
-   "kind": "reads"
-  },
-  {
-   "from": "route:CalendarConsole/recordsGet",
-   "to": "table:public.draft_outcomes",
-   "kind": "reads"
-  },
-  {
-   "from": "route:CalendarConsole/recordsGet",
-   "to": "table:public.draft_people",
-   "kind": "reads"
-  },
-  {
-   "from": "route:CalendarConsole/recordsGet",
    "to": "table:public.roles",
    "kind": "reads"
   },
   {
    "from": "route:CalendarConsole/recordsGet",
    "to": "table:public.runs",
-   "kind": "reads"
-  },
-  {
-   "from": "route:CalendarConsole/recordsList",
-   "to": "table:public.changes",
    "kind": "reads"
   },
   {
@@ -1783,32 +1342,7 @@
   },
   {
    "from": "route:CalendarConsole/recordsList",
-   "to": "table:public.draft_events",
-   "kind": "reads"
-  },
-  {
-   "from": "route:CalendarConsole/recordsList",
-   "to": "table:public.draft_outcomes",
-   "kind": "reads"
-  },
-  {
-   "from": "route:CalendarConsole/recordsList",
-   "to": "table:public.draft_people",
-   "kind": "reads"
-  },
-  {
-   "from": "route:CalendarConsole/recordsList",
    "to": "table:public.roles",
-   "kind": "reads"
-  },
-  {
-   "from": "route:CalendarConsole/recordsList",
-   "to": "table:public.runs",
-   "kind": "reads"
-  },
-  {
-   "from": "route:CalendarConsole/recordsStats",
-   "to": "table:public.changes",
    "kind": "reads"
   },
   {
@@ -1833,27 +1367,7 @@
   },
   {
    "from": "route:CalendarConsole/recordsStats",
-   "to": "table:public.draft_events",
-   "kind": "reads"
-  },
-  {
-   "from": "route:CalendarConsole/recordsStats",
-   "to": "table:public.draft_outcomes",
-   "kind": "reads"
-  },
-  {
-   "from": "route:CalendarConsole/recordsStats",
-   "to": "table:public.draft_people",
-   "kind": "reads"
-  },
-  {
-   "from": "route:CalendarConsole/recordsStats",
    "to": "table:public.roles",
-   "kind": "reads"
-  },
-  {
-   "from": "route:CalendarConsole/recordsStats",
-   "to": "table:public.runs",
    "kind": "reads"
   },
   {
@@ -1873,11 +1387,6 @@
   },
   {
    "from": "route:CalendarConsole/won",
-   "to": "table:pipeline.shape_versions",
-   "kind": "reads"
-  },
-  {
-   "from": "route:CalendarConsole/won",
    "to": "table:public.client_domains",
    "kind": "reads"
   },
@@ -1893,27 +1402,12 @@
   },
   {
    "from": "route:CalendarConsole/won",
-   "to": "table:public.companies",
+   "to": "table:public.enrollments",
    "kind": "reads"
   },
   {
    "from": "route:CalendarConsole/won",
-   "to": "table:public.contact_candidates",
-   "kind": "reads"
-  },
-  {
-   "from": "route:CalendarConsole/won",
-   "to": "table:public.leads",
-   "kind": "reads"
-  },
-  {
-   "from": "route:CalendarConsole/won",
-   "to": "table:public.people",
-   "kind": "reads"
-  },
-  {
-   "from": "route:CalendarConsole/won",
-   "to": "table:public.reach_contacts",
+   "to": "table:public.messages",
    "kind": "reads"
   },
   {
@@ -1923,97 +1417,7 @@
   },
   {
    "from": "route:CalendarConsole/won",
-   "to": "table:public.runs",
-   "kind": "reads"
-  },
-  {
-   "from": "route:CalendarConsole/won",
-   "to": "table:public.social_handles",
-   "kind": "reads"
-  },
-  {
-   "from": "route:CalendarConsole/won",
-   "to": "table:public.touches",
-   "kind": "reads"
-  },
-  {
-   "from": "route:CalendarConsole/won",
-   "to": "table:calendar.bookings",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/won",
-   "to": "table:pipeline.deals",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/won",
-   "to": "table:pipeline.instances",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/won",
    "to": "table:public.call_bookings",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/won",
-   "to": "table:public.enrollments",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/won",
-   "to": "table:public.messages",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/won",
-   "to": "table:public.profile_events",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/won",
-   "to": "table:public.profile_findings",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/won",
-   "to": "table:public.profile_keys",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/won",
-   "to": "table:public.profile_lookups",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/won",
-   "to": "table:public.profile_merges",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/won",
-   "to": "table:public.profile_trait_events",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/won",
-   "to": "table:public.profile_traits",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/won",
-   "to": "table:public.profiles",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/won",
-   "to": "table:public.suppression_events",
-   "kind": "writes"
-  },
-  {
-   "from": "route:CalendarConsole/won",
-   "to": "table:public.suppressions",
    "kind": "writes"
   },
   {
@@ -2153,7 +1557,7 @@
   },
   {
    "from": "route:ClientCalendar/booking",
-   "to": "table:pipeline.shape_versions",
+   "to": "table:calendar.bookings",
    "kind": "reads"
   },
   {
@@ -2165,126 +1569,6 @@
    "from": "route:ClientCalendar/booking",
    "to": "table:public.clients",
    "kind": "reads"
-  },
-  {
-   "from": "route:ClientCalendar/booking",
-   "to": "table:public.companies",
-   "kind": "reads"
-  },
-  {
-   "from": "route:ClientCalendar/booking",
-   "to": "table:public.contact_candidates",
-   "kind": "reads"
-  },
-  {
-   "from": "route:ClientCalendar/booking",
-   "to": "table:public.leads",
-   "kind": "reads"
-  },
-  {
-   "from": "route:ClientCalendar/booking",
-   "to": "table:public.people",
-   "kind": "reads"
-  },
-  {
-   "from": "route:ClientCalendar/booking",
-   "to": "table:public.reach_contacts",
-   "kind": "reads"
-  },
-  {
-   "from": "route:ClientCalendar/booking",
-   "to": "table:public.runs",
-   "kind": "reads"
-  },
-  {
-   "from": "route:ClientCalendar/booking",
-   "to": "table:public.social_handles",
-   "kind": "reads"
-  },
-  {
-   "from": "route:ClientCalendar/booking",
-   "to": "table:public.touches",
-   "kind": "reads"
-  },
-  {
-   "from": "route:ClientCalendar/booking",
-   "to": "table:calendar.bookings",
-   "kind": "writes"
-  },
-  {
-   "from": "route:ClientCalendar/booking",
-   "to": "table:pipeline.deals",
-   "kind": "writes"
-  },
-  {
-   "from": "route:ClientCalendar/booking",
-   "to": "table:pipeline.instances",
-   "kind": "writes"
-  },
-  {
-   "from": "route:ClientCalendar/booking",
-   "to": "table:public.call_bookings",
-   "kind": "writes"
-  },
-  {
-   "from": "route:ClientCalendar/booking",
-   "to": "table:public.enrollments",
-   "kind": "writes"
-  },
-  {
-   "from": "route:ClientCalendar/booking",
-   "to": "table:public.messages",
-   "kind": "writes"
-  },
-  {
-   "from": "route:ClientCalendar/booking",
-   "to": "table:public.profile_events",
-   "kind": "writes"
-  },
-  {
-   "from": "route:ClientCalendar/booking",
-   "to": "table:public.profile_findings",
-   "kind": "writes"
-  },
-  {
-   "from": "route:ClientCalendar/booking",
-   "to": "table:public.profile_keys",
-   "kind": "writes"
-  },
-  {
-   "from": "route:ClientCalendar/booking",
-   "to": "table:public.profile_lookups",
-   "kind": "writes"
-  },
-  {
-   "from": "route:ClientCalendar/booking",
-   "to": "table:public.profile_merges",
-   "kind": "writes"
-  },
-  {
-   "from": "route:ClientCalendar/booking",
-   "to": "table:public.profile_trait_events",
-   "kind": "writes"
-  },
-  {
-   "from": "route:ClientCalendar/booking",
-   "to": "table:public.profile_traits",
-   "kind": "writes"
-  },
-  {
-   "from": "route:ClientCalendar/booking",
-   "to": "table:public.profiles",
-   "kind": "writes"
-  },
-  {
-   "from": "route:ClientCalendar/booking",
-   "to": "table:public.suppression_events",
-   "kind": "writes"
-  },
-  {
-   "from": "route:ClientCalendar/booking",
-   "to": "table:public.suppressions",
-   "kind": "writes"
   },
   {
    "from": "route:ClientCalendar/cancel",
@@ -2423,11 +1707,6 @@
   },
   {
    "from": "route:ClientCalendar/remind",
-   "to": "table:pipeline.shape_versions",
-   "kind": "reads"
-  },
-  {
-   "from": "route:ClientCalendar/remind",
    "to": "table:public.client_domains",
    "kind": "reads"
   },
@@ -2438,122 +1717,7 @@
   },
   {
    "from": "route:ClientCalendar/remind",
-   "to": "table:public.companies",
-   "kind": "reads"
-  },
-  {
-   "from": "route:ClientCalendar/remind",
-   "to": "table:public.contact_candidates",
-   "kind": "reads"
-  },
-  {
-   "from": "route:ClientCalendar/remind",
-   "to": "table:public.leads",
-   "kind": "reads"
-  },
-  {
-   "from": "route:ClientCalendar/remind",
-   "to": "table:public.people",
-   "kind": "reads"
-  },
-  {
-   "from": "route:ClientCalendar/remind",
-   "to": "table:public.reach_contacts",
-   "kind": "reads"
-  },
-  {
-   "from": "route:ClientCalendar/remind",
-   "to": "table:public.runs",
-   "kind": "reads"
-  },
-  {
-   "from": "route:ClientCalendar/remind",
-   "to": "table:public.social_handles",
-   "kind": "reads"
-  },
-  {
-   "from": "route:ClientCalendar/remind",
-   "to": "table:public.touches",
-   "kind": "reads"
-  },
-  {
-   "from": "route:ClientCalendar/remind",
    "to": "table:calendar.bookings",
-   "kind": "writes"
-  },
-  {
-   "from": "route:ClientCalendar/remind",
-   "to": "table:pipeline.deals",
-   "kind": "writes"
-  },
-  {
-   "from": "route:ClientCalendar/remind",
-   "to": "table:pipeline.instances",
-   "kind": "writes"
-  },
-  {
-   "from": "route:ClientCalendar/remind",
-   "to": "table:public.call_bookings",
-   "kind": "writes"
-  },
-  {
-   "from": "route:ClientCalendar/remind",
-   "to": "table:public.enrollments",
-   "kind": "writes"
-  },
-  {
-   "from": "route:ClientCalendar/remind",
-   "to": "table:public.messages",
-   "kind": "writes"
-  },
-  {
-   "from": "route:ClientCalendar/remind",
-   "to": "table:public.profile_events",
-   "kind": "writes"
-  },
-  {
-   "from": "route:ClientCalendar/remind",
-   "to": "table:public.profile_findings",
-   "kind": "writes"
-  },
-  {
-   "from": "route:ClientCalendar/remind",
-   "to": "table:public.profile_keys",
-   "kind": "writes"
-  },
-  {
-   "from": "route:ClientCalendar/remind",
-   "to": "table:public.profile_lookups",
-   "kind": "writes"
-  },
-  {
-   "from": "route:ClientCalendar/remind",
-   "to": "table:public.profile_merges",
-   "kind": "writes"
-  },
-  {
-   "from": "route:ClientCalendar/remind",
-   "to": "table:public.profile_trait_events",
-   "kind": "writes"
-  },
-  {
-   "from": "route:ClientCalendar/remind",
-   "to": "table:public.profile_traits",
-   "kind": "writes"
-  },
-  {
-   "from": "route:ClientCalendar/remind",
-   "to": "table:public.profiles",
-   "kind": "writes"
-  },
-  {
-   "from": "route:ClientCalendar/remind",
-   "to": "table:public.suppression_events",
-   "kind": "writes"
-  },
-  {
-   "from": "route:ClientCalendar/remind",
-   "to": "table:public.suppressions",
    "kind": "writes"
   },
   {
@@ -2693,7 +1857,7 @@
   },
   {
    "from": "route:ClientCalendar/slots",
-   "to": "table:pipeline.shape_versions",
+   "to": "table:calendar.bookings",
    "kind": "reads"
   },
   {
@@ -2705,126 +1869,6 @@
    "from": "route:ClientCalendar/slots",
    "to": "table:public.clients",
    "kind": "reads"
-  },
-  {
-   "from": "route:ClientCalendar/slots",
-   "to": "table:public.companies",
-   "kind": "reads"
-  },
-  {
-   "from": "route:ClientCalendar/slots",
-   "to": "table:public.contact_candidates",
-   "kind": "reads"
-  },
-  {
-   "from": "route:ClientCalendar/slots",
-   "to": "table:public.leads",
-   "kind": "reads"
-  },
-  {
-   "from": "route:ClientCalendar/slots",
-   "to": "table:public.people",
-   "kind": "reads"
-  },
-  {
-   "from": "route:ClientCalendar/slots",
-   "to": "table:public.reach_contacts",
-   "kind": "reads"
-  },
-  {
-   "from": "route:ClientCalendar/slots",
-   "to": "table:public.runs",
-   "kind": "reads"
-  },
-  {
-   "from": "route:ClientCalendar/slots",
-   "to": "table:public.social_handles",
-   "kind": "reads"
-  },
-  {
-   "from": "route:ClientCalendar/slots",
-   "to": "table:public.touches",
-   "kind": "reads"
-  },
-  {
-   "from": "route:ClientCalendar/slots",
-   "to": "table:calendar.bookings",
-   "kind": "writes"
-  },
-  {
-   "from": "route:ClientCalendar/slots",
-   "to": "table:pipeline.deals",
-   "kind": "writes"
-  },
-  {
-   "from": "route:ClientCalendar/slots",
-   "to": "table:pipeline.instances",
-   "kind": "writes"
-  },
-  {
-   "from": "route:ClientCalendar/slots",
-   "to": "table:public.call_bookings",
-   "kind": "writes"
-  },
-  {
-   "from": "route:ClientCalendar/slots",
-   "to": "table:public.enrollments",
-   "kind": "writes"
-  },
-  {
-   "from": "route:ClientCalendar/slots",
-   "to": "table:public.messages",
-   "kind": "writes"
-  },
-  {
-   "from": "route:ClientCalendar/slots",
-   "to": "table:public.profile_events",
-   "kind": "writes"
-  },
-  {
-   "from": "route:ClientCalendar/slots",
-   "to": "table:public.profile_findings",
-   "kind": "writes"
-  },
-  {
-   "from": "route:ClientCalendar/slots",
-   "to": "table:public.profile_keys",
-   "kind": "writes"
-  },
-  {
-   "from": "route:ClientCalendar/slots",
-   "to": "table:public.profile_lookups",
-   "kind": "writes"
-  },
-  {
-   "from": "route:ClientCalendar/slots",
-   "to": "table:public.profile_merges",
-   "kind": "writes"
-  },
-  {
-   "from": "route:ClientCalendar/slots",
-   "to": "table:public.profile_trait_events",
-   "kind": "writes"
-  },
-  {
-   "from": "route:ClientCalendar/slots",
-   "to": "table:public.profile_traits",
-   "kind": "writes"
-  },
-  {
-   "from": "route:ClientCalendar/slots",
-   "to": "table:public.profiles",
-   "kind": "writes"
-  },
-  {
-   "from": "route:ClientCalendar/slots",
-   "to": "table:public.suppression_events",
-   "kind": "writes"
-  },
-  {
-   "from": "route:ClientCalendar/slots",
-   "to": "table:public.suppressions",
-   "kind": "writes"
   }
  ]
 }

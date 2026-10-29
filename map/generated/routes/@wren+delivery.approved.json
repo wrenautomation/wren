@@ -502,8 +502,7 @@
      "main",
      "open",
      "readers",
-     "receive",
-     "zone"
+     "receive"
     ],
     "input": "Req<\"recordsExport\">",
     "output": "RecordsFile",
@@ -521,8 +520,7 @@
      "main",
      "open",
      "readers",
-     "receive",
-     "zone"
+     "receive"
     ],
     "input": "Req<\"recordsGet\">",
     "output": "RecordAnswer",
@@ -540,8 +538,7 @@
      "main",
      "open",
      "readers",
-     "receive",
-     "zone"
+     "receive"
     ],
     "input": "Req<\"recordsList\">",
     "output": "RecordsPage",
@@ -2353,11 +2350,6 @@
   },
   {
    "from": "route:DeliveryPortal/recordsExport",
-   "to": "table:public.changes",
-   "kind": "reads"
-  },
-  {
-   "from": "route:DeliveryPortal/recordsExport",
    "to": "table:public.client_members",
    "kind": "reads"
   },
@@ -2414,11 +2406,6 @@
   {
    "from": "route:DeliveryPortal/recordsExport",
    "to": "table:public.roles",
-   "kind": "reads"
-  },
-  {
-   "from": "route:DeliveryPortal/recordsExport",
-   "to": "table:public.runs",
    "kind": "reads"
   },
   {
@@ -2529,21 +2516,6 @@
   {
    "from": "route:DeliveryPortal/recordsGet",
    "to": "table:public.custom_fields",
-   "kind": "reads"
-  },
-  {
-   "from": "route:DeliveryPortal/recordsGet",
-   "to": "table:public.draft_events",
-   "kind": "reads"
-  },
-  {
-   "from": "route:DeliveryPortal/recordsGet",
-   "to": "table:public.draft_outcomes",
-   "kind": "reads"
-  },
-  {
-   "from": "route:DeliveryPortal/recordsGet",
-   "to": "table:public.draft_people",
    "kind": "reads"
   },
   {
@@ -2663,11 +2635,6 @@
   },
   {
    "from": "route:DeliveryPortal/recordsList",
-   "to": "table:public.changes",
-   "kind": "reads"
-  },
-  {
-   "from": "route:DeliveryPortal/recordsList",
    "to": "table:public.client_members",
    "kind": "reads"
   },
@@ -2684,21 +2651,6 @@
   {
    "from": "route:DeliveryPortal/recordsList",
    "to": "table:public.custom_fields",
-   "kind": "reads"
-  },
-  {
-   "from": "route:DeliveryPortal/recordsList",
-   "to": "table:public.draft_events",
-   "kind": "reads"
-  },
-  {
-   "from": "route:DeliveryPortal/recordsList",
-   "to": "table:public.draft_outcomes",
-   "kind": "reads"
-  },
-  {
-   "from": "route:DeliveryPortal/recordsList",
-   "to": "table:public.draft_people",
    "kind": "reads"
   },
   {
@@ -2724,11 +2676,6 @@
   {
    "from": "route:DeliveryPortal/recordsList",
    "to": "table:public.roles",
-   "kind": "reads"
-  },
-  {
-   "from": "route:DeliveryPortal/recordsList",
-   "to": "table:public.runs",
    "kind": "reads"
   },
   {
@@ -2818,11 +2765,6 @@
   },
   {
    "from": "route:DeliveryPortal/recordsStats",
-   "to": "table:public.changes",
-   "kind": "reads"
-  },
-  {
-   "from": "route:DeliveryPortal/recordsStats",
    "to": "table:public.client_members",
    "kind": "reads"
   },
@@ -2839,21 +2781,6 @@
   {
    "from": "route:DeliveryPortal/recordsStats",
    "to": "table:public.custom_fields",
-   "kind": "reads"
-  },
-  {
-   "from": "route:DeliveryPortal/recordsStats",
-   "to": "table:public.draft_events",
-   "kind": "reads"
-  },
-  {
-   "from": "route:DeliveryPortal/recordsStats",
-   "to": "table:public.draft_outcomes",
-   "kind": "reads"
-  },
-  {
-   "from": "route:DeliveryPortal/recordsStats",
-   "to": "table:public.draft_people",
    "kind": "reads"
   },
   {
@@ -2879,11 +2806,6 @@
   {
    "from": "route:DeliveryPortal/recordsStats",
    "to": "table:public.roles",
-   "kind": "reads"
-  },
-  {
-   "from": "route:DeliveryPortal/recordsStats",
-   "to": "table:public.runs",
    "kind": "reads"
   },
   {

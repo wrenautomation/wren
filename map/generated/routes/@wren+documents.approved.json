@@ -30,6 +30,9 @@
     ],
     "input": "{ id: string; by?: string | null }",
     "output": "{ done: boolean; why?: never; did?: never; } | { done: boolean; why: string; did?: never; } | { done: boolean; did: \"cancelled\" | \"kept\" | \"deleted\"; why?: never; }",
+    "tags": [
+     "ingressPrivate:true"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -52,6 +55,9 @@
      "stripe"
     ],
     "output": "Answer",
+    "tags": [
+     "effect:sends"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -91,6 +97,9 @@
      "pdf-lib"
     ],
     "output": "{ sent: boolean; url: null; why?: never; } | { sent: boolean; why: string; url: null; } | { sent: boolean; url: string; why?: never; }",
+    "tags": [
+     "effect:sends"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -126,6 +135,9 @@
     ],
     "input": "{ event: string; payload: object }",
     "output": "{ ok: boolean; why: string; ignored?: never; } | { ok: boolean; why?: never; ignored?: never; } | { ok: boolean; ignored: string; why?: never; }",
+    "tags": [
+     "effect:sends"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -144,6 +156,9 @@
      "pdf-lib"
     ],
     "output": "{ done: string[]; }",
+    "tags": [
+     "effect:sends"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -306,6 +321,9 @@
      "pdf-lib"
     ],
     "output": "{ id: string; }",
+    "tags": [
+     "effect:sends"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -325,6 +343,9 @@
      "pdf-lib"
     ],
     "output": "{ docs: { id: string; status: string; }[]; url: null; why?: never; } | { docs: { id: string; status: string; }[]; url: string | null; why: string | null; }",
+    "tags": [
+     "effect:sends"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -1014,11 +1035,6 @@
   },
   {
    "from": "route:DocumentsConsole/recordsExport",
-   "to": "table:public.changes",
-   "kind": "reads"
-  },
-  {
-   "from": "route:DocumentsConsole/recordsExport",
    "to": "table:public.client_members",
    "kind": "reads"
   },
@@ -1078,11 +1094,6 @@
    "kind": "reads"
   },
   {
-   "from": "route:DocumentsConsole/recordsExport",
-   "to": "table:public.runs",
-   "kind": "reads"
-  },
-  {
    "from": "route:DocumentsConsole/recordsGet",
    "to": "table:public.changes",
    "kind": "reads"
@@ -1124,21 +1135,6 @@
   },
   {
    "from": "route:DocumentsConsole/recordsGet",
-   "to": "table:public.draft_events",
-   "kind": "reads"
-  },
-  {
-   "from": "route:DocumentsConsole/recordsGet",
-   "to": "table:public.draft_outcomes",
-   "kind": "reads"
-  },
-  {
-   "from": "route:DocumentsConsole/recordsGet",
-   "to": "table:public.draft_people",
-   "kind": "reads"
-  },
-  {
-   "from": "route:DocumentsConsole/recordsGet",
    "to": "table:public.pay_links",
    "kind": "reads"
   },
@@ -1150,11 +1146,6 @@
   {
    "from": "route:DocumentsConsole/recordsGet",
    "to": "table:public.runs",
-   "kind": "reads"
-  },
-  {
-   "from": "route:DocumentsConsole/recordsList",
-   "to": "table:public.changes",
    "kind": "reads"
   },
   {
@@ -1194,37 +1185,12 @@
   },
   {
    "from": "route:DocumentsConsole/recordsList",
-   "to": "table:public.draft_events",
-   "kind": "reads"
-  },
-  {
-   "from": "route:DocumentsConsole/recordsList",
-   "to": "table:public.draft_outcomes",
-   "kind": "reads"
-  },
-  {
-   "from": "route:DocumentsConsole/recordsList",
-   "to": "table:public.draft_people",
-   "kind": "reads"
-  },
-  {
-   "from": "route:DocumentsConsole/recordsList",
    "to": "table:public.pay_links",
    "kind": "reads"
   },
   {
    "from": "route:DocumentsConsole/recordsList",
    "to": "table:public.roles",
-   "kind": "reads"
-  },
-  {
-   "from": "route:DocumentsConsole/recordsList",
-   "to": "table:public.runs",
-   "kind": "reads"
-  },
-  {
-   "from": "route:DocumentsConsole/recordsStats",
-   "to": "table:public.changes",
    "kind": "reads"
   },
   {
@@ -1264,32 +1230,12 @@
   },
   {
    "from": "route:DocumentsConsole/recordsStats",
-   "to": "table:public.draft_events",
-   "kind": "reads"
-  },
-  {
-   "from": "route:DocumentsConsole/recordsStats",
-   "to": "table:public.draft_outcomes",
-   "kind": "reads"
-  },
-  {
-   "from": "route:DocumentsConsole/recordsStats",
-   "to": "table:public.draft_people",
-   "kind": "reads"
-  },
-  {
-   "from": "route:DocumentsConsole/recordsStats",
    "to": "table:public.pay_links",
    "kind": "reads"
   },
   {
    "from": "route:DocumentsConsole/recordsStats",
    "to": "table:public.roles",
-   "kind": "reads"
-  },
-  {
-   "from": "route:DocumentsConsole/recordsStats",
-   "to": "table:public.runs",
    "kind": "reads"
   },
   {

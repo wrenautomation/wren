@@ -51,6 +51,9 @@
     "reaches": [
      "SiteClient.call(_, !GET)"
     ],
+    "tags": [
+     "effect:sends"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -91,6 +94,9 @@
    "attrs": {
     "input": "{ id: number; body?: string | null; again?: boolean }",
     "output": "{ ref: string | null; }",
+    "tags": [
+     "effect:sends"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -105,6 +111,9 @@
     ],
     "input": "{ ids: number[]; note?: string | null; viewer?: unknown }",
     "output": "{ approved: number[] }",
+    "tags": [
+     "effect:sends"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -141,6 +150,9 @@
      "sendOnce",
      "withSendKey"
     ],
+    "tags": [
+     "effect:sends"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -162,6 +174,9 @@
      "SiteClient.call(_, !GET)",
      "sendOnce",
      "withSendKey"
+    ],
+    "tags": [
+     "effect:sends"
     ],
     "wrap": "serviceHandler"
    }
@@ -195,6 +210,9 @@
     "reaches": [
      "sendOnce",
      "withSendKey"
+    ],
+    "tags": [
+     "effect:sends"
     ],
     "wrap": "serviceHandler"
    }
@@ -280,6 +298,9 @@
     ],
     "input": "{ sequence: string; limit?: number; contactIds?: number[]; enrichedOnly?: boolean; niche?: string | null; }",
     "output": "EnrollStats",
+    "tags": [
+     "effect:sends"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -335,6 +356,9 @@
     "reaches": [
      "SiteClient.call(_, !GET)"
     ],
+    "tags": [
+     "effect:sends"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -368,6 +392,9 @@
     ],
     "input": "{ id: string }",
     "output": "{ contactId: number }",
+    "tags": [
+     "effect:sends"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -392,6 +419,9 @@
     "output": "InvitesPass | { off: string }",
     "reaches": [
      "SiteClient.call(_, !GET)"
+    ],
+    "tags": [
+     "effect:sends"
     ],
     "wrap": "serviceHandler"
    }
@@ -436,6 +466,9 @@
     ],
     "input": "{ id: string; body: string }",
     "output": "{ contactId: number; sent: \"dm\" | \"invite\" }",
+    "tags": [
+     "effect:sends"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -451,6 +484,9 @@
     ],
     "input": "{ id: string; body?: string | null }",
     "output": "{ contactId: number; messageId: number }",
+    "tags": [
+     "effect:sends"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -644,6 +680,9 @@
     ],
     "input": "{ contactId: number; body?: string | null; subject?: string | null }",
     "output": "{ messageId: number }",
+    "tags": [
+     "effect:sends"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -659,6 +698,9 @@
     ],
     "input": "{ id: number; ref: string; body?: string | null; account?: string | null }",
     "output": "{ id: number; ref: string | null }",
+    "tags": [
+     "effect:sends"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -724,6 +766,9 @@
     ],
     "input": "{ item: string; outcome: SettleOutcome; viewer?: unknown }",
     "output": "{ item: string; outcome: SettleOutcome }",
+    "tags": [
+     "effect:sends"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -886,6 +931,9 @@
     "output": "{ outcome: string }",
     "reaches": [
      "SiteClient.call(_, !GET)"
+    ],
+    "tags": [
+     "effect:sends"
     ],
     "wrap": "serviceHandler"
    }

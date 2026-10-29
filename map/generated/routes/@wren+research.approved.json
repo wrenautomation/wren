@@ -17,8 +17,7 @@
     ],
     "input": "DiscoveryInput",
     "npm": [
-     "@wrenautomation/falcon",
-     "@wrenautomation/weaver"
+     "@wrenautomation/read"
     ],
     "output": "DiscoveryStats",
     "wrap": "exclusiveHandler"
@@ -40,8 +39,7 @@
     ],
     "input": "DiscoveryInput",
     "npm": [
-     "@wrenautomation/falcon",
-     "@wrenautomation/weaver"
+     "@wrenautomation/read"
     ],
     "output": "DomainVerificationStats",
     "wrap": "exclusiveHandler"
@@ -152,8 +150,7 @@
     ],
     "input": "CrawlInput",
     "npm": [
-     "@wrenautomation/falcon",
-     "@wrenautomation/weaver"
+     "@wrenautomation/read"
     ],
     "output": "CrawlStats",
     "wrap": "exclusiveHandler"
@@ -250,7 +247,7 @@
     ],
     "input": "PickInput",
     "npm": [
-     "@wrenautomation/falcon"
+     "@wrenautomation/read"
     ],
     "output": "OpenerStats",
     "wrap": "exclusiveHandler"
@@ -315,10 +312,12 @@
     ],
     "input": "RenderInput",
     "npm": [
-     "@wrenautomation/falcon",
-     "@wrenautomation/weaver"
+     "@wrenautomation/read"
     ],
     "output": "RenderStats",
+    "reaches": [
+     "SiteClient.call(_, !GET)"
+    ],
     "wrap": "exclusiveHandler"
    }
   },
@@ -334,7 +333,7 @@
     ],
     "input": "ScanInput",
     "npm": [
-     "@wrenautomation/falcon"
+     "@wrenautomation/read"
     ],
     "output": "ScanStats",
     "wrap": "exclusiveHandler"
@@ -425,7 +424,7 @@
     ],
     "input": "LimitInput",
     "npm": [
-     "@wrenautomation/weaver",
+     "@wrenautomation/read",
      "tldts"
     ],
     "output": "TriggersStats",
@@ -530,8 +529,23 @@
  "edges": [
   {
    "from": "route:Discovery/discover",
-   "to": "table:public.companies",
+   "to": "table:public.leads",
    "kind": "reads"
+  },
+  {
+   "from": "route:Discovery/discover",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Discovery/discover",
+   "to": "table:public.companies",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Discovery/discover",
+   "to": "table:public.discovery_attempts",
+   "kind": "writes"
   },
   {
    "from": "route:Discovery/discover",
@@ -541,6 +555,11 @@
   {
    "from": "route:Discovery/discover",
    "to": "table:public.runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Discovery/discover",
+   "to": "table:public.sightings",
    "kind": "writes"
   },
   {
@@ -550,8 +569,23 @@
   },
   {
    "from": "route:Discovery/verify",
-   "to": "table:public.companies",
+   "to": "table:public.leads",
    "kind": "reads"
+  },
+  {
+   "from": "route:Discovery/verify",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:Discovery/verify",
+   "to": "table:public.companies",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Discovery/verify",
+   "to": "table:public.discovery_attempts",
+   "kind": "writes"
   },
   {
    "from": "route:Discovery/verify",
@@ -561,6 +595,11 @@
   {
    "from": "route:Discovery/verify",
    "to": "table:public.runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:Discovery/verify",
+   "to": "table:public.sightings",
    "kind": "writes"
   },
   {

@@ -195,6 +195,9 @@
     ],
     "input": "{ id: string }",
     "output": "void",
+    "tags": [
+     "ingressPrivate:true"
+    ],
     "wrap": "restate.handlers.handler"
    }
   },
@@ -210,6 +213,9 @@
     ],
     "input": "{ id: string }",
     "output": "void",
+    "tags": [
+     "ingressPrivate:true"
+    ],
     "wrap": "restate.handlers.handler"
    }
   },
@@ -226,6 +232,9 @@
     ],
     "input": "{ gen: number }",
     "output": "RunStats | { skipped: string; waiting?: never; } | { waiting: string; skipped?: never; }",
+    "tags": [
+     "ingressPrivate:true"
+    ],
     "wrap": "exclusiveHandler"
    }
   },
@@ -237,6 +246,9 @@
    "attrs": {
     "input": "{ at: string }",
     "output": "{ gen: number; at: string; }",
+    "tags": [
+     "ingressPrivate:true"
+    ],
     "wrap": "exclusiveHandler"
    }
   },
@@ -747,10 +759,7 @@
    "group": "@wren/core",
    "attrs": {
     "deps": [
-     "asked",
-     "main",
-     "records",
-     "views"
+     "main"
     ],
     "input": "AskRequest",
     "output": "{ id: string; }",
@@ -766,7 +775,6 @@
     "deps": [
      "asked",
      "main",
-     "records",
      "views"
     ],
     "input": "PortalRequest & { asks?: unknown }",
@@ -812,10 +820,7 @@
    "group": "@wren/core",
    "attrs": {
     "deps": [
-     "asked",
-     "main",
-     "records",
-     "views"
+     "main"
     ],
     "input": "PortalRequest & GetAsk",
     "output": "import(\"../records-serve.js\").RecordAnswer",
@@ -831,7 +836,6 @@
     "deps": [
      "asked",
      "main",
-     "records",
      "views"
     ],
     "input": "PortalRequest & ListAsk",
@@ -848,7 +852,6 @@
     "deps": [
      "asked",
      "main",
-     "records",
      "views"
     ],
     "input": "PortalRequest & StatsAsk",
@@ -1811,6 +1814,9 @@
      "deliveryOf",
      "withSendKey"
     ],
+    "tags": [
+     "effect:sends"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -1826,6 +1832,9 @@
      "deliveryOf",
      "withSendKey"
     ],
+    "tags": [
+     "effect:posts"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -1840,6 +1849,9 @@
     "reaches": [
      "deliveryOf",
      "withSendKey"
+    ],
+    "tags": [
+     "effect:posts"
     ],
     "wrap": "serviceHandler"
    }
@@ -1874,6 +1886,9 @@
    "attrs": {
     "input": "{ platform: Platform; id: string; patch: PostPatch } & ForClient",
     "output": "void",
+    "tags": [
+     "effect:posts"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -1893,6 +1908,9 @@
     ],
     "input": "{ hook: string; payload: unknown }",
     "output": "{ status: number; error: string; subject?: never; } | { status: number; subject: string; error?: never; }",
+    "tags": [
+     "ingressPrivate:true"
+    ],
     "wrap": "restate.handlers.handler"
    }
   },
@@ -1914,6 +1932,9 @@
     ],
     "input": "EmitRequest",
     "output": "Tally",
+    "tags": [
+     "ingressPrivate:true"
+    ],
     "wrap": "restate.handlers.handler"
    }
   },
@@ -1934,6 +1955,9 @@
     ],
     "input": "Fired",
     "output": "{ entered: number; resolved: number; }",
+    "tags": [
+     "ingressPrivate:true"
+    ],
     "wrap": "restate.handlers.handler"
    }
   },
@@ -1973,6 +1997,9 @@
     ],
     "input": "Target & { id: string; happened?: ExecutorEvent }",
     "output": "Tally | null",
+    "tags": [
+     "ingressPrivate:true"
+    ],
     "wrap": "restate.handlers.handler"
    }
   },
@@ -1993,6 +2020,9 @@
     ],
     "input": "Target & { id: string; auto?: number }",
     "output": "Tally | null",
+    "tags": [
+     "ingressPrivate:true"
+    ],
     "wrap": "restate.handlers.handler"
    }
   },
@@ -2020,6 +2050,9 @@
     ],
     "input": "void",
     "output": "{ next: string | null; }",
+    "tags": [
+     "ingressPrivate:true"
+    ],
     "wrap": "restate.handlers.object.exclusive"
    }
   },
@@ -2031,6 +2064,9 @@
    "attrs": {
     "input": "void",
     "output": "void",
+    "tags": [
+     "ingressPrivate:true"
+    ],
     "wrap": "restate.handlers.object.exclusive"
    }
   },
@@ -2047,6 +2083,9 @@
     ],
     "input": "{ slot: string }",
     "output": "void",
+    "tags": [
+     "ingressPrivate:true"
+    ],
     "wrap": "restate.handlers.object.exclusive"
    }
   },
@@ -2063,6 +2102,9 @@
     ],
     "input": "BroadcastIdsRequest",
     "output": "{ done: number[]; }",
+    "tags": [
+     "effect:sends"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -2177,6 +2219,9 @@
     ],
     "input": "BroadcastIdsRequest",
     "output": "{ done: number[]; }",
+    "tags": [
+     "effect:sends"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -2212,6 +2257,9 @@
     ],
     "input": "BroadcastTestRequest",
     "output": "{ sent: string; }",
+    "tags": [
+     "effect:sends"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -2293,6 +2341,9 @@
     ],
     "input": "LeadRequest",
     "output": "{ done: number[]; }",
+    "tags": [
+     "effect:spends"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -2386,7 +2437,6 @@
    "attrs": {
     "deps": [
      "db",
-     "model",
      "now",
      "open",
      "records"
@@ -2404,7 +2454,6 @@
    "attrs": {
     "deps": [
      "db",
-     "model",
      "now",
      "open",
      "records"
@@ -2422,7 +2471,6 @@
    "attrs": {
     "deps": [
      "db",
-     "model",
      "now",
      "open",
      "records"
@@ -2680,6 +2728,9 @@
     ],
     "input": "AgentJob",
     "output": "AgentAnswer",
+    "tags": [
+     "effect:spends"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -2864,6 +2915,9 @@
     ],
     "input": "{ id: string }",
     "output": "{ state: string; }",
+    "tags": [
+     "ingressPrivate:true"
+    ],
     "wrap": "restate.handlers.handler"
    }
   },
@@ -2878,6 +2932,9 @@
     ],
     "input": "Published",
     "output": "{ queued: number; }",
+    "tags": [
+     "ingressPrivate:true"
+    ],
     "wrap": "restate.handlers.handler"
    }
   },
@@ -4378,28 +4435,8 @@
   },
   {
    "from": "route:ConsolePortal/recordsAsk",
-   "to": "table:public.draft_events",
-   "kind": "reads"
-  },
-  {
-   "from": "route:ConsolePortal/recordsAsk",
-   "to": "table:public.draft_outcomes",
-   "kind": "reads"
-  },
-  {
-   "from": "route:ConsolePortal/recordsAsk",
-   "to": "table:public.draft_people",
-   "kind": "reads"
-  },
-  {
-   "from": "route:ConsolePortal/recordsAsk",
    "to": "table:public.runs",
    "kind": "writes"
-  },
-  {
-   "from": "route:ConsolePortal/recordsCounts",
-   "to": "table:public.changes",
-   "kind": "reads"
   },
   {
    "from": "route:ConsolePortal/recordsCounts",
@@ -4409,26 +4446,6 @@
   {
    "from": "route:ConsolePortal/recordsCounts",
    "to": "table:public.custom_fields",
-   "kind": "reads"
-  },
-  {
-   "from": "route:ConsolePortal/recordsCounts",
-   "to": "table:public.draft_events",
-   "kind": "reads"
-  },
-  {
-   "from": "route:ConsolePortal/recordsCounts",
-   "to": "table:public.draft_outcomes",
-   "kind": "reads"
-  },
-  {
-   "from": "route:ConsolePortal/recordsCounts",
-   "to": "table:public.draft_people",
-   "kind": "reads"
-  },
-  {
-   "from": "route:ConsolePortal/recordsCounts",
-   "to": "table:public.runs",
    "kind": "reads"
   },
   {
@@ -4448,11 +4465,6 @@
   },
   {
    "from": "route:ConsolePortal/recordsExport",
-   "to": "table:public.changes",
-   "kind": "reads"
-  },
-  {
-   "from": "route:ConsolePortal/recordsExport",
    "to": "table:public.custom_field_values",
    "kind": "reads"
   },
@@ -4477,11 +4489,6 @@
    "kind": "reads"
   },
   {
-   "from": "route:ConsolePortal/recordsExport",
-   "to": "table:public.runs",
-   "kind": "reads"
-  },
-  {
    "from": "route:ConsolePortal/recordsGet",
    "to": "table:public.changes",
    "kind": "reads"
@@ -4498,27 +4505,7 @@
   },
   {
    "from": "route:ConsolePortal/recordsGet",
-   "to": "table:public.draft_events",
-   "kind": "reads"
-  },
-  {
-   "from": "route:ConsolePortal/recordsGet",
-   "to": "table:public.draft_outcomes",
-   "kind": "reads"
-  },
-  {
-   "from": "route:ConsolePortal/recordsGet",
-   "to": "table:public.draft_people",
-   "kind": "reads"
-  },
-  {
-   "from": "route:ConsolePortal/recordsGet",
    "to": "table:public.runs",
-   "kind": "reads"
-  },
-  {
-   "from": "route:ConsolePortal/recordsList",
-   "to": "table:public.changes",
    "kind": "reads"
   },
   {
@@ -4532,31 +4519,6 @@
    "kind": "reads"
   },
   {
-   "from": "route:ConsolePortal/recordsList",
-   "to": "table:public.draft_events",
-   "kind": "reads"
-  },
-  {
-   "from": "route:ConsolePortal/recordsList",
-   "to": "table:public.draft_outcomes",
-   "kind": "reads"
-  },
-  {
-   "from": "route:ConsolePortal/recordsList",
-   "to": "table:public.draft_people",
-   "kind": "reads"
-  },
-  {
-   "from": "route:ConsolePortal/recordsList",
-   "to": "table:public.runs",
-   "kind": "reads"
-  },
-  {
-   "from": "route:ConsolePortal/recordsStats",
-   "to": "table:public.changes",
-   "kind": "reads"
-  },
-  {
    "from": "route:ConsolePortal/recordsStats",
    "to": "table:public.custom_field_values",
    "kind": "reads"
@@ -4564,26 +4526,6 @@
   {
    "from": "route:ConsolePortal/recordsStats",
    "to": "table:public.custom_fields",
-   "kind": "reads"
-  },
-  {
-   "from": "route:ConsolePortal/recordsStats",
-   "to": "table:public.draft_events",
-   "kind": "reads"
-  },
-  {
-   "from": "route:ConsolePortal/recordsStats",
-   "to": "table:public.draft_outcomes",
-   "kind": "reads"
-  },
-  {
-   "from": "route:ConsolePortal/recordsStats",
-   "to": "table:public.draft_people",
-   "kind": "reads"
-  },
-  {
-   "from": "route:ConsolePortal/recordsStats",
-   "to": "table:public.runs",
    "kind": "reads"
   },
   {
@@ -7038,11 +6980,6 @@
   },
   {
    "from": "route:PeopleConsole/recordsExport",
-   "to": "table:public.changes",
-   "kind": "reads"
-  },
-  {
-   "from": "route:PeopleConsole/recordsExport",
    "to": "table:public.client_members",
    "kind": "reads"
   },
@@ -7082,11 +7019,6 @@
    "kind": "reads"
   },
   {
-   "from": "route:PeopleConsole/recordsExport",
-   "to": "table:public.runs",
-   "kind": "reads"
-  },
-  {
    "from": "route:PeopleConsole/recordsGet",
    "to": "table:public.changes",
    "kind": "reads"
@@ -7113,32 +7045,12 @@
   },
   {
    "from": "route:PeopleConsole/recordsGet",
-   "to": "table:public.draft_events",
-   "kind": "reads"
-  },
-  {
-   "from": "route:PeopleConsole/recordsGet",
-   "to": "table:public.draft_outcomes",
-   "kind": "reads"
-  },
-  {
-   "from": "route:PeopleConsole/recordsGet",
-   "to": "table:public.draft_people",
-   "kind": "reads"
-  },
-  {
-   "from": "route:PeopleConsole/recordsGet",
    "to": "table:public.roles",
    "kind": "reads"
   },
   {
    "from": "route:PeopleConsole/recordsGet",
    "to": "table:public.runs",
-   "kind": "reads"
-  },
-  {
-   "from": "route:PeopleConsole/recordsList",
-   "to": "table:public.changes",
    "kind": "reads"
   },
   {
@@ -7163,32 +7075,7 @@
   },
   {
    "from": "route:PeopleConsole/recordsList",
-   "to": "table:public.draft_events",
-   "kind": "reads"
-  },
-  {
-   "from": "route:PeopleConsole/recordsList",
-   "to": "table:public.draft_outcomes",
-   "kind": "reads"
-  },
-  {
-   "from": "route:PeopleConsole/recordsList",
-   "to": "table:public.draft_people",
-   "kind": "reads"
-  },
-  {
-   "from": "route:PeopleConsole/recordsList",
    "to": "table:public.roles",
-   "kind": "reads"
-  },
-  {
-   "from": "route:PeopleConsole/recordsList",
-   "to": "table:public.runs",
-   "kind": "reads"
-  },
-  {
-   "from": "route:PeopleConsole/recordsStats",
-   "to": "table:public.changes",
    "kind": "reads"
   },
   {
@@ -7213,27 +7100,7 @@
   },
   {
    "from": "route:PeopleConsole/recordsStats",
-   "to": "table:public.draft_events",
-   "kind": "reads"
-  },
-  {
-   "from": "route:PeopleConsole/recordsStats",
-   "to": "table:public.draft_outcomes",
-   "kind": "reads"
-  },
-  {
-   "from": "route:PeopleConsole/recordsStats",
-   "to": "table:public.draft_people",
-   "kind": "reads"
-  },
-  {
-   "from": "route:PeopleConsole/recordsStats",
    "to": "table:public.roles",
-   "kind": "reads"
-  },
-  {
-   "from": "route:PeopleConsole/recordsStats",
-   "to": "table:public.runs",
    "kind": "reads"
   },
   {

@@ -62,8 +62,7 @@
     ],
     "input": "CrmRunRequest",
     "npm": [
-     "@wrenautomation/falcon",
-     "@wrenautomation/weaver",
+     "@wrenautomation/read",
      "tldts"
     ],
     "output": "CrmRunResult",
@@ -1306,11 +1305,6 @@
   },
   {
    "from": "route:ReactivationPortal/recordsExport",
-   "to": "table:public.changes",
-   "kind": "reads"
-  },
-  {
-   "from": "route:ReactivationPortal/recordsExport",
    "to": "table:public.client_members",
    "kind": "reads"
   },
@@ -1365,11 +1359,6 @@
    "kind": "reads"
   },
   {
-   "from": "route:ReactivationPortal/recordsExport",
-   "to": "table:public.runs",
-   "kind": "reads"
-  },
-  {
    "from": "route:ReactivationPortal/recordsGet",
    "to": "table:public.changes",
    "kind": "reads"
@@ -1401,21 +1390,6 @@
   },
   {
    "from": "route:ReactivationPortal/recordsGet",
-   "to": "table:public.draft_events",
-   "kind": "reads"
-  },
-  {
-   "from": "route:ReactivationPortal/recordsGet",
-   "to": "table:public.draft_outcomes",
-   "kind": "reads"
-  },
-  {
-   "from": "route:ReactivationPortal/recordsGet",
-   "to": "table:public.draft_people",
-   "kind": "reads"
-  },
-  {
-   "from": "route:ReactivationPortal/recordsGet",
    "to": "table:public.imports",
    "kind": "reads"
   },
@@ -1432,11 +1406,6 @@
   {
    "from": "route:ReactivationPortal/recordsGet",
    "to": "table:public.runs",
-   "kind": "reads"
-  },
-  {
-   "from": "route:ReactivationPortal/recordsList",
-   "to": "table:public.changes",
    "kind": "reads"
   },
   {
@@ -1466,21 +1435,6 @@
   },
   {
    "from": "route:ReactivationPortal/recordsList",
-   "to": "table:public.draft_events",
-   "kind": "reads"
-  },
-  {
-   "from": "route:ReactivationPortal/recordsList",
-   "to": "table:public.draft_outcomes",
-   "kind": "reads"
-  },
-  {
-   "from": "route:ReactivationPortal/recordsList",
-   "to": "table:public.draft_people",
-   "kind": "reads"
-  },
-  {
-   "from": "route:ReactivationPortal/recordsList",
    "to": "table:public.imports",
    "kind": "reads"
   },
@@ -1492,16 +1446,6 @@
   {
    "from": "route:ReactivationPortal/recordsList",
    "to": "table:public.roles",
-   "kind": "reads"
-  },
-  {
-   "from": "route:ReactivationPortal/recordsList",
-   "to": "table:public.runs",
-   "kind": "reads"
-  },
-  {
-   "from": "route:ReactivationPortal/recordsStats",
-   "to": "table:public.changes",
    "kind": "reads"
   },
   {
@@ -1531,21 +1475,6 @@
   },
   {
    "from": "route:ReactivationPortal/recordsStats",
-   "to": "table:public.draft_events",
-   "kind": "reads"
-  },
-  {
-   "from": "route:ReactivationPortal/recordsStats",
-   "to": "table:public.draft_outcomes",
-   "kind": "reads"
-  },
-  {
-   "from": "route:ReactivationPortal/recordsStats",
-   "to": "table:public.draft_people",
-   "kind": "reads"
-  },
-  {
-   "from": "route:ReactivationPortal/recordsStats",
    "to": "table:public.imports",
    "kind": "reads"
   },
@@ -1557,11 +1486,6 @@
   {
    "from": "route:ReactivationPortal/recordsStats",
    "to": "table:public.roles",
-   "kind": "reads"
-  },
-  {
-   "from": "route:ReactivationPortal/recordsStats",
-   "to": "table:public.runs",
    "kind": "reads"
   },
   {

@@ -22,6 +22,9 @@
      "stripe"
     ],
     "output": "{ sent: boolean; why?: never; } | { sent: boolean; why: string; }",
+    "tags": [
+     "effect:sends"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -64,6 +67,9 @@
      "stripe"
     ],
     "output": "{ links: { id: string; status: string; }[]; }",
+    "tags": [
+     "effect:sends"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -86,6 +92,9 @@
      "stripe"
     ],
     "output": "{ done: string[]; }",
+    "tags": [
+     "effect:sends"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -129,6 +138,9 @@
      "stripe"
     ],
     "output": "{ links: { id: string; status: string; }[]; }",
+    "tags": [
+     "effect:sends"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -165,6 +177,9 @@
      "stripe"
     ],
     "output": "{ links: { id: string; status: string; }[]; }",
+    "tags": [
+     "effect:sends"
+    ],
     "wrap": "serviceHandler"
    }
   },
@@ -1170,11 +1185,6 @@
   },
   {
    "from": "route:PaymentsConsole/recordsExport",
-   "to": "table:public.changes",
-   "kind": "reads"
-  },
-  {
-   "from": "route:PaymentsConsole/recordsExport",
    "to": "table:public.client_members",
    "kind": "reads"
   },
@@ -1224,11 +1234,6 @@
    "kind": "reads"
   },
   {
-   "from": "route:PaymentsConsole/recordsExport",
-   "to": "table:public.runs",
-   "kind": "reads"
-  },
-  {
    "from": "route:PaymentsConsole/recordsGet",
    "to": "table:public.changes",
    "kind": "reads"
@@ -1255,21 +1260,6 @@
   },
   {
    "from": "route:PaymentsConsole/recordsGet",
-   "to": "table:public.draft_events",
-   "kind": "reads"
-  },
-  {
-   "from": "route:PaymentsConsole/recordsGet",
-   "to": "table:public.draft_outcomes",
-   "kind": "reads"
-  },
-  {
-   "from": "route:PaymentsConsole/recordsGet",
-   "to": "table:public.draft_people",
-   "kind": "reads"
-  },
-  {
-   "from": "route:PaymentsConsole/recordsGet",
    "to": "table:public.pay_events",
    "kind": "reads"
   },
@@ -1286,11 +1276,6 @@
   {
    "from": "route:PaymentsConsole/recordsGet",
    "to": "table:public.runs",
-   "kind": "reads"
-  },
-  {
-   "from": "route:PaymentsConsole/recordsList",
-   "to": "table:public.changes",
    "kind": "reads"
   },
   {
@@ -1315,21 +1300,6 @@
   },
   {
    "from": "route:PaymentsConsole/recordsList",
-   "to": "table:public.draft_events",
-   "kind": "reads"
-  },
-  {
-   "from": "route:PaymentsConsole/recordsList",
-   "to": "table:public.draft_outcomes",
-   "kind": "reads"
-  },
-  {
-   "from": "route:PaymentsConsole/recordsList",
-   "to": "table:public.draft_people",
-   "kind": "reads"
-  },
-  {
-   "from": "route:PaymentsConsole/recordsList",
    "to": "table:public.pay_events",
    "kind": "reads"
   },
@@ -1341,16 +1311,6 @@
   {
    "from": "route:PaymentsConsole/recordsList",
    "to": "table:public.roles",
-   "kind": "reads"
-  },
-  {
-   "from": "route:PaymentsConsole/recordsList",
-   "to": "table:public.runs",
-   "kind": "reads"
-  },
-  {
-   "from": "route:PaymentsConsole/recordsStats",
-   "to": "table:public.changes",
    "kind": "reads"
   },
   {
@@ -1375,21 +1335,6 @@
   },
   {
    "from": "route:PaymentsConsole/recordsStats",
-   "to": "table:public.draft_events",
-   "kind": "reads"
-  },
-  {
-   "from": "route:PaymentsConsole/recordsStats",
-   "to": "table:public.draft_outcomes",
-   "kind": "reads"
-  },
-  {
-   "from": "route:PaymentsConsole/recordsStats",
-   "to": "table:public.draft_people",
-   "kind": "reads"
-  },
-  {
-   "from": "route:PaymentsConsole/recordsStats",
    "to": "table:public.pay_events",
    "kind": "reads"
   },
@@ -1401,11 +1346,6 @@
   {
    "from": "route:PaymentsConsole/recordsStats",
    "to": "table:public.roles",
-   "kind": "reads"
-  },
-  {
-   "from": "route:PaymentsConsole/recordsStats",
-   "to": "table:public.runs",
    "kind": "reads"
   },
   {
