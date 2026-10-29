@@ -1,7 +1,7 @@
 /**
  * The portal's screens as JSON, for kestrel's ui layer (kestrel.json `layers.ui.dump`): areas in
  * order, each app (and the name it is exported as) and its pages, each page's template and record
- * or its own file. Vite loads the modules as the portal does, so a spread or a shared page list
+ * or its own file, and `api`: each client path's first part → the Restate service. Vite loads the modules as the portal does, so a spread or a shared page list
  * reads right.
  */
 import { Window } from "happy-dom";
@@ -64,6 +64,9 @@ try {
     }
   }
   const template = fileOf.get((await vite.ssrLoadModule("/src/records.tsx")).TemplatePage);
+  const { SERVICES } = (await vite.ssrLoadModule(`${root}apps/portal/src/services.ts`)) as {
+    SERVICES: Record<string, { name: string }>;
+  };
   const out = {
     areas: { team: areas.AREAS_TEAM, client: areas.AREAS_CLIENT },
     apps: MODULES.map((m) => ({
@@ -86,6 +89,7 @@ try {
         file: p.Page ? fileOf.get(p.Page) : template,
       })),
     })),
+    api: Object.fromEntries(Object.entries(SERVICES).map(([k, s]) => [k, s.name])),
   };
   // every repo file vite loaded, plus this script: kestrel reruns ui only when one changes
   const inputs = new Set([new URL(import.meta.url).pathname.slice(root.length)]);

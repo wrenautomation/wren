@@ -79,7 +79,8 @@
       }
     },
     "ui": {
-      "dump": "pnpm -s --filter @wren/portal kestrel:screens"
+      "dump": "pnpm -s --filter @wren/portal kestrel:screens",
+      "calls": ["call", "callAsMe", "post"]
     }
   },
   "cards": {
