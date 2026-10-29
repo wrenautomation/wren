@@ -4,7 +4,7 @@ Signals, not a gate. Package layers and package cycles are the repo's own gate.
 
 ## Read first
 
-1. 30 pins are behind a newer publish. The worst: `@wrenautomation/falcon@0.8.2`, 27 behind 0.28.0, in 7 packages. Bump each scope in one change.
+1. 9 pins are behind a newer publish. The worst: `@wrenautomation/autobrowse@0.5.0`, 8 behind 0.8.4, in 8 packages. Bump each scope in one change.
 2. 16 file cycles: files that import each other in a loop. The largest has 8 files, from `@wren/content/src/restate/desk-approvals.ts`. Move what they share into one file that imports none of them.
 3. 10 dependencies no code imports: `@wren/experiments`, `playwright`, `playwright-core`, `@wrenautomation/falcon`, `@wren/llm` and more. Remove them from package.json.
 4. 227 exports nothing imports. Most are in `apps/portal` (120). Delete them, or stop the export.
@@ -21,32 +21,12 @@ Signals, not a gate. Package layers and package cycles are the repo's own gate.
 | Unused exports | 162 |
 | Unused types | 65 |
 | Unused dependencies | 10 |
-| Pins behind | 30 |
+| Pins behind | 9 |
 
 ## Pins behind
 
 | Package | Pin | Latest | Behind |
 |---|---|---|---|
-| `@wren/books` | `@wrenautomation/falcon@0.8.2` | 0.28.0 | 27 |
-| `@wren/channel-email` | `@wrenautomation/falcon@0.8.2` | 0.28.0 | 27 |
-| `@wren/cli` | `@wrenautomation/falcon@0.8.2` | 0.28.0 | 27 |
-| `@wren/cli` | `@wrenautomation/models@0.8.2` | 0.28.0 | 27 |
-| `@wren/cli` | `@wrenautomation/weaver@0.8.2` | 0.28.0 | 27 |
-| `@wren/core` | `@wrenautomation/models@0.8.2` | 0.28.0 | 27 |
-| `@wren/learn` | `@wrenautomation/falcon@0.8.2` | 0.28.0 | 27 |
-| `@wren/learn` | `@wrenautomation/weaver@0.8.2` | 0.28.0 | 27 |
-| `@wren/llm` | `@wrenautomation/models@0.8.2` | 0.28.0 | 27 |
-| `@wren/niches` | `@wrenautomation/weaver@0.8.2` | 0.28.0 | 27 |
-| `@wren/reactivation` | `@wrenautomation/weaver@0.8.2` | 0.28.0 | 27 |
-| `@wren/research` | `@wrenautomation/falcon@0.8.2` | 0.28.0 | 27 |
-| `@wren/research` | `@wrenautomation/models@0.8.2` | 0.28.0 | 27 |
-| `@wren/research` | `@wrenautomation/weaver@0.8.2` | 0.28.0 | 27 |
-| `@wren/studio` | `@wrenautomation/falcon@0.8.2` | 0.28.0 | 27 |
-| `@wren/studio` | `@wrenautomation/models@0.8.2` | 0.28.0 | 27 |
-| `@wren/studio` | `@wrenautomation/weaver@0.8.2` | 0.28.0 | 27 |
-| `@wren/voice` | `@wrenautomation/models@0.8.2` | 0.28.0 | 27 |
-| `@wren/worker` | `@wrenautomation/falcon@0.8.2` | 0.28.0 | 27 |
-| `@wren/worker` | `@wrenautomation/weaver@0.8.2` | 0.28.0 | 27 |
 | `@wren/auth-app` | `@wrenautomation/autobrowse@0.5.0` | 0.8.4 | 8 |
 | `@wren/calendar` | `@wrenautomation/autobrowse@0.5.0` | 0.8.4 | 8 |
 | `@wren/channel-email` | `@wrenautomation/autobrowse@0.5.0` | 0.8.4 | 8 |
@@ -56,7 +36,6 @@ Signals, not a gate. Package layers and package cycles are the repo's own gate.
 | `@wren/content` | `@wrenautomation/autobrowse@0.5.0` | 0.8.4 | 8 |
 | `@wren/worker` | `@wrenautomation/autobrowse@0.5.0` | 0.8.4 | 8 |
 | `@wren/ui` | `@wrenautomation/autobrowse@0.7.0` | 0.8.4 | 5 |
-| `@wren/ui` | `@wrenautomation/orrery@0.24.1` | 0.28.0 | 5 |
 
 ## File cycles
 
