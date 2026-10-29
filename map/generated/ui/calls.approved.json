@@ -43,5 +43,26 @@
    }
   }
  ],
- "edges": []
+ "edges": [
+  {
+   "from": "ui:calls/calls",
+   "to": "table:public.call_bookings",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:calls/calls",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:calls/calls",
+   "to": "table:public.enrollments",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:calls/calls",
+   "to": "table:public.people",
+   "kind": "reads"
+  }
+ ]
 }

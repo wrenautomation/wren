@@ -92,6 +92,11 @@
    }
   },
   {
+   "from": "ui:voice/calls",
+   "to": "table:public.voice_call_records",
+   "kind": "reads"
+  },
+  {
    "from": "ui:voice/latency",
    "to": "route:ConsolePortal/recordsList",
    "kind": "calls",

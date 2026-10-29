@@ -362,6 +362,46 @@
    }
   },
   {
+   "from": "ui:account/asks",
+   "to": "table:public.access_asks",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:account/asks",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:account/billing",
+   "to": "table:delivery.engagements",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:account/billing",
+   "to": "table:delivery.invoices",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:account/billing",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:account/changes",
+   "to": "table:delivery.engagements",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:account/changes",
+   "to": "table:public.audit_changes",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:account/changes",
+   "to": "table:public.audit_events",
+   "kind": "reads"
+  },
+  {
    "from": "ui:account/connectors",
    "to": "route:Connectors/connectors",
    "kind": "calls",
@@ -422,6 +462,16 @@
    }
   },
   {
+   "from": "ui:account/grants",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:account/issues",
+   "to": "table:public.issues",
+   "kind": "reads"
+  },
+  {
    "from": "ui:account/look",
    "to": "route:ConsolePortal/setLook",
    "kind": "calls",
@@ -470,6 +520,56 @@
      "apps/portal/web/src/modules/access/PersonAccess.tsx"
     ]
    }
+  },
+  {
+   "from": "ui:account/review",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:account/review",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:account/review",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:account/review",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:account/review",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:account/review",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:account/roles",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:account/roles",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:account/roles",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:account/roles",
+   "to": "table:public.roles",
+   "kind": "reads"
   },
   {
    "from": "ui:account/social",

@@ -99,5 +99,101 @@
    }
   }
  ],
- "edges": []
+ "edges": [
+  {
+   "from": "ui:numbers/channels",
+   "to": "table:books.econ_channels",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:numbers/cohorts",
+   "to": "table:books.econ_cohorts",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:numbers/funnels",
+   "to": "table:pipeline.deals",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:numbers/funnels",
+   "to": "table:pipeline.instances",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:numbers/funnels",
+   "to": "table:pipeline.shape_drafts",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:numbers/funnels",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:numbers/funnels",
+   "to": "table:pipeline.terms_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:numbers/funnels",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:numbers/funnels",
+   "to": "table:public.events",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:numbers/funnels",
+   "to": "table:public.profiles",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:numbers/months",
+   "to": "table:books.econ_months",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:numbers/offers",
+   "to": "table:pipeline.deals",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:numbers/offers",
+   "to": "table:pipeline.instances",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:numbers/offers",
+   "to": "table:pipeline.shape_drafts",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:numbers/offers",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:numbers/offers",
+   "to": "table:pipeline.terms_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:numbers/offers",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:numbers/offers",
+   "to": "table:public.events",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:numbers/offers",
+   "to": "table:public.profiles",
+   "kind": "reads"
+  }
+ ]
 }

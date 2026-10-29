@@ -8,4 +8,4 @@ Registered in `apps/portal/web/src/modules/payments/index.ts`.
 
 | Page | Template | Drawn in | Calls | For |
 |---|---|---|---|---|
-| Pay links | list of `payments.link` | `apps/portal/web/src/records.tsx` |  | Links your customers pay you through, and whether they paid. |
+| Pay links | list of `payments.link` | `apps/portal/web/src/records.tsx` | `public.clients`, `public.pay_links` | Links your customers pay you through, and whether they paid. |

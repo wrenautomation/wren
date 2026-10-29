@@ -58,6 +58,11 @@
  ],
  "edges": [
   {
+   "from": "ui:clientCalendar/calls",
+   "to": "table:calendar.booking_records",
+   "kind": "reads"
+  },
+  {
    "from": "ui:clientCalendar/schedule",
    "to": "route:CalendarConsole/range",
    "kind": "calls",

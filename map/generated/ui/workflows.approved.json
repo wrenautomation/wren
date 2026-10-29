@@ -825,6 +825,21 @@
    }
   },
   {
+   "from": "ui:workflows/checks",
+   "to": "table:public.check_rates",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:workflows/events",
+   "to": "table:public.executor_events",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:workflows/holds",
+   "to": "table:public.unit_holds_now",
+   "kind": "reads"
+  },
+  {
    "from": "ui:workflows/new",
    "to": "route:ConsolePortal/recordsList",
    "kind": "calls",
@@ -843,6 +858,11 @@
      "apps/portal/web/src/modules/wren/made.tsx"
     ]
    }
+  },
+  {
+   "from": "ui:workflows/runs",
+   "to": "table:public.executions",
+   "kind": "reads"
   }
  ]
 }

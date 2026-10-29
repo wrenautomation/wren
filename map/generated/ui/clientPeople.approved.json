@@ -204,6 +204,16 @@
  ],
  "edges": [
   {
+   "from": "ui:clientPeople/addresses",
+   "to": "table:public.profile_key_records",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:clientPeople/broadcasts",
+   "to": "table:public.broadcast_records",
+   "kind": "reads"
+  },
+  {
    "from": "ui:clientPeople/channels",
    "to": "route:PeopleConsole/channelPeople",
    "kind": "calls",
@@ -273,6 +283,81 @@
      "apps/portal/web/src/modules/people/segments.tsx"
     ]
    }
+  },
+  {
+   "from": "ui:clientPeople/data",
+   "to": "table:public.profile_keys",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:clientPeople/data",
+   "to": "table:public.profile_timeline",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:clientPeople/data",
+   "to": "table:public.profile_traits",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:clientPeople/data",
+   "to": "table:public.profiles",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:clientPeople/data",
+   "to": "table:public.segments",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:clientPeople/groups",
+   "to": "table:public.segment_records",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:clientPeople/members",
+   "to": "table:public.segment_member_records",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:clientPeople/merges",
+   "to": "table:public.profile_merge_records",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:clientPeople/people",
+   "to": "table:public.profile_records",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:clientPeople/recipients",
+   "to": "table:public.broadcast_recipient_records",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:clientPeople/sent",
+   "to": "table:public.sent_activity",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:clientPeople/sent",
+   "to": "table:public.sent_records",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:clientPeople/timeline",
+   "to": "table:public.profile_timeline",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:clientPeople/traits",
+   "to": "table:public.profile_trait_activity",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:clientPeople/traits",
+   "to": "table:public.profile_trait_records",
+   "kind": "reads"
   }
  ]
 }

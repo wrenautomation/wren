@@ -72,5 +72,11 @@
    }
   }
  ],
- "edges": []
+ "edges": [
+  {
+   "from": "ui:clientSites/pages",
+   "to": "table:public.site_page_records",
+   "kind": "reads"
+  }
+ ]
 }

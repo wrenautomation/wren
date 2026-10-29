@@ -116,6 +116,31 @@
  ],
  "edges": [
   {
+   "from": "ui:clients/all",
+   "to": "table:public.client_records",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:clients/days",
+   "to": "table:delivery.console_health_days",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:clients/flags",
+   "to": "table:delivery.console_flags",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:clients/health",
+   "to": "table:delivery.console_health",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:clients/inputs",
+   "to": "table:delivery.console_health_inputs",
+   "kind": "reads"
+  },
+  {
    "from": "ui:clients/usage",
    "to": "route:AccountsConsole/accounts",
    "kind": "calls",

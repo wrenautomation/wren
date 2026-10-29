@@ -115,6 +115,41 @@
  ],
  "edges": [
   {
+   "from": "ui:library/media",
+   "to": "table:public.content_drafts",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:library/media",
+   "to": "table:public.content_ideas",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:library/media",
+   "to": "table:public.content_playbooks",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:library/media",
+   "to": "table:public.platform_objects",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:library/media",
+   "to": "table:public.video_edits",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:library/snippets",
+   "to": "table:public.snippets",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:library/sops",
+   "to": "table:public.content_playbooks",
+   "kind": "reads"
+  },
+  {
    "from": "ui:library/templates",
    "to": "route:ConsolePortal/recordsGet",
    "kind": "calls",
@@ -203,6 +238,16 @@
      "apps/portal/web/src/modules/library/templates.tsx"
     ]
    }
+  },
+  {
+   "from": "ui:library/workflows",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:library/workflows",
+   "to": "table:public.workflow_templates",
+   "kind": "reads"
   }
  ]
 }

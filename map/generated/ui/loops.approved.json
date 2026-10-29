@@ -139,6 +139,11 @@
    }
   },
   {
+   "from": "ui:loops/flags",
+   "to": "table:public.flags",
+   "kind": "reads"
+  },
+  {
    "from": "ui:loops/infra",
    "to": "route:ConsolePortal/recordsList",
    "kind": "calls",
@@ -147,6 +152,11 @@
      "apps/portal/web/src/modules/wren/infra.tsx"
     ]
    }
+  },
+  {
+   "from": "ui:loops/settings",
+   "to": "table:public.wren_settings",
+   "kind": "reads"
   }
  ]
 }

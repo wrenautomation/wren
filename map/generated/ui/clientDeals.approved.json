@@ -83,6 +83,36 @@
      "apps/portal/web/src/modules/deals/board.tsx"
     ]
    }
+  },
+  {
+   "from": "ui:clientDeals/journeys",
+   "to": "table:pipeline.instances",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:clientDeals/journeys",
+   "to": "table:pipeline.shape_drafts",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:clientDeals/journeys",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:clientDeals/journeys",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:clientDeals/journeys",
+   "to": "table:public.profile_keys",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:clientDeals/journeys",
+   "to": "table:public.profiles",
+   "kind": "reads"
   }
  ]
 }

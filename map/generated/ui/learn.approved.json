@@ -321,6 +321,11 @@
    }
   },
   {
+   "from": "ui:learn/hooks",
+   "to": "table:learn.hook_records",
+   "kind": "reads"
+  },
+  {
    "from": "ui:learn/items",
    "to": "route:LearnConsole/alerts",
    "kind": "calls",
@@ -581,6 +586,11 @@
    }
   },
   {
+   "from": "ui:learn/reels",
+   "to": "table:learn.breakdown_records",
+   "kind": "reads"
+  },
+  {
    "from": "ui:learn/search",
    "to": "route:LearnConsole/alerts",
    "kind": "calls",
@@ -719,6 +729,36 @@
      "apps/portal/web/src/modules/learn/api.ts"
     ]
    }
+  },
+  {
+   "from": "ui:learn/sops",
+   "to": "table:learn.collections",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:learn/sops",
+   "to": "table:learn.items",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:learn/sops",
+   "to": "table:learn.sop_sources",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:learn/sops",
+   "to": "table:learn.sources",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:learn/sops",
+   "to": "table:public.content_playbooks",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:learn/sops",
+   "to": "table:public.documents",
+   "kind": "reads"
   },
   {
    "from": "ui:learn/sources",

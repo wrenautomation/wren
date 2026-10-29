@@ -196,5 +196,81 @@
    }
   }
  ],
- "edges": []
+ "edges": [
+  {
+   "from": "ui:analytics/answers",
+   "to": "table:public.marketing_answer_records",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:analytics/experiments",
+   "to": "table:public.flag_days",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:analytics/experiments",
+   "to": "table:public.flag_experiments",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:analytics/experiments",
+   "to": "table:public.flags",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:analytics/funnel",
+   "to": "table:public.marketing_funnel_records",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:analytics/heatmaps",
+   "to": "table:public.marketing_heat_records",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:analytics/keywords",
+   "to": "table:public.marketing_keyword_records",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:analytics/links",
+   "to": "table:public.marketing_link_day_records",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:analytics/search",
+   "to": "table:public.marketing_search_page_records",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:analytics/search-days",
+   "to": "table:public.marketing_search_day_records",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:analytics/surveys",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:analytics/surveys",
+   "to": "table:public.survey_answers",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:analytics/surveys",
+   "to": "table:public.survey_days",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:analytics/surveys",
+   "to": "table:public.surveys",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:analytics/visits",
+   "to": "table:public.marketing_site_day_records",
+   "kind": "reads"
+  }
+ ]
 }

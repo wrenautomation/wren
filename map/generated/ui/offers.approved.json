@@ -44,5 +44,46 @@
    }
   }
  ],
- "edges": []
+ "edges": [
+  {
+   "from": "ui:offers/all",
+   "to": "table:pipeline.instances",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:offers/all",
+   "to": "table:pipeline.offer_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:offers/all",
+   "to": "table:pipeline.shape_drafts",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:offers/all",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:offers/all",
+   "to": "table:pipeline.terms_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:offers/all",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:offers/all",
+   "to": "table:public.profiles",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:offers/terms",
+   "to": "table:pipeline.terms_versions",
+   "kind": "reads"
+  }
+ ]
 }

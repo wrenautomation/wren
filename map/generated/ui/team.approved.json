@@ -86,5 +86,86 @@
    }
   }
  ],
- "edges": []
+ "edges": [
+  {
+   "from": "ui:team/all",
+   "to": "table:auth.session",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:team/all",
+   "to": "table:auth.user",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:team/all",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:team/all",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:team/changes",
+   "to": "table:public.audit_changes",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:team/grants",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:team/review",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:team/review",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:team/review",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:team/review",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:team/review",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:team/review",
+   "to": "table:public.roles",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:team/roles",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:team/roles",
+   "to": "table:public.operators",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:team/roles",
+   "to": "table:public.role_grants",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:team/roles",
+   "to": "table:public.roles",
+   "kind": "reads"
+  }
+ ]
 }

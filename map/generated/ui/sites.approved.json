@@ -101,6 +101,11 @@
  ],
  "edges": [
   {
+   "from": "ui:sites/funnel",
+   "to": "table:public.site_funnel_records",
+   "kind": "reads"
+  },
+  {
    "from": "ui:sites/funnel-map",
    "to": "route:ConsolePortal/recordsList",
    "kind": "calls",
@@ -109,6 +114,11 @@
      "apps/portal/web/src/modules/sites/funnel-graph.tsx"
     ]
    }
+  },
+  {
+   "from": "ui:sites/pages",
+   "to": "table:public.site_page_records",
+   "kind": "reads"
   }
  ]
 }

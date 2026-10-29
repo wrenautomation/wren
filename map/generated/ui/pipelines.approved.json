@@ -125,6 +125,111 @@
      "apps/portal/web/src/modules/deals/board.tsx"
     ]
    }
+  },
+  {
+   "from": "ui:pipelines/calls",
+   "to": "table:public.call_bookings",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:pipelines/calls",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:pipelines/calls",
+   "to": "table:public.enrollments",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:pipelines/calls",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:pipelines/deals",
+   "to": "table:pipeline.deals",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:pipelines/deals",
+   "to": "table:pipeline.instances",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:pipelines/deals",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:pipelines/deals",
+   "to": "table:pipeline.terms_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:pipelines/deals",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:pipelines/deals",
+   "to": "table:public.profiles",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:pipelines/entries",
+   "to": "table:pipeline.instances",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:pipelines/entries",
+   "to": "table:pipeline.shape_drafts",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:pipelines/entries",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:pipelines/entries",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:pipelines/entries",
+   "to": "table:public.profiles",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:pipelines/journeys",
+   "to": "table:pipeline.instances",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:pipelines/journeys",
+   "to": "table:pipeline.shape_drafts",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:pipelines/journeys",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:pipelines/journeys",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:pipelines/journeys",
+   "to": "table:public.profile_keys",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:pipelines/journeys",
+   "to": "table:public.profiles",
+   "kind": "reads"
   }
  ]
 }

@@ -261,6 +261,66 @@
  ],
  "edges": [
   {
+   "from": "ui:content/cadence",
+   "to": "table:public.blog_posts",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:content/cadence",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:content/cadence",
+   "to": "table:public.content_drafts",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:content/cadence",
+   "to": "table:public.reddit_threads",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:content/cadence",
+   "to": "table:public.wren_settings",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:content/content",
+   "to": "table:public.draft_activity",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:content/content",
+   "to": "table:public.marketing_post_records",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:content/digest",
+   "to": "table:public.content_digests",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:content/drafts",
+   "to": "table:public.draft_activity",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:content/drafts",
+   "to": "table:public.marketing_draft_records",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:content/explore",
+   "to": "table:public.reach_posts",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:content/explore",
+   "to": "table:public.reddit_threads",
+   "kind": "reads"
+  },
+  {
    "from": "ui:content/facts",
    "to": "route:ConsolePortal/recordsEdit",
    "kind": "calls",
@@ -422,6 +482,36 @@
    }
   },
   {
+   "from": "ui:content/metrics",
+   "to": "table:public.comments",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:content/metrics",
+   "to": "table:public.content_drafts",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:content/metrics",
+   "to": "table:public.metric_sources",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:content/metrics",
+   "to": "table:public.post_variants",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:content/metrics",
+   "to": "table:public.reach_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:content/metrics",
+   "to": "table:public.reach_messages",
+   "kind": "reads"
+  },
+  {
    "from": "ui:content/pieces",
    "to": "route:ConsolePortal/call",
    "kind": "calls",
@@ -543,6 +633,41 @@
      "apps/portal/web/src/modules/deals/board.tsx"
     ]
    }
+  },
+  {
+   "from": "ui:content/topics",
+   "to": "table:public.marketing_topic_records",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:content/videos",
+   "to": "table:public.content_drafts",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:content/videos",
+   "to": "table:public.content_ideas",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:content/videos",
+   "to": "table:public.content_playbooks",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:content/videos",
+   "to": "table:public.draft_activity",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:content/videos",
+   "to": "table:public.platform_objects",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:content/videos",
+   "to": "table:public.video_edits",
+   "kind": "reads"
   },
   {
    "from": "ui:content/write",

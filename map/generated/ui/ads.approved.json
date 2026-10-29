@@ -44,5 +44,16 @@
    }
   }
  ],
- "edges": []
+ "edges": [
+  {
+   "from": "ui:ads/formats",
+   "to": "table:public.ad_format_records",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:ads/sets",
+   "to": "table:public.marketing_ad_day_records",
+   "kind": "reads"
+  }
+ ]
 }

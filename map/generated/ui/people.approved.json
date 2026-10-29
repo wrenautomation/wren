@@ -205,6 +205,16 @@
  ],
  "edges": [
   {
+   "from": "ui:people/addresses",
+   "to": "table:public.profile_key_records",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:people/broadcasts",
+   "to": "table:public.broadcast_records",
+   "kind": "reads"
+  },
+  {
    "from": "ui:people/channels",
    "to": "route:PeopleConsole/channelPeople",
    "kind": "calls",
@@ -274,6 +284,91 @@
      "apps/portal/web/src/modules/people/segments.tsx"
     ]
    }
+  },
+  {
+   "from": "ui:people/data",
+   "to": "table:public.profile_keys",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:people/data",
+   "to": "table:public.profile_timeline",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:people/data",
+   "to": "table:public.profile_traits",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:people/data",
+   "to": "table:public.profiles",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:people/data",
+   "to": "table:public.segments",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:people/findings",
+   "to": "table:public.profile_findings",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:people/findings",
+   "to": "table:public.profiles",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:people/groups",
+   "to": "table:public.segment_records",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:people/members",
+   "to": "table:public.segment_member_records",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:people/merges",
+   "to": "table:public.profile_merge_records",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:people/people",
+   "to": "table:public.profile_records",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:people/recipients",
+   "to": "table:public.broadcast_recipient_records",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:people/sent",
+   "to": "table:public.sent_activity",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:people/sent",
+   "to": "table:public.sent_records",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:people/timeline",
+   "to": "table:public.profile_timeline",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:people/traits",
+   "to": "table:public.profile_trait_activity",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:people/traits",
+   "to": "table:public.profile_trait_records",
+   "kind": "reads"
   }
  ]
 }

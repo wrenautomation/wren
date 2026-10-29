@@ -127,5 +127,51 @@
    }
   }
  ],
- "edges": []
+ "edges": [
+  {
+   "from": "ui:money/accounts",
+   "to": "table:books.accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:money/card",
+   "to": "table:books.card_records",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:money/models",
+   "to": "table:public.email_model_records",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:money/payments-in",
+   "to": "table:delivery.engagements",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:money/payments-in",
+   "to": "table:delivery.invoices",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:money/payments-in",
+   "to": "table:delivery.wise_credits",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:money/payments-in",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:money/spend",
+   "to": "table:books.spend_records",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:money/subscriptions",
+   "to": "table:books.subscription_records",
+   "kind": "reads"
+  }
+ ]
 }

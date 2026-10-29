@@ -162,6 +162,26 @@
  ],
  "edges": [
   {
+   "from": "ui:marketing/ads",
+   "to": "table:public.marketing_ad_day_records",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:marketing/approve",
+   "to": "table:public.broadcast_records",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:marketing/approve",
+   "to": "table:public.inbox_replies",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:marketing/approve",
+   "to": "table:public.send_attempts",
+   "kind": "reads"
+  },
+  {
    "from": "ui:marketing/auto-reply",
    "to": "route:ConsolePortal/call",
    "kind": "calls",
@@ -172,6 +192,116 @@
    }
   },
   {
+   "from": "ui:marketing/content",
+   "to": "table:public.draft_activity",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:marketing/content",
+   "to": "table:public.marketing_post_records",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:marketing/drafts",
+   "to": "table:public.draft_activity",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:marketing/drafts",
+   "to": "table:public.marketing_draft_records",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:marketing/inbox",
+   "to": "table:public.call_invites",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:marketing/inbox",
+   "to": "table:public.chat_messages",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:marketing/inbox",
+   "to": "table:public.chat_threads",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:marketing/inbox",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:marketing/inbox",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:marketing/inbox",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:marketing/inbox",
+   "to": "table:public.draft_activity",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:marketing/inbox",
+   "to": "table:public.enrollments",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:marketing/inbox",
+   "to": "table:public.inbox_threads",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:marketing/inbox",
+   "to": "table:public.messages",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:marketing/inbox",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:marketing/inbox",
+   "to": "table:public.sms_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:marketing/inbox",
+   "to": "table:public.sms_messages",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:marketing/inbox",
+   "to": "table:public.thread_events",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:marketing/inbox",
+   "to": "table:public.wren_settings",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:marketing/inbox",
+   "to": "table:watch.mail",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:marketing/inbox",
+   "to": "table:watch.mail_records",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:marketing/keywords",
+   "to": "table:public.marketing_keyword_records",
+   "kind": "reads"
+  },
+  {
    "from": "ui:marketing/reports",
    "to": "route:MarketingConsole/reports",
    "kind": "calls",
@@ -180,6 +310,21 @@
      "apps/portal/web/src/modules/marketing/reports.tsx"
     ]
    }
+  },
+  {
+   "from": "ui:marketing/reviews",
+   "to": "table:public.comments",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:marketing/reviews",
+   "to": "table:public.inbox_replies",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:marketing/search",
+   "to": "table:public.marketing_search_page_records",
+   "kind": "reads"
   }
  ]
 }

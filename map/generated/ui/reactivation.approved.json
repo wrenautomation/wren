@@ -262,6 +262,191 @@
    }
   },
   {
+   "from": "ui:reactivation/emails",
+   "to": "table:public.reactivation_emails",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/keep",
+   "to": "table:public.reactivation_keep",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/paperwork",
+   "to": "table:delivery.access_requests",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/paperwork",
+   "to": "table:delivery.agreements",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/paperwork",
+   "to": "table:delivery.asks",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/paperwork",
+   "to": "table:delivery.comments",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/paperwork",
+   "to": "table:delivery.deliverables",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/paperwork",
+   "to": "table:delivery.engagements",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/paperwork",
+   "to": "table:delivery.interests",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/paperwork",
+   "to": "table:delivery.invoices",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/paperwork",
+   "to": "table:delivery.milestones",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/paperwork",
+   "to": "table:delivery.moments",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/paperwork",
+   "to": "table:delivery.pulses",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/paperwork",
+   "to": "table:delivery.results",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/paperwork",
+   "to": "table:delivery.reviews",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/paperwork",
+   "to": "table:delivery.updates",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/paperwork",
+   "to": "table:pipeline.terms_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/paperwork",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/people",
+   "to": "table:public.reactivation_people",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/people",
+   "to": "table:public.reactivation_person_activity",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/replies",
+   "to": "table:public.reactivation_replies",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/results",
+   "to": "table:delivery.access_requests",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/results",
+   "to": "table:delivery.agreements",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/results",
+   "to": "table:delivery.asks",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/results",
+   "to": "table:delivery.comments",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/results",
+   "to": "table:delivery.deliverables",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/results",
+   "to": "table:delivery.engagements",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/results",
+   "to": "table:delivery.interests",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/results",
+   "to": "table:delivery.invoices",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/results",
+   "to": "table:delivery.milestones",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/results",
+   "to": "table:delivery.moments",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/results",
+   "to": "table:delivery.pulses",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/results",
+   "to": "table:delivery.results",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/results",
+   "to": "table:delivery.reviews",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/results",
+   "to": "table:delivery.updates",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/results",
+   "to": "table:pipeline.terms_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/results",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
    "from": "ui:reactivation/run",
    "to": "route:ReactivationPortal/overview",
    "kind": "calls",
@@ -290,6 +475,96 @@
      "apps/portal/web/src/modules/reactivation/Run.tsx"
     ]
    }
+  },
+  {
+   "from": "ui:reactivation/setup",
+   "to": "table:public.client_profile",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/setup",
+   "to": "table:public.imports",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/updates",
+   "to": "table:delivery.access_requests",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/updates",
+   "to": "table:delivery.agreements",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/updates",
+   "to": "table:delivery.asks",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/updates",
+   "to": "table:delivery.comments",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/updates",
+   "to": "table:delivery.deliverables",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/updates",
+   "to": "table:delivery.engagements",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/updates",
+   "to": "table:delivery.interests",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/updates",
+   "to": "table:delivery.invoices",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/updates",
+   "to": "table:delivery.milestones",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/updates",
+   "to": "table:delivery.moments",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/updates",
+   "to": "table:delivery.pulses",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/updates",
+   "to": "table:delivery.results",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/updates",
+   "to": "table:delivery.reviews",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/updates",
+   "to": "table:delivery.updates",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/updates",
+   "to": "table:pipeline.terms_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:reactivation/updates",
+   "to": "table:public.clients",
+   "kind": "reads"
   }
  ]
 }

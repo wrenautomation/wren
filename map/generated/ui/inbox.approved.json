@@ -131,5 +131,46 @@
    }
   }
  ],
- "edges": []
+ "edges": [
+  {
+   "from": "ui:inbox/asks",
+   "to": "table:public.access_asks",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:inbox/asks",
+   "to": "table:public.grants",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:inbox/done",
+   "to": "table:public.done_records",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:inbox/issues",
+   "to": "table:public.issues",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:inbox/mail",
+   "to": "table:watch.mail_records",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:inbox/replies",
+   "to": "table:public.email_reply_records",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:inbox/replies",
+   "to": "table:public.email_reply_thread",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:inbox/rules",
+   "to": "table:watch.rule_records",
+   "kind": "reads"
+  }
+ ]
 }

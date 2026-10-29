@@ -85,5 +85,121 @@
    }
   }
  ],
- "edges": []
+ "edges": [
+  {
+   "from": "ui:texts/calls",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:texts/calls",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:texts/calls",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:texts/calls",
+   "to": "table:public.sms_calls",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:texts/calls",
+   "to": "table:public.sms_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:texts/calls",
+   "to": "table:public.sms_numbers",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:texts/calls",
+   "to": "table:public.speed_runs",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:texts/reviews",
+   "to": "table:public.review_asks",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:texts/reviews",
+   "to": "table:public.sms_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:texts/speed",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:texts/speed",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:texts/speed",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:texts/speed",
+   "to": "table:public.sms_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:texts/speed",
+   "to": "table:public.sms_numbers",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:texts/speed",
+   "to": "table:public.speed_runs",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:texts/threads",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:texts/threads",
+   "to": "table:public.documents",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:texts/threads",
+   "to": "table:public.imports",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:texts/threads",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:texts/threads",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:texts/threads",
+   "to": "table:public.sms_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:texts/threads",
+   "to": "table:public.sms_messages",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:texts/threads",
+   "to": "table:public.sms_numbers",
+   "kind": "reads"
+  }
+ ]
 }

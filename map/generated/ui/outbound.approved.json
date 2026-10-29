@@ -140,5 +140,106 @@
    }
   }
  ],
- "edges": []
+ "edges": [
+  {
+   "from": "ui:outbound/campaigns",
+   "to": "table:public.campaign_controls",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:outbound/campaigns",
+   "to": "table:public.email_campaign_records",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:outbound/companies",
+   "to": "table:public.email_firm_records",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:outbound/inboxes",
+   "to": "table:public.campaign_controls",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:outbound/inboxes",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:outbound/inboxes",
+   "to": "table:public.contact_candidates",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:outbound/inboxes",
+   "to": "table:public.enrollments",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:outbound/inboxes",
+   "to": "table:public.leads",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:outbound/inboxes",
+   "to": "table:public.messages",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:outbound/inboxes",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:outbound/inboxes",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:outbound/inboxes",
+   "to": "table:public.sender_pauses",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:outbound/inboxes",
+   "to": "table:public.thread_events",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:outbound/signals",
+   "to": "table:public.research_signals",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:outbound/stalls",
+   "to": "table:public.enrollments",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:outbound/stalls",
+   "to": "table:public.messages",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:outbound/stalls",
+   "to": "table:public.pipeline_leaks",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:outbound/text-copy",
+   "to": "table:public.template_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:outbound/text-copy",
+   "to": "table:public.templates",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:outbound/texts",
+   "to": "table:public.marketing_text_contact_records",
+   "kind": "reads"
+  }
+ ]
 }

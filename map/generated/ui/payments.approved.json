@@ -30,5 +30,16 @@
    }
   }
  ],
- "edges": []
+ "edges": [
+  {
+   "from": "ui:payments/links",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:payments/links",
+   "to": "table:public.pay_links",
+   "kind": "reads"
+  }
+ ]
 }

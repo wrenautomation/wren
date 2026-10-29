@@ -57,5 +57,26 @@
    }
   }
  ],
- "edges": []
+ "edges": [
+  {
+   "from": "ui:leads/companies",
+   "to": "table:public.email_firm_records",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:leads/stalls",
+   "to": "table:public.enrollments",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:leads/stalls",
+   "to": "table:public.messages",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:leads/stalls",
+   "to": "table:public.pipeline_leaks",
+   "kind": "reads"
+  }
+ ]
 }

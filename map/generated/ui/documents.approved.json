@@ -44,5 +44,31 @@
    }
   }
  ],
- "edges": []
+ "edges": [
+  {
+   "from": "ui:documents/all",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:documents/all",
+   "to": "table:public.doc_templates",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:documents/all",
+   "to": "table:public.docs",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:documents/templates",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:documents/templates",
+   "to": "table:public.doc_templates",
+   "kind": "reads"
+  }
+ ]
 }

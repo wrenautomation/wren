@@ -80,7 +80,8 @@
     },
     "ui": {
       "dump": "pnpm -s --filter @wren/portal kestrel:screens",
-      "calls": ["call", "callAsMe", "post"]
+      "calls": ["call", "callAsMe", "post"],
+      "records": "defineRecord"
     }
   },
   "cards": {

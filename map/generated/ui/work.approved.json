@@ -161,6 +161,246 @@
      "apps/portal/web/src/modules/work/Contract.tsx"
     ]
    }
+  },
+  {
+   "from": "ui:work/paperwork",
+   "to": "table:delivery.access_requests",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:work/paperwork",
+   "to": "table:delivery.agreements",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:work/paperwork",
+   "to": "table:delivery.asks",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:work/paperwork",
+   "to": "table:delivery.comments",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:work/paperwork",
+   "to": "table:delivery.deliverables",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:work/paperwork",
+   "to": "table:delivery.engagements",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:work/paperwork",
+   "to": "table:delivery.interests",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:work/paperwork",
+   "to": "table:delivery.invoices",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:work/paperwork",
+   "to": "table:delivery.milestones",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:work/paperwork",
+   "to": "table:delivery.moments",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:work/paperwork",
+   "to": "table:delivery.pulses",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:work/paperwork",
+   "to": "table:delivery.results",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:work/paperwork",
+   "to": "table:delivery.reviews",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:work/paperwork",
+   "to": "table:delivery.updates",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:work/paperwork",
+   "to": "table:pipeline.terms_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:work/paperwork",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:work/results",
+   "to": "table:delivery.access_requests",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:work/results",
+   "to": "table:delivery.agreements",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:work/results",
+   "to": "table:delivery.asks",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:work/results",
+   "to": "table:delivery.comments",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:work/results",
+   "to": "table:delivery.deliverables",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:work/results",
+   "to": "table:delivery.engagements",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:work/results",
+   "to": "table:delivery.interests",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:work/results",
+   "to": "table:delivery.invoices",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:work/results",
+   "to": "table:delivery.milestones",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:work/results",
+   "to": "table:delivery.moments",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:work/results",
+   "to": "table:delivery.pulses",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:work/results",
+   "to": "table:delivery.results",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:work/results",
+   "to": "table:delivery.reviews",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:work/results",
+   "to": "table:delivery.updates",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:work/results",
+   "to": "table:pipeline.terms_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:work/results",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:work/updates",
+   "to": "table:delivery.access_requests",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:work/updates",
+   "to": "table:delivery.agreements",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:work/updates",
+   "to": "table:delivery.asks",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:work/updates",
+   "to": "table:delivery.comments",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:work/updates",
+   "to": "table:delivery.deliverables",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:work/updates",
+   "to": "table:delivery.engagements",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:work/updates",
+   "to": "table:delivery.interests",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:work/updates",
+   "to": "table:delivery.invoices",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:work/updates",
+   "to": "table:delivery.milestones",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:work/updates",
+   "to": "table:delivery.moments",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:work/updates",
+   "to": "table:delivery.pulses",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:work/updates",
+   "to": "table:delivery.results",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:work/updates",
+   "to": "table:delivery.reviews",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:work/updates",
+   "to": "table:delivery.updates",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:work/updates",
+   "to": "table:pipeline.terms_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "ui:work/updates",
+   "to": "table:public.clients",
+   "kind": "reads"
   }
  ]
 }
