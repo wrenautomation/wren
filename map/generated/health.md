@@ -4,13 +4,12 @@ Signals, not a gate. Package layers and package cycles are the repo's own gate.
 
 ## Read first
 
-1. 9 pins are behind a newer publish. The worst: `@wrenautomation/autobrowse@0.5.0`, 8 behind 0.8.4, in 8 packages. Bump each scope in one change.
-2. 16 file cycles: files that import each other in a loop. The largest has 8 files, from `@wren/content/src/restate/desk-approvals.ts`. Move what they share into one file that imports none of them.
-3. 10 dependencies no code imports: `@wren/experiments`, `playwright`, `playwright-core`, `@wrenautomation/falcon`, `@wren/llm` and more. Remove them from package.json.
-4. 227 exports nothing imports. Most are in `apps/portal` (120). Delete them, or stop the export.
-5. 10 folders over 40 boxes: too flat to read as a graph. The largest: `@wren/core` (185). Group its files by job.
-6. 0.97% of lines are copies (499 clones). The largest: 27 lines, `packages/documents/src/console.ts:20-46` and `packages/payments/src/console.ts:25-51`. Share the part where both copies change together.
-7. 2633 exports with no declared type: the interface is whatever the code returns. Most: `@wren/core` (577 of 2340). Declare the type where other packages use it.
+1. 16 file cycles: files that import each other in a loop. The largest has 8 files, from `@wren/content/src/restate/desk-approvals.ts`. Move what they share into one file that imports none of them.
+2. 7 dependencies no code imports: `@wren/experiments`, `playwright`, `playwright-core`, `@wren/llm`, `@wren/experiments` and more. Remove them from package.json.
+3. 227 exports nothing imports. Most are in `apps/portal` (120). Delete them, or stop the export.
+4. 10 folders over 40 boxes: too flat to read as a graph. The largest: `@wren/core` (185). Group its files by job.
+5. 0.97% of lines are copies (499 clones). The largest: 27 lines, `packages/documents/src/console.ts:20-46` and `packages/payments/src/console.ts:25-51`. Share the part where both copies change together.
+6. 2633 exports with no declared type: the interface is whatever the code returns. Most: `@wren/core` (577 of 2340). Declare the type where other packages use it.
 
 | Signal | Count |
 |---|---|
@@ -20,22 +19,8 @@ Signals, not a gate. Package layers and package cycles are the repo's own gate.
 | Duplicated lines | 4556 (0.97%, 499 clones) |
 | Unused exports | 162 |
 | Unused types | 65 |
-| Unused dependencies | 10 |
-| Pins behind | 9 |
-
-## Pins behind
-
-| Package | Pin | Latest | Behind |
-|---|---|---|---|
-| `@wren/auth-app` | `@wrenautomation/autobrowse@0.5.0` | 0.8.4 | 8 |
-| `@wren/calendar` | `@wrenautomation/autobrowse@0.5.0` | 0.8.4 | 8 |
-| `@wren/channel-email` | `@wrenautomation/autobrowse@0.5.0` | 0.8.4 | 8 |
-| `@wren/channel-search` | `@wrenautomation/autobrowse@0.5.0` | 0.8.4 | 8 |
-| `@wren/cli` | `@wrenautomation/autobrowse@0.5.0` | 0.8.4 | 8 |
-| `@wren/connectors` | `@wrenautomation/autobrowse@0.5.0` | 0.8.4 | 8 |
-| `@wren/content` | `@wrenautomation/autobrowse@0.5.0` | 0.8.4 | 8 |
-| `@wren/worker` | `@wrenautomation/autobrowse@0.5.0` | 0.8.4 | 8 |
-| `@wren/ui` | `@wrenautomation/autobrowse@0.7.0` | 0.8.4 | 5 |
+| Unused dependencies | 7 |
+| Pins behind | 0 |
 
 ## File cycles
 
@@ -182,17 +167,16 @@ From knip. Unused files are left out: they need the repo's entries in a knip con
 | `apps/cli` | 5 | 1 | 3 |
 | `apps/portal` | 83 | 37 | 0 |
 | `apps/worker` | 1 | 2 | 0 |
-| `packages/books` | 0 | 0 | 1 |
 | `packages/calendar` | 0 | 1 | 0 |
 | `packages/channel-email` | 3 | 0 | 1 |
 | `packages/channel-tiktok` | 0 | 1 | 0 |
 | `packages/content` | 2 | 1 | 0 |
 | `packages/core` | 3 | 1 | 0 |
 | `packages/delivery` | 1 | 0 | 0 |
-| `packages/niches` | 1 | 1 | 1 |
+| `packages/niches` | 1 | 1 | 0 |
 | `packages/outreach` | 1 | 0 | 0 |
 | `packages/pipeline` | 1 | 3 | 0 |
-| `packages/reactivation` | 1 | 0 | 1 |
+| `packages/reactivation` | 1 | 0 | 0 |
 | `packages/studio` | 5 | 2 | 2 |
 | `packages/ui` | 53 | 15 | 0 |
 | `packages/voice` | 1 | 0 | 1 |
@@ -202,10 +186,7 @@ From knip. Unused files are left out: they need the repo's entries in a knip con
 - `@wren/experiments` in `apps/cli/package.json`
 - `playwright` in `apps/cli/package.json`
 - `playwright-core` in `apps/cli/package.json`
-- `@wrenautomation/falcon` in `packages/reactivation/package.json`
 - `@wren/llm` in `packages/voice/package.json`
-- `@wrenautomation/falcon` in `packages/niches/package.json`
 - `@wren/experiments` in `packages/channel-email/package.json`
 - `@remotion/cli` in `packages/studio/package.json`
 - `@wren/research` in `packages/studio/package.json`
-- `@wrenautomation/weaver` in `packages/books/package.json`
