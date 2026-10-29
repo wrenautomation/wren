@@ -1019,3 +1019,7 @@ From the Agent-Reach review (WA-958). A failed site read carries one of `need_lo
 weaver reads them and decides. The reddit reader no longer reads signed in on a spent cap or a
 broken site. Options and the Restate transport choice: autobrowse
 `designs/2026-10-28-signed-in-reads.md`, "Access codes".
+
+Same day: wren's `SiteCallError` carries the code (HTTP `code`, Restate `metadata.code`; a live
+probe on the desk confirmed the ingress keeps it). Analytics: `need_login` is a `needs_william`
+gap, `platform_blocked` an `error`. Reddit's signed-out `/api/me` is `need_login` now, not a wait.

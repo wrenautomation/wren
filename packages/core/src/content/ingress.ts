@@ -14,15 +14,18 @@ import * as clients from "@restatedev/restate-sdk-clients";
 import { SiteCallError, type SiteClient, viaOf } from "./index.js";
 import { SITES, type SitesHost, type SitesService } from "./restate.js";
 
-/** Restate answers a terminal error as `{"code":429,"message":"…"}` under that status. */
+/** Restate answers a terminal error as `{"code":429,"message":"…","metadata":{"code":"…"}}` under that status. */
 function siteError(err: unknown, site: string, method: string, path: string): Error {
   if (!(err instanceof clients.HttpCallError))
     return err instanceof Error ? err : new Error(String(err));
   let message = err.responseText || err.message;
+  let code: string | null = null;
   try {
-    message = (JSON.parse(err.responseText) as { message?: string }).message ?? message;
+    const body = JSON.parse(err.responseText) as { message?: string; metadata?: { code?: string } };
+    message = body.message ?? message;
+    code = body.metadata?.code ?? null;
   } catch {}
-  return new SiteCallError(site, method, path, err.status, message);
+  return new SiteCallError(site, method, path, err.status, message, code);
 }
 
 const dropped = (err: unknown) => err instanceof TypeError && err.message === "fetch failed";

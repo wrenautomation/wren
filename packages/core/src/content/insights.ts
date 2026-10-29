@@ -140,12 +140,16 @@ export type MetricName = (typeof METRICS)[keyof typeof METRICS];
 const WHY_MAX = 300;
 
 /**
- * The gap a failed read is: 401 or 403 a missing scope, 404 a route the box doesn't serve, 501
- * no leg, any other 4xx the platform refusing (its words kept). Null: not a refusal, the caller
+ * The gap a failed read is. autobrowse's access code first: need_login a sign-in only William
+ * can make (the why names the command), platform_blocked the platform refusing, rate_limited and
+ * upstream_broken a retry. Uncoded: 401 or 403 a missing scope, 404 a route the box doesn't
+ * serve, 501 no leg, any other 4xx the platform refusing (its words kept). Null: the caller
  * retries.
  */
 export function gapStateOf(err: unknown): GapState | null {
   if (!(err instanceof SiteCallError)) return null;
+  if (err.code === "need_login") return "needs_william";
+  if (err.code === "platform_blocked") return "error";
   if (err.status === 401 || err.status === 403) return "needs_scope";
   if (err.status === 404 || err.status === 501) return "not_built";
   if (err.status >= 400 && err.status < 500 && err.status !== 408 && err.status !== 429)

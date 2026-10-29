@@ -50,16 +50,26 @@ export async function pageFollowing(
 export class SiteCallError extends Error {
   readonly site: string;
   readonly status: number;
+  /** autobrowse's access code (`need_login`, `platform_blocked`, `rate_limited`, `upstream_broken`), if it sent one. */
+  readonly code: string | null;
   /**
    * The answer of a journaled call: a retried invocation replays it rather than calling again,
    * so retrying the invocation cannot help (`restateSites` tries again itself first).
    */
   journaled = false;
-  constructor(site: string, method: string, path: string, status: number, message: string) {
+  constructor(
+    site: string,
+    method: string,
+    path: string,
+    status: number,
+    message: string,
+    code: string | null = null,
+  ) {
     super(`${site} ${method} ${path}: ${status} ${message}`);
     this.name = "SiteCallError";
     this.site = site;
     this.status = status;
+    this.code = code;
   }
 }
 
@@ -192,8 +202,8 @@ export function autobrowseSites(o: {
       const text = await res.text();
       const body = text ? (JSON.parse(text) as unknown) : null;
       if (!res.ok) {
-        const message = (body as { error?: string } | null)?.error ?? res.statusText;
-        throw new SiteCallError(site, method, path, res.status, message);
+        const b = body as { error?: string; code?: string } | null;
+        throw new SiteCallError(site, method, path, res.status, b?.error ?? res.statusText, b?.code);
       }
       return body as never;
     },

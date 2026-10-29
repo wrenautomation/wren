@@ -22,6 +22,7 @@ import {
   type SiteClient,
 } from "./autobrowse.js";
 import { fakeContentChannel } from "./index.js";
+import { gapStateOf } from "./insights.js";
 import {
   ArmedStop,
   DESK,
@@ -285,6 +286,24 @@ describe("restateSites over a named service", () => {
       status: 403,
       message: "reddit POST /api/submit: 403 subreddit banned you",
     });
+  });
+
+  it("a terminal error's access code rides on the SiteCallError and picks the gap", async () => {
+    const { ctx } = ctxOf(() => {
+      throw new restate.TerminalError("reddit: signed out", {
+        errorCode: 401,
+        metadata: { code: "need_login" },
+      });
+    });
+    const err = await restateSites(ctx, { caller: "test", service: DESK })
+      .call("reddit", "GET", "/api/me", {})
+      .catch((e: unknown) => e);
+    expect(err).toMatchObject({ status: 401, code: "need_login" });
+    expect(gapStateOf(err)).toBe("needs_william");
+    expect(gapStateOf(new SiteCallError("x", "GET", "/", 403, "captcha", "platform_blocked"))).toBe(
+      "error",
+    );
+    expect(gapStateOf(new SiteCallError("x", "GET", "/", 403, "no scope"))).toBe("needs_scope");
   });
 
   it("a terminal error with no code maps to 500; a plain error passes through", async () => {

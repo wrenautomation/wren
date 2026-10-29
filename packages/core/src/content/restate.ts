@@ -127,7 +127,14 @@ export class ArmedStop extends Error {
 /** A terminal error from `sites` carries the site's own status code; surface it as a SiteCallError. */
 export function siteCallErrorFrom(err: unknown, site: string, method: string, path: string): Error {
   if (err instanceof restate.TerminalError)
-    return new SiteCallError(site, method, path, err.code ?? 500, err.message);
+    return new SiteCallError(
+      site,
+      method,
+      path,
+      err.code ?? 500,
+      err.message,
+      err.metadata?.code ?? null,
+    );
   return err instanceof Error ? err : new Error(String(err));
 }
 
