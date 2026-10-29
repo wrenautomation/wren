@@ -3,7 +3,9 @@
 // (/wren/..., KEY=VALUE lines or one JSON object).
 //   node scripts/secrets.mjs keys <source>             names and value lengths, never values
 //   node scripts/secrets.mjs run <source> -- <command>  the command with every key in its env;
-//                                                       any value in its output is masked
+//                                                       any value in its output is masked. One
+//                                                       argument: a shell string ($KEY expands);
+//                                                       several: argv as given, no shell
 //   node scripts/secrets.mjs set KEY=VAR KEY==text -KEY only inside `run <env file>`: rewrites
 //                                                       that file (KEY from $VAR or the literal
 //                                                       text; -KEY drops it). The old line stays
@@ -103,8 +105,10 @@ if (import.meta.url === `file://${process.argv[1]}` && cmd === "set") {
   if (cmd === "keys") {
     for (const [k, v] of Object.entries(values)) console.log(`${k}  (${v.length} chars)`);
   } else {
-    const command = rest[0] === "--" ? rest.slice(1).join(" ") : rest.join(" ");
-    const child = spawn("sh", ["-c", command], {
+    const argv = rest[0] === "--" ? rest.slice(1) : rest;
+    // one argument: a shell string; several: each stays whole (a quoted ask, `sh -c '<script>'`)
+    const [file, ...args] = argv.length === 1 ? ["sh", "-c", argv[0]] : argv;
+    const child = spawn(file, args, {
       env: { ...process.env, ...values, SECRETS_SOURCE: source },
       stdio: ["inherit", "pipe", "pipe"],
     });
@@ -120,6 +124,11 @@ if (import.meta.url === `file://${process.argv[1]}` && cmd === "set") {
       return new Promise((done) => from.on("end", () => done(to.write(mask(held, values)))));
     };
     const ends = [pipe(child.stdout, process.stdout), pipe(child.stderr, process.stderr)];
+    // no shell to say "not found": a missing program is an error event
+    child.on("error", (err) => {
+      console.error(`secrets.mjs: ${file}: ${err.message}`);
+      process.exit(127);
+    });
     child.on("close", async (code) => {
       await Promise.all(ends);
       process.exit(code ?? 1);
