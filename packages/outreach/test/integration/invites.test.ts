@@ -368,6 +368,29 @@ describe("linkedin invites", () => {
     expect(after.find((r) => r.who === "Alice Test")).toMatchObject({ next: null });
   });
 
+  it("a capped read skips its part and the sweep still returns", async () => {
+    await person("alice-a", { title: "Founder" });
+    await person("bob-d", { title: "Owner" });
+    await top();
+    await approveInvites(db(), await proposedIds(), OPEN);
+    await tickAt(OPEN);
+    await tickAt(OPEN);
+    const off = (what: string) => async () => {
+      throw new Error(`linkedin ${what}: 429 linkedin reads are off for ${KEY} (cap 0)`);
+    };
+    const channel = {
+      ...fake,
+      connections: off("GET /connections"),
+      withdraw: off("POST /withdraw"),
+    };
+    const swept = await sweepInvites(db(), channel, acct, SETTINGS, at(22));
+    expect(swept).toMatchObject({ accepted: [], withdrawn: 0 });
+    // one refusal per used cap: the second stale invite is not tried
+    expect(swept.errors).toHaveLength(2);
+    expect(swept.errors[0]).toMatch(/^connections: .*cap 0/);
+    expect(await statuses()).toEqual({ "alice-a": "pending", "bob-d": "pending" });
+  });
+
   it("an invite LinkedIn does not offer is no failure and never proposed again", async () => {
     await person("alice-a", { title: "Founder" });
     await person("bob-d", { title: "Director" });

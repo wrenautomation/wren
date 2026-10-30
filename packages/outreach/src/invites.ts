@@ -8,6 +8,7 @@
  * `withdrawAfterDays`. The sender is the settings' `account`; empty = nothing tops up.
  */
 import { settingsFor } from "@wren/core/clients";
+import { capWaitMs } from "@wren/core/content";
 import type { Connection, OutreachChannel, Relationship } from "@wren/core/outreach";
 import type { Queryable } from "@wren/db";
 import { and, eq, inArray, isNull, or, type SQL, sql } from "drizzle-orm";
@@ -706,20 +707,28 @@ export async function sweepInvites(
 ): Promise<SweepStats> {
   const stats = emptySweep();
   if (!ch.connections || !ch.withdraw) return stats;
-  const connections = await ch.connections(CONNECTIONS_READ);
-  const read = await run(`accepted ${account.account}`, async () => {
-    const backfilled = await backfillConnections(db, connections);
-    const { accepted, byHand } = await markAccepted(db, account.id, connections, now);
-    const drift = await connectionsDrift(db, account.id, connections, CONNECTIONS_READ);
-    return { backfilled, accepted, byHand, drift };
+  // Each read failing alone: a refused or capped read skips its part, never the top-up after.
+  const failed = (what: string, err: unknown) =>
+    stats.errors.push(`${what}: ${err instanceof Error ? err.message : String(err)}`);
+  const connections = await ch.connections(CONNECTIONS_READ).catch((err) => {
+    failed("connections", err);
+    return null;
   });
-  Object.assign(stats, read);
-  // After the backfill, a whole list and wren agree but for who left: else a read is wrong.
-  const d = read.drift;
-  if (d && d.site !== d.wren - d.gone.length)
-    stats.errors.push(
-      `${DRIFT_ERROR} the site lists ${d.site} connections, wren ${d.wren - d.gone.length}`,
-    );
+  if (connections) {
+    const read = await run(`accepted ${account.account}`, async () => {
+      const backfilled = await backfillConnections(db, connections);
+      const { accepted, byHand } = await markAccepted(db, account.id, connections, now);
+      const drift = await connectionsDrift(db, account.id, connections, CONNECTIONS_READ);
+      return { backfilled, accepted, byHand, drift };
+    });
+    Object.assign(stats, read);
+    // After the backfill, a whole list and wren agree but for who left: else a read is wrong.
+    const d = read.drift;
+    if (d && d.site !== d.wren - d.gone.length)
+      stats.errors.push(
+        `${DRIFT_ERROR} the site lists ${d.site} connections, wren ${d.wren - d.gone.length}`,
+      );
+  }
   if (ch.relationship) {
     const lost = await run(`lost ${account.account}`, () => lostInvites(db, account.id));
     for (const inv of lost) {
@@ -729,7 +738,9 @@ export async function sweepInvites(
         if (out) stats.settled++;
         if (out === "accepted") stats.accepted.push(inv.contactId);
       } catch (err) {
-        stats.errors.push(`${inv.handle}: ${err instanceof Error ? err.message : String(err)}`);
+        failed(inv.handle, err);
+        // used cap: the rest would be refused the same
+        if (capWaitMs(err) !== null) break;
       }
     }
   }
@@ -746,7 +757,8 @@ export async function sweepInvites(
       else if (out === "accepted") stats.accepted.push(inv.contactId);
       else if (out === "gone") stats.gone++;
     } catch (err) {
-      stats.errors.push(`${inv.handle}: ${err instanceof Error ? err.message : String(err)}`);
+      failed(inv.handle, err);
+      if (capWaitMs(err) !== null) break;
     }
   }
   return stats;
