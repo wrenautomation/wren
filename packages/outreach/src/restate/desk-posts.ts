@@ -10,7 +10,6 @@ import { liftPass, listPasses, passOn } from "../passes.js";
 import {
   listPosts,
   markPostActed,
-  markPostCommented,
   ownCircle,
   planPostAct,
   planPostComment,
@@ -22,6 +21,7 @@ import type { PostsStats } from "../reach-posts/pass.js";
 import { allCommentsSettings, COMMENT_MAX, commentsSettings } from "../reach-posts/settings.js";
 import { sendFailed, sendHeld, stillDue, unschedule } from "../scheduled.js";
 import { REACH_POST_PLATFORMS } from "../schema.js";
+import { recordLanded } from "../send-kinds.js";
 import type { ContentReply } from "./deps.js";
 import { type DeskContext, terminalWhy } from "./desk-context.js";
 import {
@@ -128,7 +128,7 @@ export function postsHandlers(desk: DeskContext) {
                 );
               return { ref: null };
             },
-            landed: (tx) => markPostCommented(tx, post, { body, by: byOf(req), now }),
+            landed: (tx, landed) => recordLanded(tx, item, { ref: landed.ref, now, by: byOf(req) }),
           });
         } catch (thrown) {
           if (isSendUnsure(thrown)) {

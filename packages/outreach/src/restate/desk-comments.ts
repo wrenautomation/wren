@@ -15,7 +15,6 @@ import {
   dropComment,
   planAnswer,
   planPrivateReply,
-  privateReplied,
   privateReplyOf,
 } from "../comments.js";
 import { pickAccount } from "../draft-accounts.js";
@@ -30,6 +29,7 @@ import {
 } from "../follow-ups.js";
 import { type ContentReply, channelsFor, finalRefusal } from "./deps.js";
 import { type DeskContext, terminalWhy } from "./desk-context.js";
+import { recordLanded } from "../send-kinds.js";
 import { sendAtMostOnce } from "./maybe-sent.js";
 
 const COMMENT = z.looseObject({ id: z.number() });
@@ -194,7 +194,7 @@ export function commentsHandlers(desk: DeskContext) {
                   .privateReply({ platform: c.platform, commentId: c.ref, text: body, ...k }),
               ),
             landed: (tx, sent) =>
-              privateReplied(tx, c, { body, ref: sent.ref, now, by: byOf(req) }),
+              recordLanded(tx, `private:${c.id}`, { ref: sent.ref, now, by: byOf(req) }),
           }).catch(failed);
           return ctx.run("sent", () => privateReplyOf(deps.db, c.id));
         }

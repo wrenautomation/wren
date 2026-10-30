@@ -1146,7 +1146,11 @@ export const commentKeywords = pgTable(
   ],
 );
 
-export const KEYWORD_HIT_STATES = ["queued", "sent", "failed"] as const;
+/**
+ * `handed`: given to the send ledger; its row (`private:<comment>`) says what came of it, so the
+ * hit never copies a send's state. `sent`: a hit settled before 2026-10-30, kept as it was.
+ */
+export const KEYWORD_HIT_STATES = ["queued", "handed", "sent", "failed"] as const;
 export type KeywordHitState = (typeof KEYWORD_HIT_STATES)[number];
 
 /**
@@ -1203,14 +1207,19 @@ export const commentKeywordRecords = pgView("comment_keyword_records", {
     coalesce(k.post, 'every post') as post, k.dm, k.reply,
     case when k.active then 'on' else 'off' end as state,
     count(h.id)::int as caught,
-    count(h.id) filter (where h.state = 'sent')::int as sent,
-    count(h.id) filter (where h.state = 'failed')::int as failed,
+    count(h.id) filter (where h.state = 'sent' or s.state = 'sent')::int as sent,
+    count(h.id) filter (where h.state = 'failed' or (h.state = 'handed' and s.item is null))::int
+      as failed,
     max(h.at) as last_at, k.updated_at, k.updated_by
   from comment_keywords k
   left join keyword_hits h on h.keyword_id = k.id
+  left join send_attempts s on h.state = 'handed' and s.item = 'private:' || h.comment_id
   group by k.id`);
 
-/** The DM log: each comment caught, its words, the keyword, what Meta said. */
+/**
+ * The DM log: each comment caught, its words, the keyword, what Meta said. A handed hit shows its
+ * ledger row: `sending`, `sent`, `unsure`, or `not_sent` when the row is gone (dropped unsent).
+ */
 export const keywordHitRecords = pgView("keyword_hit_records", {
   id: text("id"),
   keyword: text("keyword"),
@@ -1225,10 +1234,13 @@ export const keywordHitRecords = pgView("keyword_hit_records", {
   sentAt: timestamp("sent_at", { withTimezone: true }),
 }).as(sql`
   select h.id::text as id, k.keyword, h.platform, h.author, c.body as comment,
-    c.post_title as post, c.url, h.state, h.why, h.at, h.sent_at
+    c.post_title as post, c.url,
+    case when h.state = 'handed' then coalesce(s.state, 'not_sent') else h.state end as state,
+    coalesce(s.why, h.why) as why, h.at, coalesce(s.sent_at, h.sent_at) as sent_at
   from keyword_hits h
   join comment_keywords k on k.id = h.keyword_id
-  left join comments c on c.id = h.comment_id`);
+  left join comments c on c.id = h.comment_id
+  left join send_attempts s on h.state = 'handed' and s.item = 'private:' || h.comment_id`);
 
 /**
  * Blog posts written in Write (designs/2026-10-13-blog-box.md). The lander repo's Markdown file

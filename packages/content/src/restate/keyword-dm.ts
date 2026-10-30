@@ -9,10 +9,17 @@ import { tagged } from "@wren/core/message-settings";
 import { errorText, PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { sendAcross } from "@wren/core/send-verdict";
 import type { Db } from "@wren/db";
-import { markAnswered, planPrivateReply, privateReplied, ReachRefusal } from "@wren/outreach";
-import { sendAtMostOnce, sendError } from "@wren/outreach/restate";
+import { planPrivateReply, ReachRefusal, recordLanded } from "@wren/outreach";
+import { isSendTaken, isSendUnsure, sendAtMostOnce, sendError } from "@wren/outreach/restate";
 import { z } from "zod";
-import { addKeyword, catchKeywords, hitOf, removeKeywords, settleHit } from "../social/keywords.js";
+import {
+  addKeyword,
+  catchKeywords,
+  failHit,
+  handHit,
+  hitOf,
+  removeKeywords,
+} from "../social/keywords.js";
 
 interface KeywordDmDeps {
   db: Db;
@@ -104,9 +111,10 @@ export function makeKeywordDm(deps: KeywordDmDeps) {
        * One hit's DM, then its public reply, each on the send ledger (`private:<comment>`,
        * `comment:<comment>`) and sent under its key, so autobrowse or the direct journal says
        * whether it went out (designs/2026-10-16-maybe-sent.md). A refusal (DM'd already, past
-       * Meta's 7 days, sends off), Meta's no, a send that left nothing, or one that may have
-       * gone out (its ledger row waits in To approve) is logged as failed and ends there. A
-       * public reply that fails is logged but the DM stands.
+       * Meta's 7 days, sends off), Meta's no, or a send that left nothing is logged as failed
+       * and ends there. The hit is handed to the ledger before the send; from then on the
+       * ledger row is its state, so one that may have gone out waits in To approve, never
+       * marked failed. A public reply that fails is logged but the DM stands.
        */
       send: serviceHandler(
         { input: SEND, effect: "sends", ingressPrivate: true },
@@ -116,7 +124,7 @@ export function makeKeywordDm(deps: KeywordDmDeps) {
           const hit = await ctx.run("hit", () => hitOf(db, req.hit));
           if (hit?.state !== "queued") return { state: hit?.state ?? "gone" };
           const failed = async (why: string) => {
-            await ctx.run("failed", () => settleHit(db, req.hit, { sent: false, why }));
+            await ctx.run("failed", () => failHit(db, req.hit, why));
             return { state: "failed" };
           };
           const content = ctx.serviceClient<ContentSend>({ name: "Content" });
@@ -138,11 +146,13 @@ export function makeKeywordDm(deps: KeywordDmDeps) {
           const dm = await ctx.run("words", () =>
             tagged(db, hit.dm, { source: req.client ?? "wren", medium: "dm", campaign: "keyword" }),
           );
+          if (!(await ctx.run("hand", () => handHit(db, req.hit)))) return { state: "gone" };
           try {
             await sendAtMostOnce(ctx, db, {
               item: `private:${c.id}`,
               platform: c.platform,
               account: null,
+              via: "wren",
               words: dm,
               target: c.ref,
               url: c.url,
@@ -156,20 +166,14 @@ export function makeKeywordDm(deps: KeywordDmDeps) {
                     ...k,
                   }),
                 ),
-              landed: async (tx, sent) => {
-                await privateReplied(tx, c, {
-                  body: dm,
-                  ref: sent.ref,
-                  now,
-                  by: "keyword",
-                  via: "wren",
-                });
-                await settleHit(tx, req.hit, { sent: true, ref: sent.ref, now });
-              },
+              landed: (tx, sent) =>
+                recordLanded(tx, `private:${c.id}`, { ref: sent.ref, now, by: "keyword" }),
             }).catch((err) => {
               throw sendError(err);
             });
           } catch (err) {
+            // CP: may have gone out, or another invocation holds it: the ledger row decides.
+            if (isSendUnsure(err) || isSendTaken(err)) return { state: "handed" };
             if (err instanceof restate.TerminalError) return failed(err.message);
             throw err;
           }
@@ -195,14 +199,9 @@ export function makeKeywordDm(deps: KeywordDmDeps) {
                   );
                   return { ref: null };
                 },
+                via: "wren",
                 landed: (tx, answer) =>
-                  markAnswered(tx, c.id, {
-                    body: reply,
-                    ref: answer.ref,
-                    now,
-                    by: "keyword",
-                    via: "wren",
-                  }),
+                  recordLanded(tx, `comment:${c.id}`, { ref: answer.ref, now, by: "keyword" }),
               }).catch((err) => {
                 throw sendError(err);
               });

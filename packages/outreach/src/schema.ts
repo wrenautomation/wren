@@ -975,6 +975,8 @@ export const sendAttempts = pgTable(
     sentAt: timestamp("sent_at", { withTimezone: true }),
     /** Why it is unsure: the failure's words and what the read said. */
     why: text("why"),
+    /** Who sent it: `wren` (a rule, like a keyword) or null (a person's send). */
+    via: varchar("via", { length: 12, enum: ["person", "wren"] }),
     /** `found` (read back on the site), `sent`, or the person who marked it. */
     settledBy: varchar("settled_by", { length: 120 }),
     startedAt: timestamp("started_at", { withTimezone: true }).notNull(),

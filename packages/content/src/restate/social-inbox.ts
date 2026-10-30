@@ -16,10 +16,10 @@ import {
   dropComment,
   forgetUnsure,
   itemOf,
-  markAnswered,
   markPosted,
   planAnswer,
   ReachRefusal,
+  recordLanded,
   SETTLE_OUTCOMES,
   type SettleOutcome,
   settleSent,
@@ -100,7 +100,11 @@ const ANSWER = z.looseObject({
 /** A person's word on an unsure send of the client's (designs/2026-10-16-maybe-sent.md). */
 const SETTLE = z.looseObject({
   client: CLIENT,
-  item: z.string().min(3).max(80).describe("The send's typed id: sdm:<message> or comment:<id>"),
+  item: z
+    .string()
+    .min(3)
+    .max(80)
+    .describe("The send's typed id: sdm:<message>, comment:<id> or private:<comment>"),
   outcome: z
     .enum(SETTLE_OUTCOMES)
     .describe(
@@ -275,7 +279,7 @@ export function makeSocialInbox(deps: SocialInboxDeps) {
               return { ref: null };
             },
             landed: (tx, sent) =>
-              markAnswered(tx, req.id, { body: text, ref: sent.ref, now, by: req.by ?? "inbox" }),
+              recordLanded(tx, `comment:${req.id}`, { ref: sent.ref, now, by: req.by ?? "inbox" }),
           });
           return { ok: true };
         },
@@ -284,8 +288,10 @@ export function makeSocialInbox(deps: SocialInboxDeps) {
       /**
        * A person's word on an unsure send of the client's, from its To approve: posted records
        * it as its send would; again sends it once more through `send` or `answer`; dropped closes
-       * it unsent (a DM answer `skipped`, a comment `dropped`). A post on its own channel
-       * (`draft:`) settles in its `ContentDesk`, which asks its stored verdict first.
+       * it unsent (a DM answer `skipped`, a comment `dropped`). A keyword DM (`private:`) is
+       * posted or dropped (only its ledger row goes), never sent again: its keyword sent it once.
+       * A post on its own channel (`draft:`) settles in its `ContentDesk`, which asks its stored
+       * verdict first.
        */
       settle: serviceHandler(
         { input: noRawKeys(SETTLE), effect: "sends" },
@@ -300,8 +306,10 @@ export function makeSocialInbox(deps: SocialInboxDeps) {
             terminal(async () => {
               const a = await unsureItem(db, req.item);
               const it = itemOf(req.item);
-              if (it.kind !== "sdm" && it.kind !== "comment" && it.kind !== "draft")
+              if (!["sdm", "comment", "private", "draft"].includes(it.kind))
                 throw new ReachRefusal(`a ${it.kind} send settles in Wren's own To approve`);
+              if (it.kind === "private" && req.outcome === "again")
+                throw new ReachRefusal("a keyword DM is not sent again: mark it posted or drop it");
               const contactId =
                 it.kind === "sdm" ? (await dmPlanOf(db, Number(it.id))).contactId : null;
               return { ...it, words: a.words, ref: a.ref, contactId };
@@ -320,7 +328,7 @@ export function makeSocialInbox(deps: SocialInboxDeps) {
               terminal(async () => {
                 const why = "dropped in To approve: it was not sent";
                 if (kind === "comment") await dropComment(db, Number(id), { by, note: why });
-                else await dropDm(db, Number(id), why);
+                else if (kind === "sdm") await dropDm(db, Number(id), why);
                 await forgetUnsure(db, req.item);
               }),
             );
@@ -329,7 +337,8 @@ export function makeSocialInbox(deps: SocialInboxDeps) {
           if (req.outcome === "posted") {
             await ctx.run("posted", () =>
               terminal(async () => {
-                if (kind === "comment") return void (await markPosted(db, req.item, { by, now }));
+                if (kind === "comment" || kind === "private")
+                  return void (await markPosted(db, req.item, { by, now }));
                 const plan = await dmPlanOf(db, Number(id));
                 await atomic(db, async (tx) => {
                   if (!(await settleSent(tx, req.item, { ref, at: now, by, now })))

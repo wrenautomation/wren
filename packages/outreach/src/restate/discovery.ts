@@ -18,7 +18,7 @@
  * watches each once judged, and reads them in their own listing, one page every 2 hours.
  */
 import * as restate from "@restatedev/restate-sdk";
-import { byOf, keepSentEdit } from "@wren/core/ask";
+import { byOf } from "@wren/core/ask";
 import { type CapHolds, capHeld, holdCap, liveHolds } from "@wren/core/content";
 import { isVendorStop } from "@wren/core/metered";
 import type { OurPost } from "@wren/core/our-posts";
@@ -72,7 +72,6 @@ import {
   draftThread,
   keepScores,
   keepThreads,
-  markCommented,
   planThreadComment,
   queueThreads,
   RANK_BATCH,
@@ -85,6 +84,7 @@ import {
 import { ReachRefusal } from "../refusal.js";
 import { scheduleThreads, sendFailed, sendHeld, stillDue, unschedule } from "../scheduled.js";
 import { reachAccounts } from "../schema.js";
+import { recordLanded } from "../send-kinds.js";
 import { channelsFor, clientDeps, type ReachDeps, terminalWhy, wakeWatch } from "./index.js";
 import {
   isSendNotSent,
@@ -668,23 +668,8 @@ export function discoveryHandlers(deps: ReachDeps) {
               if (met) throw new restate.TerminalError(`u/${met} already wrote in this thread`);
             },
             send: () => comment(target, body),
-            landed: async (tx, landed) => {
-              // Words that differ from the draft are his edit.
-              await keepSentEdit(tx, {
-                record: "thread",
-                id: req.id,
-                by: byOf(req),
-                before: plan.thread.draft,
-                after: body,
-              });
-              await markCommented(tx, req.id, {
-                body,
-                ref: landed.ref,
-                accountId: plan.account.id,
-                now,
-                by: byOf(req),
-              });
-            },
+            landed: (tx, landed) =>
+              recordLanded(tx, `thread:${req.id}`, { ref: landed.ref, now, by: byOf(req) }),
           });
         } catch (thrown) {
           // Unsure waits on a person in To approve; its slot leaves the schedule.

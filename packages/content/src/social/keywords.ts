@@ -162,19 +162,22 @@ export async function hitOf(db: Queryable, id: number) {
   return h ?? null;
 }
 
-export async function settleHit(
-  db: Queryable,
-  id: number,
-  out: { sent: true; ref: string | null; now: Date } | { sent: false; why: string },
-) {
+/** Given to the send ledger: false when another invocation took it first. */
+export async function handHit(db: Queryable, id: number): Promise<boolean> {
+  const rows = await db
+    .update(keywordHits)
+    .set({ state: "handed" })
+    .where(and(eq(keywordHits.id, id), eq(keywordHits.state, "queued")))
+    .returning({ id: keywordHits.id });
+  return rows.length > 0;
+}
+
+/** Nothing went out, and nothing sends it again. */
+export async function failHit(db: Queryable, id: number, why: string) {
   await db
     .update(keywordHits)
-    .set(
-      out.sent
-        ? { state: "sent", ref: out.ref, sentAt: out.now, why: null }
-        : { state: "failed", why: out.why.slice(0, 5000) },
-    )
-    .where(eq(keywordHits.id, id));
+    .set({ state: "failed", why: why.slice(0, 5000) })
+    .where(and(eq(keywordHits.id, id), inArray(keywordHits.state, ["queued", "handed"])));
 }
 
 const neutral = (label: string) => ({ label, tone: "neutral" as const });
@@ -263,7 +266,10 @@ export const keywordHitRecord = defineRecord({
     state: status(
       {
         queued: neutral("Sending"),
+        sending: neutral("Sending"),
         sent: { label: "Sent", tone: "good" },
+        unsure: { label: "May have sent", tone: "bad" },
+        not_sent: { label: "Not sent", tone: "bad" },
         failed: { label: "Failed", tone: "bad" },
       },
       "DM",
@@ -278,6 +284,12 @@ export const keywordHitRecord = defineRecord({
   quick: ["state", "keyword"],
   views: [
     { id: "all", label: "All", sort: "-at", at: "at" },
-    { id: "failed", label: "Failed", where: { state: ["failed"] }, sort: "-at", at: "at" },
+    {
+      id: "failed",
+      label: "Failed",
+      where: { state: ["failed", "unsure", "not_sent"] },
+      sort: "-at",
+      at: "at",
+    },
   ],
 });

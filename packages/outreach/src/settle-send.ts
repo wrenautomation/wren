@@ -6,13 +6,14 @@
  */
 import { atomic, type Queryable } from "@wren/db";
 import { and, eq } from "drizzle-orm";
-import { commentById, dropComment, markAnswered, privateReplied } from "./comments.js";
+import { dropComment } from "./comments.js";
 import { setContactState } from "./contacts.js";
-import { markCommented, skipThread } from "./discovery/threads.js";
-import { markPostCommented, planPostComment, skipPost } from "./reach-posts/acts.js";
+import { skipThread } from "./discovery/threads.js";
+import { skipPost } from "./reach-posts/acts.js";
 import { ReachRefusal } from "./refusal.js";
 import { reachAccounts, reachContacts, reachMessages } from "./schema.js";
 import { forgetUnsure, sendAttempt, settleSent } from "./send-attempts.js";
+import { recordLanded } from "./send-kinds.js";
 import {
   type Candidate,
   emptyStats,
@@ -68,36 +69,7 @@ export async function markPosted(
     if (!(await settleSent(db, item, { ref: a.ref, at: o.now, by: o.by, now: o.now })))
       throw new ReachRefusal("that send is already settled");
     const stats = emptyStats();
-    if (kind === "thread") {
-      const [acct] = a.account
-        ? await db
-            .select({ id: reachAccounts.id })
-            .from(reachAccounts)
-            .where(eq(reachAccounts.account, a.account))
-        : [];
-      if (!acct) throw new ReachRefusal(`no account ${a.account ?? ""}`);
-      await markCommented(db, id, {
-        body: a.words,
-        ref: a.ref,
-        accountId: acct.id,
-        now: o.now,
-        by: o.by,
-      });
-    } else if (kind === "comment")
-      await markAnswered(db, Number(id), { body: a.words, ref: a.ref, now: o.now, by: o.by });
-    else if (kind === "onpost")
-      await markPostCommented(db, await planPostComment(db, Number(id)), {
-        body: a.words,
-        by: o.by,
-        now: o.now,
-      });
-    else if (kind === "private")
-      await privateReplied(db, await commentById(db, Number(id)), {
-        body: a.words,
-        ref: a.ref,
-        now: o.now,
-        by: o.by,
-      });
+    if (kind !== "dm") await recordLanded(db, item, { ref: a.ref, now: o.now, by: o.by });
     else {
       const { sequences, sender } = o;
       if (!sequences || !sender) throw new ReachRefusal("a DM settles in ReachDesk");

@@ -28,7 +28,7 @@ On 2026-10-16 a TikTok publish came back the same way, and the scheduler marked 
 - **Verify-only.** `Content.publish`, `reply` and `privateReply` take `verifyOnly` beside `sendKey` and `recheck`. Autobrowse answers the stored verdict and runs its verify read, and never writes. An unseen key answers `not_sent` (`before_submit`).
 - **settlePost asks at any age.** The 29-day guard is gone (`ASK_AGAIN_MS`). `ContentDesk/settlePost` asks `Content.publish` with `{sendKey, recheck, verifyOnly}` for Wren's post and for a client's post (with `client`). Only `found` or `sent` matters. Any other answer leaves his word standing.
 - **Found runs the shared after-publish.** `afterPublish` (`packages/content/src/restate/after-publish.ts`) is the one step for the scheduler's finish and for `settlePost` found: `markPublished` with the link, the first comment under `<sendKey> comment`, a "comment failed" note, then the `posted` hook. Mark posted (his word) runs the `posted` hook and posts no comment.
-- **Keyword DMs on the ledger.** `packages/content/src/restate/keyword-dm.ts` sends through `sendAtMostOnce` and `sendAcross`: the DM as `private:<comment id>`, the public reply as `comment:<comment id>`. Sent or found: the hit is `sent` with the ref, then the reply. Unsure: the row waits in To approve, the hit is `failed` with "may have gone out", and no reply goes. Not sent: the row goes, the hit is `failed` with "Nothing went out". Refused: the hit is `failed` with the reason. A failed public reply never undoes a sent DM.
+- **Keyword DMs on the ledger.** `packages/content/src/restate/keyword-dm.ts` sends through `sendAtMostOnce` and `sendAcross`: the DM as `private:<comment id>`, the public reply as `comment:<comment id>`. Sent or found: the hit is `sent` with the ref, then the reply. Unsure: the row waits in To approve, the hit is `failed` with "may have gone out", and no reply goes (10-30: the hit stays `handed`; see below). Not sent: the row goes, the hit is `failed` with "Nothing went out". Refused: the hit is `failed` with the reason. A failed public reply never undoes a sent DM.
 - **The looks are deleted.** `contentLook`, `seenIn`, `seenInMessages`, `seenInDms`, `seenPost`, `seenPrivateReply`, `findPost`, `findReply`, `findPrivateReply`, `listsLate`, `sameWords` and the clock slack. A client's send keeps its ledger key and runs under the direct journal. Send again is a new send under a new key, with no read first.
 
 **2026-10-25, a late answer settles itself.** Six items waited in "May have gone out". Five were LinkedIn invites. The desk's browser queue held each 6 to 19 minutes, past wren's wait on the call, so `restateSites` parked them unsure with "the call is still running". Autobrowse later held a final verdict for three of them (sent), but nothing asked again. A longer wait would block the sender loop, so wren asks again instead.
@@ -59,6 +59,26 @@ On 2026-10-16 a TikTok publish came back the same way, and the scheduler marked 
 - **The recheck stays, for DMs.** "The call is still running" can no longer happen, so it left `RECHECK_WHYS`. "The verdict is still being read" and "the send is still running" still can, and they are safe to ask again: the call has ended. Option C covers other kinds.
 - **The six rows.** Two the desk sent: Mark posted. One "comments are off": dropped. One with no desk record past its wait: sent again under a new key. Two LinkedIn rows stay unsure until LinkedIn reads return.
 - **Two TikTok comments are `sent` and never went out** (comments off, counted sent by the desk bug). No path undoes a `sent` row: Settle takes only unsure rows, skip only `found` or `queued` posts. Each needs its post back to `skipped`, and its touch, sent edit, draft `sent` record and ledger row gone. A person applies that.
+
+**2026-10-30, one record per send kind (C1, WA-980).** Option C split in two. C1: one record function per kind. C2: the `Send` object. William: "consistency over availability for these type of systems where we're trying to automate": refuse or wait on a person, never guess.
+
+- **C2 is skipped.** Restate state would be a second store beside the ledger, and A already gives one flip per send. The gain is the stale take-over only.
+- **`recordLanded(tx, item, {ref, now, by})`** (`packages/outreach/src/send-kinds.ts`). It reads the words, account and `via` from the ledger row. The send's `landed` and Mark posted both call it, so a settle by hand records what a send records. Before, Mark posted left out the sent edit (`thread:`, `comment:`) and `via`.
+  - `thread:` sent edit, then `markCommented`. The account comes from the ledger row; none is a refusal.
+  - `comment:` sent edit (not for a rule's words), then `markAnswered` with `via`.
+  - `onpost:` `markPostCommented`. `private:` `privateReplied` with `via`.
+  - `dm:`, `sdm:` and `draft:` keep their own records.
+- **`send_attempts.via`** (migration 0352): `wren` when a rule sent it (a keyword), null for a person.
+- **The keyword hit no longer copies the send.**
+
+| Option | Verdict |
+|---|---|
+| A. The hit is `handed` before the send; its view reads the ledger row `private:<comment>` | **Chosen**. One source; a Mark posted or a drop shows in the log with no second write |
+| B. Write the hit in `landed` and again in every settle path | No: two copies, one more path to forget |
+| C. Keep `failed` for unsure, as before | No: it says failed for a DM that may have gone out |
+
+- The hit goes `queued` → `handed` by a guarded update. Unsure or taken: it stays `handed`. Not sent or refused: `failed` with why. `keyword_hit_records` shows a handed hit as its row's state, or `not_sent` when the row is gone. The Failed view takes `failed`, `unsure` and `not_sent`. Hits `sent` before today keep their state.
+- `SocialInbox.settle` takes `private:`: Mark posted or drop. Send again is refused: the keyword sent it once.
 
 ### Sends with no autobrowse between
 

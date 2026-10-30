@@ -58,6 +58,8 @@ export interface SendClaim {
   now: Date;
   /** A person's Send again on an unsure item. */
   again?: boolean;
+  /** `wren` when a rule sent it, not a person; its records say so. */
+  via?: "person" | "wren";
 }
 
 type Claimed =
@@ -72,6 +74,7 @@ export async function claimSend(db: Queryable, c: SendClaim): Promise<Claimed> {
     words: c.words,
     target: c.target,
     url: c.url,
+    via: c.via ?? null,
     invocation: c.invocation,
     updatedAt: c.now,
   };

@@ -10,6 +10,7 @@
  */
 import * as restate from "@restatedev/restate-sdk";
 import { SiteCallError } from "@wren/core/content";
+import { draftSteps } from "@wren/core/draft-record";
 import { DESK, restateSites } from "@wren/core/content/restate";
 import { resolveObjects } from "@wren/core/objects";
 import { fakeOutreachChannel } from "@wren/core/outreach";
@@ -656,6 +657,24 @@ describe("a Reddit comment, the whole way (ReachDesk commentThread)", () => {
     expect(await sendAttempt(db(), ITEM)).toBeNull();
     await expect(run(desk).result).rejects.toThrow(/that thread is skipped/);
     expect(desk.writes).toHaveLength(1);
+  });
+
+  it("Mark posted records what a send records: the thread commented, his edit of the draft kept", async () => {
+    await queuedThread();
+    const desk = fakeDesk();
+    desk.next.push(unknownV());
+    await run(desk).result.catch(() => {});
+    // The ledger holds the words as sent; here they differ from the draft.
+    await db()
+      .update(sendAttempts)
+      .set({ words: "Our edited words." })
+      .where(eq(sendAttempts.item, ITEM));
+    await markPosted(db(), ITEM, { by: "test@example.com", now: NOW });
+    expect(await thread()).toMatchObject({ state: "commented", answer: "Our edited words." });
+    const steps = await draftSteps(db(), ITEM);
+    expect(steps.filter((s) => s.event === "edited")).toEqual([
+      expect.objectContaining({ by: "test@example.com", text: "Our edited words." }),
+    ]);
   });
 
   it("a platform refusal is terminal with its status, and the item is released", async () => {

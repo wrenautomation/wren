@@ -16,7 +16,7 @@ import {
   type TestPostgres,
 } from "@wren/db/testing";
 import { sendAttempt } from "@wren/outreach";
-import { comments } from "@wren/outreach/schema";
+import { comments, sendAttempts } from "@wren/outreach/schema";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { type KeywordDm, makeKeywordDm } from "../../src/restate/keyword-dm.js";
@@ -24,10 +24,11 @@ import { keywordHits } from "../../src/schema.js";
 import {
   addKeyword,
   catchKeywords,
+  failHit,
+  handHit,
   keywordHitRecord,
   keywordRecord,
   removeKeywords,
-  settleHit,
 } from "../../src/social/keywords.js";
 
 /**
@@ -158,8 +159,22 @@ describe("comment keywords", () => {
     expect(hits.map((h) => h.commentId)).toEqual([ids[0], ids[3]]);
     expect(await catchKeywords(pg.db, ids)).toEqual([]);
 
-    await settleHit(pg.db, hits[0]?.id ?? 0, { sent: true, ref: "m1", now: new Date() });
-    await settleHit(pg.db, hits[1]?.id ?? 0, { sent: false, why: "past Meta's 7 days" });
+    // A handed hit reads its state from the ledger row.
+    const now = new Date();
+    expect(await handHit(pg.db, hits[0]?.id ?? 0)).toBe(true);
+    expect(await handHit(pg.db, hits[0]?.id ?? 0)).toBe(false);
+    await pg.db.insert(sendAttempts).values({
+      item: `private:${ids[0]}`,
+      state: "sent",
+      platform: "instagram",
+      words: "Here: example.test",
+      target: "c1",
+      ref: "m1",
+      sentAt: now,
+      startedAt: now,
+      updatedAt: now,
+    });
+    await failHit(pg.db, hits[1]?.id ?? 0, "past Meta's 7 days");
     const api = serveRecords([keywordRecord, keywordHitRecord], pg.db);
     const keys = await api.list({ record: "marketing.comment_keyword", view: "all", limit: 10 });
     expect(keys.rows.find((r) => r.id === String(every.id))).toMatchObject({
@@ -199,8 +214,8 @@ describe("KeywordDm.send", () => {
       .serviceClient<typeof watch>({ name: "Watch" });
     expect(await w.send(hits[0]?.id ?? 0)).toEqual({ state: "sent" });
     expect(await w.send(hits[1]?.id ?? 0)).toEqual({ state: "failed" });
-    // Sent once: a second ask finds it settled.
-    expect(await w.send(hits[0]?.id ?? 0)).toEqual({ state: "sent" });
+    // Sent once: a second ask finds it handed to the ledger.
+    expect(await w.send(hits[0]?.id ?? 0)).toEqual({ state: "handed" });
     // Each write runs under its ledger key: the DM as `private:<id>`, the reply as `comment:<id>`.
     expect(asked.filter((a) => a.commentId === "yes1")).toEqual([
       {
@@ -228,7 +243,7 @@ describe("KeywordDm.send", () => {
     expect(await sendAttempt(pg.db, `comment:${ok}`)).toMatchObject({ state: "sent" });
     const log = await pg.db.select().from(keywordHits).where(eq(keywordHits.keywordId, k.id));
     expect(log.map((h) => [h.author, h.state, h.ref, h.why]).sort()).toEqual([
-      ["fay", "sent", "m-yes1", null],
+      ["fay", "handed", null, null],
       ["gus", "failed", null, "send POST write: 400 Meta: window closed"],
     ]);
     const [c] = await pg.db.select().from(comments).where(eq(comments.id, ok));
@@ -255,12 +270,14 @@ describe("KeywordDm.send", () => {
     return { id, k, state, row };
   };
 
-  it("unsure: the DM may have gone out, so its ledger row waits in To approve and the hit says why", async () => {
+  it("unsure: the DM may have gone out, so the hit stays handed and its ledger row waits in To approve", async () => {
     const { id, state, row } = await hitOn("lost1", { reply: "Check your DMs" });
-    expect(state).toEqual({ state: "failed" });
-    expect(row?.state).toBe("failed");
-    expect(row?.why).toMatch(/may have gone out/);
+    expect(state).toEqual({ state: "handed" });
+    expect(row?.state).toBe("handed");
     expect(await sendAttempt(pg.db, `private:${id}`)).toMatchObject({ state: "unsure" });
+    const api = serveRecords([keywordHitRecord], pg.db);
+    const failed = await api.list({ record: "marketing.keyword_hit", view: "failed", limit: 50 });
+    expect(failed.rows.find((r) => r.author === "by_lost1")).toMatchObject({ state: "unsure" });
     // No public reply goes after a DM that may not have gone out, and nothing was sent twice.
     expect(asked.filter((a) => a.commentId === "lost1").map((a) => a.handler)).toEqual([
       "privateReply",
@@ -284,7 +301,7 @@ describe("KeywordDm.send", () => {
   it("a public reply that fails never undoes the sent DM", async () => {
     const { id, state, row } = await hitOn("noreply1", { reply: "Check your DMs" });
     expect(state).toEqual({ state: "sent" });
-    expect(row?.state).toBe("sent");
+    expect(row?.state).toBe("handed");
     expect(await sendAttempt(pg.db, `private:${id}`)).toMatchObject({ state: "sent" });
     // The reply was refused: its ledger row is released and the comment is not marked answered.
     expect(await sendAttempt(pg.db, `comment:${id}`)).toBeNull();
