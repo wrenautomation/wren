@@ -50,7 +50,7 @@
         "WREN_DATABASE_POOL_PORT": "container:pgbouncer",
         "WREN_RESTATE_INGRESS_URL": "restate",
         "WREN_RESTATE_ADMIN_URL": "restate",
-        "WREN_CACHE_URL": "container:valkey",
+        "WREN_CACHE_URL": "container:redis",
         "WREN_SMTP_PROBE_URL": "container:vps-prober",
         "WREN_CDP_URL": "container:browser",
         "WREN_MEDIA_BUCKET": "s3:media",

@@ -72,11 +72,11 @@ resource "aws_ssm_parameter" "restate" {
   }
 }
 
-# The box's Valkey cache (deploy/scripts/box-valkey.sh), as JSON {password}. Set by hand; the
+# The box's Redis cache (deploy/scripts/box-redis.sh), as JSON {password}. Set by hand; the
 # worker's WREN_CACHE_URL (env-2) carries the same password and the cert's fingerprint.
 resource "aws_ssm_parameter" "cache" {
   name        = "${local.ssm_root}/cache"
-  description = "JSON for the box's Valkey cache: password"
+  description = "JSON for the box's Redis cache: password"
   type        = "SecureString"
   value       = "{}"
 
@@ -119,7 +119,7 @@ resource "aws_security_group" "pg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
   ingress {
-    description = "valkey cache (TLS, password, client pins the cert)"
+    description = "redis cache (TLS, password, client pins the cert)"
     from_port   = 6380
     to_port     = 6380
     protocol    = "tcp"

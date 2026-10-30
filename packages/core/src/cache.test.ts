@@ -57,7 +57,7 @@ describe("readThrough", () => {
 
   it("a cache that fails is a miss: the read goes to the truth", async () => {
     const down: Cache = {
-      name: "valkey",
+      name: "redis",
       get: () => Promise.reject(new Error("down")),
       set: () => Promise.reject(new Error("down")),
       del: () => Promise.reject(new Error("down")),

@@ -46,7 +46,7 @@ export function platformServices(deps: Deps): AnyService[] {
     roster,
     settings,
   } = deps;
-  // Valkey on the box when WREN_CACHE_URL is set: one Lambda's read serves the rest.
+  // Redis on the box when WREN_CACHE_URL is set: one Lambda's read serves the rest.
   const cache = cacheFrom(settings.cacheUrl);
   // The lander's recorded views: the export lists them, the files bucket signs their chunks.
   const sessions =

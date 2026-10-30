@@ -33,7 +33,7 @@ services:
     # Compose interpolates every service, profile or not: no `:?` here, or a box
     # without search cannot start. The deploy script sets these when it ships search.
     restart: unless-stopped
-    # The box has 961 MB for everything: one worker, a hard cap, no Valkey.
+    # The box has 961 MB for everything: one worker, a hard cap, no Redis.
     mem_limit: 350m
     environment:
       SEARXNG_BASE_URL: https://${SEARCH_HOST:-}/

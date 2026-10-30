@@ -6,7 +6,7 @@
 #   → register it with Restate (Cloud or the box) → Cloudflare goes live.
 # ci.yml starts this job beside lint, unit and schema: the builds and not-live uploads run while
 # they check. Nothing touches the box, the database or live traffic before all three pass.
-#   pgbouncer → the box's pool-chain worker → register;  pgbouncer + valkey → publish the Lambda.
+#   pgbouncer → the box's pool-chain worker → register;  pgbouncer + redis → publish the Lambda.
 # The phone, sign-in, portal and LLM gateway Workers upload a version early and take traffic
 # only after Restate registers, all four within seconds.
 set -euo pipefail
@@ -22,7 +22,7 @@ esac
 
 # Everything that changes nothing live starts now: the two Lambda bundles, the CLI bundle
 # (templates sync runs it), and a not-yet-live version of each Cloudflare Worker.
-# After the gates: the box's pgbouncer, valkey and listmonk, beside the migrations.
+# After the gates: the box's pgbouncer, redis and listmonk, beside the migrations.
 # Phone: the ingress follows RESTATE_HOST like the portal's; its other secrets (Telnyx, cal.com,
 # Gmail push, credential links) are set by hand and kept: --secrets-file is additive.
 # LLM gateway: its keys are Worker secrets, set by scripts/llm-gateway-keys.mjs; a deploy keeps them.
@@ -30,7 +30,7 @@ esac
 # so its failure only warns (cf_soft): the first CI run proves the token can bind R2.
 # Portal: LAMBDA_URL, EDGE_SECRET: a client's own host redeems sign-ins at the auth Lambda.
 # pgbouncer: before the box worker and the Lambda, which may connect through it (WREN_DATABASE_POOL_PORT).
-# valkey: before the Lambda, which reads through it (WREN_CACHE_URL). Unchanged: left running.
+# redis: before the Lambda, which reads through it (WREN_CACHE_URL). Unchanged: left running.
 # listmonk: the newsletter (designs/2026-10-21-esign-and-newsletter.md); no SSM param
 # /wren/prod/listmonk yet: the script says so and skips. Unchanged: left running.
 phase start
@@ -60,7 +60,7 @@ fi
 
 phase migrate
 bg pgbouncer box_script pgbouncer box-pgbouncer.sh
-bg valkey box_script valkey box-valkey.sh us-east-1
+bg redis box_script redis box-redis.sh us-east-1
 bg listmonk box_script listmonk box-listmonk.sh us-east-1
 pnpm db:migrate
 await cli
@@ -77,7 +77,7 @@ aws s3 cp --only-show-errors apps/worker/dist/lambda.zip "s3://$BOX_BUCKET/$key"
 bg box-worker box_script worker box-worker.sh "$BOX_BUCKET" "$key"
 bg auth-lambda sh -c 'aws lambda update-function-code --function-name wren-prod-auth \
   --zip-file fileb://apps/auth/dist/lambda.zip > /dev/null && aws lambda wait function-updated --function-name wren-prod-auth'
-await valkey
+await redis
 aws lambda update-function-code --function-name "$LAMBDA_NAME" \
   --zip-file fileb://apps/worker/dist/lambda.zip --publish --output json > "$RUNNER_TEMP/publish.json"
 # A versioned ARN, whichever form the response's FunctionArn takes.

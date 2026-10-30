@@ -1,5 +1,5 @@
 /**
- * A small Valkey (Redis protocol, RESP2) client: one connection, commands in order, replies
+ * A small Redis (RESP2) client: one connection, commands in order, replies
  * matched by position. Enough for a cache (GET, SET PX, DEL); no pub/sub, no cluster.
  *
  * The box's certificate is self-signed, so a `rediss://` URL pins it: `?fp=<sha256>` is the

@@ -9,7 +9,7 @@ Checked 2026-10-03. Companion to `restate-durability.md` (why it survives crashe
 |---|---|---|---|
 | Restate server on `wren-prod-pg` (`restate:1.7` in Docker, since 2026-10-06) | every loop's journal, timers, object state; the ingress `https://restate.wrenautomation.com` (Caddy checks the bearer; admin under `/admin`) | `deploy/scripts/box-restate.sh`; nightly backup to S3 08:30 | this file, `designs/2026-10-05-restate-self-host.md` |
 | Lambda `wren-prod-worker` (us-east-1, Node 22 arm64, 1 GB, 15 min max) | every service except the box's; one version per push | CI `deploy.yml` | `deploy/README.md` |
-| EC2 `wren-prod-pg` (`t4g.medium`) | Postgres 17, PgBouncer (6432, transaction mode), Valkey (6380, cache), browserless Chromium and the Restate server in Docker; the **box worker**: `BOX_SERVICES` (PoolScheduler, Discovery, Enrichment, Resolution, PageArchive, Books, Watch, SocialWatch) on 127.0.0.1:9080 or :9081, one slot per deploy so pinned calls finish on their build (`apps/worker/src/box-slot.ts`; `WREN_POOL_CHAIN_HOST=box`) | CI over SSM (`deploy/scripts/box-worker.sh`) | `deploy/README.md`, `apps/worker/src/box.ts` |
+| EC2 `wren-prod-pg` (`t4g.medium`) | Postgres 17, PgBouncer (6432, transaction mode), Redis (6380, cache), browserless Chromium and the Restate server in Docker; the **box worker**: `BOX_SERVICES` (PoolScheduler, Discovery, Enrichment, Resolution, PageArchive, Books, Watch, SocialWatch) on 127.0.0.1:9080 or :9081, one slot per deploy so pinned calls finish on their build (`apps/worker/src/box-slot.ts`; `WREN_POOL_CHAIN_HOST=box`) | CI over SSM (`deploy/scripts/box-worker.sh`) | `deploy/README.md`, `apps/worker/src/box.ts` |
 | RackNerd VPS (192.255.226.241, Buffalo) | mailifier SMTP prober (`probe.wrenautomation.com`) and SearXNG for the research engine (`search.wrenautomation.com`, bearer SSM `/wren/prod/searxng_token`), both behind Caddy | `deploy/scripts/deploy-vps.sh` | "Verifying addresses" and "Search" below |
 | RackNerd VPS (198.44.104.204, Los Angeles) | second prober (`probe2.wrenautomation.com`); in `WREN_SMTP_PROBE_URL`, probes once its PTR resolves | `PROBE_HOST=probe2.wrenautomation.com deploy/scripts/deploy-vps.sh` | "Verifying addresses" below |
 | William's Mac | autobrowse desk worker under launchd: every `sites` call (browser, logins, Chrome profiles, home IP) | `../autobrowse/deploy/desk/install.sh` | `../autobrowse/deploy/README.md` |
@@ -36,7 +36,7 @@ you / CLI / curl ──HTTPS, bearer──▶ Caddy ──▶ Restate on the box
 Restate (box) ──box instance role──▶ Lambda wren-prod-worker
 Restate (box) ──127.0.0.1:9080/9081──▶ box worker; ──cloudflared hop 127.0.0.1:9082──▶ desk worker (Mac)
 Lambda, box ──TLS 6432──▶ PgBouncer ──▶ Postgres on EC2
-Lambda, box, CLI ──TLS 6380──▶ Valkey cache on EC2
+Lambda, box, CLI ──TLS 6380──▶ Redis cache on EC2
 CLI, migrations ──TLS 5432──▶ Postgres on EC2
 Lambda, box ──wss /cdp, token──▶ Caddy ──127.0.0.1:3000──▶ browserless
 Resolution (box) ──HTTPS──▶ prober (RackNerd) ──port 25──▶ mail servers
@@ -55,7 +55,7 @@ costs nothing and has no process to crash.
 | EC2 `t4g.medium` (AL2023 ARM) | Postgres, browserless and Restate in Docker | $24 |
 | EBS gp3 20 GB | DB data, survives instance rebuild | $2 |
 | Elastic IP | fixed DB address | $0 while attached |
-| Security group | 5432 (TLS Postgres), 6432 (TLS PgBouncer), 6380 (TLS Valkey), 80/443 (Caddy: Restate ingress, browser at `/cdp`) only | $0 |
+| Security group | 5432 (TLS Postgres), 6432 (TLS PgBouncer), 6380 (TLS Redis), 80/443 (Caddy: Restate ingress, browser at `/cdp`) only | $0 |
 | S3 bucket | nightly `pg_dump -Fc`, 30-day lifecycle | pennies |
 | Lambda `wren-prod-worker` + log group | the worker | ≈ $0 at this volume |
 | SSM params `/wren/prod/{pg_password,browser_token,env}` | secrets | $0 |
@@ -175,8 +175,8 @@ uses it through `WREN_DATABASE_POOL_PORT=6432`, set in `deploy/terraform/lambda.
 straight to Postgres. Logins: main's from the container, every other role's SCRAM secret by `auth_query`.
 `docker logs wren-pgbouncer` shows each refused login and pool limit.
 
-Cache: Valkey (`wren-valkey`) on 6380, TLS on the box's self-signed cert, 64 MB, no disk
-(`designs/2026-10-11-cache.md`). CI runs `deploy/scripts/box-valkey.sh` each deploy. The worker
+Cache: Redis 8 (`wren-redis`) on 6380, TLS on the box's self-signed cert, 64 MB, no disk
+(`designs/2026-10-11-cache.md`). CI runs `deploy/scripts/box-redis.sh` each deploy. The worker
 and CLI use it through `WREN_CACHE_URL` (env-2), which pins the cert's fingerprint: a new box cert
 means a new `fp=` in that URL. Unset or down, reads go straight to Postgres. One login, allowed
 GET, SET, DEL and PING on `wren:*` keys only. Password in SSM `/wren/prod/cache`.
@@ -400,7 +400,7 @@ wren fetch get shopify-partner-profiles       # profiles for slugs under data/ag
 ## Search (SearXNG on the VPS)
 
 The research engine's free web search is a SearXNG on box 1 (`deploy/vps/`, profile
-`search`, image pinned by date, 350 MB cap, no Valkey). Caddy serves it as
+`search`, image pinned by date, 350 MB cap, no Redis). Caddy serves it as
 `https://search.wrenautomation.com` and answers 401 without the bearer (SSM
 `/wren/prod/searxng_token`); `/healthz` is open. SearXNG's own cookie key is SSM
 `/wren/prod/searxng_secret`. The A record is Cloudflare, DNS only. On the Mac the model keys

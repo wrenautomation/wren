@@ -4,14 +4,14 @@
  * (invalidate on write). Never write-back: a value lives nowhere but the database first.
  * Never a secret: the cache is a plain store on the box, outside the key store's encryption.
  *
- * `WREN_CACHE_URL` set: Valkey on the box, shared by every Lambda and the box worker. Unset:
+ * `WREN_CACHE_URL` set: Redis on the box, shared by every Lambda and the box worker. Unset:
  * memory, per process. A cache that fails is a miss, never an error: the read goes to the
  * truth.
  */
 import { type RespClient, respClient } from "./resp.js";
 
 export interface Cache {
-  readonly name: "memory" | "valkey";
+  readonly name: "memory" | "redis";
   get(key: string): Promise<string | null>;
   /** Kept for `ttlMs`, then gone. */
   set(key: string, value: string, ttlMs: number): Promise<void>;
@@ -50,9 +50,9 @@ export function memoryCache(now: () => number = Date.now, max = MEMORY_MAX): Cac
   };
 }
 
-export function valkeyCache(url: string, client: RespClient = respClient(url)): Cache {
+export function redisCache(url: string, client: RespClient = respClient(url)): Cache {
   return {
-    name: "valkey",
+    name: "redis",
     async get(key) {
       const r = await client.send("GET", PREFIX + key);
       return typeof r === "string" ? r : null;
@@ -66,9 +66,9 @@ export function valkeyCache(url: string, client: RespClient = respClient(url)): 
   };
 }
 
-/** Valkey when a URL is set, else memory. */
+/** Redis when a URL is set, else memory. */
 export function cacheFrom(url: string | undefined): Cache {
-  return url ? valkeyCache(url) : memoryCache();
+  return url ? redisCache(url) : memoryCache();
 }
 
 let warnedAt = 0;

@@ -7,7 +7,7 @@
 | Home | What | Why there |
 |---|---|---|
 | Lambda `wren-prod-worker` | every Restate handler, the portal's API (`ConsolePortal`) | bursty, $0 idle, a version per push, Restate drives it |
-| The box (EC2) | Postgres, PgBouncer, Valkey, Restate, browser, the long or always-on services | state and steady load; one box, no egress fees |
+| The box (EC2) | Postgres, PgBouncer, Redis, Restate, browser, the long or always-on services | state and steady load; one box, no egress fees |
 | Cloudflare | portal, phone, sign-in front, LLM gateway, lander, media | edge, free tier, TLS and CDN in one |
 
 No ECS, Kubernetes, Fly or Vercel: none of them removes a problem we have. Move a service to

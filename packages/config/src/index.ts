@@ -53,7 +53,7 @@ export const settingsSchema = z.object({
   /** Restate's admin API (port 9070): the console reads loop state here. Unset, the Loops read refuses. */
   restateAdminUrl: z.string().url().optional(),
   /**
-   * The shared cache: Valkey on the box, `rediss://default:<pw>@<host>:6380/?fp=<sha256>`
+   * The shared cache: Redis on the box, `rediss://default:<pw>@<host>:6380/?fp=<sha256>`
    * (`@wren/core/cache`). Unset, each process keeps its own in memory.
    */
   cacheUrl: z

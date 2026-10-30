@@ -9,7 +9,7 @@ entity: packages/core/src/cache.ts:13
 
 # cache
 
-The shared read cache: Valkey on the box (`WREN_CACHE_URL`), else memory per process. `@wren/core/cache`.
+The shared read cache: Redis 8 on the box (`WREN_CACHE_URL`), else memory per process. `@wren/core/cache`.
 
 ## Why this shape
 
@@ -18,10 +18,10 @@ Postgres is the truth; a key only saves a read (`designs/2026-10-11-cache.md`). 
 ## Shape
 
 - `Cache` (`cache.ts:13`): `get`, `set` with a TTL, `del`. Keys under `wren:v1:`
-- `memoryCache` (`:26`, LRU, 2000 keys), `valkeyCache` (`:53`), `cacheFrom(url)` (`:70`)
+- `memoryCache` (`:26`, LRU, 2000 keys), `redisCache` (`:53`), `cacheFrom(url)` (`:70`)
 - `readThrough` (`:89`): one load per key per process at a time, JSON, a failed load not kept; `invalidate` (`:121`)
 - `respClient` (`resp.ts:28`): RESP2 over TLS, pins the cert's SHA-256 (`?fp=`), password sent after the pin matches
-- Box: `deploy/scripts/box-valkey.sh` (64 MB, LRU, no disk, one ACL login: GET SET DEL PING on `wren:*`), CI step in `deploy.yml`
+- Box: `deploy/scripts/box-redis.sh` (64 MB, LRU, no disk, one ACL login: GET SET DEL PING on `wren:*`), CI step in `deploy.yml`
 - Setting `cacheUrl` (`packages/config/src/index.ts:45`)
 
 Citations: `packages/core/src/cache.ts:13`
@@ -33,7 +33,7 @@ Citations: `packages/core/src/cache.ts:13`
 
 ## If you change this
 
-- **Hits:** `restateAdminGet` (`console/restate-admin.ts`, first user, `services/platform.ts:145`); the box's Valkey config; a change in what a key holds bumps `PREFIX`
+- **Hits:** `restateAdminGet` (`console/restate-admin.ts`, first user, `services/platform.ts:145`); the box's Redis config; a change in what a key holds bumps `PREFIX`
 - **Does not hit:** any truth: everything here can be thrown away
 
 ## Surfaces
