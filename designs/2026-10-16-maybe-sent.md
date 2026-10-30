@@ -57,7 +57,8 @@ On 2026-10-16 a TikTok publish came back the same way, and the scheduler marked 
 - **One record per send.** `sendAtMostOnce` takes `landed(tx, sent)`: the item's own record (its state, touch, draft record). It runs in the transaction that flips the ledger row, and only when that flip happened. `settleSent` flips only a `sending` or `unsure` row. A take-over, a second Mark posted or a replay records nothing twice. `Landed.fresh` says this invocation settled it: the post's like and follow go only then. Mark posted (`markPosted`, and a client's `sdm:`) flips first in one transaction too.
 - **The stale take-over** waits until `keyedWaitEnds` plus 10 min from the row's last update. Sooner, the invocation that owns the row may still settle it.
 - **The recheck stays, for DMs.** "The call is still running" can no longer happen, so it left `RECHECK_WHYS`. "The verdict is still being read" and "the send is still running" still can, and they are safe to ask again: the call has ended. Option C covers other kinds.
-- **The six rows.** Two the desk sent: Mark posted, by autobrowse. One "comments are off": dropped. One with no desk record: checked against Restate first. Two LinkedIn rows stay unsure until LinkedIn reads return.
+- **The six rows.** Two the desk sent: Mark posted. One "comments are off": dropped. One with no desk record past its wait: sent again under a new key. Two LinkedIn rows stay unsure until LinkedIn reads return.
+- **Two TikTok comments are `sent` and never went out** (comments off, counted sent by the desk bug). No path undoes a `sent` row: Settle takes only unsure rows, skip only `found` or `queued` posts. Each needs its post back to `skipped`, and its touch, sent edit, draft `sent` record and ledger row gone. A person applies that.
 
 ### Sends with no autobrowse between
 
