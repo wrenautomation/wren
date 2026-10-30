@@ -373,4 +373,4 @@ export function registerEnrich(
 }
 
 /** The default outside reader: Haiku agents in an operator's Claude session. */
-const READER = "claude-haiku-5-5:agent";
+const READER = "claude-haiku-4-5:agent";
