@@ -191,6 +191,8 @@ export function postActs(
 export const ACTS_PER_PASS = 5;
 /** Posts older than this get no like or follow. */
 const ACT_DAYS = 7;
+/** One act per author in this window: a like, follow and comment on one person never land together. */
+export const AUTHOR_GAP_MS = 24 * 3_600_000;
 /** Failed tries before a post's act is parked; a follow parks for its author. */
 export const ACT_TRIES = 2;
 /** Failures in a row in one pass that hold the act for the day: the flow, not the post, is broken. */
@@ -216,7 +218,8 @@ export interface ActsStats {
 /**
  * Likes on fit posts and follows of their authors, with no yes (William, 2026-10-25): a like or
  * follow has no words. A post fits at `minFit`; job ads and posts off target are dropped, never
- * acted on. An author already followed through another post is not asked again. A used cap
+ * acted on. An author already followed through another post is not asked again. One act per
+ * author a pass, and none within `AUTHOR_GAP_MS` of a like, follow or comment (10-30). A used cap
  * (`holds`, key `<platform> <act>`) ends that act till its reset. A failed act counts on its post
  * and parks at `ACT_TRIES`; `ACT_BREAK` failures in a row, or a sign-in or block, hold the act for
  * the day (designs/2026-10-29-act-parking.md).
@@ -256,6 +259,11 @@ export async function autoActs(
         AND p.state IN ('found', 'queued', 'commented')
         AND p.created_at > ${new Date(t - ACT_DAYS * 86_400_000).toISOString()}::timestamptz
         AND ((p.liked_at IS NULL AND p.like_fails < ${ACT_TRIES}) OR p.followed_at IS NULL)
+        AND NOT EXISTS (SELECT 1 FROM reach_posts r
+          WHERE r.platform = p.platform
+            AND coalesce(r.handle, r.author_url) = coalesce(p.handle, p.author_url)
+            AND greatest(r.liked_at, r.followed_at, r.commented_at)
+              > ${new Date(t - AUTHOR_GAP_MS).toISOString()}::timestamptz)
       ORDER BY p.fit DESC, p.id`)) as unknown as Array<{
       id: number;
       toLike: boolean;
@@ -280,7 +288,8 @@ export async function autoActs(
       return p ? [{ ...r, p }] : [];
     });
   });
-  const followed = new Set<string>();
+  // authors acted on this pass: one act each
+  const touched = new Set<string>();
   const streak = { like: 0, follow: 0 };
   const holdDay = (what: "like" | "follow") => {
     o.holds[key(what)] = Math.max(o.holds[key(what)] ?? 0, t + untilUtcDay(t));
@@ -289,9 +298,10 @@ export async function autoActs(
   };
   for (const { p, toLike, toFollow } of due) {
     const who = p.handle ?? p.authorUrl ?? "";
+    if (touched.has(who)) continue;
     const want = {
       like: on.like && toLike && stats.liked < ACTS_PER_PASS,
-      follow: on.follow && toFollow && !followed.has(who) && stats.followed < followCap,
+      follow: on.follow && toFollow && stats.followed < followCap,
     };
     const acts = postActs(p, want, "");
     for (const what of ["like", "follow"] as const) {
@@ -302,10 +312,9 @@ export async function autoActs(
         await o.step(`${what} ${p.id}`, () => markPostActed(db, p.id, what, o.now));
         streak[what] = 0;
         if (what === "like") stats.liked++;
-        else {
-          stats.followed++;
-          followed.add(who);
-        }
+        else stats.followed++;
+        touched.add(who);
+        break;
       } catch (err) {
         if (holdCap(o.holds, key(what), err, t)) {
           on[what] = false;
@@ -322,12 +331,13 @@ export async function autoActs(
           continue;
         }
         await o.step(`${what} failed ${p.id}`, () => markActFailed(db, p.id, what, message));
-        if (what === "follow") followed.add(who);
+        touched.add(who);
         // a sign-in wall or a block is the account's, not this post's
         const account =
           err instanceof SiteCallError &&
           (err.code === "need_login" || err.code === "platform_blocked");
         if (account || ++streak[what] >= ACT_BREAK) holdDay(what);
+        break;
       }
     }
   }

@@ -24,7 +24,13 @@ import { FakeLlm } from "@wren/llm";
 import { eq, inArray, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { DEFAULT_POLICY } from "../../src/policy.js";
-import { ACT_BREAK, ACT_TRIES, ACTS_PER_PASS, autoActs } from "../../src/reach-posts/acts.js";
+import {
+  ACT_BREAK,
+  ACT_TRIES,
+  ACTS_PER_PASS,
+  AUTHOR_GAP_MS,
+  autoActs,
+} from "../../src/reach-posts/acts.js";
 
 const nextUtcDay = (d: Date) => Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + 1);
 
@@ -962,10 +968,13 @@ describe("likes and follows with no yes", () => {
     return r;
   };
   const sent: string[] = [];
-  const run = (o: { fail?: (path: string) => unknown; follow?: boolean } = {}, holds = {}) =>
+  const run = (
+    o: { fail?: (path: string) => unknown; like?: boolean; follow?: boolean; now?: Date } = {},
+    holds = {},
+  ) =>
     autoActs(db(), {
       platform: "x",
-      settings: { like: true, follow: o.follow ?? true, minFit: MIN_FIT },
+      settings: { like: o.like ?? true, follow: o.follow ?? true, minFit: MIN_FIT },
       call: async ([, , path, input]) => {
         const why = o.fail?.(path);
         if (why) throw why;
@@ -973,30 +982,46 @@ describe("likes and follows with no yes", () => {
       },
       step: (_name, fn) => fn(),
       holds,
-      now: NOW,
+      now: o.now ?? NOW,
     });
+  const later = new Date(NOW.getTime() + AUTHOR_GAP_MS + 60_000);
   beforeEach(() => {
     sent.length = 0;
   });
 
-  it("likes each fit post and follows its author once; a weak or dropped post is left", async () => {
+  it("one act per author a day: like, then follow, then the next post; weak or dropped left", async () => {
     const a = await row("701", "ann", 90);
     await row("702", "ann", 80, "queued");
     await row("703", "bob", MIN_FIT - 1);
     await row("704", "cal", 90, "dropped");
-    expect(await run()).toMatchObject({ liked: 2, followed: 1, held: [], errors: [] });
-    expect(sent).toEqual([
-      "/2/users/me/likes 701",
-      "/2/users/me/following ann",
-      "/2/users/me/likes 702",
-    ]);
+    expect(await run()).toMatchObject({ liked: 1, followed: 0, held: [], errors: [] });
+    expect(sent).toEqual(["/2/users/me/likes 701"]);
     const [after] = await db().select().from(reachPosts).where(eq(reachPosts.id, a.id));
     expect(after).toMatchObject({ state: "found" });
     expect(after?.likedAt).not.toBeNull();
-    // Done: the next pass sends nothing.
+    // inside the gap: nothing for ann
     sent.length = 0;
     expect(await run()).toMatchObject({ liked: 0, followed: 0 });
     expect(sent).toEqual([]);
+    // a day on: the follow
+    expect(await run({ now: later })).toMatchObject({ liked: 0, followed: 1 });
+    expect(sent).toEqual(["/2/users/me/following ann"]);
+    // two days on: the second post's like
+    sent.length = 0;
+    await run({ now: new Date(later.getTime() + AUTHOR_GAP_MS) });
+    expect(sent).toEqual(["/2/users/me/likes 702"]);
+  });
+
+  it("a comment on an author holds his like and follow for the gap", async () => {
+    const a = await row("705", "amy", 90);
+    await db()
+      .update(reachPosts)
+      .set({ state: "commented", commentedAt: new Date(NOW.getTime() - 3_600_000) })
+      .where(eq(reachPosts.id, a.id));
+    expect(await run()).toMatchObject({ liked: 0, followed: 0 });
+    expect(sent).toEqual([]);
+    await run({ now: later });
+    expect(sent).toEqual(["/2/users/me/likes 705"]);
   });
 
   it("at most ACTS_PER_PASS of each a pass; follow off sends likes only", async () => {
@@ -1043,19 +1068,20 @@ describe("likes and follows with no yes", () => {
 
   it("a failed act parks its post at ACT_TRIES; a failed follow parks its author", async () => {
     const a = await row("741", "gus", 90);
-    await row("742", "gus", 85);
     const broken = new SiteCallError("x", "POST", "/2/users/me/likes", 502, "no Like button");
-    const fail = (path: string) =>
-      path.endsWith("/following") || path.endsWith("/likes") ? broken : null;
-    for (let i = 0; i < ACT_TRIES; i++) await run({ fail }, {});
+    const fail = () => broken;
+    for (let i = 0; i < ACT_TRIES; i++) await run({ fail, follow: false }, {});
     const [after] = await db().select().from(reachPosts).where(eq(reachPosts.id, a.id));
     expect(after).toMatchObject({
       likeFails: ACT_TRIES,
       actError: expect.stringContaining("no Like button"),
     });
-    // Parked: the next pass asks nothing of this author's posts.
-    sent.length = 0;
-    expect(await run({ fail }, {})).toMatchObject({ errors: [] });
+    expect(await run({ fail, follow: false }, {})).toMatchObject({ errors: [] });
+    // a follow fails on one post, parks for the author's other post
+    await row("742", "guy", 90);
+    await row("743", "guy", 85);
+    for (let i = 0; i < ACT_TRIES; i++) await run({ fail, like: false }, {});
+    expect(await run({ fail, like: false }, {})).toMatchObject({ errors: [] });
     expect(sent).toEqual([]);
   });
 
@@ -1089,7 +1115,10 @@ describe("likes and follows with no yes", () => {
     for (let i = 0; i < ACT_BREAK + 1; i++) await row(`75${i}`, `hal${i}`, 90);
     const holds: Record<string, number> = {};
     const broken = new SiteCallError("x", "POST", "/2/users/me/following", 502, "no Follow button");
-    const r = await run({ fail: (path) => (path.endsWith("/following") ? broken : null) }, holds);
+    const r = await run(
+      { fail: (path) => (path.endsWith("/following") ? broken : null), like: false },
+      holds,
+    );
     expect(r.held).toEqual(["x follow"]);
     expect(r.errors).toHaveLength(ACT_BREAK);
     expect(holds["x follow"]).toBe(nextUtcDay(NOW));
