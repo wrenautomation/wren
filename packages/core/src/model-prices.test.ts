@@ -67,9 +67,10 @@ describe("tokenCost", () => {
     expect(priceOf("claude-haiku-5-55")).toBeNull();
   });
 
-  it("prices the worker's default model, Haiku 4.5, by its dated id", () => {
-    expect(tokenCost("claude-haiku-4-5-20251001", { input: 1_000_000, output: 1_000_000 })).toBe(
-      1_000_000 + 5_000_000,
+  it("prices the worker's default model, Haiku 5.5, at the high tier", () => {
+    // 1M prompt is over 100,000: 0.50 in, 2.50 out.
+    expect(tokenCost("claude-haiku-5-5", { input: 1_000_000, output: 1_000_000 })).toBe(
+      500_000 + 2_500_000,
     );
   });
 
