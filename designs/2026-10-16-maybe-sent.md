@@ -68,6 +68,7 @@ On 2026-10-16 a TikTok publish came back the same way, and the scheduler marked 
   - `comment:` sent edit (not for a rule's words), then `markAnswered` with `via`.
   - `onpost:` `markPostCommented`. `private:` `privateReplied` with `via`.
   - `dm:`, `sdm:` and `draft:` keep their own records.
+  - A refusal in it (the post, comment or account is gone) rolls back the settle. The row stays `sending` for the stale take-over.
 - **`send_attempts.via`** (migration 0352): `wren` when a rule sent it (a keyword), null for a person.
 - **The keyword hit no longer copies the send.**
 
@@ -77,7 +78,7 @@ On 2026-10-16 a TikTok publish came back the same way, and the scheduler marked 
 | B. Write the hit in `landed` and again in every settle path | No: two copies, one more path to forget |
 | C. Keep `failed` for unsure, as before | No: it says failed for a DM that may have gone out |
 
-- The hit goes `queued` → `handed` by a guarded update. Unsure or taken: it stays `handed`. Not sent or refused: `failed` with why. `keyword_hit_records` shows a handed hit as its row's state, or `not_sent` when the row is gone. The Failed view takes `failed`, `unsure` and `not_sent`. Hits `sent` before today keep their state.
+- The hit goes `queued` → `handed` by a guarded update. Unsure or taken: it stays `handed`. Not sent or refused: `failed` with why. `keyword_hit_records` shows a handed hit as its row's state, or `not_sent` when the row is gone. Failed (the view and the keyword's count) means `failed` or `not_sent`. `unsure` has its own view, May have sent: a person settles it in To approve. Hits `sent` before today keep their state.
 - `SocialInbox.settle` takes `private:`: Mark posted or drop. Send again is refused: the keyword sent it once.
 
 ### Sends with no autobrowse between

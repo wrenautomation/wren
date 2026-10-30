@@ -287,9 +287,11 @@ export const keywordHitRecord = defineRecord({
     {
       id: "failed",
       label: "Failed",
-      where: { state: ["failed", "unsure", "not_sent"] },
+      where: { state: ["failed", "not_sent"] },
       sort: "-at",
       at: "at",
     },
+    // Not failed: a person settles each in To approve.
+    { id: "unsure", label: "May have sent", where: { state: ["unsure"] }, sort: "-at", at: "at" },
   ],
 });

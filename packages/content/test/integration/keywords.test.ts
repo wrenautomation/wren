@@ -276,7 +276,7 @@ describe("KeywordDm.send", () => {
     expect(row?.state).toBe("handed");
     expect(await sendAttempt(pg.db, `private:${id}`)).toMatchObject({ state: "unsure" });
     const api = serveRecords([keywordHitRecord], pg.db);
-    const failed = await api.list({ record: "marketing.keyword_hit", view: "failed", limit: 50 });
+    const failed = await api.list({ record: "marketing.keyword_hit", view: "unsure", limit: 50 });
     expect(failed.rows.find((r) => r.author === "by_lost1")).toMatchObject({ state: "unsure" });
     // No public reply goes after a DM that may not have gone out, and nothing was sent twice.
     expect(asked.filter((a) => a.commentId === "lost1").map((a) => a.handler)).toEqual([
