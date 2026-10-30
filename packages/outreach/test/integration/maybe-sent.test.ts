@@ -152,39 +152,13 @@ function fakeDesk() {
     },
     client: {
       status: async () => ({ routes: [] }),
-      call: async (
+      // A RestatePromise: a keyed write waits on it with a timeout.
+      call: (
         req: { method: string; path: string; sendKey?: string },
         opts?: { getOpts(): { idempotencyKey?: string } },
-      ): Promise<unknown> => {
-        if (req.method === "GET") {
-          const kids = d.thread.map((c) => ({
-            kind: "t1",
-            data: { name: c.id, author: c.author, body: "hi", parent_id: "t3_p1" },
-          }));
-          return [
-            { data: { children: [{ kind: "t3", data: { name: "t3_p1", author: "owner1" } }] } },
-            { data: { children: kids } },
-          ];
-        }
-        if (!req.sendKey) {
-          d.plain += 1;
-          return { json: { data: { things: [{ data: { name: "t1_plain" } }] } } };
-        }
-        const kept = journal.get(req.sendKey);
-        if (kept && kept.verdict !== "unknown") {
-          d.replays.push(req.sendKey);
-          return kept;
-        }
-        if (kept) return d.recheck(req.sendKey, kept);
-        if (d.hold) await d.hold;
-        d.writes.push({
-          sendKey: req.sendKey,
-          idem: opts?.getOpts().idempotencyKey ?? null,
-          path: req.path,
-        });
-        const v = d.next.shift() ?? sentV(`t1_${d.writes.length}`);
-        journal.set(req.sendKey, v);
-        return v;
+      ) => {
+        const p = answer(req, opts);
+        return Object.assign(p, { orTimeout: () => p });
       },
       verdict: async (req: { sendKey: string }): Promise<SendVerdict> => {
         const kept = journal.get(req.sendKey);
@@ -193,6 +167,40 @@ function fakeDesk() {
       },
     },
   };
+  async function answer(
+    req: { method: string; path: string; sendKey?: string },
+    opts?: { getOpts(): { idempotencyKey?: string } },
+  ): Promise<unknown> {
+    if (req.method === "GET") {
+      const kids = d.thread.map((c) => ({
+        kind: "t1",
+        data: { name: c.id, author: c.author, body: "hi", parent_id: "t3_p1" },
+      }));
+      return [
+        { data: { children: [{ kind: "t3", data: { name: "t3_p1", author: "owner1" } }] } },
+        { data: { children: kids } },
+      ];
+    }
+    if (!req.sendKey) {
+      d.plain += 1;
+      return { json: { data: { things: [{ data: { name: "t1_plain" } }] } } };
+    }
+    const kept = journal.get(req.sendKey);
+    if (kept && kept.verdict !== "unknown") {
+      d.replays.push(req.sendKey);
+      return kept;
+    }
+    if (kept) return d.recheck(req.sendKey, kept);
+    if (d.hold) await d.hold;
+    d.writes.push({
+      sendKey: req.sendKey,
+      idem: opts?.getOpts().idempotencyKey ?? null,
+      path: req.path,
+    });
+    const v = d.next.shift() ?? sentV(`t1_${d.writes.length}`);
+    journal.set(req.sendKey, v);
+    return v;
+  }
   return d;
 }
 
@@ -225,6 +233,13 @@ const refOf = (made: unknown): string | null =>
   (made as { json?: { data?: { things?: Array<{ data?: { name?: string } }> } } })?.json?.data
     ?.things?.[0]?.data?.name ?? null;
 
+/** Older than any keyed write's wait (its day's end plus grace): a `sending` row this old is lost. */
+const PAST_WAIT_MS = 48 * 3_600_000;
+
+/** Each `landed` run, by item: the item's own record of a send happens once. */
+const landings: string[] = [];
+const landed = (item: string) => async () => void landings.push(item);
+
 /** The comment, sent through the real `restateSites` over the fake desk, under the ledger's key. */
 function comment(
   desk: ReturnType<typeof fakeDesk>,
@@ -254,6 +269,7 @@ function comment(
       await o.after?.();
       return { ref: refOf(made) };
     },
+    landed: landed(ITEM),
   });
 }
 
@@ -324,6 +340,7 @@ describe("sendAtMostOnce, under the desk's verdict", () => {
   });
 
   it("a take-over after a lost invocation runs under the same key: the desk replays, nothing is written twice", async () => {
+    landings.length = 0;
     const desk = fakeDesk();
     desk.next.push(sentV("t1_abc"));
     // The write landed and the invocation died before it settled.
@@ -333,7 +350,7 @@ describe("sendAtMostOnce, under the desk's verdict", () => {
     expect(left).toMatchObject({ state: "sending" });
     await db()
       .update(sendAttempts)
-      .set({ updatedAt: new Date(NOW.getTime() - 11 * 60_000) });
+      .set({ updatedAt: new Date(NOW.getTime() - PAST_WAIT_MS) });
     // The take-over: our own comment is in the thread, so a guard here would refuse it.
     let guarded = 0;
     const r = await comment(desk, {
@@ -342,10 +359,13 @@ describe("sendAtMostOnce, under the desk's verdict", () => {
         throw new restate.TerminalError("u/us already wrote in this thread");
       },
     });
-    expect(r).toMatchObject({ ref: "t1_abc", found: true });
+    expect(r).toMatchObject({ ref: "t1_abc", found: true, fresh: true });
     expect(guarded).toBe(0);
     expect(desk.writes).toHaveLength(1);
     expect(desk.replays).toEqual([desk.writes[0]?.sendKey]);
+    // Settled already: a third call records nothing again.
+    expect(await comment(desk)).toMatchObject({ fresh: false });
+    expect(landings).toEqual([ITEM]);
     expect(await sendAttempt(db(), ITEM)).toMatchObject({
       state: "sent",
       ref: "t1_abc",
@@ -361,7 +381,7 @@ describe("sendAtMostOnce, under the desk's verdict", () => {
     await expect(comment(desk, { ctx: lost })).rejects.toThrow(/lost at unsure/);
     await db()
       .update(sendAttempts)
-      .set({ updatedAt: new Date(NOW.getTime() - 11 * 60_000) });
+      .set({ updatedAt: new Date(NOW.getTime() - PAST_WAIT_MS) });
     desk.verify = sentV("t1_found");
     expect(await comment(desk)).toMatchObject({ ref: "t1_found", found: true });
     expect(desk.writes).toHaveLength(1);
@@ -375,7 +395,7 @@ describe("sendAtMostOnce, under the desk's verdict", () => {
     await expect(comment(desk, { ctx: lost })).rejects.toThrow(/lost at unsure/);
     await db()
       .update(sendAttempts)
-      .set({ updatedAt: new Date(NOW.getTime() - 11 * 60_000) });
+      .set({ updatedAt: new Date(NOW.getTime() - PAST_WAIT_MS) });
     const err = await comment(desk).catch((e: unknown) => e);
     expect(isSendUnsure(err)).toBe(true);
     expect(desk.writes).toHaveLength(1);
@@ -393,8 +413,8 @@ describe("sendAtMostOnce, under the desk's verdict", () => {
         words: "synthetic words",
         target: "a thread",
         tries: 1,
-        startedAt: new Date(NOW.getTime() - 20 * 60_000),
-        updatedAt: new Date(NOW.getTime() - 20 * 60_000),
+        startedAt: new Date(NOW.getTime() - PAST_WAIT_MS),
+        updatedAt: new Date(NOW.getTime() - PAST_WAIT_MS),
       });
     const claim = {
       item: ITEM,
@@ -586,7 +606,7 @@ describe("a Reddit comment, the whole way (ReachDesk commentThread)", () => {
     expect(await thread()).toMatchObject({ state: "queued" });
     await db()
       .update(sendAttempts)
-      .set({ updatedAt: new Date(NOW.getTime() - 11 * 60_000) });
+      .set({ updatedAt: new Date(NOW.getTime() - PAST_WAIT_MS) });
     // Our own comment is in the thread now: a first send would be refused.
     desk.thread.push({ id: "t1_abc", author: "WrenAutomation" });
     expect(await run(desk).result).toEqual({ ref: "t1_abc" });
@@ -769,7 +789,7 @@ describe("the sender's DMs", () => {
   describe("an answer that came late (still running): the sender asks again and settles it", () => {
     const LATER = new Date(NOW.getTime() + RECHECK_EVERY_MS);
     const late = async () => {
-      ch.faults.push({ err: new SendUnknown("the call is still running", AT), landed: true });
+      ch.faults.push({ err: new SendUnknown("the send is still running", AT), landed: true });
       await tickNow();
       const [m] = await db().select().from(reachMessages);
       return { id: m?.id ?? 0, item: `dm:${m?.id}` };
@@ -1038,6 +1058,7 @@ describe("a private reply (private:), with no key to ask: the desk says unknown"
       target: "c1",
       url: "https://example.test/c1",
       send,
+      landed: landed(`private:${id}`),
     });
 
   it("unknown outcome: unsure at once; Mark posted records the DM as a send would", async () => {
@@ -1115,6 +1136,7 @@ describe("a client's send, on its connected account: the same verdict path, no w
       url: "https://x.com/someone_1/status/x_1",
       again,
       send,
+      landed: landed("comment:7"),
     });
   beforeEach(() => {
     reads.length = 0;

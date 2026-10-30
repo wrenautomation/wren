@@ -19,7 +19,7 @@ import { modelDrafts } from "@wren/core/reply-drafts";
 import { whereSent } from "@wren/core/sent-url";
 import { atomic, type Db, type Queryable } from "@wren/db";
 import { completeAndParse, type LlmClient, type Outcome } from "@wren/llm";
-import { and, eq, inArray, lte, ne, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, lte, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 import { addProspects, contactByHandle } from "./contacts.js";
 import { commentsToday } from "./discovery/threads.js";
@@ -698,6 +698,28 @@ export async function privateReplied(
     ref: `sent:dm:${msg.id}`,
   });
   return { contactId: contact.id, messageId: msg.id };
+}
+
+/** The DM `privateReplied` wrote for a comment: its contact and newest manual message. */
+export async function privateReplyOf(
+  db: Queryable,
+  id: number,
+): Promise<{ contactId: number; messageId: number }> {
+  const [row] = await db
+    .select({ contactId: reachMessages.contactId, messageId: reachMessages.id })
+    .from(comments)
+    .innerJoin(reachMessages, eq(reachMessages.contactId, comments.contactId))
+    .where(
+      and(
+        eq(comments.id, id),
+        eq(reachMessages.kind, "manual"),
+        eq(reachMessages.direction, "out"),
+      ),
+    )
+    .orderBy(desc(reachMessages.id))
+    .limit(1);
+  if (!row) throw new Error(`comment ${id} has no DM on record`);
+  return row;
 }
 
 export async function dropComment(

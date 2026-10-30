@@ -157,6 +157,16 @@ export interface SitesHost {
   dayZone?: string;
 }
 
+/** Past a keyed write's `until`, how long its answer may still take (clock skew, a leg mid-run). */
+export const SEND_GRACE_MS = 30 * 60_000;
+
+/**
+ * When the wait on a keyed write begun at `at` ends: its day's end plus `SEND_GRACE_MS`. The desk
+ * never starts it after its day, so past this an answer is final and "no record" means not sent.
+ */
+export const keyedWaitEnds = (at: Date, zone = SCHEDULE_ZONE): Date =>
+  new Date(dayEnd(zone, at).getTime() + SEND_GRACE_MS);
+
 /**
  * Wake the machine `sites` runs on: start it if stopped, no-op if running.
  * Idempotent, so a retried invocation may wake twice. The box stops itself
@@ -172,7 +182,8 @@ export type Wake = () => Promise<"started" | "running">;
  * box) or `DESK` (the Mac, never woken: it is on while the Mac is). `caller`
  * rides on every call, so autobrowse can say who spent a capped site's reads.
  * `limitMs`: a loop's client waits on each call at most this long; past it the call is
- * cancelled and `CallTimeout` (terminal) thrown, never tried again in this pass.
+ * cancelled and `CallTimeout` (terminal) thrown, never tried again in this pass. Not a keyed
+ * write: it waits for the desk's answer up to `keyedWaitEnds` (WA-979).
  *
  * A write that cannot be undone (`routeKind` "send") made inside a key scope (`withSendKey`) is
  * keyed (`keyedCall`): autobrowse answers what became of it as a verdict, and this side never
@@ -237,10 +248,13 @@ export function restateSites(
     account: string | undefined,
     key: string,
   ): Promise<never> {
-    const since = new Date(await ctx.date.now()).toISOString();
+    const began = await ctx.date.now();
+    const since = new Date(began).toISOString();
     let answer: unknown;
     try {
-      answer = await waited(
+      // Not `limitMs`: a queued write still lands, and "no record" is only final past its day.
+      answer = await within(
+        ctx,
         client.call(
           {
             site,
@@ -250,16 +264,20 @@ export function restateSites(
             ...(account ? { account } : {}),
             caller,
             sendKey: key,
-            until: untilOf(Date.parse(since)),
+            until: untilOf(began),
           },
           restate.rpc.opts({ idempotencyKey: key }),
         ),
-        `call ${site} ${method} ${path}`,
-        true,
+        {
+          ms: Math.max(keyedWaitEnds(new Date(began), dayZone).getTime() - began, 60_000),
+          call: `${service.name}/call ${site} ${method} ${path}`,
+          keep: true,
+        },
       );
     } catch (err) {
-      // A write past its wait is left running: it may still land.
-      if (err instanceof CallTimeout) throw unknownSend("the call is still running", since);
+      // Past its day: the journal's record says what it did; none means it never started.
+      if (err instanceof CallTimeout)
+        return settled(site, method, path, await askVerdict(site, method, path, key, since));
       const e = siteCallErrorFrom(err, site, method, path);
       if (!(e instanceof SiteCallError)) throw e;
       // A request that was wrong stays an error: nothing was attempted (a 408 or a kill, 409, may

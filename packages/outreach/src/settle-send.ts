@@ -4,7 +4,7 @@
  * he asks for it again, or he drops it: it did not go out and he does not want it sent. One
  * function per item kind, keyed by the typed id.
  */
-import type { Queryable } from "@wren/db";
+import { atomic, type Queryable } from "@wren/db";
 import { and, eq } from "drizzle-orm";
 import { commentById, dropComment, markAnswered, privateReplied } from "./comments.js";
 import { setContactState } from "./contacts.js";
@@ -55,73 +55,76 @@ export async function unsureItem(db: Queryable, item: string) {
  * sequences and the sender.
  */
 export async function markPosted(
-  db: Queryable,
+  outer: Queryable,
   item: string,
   o: Partial<Pick<TickOptions, "sequences" | "sender">> & { by: string; now: Date },
 ): Promise<TickStats> {
-  const a = await unsureItem(db, item);
-  const { kind, id } = itemOf(item);
-  const stats = emptyStats();
-  if (kind === "thread") {
-    const [acct] = a.account
-      ? await db
-          .select({ id: reachAccounts.id })
-          .from(reachAccounts)
-          .where(eq(reachAccounts.account, a.account))
-      : [];
-    if (!acct) throw new ReachRefusal(`no account ${a.account ?? ""}`);
-    await markCommented(db, id, {
-      body: a.words,
-      ref: a.ref,
-      accountId: acct.id,
-      now: o.now,
-      by: o.by,
-    });
-  } else if (kind === "comment")
-    await markAnswered(db, Number(id), { body: a.words, ref: a.ref, now: o.now, by: o.by });
-  else if (kind === "onpost")
-    await markPostCommented(db, await planPostComment(db, Number(id)), {
-      body: a.words,
-      by: o.by,
-      now: o.now,
-    });
-  else if (kind === "private")
-    await privateReplied(db, await commentById(db, Number(id)), {
-      body: a.words,
-      ref: a.ref,
-      now: o.now,
-      by: o.by,
-    });
-  else if (kind === "sdm")
-    throw new ReachRefusal("a connected account's answer settles in its Inbox");
-  else if (kind === "draft") throw new ReachRefusal("a post of ours settles in ContentDesk");
-  else {
-    const { sequences, sender } = o;
-    if (!sequences || !sender) throw new ReachRefusal("a DM settles in ReachDesk");
-    const [row] = await db
-      .select()
-      .from(reachMessages)
-      .where(eq(reachMessages.id, Number(id)));
-    if (!row) throw new ReachRefusal(`no message ${id}`);
-    const [contact] = await db
-      .select()
-      .from(reachContacts)
-      .where(eq(reachContacts.id, row.contactId));
-    const [account] = row.accountId
-      ? await db.select().from(reachAccounts).where(eq(reachAccounts.id, row.accountId))
-      : [];
-    if (!contact || !account) throw new ReachRefusal(`message ${id} has no contact or account`);
-    const c: Candidate = { row, contact, account, checkRelationship: false };
-    await recordSent(
-      db,
-      c,
-      { ref: a.ref, at: o.now.toISOString(), fetchedWith: "browser" },
-      { sequences, sender, now: o.now, runId: null },
-      stats,
-    );
-  }
-  await settleSent(db, item, { ref: a.ref, at: o.now, by: o.by, now: o.now });
-  return stats;
+  // One transaction, the flip first: a second "posted" (or a late send) records nothing twice.
+  return atomic(outer, async (db) => {
+    const a = await unsureItem(db, item);
+    const { kind, id } = itemOf(item);
+    if (kind === "sdm") throw new ReachRefusal("a connected account's answer settles in its Inbox");
+    if (kind === "draft") throw new ReachRefusal("a post of ours settles in ContentDesk");
+    if (!(await settleSent(db, item, { ref: a.ref, at: o.now, by: o.by, now: o.now })))
+      throw new ReachRefusal("that send is already settled");
+    const stats = emptyStats();
+    if (kind === "thread") {
+      const [acct] = a.account
+        ? await db
+            .select({ id: reachAccounts.id })
+            .from(reachAccounts)
+            .where(eq(reachAccounts.account, a.account))
+        : [];
+      if (!acct) throw new ReachRefusal(`no account ${a.account ?? ""}`);
+      await markCommented(db, id, {
+        body: a.words,
+        ref: a.ref,
+        accountId: acct.id,
+        now: o.now,
+        by: o.by,
+      });
+    } else if (kind === "comment")
+      await markAnswered(db, Number(id), { body: a.words, ref: a.ref, now: o.now, by: o.by });
+    else if (kind === "onpost")
+      await markPostCommented(db, await planPostComment(db, Number(id)), {
+        body: a.words,
+        by: o.by,
+        now: o.now,
+      });
+    else if (kind === "private")
+      await privateReplied(db, await commentById(db, Number(id)), {
+        body: a.words,
+        ref: a.ref,
+        now: o.now,
+        by: o.by,
+      });
+    else {
+      const { sequences, sender } = o;
+      if (!sequences || !sender) throw new ReachRefusal("a DM settles in ReachDesk");
+      const [row] = await db
+        .select()
+        .from(reachMessages)
+        .where(eq(reachMessages.id, Number(id)));
+      if (!row) throw new ReachRefusal(`no message ${id}`);
+      const [contact] = await db
+        .select()
+        .from(reachContacts)
+        .where(eq(reachContacts.id, row.contactId));
+      const [account] = row.accountId
+        ? await db.select().from(reachAccounts).where(eq(reachAccounts.id, row.accountId))
+        : [];
+      if (!contact || !account) throw new ReachRefusal(`message ${id} has no contact or account`);
+      const c: Candidate = { row, contact, account, checkRelationship: false };
+      await recordSent(
+        db,
+        c,
+        { ref: a.ref, at: o.now.toISOString(), fetchedWith: "browser" },
+        { sequences, sender, now: o.now, runId: null },
+        stats,
+      );
+    }
+    return stats;
+  });
 }
 
 /** A DM sent again: back in the sender's queue, due now; its ledger row goes with it. */

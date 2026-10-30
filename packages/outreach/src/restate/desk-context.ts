@@ -7,7 +7,7 @@ import * as restate from "@restatedev/restate-sdk";
 import { type byOf, keepSentEdit } from "@wren/core/ask";
 import { rejectWhy } from "@wren/core/draft-record";
 import { sendAcross } from "@wren/core/send-verdict";
-import type { Db } from "@wren/db";
+import type { Db, Queryable } from "@wren/db";
 import { z } from "zod";
 import { listAccounts } from "../accounts.js";
 import { answerFor, checkThread, markAnswered, planAnswer } from "../comments.js";
@@ -25,7 +25,7 @@ import {
   SENDER_KEY,
   wakeWatch,
 } from "./deps.js";
-import { isSendUnsure, sendAtMostOnce, sendError } from "./maybe-sent.js";
+import { isSendUnsure, type Landed, sendAtMostOnce, sendError } from "./maybe-sent.js";
 import { scheduleProofs } from "./proofs.js";
 import { invitesAccount } from "./watch.js";
 
@@ -112,17 +112,16 @@ export function deskContext(deps: ReachDeps) {
     const words = (given ?? plan.comment.draft ?? "").trim();
     if (!words) throw new restate.TerminalError("the answer is empty");
     // Answered, and words that differ from the draft kept as his edit.
-    const answered = (ref: string | null, body: string) =>
-      ctx.run("answered", async () => {
-        await keepSentEdit(deps.db, {
-          record: "comment",
-          id: String(id),
-          by,
-          before: plan.comment.draft,
-          after: body,
-        });
-        await markAnswered(deps.db, id, { body, ref, now, by });
+    const answered = (body: string) => async (tx: Queryable, sent: Landed) => {
+      await keepSentEdit(tx, {
+        record: "comment",
+        id: String(id),
+        by,
+        before: plan.comment.draft,
+        after: body,
       });
+      await markAnswered(tx, id, { body, ref: sent.ref, now, by });
+    };
     const item = `comment:${id}`;
     if (!plan.account) {
       // On our own post: the content channel answers (designs/2026-10-06-social-inbox.md).
@@ -150,8 +149,8 @@ export function deskContext(deps: ReachDeps) {
           );
           return { ref: null };
         },
+        landed: answered(text),
       }).catch(failed);
-      await answered(sent.ref, text);
       scheduleProofs(ctx, item);
       return { ref: sent.ref };
     }
@@ -172,8 +171,8 @@ export function deskContext(deps: ReachDeps) {
         await terminal(async () => checkThread(authors, plan.others));
       },
       send: () => comment(to, words),
+      landed: answered(words),
     }).catch(failed);
-    await answered(sent.ref, words);
     scheduleProofs(ctx, item);
     wakeWatch(ctx);
     return { ref: sent.ref };

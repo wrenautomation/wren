@@ -138,9 +138,8 @@ export function makeKeywordDm(deps: KeywordDmDeps) {
           const dm = await ctx.run("words", () =>
             tagged(db, hit.dm, { source: req.client ?? "wren", medium: "dm", campaign: "keyword" }),
           );
-          let ref: string | null;
           try {
-            ({ ref } = await sendAtMostOnce(ctx, db, {
+            await sendAtMostOnce(ctx, db, {
               item: `private:${c.id}`,
               platform: c.platform,
               account: null,
@@ -157,21 +156,27 @@ export function makeKeywordDm(deps: KeywordDmDeps) {
                     ...k,
                   }),
                 ),
+              landed: async (tx, sent) => {
+                await privateReplied(tx, c, {
+                  body: dm,
+                  ref: sent.ref,
+                  now,
+                  by: "keyword",
+                  via: "wren",
+                });
+                await settleHit(tx, req.hit, { sent: true, ref: sent.ref, now });
+              },
             }).catch((err) => {
               throw sendError(err);
-            }));
+            });
           } catch (err) {
             if (err instanceof restate.TerminalError) return failed(err.message);
             throw err;
           }
-          await ctx.run("sent", async () => {
-            await privateReplied(db, c, { body: dm, ref, now, by: "keyword", via: "wren" });
-            await settleHit(db, req.hit, { sent: true, ref, now });
-          });
           const reply = hit.reply?.trim();
           if (reply)
             try {
-              const answer = await sendAtMostOnce(ctx, db, {
+              await sendAtMostOnce(ctx, db, {
                 item: `comment:${c.id}`,
                 platform: c.platform,
                 account: null,
@@ -190,18 +195,17 @@ export function makeKeywordDm(deps: KeywordDmDeps) {
                   );
                   return { ref: null };
                 },
+                landed: (tx, answer) =>
+                  markAnswered(tx, c.id, {
+                    body: reply,
+                    ref: answer.ref,
+                    now,
+                    by: "keyword",
+                    via: "wren",
+                  }),
               }).catch((err) => {
                 throw sendError(err);
               });
-              await ctx.run("answered", () =>
-                markAnswered(db, c.id, {
-                  body: reply,
-                  ref: answer.ref,
-                  now,
-                  by: "keyword",
-                  via: "wren",
-                }),
-              );
             } catch (err) {
               if (!(err instanceof restate.TerminalError)) throw err;
               ctx.console.warn(`keyword reply on comment ${c.id}: ${errorText(err)}`);

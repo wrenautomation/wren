@@ -8,7 +8,7 @@ import * as restate from "@restatedev/restate-sdk";
 import { SiteCallError } from "@wren/core/content";
 import { isRefusal } from "@wren/core/content/restate";
 import { sendOnce } from "@wren/core/maybe-sent";
-import type { Queryable } from "@wren/db";
+import { atomic, type Queryable } from "@wren/db";
 import { ReachRefusal } from "../refusal.js";
 import {
   claimSend,
@@ -67,6 +67,11 @@ interface AtMostOnce extends Omit<SendClaim, "invocation" | "now"> {
   send: () => Promise<{ ref: string | null }>;
   /** Guards before a first send, not on a take-over (others of ours in the thread). */
   before?: () => Promise<void>;
+  /**
+   * The item's own record of the send (its state, touch, draft record): in the transaction that
+   * settles the ledger row, and only when this settle flipped it. No `ctx` in it.
+   */
+  landed: (tx: Queryable, sent: Landed) => Promise<unknown>;
 }
 
 export interface Landed {
@@ -74,6 +79,8 @@ export interface Landed {
   at: string;
   /** Found by autobrowse's verified read rather than answered by the send. */
   found: boolean;
+  /** This invocation settled it; false when it was settled before (its effects ran then). */
+  fresh: boolean;
 }
 
 export async function sendAtMostOnce(
@@ -82,7 +89,7 @@ export async function sendAtMostOnce(
   o: AtMostOnce,
 ): Promise<Landed> {
   const now = new Date(await ctx.date.now());
-  const { send, before, ...claim } = o;
+  const { send, before, landed, ...claim } = o;
   // A refusal comes back as a value, so it is thrown as `SendTaken` here, not as a step's error.
   const claimed = await ctx.run("claim send", async () => {
     try {
@@ -94,7 +101,7 @@ export async function sendAtMostOnce(
   });
   if (claimed.go === "taken") throw new SendTaken(claimed.why, { errorCode: 409 });
   if (claimed.go === "done")
-    return { ref: claimed.ref, at: claimed.at ?? now.toISOString(), found: true };
+    return { ref: claimed.ref, at: claimed.at ?? now.toISOString(), found: true, fresh: false };
   let out: Awaited<ReturnType<typeof sendOnce<{ ref: string | null }>>>;
   try {
     out = await sendOnce({
@@ -120,6 +127,14 @@ export async function sendAtMostOnce(
   const ref = out.kind === "sent" ? out.sent.ref : out.seen.ref;
   const at = (out.kind === "found" && out.seen.at) || now.toISOString();
   const by = out.kind;
-  await ctx.run("settle send", () => settleSent(db, o.item, { ref, at: new Date(at), by, now }));
-  return { ref, at, found: out.kind === "found" };
+  const found = out.kind === "found";
+  // One transaction: the ledger and the item agree, and a second settle (a take-over) adds nothing.
+  const fresh = await ctx.run("settle send", () =>
+    atomic(db, async (tx) => {
+      if (!(await settleSent(tx, o.item, { ref, at: new Date(at), by, now }))) return false;
+      await landed(tx, { ref, at, found, fresh: true });
+      return true;
+    }),
+  );
+  return { ref, at, found, fresh };
 }

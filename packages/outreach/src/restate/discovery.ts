@@ -668,6 +668,23 @@ export function discoveryHandlers(deps: ReachDeps) {
               if (met) throw new restate.TerminalError(`u/${met} already wrote in this thread`);
             },
             send: () => comment(target, body),
+            landed: async (tx, landed) => {
+              // Words that differ from the draft are his edit.
+              await keepSentEdit(tx, {
+                record: "thread",
+                id: req.id,
+                by: byOf(req),
+                before: plan.thread.draft,
+                after: body,
+              });
+              await markCommented(tx, req.id, {
+                body,
+                ref: landed.ref,
+                accountId: plan.account.id,
+                now,
+                by: byOf(req),
+              });
+            },
           });
         } catch (thrown) {
           // Unsure waits on a person in To approve; its slot leaves the schedule.
@@ -686,23 +703,6 @@ export function discoveryHandlers(deps: ReachDeps) {
             await ctx.run("send failed", () => sendFailed(deps.db, "thread", req.id, err.message));
           throw err;
         }
-        await ctx.run("commented", async () => {
-          // Words that differ from the draft are his edit.
-          await keepSentEdit(deps.db, {
-            record: "thread",
-            id: req.id,
-            by: byOf(req),
-            before: plan.thread.draft,
-            after: body,
-          });
-          await markCommented(deps.db, req.id, {
-            body,
-            ref: sent.ref,
-            accountId: plan.account.id,
-            now,
-            by: byOf(req),
-          });
-        });
         scheduleProofs(ctx, `thread:${req.id}`);
         wakeWatch(ctx);
         return { ref: sent.ref };

@@ -6,14 +6,20 @@
  * real ref) or `unsure` (waits on a person in To approve). A refusal or a send that never left
  * releases it; the next send makes a new key.
  */
+import { keyedWaitEnds } from "@wren/core/content/restate";
 import { newSendKey } from "@wren/core/send-verdict";
 import type { Queryable } from "@wren/db";
 import { and, eq, gt, inArray, isNotNull, isNull, like, not, type SQL, sql } from "drizzle-orm";
 import { ReachRefusal } from "./refusal.js";
 import { type SendAttempt, sendAttempts } from "./schema.js";
 
-/** A `sending` row this old lost its invocation (a crash, a kill): the next claim takes it over. */
+/**
+ * A `sending` row past its keyed write's wait (`keyedWaitEnds`, its day's end plus grace) lost its
+ * invocation (a kill): the next claim takes it over. Sooner, its own invocation may still settle it.
+ */
 const SENDING_STALE_MS = 10 * 60_000;
+const staleAt = (row: SendAttempt) =>
+  new Date(keyedWaitEnds(row.updatedAt).getTime() + SENDING_STALE_MS);
 
 export const UNSURE_WAITS =
   "may have gone out. It waits in To approve, where you can open it on the site, mark it posted, or send it again";
@@ -24,11 +30,7 @@ export const UNSURE_WAITS =
  * itself. It waits on a person only when the verdict stays open past `RECHECK_FOR_MS`, or says
  * something else.
  */
-export const RECHECK_WHYS = [
-  "the call is still running",
-  "the verdict is still being read",
-  "the send is still running",
-];
+export const RECHECK_WHYS = ["the verdict is still being read", "the send is still running"];
 export const RECHECK_FOR_MS = 2 * 60 * 60_000;
 export const RECHECK_EVERY_MS = 3 * 60_000;
 
@@ -87,8 +89,7 @@ export async function claimSend(db: Queryable, c: SendClaim): Promise<Claimed> {
   if (row.state === "sent")
     return { go: "done", ref: row.ref, at: row.sentAt?.toISOString() ?? null };
   if (row.state === "unsure" && !c.again) throw new ReachRefusal(`it ${UNSURE_WAITS}`);
-  const stale = new Date(c.now.getTime() - SENDING_STALE_MS);
-  if (row.state === "sending" && row.updatedAt > stale)
+  if (row.state === "sending" && c.now < staleAt(row))
     throw new ReachRefusal("it is already being sent");
   // Taken over from a lost invocation, or sent again on a person's word: one winner. A take-over
   // keeps the key (autobrowse answers the stored verdict); a send again is a new send, a new key.
@@ -125,13 +126,16 @@ export async function claimSend(db: Queryable, c: SendClaim): Promise<Claimed> {
   };
 }
 
-/** It went out (`by` "sent"), or our words were found on the site (`found`), or a person said so. */
+/**
+ * It went out (`by` "sent"), or our words were found on the site (`found`), or a person said so.
+ * Only from an open row: false when another settle came first, so its effects run once.
+ */
 export async function settleSent(
   db: Queryable,
   item: string,
   s: { ref: string | null; at: Date; by: string; now: Date },
-): Promise<void> {
-  await db
+): Promise<boolean> {
+  const rows = await db
     .update(sendAttempts)
     .set({
       state: "sent",
@@ -142,7 +146,9 @@ export async function settleSent(
       why: null,
       updatedAt: s.now,
     })
-    .where(eq(sendAttempts.item, item));
+    .where(and(eq(sendAttempts.item, item), inArray(sendAttempts.state, ["sending", "unsure"])))
+    .returning({ item: sendAttempts.item });
+  return rows.length > 0;
 }
 
 /** May have gone through and no read could tell: a person decides. */

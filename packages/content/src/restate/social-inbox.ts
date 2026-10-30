@@ -11,7 +11,7 @@ import { SENDS_OFF } from "@wren/core/content/restate";
 import { noRawKeys } from "@wren/core/key-refs";
 import { clientKey, errorText, serviceHandler } from "@wren/core/restate";
 import { sendAcross } from "@wren/core/send-verdict";
-import type { Db } from "@wren/db";
+import { atomic, type Db } from "@wren/db";
 import {
   dropComment,
   forgetUnsure,
@@ -215,6 +215,8 @@ export function makeSocialInbox(deps: SocialInboxDeps) {
               url: plan.url,
               again: req.again === true,
               send: () => sendDm(deps.sites(ctx, req.client, "reach.outreach"), plan, pageId),
+              landed: (tx, landed) =>
+                sentDm(tx, plan, { ref: landed.ref, now, by: req.by ?? "inbox" }),
             });
           } catch (err) {
             // Unsure: the row waits as `unknown` with its ledger row. Taken, or nothing went out:
@@ -228,10 +230,7 @@ export function makeSocialInbox(deps: SocialInboxDeps) {
             await ctx.run("failed", () => failedDm(db, plan.messageId, why));
             throw new restate.TerminalError(why);
           }
-          await ctx.run("sent", () =>
-            sentDm(db, plan, { ref: sent.ref, now, by: req.by ?? "inbox" }),
-          );
-          return sent;
+          return { ref: sent.ref };
         },
       ),
 
@@ -254,7 +253,7 @@ export function makeSocialInbox(deps: SocialInboxDeps) {
           );
           const text = req.body.trim();
           // At most once (designs/2026-10-16-maybe-sent.md): the client's reply is keyed like any send.
-          const sent = await sendAtMostOnce(ctx, db, {
+          await sendAtMostOnce(ctx, db, {
             item: `comment:${req.id}`,
             platform: plan.platform,
             account: null,
@@ -275,10 +274,9 @@ export function makeSocialInbox(deps: SocialInboxDeps) {
               );
               return { ref: null };
             },
+            landed: (tx, sent) =>
+              markAnswered(tx, req.id, { body: text, ref: sent.ref, now, by: req.by ?? "inbox" }),
           });
-          await ctx.run("answered", () =>
-            markAnswered(db, req.id, { body: text, ref: sent.ref, now, by: req.by ?? "inbox" }),
-          );
           return { ok: true };
         },
       ),
@@ -333,8 +331,11 @@ export function makeSocialInbox(deps: SocialInboxDeps) {
               terminal(async () => {
                 if (kind === "comment") return void (await markPosted(db, req.item, { by, now }));
                 const plan = await dmPlanOf(db, Number(id));
-                await sentDm(db, plan, { ref, now, by });
-                await settleSent(db, req.item, { ref, at: now, by, now });
+                await atomic(db, async (tx) => {
+                  if (!(await settleSent(tx, req.item, { ref, at: now, by, now })))
+                    throw new ReachRefusal("that send is already settled");
+                  await sentDm(tx, plan, { ref, now, by });
+                });
               }),
             );
             return { item: req.item, outcome: "posted" };

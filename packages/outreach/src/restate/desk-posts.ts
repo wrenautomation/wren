@@ -24,7 +24,13 @@ import { sendFailed, sendHeld, stillDue, unschedule } from "../scheduled.js";
 import { REACH_POST_PLATFORMS } from "../schema.js";
 import type { ContentReply } from "./deps.js";
 import { type DeskContext, terminalWhy } from "./desk-context.js";
-import { isSendNotSent, isSendUnsure, sendAtMostOnce, sendError } from "./maybe-sent.js";
+import {
+  isSendNotSent,
+  isSendUnsure,
+  type Landed,
+  sendAtMostOnce,
+  sendError,
+} from "./maybe-sent.js";
 import { scheduleProofs } from "./proofs.js";
 import { postsFor } from "./watch.js";
 
@@ -94,6 +100,7 @@ export function postsHandlers(desk: DeskContext) {
         const acts = postActs(post, settings, body);
         const sites = deps.sitesFor(ctx);
         const item = `onpost:${post.id}`;
+        let sent: Landed;
         try {
           if (acts.comment && !account)
             throw new restate.TerminalError(`no ${post.platform} account is set for comments`);
@@ -101,7 +108,7 @@ export function postsHandlers(desk: DeskContext) {
           // At most once (designs/2026-10-16-send-verdicts.md). Instagram's comment goes
           // through the site, LinkedIn and X through `Content.reply`; both run under the
           // ledger row's key, and autobrowse says whether it went out.
-          await sendAtMostOnce(ctx, deps.db, {
+          sent = await sendAtMostOnce(ctx, deps.db, {
             item,
             platform: post.platform,
             account,
@@ -121,6 +128,7 @@ export function postsHandlers(desk: DeskContext) {
                 );
               return { ref: null };
             },
+            landed: (tx) => markPostCommented(tx, post, { body, by: byOf(req), now }),
           });
         } catch (thrown) {
           if (isSendUnsure(thrown)) {
@@ -143,9 +151,8 @@ export function postsHandlers(desk: DeskContext) {
             );
           throw err;
         }
-        await ctx.run("commented", () =>
-          markPostCommented(deps.db, post, { body, by: byOf(req), now }),
-        );
+        // Settled before: its like and follow went with it then.
+        if (!sent.fresh) return { commented: post.id };
         scheduleProofs(ctx, item);
         for (const [what, act] of [
           ["like", acts.like],

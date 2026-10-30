@@ -30,8 +30,10 @@ import {
   isRefusal,
   journaledHost,
   journaledSites,
+  keyedWaitEnds,
   makeContent,
   restateSites,
+  SEND_GRACE_MS,
   SITES,
 } from "./restate.js";
 
@@ -40,6 +42,7 @@ function ctxOf(answer: (handler: string, req: unknown) => unknown) {
   const calls: { handler: string; req: unknown; idem?: string }[] = [];
   const services: unknown[] = [];
   const sent: { handler: string; req: unknown }[] = [];
+  const waits: { handler: string; ms: number }[] = [];
   const ctx = {
     run: async (name: string, fn: () => Promise<unknown>) => {
       calls.push({ handler: `run ${name}`, req: null });
@@ -63,17 +66,28 @@ function ctxOf(answer: (handler: string, req: unknown) => unknown) {
         {
           get:
             (_t, handler: string) =>
-            async (req: unknown, opts?: { getOpts?: () => { idempotencyKey?: string } }) => {
+            (req: unknown, opts?: { getOpts?: () => { idempotencyKey?: string } }) => {
               const idem = opts?.getOpts?.().idempotencyKey;
               calls.push({ handler, req, ...(idem ? { idem } : {}) });
-              return answer(handler, req);
+              // A RestatePromise: `within` waits on it with a timeout; `HANG` never answers.
+              const out = answer(handler, req);
+              const p = (async () => out)();
+              return Object.assign(p, {
+                orTimeout: (ms: number) => {
+                  waits.push({ handler, ms });
+                  return out === HANG ? Promise.reject(new restate.TimeoutError()) : p;
+                },
+              });
             },
         },
       );
     },
   };
-  return { ctx: ctx as unknown as restate.Context, calls, services, sent };
+  return { ctx: ctx as unknown as restate.Context, calls, services, sent, waits };
 }
+
+/** An answer that never comes: the call's wait runs out. */
+const HANG = Symbol("hang");
 
 describe("restateSites", () => {
   it("wakes the box once per invocation, as a journaled step before the first call", async () => {
@@ -636,6 +650,24 @@ describe("restateSites keyed writes", () => {
     expect(c.calls[0]?.idem).toBeUndefined();
     expect(c.calls[0]?.req).not.toHaveProperty("sendKey");
     expect(trace.wrote).toBe(false);
+  });
+});
+
+describe("restateSites keyed write waits", () => {
+  it("waits to its day's end plus grace, not `limitMs`; past it the verdict answers", async () => {
+    const c = ctxOf((handler) =>
+      handler === "call" ? HANG : { verdict: "not_sent", how: "before_submit", reason: "none" },
+    );
+    const sites = restateSites(c.ctx, { caller: "test", service: DESK, limitMs: 60_000 });
+    const err = await withSendKey("thread:7 k1", () =>
+      sites.call("tiktok", "POST", "/web/posts", { text: "hi" }),
+    ).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(NotSent);
+    const wait = c.waits.find((w) => w.handler === "call")?.ms ?? 0;
+    const ends = keyedWaitEnds(new Date("2026-10-16T12:00:00.000Z")).getTime();
+    expect(wait).toBe(ends - Date.parse("2026-10-16T12:00:00.000Z"));
+    expect(wait).toBeGreaterThan(SEND_GRACE_MS);
+    expect(c.calls.map((x) => x.handler)).toEqual(["call", "verdict"]);
   });
 });
 

@@ -16,6 +16,7 @@ import {
   planAnswer,
   planPrivateReply,
   privateReplied,
+  privateReplyOf,
 } from "../comments.js";
 import { pickAccount } from "../draft-accounts.js";
 import {
@@ -178,7 +179,7 @@ export function commentsHandlers(desk: DeskContext) {
           await ctx.run("plan", () => terminal(() => planPrivateReply(deps.db, req.id, now)));
           // At most once (designs/2026-10-16-send-verdicts.md): the private reply runs under
           // the ledger row's key; autobrowse says whether it went out.
-          const sent = await sendAtMostOnce(ctx, deps.db, {
+          await sendAtMostOnce(ctx, deps.db, {
             item: `private:${c.id}`,
             platform: c.platform,
             account: null,
@@ -192,10 +193,10 @@ export function commentsHandlers(desk: DeskContext) {
                   .serviceClient<ContentReply>({ name: "Content" })
                   .privateReply({ platform: c.platform, commentId: c.ref, text: body, ...k }),
               ),
+            landed: (tx, sent) =>
+              privateReplied(tx, c, { body, ref: sent.ref, now, by: byOf(req) }),
           }).catch(failed);
-          return ctx.run("sent", () =>
-            privateReplied(deps.db, c, { body, ref: sent.ref, now, by: byOf(req) }),
-          );
+          return ctx.run("sent", () => privateReplyOf(deps.db, c.id));
         }
         const r = await ctx.run("queue", () =>
           terminal(() => dmCommenter(deps.db, { id: req.id, body: req.body, now })),
