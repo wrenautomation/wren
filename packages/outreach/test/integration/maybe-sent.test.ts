@@ -10,8 +10,8 @@
  */
 import * as restate from "@restatedev/restate-sdk";
 import { SiteCallError } from "@wren/core/content";
-import { draftSteps } from "@wren/core/draft-record";
 import { DESK, restateSites } from "@wren/core/content/restate";
+import { draftSteps } from "@wren/core/draft-record";
 import { resolveObjects } from "@wren/core/objects";
 import { fakeOutreachChannel } from "@wren/core/outreach";
 import {

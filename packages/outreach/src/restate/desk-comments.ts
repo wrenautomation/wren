@@ -27,9 +27,9 @@ import {
   threadFor,
   wrenCommentsRead,
 } from "../follow-ups.js";
+import { recordLanded } from "../send-kinds.js";
 import { type ContentReply, channelsFor, finalRefusal } from "./deps.js";
 import { type DeskContext, terminalWhy } from "./desk-context.js";
-import { recordLanded } from "../send-kinds.js";
 import { sendAtMostOnce } from "./maybe-sent.js";
 
 const COMMENT = z.looseObject({ id: z.number() });
