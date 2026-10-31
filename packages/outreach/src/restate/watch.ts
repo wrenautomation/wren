@@ -502,7 +502,7 @@ async function watchPass(
   const channelFor = channelsFor(deps, ctx);
   // Every desk read waits at most `LIMITS.desk` (`sitesFor`); a read that times out pass after
   // pass is held, and a platform whose reads time out twice is left for the next pass.
-  const limits = await unitLimits(ctx, deps.db, "ReachWatch");
+  const limits = await unitLimits(ctx, deps.db, "ReachWatch", { oneHost: true });
   let skipped = 0;
   const go = (unit: string, group: string) => {
     if (!limits.skip(unit, group)) return true;

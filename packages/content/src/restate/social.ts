@@ -127,9 +127,13 @@ const NAMED_BY_ACTIVITY: readonly Platform[] = ["linkedin"];
 const NET_PER_PASS = 1;
 /** Object state: the last Google Maps review read, ms. */
 const MAPS_READ = "mapsRead";
-/** Platforms whose activity is read less often than every pass: LinkedIn's 12 reads a day. */
+/** Platforms whose activity is read less often than every pass: LinkedIn's notifications cap. */
 const ACTIVITY_EVERY_MS: Partial<Record<Platform, number>> = {
   linkedin: 2 * 60 * 60 * 1000,
+};
+/** The same while its tab watcher beats: a rise reads it, the clock is the net (2 of 4 a day). */
+const ACTIVITY_WATCHED_MS: Partial<Record<Platform, number>> = {
+  linkedin: 8 * 60 * 60 * 1000,
 };
 
 /** Object state: each daily site read's last run, ms, by `<kind> <platform>`; and the old follow reads. */
@@ -344,7 +348,7 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
       ctx.objectClient<SocialPushed>({ name: "SocialPushed" }, client ?? SOCIAL_KEY).take(),
       { ms: L.quick, call: "SocialPushed/take" },
     ).catch(() => []);
-    const limits = await unitLimits(ctx, deps.db, "SocialWatch");
+    const limits = await unitLimits(ctx, deps.db, "SocialWatch", { oneHost: true });
     const pushedPosts = new Set(
       pushed.flatMap((p) =>
         p.post ? [`${p.platform}:${p.post}`, `${p.platform}:${postTail(p.post)}`] : [],
@@ -402,11 +406,25 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
       if (yes && !stats.held.includes(key)) stats.held.push(key);
       return yes;
     };
+    // Platforms whose tab watcher beats (designs/2026-10-12-push-everywhere.md).
+    const watched = deps.watched;
+    const alive = new Set<Platform>();
+    if (!client && watched) {
+      const beats = await within(
+        ctx,
+        ctx.objectClient<SocialPushed>({ name: "SocialPushed" }, SOCIAL_KEY).watching(),
+        { ms: L.quick, call: "SocialPushed/watching" },
+      ).catch((): string[] => []);
+      for (const p of platforms) if (watched[p] && beats.includes(p)) alive.add(p);
+    }
     // Activity first: a notification naming one of our posts reads that post this pass.
     const lastActivity = (await ctx.get<Record<string, number>>(ACTIVITY_READS)) ?? {};
     const heard: { platform: Platform; rows: ActivityRow[] }[] = [];
     for (const platform of platforms) {
-      const every = ACTIVITY_EVERY_MS[platform] ?? 0;
+      const every =
+        (alive.has(platform) ? ACTIVITY_WATCHED_MS[platform] : undefined) ??
+        ACTIVITY_EVERY_MS[platform] ??
+        0;
       const due =
         pushedActivity.has(platform) || now.getTime() - (lastActivity[platform] ?? 0) >= every;
       if (due) lastActivity[platform] = now.getTime();
@@ -434,16 +452,7 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
     }
     ctx.set(ACTIVITY_READS, lastActivity);
     // Named platforms (`NAMED_BY_ACTIVITY`) with a live watcher: posts read when named, else the net.
-    const byName = new Set<Platform>();
-    const watched = deps.watched;
-    if (!client && watched && NAMED_BY_ACTIVITY.some((p) => watched[p] && read.includes(p))) {
-      const alive = await within(
-        ctx,
-        ctx.objectClient<SocialPushed>({ name: "SocialPushed" }, SOCIAL_KEY).watching(),
-        { ms: L.quick, call: "SocialPushed/watching" },
-      ).catch((): string[] => []);
-      for (const p of NAMED_BY_ACTIVITY) if (watched[p] && alive.includes(p)) byName.add(p);
-    }
+    const byName = new Set(NAMED_BY_ACTIVITY.filter((p) => alive.has(p) && read.includes(p)));
     const namedBefore = (await ctx.get<Record<string, number>>(NAMED)) ?? {};
     const named: Record<string, number> = {};
     for (const { platform, rows } of heard)

@@ -121,7 +121,13 @@ Gaps:
   link names it (`postsNamed`; `NAMED` state keeps it until a read takes it). The net reads a post
   daily while young, weekly after, one a pass (`isNetDue`); about 9 reads a day at 2 posts a day.
   A comment only the net found counts in `unnamed`: the check that the title count rises on a
-  comment. No beat: the old clock.
+  comment. No beat: the old clock. While it beats, the notifications clock is the net too: every
+  8 hours, not 2 (2 of the 4-a-day cap), so rises after noon still get a read.
+- Fixed: the desk carries every `Content` read, API ones too (`sites.call("meta", …)`). When the
+  Mac sleeps (lid shut: clamshell sleep, which no assertion stops), each read waited out its 5
+  minutes, 10 in a row on 10-31, and a platform that had answered earlier got its posts struck.
+  Now SocialWatch, ContentMetrics and ReachWatch use `unitLimits` with `oneHost`: two timeouts in
+  a row end the pass's calls, no unit blamed.
 - Instagram `comments` arrive only with Advanced Access (App Review). Not filed (WA-987): the
   Graph read every 30 minutes is official, uncapped for us and never flagged, and every answer
   waits on William anyway. A client's Page needs the same review, so it is filed once, with the

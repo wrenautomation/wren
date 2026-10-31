@@ -1,8 +1,9 @@
 /**
  * Time limits on a loop pass's calls, against a real Restate and Postgres: a call that never
  * answers is cut at its limit and cancelled, its unit skipped; three in a row hold the unit in
- * `unit_holds`; a group (platform) that never answers is left out, its units never blamed. A pass
- * that throws is kept as a failed one and the chain goes on.
+ * `unit_holds`; a group (platform) that never answers is left out, its units never blamed; with
+ * `oneHost`, a host that stops mid-pass ends the pass's calls, no unit blamed. A pass that throws
+ * is kept as a failed one and the chain goes on.
  */
 import * as restate from "@restatedev/restate-sdk";
 import * as clients from "@restatedev/restate-sdk-clients";
@@ -31,28 +32,31 @@ const echo = restate.service({
 });
 type EchoApi = { say: (ctx: restate.Context, word: string) => Promise<string> };
 
-/** Each key's units, in order; one group. */
+/** Each key's units, in order; group `g` unless `group:unit`. */
 const UNITS: Record<string, string[]> = {
   /** The group answers, so `slow1`'s timeouts are its own. */
   own: ["fast1", "slow1"],
   /** Nothing answers: the group is down, no unit is blamed. */
   down: ["slow1", "slow2", "slow3"],
+  /** `oneHost`: `a` answers, then the host stops: both groups' later units left out, none blamed. */
+  host: ["a:fast1", "a:slow1", "b:slow2", "b:fast2", "a:fast3"],
 };
 
 type Stats = { said: string[]; timedOut: string[]; skipped: string[] };
 
 let pg: TestPostgres;
 const limited = makeLoopObject<Stats>("Limited", async (ctx: restate.ObjectContext) => {
-  const limits = await unitLimits(ctx, pg.db, "Limited");
+  const limits = await unitLimits(ctx, pg.db, "Limited", { oneHost: ctx.key === "host" });
   const stats: Stats = { said: [], timedOut: [], skipped: [] };
-  for (const u of UNITS[ctx.key] ?? []) {
-    if (limits.skip(u, "g")) {
+  for (const named of UNITS[ctx.key] ?? []) {
+    const [g, u] = named.includes(":") ? (named.split(":") as [string, string]) : ["g", named];
+    if (limits.skip(u, g)) {
       stats.skipped.push(u);
       continue;
     }
     try {
       const p = ctx.serviceClient<EchoApi>({ name: "Echo" }).say(u);
-      stats.said.push(await limits.within(u, p, { ms: LIMIT_MS, call: "Echo/say", group: "g" }));
+      stats.said.push(await limits.within(u, p, { ms: LIMIT_MS, call: "Echo/say", group: g }));
     } catch (err) {
       if (!(err instanceof CallTimeout)) throw err;
       stats.timedOut.push(u);
@@ -150,6 +154,19 @@ describe("unitLimits", () => {
       expect(pass.stats).toEqual({ said: [], timedOut: ["slow1", "slow2"], skipped: ["slow3"] });
     }
     expect(await holdsOn(pg.db, limitStage("Limited", "down"))).toEqual({ held: [], due: [] });
+  });
+
+  it("oneHost: two timeouts in a row end the pass's calls, though a group answered first", async () => {
+    for (let i = 0; i < 3; i++) {
+      const pass = await sync("host");
+      expect(pass.stats).toEqual({
+        said: ["fast1"],
+        timedOut: ["slow1", "slow2"],
+        skipped: ["fast2", "fast3"],
+      });
+      expect(pass.timeouts?.some((t) => t.held)).toBe(false);
+    }
+    expect(await holdsOn(pg.db, limitStage("Limited", "host"))).toEqual({ held: [], due: [] });
   });
 });
 

@@ -207,7 +207,7 @@ export function makeContentMetrics(deps: ContentMetricsDeps) {
       if (plan.kind === "gone") return stoppedPass<MetricsStats>(ctx, now, plan.why);
     }
     const db = client && deps.clientDb ? deps.clientDb(client) : deps.db;
-    const limits = await unitLimits(ctx, deps.db, "ContentMetrics");
+    const limits = await unitLimits(ctx, deps.db, "ContentMetrics", { oneHost: true });
     const due = await ctx.run("metrics due", () => metricsDue(db, now));
     const stats: MetricsStats = { looked: [], failed: [], reported: false };
     const holds = liveHolds((await ctx.get<CapHolds>(CAP_HOLDS)) ?? {}, now.getTime());

@@ -10,7 +10,8 @@
  * - `limitedRun` is a `ctx.run` for outbound I/O (HTTP): each try ends at its limit, and after
  *   its tries the step fails terminally instead of retrying until Restate pauses the pass.
  * - `unitLimits` adds the strikes: a unit that times out `STRIKES` passes in a row is held in
- *   Checks' `unit_holds` (7 days, one more try, then a person), not tried forever.
+ *   Checks' `unit_holds` (7 days, one more try, then a person), not tried forever. With
+ *   `oneHost` (every call goes through the desk), two timeouts in a row end the pass's calls.
  */
 import * as restate from "@restatedev/restate-sdk";
 import type { Queryable } from "@wren/db";
@@ -184,7 +185,7 @@ interface Strike {
 export interface UnitLimits {
   /** The `unit_holds` stage: `loop.<service>/<key>`. */
   stage: string;
-  /** Left out of this pass: the unit is held, or its group already timed out twice. */
+  /** Left out of this pass: the unit is held, its group timed out twice, or the host is down. */
   skip(unit: string, group?: string): boolean;
   /** `within` for one unit: its strikes counted, its hold settled when it answers its one retry. */
   within<T>(unit: string, p: Waitable<T>, o: UnitWithinOpts): Promise<T>;
@@ -205,6 +206,16 @@ const kebab = (s: string) => s.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCas
 /** The stage a loop's held units go under: `loop.content-metrics/default`. */
 export const limitStage = (service: string, key: string) => `loop.${kebab(service)}/${key}`;
 
+export interface UnitLimitsOpts {
+  /**
+   * Every call goes through one host (the Mac's desk). A timeout waits for the next call: an
+   * answer judges it as usual, a second timeout means the host is down (asleep, offline), so the
+   * rest of the pass is left out and no unit is blamed. A timeout on the pass's last call is
+   * never judged.
+   */
+  oneHost?: boolean;
+}
+
 /**
  * The time limits for one pass of `service` on this key. One read of its holds a pass. A unit
  * that answers ends its strikes (and its hold, on its one retry); a unit due its retry that times
@@ -214,6 +225,7 @@ export async function unitLimits(
   ctx: restate.ObjectContext,
   db: Queryable,
   service: string,
+  o: UnitLimitsOpts = {},
 ): Promise<UnitLimits> {
   const stage = limitStage(service, ctx.key);
   const h = await ctx.run(`holds ${stage}`, () => holdsOn(db, stage));
@@ -228,6 +240,9 @@ export async function unitLimits(
   const answered = new Set<string>();
   const slow = new Set<string>();
   const suspects = new Map<string, { unit: string; err: CallTimeout; t: TimedOut | undefined }>();
+  /** `oneHost`: the last call's timeout, not yet judged; `down` once a second one follows. */
+  let pending: (() => Promise<void>) | null = null;
+  let down = false;
 
   async function strike(unit: string, err: CallTimeout, t: TimedOut | undefined) {
     const n = (strikes[unit]?.n ?? 0) + 1;
@@ -249,6 +264,10 @@ export async function unitLimits(
   }
 
   async function answer(unit: string, group: string | undefined) {
+    // The host answers: the timeout before this one is judged.
+    const judge = pending;
+    pending = null;
+    await judge?.();
     if (strikes[unit]) {
       delete strikes[unit];
       save();
@@ -280,19 +299,27 @@ export async function unitLimits(
       // The call's own limit counted it: it is this unit's.
       const t = timeoutsOf(ctx).slice(before).at(-1);
       if (t && t.unit === null) t.unit = unit;
-      if (group === undefined || answered.has(group)) await strike(unit, err, t);
-      else if (suspects.has(group)) {
-        // Two in a row and nothing answered: the group is down, not these units.
-        suspects.delete(group);
-        slow.add(group);
-      } else suspects.set(group, { unit, err, t });
+      const judge = async () => {
+        if (group === undefined || answered.has(group)) await strike(unit, err, t);
+        else if (suspects.has(group)) {
+          // Two in a row and nothing answered: the group is down, not these units.
+          suspects.delete(group);
+          slow.add(group);
+        } else suspects.set(group, { unit, err, t });
+      };
+      if (!o.oneHost) await judge();
+      else if (pending) {
+        pending = null;
+        suspects.clear();
+        down = true;
+      } else pending = judge;
       throw err;
     }
   }
 
   return {
     stage,
-    skip: (unit, group) => held.has(unit) || (group !== undefined && slow.has(group)),
+    skip: (unit, group) => down || held.has(unit) || (group !== undefined && slow.has(group)),
     within: (unit, p, o) => guard(unit, () => within(ctx, p, { ...o, unit }), o.group),
     guard,
   };
