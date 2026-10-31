@@ -10,3 +10,6 @@ browser_token = "<openssl rand -base64 32 | tr -d '/+='>"
 autobrowse_instance_id = ""
 # The key store's public key, as `node scripts/keystore-key.mjs` prints it. Not a secret. Empty = keys can't be saved.
 keystore_public_key = ""
+
+# CloudWatch alarms (alarms.tf) to this address; empty = none.
+alarm_email = ""
