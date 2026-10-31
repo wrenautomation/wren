@@ -115,9 +115,17 @@ Live on 10-31 (Restate, 24 h): `desk/watch` 44, `SocialPush/watch` 105, `SocialP
 
 Gaps:
 
-- `alive` slows only `ReachWatch`. `SocialWatch` still reads LinkedIn post counts every pass, so
-  the LinkedIn `comments` cap (10 a day on the week-1 ramp) is spent by the clock, not by news.
-- Instagram `comments` arrive only with Advanced Access (App Review). Not filed.
+- Fixed (WA-986): `alive` slowed only `ReachWatch`; `SocialWatch` read each LinkedIn post every
+  2 to 8 hours, so the `comments` cap (10 a day on the week-1 ramp) went to the clock. Now, while
+  the watcher beats, the activity read runs first and a post is read only when a notification's
+  link names it (`postsNamed`; `NAMED` state keeps it until a read takes it). The net reads a post
+  daily while young, weekly after, one a pass (`isNetDue`); about 9 reads a day at 2 posts a day.
+  A comment only the net found counts in `unnamed`: the check that the title count rises on a
+  comment. No beat: the old clock.
+- Instagram `comments` arrive only with Advanced Access (App Review). Not filed (WA-987): the
+  Graph read every 30 minutes is official, uncapped for us and never flagged, and every answer
+  waits on William anyway. A client's Page needs the same review, so it is filed once, with the
+  first client that connects Meta.
 - Each platform's source is set in several places: `watched` (worker `content.ts`),
   `ACTIVITY_EVERY_MS` (`social.ts`), `WATCH_SPECS` (autobrowse), `LOOK_TIERS` (stats).
 

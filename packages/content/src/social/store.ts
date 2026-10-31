@@ -107,6 +107,44 @@ export const isDue = (p: RecentPost, lastRead: number | undefined, now: Date): b
 };
 
 /**
+ * The net under named reads (`postsNamed`): while a tab watcher is alive, a post is read when a
+ * notification names it, and else daily while young, weekly after.
+ */
+export const isNetDue = (p: RecentPost, lastRead: number | undefined, now: Date): boolean => {
+  const young = now.getTime() - new Date(p.publishedAt).getTime() <= FRESH_DAYS * DAY;
+  return now.getTime() - (lastRead ?? 0) >= (young ? DAY : 7 * DAY);
+};
+
+/** A post id's number: `urn:li:ugcPost:7521201740759658496` → `7521201740759658496`. */
+const idNumber = (id: string) => /(\d{12,})\D*$/.exec(id)?.[1] ?? null;
+
+/**
+ * Our posts a notification names (`commented on your post`): its link carries the post's URN.
+ * Notifications and mentions only; a reaction's link names the post but brings no comment.
+ */
+export function postsNamed(
+  rows: readonly Pick<ActivityRow, "kind" | "url">[],
+  posts: readonly Pick<RecentPost, "platform" | "id">[],
+): string[] {
+  const links = rows
+    .filter((r) => (r.kind === "notification" || r.kind === "mention") && r.url)
+    .map((r) => {
+      try {
+        return decodeURIComponent(r.url as string);
+      } catch {
+        return r.url as string;
+      }
+    });
+  if (!links.length) return [];
+  return posts.flatMap((p) => {
+    const n = idNumber(p.id);
+    return n && links.some((l) => new RegExp(`\\b${n}\\b`).test(l))
+      ? [`${p.platform}:${p.id}`]
+      : [];
+  });
+}
+
+/**
  * How long a held comment count is trusted. A count can lie (a held or deleted comment moves
  * nothing), so a post is read in full this often anyway: young, then older. X and TikTok read
  * through a capped page, so they sweep less often.

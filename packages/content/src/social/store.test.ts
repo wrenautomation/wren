@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { nextPassAt } from "../restate/social.js";
-import { canSkip, isDue, pingOf, type RecentPost } from "./store.js";
+import { canSkip, isDue, isNetDue, pingOf, postsNamed, type RecentPost } from "./store.js";
 
 const HOUR = 3_600_000;
 const NOW = new Date("2026-10-06T16:00:00Z"); // 12:00 New York
@@ -47,6 +47,58 @@ describe("social store", () => {
     expect(isDue(li(1), NOW.getTime() - 2 * HOUR, NOW)).toBe(true);
     expect(isDue(li(5), NOW.getTime() - 7 * HOUR, NOW)).toBe(false);
     expect(isDue(li(5), NOW.getTime() - 8 * HOUR, NOW)).toBe(true);
+  });
+
+  it("isNetDue: daily while young, weekly after; a post never read is due", () => {
+    const li = (d: number): RecentPost => ({ ...post(d), platform: "linkedin" });
+    expect(isNetDue(li(1), NOW.getTime() - 23 * HOUR, NOW)).toBe(false);
+    expect(isNetDue(li(1), NOW.getTime() - 24 * HOUR, NOW)).toBe(true);
+    expect(isNetDue(li(5), NOW.getTime() - 6 * 24 * HOUR, NOW)).toBe(false);
+    expect(isNetDue(li(5), NOW.getTime() - 7 * 24 * HOUR, NOW)).toBe(true);
+    expect(isNetDue(li(5), undefined, NOW)).toBe(true);
+  });
+
+  it("postsNamed: a comment notification's link names our post; reactions and others' posts don't", () => {
+    const ours = [
+      { platform: "linkedin" as const, id: "urn:li:ugcPost:7521201740759658496" },
+      { platform: "linkedin" as const, id: "urn:li:ugcPost:7521564151958175744" },
+    ];
+    const row = (kind: "notification" | "reaction" | "mention", url: string | null) => ({
+      kind,
+      url,
+    });
+    expect(
+      postsNamed(
+        [
+          // LinkedIn's own links, as the notifications read keeps them.
+          row(
+            "notification",
+            "https://www.linkedin.com/feed/update/urn:li:ugcPost:7521201740759658496/?commentUrn=urn%3Ali%3Acomment%3A7521457664963338242",
+          ),
+          row(
+            "reaction",
+            "https://www.linkedin.com/posts/will-jin_careful-ugcPost-7521564151958175744-bt3Y/",
+          ),
+          row(
+            "notification",
+            "https://www.linkedin.com/feed/?highlightedUpdateUrn=urn%3Ali%3Aactivity%3A7522098329485279232",
+          ),
+          row("notification", null),
+        ],
+        ours,
+      ),
+    ).toEqual(["linkedin:urn:li:ugcPost:7521201740759658496"]);
+    // Encoded, as a mention: still named. A longer number holding ours is not ours.
+    expect(
+      postsNamed(
+        [row("mention", "https://x.test/?u=urn%3Ali%3AugcPost%3A7521564151958175744")],
+        ours,
+      ),
+    ).toEqual(["linkedin:urn:li:ugcPost:7521564151958175744"]);
+    expect(postsNamed([row("notification", "https://x.test/75212017407596584961")], ours)).toEqual(
+      [],
+    );
+    expect(postsNamed([], ours)).toEqual([]);
   });
 
   it("canSkip: a held count inside the sweep skips the read; anything missing or moved reads", () => {

@@ -11,7 +11,10 @@
  *
  * Each Wren pass also renews autobrowse's tab watchers on our logins (`watched`): a rise in a
  * tab's unread count pushes a pass at once (designs/2026-10-12-push-everywhere.md). The lease runs
- * past the next pass, so a loop that stops leaves no tab open.
+ * past the next pass, so a loop that stops leaves no tab open. While a watcher is alive on a
+ * platform whose notifications name the post (`NAMED_BY_ACTIVITY`), its posts are read only when a
+ * notification names one, plus a slow net (`isNetDue`): the capped page reads go to news, not the
+ * clock. The activity read runs before the comment reads, so one push is one targeted read.
  *
  * Every read waits at most its limit (`LIMITS`, designs/2026-10-16-loop-watchdog.md): one that
  * gives no answer is cancelled and said in `errors`; a platform that times out twice in a pass is
@@ -73,6 +76,7 @@ import {
   canSkip,
   hasDay,
   isDue,
+  isNetDue,
   type KeptComment,
   keepActivity,
   keepDay,
@@ -82,6 +86,7 @@ import {
   newestActivityAt,
   pingOf,
   postOfComment,
+  postsNamed,
   recentPosts,
 } from "../social/store.js";
 import { keepFollowing, keepOwnComments } from "../touches.js";
@@ -111,6 +116,15 @@ const CAP_HOLDS = "capHolds";
 const GONE = "gone";
 /** Graph's answer for a post with no comments edge: code 100 nonexisting field, or 33 no such object. */
 const GONE_ANSWER = /graph code (100: \(#100\) Tried accessing nonexisting field|33\b)/;
+/** Object state: posts a notification named and no read has taken yet, ms, by `platform:id`. */
+const NAMED = "named";
+/**
+ * Platforms whose notifications link the post a comment is on (LinkedIn's carries its URN). While
+ * their tab watcher is alive, a post is read when named, else on the net.
+ */
+const NAMED_BY_ACTIVITY: readonly Platform[] = ["linkedin"];
+/** Net reads per platform per pass while named: the day's capped reads stay spread out. */
+const NET_PER_PASS = 1;
 /** Object state: the last Google Maps review read, ms. */
 const MAPS_READ = "mapsRead";
 /** Platforms whose activity is read less often than every pass: LinkedIn's 12 reads a day. */
@@ -268,6 +282,8 @@ export interface SocialStats {
   held: string[];
   /** Reads left out: held after timing out pass after pass, or their platform timed out twice. */
   slow?: number;
+  /** Comments the net found on a named platform that no notification named: a missed push. */
+  unnamed?: number;
   errors: string[];
 }
 
@@ -386,12 +402,63 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
       if (yes && !stats.held.includes(key)) stats.held.push(key);
       return yes;
     };
+    // Activity first: a notification naming one of our posts reads that post this pass.
+    const lastActivity = (await ctx.get<Record<string, number>>(ACTIVITY_READS)) ?? {};
+    const heard: { platform: Platform; rows: ActivityRow[] }[] = [];
+    for (const platform of platforms) {
+      const every = ACTIVITY_EVERY_MS[platform] ?? 0;
+      const due =
+        pushedActivity.has(platform) || now.getTime() - (lastActivity[platform] ?? 0) >= every;
+      if (due) lastActivity[platform] = now.getTime();
+      // Rows with no time (YouTube's subscribers) pass any `since`; the unique ref keeps them once.
+      if (due && !held(`${platform} activity`) && go(`activity ${platform}`, platform))
+        try {
+          const since = await ctx.run(`since ${platform}`, () => newestActivityAt(db, platform));
+          const rows = await limits.within(
+            `activity ${platform}`,
+            content.activity({ platform, ...(since ? { q: { since } } : {}), ...mine }),
+            { ms: L.read, call: "Content/activity", group: platform },
+          );
+          if (rows?.length) {
+            heard.push({ platform, rows });
+            happened.push(
+              ...(await ctx.run(`activity ${platform}`, () =>
+                keepActivity(db, platform, rows, now),
+              )),
+            );
+          }
+        } catch (err) {
+          if (held(`${platform} activity`, err)) ctx.set(CAP_HOLDS, holds);
+          else stats.errors.push(`${platform} activity: ${errorText(err)}`);
+        }
+    }
+    ctx.set(ACTIVITY_READS, lastActivity);
+    // Named platforms (`NAMED_BY_ACTIVITY`) with a live watcher: posts read when named, else the net.
+    const byName = new Set<Platform>();
+    const watched = deps.watched;
+    if (!client && watched && NAMED_BY_ACTIVITY.some((p) => watched[p] && read.includes(p))) {
+      const alive = await within(
+        ctx,
+        ctx.objectClient<SocialPushed>({ name: "SocialPushed" }, SOCIAL_KEY).watching(),
+        { ms: L.quick, call: "SocialPushed/watching" },
+      ).catch((): string[] => []);
+      for (const p of NAMED_BY_ACTIVITY) if (watched[p] && alive.includes(p)) byName.add(p);
+    }
+    const namedBefore = (await ctx.get<Record<string, number>>(NAMED)) ?? {};
+    const named: Record<string, number> = {};
+    for (const { platform, rows } of heard)
+      for (const key of postsNamed(
+        rows,
+        posts.filter((p) => p.platform === platform),
+      ))
+        named[key] = now.getTime();
+    const netReads: Partial<Record<Platform, number>> = {};
     const reads: Record<string, number> = {};
     const counts: Record<string, number> = {};
     const fulls: Record<string, number> = {};
     const goneBefore = (await ctx.get<Record<string, number>>(GONE)) ?? {};
     const gone: Record<string, number> = {};
-    const due: { p: (typeof posts)[number]; key: string; wasPushed: boolean }[] = [];
+    const due: { p: (typeof posts)[number]; key: string; wasPushed: boolean; net?: true }[] = [];
     for (const p of posts) {
       const key = `${p.platform}:${p.id}`;
       const dead = goneBefore[key];
@@ -405,9 +472,21 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
       if (count !== undefined) counts[key] = count;
       const full = fullBefore[key];
       if (full !== undefined) fulls[key] = full;
-      const wasPushed = pushedPosts.has(key) || pushedPosts.has(`${p.platform}:${postTail(p.id)}`);
-      if (wasPushed || isDue(p, last, now)) due.push({ p, key, wasPushed });
+      const was = namedBefore[key];
+      if (was !== undefined) named[key] ??= was;
+      const wasPushed =
+        pushedPosts.has(key) ||
+        pushedPosts.has(`${p.platform}:${postTail(p.id)}`) ||
+        named[key] !== undefined;
+      if (byName.has(p.platform) && !wasPushed) {
+        const n = netReads[p.platform] ?? 0;
+        if (n >= NET_PER_PASS || !isNetDue(p, last, now)) continue;
+        netReads[p.platform] = n + 1;
+        due.push({ p, key, wasPushed, net: true });
+      } else if (wasPushed || isDue(p, last, now)) due.push({ p, key, wasPushed });
     }
+    // Pushed and named first: a capped platform spends its reads on news.
+    due.sort((a, b) => Number(b.wasPushed) - Number(a.wasPushed));
     // One count read per platform for every due post: a post whose count held needs no comment
     // read (designs/2026-10-15-fetch-budget.md). A probe that fails or has no answer reads as before.
     const probed: Record<string, number> = {};
@@ -431,7 +510,7 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
             stats.missed.push(`${platform} comment counts: ${errorText(err)}`);
         }
     }
-    for (const { p, key, wasPushed } of due) {
+    for (const { p, key, wasPushed, net } of due) {
       const n = probed[key];
       if (!wasPushed && canSkip(p, n, countsBefore[key], fullBefore[key], now)) {
         reads[key] = now.getTime();
@@ -453,6 +532,8 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
         const rows = await ctx.run(`comments ${key}`, () => keepPostComments(db, p, got));
         kept.push(...rows);
         fulls[key] = now.getTime();
+        delete named[key];
+        if (net && rows.length) stats.unnamed = (stats.unnamed ?? 0) + rows.length;
         if (n === undefined) delete counts[key];
         else counts[key] = n;
       } catch (err) {
@@ -460,8 +541,10 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
           stats.posts -= 1;
           if (before[key] === undefined) delete reads[key];
           else reads[key] = before[key];
-        } else if (GONE_ANSWER.test(errorText(err))) gone[key] = now.getTime();
-        else stats.errors.push(`${key}: ${errorText(err)}`);
+        } else if (GONE_ANSWER.test(errorText(err))) {
+          gone[key] = now.getTime();
+          delete named[key];
+        } else stats.errors.push(`${key}: ${errorText(err)}`);
       }
     }
     ctx.set(CAP_HOLDS, holds);
@@ -470,6 +553,7 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
     ctx.set(READS, reads);
     ctx.set(COUNTS, counts);
     ctx.set(FULL_READS, fulls);
+    ctx.set(NAMED, named);
     // A comment that says a keyword gets its DM (designs/2026-10-11-comment-keywords.md).
     try {
       stats.keywordDms = await catchKeywordDms(
@@ -547,31 +631,7 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
       });
 
     const day = dayOf(now, deps.zone);
-    const lastActivity = (await ctx.get<Record<string, number>>(ACTIVITY_READS)) ?? {};
     for (const platform of platforms) {
-      const every = ACTIVITY_EVERY_MS[platform] ?? 0;
-      const due =
-        pushedActivity.has(platform) || now.getTime() - (lastActivity[platform] ?? 0) >= every;
-      if (due) lastActivity[platform] = now.getTime();
-      // Rows with no time (YouTube's subscribers) pass any `since`; the unique ref keeps them once.
-      if (due && !held(`${platform} activity`) && go(`activity ${platform}`, platform))
-        try {
-          const since = await ctx.run(`since ${platform}`, () => newestActivityAt(db, platform));
-          const rows = await limits.within(
-            `activity ${platform}`,
-            content.activity({ platform, ...(since ? { q: { since } } : {}), ...mine }),
-            { ms: L.read, call: "Content/activity", group: platform },
-          );
-          if (rows?.length)
-            happened.push(
-              ...(await ctx.run(`activity ${platform}`, () =>
-                keepActivity(db, platform, rows, now),
-              )),
-            );
-        } catch (err) {
-          if (held(`${platform} activity`, err)) ctx.set(CAP_HOLDS, holds);
-          else stats.errors.push(`${platform} activity: ${errorText(err)}`);
-        }
       // A count that fails is no reading this pass, never a failed pass: the next pass asks again.
       if (AUDIENCE_ON_DEMAND.includes(platform)) continue;
       try {
@@ -588,7 +648,6 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
         stats.missed.push(`${platform} audience: ${errorText(err)}`);
       }
     }
-    ctx.set(ACTIVITY_READS, lastActivity);
 
     // What was made by hand on the site, read back once a day (some twice, `SITE_EVERY_MS_OF`): our follows and comments as
     // touches, our posts as published drafts so their numbers are read. Nothing is deleted.

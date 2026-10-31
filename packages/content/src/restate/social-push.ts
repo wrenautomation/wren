@@ -192,17 +192,24 @@ export const socialPushed = restate.object({
       { ingressPrivate: true, input: NO_INPUT },
       async (ctx: restate.ObjectContext): Promise<ReachView> => {
         const pushed = (await ctx.get<string[]>(REACH)) ?? [];
-        const alive = (await ctx.get<Record<string, number>>(ALIVE)) ?? {};
-        const now = await ctx.date.now();
+        const watched = await watching(ctx);
         ctx.clear(REACH);
-        return {
-          pushed,
-          watched: Object.keys(alive).filter((p) => now - (alive[p] ?? 0) < WATCH_ALIVE_MS),
-        };
+        return { pushed, watched };
       },
+    ),
+    /** `SocialWatch`'s view: platforms a watcher is alive on (their posts read when named). */
+    watching: exclusiveHandler(
+      { ingressPrivate: true, input: NO_INPUT },
+      async (ctx: restate.ObjectContext): Promise<string[]> => watching(ctx),
     ),
   },
 });
+
+async function watching(ctx: restate.ObjectContext): Promise<string[]> {
+  const alive = (await ctx.get<Record<string, number>>(ALIVE)) ?? {};
+  const now = await ctx.date.now();
+  return Object.keys(alive).filter((p) => now - (alive[p] ?? 0) < WATCH_ALIVE_MS);
+}
 
 /** What `SocialPushed/wren.reach` answers. */
 export interface ReachView {
