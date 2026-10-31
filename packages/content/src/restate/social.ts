@@ -125,6 +125,10 @@ const NAMED = "named";
 const NAMED_BY_ACTIVITY: readonly Platform[] = ["linkedin"];
 /** Net reads per platform per pass while named: the day's capped reads stay spread out. */
 const NET_PER_PASS = 1;
+/** And per day: most of LinkedIn's 10 comment reads stay for named posts. */
+const NET_PER_DAY = 4;
+/** Object state: each platform's net reads today. */
+const NET_DAY = "netDay";
 /** Object state: the last Google Maps review read, ms. */
 const MAPS_READ = "mapsRead";
 /** Platforms whose activity is read less often than every pass: LinkedIn's notifications cap. */
@@ -462,6 +466,9 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
       ))
         named[key] = now.getTime();
     const netReads: Partial<Record<Platform, number>> = {};
+    const today = dayOf(now, deps.zone);
+    const netDay = (await ctx.get<Record<string, { day: string; n: number }>>(NET_DAY)) ?? {};
+    const netToday = (p: Platform) => (netDay[p]?.day === today ? netDay[p].n : 0);
     const reads: Record<string, number> = {};
     const counts: Record<string, number> = {};
     const fulls: Record<string, number> = {};
@@ -489,11 +496,15 @@ export function makeSocialWatch(deps: SocialWatchDeps) {
         named[key] !== undefined;
       if (byName.has(p.platform) && !wasPushed) {
         const n = netReads[p.platform] ?? 0;
-        if (n >= NET_PER_PASS || !isNetDue(p, last, now)) continue;
+        if (n >= NET_PER_PASS || netToday(p.platform) + n >= NET_PER_DAY) continue;
+        if (!isNetDue(p, last, now)) continue;
         netReads[p.platform] = n + 1;
         due.push({ p, key, wasPushed, net: true });
       } else if (wasPushed || isDue(p, last, now)) due.push({ p, key, wasPushed });
     }
+    for (const [p, n] of Object.entries(netReads))
+      netDay[p] = { day: today, n: netToday(p as Platform) + n };
+    if (Object.keys(netReads).length) ctx.set(NET_DAY, netDay);
     // Pushed and named first: a capped platform spends its reads on news.
     due.sort((a, b) => Number(b.wasPushed) - Number(a.wasPushed));
     // One count read per platform for every due post: a post whose count held needs no comment

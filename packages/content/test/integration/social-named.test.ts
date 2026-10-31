@@ -25,6 +25,9 @@ const C = "urn:li:ugcPost:7000000000000000003";
 // The second test's posts: SocialWatch's state outlives a test.
 const D = "urn:li:ugcPost:7000000000000000004";
 const E = "urn:li:ugcPost:7000000000000000005";
+const F = "urn:li:ugcPost:7000000000000000006";
+const G = "urn:li:ugcPost:7000000000000000007";
+const H = "urn:li:ugcPost:7000000000000000008";
 let li = fakeContentChannel("linkedin");
 let channels: Record<string, ContentChannel> = {};
 /** Each post's comment read, in order. */
@@ -173,9 +176,12 @@ describe("SocialWatch, LinkedIn watched", () => {
     expect(reads).toEqual([]);
   });
 
-  it("the net reads one post a pass, newest first, and counts what no notification named", async () => {
-    await published(D, 1);
-    await published(E, 2);
+  it("the net reads one post a pass, newest first, four a day, and counts what no notification named", async () => {
+    await published(D, 0.5);
+    await published(E, 1);
+    await published(F, 1.5);
+    await published(G, 2);
+    await published(H, 2.5);
     await push().watch({ owner: SOCIAL_KEY, platform: "linkedin", kind: "alive" });
     li.receive({
       id: "8002",
@@ -191,7 +197,8 @@ describe("SocialWatch, LinkedIn watched", () => {
     expect(one.stats?.unnamed).toBe(1);
     await sync();
     expect(reads).toEqual([D, E]);
-    await sync();
-    expect(reads).toEqual([D, E]);
+    for (let i = 0; i < 4; i++) await sync();
+    // Four today: H waits for tomorrow's net.
+    expect(reads).toEqual([D, E, F, G]);
   });
 });

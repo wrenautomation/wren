@@ -242,7 +242,7 @@ registerReview(registerEmail(program, withDb, settings, rootDir), withDb);
 registerFetch(program, settings);
 registerHooks(program, withMainDb);
 registerDlq(program, withMainDb, settings);
-registerLoops(program, settings);
+registerLoops(program, withMainDb, settings);
 registerLake(program, withMainDb, settings);
 registerNewsletter(program, withMainDb, settings);
 registerListmonk(program, withMainDb, settings);
