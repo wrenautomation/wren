@@ -118,3 +118,15 @@ variable "keystore_public_key" {
   type        = string
   default     = ""
 }
+
+variable "alarm_email" {
+  description = "Where CloudWatch alarms go (alarms.tf). Empty: no alarms."
+  type        = string
+  default     = ""
+}
+
+variable "alarm_calls_per_hour" {
+  description = "Worker Lambda calls in an hour past which alarms.tf emails: about 5x the normal peak."
+  type        = number
+  default     = 10000
+}
