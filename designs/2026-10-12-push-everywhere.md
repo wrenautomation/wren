@@ -94,6 +94,33 @@ reply box found. On approve, only the typing and the click remain.
 - The portal's Approve is `optimistic`: the reply leaves To approve at the click with "Sending",
   the next one opens, and a refusal puts it back with its words.
 
+## 10-31 review: the ladder, and what is live
+
+William, 10-30: "webhooks / sses / api usage where we can --> long polling browser automation
+where we can't, and all grouped together in the code." This doc is that. Per platform and event,
+the first source that works:
+
+1. Official push: Meta webhooks, GBP Pub/Sub, Gmail Pub/Sub.
+2. Official stream (none in use).
+3. Official API poll: `SocialWatch`, a count read first, comments only where the count moved.
+4. A tab that stays open: autobrowse watchers on `linkedin@wren` and `x@wren`.
+5. A browser read at human pace, under the site's caps.
+
+Every source enters one path: the phone Worker's doors or the watcher's sink, then `SocialPush`,
+then `SocialPushed/<owner>`, then one `SocialWatch` pass. The slow pass is the net.
+
+Live on 10-31 (Restate, 24 h): `desk/watch` 44, `SocialPush/watch` 105, `SocialPushed/alive` 73,
+`SocialPush/meta` 1. `wren social push meta --check`: Page `feed,messages` and Instagram
+`messages,comments,mentions` subscribed to `/webhooks/meta`.
+
+Gaps:
+
+- `alive` slows only `ReachWatch`. `SocialWatch` still reads LinkedIn post counts every pass, so
+  the LinkedIn `comments` cap (10 a day on the week-1 ramp) is spent by the clock, not by news.
+- Instagram `comments` arrive only with Advanced Access (App Review). Not filed.
+- Each platform's source is set in several places: `watched` (worker `content.ts`),
+  `ACTIVITY_EVERY_MS` (`social.ts`), `WATCH_SPECS` (autobrowse), `LOOK_TIERS` (stats).
+
 ## Not now
 
 - X Activity API: cents a month at our volume, but it needs credits. William's call; the tab
@@ -115,3 +142,8 @@ reply box found. On approve, only the typing and the click remain.
   buys nothing the path does not already say.
 - Arming by running the channel over an arming client, not an `armReply` per channel: each
   channel already knows its write; a second copy per channel would drift.
+- 10-31: title counts kept over the site's realtime frames (William asked for a "persistent fake
+  SSE"; the watcher is that). Frames would name the post, but they change shape without notice,
+  and a count read per platform already finds the post.
+- 10-31: no per-platform source registry yet. Four places set sources today, all small. One
+  registry comes when a fifth platform gets a watcher or a webhook.
