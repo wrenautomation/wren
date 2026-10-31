@@ -191,6 +191,50 @@ describe("restateSites", () => {
   });
 });
 
+describe("restateSites after a cancel", () => {
+  it("this invocation's cancel ends every later call at once, never a wait on the desk", async () => {
+    const { ctx, calls } = ctxOf(() => {
+      throw new restate.CancelledError();
+    });
+    const sites = restateSites(ctx, { caller: "test", service: DESK, limitMs: 60_000 });
+    // Meta's metricsMany: each post's failure skipped (10-30).
+    const errs: unknown[] = [];
+    for (const id of ["1", "2", "3"])
+      await sites.call("meta", "GET", `/${id}/insights`).catch((e: unknown) => errs.push(e));
+    await sites.via("meta", "GET", "/1/insights").catch((e: unknown) => errs.push(e));
+    expect(calls.filter((c) => c.handler === "call")).toHaveLength(1);
+    expect(calls.filter((c) => c.handler === "status")).toHaveLength(0);
+    expect(calls.filter((c) => c.handler === "sleep")).toHaveLength(0);
+    expect(errs).toHaveLength(4);
+    for (const e of errs) expect(e).toBeInstanceOf(restate.CancelledError);
+  });
+
+  it("a keyed write's cancel is not asked after as a verdict", async () => {
+    const { ctx, calls } = ctxOf(() => {
+      throw new restate.CancelledError();
+    });
+    const sites = restateSites(ctx, { caller: "test", service: DESK });
+    const err = await withSendKey("k1", () =>
+      sites.call("reddit", "POST", "/api/comment", { text: "x" }),
+    ).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(restate.CancelledError);
+    expect(calls.filter((c) => c.handler === "verdict")).toHaveLength(0);
+  });
+
+  it("a child cancelled alone (409) stays a SiteCallError; later calls still run", async () => {
+    let n = 0;
+    const { ctx } = ctxOf(() => {
+      if (n++ === 0) throw new restate.TerminalError("Cancelled", { errorCode: 409 });
+      return { ok: true };
+    });
+    const sites = restateSites(ctx, { caller: "test", service: DESK });
+    const err = await sites.call("meta", "GET", "/1/insights").catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(SiteCallError);
+    expect(err).toMatchObject({ status: 409 });
+    expect(await sites.call("meta", "GET", "/2/insights")).toEqual({ ok: true });
+  });
+});
+
 describe("restateSites arming", () => {
   it("reads run; the first write is sent to `arm` instead and stops the channel", async () => {
     const { ctx, calls, sent } = ctxOf(() => ({ sub: "me" }));

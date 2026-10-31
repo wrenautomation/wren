@@ -126,6 +126,8 @@ export class ArmedStop extends Error {
 
 /** A terminal error from `sites` carries the site's own status code; surface it as a SiteCallError. */
 export function siteCallErrorFrom(err: unknown, site: string, method: string, path: string): Error {
+  // This invocation's own cancel: never a site's answer. A child cancelled alone is a 409 below.
+  if (err instanceof restate.CancelledError) return err;
   if (err instanceof restate.TerminalError)
     return new SiteCallError(
       site,
@@ -202,6 +204,17 @@ export function restateSites(
   const untilOf = (at: number) => dayEnd(dayZone, new Date(at)).toISOString();
   const client = ctx.serviceClient<SitesService>(service);
   const statuses = new Map<string, Promise<SiteStatus>>();
+  /**
+   * This invocation's cancel, once seen: every later call throws it at once. A channel loop that
+   * skips a failed post (`catch { continue }`) then ends, never waiting on the desk again: a
+   * cancelled invocation waiting on a call replays in a hot loop on Lambda (10-30: 5.8M runs in
+   * 12 h, the Mac off).
+   */
+  let cancelled: restate.CancelledError | null = null;
+  const cancelledBy = (err: unknown) => {
+    if (err instanceof restate.CancelledError) cancelled = err;
+    return cancelled;
+  };
   let woken: Promise<unknown> | null = null;
   const awake = () => {
     if (!wake) return Promise.resolve();
@@ -232,6 +245,7 @@ export function restateSites(
         true,
       );
     } catch (err) {
+      if (cancelledBy(err)) throw err;
       const why =
         err instanceof CallTimeout
           ? "the verdict is still being read"
@@ -275,6 +289,7 @@ export function restateSites(
         },
       );
     } catch (err) {
+      if (cancelledBy(err)) throw err;
       // Past its day: the journal's record says what it did; none means it never started.
       if (err instanceof CallTimeout)
         return settled(site, method, path, await askVerdict(site, method, path, key, since));
@@ -311,6 +326,7 @@ export function restateSites(
   }
   return {
     async call(site, method, path, input = {}, account) {
+      if (cancelled) throw cancelled;
       if (arm && method !== "GET") {
         ctx.serviceSendClient<SitesService>(service).arm({
           site,
@@ -347,7 +363,7 @@ export function restateSites(
             !repeatable,
           )) as never;
         } catch (err) {
-          if (err instanceof CallTimeout) throw err;
+          if (err instanceof CallTimeout || cancelledBy(err)) throw err;
           const e = siteCallErrorFrom(err, site, method, path);
           if (!(e instanceof SiteCallError)) throw e;
           if (attempt < CALL_TRIES && !isRefusal(e) && repeatable) {
@@ -360,12 +376,14 @@ export function restateSites(
       }
     },
     async via(site, method, path) {
+      if (cancelled) throw cancelled;
       await awake();
       const p = statuses.get(site) ?? client.status({ site });
       statuses.set(site, p);
       try {
         return viaOf(await p, method, path);
       } catch (err) {
+        if (cancelledBy(err)) throw err;
         // A failed read is not the site's answer: the next call asks again.
         statuses.delete(site);
         throw siteCallErrorFrom(err, site, "GET", "status");
