@@ -1090,3 +1090,41 @@ Release: models and orrery by CI. read and birdwatch got a 403 "OIDC permission 
 with the new trust config (WA-972), so they went out by hand again.
 
 Follow-up still open: the across-runs store (above).
+
+### 11-01: the library is the product, the ledger is history (B through A)
+
+William: the append-only ledger is for history: it lets us debug and see a run. The product is a
+library of research-backed artifacts. Kinds: industry playbooks (pains, numbers, buyer words,
+objections, hooks, the channels that work), brand voice per client, hook banks, campaign
+briefs, SOPs, and pointers to code. Readers: agents (as skills), wren prompts, William in a UI,
+and later a team, who read the library like a course. So each line needs a source trace a
+person can follow.
+
+Options weighed:
+- A: files in `sops/`, with a cite on each line. This works for agents now, but a client's
+  voice has no tenancy and a UI cannot write it.
+- B: wren Postgres holds the truth and each version is mirrored to git (as shapes are now). This
+  has tenancy and the portal UI. But a cite points into a file ledger on the Mac, so prod
+  cannot resolve it until the ledger is in Postgres (WA-907).
+- C: files with DVC to find stale outputs. DVC tracks file hashes and cannot see a cite on one
+  finding. Rejected.
+Ranked: first, humans and agents read and write one thing; then tenancy for client artifacts;
+then one home with no drift; then cost.
+
+Picked B, reached through A. We fix the file format now and use it in `sops/`. When WA-907 puts
+the ledger in Postgres, wren holds the truth and `sops/` becomes its mirror. The mirror uses the
+same format, so we discard no work.
+
+Rules:
+- A claim line cites a ledger finding, a pattern, or a `path@commit`. A pointer to code is
+  only a pointer; code lives in a repo with its tests.
+- A source a person finds (a Google search, the UI) goes into the ledger as a `from: human`
+  finding with its quote. The quote check is the same as for the agent.
+- Stale is a fact that code computes: a cited finding was dropped or fixed, a pinned file
+  moved, or a source is older than the age rule of its kind. The agent or the person decides
+  what changes. Code never writes a stale flag.
+- Back-links (which artifacts cite this finding) are computed when read. They are never stored.
+- Code never writes `notes.md`, and `wren sop build` keeps SOP.md.
+- Gap: `birdwatch serve` is read-only, so a person cannot add a source from the UI.
+
+The first test is one playbook for one local service niche, built from birdwatch runs on 0.30.0.
