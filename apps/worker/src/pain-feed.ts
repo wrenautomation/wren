@@ -38,33 +38,27 @@ export interface PainStats {
 
 export function makePainFeed(d: PainFeedDeps) {
   return makeLoopObject(PAIN_FEED.name, async (ctx: restate.ObjectContext) => {
-    const now = new Date(await ctx.date.now());
     const had = (await ctx.get<number>(CURSOR)) ?? 0;
-    const outcome = (await runPass<PainStats & { fires: Fired[]; cursor: number }>(
-      ctx,
-      d.main,
-      now,
-      {
-        name: "pain feed",
-        ledger: { command: "journeys pain", argv: { daemon: true } },
-        body: async () => {
-          const r = await painPass(d.main, d.llm, await liveSources(d.main), had, now, PER_PASS);
-          return {
-            scanned: r.scanned,
-            read: r.read,
-            pains: r.pains,
-            unproven: r.unproven,
-            fired: r.fires.length,
-            waiting: r.waiting,
-            more: r.more,
-            fires: r.fires,
-            cursor: r.cursor,
-          };
-        },
-        delayAfter: (s) => (s.more ? MORE_MS : IDLE_MS),
-        retryMs: IDLE_MS,
+    const outcome = (await runPass<PainStats & { fires: Fired[]; cursor: number }>(ctx, d.main, {
+      name: "pain feed",
+      ledger: { command: "journeys pain", argv: { daemon: true } },
+      body: async (_runId, now) => {
+        const r = await painPass(d.main, d.llm, await liveSources(d.main), had, now, PER_PASS);
+        return {
+          scanned: r.scanned,
+          read: r.read,
+          pains: r.pains,
+          unproven: r.unproven,
+          fired: r.fires.length,
+          waiting: r.waiting,
+          more: r.more,
+          fires: r.fires,
+          cursor: r.cursor,
+        };
       },
-    )) as PassOutcome<PainStats & { fires: Fired[]; cursor: number }>;
+      delayAfter: (s) => (s.more ? MORE_MS : IDLE_MS),
+      retryMs: IDLE_MS,
+    })) as PassOutcome<PainStats & { fires: Fired[]; cursor: number }>;
     if (outcome.stats) {
       for (const f of outcome.stats.fires) executorFire(ctx, f);
       ctx.set(CURSOR, outcome.stats.cursor);

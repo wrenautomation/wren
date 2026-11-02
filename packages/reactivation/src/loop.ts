@@ -198,7 +198,8 @@ export function makeReactivation(deps: ReactivationLoopDeps) {
 
       const db = deps.open({ database: plan.database });
       const { settings } = plan;
-      const outcome = await runPass<ReactivationPassStats>(ctx, db, now, {
+      const outcome = await runPass<ReactivationPassStats>(ctx, db, {
+        now,
         name: PASS,
         ledger: { command: REACTIVATION_COMMAND, argv: { client: ctx.key, limit } },
         body: async (runId) => {

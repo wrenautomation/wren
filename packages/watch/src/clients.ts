@@ -53,11 +53,10 @@ export async function readClients(d: MailReaderDeps, now: Date): Promise<ClientR
 
 export function makeMailReader(deps: MailReaderDeps) {
   return makeLoopObject("MailReader", async (ctx: restate.ObjectContext) => {
-    const now = new Date(await ctx.date.now());
-    const outcome = (await runPass<ClientReadStats>(ctx, deps.db, now, {
+    const outcome = (await runPass<ClientReadStats>(ctx, deps.db, {
       name: "read",
       ledger: { command: "mail read", argv: { daemon: true } },
-      body: () => readClients(deps, now),
+      body: (_runId, now) => readClients(deps, now),
       delayAfter: () => MAIL_READER_EVERY_MS,
       retryMs: MAIL_READER_EVERY_MS,
     })) as PassOutcome<ClientReadStats>;

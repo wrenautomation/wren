@@ -84,11 +84,14 @@ const REFUSED = "refused@example.com";
 /** No push and nothing waits on it (an Instantly-only inbox): polled at the net's pace. */
 const QUIET = "quiet@example.com";
 const watchCalls: string[] = [];
-const watch = async (sender: string) => {
-  watchCalls.push(sender);
-  if (sender === REFUSED) throw new Error("topic not found");
-  return sender === WATCHED ? Date.now() + 7 * 86_400_000 : null;
-};
+const watch = (sender: string) =>
+  sender === WATCHED || sender === REFUSED
+    ? async () => {
+        watchCalls.push(sender);
+        if (sender === REFUSED) throw new Error("topic not found");
+        return Date.now() + 7 * 86_400_000;
+      }
+    : null;
 
 /** Another loop on a mailbox's push (the Monitor): joins `InboxPush`, counts its wakes. */
 const LISTENED = "listened@example.com";
@@ -334,6 +337,8 @@ describe("InboxScheduler", () => {
   it("a watched inbox renews its watch once, polls as a net, and a push runs its pass", async () => {
     const key = `acme/${WATCHED}`;
     watchCalls.length = 0;
+    // Renewed after the first pass, so that pass still polls at the usual pace.
+    expect((await inbox(key).sync()).delayMs).toBe(SYNC_MS);
     expect((await inbox(key).sync()).delayMs).toBe(NET_MS);
     expect((await inbox(key).sync()).delayMs).toBe(NET_MS);
     expect(watchCalls).toEqual([WATCHED]); // 7 days left: no second renewal
@@ -377,7 +382,9 @@ describe("InboxScheduler", () => {
   });
 
   it("a quiet inbox polls at the net's pace", async () => {
+    watchCalls.length = 0;
     expect((await inbox(QUIET).sync()).delayMs).toBe(NET_MS);
+    expect(watchCalls).toEqual([]); // no push: no renewal step
   });
 
   it("start loops until stop", async () => {

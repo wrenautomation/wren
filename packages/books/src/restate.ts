@@ -35,7 +35,8 @@ export function makeBooks(deps: BooksDeps) {
     const now = new Date(await ctx.date.now());
     const settings = await loopSettings<BooksSettings>(ctx);
     const awsDue = now.getTime() - ((await ctx.get<number>(AWS_AT)) ?? 0) >= BOOKS_AWS_EVERY_MS;
-    const outcome = (await runPass<BooksDay>(ctx, deps.db, now, {
+    const outcome = (await runPass<BooksDay>(ctx, deps.db, {
+      now,
       name: "day",
       ledger: { command: BOOKS_COMMAND, argv: { daemon: true, ...settings } },
       body: (runId) => booksDay(awsDue ? deps : { ...deps, aws: null, decrypts: null }, now, runId),

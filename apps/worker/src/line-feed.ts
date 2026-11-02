@@ -31,11 +31,10 @@ interface LineStats {
 
 export function makeLineFeed(d: LineFeedDeps) {
   return makeLoopObject(LINE_FEED.name, async (ctx: restate.ObjectContext) => {
-    const now = new Date(await ctx.date.now());
-    const outcome = (await runPass<LineStats & { fires: Fired[] }>(ctx, d.main, now, {
+    const outcome = (await runPass<LineStats & { fires: Fired[] }>(ctx, d.main, {
       name: "line feed",
       ledger: { command: "lines feed", argv: { daemon: true } },
-      body: () => linePass(d.main, now, PER_FIND),
+      body: (_runId, now) => linePass(d.main, now, PER_FIND),
       delayAfter: (s) => (s.more ? MORE_MS : IDLE_MS),
       retryMs: IDLE_MS,
     })) as PassOutcome<LineStats & { fires: Fired[] }>;

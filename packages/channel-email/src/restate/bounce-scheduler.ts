@@ -104,11 +104,10 @@ export async function readAllBounces(d: BounceSchedulerDeps, now: Date): Promise
 export function makeBounceScheduler(deps: BounceSchedulerDeps) {
   const every = deps.everyMs ?? BOUNCES_EVERY_MS;
   return makeLoopObject("BounceScheduler", async (ctx: restate.ObjectContext) => {
-    const now = new Date(await ctx.date.now());
-    return runPass<BouncePassStats>(ctx, deps.db, now, {
+    return runPass<BouncePassStats>(ctx, deps.db, {
       name: "bounces read",
       ledger: { command: BOUNCES_COMMAND, argv: { daemon: true } },
-      body: () => readAllBounces(deps, now),
+      body: (_runId, now) => readAllBounces(deps, now),
       delayAfter: () => every,
       retryMs: every,
     });

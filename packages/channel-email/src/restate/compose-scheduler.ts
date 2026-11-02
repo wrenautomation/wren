@@ -281,7 +281,8 @@ export function makeComposeScheduler(deps: ComposeSchedulerDeps) {
       policyOf = () => clientPolicy(cdb, settings, deps.policy);
       shared = sharedFor(deps.db, owner.client);
     }
-    const outcome = await runPass<TopUpStats>(ctx, db, now, {
+    const outcome = await runPass<TopUpStats>(ctx, db, {
+      now,
       name: "compose top-up",
       ledger: {
         command: COMPOSE_COMMAND,

@@ -398,7 +398,8 @@ export function makePlacementScheduler(deps: PlacementSchedulerDeps) {
         ),
       );
     }
-    return runPass<PlacementStats>(ctx, deps.db, now, {
+    return runPass<PlacementStats>(ctx, deps.db, {
+      now,
       name: "placement",
       ledger: { command: PLACEMENT_COMMAND, argv: { daemon: true } },
       body: async () => {

@@ -28,8 +28,7 @@ export function makeOpensScheduler(deps: OpensSchedulerDeps) {
   const syncMs = deps.syncMs ?? 120_000;
   const tickMs = deps.tickMs ?? 60_000;
   return makeLoopObject("OpensScheduler", async (ctx: restate.ObjectContext) => {
-    const now = new Date(await ctx.date.now());
-    return runPass<OpenSyncStats>(ctx, deps.db, now, {
+    return runPass<OpenSyncStats>(ctx, deps.db, {
       name: "opens sync",
       ledger: { command: OPENS_SYNC_COMMAND, argv: { daemon: true, base_url: deps.baseUrl } },
       body: (runId) =>

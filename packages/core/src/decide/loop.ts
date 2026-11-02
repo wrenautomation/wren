@@ -217,11 +217,11 @@ export function makeDecide(d: DecideDeps) {
   return makeLoopObject(
     "Decide",
     async (ctx: restate.ObjectContext) => {
-      const now = new Date(await ctx.date.now());
-      return (await runPass<DecidePassStats>(ctx, d.main, now, {
+      return (await runPass<DecidePassStats>(ctx, d.main, {
         name: "decide",
         ledger: { command: "decide pass", argv: { daemon: true } },
-        body: async () => decidePass(d.main, { sources: d.sources, backends: d.backends(), now }),
+        body: async (_runId, now) =>
+          decidePass(d.main, { sources: d.sources, backends: d.backends(), now }),
         delayAfter: () => DECIDE_EVERY_MS,
         retryMs: DECIDE_EVERY_MS,
       })) as PassOutcome<DecidePassStats>;

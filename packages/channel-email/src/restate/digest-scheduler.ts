@@ -138,7 +138,8 @@ export function makeDigestScheduler(deps: DigestSchedulerDeps) {
     const now = new Date(await ctx.date.now());
     const delay = nextDigestAt(deps.policy, now).getTime() - now.getTime();
     const yesterday = new Date(now.getTime() - 24 * 3600 * 1000).toISOString().slice(0, 10);
-    return runPass<DigestStats>(ctx, deps.db, now, {
+    return runPass<DigestStats>(ctx, deps.db, {
+      now,
       name: "digest",
       ledger: { command: DIGEST_COMMAND, argv: { daemon: true, day: yesterday } },
       body: async () => {

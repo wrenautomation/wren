@@ -29,8 +29,7 @@ export function makeClicksScheduler(deps: ClicksSchedulerDeps) {
   const syncMs = deps.syncMs ?? 3_600_000;
   const tickMs = deps.tickMs ?? 600_000;
   return makeLoopObject("ClicksScheduler", async (ctx: restate.ObjectContext) => {
-    const now = new Date(await ctx.date.now());
-    return runPass<ClickSyncStats>(ctx, deps.db, now, {
+    return runPass<ClickSyncStats>(ctx, deps.db, {
       name: "clicks sync",
       ledger: { command: CLICKS_SYNC_COMMAND, argv: { daemon: true, base_url: deps.baseUrl } },
       body: () =>

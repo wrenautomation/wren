@@ -233,7 +233,6 @@ export function makeVaultKeys(deps: VaultKeysDeps) {
   return makeLoopObject(
     "VaultKeys",
     async (ctx: restate.ObjectContext) => {
-      const now = new Date(await ctx.date.now());
       const host = deps.host ?? { service: SITES };
       await wake(ctx, host);
       let answer: KeysAnswer | null = null;
@@ -249,10 +248,10 @@ export function makeVaultKeys(deps: VaultKeysDeps) {
         refused = err.message;
       }
       const got = answer;
-      return runPass<SyncStats>(ctx, deps.db, now, {
+      return runPass<SyncStats>(ctx, deps.db, {
         name: "sync",
         ledger: { command: VAULT_KEYS_COMMAND, argv: { daemon: true } },
-        body: async () => {
+        body: async (_runId, now) => {
           if (!got) throw new Error(`sites keys refused: ${refused}`);
           return syncVaultKeys(deps.db, { keys: async () => got }, { now });
         },

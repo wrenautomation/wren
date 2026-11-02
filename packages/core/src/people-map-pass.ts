@@ -95,8 +95,7 @@ export function makePeopleMap(d: PeopleMapDeps) {
 /** `PeopleMapNet/all`: every 30 minutes, a wake to Wren's people map and every client's. */
 export function makePeopleMapNet(d: Pick<PeopleMapDeps, "main" | "clients">) {
   return makeLoopObject("PeopleMapNet", async (ctx: restate.ObjectContext) => {
-    const now = new Date(await ctx.date.now());
-    const outcome = (await runPass<{ woken: number; keys: string[] }>(ctx, d.main, now, {
+    const outcome = (await runPass<{ woken: number; keys: string[] }>(ctx, d.main, {
       name: "people map net",
       ledger: { command: "people map net", argv: { daemon: true } },
       body: async () => {

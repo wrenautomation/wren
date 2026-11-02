@@ -25,7 +25,8 @@ export function makeReportScheduler(deps: ReportSchedulerDeps) {
   return makeLoopObject("ReportScheduler", async (ctx: restate.ObjectContext) => {
     const now = new Date(await ctx.date.now());
     const delay = untilNextReport(deps.policy, now);
-    return runPass<WeeklyReportStats>(ctx, deps.db, now, {
+    return runPass<WeeklyReportStats>(ctx, deps.db, {
+      now,
       name: "weekly report",
       ledger: { command: REPORT_COMMAND, argv: { daemon: true, to: deps.mail.to } },
       body: (runId) =>

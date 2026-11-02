@@ -77,8 +77,7 @@ export async function sealEverywhere(deps: AuditSealerDeps): Promise<SealerStats
 
 export function makeAuditSealer(deps: AuditSealerDeps) {
   return makeLoopObject("AuditSealer", async (ctx: restate.ObjectContext) => {
-    const now = new Date(await ctx.date.now());
-    return runPass<SealerStats>(ctx, deps.main, now, {
+    return runPass<SealerStats>(ctx, deps.main, {
       name: "seal",
       ledger: { command: SEALER_COMMAND, argv: { daemon: true } },
       body: () => sealEverywhere(deps),

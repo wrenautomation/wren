@@ -155,7 +155,8 @@ export function makeSearchWatch(deps: SearchDeps) {
     const lost = part ? await ctx.run("paused", () => partPaused(deps.db, client, part)) : null;
     if (lost) return pausedPass<WatchStats>(ctx, now, pausedText(lost), DAY_MS);
     const db = deps.clientDb(client);
-    return runPass<WatchStats>(ctx, db, now, {
+    return runPass<WatchStats>(ctx, db, {
+      now,
       name: SEARCH_SYNC_COMMAND,
       ledger: { command: SEARCH_SYNC_COMMAND, argv: { daemon: true, site: plan.site } },
       body: async (runId) => {
@@ -181,7 +182,8 @@ export function makeSearchWatch(deps: SearchDeps) {
     const owner = clientOfKey(ctx.key);
     if (owner) return clientPass(ctx, owner.client, now);
     const today = dayOf(now);
-    const outcome = await runPass(ctx, deps.db, now, {
+    const outcome = await runPass(ctx, deps.db, {
+      now,
       name: SEARCH_SYNC_COMMAND,
       ledger: { command: SEARCH_SYNC_COMMAND, argv: { daemon: true, site: deps.site } },
       body: async (runId) => {

@@ -182,6 +182,11 @@ async function nowFor(
   return clock ? clock() : new Date(await ctx.date.now());
 }
 
+/** A test clock for `runPass`; none, the pass reads its own in its step. */
+function clockOf(clock?: () => Date): { now?: Date } {
+  return clock ? { now: clock() } : {};
+}
+
 /** A new or resumed number: the sender may be in its 6 h sleep. */
 function wakeSender(ctx: restate.Context) {
   ctx
@@ -194,14 +199,15 @@ function wakeSender(ctx: restate.Context) {
 
 export function makeSmsSender(wren: SmsDeps) {
   return makeLoopObject<TickStats>("SmsSender", async (ctx) => {
-    const now = await nowFor(ctx, wren.clock);
     const client = clientOfKey(ctx.key)?.client ?? null;
     const deps = await depsOf(ctx, wren, client);
-    if (typeof deps === "string") return stoppedPass<TickStats>(ctx, now, deps);
-    const pass = await runPass(ctx, deps.db, now, {
+    if (typeof deps === "string")
+      return stoppedPass<TickStats>(ctx, await nowFor(ctx, wren.clock), deps);
+    const pass = await runPass(ctx, deps.db, {
+      ...clockOf(wren.clock),
       name: "sms tick",
       ledger: { command: "sms tick", argv: { provider: deps.provider.name, live: deps.live } },
-      body: (runId) =>
+      body: (runId, now) =>
         tick(deps.db, {
           provider: deps.provider,
           policy: deps.policy,
@@ -213,7 +219,7 @@ export function makeSmsSender(wren: SmsDeps) {
           now,
           runId,
         }),
-      delayAfter: (s) => senderDelayMs(s, deps.policy.gapSeconds, now),
+      delayAfter: (s, now) => senderDelayMs(s, deps.policy.gapSeconds, now),
       retryMs: RETRY_MS,
       ...(deps.notifier ? { notifier: deps.notifier } : {}),
     });
@@ -873,13 +879,14 @@ const CAMPAIGN = "campaign";
 
 export function makeSmsWatch(wren: SmsDeps) {
   return makeLoopObject<WatchStats>("SmsWatch", async (ctx) => {
-    const now = await nowFor(ctx, wren.clock);
     const deps = await depsOf(ctx, wren, clientOfKey(ctx.key)?.client ?? null);
-    if (typeof deps === "string") return stoppedPass<WatchStats>(ctx, now, deps);
-    const outcome: PassOutcome<WatchStats> = await runPass(ctx, deps.db, now, {
+    if (typeof deps === "string")
+      return stoppedPass<WatchStats>(ctx, await nowFor(ctx, wren.clock), deps);
+    const outcome: PassOutcome<WatchStats> = await runPass(ctx, deps.db, {
+      ...clockOf(wren.clock),
       name: "sms watch",
       ledger: { command: "sms watch", argv: {} },
-      body: async (runId) => {
+      body: async (runId, now) => {
         const registration = await watchRegistration(deps.db, deps.provider, deps.campaignId, now);
         await noticeRegistered(deps.notifier, registration);
         // A site outage costs this pass its form follow-up, not its health checks.
@@ -960,6 +967,7 @@ export function makeSmsWatch(wren: SmsDeps) {
       ctx.set(CAMPAIGN, campaign.raw);
     }
     // One line a fleet day, after 18:00 ET, when anything went out.
+    const now = new Date(outcome.now);
     const day = fleetDay(now);
     const hourEt = Number(
       new Intl.DateTimeFormat("en-US", {

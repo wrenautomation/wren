@@ -166,7 +166,8 @@ export function makeWatch(deps: WatchDeps) {
   return makeLoopObject("Watch", async (ctx: restate.ObjectContext) => {
     const now = new Date(await ctx.date.now());
     const pushed = await keepWatches(ctx, deps, now.getTime());
-    const outcome = (await runPass<Stats>(ctx, deps.db, now, {
+    const outcome = (await runPass<Stats>(ctx, deps.db, {
+      now,
       name: "read",
       ledger: { command: "watch read", argv: { daemon: true } },
       body: async () => ({

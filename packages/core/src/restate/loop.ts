@@ -200,9 +200,15 @@ interface PassSpec<S extends object> {
   /** The journaled step's name and the ledger row it opens. */
   name: string;
   ledger: RunOptions;
-  body: (runId: string) => Promise<S>;
-  /** Delay after a pass that returned, given its stats. */
-  delayAfter: (stats: S) => number;
+  /** `now`: the pass's clock, read inside its step. */
+  body: (runId: string, now: Date) => Promise<S>;
+  /** Delay after a pass that returned, given its stats and its clock. */
+  delayAfter: (stats: S, now: Date) => number;
+  /**
+   * A clock the caller already read (`ctx.date.now()`) for a choice before the pass. Unset, the
+   * pass reads its own inside its step: one journal step and one Lambda call less.
+   */
+  now?: Date;
   /** The longest delay after failed passes (the backoff's cap). */
   retryMs: number;
   /**
@@ -251,32 +257,38 @@ export function formatDelay(ms: number): string {
  * Run one pass under a ledger row, inside one `ctx.run`. The step returns the
  * outcome rather than throwing: a stage that failed still needs its retry
  * delay journaled, and a thrown `ctx.run` would be retried by Restate's own
- * policy instead of ours.
+ * policy instead of ours. The clock is read in the same step: on Lambda each
+ * step is one more call (designs/2026-11-01-loop-calls.md).
  */
 export async function runPass<S extends object>(
   ctx: restate.ObjectContext,
   db: Db,
-  now: Date,
   spec: PassSpec<S>,
 ): Promise<PassOutcome<S>> {
+  const given = spec.now?.toISOString();
   const result = await ctx.run(
     spec.name,
-    async (): Promise<{ stats: S | null; error: string | null }> => {
+    async (): Promise<{ stats: S | null; error: string | null; now: string }> => {
+      const now = given ?? new Date().toISOString();
       try {
-        const { stats } = await recordedRun(db, spec.ledger, (run) => spec.body(run.id));
-        return { stats, error: null };
+        const { stats } = await recordedRun(db, spec.ledger, (run) =>
+          spec.body(run.id, new Date(now)),
+        );
+        return { stats, error: null, now };
       } catch (err) {
-        return { stats: null, error: errorText(err) };
+        return { stats: null, error: errorText(err), now };
       }
     },
   );
   const previous = await lastPass<PassOutcome<S>>(ctx);
   const failures = result.stats === null ? (previous?.failures ?? 0) + 1 : 0;
   const delayMs = Math.max(
-    result.stats === null ? retryDelayMs(failures, spec.retryMs) : spec.delayAfter(result.stats),
+    result.stats === null
+      ? retryDelayMs(failures, spec.retryMs)
+      : spec.delayAfter(result.stats, new Date(result.now)),
     MIN_DELAY_MS,
   );
-  const outcome: PassOutcome<S> = { ...result, failures, delayMs, now: now.toISOString() };
+  const outcome: PassOutcome<S> = { ...result, failures, delayMs };
   await setLastPass(ctx, outcome);
   if (spec.notifier) await notifyErrorEdges(ctx, spec.notifier, spec.name, previous, outcome);
   return outcome;

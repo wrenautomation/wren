@@ -62,10 +62,11 @@ interface InboxSchedulerDeps {
   /** Told the counts a pass found (replies; hard bounces and unsubscribes), never the text. */
   notifier?: Notifier;
   /**
-   * Renew this mailbox's Gmail watch; when it lapses (ms), or null for a mailbox with
-   * no push (IMAP). Unset = no push, the loop polls at `syncMs`.
+   * This mailbox's Gmail watch renewal (resolves to when it lapses, ms), or null for a mailbox
+   * with no push (IMAP): known from the address, so no step. Unset = no push, the loop polls at
+   * `syncMs`.
    */
-  watch?: (sender: string) => Promise<number | null>;
+  watch?: (sender: string) => (() => Promise<number>) | null;
   /** Between passes while the watch is live: the net under the push (default 30 min). */
   netMs?: number;
   /**
@@ -88,15 +89,15 @@ export function makeInboxScheduler(deps: InboxSchedulerDeps) {
   return makeLoopObject("InboxScheduler", async (ctx: restate.ObjectContext) => {
     const sender = unitOfKey(ctx.key);
     const scope = deps.scopeOf(ctx.key);
-    const now = new Date(await ctx.date.now());
-    const watched = deps.watch ? await keepWatch(ctx, deps.watch, sender, now.getTime()) : false;
-    const outcome = await runPass<SyncStats>(ctx, scope.db, now, {
+    const renew = deps.watch?.(sender) ?? null;
+    const until = renew ? ((await ctx.get<number>(WATCH_UNTIL)) ?? 0) : 0;
+    const outcome = await runPass<SyncStats>(ctx, scope.db, {
       name: "inbox sync",
       ledger: {
         command: INBOX_SYNC_COMMAND,
         argv: { daemon: true, senders: [sender], lookback_days: lookbackMs / DAY_MS },
       },
-      body: (runId) =>
+      body: (runId, now) =>
         syncInbox(scope.db, {
           reader: deps.reader,
           senders: [sender],
@@ -105,10 +106,12 @@ export function makeInboxScheduler(deps: InboxSchedulerDeps) {
           firstSyncLookbackMs: lookbackMs,
           shared: scope.shared ?? null,
         }),
-      delayAfter: () => (watched || deps.quiet?.(sender) ? netMs : syncMs),
+      // A watch that lapses before the next pass is renewed after this one.
+      delayAfter: (_s, now) => (until > now.getTime() || deps.quiet?.(sender) ? netMs : syncMs),
       retryMs: tickMs,
       ...(deps.notifier ? { notifier: deps.notifier } : {}),
     });
+    if (renew && until - Date.parse(outcome.now) <= DAY_MS) await renewWatch(ctx, renew, sender);
     if (deps.classify && (outcome.stats?.replies ?? 0) > 0) {
       ctx.objectSendClient<Disposition>({ name: "Disposition" }, scope.disposition).classify();
     }
@@ -126,27 +129,25 @@ export function makeInboxScheduler(deps: InboxSchedulerDeps) {
 const WATCH_UNTIL = "watch until";
 const LOOP_KEY = "loop key";
 
-/** Gmail drops a watch after 7 days: renewed once under a day is left. True while one is live. */
-async function keepWatch(
+/** Gmail drops a watch after 7 days: renewed once under a day is left. */
+async function renewWatch(
   ctx: restate.ObjectContext,
-  watch: (sender: string) => Promise<number | null>,
+  renew: () => Promise<number>,
   sender: string,
-  now: number,
-): Promise<boolean> {
-  const until = (await ctx.get<number>(WATCH_UNTIL)) ?? 0;
-  if (until - now > DAY_MS) return true;
+): Promise<void> {
   // A refusal is not retried here: the loop polls at its usual pace and the next pass asks again.
   const renewed = await ctx.run("renew watch", () =>
-    watch(sender).then(
+    renew().then(
       (next) => ({ next, error: null }),
       (e: unknown) => ({ next: null, error: e instanceof Error ? e.message : String(e) }),
     ),
   );
-  if (renewed.error) ctx.console.warn(`gmail watch for ${sender}: ${renewed.error}`);
-  if (renewed.next === null) return until > now;
+  if (renewed.next === null) {
+    ctx.console.warn(`gmail watch for ${sender}: ${renewed.error}`);
+    return;
+  }
   ctx.set(WATCH_UNTIL, renewed.next);
   ctx.objectSendClient<InboxPush>({ name: "InboxPush" }, sender.toLowerCase()).claim(ctx.key);
-  return true;
 }
 
 /** Another loop on the same mailbox's push: its object, key, and when its watch lapses (ms). */

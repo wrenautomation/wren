@@ -254,11 +254,10 @@ interface PayReconcileDeps extends PaymentsDeps {
 
 export function makePayReconcile(deps: PayReconcileDeps) {
   return makeLoopObject(PAY_RECONCILE, async (ctx: restate.ObjectContext) => {
-    const now = new Date(await ctx.date.now());
-    const out = (await runPass<ReconcileStats>(ctx, deps.main, now, {
+    const out = (await runPass<ReconcileStats>(ctx, deps.main, {
       name: "reconcile",
       ledger: { command: PAY_RECONCILE_COMMAND, argv: { daemon: true } },
-      body: () => reconcileAll(deps, now),
+      body: (_runId, now) => reconcileAll(deps, now),
       delayAfter: () => DAY_MS,
       retryMs: DAY_MS,
       ...(deps.notifier ? { notifier: deps.notifier } : {}),

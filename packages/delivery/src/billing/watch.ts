@@ -123,11 +123,10 @@ export async function billingPass(deps: BillingDeps, now: Date): Promise<Billing
 
 export function makeBillingWatch(deps: BillingDeps) {
   return makeLoopObject(BILLING_WATCH, async (ctx: restate.ObjectContext) => {
-    const now = new Date(await ctx.date.now());
-    const outcome = await runPass<BillingStats>(ctx, deps.main, now, {
+    const outcome = await runPass<BillingStats>(ctx, deps.main, {
       name: "billing watch",
       ledger: { command: BILLING_COMMAND, argv: { daemon: true } },
-      body: () => billingPass(deps, now),
+      body: (_runId, now) => billingPass(deps, now),
       delayAfter: () => EVERY,
       retryMs: EVERY,
       ...(deps.notifier ? { notifier: deps.notifier } : {}),
@@ -137,7 +136,7 @@ export function makeBillingWatch(deps: BillingDeps) {
     // keeps a repeat from entering a node twice).
     if (deps.fire && outcome.stats) {
       const token = ctx.rand.uuidv4();
-      const w = wallClock(deps.zone, now);
+      const w = wallClock(deps.zone, new Date(outcome.now));
       const today = `${w.year}-${pad(w.month)}-${pad(w.day)}`;
       const fires = await ctx.run("invoice changes", () =>
         claimInvoiceChanges(deps.main, token, today),

@@ -33,7 +33,8 @@ export function makePageArchive(deps: PageArchiveDeps) {
   return makeLoopObject("PageArchive", async (ctx: restate.ObjectContext) => {
     const now = new Date(await ctx.date.now());
     const settings = await loopSettings<PageArchiveSettings>(ctx);
-    return runPass<ArchiveStats>(ctx, deps.db, now, {
+    return runPass<ArchiveStats>(ctx, deps.db, {
+      now,
       name: "archive",
       ledger: { command: PAGE_ARCHIVE_COMMAND, argv: { daemon: true, ...settings } },
       body: async () => {

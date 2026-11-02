@@ -404,12 +404,11 @@ type Wake = { wake: (ctx: restate.ObjectContext) => Promise<boolean> };
 /** `LoopWatch/all`: a check every ten minutes; dead loops woken, each incident told once. */
 export function makeLoopWatch(deps: LoopWatchDeps) {
   return makeLoopObject("LoopWatch", async (ctx: restate.ObjectContext) => {
-    const now = new Date(await ctx.date.now());
     const before = (await ctx.get<Record<string, Incident>>(INCIDENTS)) ?? {};
-    const outcome = (await runPass<LoopWatchPass>(ctx, deps.main, now, {
+    const outcome = (await runPass<LoopWatchPass>(ctx, deps.main, {
       name: "check",
       ledger: { command: "loops watch", argv: { daemon: true } },
-      body: () => loopWatchCheck(deps, before, now),
+      body: (_runId, now) => loopWatchCheck(deps, before, now),
       delayAfter: () => LOOP_WATCH_EVERY_MS,
       retryMs: LOOP_WATCH_EVERY_MS,
       ...(deps.notifier ? { notifier: deps.notifier } : {}),

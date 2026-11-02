@@ -44,11 +44,20 @@ William's ask was "one loop for all workspaces". I did not do that.
 
 Ranked by: isolation between clients, then calls per client, then new surface. A keeps isolation and cuts calls per client by ~4x. B saves more calls but couples clients. C saves little for its cost.
 
-## Not built: the clock read
+## The clock read (WA-995)
 
-Each `runPass` reads `ctx.date.now()` before its run. That is its own journal step, so a suspension and one more Lambda call. 51 call sites. Reading the time inside the pass's `ctx.run` saves ~1 of ~3 calls on every pass of every loop: ~4k more a day. It changes the loop substrate, so it waits on William's yes.
+`runPass` read `ctx.date.now()` before its run: its own step, so one more Lambda call per pass. Now the pass reads the clock inside its `ctx.run` and journals it with the stats. `body` and `delayAfter` get that `now`; after the pass, `outcome.now` is it. A loop that needs the time before its pass (to pause, to pick work) still reads it and passes `now`.
+
+A pass is now 2 calls, not 3. Two is the floor: code can use a run's result only after Restate acks it.
+
+Folded: 24 loops. Not folded: loops that use the clock before the pass, and box loops (no Lambda calls).
+
+InboxScheduler made 4 calls a pass: clock, `renew watch`, sync. A mailbox with no push ran `renew watch` each pass to learn "none". Now `watch(sender)` says so from the address, with no step. A watched mailbox renews after the pass, when under a day is left. Its first pass polls at `syncMs`, since the watch is not yet live. Now 2 calls a pass.
+
+Expected: ~2.3k fewer calls a day (InboxScheduler ~860, the other folded loops ~1,400). Not the ~4k I first said: a third of the loops read the clock before the pass.
 
 ## Decision log
 
 - 2026-11-01: row triggers, TouchFeed on wake, demo out of the nets, slower nets and feeds (William: "yes and then do all those"). Option A over B for change 3 (my call, said to William).
 - 2026-11-01: demo flag flipped back to false gives TouchFeed its old cursor: the next pass tells the touches written while it was demo. Demo writes nothing, so none.
+- 2026-11-02: the clock read folds into the pass step (William: "yes sure"). A caller that needs the clock first still passes `now`. InboxScheduler: no-push mailboxes take no renew step.

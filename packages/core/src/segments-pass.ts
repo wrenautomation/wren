@@ -428,8 +428,7 @@ interface SegmentsNetStats {
 /** `SegmentsNet/all`: every hour, a wake to Wren's segments and every client's. */
 export function makeSegmentsNet(d: Pick<SegmentsDeps, "main" | "clients">) {
   return makeLoopObject("SegmentsNet", async (ctx: restate.ObjectContext) => {
-    const now = new Date(await ctx.date.now());
-    const outcome = (await runPass<SegmentsNetStats & { keys: string[] }>(ctx, d.main, now, {
+    const outcome = (await runPass<SegmentsNetStats & { keys: string[] }>(ctx, d.main, {
       name: "segments net",
       ledger: { command: "segments net", argv: { daemon: true } },
       body: async () => {

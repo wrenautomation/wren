@@ -124,10 +124,10 @@ export function emailServices(deps: Deps): AnyService[] {
   const tickMs = settings.daemonTickSeconds * 1000;
   const watch =
     settings.sendTransport === "gmail"
-      ? async (sender: string) =>
+      ? (sender: string) =>
           noPush.has(sender)
             ? null
-            : gmail.watch(sender, gmailPushTopic(googleKey(keyPath).clientEmail))
+            : () => gmail.watch(sender, gmailPushTopic(googleKey(keyPath).clientEmail))
       : undefined;
   const sendingDomains = [...new Set(roster.map((s) => senderDomain(s)))];
   const services: AnyService[] = [

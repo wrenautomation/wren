@@ -98,7 +98,8 @@ export function makePostmasterScheduler(deps: PostmasterSchedulerDeps) {
     const lost = part ? await ctx.run("paused", () => partPaused(deps.db, id, part)) : null;
     if (lost) return pausedPass<ClientStats>(ctx, now, pausedText(lost), delay);
     const db = deps.clientDb(id);
-    return runPass<ClientStats>(ctx, db, now, {
+    return runPass<ClientStats>(ctx, db, {
+      now,
       name: "postmaster sync",
       ledger: {
         command: POSTMASTER_SYNC_COMMAND,
@@ -123,7 +124,8 @@ export function makePostmasterScheduler(deps: PostmasterSchedulerDeps) {
     const delay = untilNextLocalDay(deps.policy, now);
     const client = clientOfKey(ctx.key);
     if (client) return clientPass(ctx, client.client, now, delay);
-    return runPass<PostmasterStats>(ctx, deps.db, now, {
+    return runPass<PostmasterStats>(ctx, deps.db, {
+      now,
       name: "postmaster sync",
       ledger: {
         command: POSTMASTER_SYNC_COMMAND,

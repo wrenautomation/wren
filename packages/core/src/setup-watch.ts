@@ -53,11 +53,10 @@ export async function setupWatchPass(deps: SetupWatchDeps, now: Date): Promise<S
 
 export function makeSetupWatch(deps: SetupWatchDeps) {
   return makeLoopObject("SetupWatch", async (ctx: restate.ObjectContext) => {
-    const now = new Date(await ctx.date.now());
-    const outcome = (await runPass<SetupWatchPass>(ctx, deps.main, now, {
+    const outcome = (await runPass<SetupWatchPass>(ctx, deps.main, {
       name: "recheck",
       ledger: { command: "setup watch", argv: { daemon: true } },
-      body: () => setupWatchPass(deps, now),
+      body: (_runId, now) => setupWatchPass(deps, now),
       delayAfter: () => SETUP_WATCH_EVERY_MS,
       retryMs: SETUP_WATCH_EVERY_MS,
       ...(deps.notifier ? { notifier: deps.notifier } : {}),

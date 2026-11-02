@@ -187,7 +187,8 @@ export function makeListmonkSync(deps: { db: Db; lm: Listmonk | null; everyMs?: 
     // Without Listmonk's settings the loop waits and looks again: it resumes once they are set.
     if (!lm)
       return pausedPass<SyncStats>(ctx, now, "needs WREN_LISTMONK_URL, _USER and _TOKEN", every);
-    return runPass<SyncStats>(ctx, db, now, {
+    return runPass<SyncStats>(ctx, db, {
+      now,
       name: "listmonk sync",
       ledger: { command: SYNC_COMMAND, argv: { daemon: true } },
       body: () => syncAllTopics({ db, lm }),

@@ -185,12 +185,11 @@ interface TouchFeedStats {
 /** `TouchFeed/all`: each workspace's new touches told to the executor, on a new touch or the net. */
 export function makeTouchFeed(d: TouchFeedDeps) {
   return makeLoopObject(TOUCH_FEED, async (ctx: restate.ObjectContext) => {
-    const now = new Date(await ctx.date.now());
     const cursors = (await ctx.get<Cursors>(CURSORS)) ?? {};
-    const outcome = await runPass<TouchFeedStats>(ctx, d.main, now, {
+    const outcome = await runPass<TouchFeedStats>(ctx, d.main, {
       name: "touch feed",
       ledger: { command: "touch feed", argv: { daemon: true } },
-      body: async () => {
+      body: async (_runId, now) => {
         const next: Cursors = { ...cursors };
         const batches: TouchFeedStats["batches"] = [];
         const errors: string[] = [];

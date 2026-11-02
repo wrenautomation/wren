@@ -52,7 +52,6 @@ interface TokenRenewalDeps {
 
 export function makeTokenRenewal(deps: TokenRenewalDeps) {
   return makeLoopObject("TokenRenewal", async (ctx: restate.ObjectContext) => {
-    const now = new Date(await ctx.date.now());
     const { service, wake } = deps.host ?? { service: SITES };
     if (wake) await ctx.run("wake autobrowse", wake);
     // A durable call: while the host is down it waits, then answers once the worker is back.
@@ -71,7 +70,7 @@ export function makeTokenRenewal(deps: TokenRenewalDeps) {
       refused = errorText(err);
     }
     const got = report;
-    return runPass<RenewalStats>(ctx, deps.db, now, {
+    return runPass<RenewalStats>(ctx, deps.db, {
       name: "renew",
       ledger: { command: RENEWAL_COMMAND, argv: { daemon: true } },
       body: async () => {

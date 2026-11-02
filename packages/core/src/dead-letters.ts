@@ -349,11 +349,10 @@ export async function endDeadLetter(
 /** `DeadLetters/all`: one sweep every ten minutes. */
 export function makeDeadLetters(deps: DeadLetterDeps) {
   return makeLoopObject("DeadLetters", async (ctx: restate.ObjectContext) => {
-    const now = new Date(await ctx.date.now());
-    return (await runPass<DeadLetterPass>(ctx, deps.main, now, {
+    return (await runPass<DeadLetterPass>(ctx, deps.main, {
       name: "sweep",
       ledger: { command: "dlq sweep", argv: { daemon: true } },
-      body: () => deadLetterPass(deps, now),
+      body: (_runId, now) => deadLetterPass(deps, now),
       delayAfter: () => DEAD_LETTERS_EVERY_MS,
       retryMs: DEAD_LETTERS_EVERY_MS,
       ...(deps.notifier ? { notifier: deps.notifier } : {}),

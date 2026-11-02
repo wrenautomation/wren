@@ -1408,11 +1408,10 @@ export async function opsBoard(main: Db, zone: string, now: Date): Promise<Board
 
 export function makeDeliveryWatch(deps: WatchDeps) {
   return makeLoopObject(WATCH, async (ctx: restate.ObjectContext) => {
-    const now = new Date(await ctx.date.now());
-    return runPass<WatchStats>(ctx, deps.main, now, {
+    return runPass<WatchStats>(ctx, deps.main, {
       name: "delivery watch",
       ledger: { command: WATCH_COMMAND, argv: { daemon: true } },
-      body: () => watchPass(deps, now),
+      body: (_runId, now) => watchPass(deps, now),
       delayAfter: () => HOUR,
       retryMs: HOUR,
       ...(deps.notifier ? { notifier: deps.notifier } : {}),

@@ -42,39 +42,33 @@ const WREN = "wren";
 
 export function makeSourcedFeed(d: SourcedFeedDeps) {
   return makeLoopObject(SOURCED_FEED.name, async (ctx: restate.ObjectContext) => {
-    const now = new Date(await ctx.date.now());
     const had = (await ctx.get<Cursors>(CURSORS)) ?? {};
-    const outcome = (await runPass<FeedStats & { fires: Fired[]; cursors: Cursors }>(
-      ctx,
-      d.main,
-      now,
-      {
-        name: "sourced feed",
-        ledger: { command: "journeys sourced", argv: { daemon: true } },
-        body: async () => {
-          const out: Cursors = { ...had };
-          const all: Fired[] = [];
-          const stats: FeedStats = { scanned: 0, fired: 0, unkeyed: 0, more: false };
-          const spaces: [string, string | null][] = [
-            [WREN, null],
-            ...(await d.clients()).map((c): [string, string | null] => [clientKey(c, WREN), c]),
-          ];
-          for (const [key, client] of spaces) {
-            const db = client ? d.clientDb(client) : d.main;
-            const r = await sourcedPass(db, client, had[key] ?? {}, now, PER_LIST);
-            out[key] = r.cursors;
-            all.push(...r.fires);
-            stats.scanned += r.scanned;
-            stats.unkeyed += r.unkeyed;
-            if (r.more) stats.more = true;
-          }
-          stats.fired = all.length;
-          return { ...stats, fires: all, cursors: out };
-        },
-        delayAfter: (s) => (s.more ? MORE_MS : IDLE_MS),
-        retryMs: IDLE_MS,
+    const outcome = (await runPass<FeedStats & { fires: Fired[]; cursors: Cursors }>(ctx, d.main, {
+      name: "sourced feed",
+      ledger: { command: "journeys sourced", argv: { daemon: true } },
+      body: async (_runId, now) => {
+        const out: Cursors = { ...had };
+        const all: Fired[] = [];
+        const stats: FeedStats = { scanned: 0, fired: 0, unkeyed: 0, more: false };
+        const spaces: [string, string | null][] = [
+          [WREN, null],
+          ...(await d.clients()).map((c): [string, string | null] => [clientKey(c, WREN), c]),
+        ];
+        for (const [key, client] of spaces) {
+          const db = client ? d.clientDb(client) : d.main;
+          const r = await sourcedPass(db, client, had[key] ?? {}, now, PER_LIST);
+          out[key] = r.cursors;
+          all.push(...r.fires);
+          stats.scanned += r.scanned;
+          stats.unkeyed += r.unkeyed;
+          if (r.more) stats.more = true;
+        }
+        stats.fired = all.length;
+        return { ...stats, fires: all, cursors: out };
       },
-    )) as PassOutcome<FeedStats & { fires: Fired[]; cursors: Cursors }>;
+      delayAfter: (s) => (s.more ? MORE_MS : IDLE_MS),
+      retryMs: IDLE_MS,
+    })) as PassOutcome<FeedStats & { fires: Fired[]; cursors: Cursors }>;
     if (outcome.stats) {
       for (const f of outcome.stats.fires) executorFire(ctx, f);
       ctx.set(CURSORS, outcome.stats.cursors);
