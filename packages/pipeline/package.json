@@ -21,6 +21,7 @@
     "./map-read": "./src/map-read.ts",
     "./metro": "./src/metro.ts",
     "./metro-blame": "./src/metro-blame.ts",
+    "./metro-campaigns": "./src/metro-campaigns.ts",
     "./metro-diff": "./src/metro-diff.ts",
     "./metro-edit": "./src/metro-edit.ts",
     "./metro-file": "./src/metro-file.ts",

@@ -170,7 +170,7 @@ export interface Crossing {
 }
 
 /** A group is a segment: its id as text, a positive whole number. */
-const GROUP_ID = /^[1-9][0-9]{0,9}$/;
+export const GROUP_ID = /^[1-9][0-9]{0,9}$/;
 export const STAGE_KEY = /^[a-z][a-z0-9_]*$/;
 const EDGE_ID = /^[a-z][a-z0-9_]*$/;
 /** The widest a node id goes (`journeys.node` is varchar(40)). */

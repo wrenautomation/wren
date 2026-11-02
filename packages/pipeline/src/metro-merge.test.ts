@@ -493,3 +493,28 @@ describe("conflictLine", () => {
     expect(conflictLine(must(conflicts[0]), [live])).toContain(`"${edge}" on live`);
   });
 });
+
+describe("a campaign in a merge", () => {
+  it("merges the campaign as one field: both sides changed it is a conflict", () => {
+    const live = ed(base, set("group", "closing", "campaign", { offer: "offer-a" }));
+    const draft = ed(base, set("group", "closing", "campaign", { status: "paused" }));
+    const { body, conflicts } = mergeMetro(base, live, draft);
+    expect(conflicts).toEqual([
+      {
+        key: "group:closing:changed",
+        field: "campaign",
+        live: { offer: "offer-a" },
+        draft: { status: "paused" },
+      },
+    ]);
+    expect(body.groups.find((g) => g.id === "closing")?.campaign).toEqual({ offer: "offer-a" });
+  });
+
+  it("takes a campaign one side set and the other left alone", () => {
+    const draft = ed(base, set("group", "closing", "campaign", { offer: "offer-a" }));
+    const live = ed(base, set("station", "reply", "idleDays", 9));
+    const { body, conflicts } = mergeMetro(base, live, draft);
+    expect(conflicts).toEqual([]);
+    expect(body.groups.find((g) => g.id === "closing")?.campaign).toEqual({ offer: "offer-a" });
+  });
+});

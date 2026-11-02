@@ -66,6 +66,9 @@ type Type =
   | "triggers"
   | "entry"
   | "attaches"
+  | "campaign"
+  | "audience"
+  | "ctas"
   | "list";
 type Schema = Record<string, Type | `${Type}!`>;
 
@@ -79,6 +82,18 @@ const ENTRY: Schema = {
   parked: "true",
 };
 const ATTACH: Schema = { kind: "text!", ref: "text!", label: "text" };
+const CAMPAIGN: Schema = {
+  offer: "text",
+  audience: "audience",
+  ctas: "ctas",
+  accounts: "map",
+  caps: "map",
+  from: "text",
+  until: "text",
+  status: "text",
+};
+const AUDIENCE: Schema = { segment: "text", lines: "texts" };
+const CTA: Schema = { label: "text!", station: "text!" };
 const LINE: Schema = {
   id: "text!",
   label: "text!",
@@ -136,6 +151,7 @@ const GROUP: Schema = {
   line: "text",
   stations: "texts",
   parent: "text",
+  campaign: "campaign",
   attach: "attaches",
 };
 const FRAME: Schema = {
@@ -160,6 +176,9 @@ const WORD: Record<Type, string> = {
   triggers: "a list of triggers, each with a trigger id and optional with",
   entry: "a map with via, and optional channel, campaign, source, segment and parked",
   attaches: "a list of attached refs, each with a kind, a ref and an optional label",
+  campaign: "a map of campaign fields: offer, audience, ctas, accounts, caps, from, until, status",
+  audience: "a map with a segment, lines or both",
+  ctas: "a list of CTAs, each with a label and a station",
   list: "a list",
 };
 
@@ -201,6 +220,21 @@ function has(t: Type, v: unknown, who: string, errors: string[]): boolean {
       for (const [i, x] of v.entries()) {
         if (!isMap(x)) return false;
         checkFields(`${who} ${i + 1}`, x, ATTACH, errors);
+      }
+      return true;
+    case "campaign":
+      if (!isMap(v)) return false;
+      checkFields(who, v, CAMPAIGN, errors);
+      return true;
+    case "audience":
+      if (!isMap(v)) return false;
+      checkFields(who, v, AUDIENCE, errors);
+      return true;
+    case "ctas":
+      if (!Array.isArray(v)) return false;
+      for (const [i, x] of v.entries()) {
+        if (!isMap(x)) return false;
+        checkFields(`${who} ${i + 1}`, x, CTA, errors);
       }
       return true;
     case "list":

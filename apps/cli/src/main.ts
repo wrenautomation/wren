@@ -36,6 +36,7 @@ import { registerAppReviews } from "./app-reviews.js";
 import { registerBooks } from "./books.js";
 import { registerCalendar } from "./calendar.js";
 import { registerCalls } from "./calls.js";
+import { registerCampaigns } from "./campaigns.js";
 import { guardClient } from "./client-scope.js";
 import { registerClients } from "./clients.js";
 import { registerContent } from "./content.js";
@@ -350,6 +351,7 @@ registerShape(program, {
     }),
 });
 registerGroups(program, { withDb });
+registerCampaigns(program, withDb);
 registerPeople(program, {
   withDb,
   withMainDb,

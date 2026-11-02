@@ -13,6 +13,7 @@
  * `attach` and `flows` lower to nothing (`graphOf` reads neither): the runtime and the workflow do
  * not see them. `attach` holds refs, never content.
  */
+import { type CampaignFields, checkCampaigns } from "./metro-campaigns.js";
 import {
   ACTIONS,
   type Action,
@@ -227,6 +228,8 @@ export interface MetroGroup {
   stations: string[];
   /** The group it sits in: groups nest to any depth, and the map folds them level by level. */
   parent?: string;
+  /** Makes the group a campaign (designs/2026-11-02-campaigns.md). Lowers to nothing. */
+  campaign?: CampaignFields;
   attach?: Attach[];
 }
 
@@ -354,6 +357,7 @@ export function checkMetro(body: MetroBody, ctx: ShapeCheckContext): string[] {
   checkLogic(stations, tracks, errors);
   checkOrder(stations, tracks, stationBy, errors);
   checkGroups(groups, lineBy, stationBy, errors);
+  checkCampaigns(groups, lineBy, stationBy, ctx, errors);
   checkFrames(frames, stationBy, ctx, errors);
 
   for (const l of lines) checkAttach(`Line "${l.id}"`, l.attach, errors);

@@ -459,3 +459,61 @@ describe("parseMetroBody", () => {
     expect(JSON.stringify(doc)).toBe(before);
   });
 });
+
+describe("a campaign in the metro file", () => {
+  const withCampaign = (): MetroBody => {
+    const b = metroShape();
+    b.groups.push({
+      id: "spring",
+      label: "Spring",
+      line: "growth",
+      stations: ["book", "docs"],
+      campaign: {
+        offer: "offer-a",
+        audience: { segment: "7", lines: ["social"] },
+        ctas: [{ label: "Book a call", station: "book" }],
+        accounts: { linkedin: "william" },
+        caps: { "linkedin.comment": 20 },
+        from: "2026-11-01",
+        until: "2026-12-31",
+        status: "live",
+      },
+    });
+    return b;
+  };
+
+  it("round trips to the same body", () => {
+    const body = withCampaign();
+    expect(parseMetroBody(parse(exportMetro(body)))).toEqual(body);
+  });
+
+  it("reads unquoted dates and a bare campaign as written", () => {
+    const doc = {
+      ...small(),
+      groups: [{ id: "g", label: "G", line: "social", stations: ["social"], campaign: {} }],
+    };
+    expect(parseMetroBody(doc).groups[0]?.campaign).toEqual({});
+    const text = "from: 2026-11-01\nuntil: 2026-12-31\ncaps:\n  linkedin.comment: 20\n";
+    expect(parse(text)).toEqual({
+      from: "2026-11-01",
+      until: "2026-12-31",
+      caps: { "linkedin.comment": 20 },
+    });
+  });
+
+  it("refuses a campaign field of the wrong type", () => {
+    const doc = {
+      ...small(),
+      groups: [
+        {
+          id: "g",
+          label: "G",
+          line: "social",
+          stations: ["social"],
+          campaign: { offer: 3, ctas: [{ label: "Go" }], audience: { lines: "social" } },
+        },
+      ],
+    };
+    expect(refusal(doc).length).toBeGreaterThanOrEqual(3);
+  });
+});

@@ -70,3 +70,11 @@ Attribution comes before control. Numbers per campaign show what to change befor
 
 - 2026-11-02: a campaign is a group on the metro map, option A (William: "i agree that a campaign is a group in orrery"). A row alone (B) was my first pick; William was "not sure about just having a versioned row".
 - 2026-11-02: no campaign or lead-magnet station kind; a campaign is a group, and a journey runs over many stations (William). One person may be in many campaigns at once (William: "they could be consuming top of funnel and bottom of funnel content").
+- 2026-11-02, phase 1 build (WA-999):
+  - `campaign` merges as one field. Both sides changed it is a conflict. A per-key merge could interleave two CTA ladders into an order nobody wrote.
+  - `accounts` and `caps` inherit per key: a child sets one account or one cap and keeps the rest. Other fields inherit whole.
+  - A stricter parent status wins: a paused or ended parent holds a live child. A child cap may not exceed its parent's.
+  - Account and cap channels are the site platforms plus `email` and `sms` (`CAMPAIGN_CHANNELS`, typed against `Platform`, so a new platform must be added).
+  - The act in a cap key is a free slug (`linkedin.comment`). Acts per platform are not one closed list yet; phase 3 checks them against the loop that spends them.
+  - A CTA station may sit in a group below the campaign, never above it.
+  - The default campaign is computed by `campaignsOf`, never stored.
