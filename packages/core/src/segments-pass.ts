@@ -11,7 +11,8 @@
  *
  * `Segments/fleet` (Wren's) and `Segments/<client>/fleet` run it on `wake`: a trait, an address
  * or a segment changing wakes it at commit (`wren_wake`, migration 0252), and `SegmentsNet/all`
- * wakes every workspace each 15 minutes, the net under a lost wake and the timeline's changes.
+ * wakes every workspace each hour, the net under a lost wake and the timeline's changes (a Date
+ * trigger fires by 10:00; designs/2026-11-01-loop-calls.md).
  * Nothing fires on history: a workspace's first pass starts at its newest rows.
  */
 import * as restate from "@restatedev/restate-sdk";
@@ -37,7 +38,7 @@ import type { Workflow } from "./workflows.js";
 /** The most entries, exits and trait changes told in one pass; the rest go on the next. */
 const FIRE_MOST = 2000;
 /** The net's beat. */
-const SEGMENTS_NET_MS = 15 * 60_000;
+const SEGMENTS_NET_MS = 60 * 60_000;
 /** The least time between two passes: a burst of changed rows is one pass, this much later. */
 const SEGMENTS_GAP_MS = 30_000;
 /** The hour, in `SCHEDULE_ZONE`, Date triggers fire from. */
@@ -424,7 +425,7 @@ interface SegmentsNetStats {
   woken: number;
 }
 
-/** `SegmentsNet/all`: every 15 minutes, a wake to Wren's segments and every client's. */
+/** `SegmentsNet/all`: every hour, a wake to Wren's segments and every client's. */
 export function makeSegmentsNet(d: Pick<SegmentsDeps, "main" | "clients">) {
   return makeLoopObject("SegmentsNet", async (ctx: restate.ObjectContext) => {
     const now = new Date(await ctx.date.now());

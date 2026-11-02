@@ -158,20 +158,24 @@ describe("a touch", () => {
 
     // The first pass starts at the newest touch and tells none.
     const first = await touchPass(pg.db, undefined, new Date());
-    expect(first).toEqual({ ids: [], next: 0 });
+    expect(first).toEqual({ ids: [], next: 0, settling: false });
 
     const mine = await recordTouch(pg.db, dm("t:1"));
     const ours = await recordTouch(pg.db, dm("t:2", { direction: "ours", at: new Date() }));
     if (!mine || !ours) throw new Error("no touch");
 
-    // Just written: not settled, so not read yet.
-    expect((await touchPass(pg.db, 0, new Date()))?.ids).toEqual([]);
+    // Just written: not settled, so not read yet, and the feed comes back soon.
+    expect(await touchPass(pg.db, 0, new Date())).toEqual({ ids: [], next: 0, settling: true });
 
     const later = new Date(Date.now() + 120_000);
     const got = await touchPass(pg.db, 0, later);
-    expect(got).toEqual({ ids: [mine.id, ours.id], next: ours.id });
+    expect(got).toEqual({ ids: [mine.id, ours.id], next: ours.id, settling: false });
     // Told: the cursor past them reads nothing again.
-    expect(await touchPass(pg.db, got?.next, later)).toEqual({ ids: [], next: ours.id });
+    expect(await touchPass(pg.db, got?.next, later)).toEqual({
+      ids: [],
+      next: ours.id,
+      settling: false,
+    });
 
     const rows = await touchRows(pg.db, got?.ids ?? []);
     expect(rows.map((t) => [t.id, t.platform, t.handle, t.direction])).toEqual([

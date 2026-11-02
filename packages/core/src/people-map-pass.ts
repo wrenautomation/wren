@@ -3,7 +3,7 @@
  * keyed, site counts read (Wren's, when the lander's export is set), then every profile's row
  * rebuilt and `stage` / `warmth` mirrored as traits. `PeopleMap/fleet` (Wren's) and
  * `PeopleMap/<client>/fleet` run it on `wake`; `PeopleMapNet/all` wakes every workspace each
- * 15 minutes. The warm gate never waits on it: it reads live.
+ * 30 minutes (designs/2026-11-01-loop-calls.md). The warm gate never waits on it: it reads live.
  */
 import * as restate from "@restatedev/restate-sdk";
 import type { Db } from "@wren/db";
@@ -18,7 +18,7 @@ import { clientKey, clientOfKey } from "./restate/keys.js";
 import { makeLoopObject, type PassOutcome, runPass } from "./restate/loop.js";
 
 /** The net's beat. */
-const PEOPLE_MAP_NET_MS = 15 * 60_000;
+const PEOPLE_MAP_NET_MS = 30 * 60_000;
 /** The least time between two passes of one workspace. */
 const PEOPLE_MAP_GAP_MS = 60_000;
 
@@ -92,7 +92,7 @@ export function makePeopleMap(d: PeopleMapDeps) {
   });
 }
 
-/** `PeopleMapNet/all`: every 15 minutes, a wake to Wren's people map and every client's. */
+/** `PeopleMapNet/all`: every 30 minutes, a wake to Wren's people map and every client's. */
 export function makePeopleMapNet(d: Pick<PeopleMapDeps, "main" | "clients">) {
   return makeLoopObject("PeopleMapNet", async (ctx: restate.ObjectContext) => {
     const now = new Date(await ctx.date.now());

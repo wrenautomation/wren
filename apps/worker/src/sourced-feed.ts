@@ -19,8 +19,8 @@ const SOURCED_FEED = { name: "SourcedFeed" } as const;
 const CURSORS = "cursors";
 /** Between two passes when a list has more members to read. */
 const MORE_MS = 5_000;
-/** Between two passes when caught up. */
-const IDLE_MS = 5 * 60_000;
+/** Between two passes when caught up (designs/2026-11-01-loop-calls.md). */
+const IDLE_MS = 15 * 60_000;
 const PER_LIST = 200;
 
 interface SourcedFeedDeps {

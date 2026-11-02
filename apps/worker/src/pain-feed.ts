@@ -17,8 +17,8 @@ const PAIN_FEED = { name: "PainFeed" } as const;
 const CURSOR = "cursor";
 /** Between two passes while there are more posts to read. */
 const MORE_MS = 5_000;
-/** Between two passes when caught up. */
-const IDLE_MS = 5 * 60_000;
+/** Between two passes when caught up (designs/2026-11-01-loop-calls.md). */
+const IDLE_MS = 15 * 60_000;
 const PER_PASS = 50;
 
 interface PainFeedDeps {

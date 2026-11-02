@@ -9,7 +9,7 @@ entity: packages/core/src/people-map-schema.ts:52
 
 # people-map
 
-Each live [[leads/profile]]'s stage, warmth and why, subscriptions, replies, first and last touch, and persona. Table `profile_rollups`, rebuilt from the source tables every 15 minutes; `profile_site_reads` holds Wren's site visit counts. Nothing here is a source of truth.
+Each live [[leads/profile]]'s stage, warmth and why, subscriptions, replies, first and last touch, and persona. Table `profile_rollups`, rebuilt from the source tables every 30 minutes; `profile_site_reads` holds Wren's site visit counts. Nothing here is a source of truth.
 
 ## Why this shape
 
@@ -24,7 +24,7 @@ One statement (`rollupRows`) is the whole rule; the refresh upserts only changed
 - Rules (`rollupRows`, `packages/core/src/people-map.ts:118`): replies are email `reply` thread events, inbound texts, site chat, their social reply/DM or a comment answering ours, and a `replied` response on ours. Forms and bookings count as replies for stage. Opens and clicks count past 2 minutes of sending (sent log's rule). Our sends alone are `contacted`, never warm. Client: a `Paid` payment line, a member of a real client workspace, or trait `lifecycle` = client; `past_client` is that trait only.
 - Persona: title (people row, else trait `title`) by `ROLE_PATTERNS`; niche `companies.niche`; size from `companies.raw` (`5A`, `Company Size`, `agency.team_size`). Traits `persona_role/_niche/_size` win. `fillPersonas` (`:766`) is the LLM hook (`wren people personas --model`), never run by a pass.
 - `refreshPeople` (`:436`), `warmthOf` (`:545`), `coldOpenerRefusal` (`:589`), `keyLooseHandles` (`:610`), `findProfile`, `listPeople`.
-- `PeopleMap` object (`packages/core/src/people-map-pass.ts:63`): key `fleet` or `<client>/fleet`, `wake` runs `peopleMapPass` (loose handles keyed, Wren's site counts, refresh), at most once a minute; `status`. `PeopleMapNet/all` (`:96`) wakes each every 15 minutes.
+- `PeopleMap` object (`packages/core/src/people-map-pass.ts:63`): key `fleet` or `<client>/fleet`, `wake` runs `peopleMapPass` (loose handles keyed, Wren's site counts, refresh), at most once a minute; `status`. `PeopleMapNet/all` (`:96`) wakes each non-demo workspace every 30 minutes (designs/2026-11-01-loop-calls.md).
 - View `profile_records` joins it (defaults before the first pass); record `people.profile` gets Stage, Warmth, What they did, Persona, Role, Size, Niche, Replies, touches; tabs Warm, Replied, Booked, Clients, Cold, Subscribed. The person page's Warmth section reads live.
 
 Citations: `packages/core/src/people-map-schema.ts:52`, `packages/core/src/people-map.ts:118`, `packages/core/src/people-map-pass.ts:63`

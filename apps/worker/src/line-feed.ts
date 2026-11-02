@@ -14,8 +14,8 @@ import { linePass } from "@wren/pipeline/lines";
 const LINE_FEED = { name: "LineFeed" } as const;
 /** Between two passes when a find has more documents to tell. */
 const MORE_MS = 5_000;
-/** Between two passes when caught up. */
-const IDLE_MS = 5 * 60_000;
+/** Between two passes when caught up (designs/2026-11-01-loop-calls.md). */
+const IDLE_MS = 15 * 60_000;
 const PER_FIND = 200;
 
 interface LineFeedDeps {

@@ -4,7 +4,7 @@
  */
 import { landerHits } from "@wren/channel-email/calls";
 import { makeBroadcast } from "@wren/core/broadcast-run";
-import { listClients } from "@wren/core/clients";
+import { loopClients } from "@wren/core/clients";
 import { editsOf, savedWorkflows } from "@wren/core/executor";
 import { meteredModel } from "@wren/core/metered";
 import { makePeopleConsole, PEOPLE_RECORDS } from "@wren/core/people/console";
@@ -50,24 +50,24 @@ export function peopleServices(deps: Deps): AnyService[] {
           : llm,
     }),
     // Segments (B5): each workspace's live segments kept true, entries, exits, trait changes and
-    // dates told to the executor; woken on a changed row, the net every 15 minutes.
+    // dates told to the executor; woken on a changed row, the net every hour.
     ...(() => {
       const segments = {
         main: db,
         clientDb,
         flows: async (client: string | null) =>
           flowsWith(WORKFLOWS, editsOf(await savedWorkflows(db, client)), COMPONENTS).flows,
-        clients: async () => (await listClients(db)).map((c) => c.id),
+        clients: () => loopClients(db),
       };
       return [makeSegments(segments), makeSegmentsNet(segments)];
     })(),
-    // People map: each profile's stage, warmth and persona rebuilt; the net every 15 minutes.
+    // People map: each profile's stage, warmth and persona rebuilt; the net every 30 minutes.
     // Wren's site counts come from the lander's log, 200 visitors a pass.
     ...(() => {
       const map = {
         main: db,
         clientDb,
-        clients: async () => (await listClients(db)).map((c) => c.id),
+        clients: () => loopClients(db),
         site: settings.siteExportToken
           ? siteCountReader(
               landerHits({ baseUrl: settings.siteBaseUrl, exportToken: settings.siteExportToken }),
@@ -77,17 +77,18 @@ export function peopleServices(deps: Deps): AnyService[] {
       return [makePeopleMap(map), makePeopleMapNet(map)];
     })(),
     // Touch feed (designs/2026-10-18-journeys.md): each workspace's new touches told to the executor
-    // once each, every minute, for `trigger.touch`. Started by hand, never on its own.
+    // once each, for `trigger.touch`: woken by a new touch, the net every 15 minutes. Started by
+    // hand, never on its own.
     makeTouchFeed({
       main: db,
       clientDb,
-      clients: async () => (await listClients(db)).map((c) => c.id),
+      clients: () => loopClients(db),
     }),
     // Sourced entries: people added to a list a live source takes entries from open journeys.
     makeSourcedFeed({
       main: db,
       clientDb,
-      clients: async () => (await listClients(db)).map((c) => c.id),
+      clients: () => loopClients(db),
     }),
     // Content lines: documents a find takes, and jobs that end at a station, told to the executor.
     makeLineFeed({ main: db }),

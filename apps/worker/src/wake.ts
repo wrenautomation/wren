@@ -2,7 +2,8 @@
  * Wake on row (designs/2026-10-11-push-not-poll.md): a row a loop must act on fires
  * `pg_notify('wren_wake', '<Service>/<unit>')` at commit (migration 0235). The box LISTENs on
  * Wren's database and each client's and calls that loop's `wake` through the ingress, keyed to
- * the database's owner: `fleet` in Wren's, `<client>/fleet` in a client's. A burst is one wake,
+ * the database's owner: `fleet` in Wren's, `<client>/fleet` in a client's; `all` (one loop over
+ * every workspace) stays `all`. A burst is one wake,
  * and a stream of them (a pipeline writing a row a second) wakes a loop at most every `SPACE_MS`:
  * each wake is a Lambda request, and a loop woken inside its own gap only says "soon". A wake
  * lost here (the box restarting) is covered by the loop's net, so nothing waits on this.
@@ -10,6 +11,7 @@
 
 import { clientUrl, listClients } from "@wren/core/clients";
 import { clientKey } from "@wren/core/restate";
+import { SETTLE_MS as TOUCH_SETTLE_MS } from "@wren/core/touch-feed";
 import { createDb, type Listening, listen } from "@wren/db";
 import type { Logger } from "pino";
 
@@ -21,6 +23,11 @@ const SPACE_MS = 15_000;
 /** New clients' databases are picked up this often. */
 const CLIENTS_EVERY_MS = 10 * 60_000;
 
+/** Unit of a loop over every workspace (`TouchFeed/all`): never keyed to the owner. */
+const EVERY_WORKSPACE = "all";
+/** Waits longer than `SETTLE_MS` for a loop that reads only settled rows. */
+const SETTLE_BY_SERVICE: Readonly<Record<string, number>> = { TouchFeed: TOUCH_SETTLE_MS + 2000 };
+
 /** `Service/unit` from a notice, keyed to its database's owner; null when malformed. */
 export function wakeTarget(
   payload: string,
@@ -29,7 +36,7 @@ export function wakeTarget(
   const m = /^([A-Za-z][\w]*)\/([\w.@-]+)$/.exec(payload);
   if (!m) return null;
   const [, service, unit] = m as unknown as [string, string, string];
-  return { service, key: owner ? clientKey(owner, unit) : unit };
+  return { service, key: owner && unit !== EVERY_WORKSPACE ? clientKey(owner, unit) : unit };
 }
 
 interface WakeOptions {
@@ -46,7 +53,17 @@ interface WakeOptions {
  */
 export function pacedWakes(
   send: (service: string, key: string) => void,
-  { settleMs = SETTLE_MS, spaceMs = SPACE_MS, now = Date.now } = {},
+  {
+    settleMs = SETTLE_MS,
+    spaceMs = SPACE_MS,
+    now = Date.now,
+    settleBy = SETTLE_BY_SERVICE,
+  }: {
+    settleMs?: number;
+    spaceMs?: number;
+    now?: () => number;
+    settleBy?: Readonly<Record<string, number>>;
+  } = {},
 ): { wake(service: string, key: string): void; close(): void } {
   const due = new Map<string, ReturnType<typeof setTimeout>>();
   const last = new Map<string, number>();
@@ -54,7 +71,8 @@ export function pacedWakes(
     wake(service, key) {
       const id = `${service}/${key}`;
       if (due.has(id)) return;
-      const wait = Math.max(settleMs, (last.get(id) ?? 0) + spaceMs - now());
+      const settle = settleBy[service] ?? settleMs;
+      const wait = Math.max(settle, (last.get(id) ?? 0) + spaceMs - now());
       due.set(
         id,
         setTimeout(() => {

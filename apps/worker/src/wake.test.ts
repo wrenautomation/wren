@@ -8,6 +8,7 @@ describe("wakeTarget", () => {
       service: "ReachSender",
       key: "acme/fleet",
     });
+    expect(wakeTarget("TouchFeed/all", "acme")).toEqual({ service: "TouchFeed", key: "all" });
   });
 
   it("refuses anything else", () => {
@@ -41,6 +42,21 @@ describe("pacedWakes", () => {
     p.wake("Segments", "fleet");
     vi.advanceTimersByTime(1000);
     expect(sent).toHaveLength(4);
+    p.close();
+  });
+
+  it("waits a service's own settle", () => {
+    vi.useFakeTimers();
+    const sent: string[] = [];
+    const p = pacedWakes((s, k) => sent.push(`${s}/${k}`), {
+      settleMs: 1000,
+      settleBy: { TouchFeed: 32_000 },
+    });
+    p.wake("TouchFeed", "all");
+    vi.advanceTimersByTime(31_000);
+    expect(sent).toEqual([]);
+    vi.advanceTimersByTime(1000);
+    expect(sent).toEqual(["TouchFeed/all"]);
     p.close();
   });
 });

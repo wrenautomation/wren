@@ -24,7 +24,7 @@ Restate owns the timer, so a worker dying or a laptop closing loses nothing; the
 
 - `SendScheduler` is one too since 2026-10-16 (wa-jsi): its tick step has 3 tries, then `passOrFailed` keeps it as a failed pass; `sync` replaced `tick`; a gone scope is a `stopped` pass. `hooks.syncAliases` keeps old names of `sync` for calls queued before a move (`tick` on `SendScheduler`, until 2026-10-30). The state key is the same `loop`, so a running key stays running with no `start`
 
-- `TouchFeed/all` (`packages/core/src/touch-feed.ts`): every minute, per workspace (Wren main, then clients whose DB holds touches), reads touches past the cursor kept in loop state (200 a pass, only rows older than 30 s so a late commit is not skipped) and fires `trigger.touch` once per touch. The first pass starts at the newest touch. Off until started (`TouchFeed/all/start`).
+- `TouchFeed/all` (`packages/core/src/touch-feed.ts`): woken 32 s after a new touch (`touches_feed_wake`, migration 0353), back in 35 s while a touch settles, else every 15 minutes; per workspace (Wren main, then non-demo clients whose DB holds touches), reads touches past the cursor kept in loop state (200 a pass, only rows older than 30 s so a late commit is not skipped) and fires `trigger.touch` once per touch. The first pass starts at the newest touch. Off until started (`TouchFeed/all/start`).
 
 Citations: `packages/core/src/restate/loop.ts:366`, `packages/channel-email/src/restate/send-scheduler.ts:80`
 

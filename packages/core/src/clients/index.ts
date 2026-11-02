@@ -104,6 +104,11 @@ export async function listClients(main: Db): Promise<Client[]> {
   return main.select().from(clients).orderBy(asc(clients.id));
 }
 
+/** Workspaces the nets pass over: a demo one runs only when woken by its own rows. */
+export async function loopClients(main: Db): Promise<string[]> {
+  return (await listClients(main)).filter((c) => !c.demo).map((c) => c.id);
+}
+
 export async function findClient(main: Queryable, id: string): Promise<Client | null> {
   const [row] = await main.select().from(clients).where(eq(clients.id, id));
   return row ?? null;
