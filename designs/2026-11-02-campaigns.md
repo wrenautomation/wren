@@ -157,3 +157,22 @@ Build order: the `campaign` column and its writer go in together, loop by loop, 
   - Acts use the cap words (`<channel>.<act>`), so a cap and its spend read side by side. Each counts a done act in the window, by its own time: `email.opener` (step 1 sent), `linkedin.invite` (the connect sent), `<platform>.comment` (`commented_at`), `<platform>.post` (`published_at`, through the idea), `sms.opener` (step 1 sent). A parent counts its children's acts.
   - Follow-ups, DMs, likes and follows inherit a stamp but have no cap word. They wait until a reader needs them.
   - Cost waits. Only a text has a cost per act (`sms_messages.cost_usd`). Inboxes, seats and models are paid per account or per month, so a campaign's share is a split rule. That rule is William's call.
+- 2026-11-02, phase 4 options (WA-999). Waits on William's pick.
+  - Today a person has one open journey (`uq_instances_open_person`, plus the profile lock) at one node (`instances.node`). A cause at a station pulls the journey along a path to it (`journey.move`, `pathOf`). Split and join need a journey at many stations at once. A person in two campaigns needs the same. So one mechanism serves both.
+  - Prod: shape v8 has no logic stations and no campaigns; 22 journeys are open. No data to carry.
+
+  | | How | For | Against |
+  |---|---|---|---|
+  | **A. Branches on the one row (recommended)** | `instances.branches` jsonb: `{key, node, status}`. A key is a split track id, or a campaign id for a second campaign. `node` stays the front, for the board. Each crossing carries its branch key | One open row per person stays, so the profile lock still orders every move. Numbers read events per journey: no change. Board, segments and the `mine` view keep reading `node` | About 25 files read `node` or `trail`. Each that means "where is the person" must pick the front or a branch. No index on a branch node (GIN later, if a read needs it) |
+  | B. A child row per branch | `instances.parent`. A split opens a child per track; a join closes them and moves the parent | `journey.move` runs per row, unchanged | Breaks one open journey per person: the lock and the unique index move to the root. Numbers, board and segments must roll children up, or a person counts twice |
+  | C. A position table | `journey_positions(instance, key, node, trail, status)`; `instances.node` derived | Indexed "who is at X" | A second home for a position; two writes a move; the reader changes of A plus a join |
+  | D. A workflow engine for logic (BPMN) | Lower logic stations to a BPMN engine | Split, join and race come built | A second engine beside the executor. Restate already gives durable timers |
+
+  - Ranked by: one home for a person's state (the lock holds, numbers stay true), then no second engine, then fewest readers to change.
+  - The logic runs in `journey.move`, the pull model. Stations are observed; loops do the acts. So a split opens no branch until a cause arrives on its track.
+    - Split: a cause at a station past a split opens that track's branch. The other tracks stay open to the next cause.
+    - Join: an arrival marks its branch. When the rule (all, any, n of m) is met, the branches close and the journey moves to the join.
+    - Race: the first branch to arrive wins. The wait arm is a timed hold on the executor (`due` + `Executor/release`), set on arrival at the race. The release moves the journey down the wait arm if nothing won first.
+    - A race won by an event stops the campaign's other acts for that person. It fires `journey.raced` with the campaign. Each loop stops the person's rows stamped with it: the email enrollment, the reach contact, the SMS contact. This is "a reply on one channel stops the rest".
+  - A race `cond` is free text today, and no event matches it. Recommended: a cond must be an until word (`reply`, `booking`, `answer`, `cancelled`, `logic.ts` `UNTILS`); `checkMetro` refuses others.
+  - `condition` and `ab` stay refused by `lowerable`. `graphOf` of a body with no logic station stays the same, node for node (Restate replays `shape.v<n>` in that order).
