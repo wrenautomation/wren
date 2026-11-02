@@ -45,6 +45,7 @@ Rules:
 - A campaign may sit inside a campaign. A field left unset comes from the nearest campaign above it.
 - Offer and plan stations that many campaigns share sit outside campaign groups.
 - `LineEntry.campaign` becomes a ref to a campaign group. A `/go/<channel>/<campaign>/<content>` link uses the group id.
+- One person may be in many campaigns at once: they watch top-of-funnel and bottom-of-funnel content. Each touch carries one campaign, so each campaign's numbers stay true. A reply on a race in one campaign stops only that campaign's other branches.
 - A lead magnet needs no new station kind: a `form` station with a `page` attach (the free thing) and a track to the newsletter line. A newsletter is a line with a lap ("every 7 days").
 
 ## Phases
@@ -59,9 +60,9 @@ Attribution comes before control. Numbers per campaign show what to change befor
 
 ## Open
 
-1. Can one person be in two campaigns at once? I recommend yes, with one rule: a race across campaigns stops the others when that person replies.
-2. Caps: a campaign cap sits under the platform cap. Does a campaign also get a share of the platform cap, or first come, first served? I recommend first come, first served until two campaigns fight for one account.
+1. Caps: a campaign cap sits under the platform cap. Does a campaign also get a share of the platform cap, or first come, first served? I recommend first come, first served until two campaigns fight for one account.
 
 ## Decision log
 
 - 2026-11-02: a campaign is a group on the metro map, option A (William: "i agree that a campaign is a group in orrery"). A row alone (B) was my first pick; William was "not sure about just having a versioned row".
+- 2026-11-02: no campaign or lead-magnet station kind; a campaign is a group, and a journey runs over many stations (William). One person may be in many campaigns at once (William: "they could be consuming top of funnel and bottom of funnel content").
