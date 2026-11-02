@@ -4,9 +4,9 @@
  * file, TikTok's video, takes it from `--media`: a laptop file goes into the media store first.
  */
 import type { Settings } from "@wren/config";
-import { writeOwn } from "@wren/content";
 import { PLATFORMS, type Platform } from "@wren/core/content";
 import type { Db } from "@wren/db";
+import { writeOwn } from "@wren/starling-inbound";
 import type { Command } from "commander";
 import { mediaOf } from "./content.js";
 

@@ -2,7 +2,7 @@
  * The site chat bubble (designs/2026-10-09-site-chat.md), served as `/o/__chat.js`. One tag on any
  * page; it talks to `/o/__chat` on the host it came from. A shadow root keeps the page's styles out
  * and ours in. `data-color` on the tag sets the accent; `data-greeting` the first line. The
- * store behind it is `@wren/content`'s `chat/`.
+ * store behind it is `@wren/starling-inbound`'s `chat/`.
  */
 export const CHAT_SCRIPT_PATH = "/o/__chat.js";
 export const CHAT_PATH = "/o/__chat";

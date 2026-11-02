@@ -3,8 +3,9 @@
  * is an enrollment, the opener and its follow-up together. The portal and
  * `crm approve` both land here; a second click finds nothing left to do.
  */
-import type { ApprovalSource } from "@wren/channel-email";
+
 import { type Queryable, serializable } from "@wren/db";
+import type { ApprovalSource } from "@wren/starling-email";
 import { sql } from "drizzle-orm";
 import { REACTIVATION } from "./compose.js";
 

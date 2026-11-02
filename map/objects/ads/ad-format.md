@@ -4,7 +4,7 @@ cluster: ads
 universe: live
 status: verified
 verified: 2026-10-11 @ 4f706c12
-entity: packages/content/src/schema.ts:993
+entity: packages/starling/inbound/src/schema.ts:993
 ---
 
 # ad-format
@@ -13,14 +13,14 @@ A creative shape we make ads in (testimonial, us vs them, Reddit post), with wha
 
 ## Why this shape
 
-A format is ours to grow, so it's a table, not code: the 42 from a reel are only the seed (`AD_FORMAT_SEED`, written once by migration 0229). Its numbers aren't stored: a launch names its format in `spec.format`, and the view `ad_format_records` (`packages/content/src/schema.ts:1023`) sums that launch's [[ads/ad-day]] rows. State moves by hand: idea, testing, proven, retired.
+A format is ours to grow, so it's a table, not code: the 42 from a reel are only the seed (`AD_FORMAT_SEED`, written once by migration 0229). Its numbers aren't stored: a launch names its format in `spec.format`, and the view `ad_format_records` (`packages/starling/inbound/src/schema.ts:1023`) sums that launch's [[ads/ad-day]] rows. State moves by hand: idea, testing, proven, retired.
 
 ## Shape
 
 - `slug` (key), `name`, `family` (offer, proof, contrast, story, native, alarm, lesson, humor), `what`, `use`, `state`, `notes`, `source`, `updated_at`, `updated_by`
 - view adds `launches`, `spend`, `currency`, `impressions`, `clicks`, `leads`, `ctr`, `cost_per_lead`
 
-Citations: `packages/content/src/social/ad-formats.ts`, `apps/cli/src/ads.ts` (`launch` refuses an unknown format)
+Citations: `packages/starling/inbound/src/social/ad-formats.ts`, `apps/cli/src/ads.ts` (`launch` refuses an unknown format)
 
 ## Connected to
 

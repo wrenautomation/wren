@@ -6,8 +6,8 @@
  */
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
-import { getEdit } from "@wren/studio/edit";
-import { videoEdits } from "@wren/studio/schema";
+import { getEdit } from "@wren/starling-studio/edit";
+import { videoEdits } from "@wren/starling-studio/schema";
 import { Command } from "commander";
 import { sql } from "drizzle-orm";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";

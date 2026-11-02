@@ -1,5 +1,5 @@
 /** defineNiche merges a niche's `recontact` overrides over the lead-recycling defaults. */
-import { DEFAULT_RECONTACT, twoEmailSequence } from "@wren/channel-email";
+import { DEFAULT_RECONTACT, twoEmailSequence } from "@wren/starling-email";
 import { describe, expect, it } from "vitest";
 import { agencies, defineNiche, NICHES } from "./index.js";
 

@@ -4,7 +4,7 @@ cluster: email
 universe: live
 status: verified
 verified: 2026-10-14 @ da6ecb5
-entity: packages/channel-email/src/schema.ts:632
+entity: packages/starling/channels/email/src/schema.ts:632
 ---
 
 # email-click
@@ -25,7 +25,7 @@ A code no message holds is stored with `message_id` null (typed by hand, or the 
 - `clickFollowUps`: what each code's visitors did after (visitors, views, secs, form, applied). Read live from the export's `hits` and `applications` by `wren email clicks`, never stored; with no token or the lander down the command prints counts only (`inbox/clicks.ts:283`)
 - The first run reads all of the lander's `hits` history; start `ClicksScheduler/fleet` in prod once
 
-Citations: `packages/channel-email/src/schema.ts:632`, `packages/channel-email/src/inbox/click-sync.ts:45`
+Citations: `packages/starling/channels/email/src/schema.ts:632`, `packages/starling/channels/email/src/inbox/click-sync.ts:45`
 
 ## Connected to
 
@@ -48,4 +48,4 @@ Citations: `packages/channel-email/src/schema.ts:632`, `packages/channel-email/s
 
 ## See
 
-- Source: `packages/channel-email/src/inbox/click-sync.ts`
+- Source: `packages/starling/channels/email/src/inbox/click-sync.ts`

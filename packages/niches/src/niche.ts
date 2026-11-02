@@ -6,6 +6,10 @@
  * and one registry entry; nothing in core, research or channel-email branches on a niche name.
  */
 
+import { checkSequence, type SmsSequence } from "@wren/channel-sms";
+import type { Company, CompanyScreen, PersonSourceFormat, SourceFormat } from "@wren/core";
+import { OFFER_PAGES, offerFacts, offerFor } from "@wren/offers";
+import type { Dataset } from "@wren/research/fetch";
 import {
   type EnrollmentRule,
   enrollmentPlan,
@@ -14,11 +18,7 @@ import {
   type RecontactPolicy,
   recontactPolicy,
   type Sequence,
-} from "@wren/channel-email";
-import { checkSequence, type SmsSequence } from "@wren/channel-sms";
-import type { Company, CompanyScreen, PersonSourceFormat, SourceFormat } from "@wren/core";
-import { OFFER_PAGES, offerFacts, offerFor } from "@wren/offers";
-import type { Dataset } from "@wren/research/fetch";
+} from "@wren/starling-email";
 
 export interface Niche {
   readonly name: string;

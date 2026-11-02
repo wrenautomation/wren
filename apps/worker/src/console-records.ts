@@ -6,15 +6,6 @@
  */
 import { BOOKS_RECORDS } from "@wren/books/records";
 import { CALENDAR_RECORDS, recordingRecord } from "@wren/calendar/records";
-import {
-  callRecord,
-  emailRecords,
-  firmRecord,
-  modelRecord,
-  replyRecord,
-} from "@wren/channel-email/records";
-import { heatRecord, sessionRecord, surveyAnswerRecord } from "@wren/channel-search/records";
-import { mediaRecord, sopRecord, videoRecord } from "@wren/content/records";
 import { askRecord } from "@wren/core/ask";
 import { BROADCAST_RECORDS } from "@wren/core/broadcast-records";
 import { clientRecord } from "@wren/core/clients";
@@ -31,6 +22,15 @@ import { NOTES_RECORDS } from "@wren/notes/records";
 import { PIPELINE_RECORDS } from "@wren/pipeline/records";
 import { RESEARCH_RECORDS } from "@wren/research/records";
 import { SITES_RECORDS } from "@wren/sites/records";
+import {
+  callRecord,
+  emailRecords,
+  firmRecord,
+  modelRecord,
+  replyRecord,
+} from "@wren/starling-email/records";
+import { mediaRecord, sopRecord, videoRecord } from "@wren/starling-inbound/records";
+import { heatRecord, sessionRecord, surveyAnswerRecord } from "@wren/starling-search/records";
 import { VOICE_RECORDS } from "@wren/voice/records";
 import { WATCH_RECORDS } from "@wren/watch/records";
 import { marketingNumbers } from "./marketing.js";

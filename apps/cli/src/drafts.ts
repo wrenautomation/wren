@@ -7,14 +7,7 @@
  * yeses and nos the comment prompts read. `facts` lists and edits
  * what is true about him: the only first-person claims a draft may make. Nothing sends.
  */
-import {
-  DRAFT_TYPES,
-  type DraftType,
-  listEdits,
-  listWaiting,
-  readDraft,
-  writeDraft,
-} from "@wren/content";
+
 import { draftTurns } from "@wren/core/ask";
 import { setWrenSettings } from "@wren/core/clients";
 import {
@@ -31,12 +24,20 @@ import { factsOf, factsText } from "@wren/core/facts-list";
 import { modelDrafts, REPLY_DRAFTS_COMPONENT } from "@wren/core/reply-drafts";
 import { type Db, serializable, setAuditActor } from "@wren/db";
 import {
+  DRAFT_TYPES,
+  type DraftType,
+  listEdits,
+  listWaiting,
+  readDraft,
+  writeDraft,
+} from "@wren/starling-inbound";
+import {
   clearReplyDrafts,
   commentExamples,
   draftScorecard,
   EXAMPLES_MAX,
   parseSince,
-} from "@wren/outreach";
+} from "@wren/starling-outbound";
 import type { Command } from "commander";
 import { readText } from "./content.js";
 

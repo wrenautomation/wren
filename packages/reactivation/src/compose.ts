@@ -14,14 +14,6 @@
  * day, and none while that many openers wait for approval.
  */
 import { createHash } from "node:crypto";
-import {
-  type ApprovalSource,
-  activeSuppressions,
-  enrollments,
-  isUniqueViolation,
-  messages,
-  signed,
-} from "@wren/channel-email";
 import { type Feed, NO_FEED } from "@wren/core";
 import { noteProfile } from "@wren/core/profiles";
 import { parseKind } from "@wren/core/slots";
@@ -29,6 +21,14 @@ import { type LiveTemplate, promptRef, renderPrompt } from "@wren/core/templates
 import { defaultSource, livePrompt } from "@wren/core/templates/defaults";
 import { atomic, type Queryable, serializable } from "@wren/db";
 import { completeAndParse, type LlmClient, LlmError } from "@wren/llm";
+import {
+  type ApprovalSource,
+  activeSuppressions,
+  enrollments,
+  isUniqueViolation,
+  messages,
+  signed,
+} from "@wren/starling-email";
 import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { briefLines, MARKS, madeUp } from "./brief.js";

@@ -11,8 +11,6 @@
  * as records (`records*`) for the client's Calendar app.
  */
 import * as restate from "@restatedev/restate-sdk";
-import { markOutcome } from "@wren/channel-email/calls";
-import { callBookings } from "@wren/channel-email/schema";
 import { WREN } from "@wren/core/access";
 import type { MeetingOutcome } from "@wren/core/calls";
 import {
@@ -39,6 +37,8 @@ import {
 } from "@wren/core/records/serve";
 import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { type Db, snapshot } from "@wren/db";
+import { markOutcome } from "@wren/starling-email/calls";
+import { callBookings } from "@wren/starling-email/schema";
 import { inArray } from "drizzle-orm";
 import { z } from "zod";
 import { callsBetween, mirrorUid } from "./book.js";

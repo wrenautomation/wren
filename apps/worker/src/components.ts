@@ -4,23 +4,23 @@
  */
 import { BOOKS_COMPONENTS } from "@wren/books/components";
 import { CALENDAR_COMPONENTS } from "@wren/calendar/components";
-import { EMAIL_COMPONENTS } from "@wren/channel-email/components";
-import { META_COMPONENTS } from "@wren/channel-meta/components";
-import { SEARCH_COMPONENTS } from "@wren/channel-search/components";
 import { SMS_COMPONENTS } from "@wren/channel-sms/components";
-import { CONTENT_COMPONENTS } from "@wren/content/components";
 import type { Component } from "@wren/core/components";
 import { FACTS_COMPONENTS } from "@wren/core/facts";
 import { FOLLOW_COMPONENTS } from "@wren/core/follow";
 import { DELIVERY_COMPONENTS } from "@wren/delivery/components";
 import { DOCUMENTS_COMPONENTS } from "@wren/documents/components";
 import { LEARN_COMPONENTS } from "@wren/learn/components";
-import { OUTREACH_COMPONENTS } from "@wren/outreach/components";
 import { PAYMENTS_COMPONENTS } from "@wren/payments/components";
 import { PIPELINE_COMPONENTS } from "@wren/pipeline/components";
 import { REACTIVATION_COMPONENTS } from "@wren/reactivation/components";
 import { RESEARCH_COMPONENTS } from "@wren/research/components";
 import { SITES_COMPONENTS } from "@wren/sites/components";
+import { EMAIL_COMPONENTS } from "@wren/starling-email/components";
+import { CONTENT_COMPONENTS } from "@wren/starling-inbound/components";
+import { META_COMPONENTS } from "@wren/starling-meta/components";
+import { OUTREACH_COMPONENTS } from "@wren/starling-outbound/components";
+import { SEARCH_COMPONENTS } from "@wren/starling-search/components";
 import { VOICE_COMPONENTS } from "@wren/voice/components";
 import { MAIL_COMPONENTS, WATCH_COMPONENTS } from "@wren/watch/components";
 import { PLANNED_COMPONENTS } from "./planned.js";

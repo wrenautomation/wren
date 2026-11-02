@@ -4,7 +4,7 @@ cluster: email
 universe: live
 status: verified
 verified: 2026-10-05 @ f21d65f
-entity: packages/channel-email/src/inbox/health.ts:180
+entity: packages/starling/channels/email/src/inbox/health.ts:180
 ---
 
 # sender-pause
@@ -13,14 +13,14 @@ A sending address taken out of rotation, by a kill switch, by the seed placement
 
 ## Why this shape
 
-The grain is the domain, not the inbox: a spam verdict earned by one inbox is spent by its neighbours, so a trip pauses every inbox on the domain. The evidence window floors at the last lift that is not a placement self-lift, so a human's resume is not undone by the same evidence (`health.ts:1`). A placement pause lifts itself (`lifted_by = 'placement'`): its evidence is measured again every send day ([[email/placement-check]]). A campaign in `WREN_KILL_SWITCH_OFF_FOR`, or switched off in the console (`campaign_controls`, [[email/send-policy]]), is left out of the evidence, and a kill-switch or placement pause does not stop its sends; an operator pause stops everything (`send/deliver.ts`). One active pause per sender (`uq_sender_pauses_active`, `packages/channel-email/src/schema.ts:555`).
+The grain is the domain, not the inbox: a spam verdict earned by one inbox is spent by its neighbours, so a trip pauses every inbox on the domain. The evidence window floors at the last lift that is not a placement self-lift, so a human's resume is not undone by the same evidence (`health.ts:1`). A placement pause lifts itself (`lifted_by = 'placement'`): its evidence is measured again every send day ([[email/placement-check]]). A campaign in `WREN_KILL_SWITCH_OFF_FOR`, or switched off in the console (`campaign_controls`, [[email/send-policy]]), is left out of the evidence, and a kill-switch or placement pause does not stop its sends; an operator pause stops everything (`send/deliver.ts`). One active pause per sender (`uq_sender_pauses_active`, `packages/starling/channels/email/src/schema.ts:555`).
 
 ## Shape
 
 - `sender`, `domain`, `reason`, `source` (kill_switch | operator | placement), `paused_at`, `lifted_at`, `lifted_by`, `detail` (`schema.ts:539`–`551`)
 - `evaluateKillSwitches`, `pause`, `resume`, `wouldTrip`, `resolveTarget` (`health.ts:180`, `:260`, `:294`, `:221`, `:309`)
 
-Citations: `packages/channel-email/src/inbox/health.ts:180`
+Citations: `packages/starling/channels/email/src/inbox/health.ts:180`
 
 ## Connected to
 
@@ -43,4 +43,4 @@ Citations: `packages/channel-email/src/inbox/health.ts:180`
 
 ## See
 
-- Source: `packages/channel-email/src/inbox/health.ts`
+- Source: `packages/starling/channels/email/src/inbox/health.ts`

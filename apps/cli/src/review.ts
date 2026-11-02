@@ -7,6 +7,8 @@ import { spawnSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import type { Db } from "@wren/db";
+import { nicheFor } from "@wren/niches";
 import {
   approveMessages,
   describeAddress,
@@ -31,9 +33,7 @@ import {
   stopByHand,
   threadEvents,
   variantCounts,
-} from "@wren/channel-email";
-import type { Db } from "@wren/db";
-import { nicheFor } from "@wren/niches";
+} from "@wren/starling-email";
 import type { Command } from "commander";
 import { eq } from "drizzle-orm";
 

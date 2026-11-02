@@ -13,7 +13,7 @@ import {
   type TikTokPrivacy,
   tiktokDeclaration,
   tiktokLabel,
-} from "@wren/core/content/tiktok";
+} from "@wren/starling-core/tiktok";
 import { GROUP_LABEL, HINT_CLASS, LABEL_CLASS, tipProps } from "@wren/ui";
 import { useState } from "react";
 import { SELECT } from "../work/bits.js";

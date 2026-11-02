@@ -1,7 +1,7 @@
 import type { Need, RouteApps } from "./access.js";
 
 /**
- * MarketingConsole's handlers (`@wren/content/restate`) and what each needs: a client's Marketing
+ * MarketingConsole's handlers (`@wren/starling-inbound/restate`) and what each needs: a client's Marketing
  * numbers from its own database, once `marketing.stats` is installed. Wren's own Marketing is the
  * console's. A draft's verdict also needs the client's approver (`mayApprove`), which the handler
  * checks. Type imports only, so the Worker bundles it alone.

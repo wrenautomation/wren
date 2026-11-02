@@ -29,9 +29,6 @@ importers:
       '@wren/auth':
         specifier: workspace:*
         version: link:../../packages/auth
-      '@wren/channel-email':
-        specifier: workspace:*
-        version: link:../../packages/channel-email
       '@wren/config':
         specifier: workspace:*
         version: link:../../packages/config
@@ -41,6 +38,9 @@ importers:
       '@wren/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@wren/starling-email':
+        specifier: workspace:*
+        version: link:../../packages/starling/channels/email
       '@wren/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -102,24 +102,12 @@ importers:
       '@wren/calendar':
         specifier: workspace:*
         version: link:../../packages/calendar
-      '@wren/channel-email':
-        specifier: workspace:*
-        version: link:../../packages/channel-email
-      '@wren/channel-meta':
-        specifier: workspace:*
-        version: link:../../packages/channel-meta
-      '@wren/channel-search':
-        specifier: workspace:*
-        version: link:../../packages/channel-search
       '@wren/channel-sms':
         specifier: workspace:*
         version: link:../../packages/channel-sms
       '@wren/config':
         specifier: workspace:*
         version: link:../../packages/config
-      '@wren/content':
-        specifier: workspace:*
-        version: link:../../packages/content
       '@wren/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -147,9 +135,6 @@ importers:
       '@wren/offers':
         specifier: workspace:*
         version: link:../../packages/offers
-      '@wren/outreach':
-        specifier: workspace:*
-        version: link:../../packages/outreach
       '@wren/pipeline':
         specifier: workspace:*
         version: link:../../packages/pipeline
@@ -162,9 +147,27 @@ importers:
       '@wren/sites':
         specifier: workspace:*
         version: link:../../packages/sites
-      '@wren/studio':
+      '@wren/starling-core':
         specifier: workspace:*
-        version: link:../../packages/studio
+        version: link:../../packages/starling/core
+      '@wren/starling-email':
+        specifier: workspace:*
+        version: link:../../packages/starling/channels/email
+      '@wren/starling-inbound':
+        specifier: workspace:*
+        version: link:../../packages/starling/inbound
+      '@wren/starling-meta':
+        specifier: workspace:*
+        version: link:../../packages/starling/channels/meta
+      '@wren/starling-outbound':
+        specifier: workspace:*
+        version: link:../../packages/starling/outbound
+      '@wren/starling-search':
+        specifier: workspace:*
+        version: link:../../packages/starling/search
+      '@wren/starling-studio':
+        specifier: workspace:*
+        version: link:../../packages/starling/studio
       '@wren/video':
         specifier: workspace:*
         version: link:../../packages/video
@@ -326,6 +329,9 @@ importers:
       '@wren/sites':
         specifier: workspace:*
         version: link:../../packages/sites
+      '@wren/starling-core':
+        specifier: workspace:*
+        version: link:../../packages/starling/core
       '@wren/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -396,18 +402,12 @@ importers:
       '@wren/books':
         specifier: workspace:*
         version: link:../../packages/books
-      '@wren/channel-email':
-        specifier: workspace:*
-        version: link:../../packages/channel-email
       '@wren/channel-sms':
         specifier: workspace:*
         version: link:../../packages/channel-sms
       '@wren/config':
         specifier: workspace:*
         version: link:../../packages/config
-      '@wren/content':
-        specifier: workspace:*
-        version: link:../../packages/content
       '@wren/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -423,12 +423,18 @@ importers:
       '@wren/offers':
         specifier: workspace:*
         version: link:../../packages/offers
-      '@wren/outreach':
+      '@wren/starling-email':
         specifier: workspace:*
-        version: link:../../packages/outreach
-      '@wren/studio':
+        version: link:../../packages/starling/channels/email
+      '@wren/starling-inbound':
         specifier: workspace:*
-        version: link:../../packages/studio
+        version: link:../../packages/starling/inbound
+      '@wren/starling-outbound':
+        specifier: workspace:*
+        version: link:../../packages/starling/outbound
+      '@wren/starling-studio':
+        specifier: workspace:*
+        version: link:../../packages/starling/studio
       '@wren/worker':
         specifier: workspace:*
         version: link:../worker
@@ -507,42 +513,15 @@ importers:
       '@wren/calendar':
         specifier: workspace:*
         version: link:../../packages/calendar
-      '@wren/channel-email':
-        specifier: workspace:*
-        version: link:../../packages/channel-email
-      '@wren/channel-linkedin':
-        specifier: workspace:*
-        version: link:../../packages/channel-linkedin
-      '@wren/channel-meta':
-        specifier: workspace:*
-        version: link:../../packages/channel-meta
-      '@wren/channel-reddit':
-        specifier: workspace:*
-        version: link:../../packages/channel-reddit
-      '@wren/channel-search':
-        specifier: workspace:*
-        version: link:../../packages/channel-search
       '@wren/channel-sms':
         specifier: workspace:*
         version: link:../../packages/channel-sms
-      '@wren/channel-tiktok':
-        specifier: workspace:*
-        version: link:../../packages/channel-tiktok
-      '@wren/channel-x':
-        specifier: workspace:*
-        version: link:../../packages/channel-x
-      '@wren/channel-youtube':
-        specifier: workspace:*
-        version: link:../../packages/channel-youtube
       '@wren/config':
         specifier: workspace:*
         version: link:../../packages/config
       '@wren/connectors':
         specifier: workspace:*
         version: link:../../packages/connectors
-      '@wren/content':
-        specifier: workspace:*
-        version: link:../../packages/content
       '@wren/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -570,9 +549,6 @@ importers:
       '@wren/offers':
         specifier: workspace:*
         version: link:../../packages/offers
-      '@wren/outreach':
-        specifier: workspace:*
-        version: link:../../packages/outreach
       '@wren/payments':
         specifier: workspace:*
         version: link:../../packages/payments
@@ -588,6 +564,39 @@ importers:
       '@wren/sites':
         specifier: workspace:*
         version: link:../../packages/sites
+      '@wren/starling-core':
+        specifier: workspace:*
+        version: link:../../packages/starling/core
+      '@wren/starling-email':
+        specifier: workspace:*
+        version: link:../../packages/starling/channels/email
+      '@wren/starling-inbound':
+        specifier: workspace:*
+        version: link:../../packages/starling/inbound
+      '@wren/starling-linkedin':
+        specifier: workspace:*
+        version: link:../../packages/starling/channels/linkedin
+      '@wren/starling-meta':
+        specifier: workspace:*
+        version: link:../../packages/starling/channels/meta
+      '@wren/starling-outbound':
+        specifier: workspace:*
+        version: link:../../packages/starling/outbound
+      '@wren/starling-reddit':
+        specifier: workspace:*
+        version: link:../../packages/starling/channels/reddit
+      '@wren/starling-search':
+        specifier: workspace:*
+        version: link:../../packages/starling/search
+      '@wren/starling-tiktok':
+        specifier: workspace:*
+        version: link:../../packages/starling/channels/tiktok
+      '@wren/starling-x':
+        specifier: workspace:*
+        version: link:../../packages/starling/channels/x
+      '@wren/starling-youtube':
+        specifier: workspace:*
+        version: link:../../packages/starling/channels/youtube
       '@wren/voice':
         specifier: workspace:*
         version: link:../../packages/voice
@@ -696,9 +705,6 @@ importers:
       '@restatedev/restate-sdk':
         specifier: 1.17.1
         version: 1.17.1
-      '@wren/channel-email':
-        specifier: workspace:*
-        version: link:../channel-email
       '@wren/channel-sms':
         specifier: workspace:*
         version: link:../channel-sms
@@ -708,6 +714,9 @@ importers:
       '@wren/db':
         specifier: workspace:*
         version: link:../db
+      '@wren/starling-email':
+        specifier: workspace:*
+        version: link:../starling/channels/email
       '@wrenautomation/autobrowse':
         specifier: 0.8.4
         version: 0.8.4(@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.1))
@@ -730,188 +739,6 @@ importers:
       '@wren/config':
         specifier: workspace:*
         version: link:../config
-      typescript:
-        specifier: 5.9.3
-        version: 5.9.3
-      vitest:
-        specifier: 5.0.1
-        version: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@26.6.4)(@vitest/browser-playwright@5.0.1)(@vitest/ui@5.0.1)(happy-dom@20.14.5)(msw@2.15.0(@types/node@26.6.4)(typescript@5.9.3))(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
-
-  packages/channel-email:
-    dependencies:
-      '@restatedev/restate-sdk':
-        specifier: 1.17.1
-        version: 1.17.1
-      '@wren/config':
-        specifier: workspace:*
-        version: link:../config
-      '@wren/core':
-        specifier: workspace:*
-        version: link:../core
-      '@wren/db':
-        specifier: workspace:*
-        version: link:../db
-      '@wren/experiments':
-        specifier: workspace:*
-        version: link:../experiments
-      '@wren/llm':
-        specifier: workspace:*
-        version: link:../llm
-      '@wren/research':
-        specifier: workspace:*
-        version: link:../research
-      '@wrenautomation/autobrowse':
-        specifier: 0.8.4
-        version: 0.8.4(@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.1))
-      '@wrenautomation/read':
-        specifier: 0.29.0
-        version: 0.29.0
-      drizzle-orm:
-        specifier: 0.45.2
-        version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
-      imapflow:
-        specifier: 2.2.4
-        version: 2.2.4
-      libmime:
-        specifier: 5.4.7
-        version: 5.4.7
-      mailifier:
-        specifier: 0.3.9
-        version: 0.3.9
-      nodemailer:
-        specifier: 10.0.14
-        version: 10.0.14
-      smol-toml:
-        specifier: 1.8.0
-        version: 1.8.0
-      zod:
-        specifier: 4.6.5
-        version: 4.6.5
-    devDependencies:
-      '@restatedev/restate-sdk-clients':
-        specifier: 1.17.1
-        version: 1.17.1
-      '@restatedev/restate-sdk-testcontainers':
-        specifier: 1.17.1
-        version: 1.17.1
-      '@testcontainers/postgresql':
-        specifier: 12.1.0
-        version: 12.1.0
-      '@types/libmime':
-        specifier: 5.3.0
-        version: 5.3.0
-      '@types/nodemailer':
-        specifier: 8.0.2
-        version: 8.0.2
-      postgres:
-        specifier: 3.4.9
-        version: 3.4.9
-      typescript:
-        specifier: 5.9.3
-        version: 5.9.3
-      vitest:
-        specifier: 5.0.1
-        version: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@26.6.4)(@vitest/browser-playwright@5.0.1)(@vitest/ui@5.0.1)(happy-dom@20.14.5)(msw@2.15.0(@types/node@26.6.4)(typescript@5.9.3))(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
-
-  packages/channel-linkedin:
-    dependencies:
-      '@wren/core':
-        specifier: workspace:*
-        version: link:../core
-    devDependencies:
-      typescript:
-        specifier: 5.9.3
-        version: 5.9.3
-      vitest:
-        specifier: 5.0.1
-        version: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@26.6.4)(@vitest/browser-playwright@5.0.1)(@vitest/ui@5.0.1)(happy-dom@20.14.5)(msw@2.15.0(@types/node@26.6.4)(typescript@5.9.3))(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
-
-  packages/channel-meta:
-    dependencies:
-      '@restatedev/restate-sdk':
-        specifier: 1.17.1
-        version: 1.17.1
-      '@wren/core':
-        specifier: workspace:*
-        version: link:../core
-      '@wren/db':
-        specifier: workspace:*
-        version: link:../db
-      drizzle-orm:
-        specifier: 0.45.2
-        version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
-      zod:
-        specifier: 4.6.5
-        version: 4.6.5
-    devDependencies:
-      '@restatedev/restate-sdk-clients':
-        specifier: 1.17.1
-        version: 1.17.1
-      '@restatedev/restate-sdk-testcontainers':
-        specifier: 1.17.1
-        version: 1.17.1
-      '@testcontainers/postgresql':
-        specifier: 12.1.0
-        version: 12.1.0
-      '@wren/config':
-        specifier: workspace:*
-        version: link:../config
-      typescript:
-        specifier: 5.9.3
-        version: 5.9.3
-      vitest:
-        specifier: 5.0.1
-        version: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@26.6.4)(@vitest/browser-playwright@5.0.1)(@vitest/ui@5.0.1)(happy-dom@20.14.5)(msw@2.15.0(@types/node@26.6.4)(typescript@5.9.3))(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
-
-  packages/channel-reddit:
-    dependencies:
-      '@wren/core':
-        specifier: workspace:*
-        version: link:../core
-    devDependencies:
-      typescript:
-        specifier: 5.9.3
-        version: 5.9.3
-      vitest:
-        specifier: 5.0.1
-        version: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@26.6.4)(@vitest/browser-playwright@5.0.1)(@vitest/ui@5.0.1)(happy-dom@20.14.5)(msw@2.15.0(@types/node@26.6.4)(typescript@5.9.3))(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
-
-  packages/channel-search:
-    dependencies:
-      '@restatedev/restate-sdk':
-        specifier: 1.17.1
-        version: 1.17.1
-      '@wren/channel-email':
-        specifier: workspace:*
-        version: link:../channel-email
-      '@wren/core':
-        specifier: workspace:*
-        version: link:../core
-      '@wren/db':
-        specifier: workspace:*
-        version: link:../db
-      '@wren/experiments':
-        specifier: workspace:*
-        version: link:../experiments
-      '@wren/llm':
-        specifier: workspace:*
-        version: link:../llm
-      '@wren/sites':
-        specifier: workspace:*
-        version: link:../sites
-      '@wrenautomation/autobrowse':
-        specifier: 0.8.4
-        version: 0.8.4(@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.1))
-      drizzle-orm:
-        specifier: 0.45.2
-        version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
-      zod:
-        specifier: 4.6.5
-        version: 4.6.5
-    devDependencies:
-      '@testcontainers/postgresql':
-        specifier: 12.1.0
-        version: 12.1.0
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -971,45 +798,6 @@ importers:
         specifier: 5.0.1
         version: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@26.6.4)(@vitest/browser-playwright@5.0.1)(@vitest/ui@5.0.1)(happy-dom@20.14.5)(msw@2.15.0(@types/node@26.6.4)(typescript@5.9.3))(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
 
-  packages/channel-tiktok:
-    dependencies:
-      '@wren/core':
-        specifier: workspace:*
-        version: link:../core
-    devDependencies:
-      typescript:
-        specifier: 5.9.3
-        version: 5.9.3
-      vitest:
-        specifier: 5.0.1
-        version: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@26.6.4)(@vitest/browser-playwright@5.0.1)(@vitest/ui@5.0.1)(happy-dom@20.14.5)(msw@2.15.0(@types/node@26.6.4)(typescript@5.9.3))(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
-
-  packages/channel-x:
-    dependencies:
-      '@wren/core':
-        specifier: workspace:*
-        version: link:../core
-    devDependencies:
-      typescript:
-        specifier: 5.9.3
-        version: 5.9.3
-      vitest:
-        specifier: 5.0.1
-        version: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@26.6.4)(@vitest/browser-playwright@5.0.1)(@vitest/ui@5.0.1)(happy-dom@20.14.5)(msw@2.15.0(@types/node@26.6.4)(typescript@5.9.3))(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
-
-  packages/channel-youtube:
-    dependencies:
-      '@wren/core':
-        specifier: workspace:*
-        version: link:../core
-    devDependencies:
-      typescript:
-        specifier: 5.9.3
-        version: 5.9.3
-      vitest:
-        specifier: 5.0.1
-        version: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@26.6.4)(@vitest/browser-playwright@5.0.1)(@vitest/ui@5.0.1)(happy-dom@20.14.5)(msw@2.15.0(@types/node@26.6.4)(typescript@5.9.3))(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
-
   packages/config:
     dependencies:
       '@aws-sdk/client-ssm':
@@ -1050,88 +838,6 @@ importers:
       '@testcontainers/postgresql':
         specifier: 12.1.0
         version: 12.1.0
-      typescript:
-        specifier: 5.9.3
-        version: 5.9.3
-      vitest:
-        specifier: 5.0.1
-        version: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@26.6.4)(@vitest/browser-playwright@5.0.1)(@vitest/ui@5.0.1)(happy-dom@20.14.5)(msw@2.15.0(@types/node@26.6.4)(typescript@5.9.3))(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
-
-  packages/content:
-    dependencies:
-      '@aws-sdk/client-s3':
-        specifier: 3.1136.0
-        version: 3.1136.0
-      '@aws-sdk/s3-request-presigner':
-        specifier: 3.1136.0
-        version: 3.1136.0
-      '@restatedev/restate-sdk':
-        specifier: 1.17.1
-        version: 1.17.1
-      '@wren/channel-sms':
-        specifier: workspace:*
-        version: link:../channel-sms
-      '@wren/core':
-        specifier: workspace:*
-        version: link:../core
-      '@wren/db':
-        specifier: workspace:*
-        version: link:../db
-      '@wren/delivery':
-        specifier: workspace:*
-        version: link:../delivery
-      '@wren/documents':
-        specifier: workspace:*
-        version: link:../documents
-      '@wren/learn':
-        specifier: workspace:*
-        version: link:../learn
-      '@wren/llm':
-        specifier: workspace:*
-        version: link:../llm
-      '@wren/notes':
-        specifier: workspace:*
-        version: link:../notes
-      '@wren/outreach':
-        specifier: workspace:*
-        version: link:../outreach
-      '@wren/payments':
-        specifier: workspace:*
-        version: link:../payments
-      '@wren/research':
-        specifier: workspace:*
-        version: link:../research
-      '@wren/sites':
-        specifier: workspace:*
-        version: link:../sites
-      '@wren/studio':
-        specifier: workspace:*
-        version: link:../studio
-      '@wrenautomation/autobrowse':
-        specifier: 0.8.4
-        version: 0.8.4(@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.1))
-      drizzle-orm:
-        specifier: 0.45.2
-        version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
-      playwright-core:
-        specifier: 1.63.0
-        version: 1.63.0
-      zod:
-        specifier: 4.6.5
-        version: 4.6.5
-    devDependencies:
-      '@restatedev/restate-sdk-clients':
-        specifier: 1.17.1
-        version: 1.17.1
-      '@restatedev/restate-sdk-testcontainers':
-        specifier: 1.17.1
-        version: 1.17.1
-      '@testcontainers/postgresql':
-        specifier: 12.1.0
-        version: 12.1.0
-      '@wren/config':
-        specifier: workspace:*
-        version: link:../config
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -1385,9 +1091,6 @@ importers:
 
   packages/niches:
     dependencies:
-      '@wren/channel-email':
-        specifier: workspace:*
-        version: link:../channel-email
       '@wren/channel-sms':
         specifier: workspace:*
         version: link:../channel-sms
@@ -1400,6 +1103,9 @@ importers:
       '@wren/research':
         specifier: workspace:*
         version: link:../research
+      '@wren/starling-email':
+        specifier: workspace:*
+        version: link:../starling/channels/email
       '@wrenautomation/read':
         specifier: 0.29.0
         version: 0.29.0
@@ -1474,52 +1180,6 @@ importers:
       tsx:
         specifier: 4.23.13
         version: 4.23.13
-      typescript:
-        specifier: 5.9.3
-        version: 5.9.3
-      vitest:
-        specifier: 5.0.1
-        version: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@26.6.4)(@vitest/browser-playwright@5.0.1)(@vitest/ui@5.0.1)(happy-dom@20.14.5)(msw@2.15.0(@types/node@26.6.4)(typescript@5.9.3))(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
-
-  packages/outreach:
-    dependencies:
-      '@restatedev/restate-sdk':
-        specifier: 1.17.1
-        version: 1.17.1
-      '@wren/channel-linkedin':
-        specifier: workspace:*
-        version: link:../channel-linkedin
-      '@wren/channel-reddit':
-        specifier: workspace:*
-        version: link:../channel-reddit
-      '@wren/config':
-        specifier: workspace:*
-        version: link:../config
-      '@wren/core':
-        specifier: workspace:*
-        version: link:../core
-      '@wren/db':
-        specifier: workspace:*
-        version: link:../db
-      '@wren/llm':
-        specifier: workspace:*
-        version: link:../llm
-      '@wren/research':
-        specifier: workspace:*
-        version: link:../research
-      drizzle-orm:
-        specifier: 0.45.2
-        version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
-      zod:
-        specifier: 4.6.5
-        version: 4.6.5
-    devDependencies:
-      '@restatedev/restate-sdk-clients':
-        specifier: 1.17.1
-        version: 1.17.1
-      '@restatedev/restate-sdk-testcontainers':
-        specifier: 1.17.1
-        version: 1.17.1
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -1612,9 +1272,6 @@ importers:
       '@restatedev/restate-sdk':
         specifier: 1.17.1
         version: 1.17.1
-      '@wren/channel-email':
-        specifier: workspace:*
-        version: link:../channel-email
       '@wren/connectors':
         specifier: workspace:*
         version: link:../connectors
@@ -1636,6 +1293,9 @@ importers:
       '@wren/research':
         specifier: workspace:*
         version: link:../research
+      '@wren/starling-email':
+        specifier: workspace:*
+        version: link:../starling/channels/email
       '@wren/video':
         specifier: workspace:*
         version: link:../video
@@ -1769,7 +1429,399 @@ importers:
         specifier: 5.0.1
         version: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@26.6.4)(@vitest/browser-playwright@5.0.1)(@vitest/ui@5.0.1)(happy-dom@20.14.5)(msw@2.15.0(@types/node@26.6.4)(typescript@5.9.3))(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
 
-  packages/studio:
+  packages/starling/channels/email:
+    dependencies:
+      '@restatedev/restate-sdk':
+        specifier: 1.17.1
+        version: 1.17.1
+      '@wren/config':
+        specifier: workspace:*
+        version: link:../../../config
+      '@wren/core':
+        specifier: workspace:*
+        version: link:../../../core
+      '@wren/db':
+        specifier: workspace:*
+        version: link:../../../db
+      '@wren/experiments':
+        specifier: workspace:*
+        version: link:../../../experiments
+      '@wren/llm':
+        specifier: workspace:*
+        version: link:../../../llm
+      '@wren/research':
+        specifier: workspace:*
+        version: link:../../../research
+      '@wrenautomation/autobrowse':
+        specifier: 0.8.4
+        version: 0.8.4(@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.1))
+      '@wrenautomation/read':
+        specifier: 0.29.0
+        version: 0.29.0
+      drizzle-orm:
+        specifier: 0.45.2
+        version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
+      imapflow:
+        specifier: 2.2.4
+        version: 2.2.4
+      libmime:
+        specifier: 5.4.7
+        version: 5.4.7
+      mailifier:
+        specifier: 0.3.9
+        version: 0.3.9
+      nodemailer:
+        specifier: 10.0.14
+        version: 10.0.14
+      smol-toml:
+        specifier: 1.8.0
+        version: 1.8.0
+      zod:
+        specifier: 4.6.5
+        version: 4.6.5
+    devDependencies:
+      '@restatedev/restate-sdk-clients':
+        specifier: 1.17.1
+        version: 1.17.1
+      '@restatedev/restate-sdk-testcontainers':
+        specifier: 1.17.1
+        version: 1.17.1
+      '@testcontainers/postgresql':
+        specifier: 12.1.0
+        version: 12.1.0
+      '@types/libmime':
+        specifier: 5.3.0
+        version: 5.3.0
+      '@types/nodemailer':
+        specifier: 8.0.2
+        version: 8.0.2
+      postgres:
+        specifier: 3.4.9
+        version: 3.4.9
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: 5.0.1
+        version: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@26.6.4)(@vitest/browser-playwright@5.0.1)(@vitest/ui@5.0.1)(happy-dom@20.14.5)(msw@2.15.0(@types/node@26.6.4)(typescript@5.9.3))(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+
+  packages/starling/channels/linkedin:
+    dependencies:
+      '@wren/core':
+        specifier: workspace:*
+        version: link:../../../core
+      '@wren/starling-core':
+        specifier: workspace:*
+        version: link:../../core
+    devDependencies:
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: 5.0.1
+        version: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@26.6.4)(@vitest/browser-playwright@5.0.1)(@vitest/ui@5.0.1)(happy-dom@20.14.5)(msw@2.15.0(@types/node@26.6.4)(typescript@5.9.3))(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+
+  packages/starling/channels/meta:
+    dependencies:
+      '@restatedev/restate-sdk':
+        specifier: 1.17.1
+        version: 1.17.1
+      '@wren/core':
+        specifier: workspace:*
+        version: link:../../../core
+      '@wren/db':
+        specifier: workspace:*
+        version: link:../../../db
+      '@wren/starling-core':
+        specifier: workspace:*
+        version: link:../../core
+      drizzle-orm:
+        specifier: 0.45.2
+        version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
+      zod:
+        specifier: 4.6.5
+        version: 4.6.5
+    devDependencies:
+      '@restatedev/restate-sdk-clients':
+        specifier: 1.17.1
+        version: 1.17.1
+      '@restatedev/restate-sdk-testcontainers':
+        specifier: 1.17.1
+        version: 1.17.1
+      '@testcontainers/postgresql':
+        specifier: 12.1.0
+        version: 12.1.0
+      '@wren/config':
+        specifier: workspace:*
+        version: link:../../../config
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: 5.0.1
+        version: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@26.6.4)(@vitest/browser-playwright@5.0.1)(@vitest/ui@5.0.1)(happy-dom@20.14.5)(msw@2.15.0(@types/node@26.6.4)(typescript@5.9.3))(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+
+  packages/starling/channels/reddit:
+    dependencies:
+      '@wren/core':
+        specifier: workspace:*
+        version: link:../../../core
+      '@wren/starling-core':
+        specifier: workspace:*
+        version: link:../../core
+    devDependencies:
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: 5.0.1
+        version: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@26.6.4)(@vitest/browser-playwright@5.0.1)(@vitest/ui@5.0.1)(happy-dom@20.14.5)(msw@2.15.0(@types/node@26.6.4)(typescript@5.9.3))(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+
+  packages/starling/channels/tiktok:
+    dependencies:
+      '@wren/core':
+        specifier: workspace:*
+        version: link:../../../core
+      '@wren/starling-core':
+        specifier: workspace:*
+        version: link:../../core
+    devDependencies:
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: 5.0.1
+        version: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@26.6.4)(@vitest/browser-playwright@5.0.1)(@vitest/ui@5.0.1)(happy-dom@20.14.5)(msw@2.15.0(@types/node@26.6.4)(typescript@5.9.3))(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+
+  packages/starling/channels/x:
+    dependencies:
+      '@wren/core':
+        specifier: workspace:*
+        version: link:../../../core
+      '@wren/starling-core':
+        specifier: workspace:*
+        version: link:../../core
+    devDependencies:
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: 5.0.1
+        version: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@26.6.4)(@vitest/browser-playwright@5.0.1)(@vitest/ui@5.0.1)(happy-dom@20.14.5)(msw@2.15.0(@types/node@26.6.4)(typescript@5.9.3))(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+
+  packages/starling/channels/youtube:
+    dependencies:
+      '@wren/core':
+        specifier: workspace:*
+        version: link:../../../core
+      '@wren/starling-core':
+        specifier: workspace:*
+        version: link:../../core
+    devDependencies:
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: 5.0.1
+        version: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@26.6.4)(@vitest/browser-playwright@5.0.1)(@vitest/ui@5.0.1)(happy-dom@20.14.5)(msw@2.15.0(@types/node@26.6.4)(typescript@5.9.3))(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+
+  packages/starling/core:
+    dependencies:
+      '@restatedev/restate-sdk':
+        specifier: 1.17.1
+        version: 1.17.1
+      '@wren/core':
+        specifier: workspace:*
+        version: link:../../core
+      zod:
+        specifier: 4.6.5
+        version: 4.6.5
+    devDependencies:
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: 5.0.1
+        version: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@26.6.4)(@vitest/browser-playwright@5.0.1)(@vitest/ui@5.0.1)(happy-dom@20.14.5)(msw@2.15.0(@types/node@26.6.4)(typescript@5.9.3))(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+
+  packages/starling/inbound:
+    dependencies:
+      '@aws-sdk/client-s3':
+        specifier: 3.1136.0
+        version: 3.1136.0
+      '@aws-sdk/s3-request-presigner':
+        specifier: 3.1136.0
+        version: 3.1136.0
+      '@restatedev/restate-sdk':
+        specifier: 1.17.1
+        version: 1.17.1
+      '@wren/channel-sms':
+        specifier: workspace:*
+        version: link:../../channel-sms
+      '@wren/core':
+        specifier: workspace:*
+        version: link:../../core
+      '@wren/db':
+        specifier: workspace:*
+        version: link:../../db
+      '@wren/delivery':
+        specifier: workspace:*
+        version: link:../../delivery
+      '@wren/documents':
+        specifier: workspace:*
+        version: link:../../documents
+      '@wren/learn':
+        specifier: workspace:*
+        version: link:../../learn
+      '@wren/llm':
+        specifier: workspace:*
+        version: link:../../llm
+      '@wren/notes':
+        specifier: workspace:*
+        version: link:../../notes
+      '@wren/payments':
+        specifier: workspace:*
+        version: link:../../payments
+      '@wren/research':
+        specifier: workspace:*
+        version: link:../../research
+      '@wren/sites':
+        specifier: workspace:*
+        version: link:../../sites
+      '@wren/starling-core':
+        specifier: workspace:*
+        version: link:../core
+      '@wren/starling-outbound':
+        specifier: workspace:*
+        version: link:../outbound
+      '@wren/starling-studio':
+        specifier: workspace:*
+        version: link:../studio
+      '@wrenautomation/autobrowse':
+        specifier: 0.8.4
+        version: 0.8.4(@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.1))
+      drizzle-orm:
+        specifier: 0.45.2
+        version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
+      playwright-core:
+        specifier: 1.63.0
+        version: 1.63.0
+      zod:
+        specifier: 4.6.5
+        version: 4.6.5
+    devDependencies:
+      '@restatedev/restate-sdk-clients':
+        specifier: 1.17.1
+        version: 1.17.1
+      '@restatedev/restate-sdk-testcontainers':
+        specifier: 1.17.1
+        version: 1.17.1
+      '@testcontainers/postgresql':
+        specifier: 12.1.0
+        version: 12.1.0
+      '@wren/config':
+        specifier: workspace:*
+        version: link:../../config
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: 5.0.1
+        version: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@26.6.4)(@vitest/browser-playwright@5.0.1)(@vitest/ui@5.0.1)(happy-dom@20.14.5)(msw@2.15.0(@types/node@26.6.4)(typescript@5.9.3))(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+
+  packages/starling/outbound:
+    dependencies:
+      '@restatedev/restate-sdk':
+        specifier: 1.17.1
+        version: 1.17.1
+      '@wren/config':
+        specifier: workspace:*
+        version: link:../../config
+      '@wren/core':
+        specifier: workspace:*
+        version: link:../../core
+      '@wren/db':
+        specifier: workspace:*
+        version: link:../../db
+      '@wren/llm':
+        specifier: workspace:*
+        version: link:../../llm
+      '@wren/research':
+        specifier: workspace:*
+        version: link:../../research
+      '@wren/starling-core':
+        specifier: workspace:*
+        version: link:../core
+      '@wren/starling-linkedin':
+        specifier: workspace:*
+        version: link:../channels/linkedin
+      '@wren/starling-reddit':
+        specifier: workspace:*
+        version: link:../channels/reddit
+      drizzle-orm:
+        specifier: 0.45.2
+        version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
+      zod:
+        specifier: 4.6.5
+        version: 4.6.5
+    devDependencies:
+      '@restatedev/restate-sdk-clients':
+        specifier: 1.17.1
+        version: 1.17.1
+      '@restatedev/restate-sdk-testcontainers':
+        specifier: 1.17.1
+        version: 1.17.1
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: 5.0.1
+        version: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@26.6.4)(@vitest/browser-playwright@5.0.1)(@vitest/ui@5.0.1)(happy-dom@20.14.5)(msw@2.15.0(@types/node@26.6.4)(typescript@5.9.3))(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+
+  packages/starling/search:
+    dependencies:
+      '@restatedev/restate-sdk':
+        specifier: 1.17.1
+        version: 1.17.1
+      '@wren/core':
+        specifier: workspace:*
+        version: link:../../core
+      '@wren/db':
+        specifier: workspace:*
+        version: link:../../db
+      '@wren/experiments':
+        specifier: workspace:*
+        version: link:../../experiments
+      '@wren/llm':
+        specifier: workspace:*
+        version: link:../../llm
+      '@wren/sites':
+        specifier: workspace:*
+        version: link:../../sites
+      '@wren/starling-email':
+        specifier: workspace:*
+        version: link:../channels/email
+      '@wrenautomation/autobrowse':
+        specifier: 0.8.4
+        version: 0.8.4(@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.1))
+      drizzle-orm:
+        specifier: 0.45.2
+        version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
+      zod:
+        specifier: 4.6.5
+        version: 4.6.5
+    devDependencies:
+      '@testcontainers/postgresql':
+        specifier: 12.1.0
+        version: 12.1.0
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: 5.0.1
+        version: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@26.6.4)(@vitest/browser-playwright@5.0.1)(@vitest/ui@5.0.1)(happy-dom@20.14.5)(msw@2.15.0(@types/node@26.6.4)(typescript@5.9.3))(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+
+  packages/starling/studio:
     dependencies:
       '@remotion/cli':
         specifier: 4.0.533
@@ -1779,16 +1831,16 @@ importers:
         version: 4.0.533(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@wren/core':
         specifier: workspace:*
-        version: link:../core
+        version: link:../../core
       '@wren/db':
         specifier: workspace:*
-        version: link:../db
+        version: link:../../db
       '@wren/research':
         specifier: workspace:*
-        version: link:../research
+        version: link:../../research
       '@wren/video':
         specifier: workspace:*
-        version: link:../video
+        version: link:../../video
       '@wrenautomation/models':
         specifier: 0.29.0
         version: 0.29.0
@@ -9623,9 +9675,9 @@ snapshots:
   '@aws-sdk/checksums@3.1001.0':
     dependencies:
       '@aws-sdk/core': 3.978.0
-      '@aws-sdk/types': 3.974.5
+      '@aws-sdk/types': 3.974.6
       '@smithy/core': 3.34.1
-      '@smithy/types': 4.18.0
+      '@smithy/types': 4.19.0
       tslib: 2.8.1
 
   '@aws-sdk/client-acm@3.1136.0':
@@ -9714,11 +9766,11 @@ snapshots:
       '@aws-sdk/credential-provider-node': 3.972.83
       '@aws-sdk/middleware-sdk-s3': 3.972.76
       '@aws-sdk/signature-v4-multi-region': 3.996.46
-      '@aws-sdk/types': 3.974.5
+      '@aws-sdk/types': 3.974.6
       '@smithy/core': 3.34.1
       '@smithy/fetch-http-handler': 5.8.0
       '@smithy/node-http-handler': 4.12.1
-      '@smithy/types': 4.18.0
+      '@smithy/types': 4.19.0
       tslib: 2.8.1
 
   '@aws-sdk/client-ssm@3.1136.0':
@@ -9858,9 +9910,9 @@ snapshots:
     dependencies:
       '@aws-sdk/core': 3.978.0
       '@aws-sdk/signature-v4-multi-region': 3.996.46
-      '@aws-sdk/types': 3.974.5
+      '@aws-sdk/types': 3.974.6
       '@smithy/core': 3.34.1
-      '@smithy/types': 4.18.0
+      '@smithy/types': 4.19.0
       tslib: 2.8.1
 
   '@aws-sdk/nested-clients@3.997.45':
@@ -9878,16 +9930,16 @@ snapshots:
     dependencies:
       '@aws-sdk/core': 3.978.0
       '@aws-sdk/signature-v4-multi-region': 3.996.46
-      '@aws-sdk/types': 3.974.5
+      '@aws-sdk/types': 3.974.6
       '@smithy/core': 3.34.1
-      '@smithy/types': 4.18.0
+      '@smithy/types': 4.19.0
       tslib: 2.8.1
 
   '@aws-sdk/signature-v4-multi-region@3.996.46':
     dependencies:
-      '@aws-sdk/types': 3.974.5
+      '@aws-sdk/types': 3.974.6
       '@smithy/signature-v4': 5.7.3
-      '@smithy/types': 4.18.0
+      '@smithy/types': 4.19.0
       tslib: 2.8.1
 
   '@aws-sdk/token-providers@3.1129.0':

@@ -6,6 +6,8 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { loadSsmEnv } from "@wren/config/ssm";
+import { WREN } from "@wren/core/access";
+import type { Db } from "@wren/db";
 import {
   type Check,
   type CheckDeps,
@@ -14,16 +16,14 @@ import {
   packetOf,
   REVIEWS,
   reviewOf,
-} from "@wren/content/connect/app-reviews";
+} from "@wren/starling-inbound/connect/app-reviews";
 import {
   listReviews,
   logReview,
   type ReviewView,
   reviewHistory,
-} from "@wren/content/connect/review-log";
-import { REVIEW_EVENTS, type ReviewEvent } from "@wren/content/connect/reviews-schema";
-import { WREN } from "@wren/core/access";
-import type { Db } from "@wren/db";
+} from "@wren/starling-inbound/connect/review-log";
+import { REVIEW_EVENTS, type ReviewEvent } from "@wren/starling-inbound/connect/reviews-schema";
 import { type Command, InvalidArgumentError } from "commander";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;

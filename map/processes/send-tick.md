@@ -20,12 +20,12 @@ Intent before act, so a crash costs at most one message and never a double send.
 
 ## Steps
 
-1. `sendTick` (`packages/channel-email/src/send/tick.ts:81`): switches (`:83`, `inbox/health.ts:166`), then the walk (`:89`).
+1. `sendTick` (`packages/starling/channels/email/src/send/tick.ts:81`): switches (`:83`, `inbox/health.ts:166`), then the walk (`:89`).
 2. `reconcile` (`send/reconcile.ts:42`).
-3. `sendDue` (`send/deliver.ts:190`): per-company clock (`:377`), transitions (`packages/channel-email/src/state.ts:6`).
+3. `sendDue` (`send/deliver.ts:190`): per-company clock (`:377`), transitions (`packages/starling/channels/email/src/state.ts:6`).
 4. Transport (`send/transport.ts:78`, `send/gmail.ts`; the Gmail wire and service-account tokens are autobrowse's `./google`).
 5. Loop and delay (`restate/send-scheduler.ts:80`, on `makeLoopObject`, `packages/core/src/restate/loop.ts:366`). The transport carries its own limits (Gmail `timedFetch`, SMTP socket timeouts); the tick is not cut, since a cut tick could run beside its retry.
-6. Test: `packages/channel-email/test/integration/restate-send-scheduler.test.ts` (a throwing tick: failed pass, chain on, `wake`).
+6. Test: `packages/starling/channels/email/test/integration/restate-send-scheduler.test.ts` (a throwing tick: failed pass, chain on, `wake`).
 
 ## If you change this
 
@@ -42,4 +42,4 @@ Intent before act, so a crash costs at most one message and never a double send.
 ## See
 
 - Objects: [[email/message]], [[email/transport]]
-- Source: `packages/channel-email/src/send/deliver.ts`
+- Source: `packages/starling/channels/email/src/send/deliver.ts`

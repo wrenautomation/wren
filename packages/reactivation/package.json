@@ -19,7 +19,7 @@
   },
   "dependencies": {
     "@restatedev/restate-sdk": "1.17.1",
-    "@wren/channel-email": "workspace:*",
+    "@wren/starling-email": "workspace:*",
     "@wren/connectors": "workspace:*",
     "@wren/core": "workspace:*",
     "@wren/db": "workspace:*",

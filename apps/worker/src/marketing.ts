@@ -1,12 +1,8 @@
 /** The Marketing app's records, from each channel that keeps the numbers. */
-import { adDayRecord } from "@wren/channel-meta/records";
-import {
-  keywordRecord,
-  SEARCH_RECORDS,
-  searchDayRecord,
-  searchPageRecord,
-} from "@wren/channel-search/records";
+
 import { textContactRecord } from "@wren/channel-sms/records";
+import { factsRecord } from "@wren/core/facts";
+import { accountSource } from "@wren/core/record-accounts";
 import {
   ANALYTICS_RECORDS,
   askedReplyRecord,
@@ -15,10 +11,9 @@ import {
   reviewRecord,
   socialRecords,
   type VideoSigner,
-} from "@wren/content/records";
-import { factsRecord } from "@wren/core/facts";
-import { accountSource } from "@wren/core/record-accounts";
-import { type ReachPolicy, recordAccountsOf } from "@wren/outreach";
+} from "@wren/starling-inbound/records";
+import { adDayRecord } from "@wren/starling-meta/records";
+import { type ReachPolicy, recordAccountsOf } from "@wren/starling-outbound";
 import {
   accountRecordOf,
   commentRecord,
@@ -27,7 +22,13 @@ import {
   personRecord,
   placeRecord,
   threadRecord,
-} from "@wren/outreach/records";
+} from "@wren/starling-outbound/records";
+import {
+  keywordRecord,
+  SEARCH_RECORDS,
+  searchDayRecord,
+  searchPageRecord,
+} from "@wren/starling-search/records";
 
 // The accounts a record can be on: the Account filter's labels, read before records are served.
 accountSource(recordAccountsOf);

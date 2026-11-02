@@ -1,0 +1,28 @@
+{
+  "name": "@wren/starling-core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./page-inbox": "./src/page-inbox.ts",
+    "./service": "./src/service.ts",
+    "./shapes": "./src/shapes.ts",
+    "./slides": "./src/slides.ts",
+    "./thread": "./src/thread.ts",
+    "./tiktok": "./src/tiktok.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run src"
+  },
+  "dependencies": {
+    "@restatedev/restate-sdk": "1.17.1",
+    "@wren/core": "workspace:*",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "vitest": "5.0.1"
+  }
+}

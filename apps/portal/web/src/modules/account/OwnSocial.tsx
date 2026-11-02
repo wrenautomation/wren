@@ -3,7 +3,7 @@
  * account, how it posts, its token, its last post and last failure, and a Check that asks
  * autobrowse whether the account still answers. Nothing here shows a token or a setting's value.
  */
-import type { OwnCheck, OwnView } from "@wren/content/connect";
+import type { OwnCheck, OwnView } from "@wren/starling-inbound/connect";
 import {
   ACTIONS,
   Button,

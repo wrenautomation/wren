@@ -1,14 +1,19 @@
 {
   "layers": {
-    "imports": {},
-    "api": {},
-    "routes": {},
+    "imports": {
+      "packages": ["packages/*", "packages/starling/*", "packages/starling/channels/*", "apps/*"]
+    },
+    "api": { "packages": ["packages/*", "packages/starling/*", "packages/starling/channels/*"] },
+    "routes": {
+      "packages": ["packages/*", "packages/starling/*", "packages/starling/channels/*", "apps/*"]
+    },
     "schema": {
       "migrate": "pnpm -s db:migrate",
       "migrateUrlEnv": "WREN_DATABASE_URL",
       "migrations": "packages/db/drizzle"
     },
     "systems": {
+      "packages": ["packages/*", "packages/starling/*", "packages/starling/channels/*", "apps/*"],
       "wrangler": ["apps/*/wrangler.toml", "deploy/*/wrangler.toml"],
       "terraform": ["deploy/terraform/*.tf"],
       "compose": ["deploy/*/compose.yml"],
@@ -103,7 +108,7 @@
       "aws:AWS Systems Manager": "system:ssm",
       "aws:Amazon Simple Storage Service": "system:autobrowse",
       "aws:Amazon EC2 Container Registry (ECR)": "system:autobrowse",
-      "aws:Amazon Route 53": "@wren/channel-email",
+      "aws:Amazon Route 53": "@wren/starling-email",
       "aws:AWS Key Management Service": "system:ssm",
       "aws:Tax": "system:wren",
       "anthropic:llm": "@wren/llm"

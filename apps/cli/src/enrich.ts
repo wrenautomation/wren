@@ -5,8 +5,6 @@
  */
 
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { recheckLeads, recheckNiche } from "@wren/channel-email";
-import { nextToEnroll } from "@wren/channel-email/outreach";
 import type { Settings } from "@wren/config";
 import { recordedRun } from "@wren/core";
 import { meter } from "@wren/core/vendors";
@@ -42,6 +40,8 @@ import {
   SIGNALS_LIMIT,
   signalSettings,
 } from "@wren/research/signals";
+import { recheckLeads, recheckNiche } from "@wren/starling-email";
+import { nextToEnroll } from "@wren/starling-email/outreach";
 import { PoliteFetcher, userAgent } from "@wrenautomation/read/fetch";
 import type { Command } from "commander";
 import { ingressSites } from "./sites.js";

@@ -9,7 +9,7 @@
  * - `connector`: a client's HubSpot, QuickBooks or Jobber (designs/2026-10-09-connectors.md).
  */
 import { CONNECTOR_APPS } from "@wren/connectors/apps";
-import { SOCIAL_PLATFORMS } from "@wren/content/connect/platforms";
+import { SOCIAL_PLATFORMS } from "@wren/starling-inbound/connect/platforms";
 import { forward } from "./edge.js";
 import type { Env } from "./env.js";
 

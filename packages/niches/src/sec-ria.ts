@@ -1,5 +1,5 @@
 /** SEC-registered investment advisers: regulator bulk files, one arm. */
-import { twoEmailSequence } from "@wren/channel-email";
+import { twoEmailSequence } from "@wren/starling-email";
 import { defineNiche, leadFormat, rawLocation } from "./niche.js";
 import { SEC_DATASETS } from "./sec-ria/datasets.js";
 import { AdvFilingDataSource } from "./sec-ria/filing-data.js";

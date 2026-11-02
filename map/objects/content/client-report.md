@@ -4,7 +4,7 @@ cluster: content
 universe: live
 status: verified
 verified: 2026-10-09
-entity: packages/content/src/client-reports/schema.ts:21
+entity: packages/starling/inbound/src/client-reports/schema.ts:21
 ---
 
 # client report
@@ -17,13 +17,13 @@ The Overview's tiles, read through the same `stats` on the same views, so the ma
 
 ## Shape
 
-- Catalog `packages/content/src/client-reports/tiles.ts` (no imports; the web reads it): ten tiles, `changeOf`, `shown`.
+- Catalog `packages/starling/inbound/src/client-reports/tiles.ts` (no imports; the web reads it): ten tiles, `changeOf`, `shown`.
 - `client_reports`: client, name, tiles, every week|month, zone, recipients (members, 10 at most), on, `next_at`. `client_report_sends`: report (cascade), from, to, closed, lines, `sent_to`, why.
-- Store `packages/content/src/client-reports/store.ts`: `nextRunAt`, `periodOf` (a closed run ends at the midnight that started its day), `saveReport`, `runReport`, `reportText`.
-- `ClientReport/<id>` (`packages/content/src/restate/reports.ts`): a self-scheduling chain; a save restarts it, an older chain's turn does nothing.
+- Store `packages/starling/inbound/src/client-reports/store.ts`: `nextRunAt`, `periodOf` (a closed run ends at the midnight that started its day), `saveReport`, `runReport`, `reportText`.
+- `ClientReport/<id>` (`packages/starling/inbound/src/restate/reports.ts`): a self-scheduling chain; a save restarts it, an older chain's turn does nothing.
 - MarketingConsole `reports`, `reportSave`, `reportDelete`, `reportRun` (`manage`). Run now reads the last 7 days or this month and mails nobody.
 
-Citations: `packages/content/src/client-reports/store.ts:1`, `packages/content/src/restate/reports.ts:1`, `apps/portal/web/src/modules/marketing/reports.tsx:1`
+Citations: `packages/starling/inbound/src/client-reports/store.ts:1`, `packages/starling/inbound/src/restate/reports.ts:1`, `apps/portal/web/src/modules/marketing/reports.tsx:1`
 
 ## Connected to
 
@@ -46,4 +46,4 @@ Citations: `packages/content/src/client-reports/store.ts:1`, `packages/content/s
 
 ## See
 
-- Source: `packages/content/src/client-reports/store.ts`
+- Source: `packages/starling/inbound/src/client-reports/store.ts`

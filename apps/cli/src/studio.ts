@@ -9,6 +9,9 @@ import { homedir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import * as clients from "@restatedev/restate-sdk-clients";
 import { ingressOf, type Settings } from "@wren/config";
+import { recordedRun } from "@wren/core";
+import type { Db } from "@wren/db";
+import { fleetKeys, loadLlmEnv, makeLlm } from "@wren/llm";
 import {
   AWS_LOGIN_HINT,
   approveVideo,
@@ -20,10 +23,7 @@ import {
   uploadMedia,
   VIDEO_PRIVACY,
   videoChanges,
-} from "@wren/content";
-import { recordedRun } from "@wren/core";
-import type { Db } from "@wren/db";
-import { fleetKeys, loadLlmEnv, makeLlm } from "@wren/llm";
+} from "@wren/starling-inbound";
 import {
   addVideo,
   autoSounds,
@@ -124,7 +124,7 @@ import {
   videoEdits,
   withFallback,
   wordAt,
-} from "@wren/studio";
+} from "@wren/starling-studio";
 import { capturePage } from "@wren/video";
 import type { Command } from "commander";
 import { desc, sql } from "drizzle-orm";
@@ -207,7 +207,7 @@ export function registerStudio(
   rootDir: string,
 ): void {
   // The code, not the data: bin/wren sets WREN_ROOT to the checkout it runs from.
-  const studioDir = join(process.env.WREN_ROOT ?? rootDir, "packages/studio");
+  const studioDir = join(process.env.WREN_ROOT ?? rootDir, "packages/starling/studio");
   // The kit beside the package's source: the bundled CLI's own folder has none.
 
   video

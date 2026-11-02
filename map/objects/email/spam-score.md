@@ -4,7 +4,7 @@ cluster: email
 universe: live
 status: verified
 verified: 2026-10-05 @ f21d65f
-entity: packages/channel-email/src/spam/spamassassin.ts:67
+entity: packages/starling/channels/email/src/spam/spamassassin.ts:67
 ---
 
 # spam-score
@@ -20,7 +20,7 @@ Free, no third party ever sees the copy or a lead's name. Local rules only: the 
 - `startSpamd({dockerDir})` → `score(raw)`, `stop()`; container `--rm`, spamd under `timeout 1800`, label `wren.spamcheck=1` (`spam/spamassassin.ts:67`)
 - `SPAM_LIMIT = 2.0` (SpamAssassin's own line is 5.0); `parseReport` (`:36`)
 
-Citations: `packages/channel-email/src/spam/spamassassin.ts:67`, `apps/cli/src/deliverability.ts`
+Citations: `packages/starling/channels/email/src/spam/spamassassin.ts:67`, `apps/cli/src/deliverability.ts`
 
 ## Connected to
 
@@ -30,7 +30,7 @@ Citations: `packages/channel-email/src/spam/spamassassin.ts:67`, `apps/cli/src/d
 ## If you change this
 
 - **Hits:** `scripts/gates.sh` integration (`spam`), `wren email spamcheck`
-- **Does not hit:** the Lambda (never imports `@wren/channel-email/spam`), any table
+- **Does not hit:** the Lambda (never imports `@wren/starling-email/spam`), any table
 
 ## Surfaces
 
@@ -41,4 +41,4 @@ Citations: `packages/channel-email/src/spam/spamassassin.ts:67`, `apps/cli/src/d
 
 ## See
 
-- Source: `packages/channel-email/src/spam/`
+- Source: `packages/starling/channels/email/src/spam/`

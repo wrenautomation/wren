@@ -10,8 +10,8 @@ import { executorFire, type Fired } from "@wren/core/executor";
 import { makeLoopObject, type PassOutcome, runPass, setLastPass } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import type { LlmClient } from "@wren/llm";
-import { painPass } from "@wren/outreach/pain";
 import { liveSources } from "@wren/pipeline/sourced";
+import { painPass } from "@wren/starling-outbound/pain";
 
 const PAIN_FEED = { name: "PainFeed" } as const;
 const CURSOR = "cursor";

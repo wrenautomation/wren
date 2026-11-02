@@ -1,0 +1,385 @@
+/**
+ * Posts as console records for the Marketing app: drafts waiting on a person
+ * (`marketing_draft_records`) and published ones (`marketing_post_records`).
+ */
+import { draftTurns } from "@wren/core/ask";
+import type { Platform } from "@wren/core/content";
+import { recordOfPage } from "@wren/core/draft-record";
+import {
+  accountField,
+  cued,
+  date,
+  defineRecord,
+  duration,
+  link,
+  money,
+  number,
+  percent,
+  rate,
+  type State,
+  status,
+  text,
+} from "@wren/core/records";
+import type { Queryable } from "@wren/db";
+import { accountPickFor } from "@wren/starling-outbound";
+import { and, asc, eq, ne } from "drizzle-orm";
+import { postAnalytics } from "./analytics/records.js";
+import { DRAFT_CALLS } from "./draft-calls.js";
+import { PLATFORM_SPECS } from "./platforms.js";
+import { contentDrafts, type DraftStatus } from "./schema.js";
+import { shapeView } from "./shape-view.js";
+import { FORMATS, MISSING_PICKS } from "./social/records.js";
+import { draftThumbs, mixedThumbs } from "./thumbs.js";
+import type { VideoSigner } from "./video.js";
+
+const NAMES: Record<Platform, string> = {
+  linkedin: "LinkedIn",
+  reddit: "Reddit",
+  youtube: "YouTube",
+  x: "X",
+  instagram: "Instagram",
+  threads: "Threads",
+  facebook: "Facebook",
+  tiktok: "TikTok",
+  google_business: "Business Profile",
+};
+const PLATFORM_STATES: Record<string, State> = cued(
+  Object.fromEntries(Object.entries(NAMES).map(([p, label]) => [p, { label, tone: "neutral" }])),
+);
+
+/** What a preview needs past the row: the whole text, the platform's name, cap and feed cut. */
+/** The same idea's other drafts, a platform each: the editor shows them beside this one. */
+export interface Sibling {
+  id: string;
+  platform: Platform;
+  title: string;
+  state: DraftStatus;
+}
+export async function siblingsOf(db: Queryable, draftId: string): Promise<Sibling[]> {
+  const [d] = await db
+    .select({ ideaId: contentDrafts.ideaId })
+    .from(contentDrafts)
+    .where(eq(contentDrafts.id, draftId));
+  if (!d) return [];
+  const rows = await db
+    .select({
+      id: contentDrafts.id,
+      platform: contentDrafts.platform,
+      title: contentDrafts.title,
+      text: contentDrafts.text,
+      state: contentDrafts.status,
+    })
+    .from(contentDrafts)
+    .where(and(eq(contentDrafts.ideaId, d.ideaId), ne(contentDrafts.id, draftId)))
+    .orderBy(asc(contentDrafts.createdAt))
+    .limit(20);
+  return rows.map((r) => ({
+    id: r.id,
+    platform: r.platform,
+    title: r.title || r.text.split("\n")[0]?.slice(0, 120) || "Untitled",
+    state: r.state,
+  }));
+}
+
+async function postOf(db: Queryable, draftId: string) {
+  const [d] = await db
+    .select({
+      platform: contentDrafts.platform,
+      text: contentDrafts.text,
+      title: contentDrafts.title,
+    })
+    .from(contentDrafts)
+    .where(eq(contentDrafts.id, draftId))
+    .limit(1);
+  if (!d) return null;
+  const spec = PLATFORM_SPECS[d.platform];
+  return {
+    site: NAMES[d.platform],
+    title: d.title,
+    text: d.text,
+    max: spec.maxChars,
+    feed: spec.feed,
+  };
+}
+
+const STAGE_STATES = {
+  reach: { label: "Reach", tone: "neutral" },
+  trust: { label: "Trust", tone: "neutral" },
+  convert: { label: "Convert", tone: "neutral" },
+} as const satisfies Record<string, State>;
+/** A published post's format (`formatSql`): a long video and a Short read apart. */
+const POST_FORMATS: Record<string, State> = {
+  long: { label: "Long video", tone: "neutral" },
+  short: { label: "Short", tone: "neutral" },
+  reel: { label: "Reel", tone: "neutral" },
+  video: { label: "Video", tone: "neutral" },
+  carousel: { label: "Carousel", tone: "neutral" },
+  thread: { label: "Thread", tone: "neutral" },
+  post: { label: "Post", tone: "neutral" },
+};
+
+const DRAFT_STATES: Record<DraftStatus, State> = {
+  draft: {
+    label: "Waiting on you",
+    tone: "warn",
+    about: "Written and waiting for your yes. Approving puts it on the schedule.",
+  },
+  failed: {
+    label: "Failed to post",
+    tone: "bad",
+    about: "It did not go out. Approve it again to retry, or edit it first.",
+  },
+  approved: {
+    label: "Scheduled",
+    tone: "good",
+    about: "Approved and in the schedule. It posts at its time.",
+  },
+  publishing: {
+    label: "Posting",
+    tone: "neutral",
+    about: "Going out now. It turns to Posted when the platform takes it.",
+  },
+  published: { label: "Posted", tone: "good", about: "Live on the platform." },
+  rejected: {
+    label: "Rejected",
+    tone: "neutral",
+    about: "You said no. It stays here, closed, and never posts.",
+  },
+};
+
+export { DRAFT_CALLS };
+
+/** Drafts; `signer` links the stored files (thumbnail, cover) the field editor shows. */
+export const draftRecordOf = (signer?: VideoSigner) =>
+  defineRecord({
+    id: "marketing.draft",
+    app: "marketing",
+    channel: { field: "platform" },
+    name: { one: "draft", many: "drafts" },
+    view: "marketing_draft_records",
+    key: "id",
+    title: "title",
+    account: "account",
+    subtitle: "platform",
+    fields: {
+      title: text("Post"),
+      platform: status(PLATFORM_STATES),
+      state: status(DRAFT_STATES),
+      text: text("Text"),
+      chars: number("Characters"),
+      written: status(
+        {
+          model: { label: "Wren", tone: "neutral" },
+          edited: { label: "You edited it", tone: "neutral" },
+        },
+        "Written by",
+      ),
+      stage: status(STAGE_STATES, "Stage"),
+      to: status(
+        {
+          video: { label: "The video", tone: "neutral" },
+          site: { label: "The site", tone: "neutral" },
+          booking: { label: "Booking", tone: "neutral" },
+        },
+        "Points to",
+      ),
+      format: status(FORMATS, "Format"),
+      missing: status(MISSING_PICKS, "Pick first", { listed: false }),
+      note: text("Your redraft note"),
+      error: text("Last error"),
+      scheduled: date("Posts at"),
+      created: date("Drafted"),
+      // Its slot once scheduled, else when it was drafted: what "Up next" sorts by.
+      due: date("Due", { listed: false }),
+      // Its words hashed: Approve sends the one on screen, so a change since refuses it.
+      version: text("Version", { listed: false }),
+      // The login a person picked on the draft box; empty posts as the platform's default.
+      account: accountField("Account"),
+    },
+    views: [
+      {
+        id: "next",
+        label: "Up next",
+        where: { state: ["draft", "failed", "approved", "publishing"] },
+        sort: "due",
+        at: "due",
+      },
+      {
+        id: "waiting",
+        label: "Waiting on you",
+        where: { state: ["draft", "failed"] },
+        sort: "-created",
+        at: "created",
+      },
+      {
+        id: "scheduled",
+        label: "Scheduled",
+        where: { state: ["approved", "publishing"] },
+        sort: "scheduled",
+        at: "scheduled",
+      },
+      {
+        id: "posted",
+        label: "Posted",
+        where: { state: "published" },
+        sort: "-created",
+        at: "created",
+      },
+      {
+        id: "rejected",
+        label: "Rejected",
+        where: { state: "rejected" },
+        sort: "-created",
+        at: "created",
+      },
+      { id: "all", label: "All", sort: "-created", at: "created" },
+    ],
+    activity: { view: "draft_activity", by: "draft", seq: "seq" },
+    drafts: (id) => [`draft:${id}`],
+    actions: [
+      "marketing.approveDraft",
+      "marketing.scheduleDraft",
+      "marketing.postNow",
+      "marketing.redraft",
+      "marketing.rejectDraft",
+      "marketing.draftSet",
+      "marketing.draftAsk",
+      "marketing.draftUndo",
+      "marketing.draftFields",
+      "marketing.draftFunnel",
+      "marketing.draftUpload",
+      "marketing.draftAttach",
+      "marketing.draftSlides",
+    ],
+    calls: DRAFT_CALLS,
+    thumbs: (db, ids) => draftThumbs(db, ids, signer),
+    /** The preview, its fields, and Ask Claude's thread on it. */
+    load: async (db, id) => ({
+      post: await postOf(db, id),
+      shape: await shapeView(db, id, signer),
+      ask: await draftTurns(db, "draft", id),
+      record: await recordOfPage(db, "draft", id),
+      siblings: await siblingsOf(db, id),
+      accounts: await accountPickFor(db, `draft:${id}`),
+    }),
+  });
+
+/** Published posts; the fields show what went out. */
+const postRecordOf = (signer?: VideoSigner) =>
+  defineRecord({
+    id: "marketing.post",
+    app: "marketing",
+    channel: { field: "platform" },
+    name: { one: "post", many: "posts" },
+    view: "marketing_post_records",
+    key: "id",
+    title: "title",
+    account: "account",
+    subtitle: "platform",
+    fields: {
+      title: text("Post"),
+      platform: status(PLATFORM_STATES),
+      published: date(),
+      format: status(POST_FORMATS, "Format"),
+      stage: status(STAGE_STATES, "Stage"),
+      views: number(),
+      reactions: number(),
+      comments: number(),
+      shares: number(),
+      engagement: rate("views", "Engagement", { from: "engaged" }),
+      score: number("Per 100 views", { listed: false }),
+      // The platform's deeper numbers, latest day (designs/2026-10-07-content-analytics.md).
+      impressions: number("Impressions", { listed: false, group: "How it did" }),
+      reach: number("Reach", { listed: false, group: "How it did" }),
+      ctr: percent("Impression CTR", { listed: false, group: "How it did" }),
+      avgViewPct: percent("Average % viewed", { listed: false, group: "How it did" }),
+      avgViewSecs: duration("Average view", { listed: false, group: "How it did" }),
+      hold: percent("Still watching at 30s", { listed: false, group: "How it did" }),
+      hook: percent("Hook: still there after the first seconds", {
+        listed: false,
+        group: "How it did",
+      }),
+      watchMinutes: number("Watch minutes", { listed: false, group: "How it did" }),
+      saves: number("Saves", { listed: false, group: "How it did" }),
+      follows: number("Follows from it", { listed: false, group: "How it did" }),
+      linkClicks: number("Link clicks (platform)", { listed: false, group: "How it did" }),
+      // Its own link's visitors and what they did, by first touch; revenue by both.
+      clicks: number("Site clicks", { group: "What it brought" }),
+      toSite: rate("views", "Post to site", { from: "clicks", group: "What it brought" }),
+      forms: number("Forms", { listed: false, group: "What it brought" }),
+      calls: number("Calls booked", { listed: false, group: "What it brought" }),
+      won: number("Clients won", { listed: false, group: "What it brought" }),
+      revenueFirst: money("Revenue, first touch", { listed: false, group: "What it brought" }),
+      revenueLast: money("Revenue, last touch", { listed: false, group: "What it brought" }),
+      theirs: number("Their comments", { listed: false, group: "Its conversation" }),
+      replied: rate("theirs", "Comments answered", { from: "answered", group: "Its conversation" }),
+      // When the numbers were counted, and the week filter's key: in the detail, not the list.
+      measured: date("Counted", { listed: false }),
+      url: link("Link"),
+      recent: status(
+        {
+          recent: { label: "Last 7 days", tone: "good" },
+          earlier: { label: "Earlier", tone: "neutral" },
+        },
+        "When",
+        { listed: false },
+      ),
+      // The login a person picked to post it as; empty went out as the platform's default.
+      account: accountField("Account"),
+    },
+    views: [
+      { id: "all", label: "All", sort: "-published", at: "published" },
+      {
+        id: "week",
+        label: "This week",
+        where: { recent: "recent" },
+        sort: "-published",
+        at: "published",
+      },
+      { id: "top", label: "Top", sort: "-views", at: "published" },
+      // The leaderboard: engagement per 100 views; filter it by format, stage and date.
+      {
+        id: "leaderboard",
+        label: "Leaderboard",
+        where: { views: { gte: 1 } },
+        sort: "-score",
+        at: "published",
+      },
+      {
+        id: "site",
+        label: "Brought visits",
+        where: { clicks: { gte: 1 } },
+        sort: "-clicks",
+        at: "published",
+      },
+      { id: "platform", label: "By platform", sort: "platform", at: "published" },
+    ],
+    activity: { view: "draft_activity", by: "post", seq: "seq" },
+    drafts: (id) => [`draft:${id.split("/").at(-1)}`],
+    actions: ["marketing.draftAgain", "marketing.postPromote", "marketing.swapAsk"],
+    thumbs: mixedThumbs((id) => {
+      const draft = id.split("/")[2];
+      return draft ? { draft } : null;
+    }, signer),
+    load: async (db, id) => ({
+      post: await postOf(db, id.split("/")[2] ?? ""),
+      shape: await shapeView(db, id.split("/")[2] ?? "", signer),
+      analytics: await postAnalytics(db, id.split("/")[2] ?? ""),
+    }),
+  });
+
+export const draftRecord = draftRecordOf();
+export const postRecord = postRecordOf();
+/** The posts' records; the worker's sign the stored files. */
+export const contentRecords = (signer?: VideoSigner) => [
+  draftRecordOf(signer),
+  postRecordOf(signer),
+];
+export const CONTENT_RECORDS = contentRecords();
+/** Wren's own analytics records: conversation, digest, cadence and every metric's state. */
+export { ANALYTICS_RECORDS } from "./analytics/records.js";
+export { mediaRecord, sopRecord } from "./library.js";
+export { type ShapeView, shapeView } from "./shape-view.js";
+export * from "./social/records.js";
+export { reviewRecord } from "./social/review-record.js";
+export { type VideoSigner, videoRecord } from "./video.js";

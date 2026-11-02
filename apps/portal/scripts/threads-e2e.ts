@@ -1,12 +1,12 @@
 /**
  * Comment threads in a real browser (designs/2026-10-15-engage-threads.md), on Marketing →
  * Comments since Engage went outbound only (2026-10-16-outreach-app.md), on a local preview
- * seeded by `packages/content/test/threads-preview.ts`: one person's two comments show as one
+ * seeded by `packages/starling/inbound/test/threads-preview.ts`: one person's two comments show as one
  * row, newest first; the row's whole thread draws nested; Reply from Wren on a deep reply sends
  * that comment's ref, once however often it's pressed; and on a phone the thread opens as its own
  * sheet. Shots land in E2E_SHOTS (default: the system temp folder).
  *
- *   WREN_DATABASE_URL=postgres://...@127.0.0.1:5434/wren_threads_preview tsx ../../packages/content/test/threads-preview.ts
+ *   WREN_DATABASE_URL=postgres://...@127.0.0.1:5434/wren_threads_preview tsx ../../packages/starling/inbound/test/threads-preview.ts
  *   PORT=8793 WREN_DATABASE_URL=... pnpm preview      # then, in another shell:
  *   PORT=8793 tsx scripts/threads-e2e.ts
  *

@@ -4,7 +4,7 @@
  * client's Marketing. The page stories' fake server answers with their metas
  * (`virtual:record-types` in `apps/portal/.storybook/main.ts`).
  */
-import type { SendPolicy } from "@wren/channel-email/send/policy";
+
 import { ACCESS_SHAPES } from "@wren/core/access-records";
 import { type Client, clientRecord } from "@wren/core/clients";
 import { componentRecord, consoleTypes } from "@wren/core/console";
@@ -16,6 +16,7 @@ import { deliveryRecords } from "@wren/delivery/records";
 import { DOCUMENTS_RECORDS } from "@wren/documents/records";
 import { PAYMENTS_RECORDS } from "@wren/payments/records";
 import { REACTIVATION_RECORDS, settingOf } from "@wren/reactivation/records";
+import type { SendPolicy } from "@wren/starling-email/send/policy";
 import { COMPONENTS } from "./components.js";
 import { consoleRecords } from "./console-records.js";
 import { clientMarketing } from "./marketing.js";

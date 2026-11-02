@@ -14,7 +14,7 @@ import {
   type Slide,
   slidesHtml,
   slidesUnfit,
-} from "@wren/core/content/slides";
+} from "@wren/starling-core/slides";
 import {
   ACTIONS,
   Button,
@@ -36,7 +36,7 @@ import { SHAPED } from "./draft-patch.js";
 
 export const SLIDES = "marketing.draftSlides";
 
-/** `@wren/content`'s `CarouselView`. */
+/** `@wren/starling-inbound`'s `CarouselView`. */
 export type CarouselShape = {
   slides: Slide[];
   images: string[];

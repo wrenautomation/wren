@@ -7,18 +7,18 @@
 import * as restate from "@restatedev/restate-sdk";
 import * as ingress from "@restatedev/restate-sdk-clients";
 import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
-import {
-  ConsoleTransport,
-  FakeVerifier,
-  type LocalCheckerLike,
-  TransportRefused,
-} from "@wren/channel-email";
 import { ingressOf } from "@wren/config";
 import { clients } from "@wren/core/clients";
 import type { Notifier } from "@wren/core/notify";
 import { startTestRestate } from "@wren/core/testing";
 import type { Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
+import {
+  ConsoleTransport,
+  FakeVerifier,
+  type LocalCheckerLike,
+  TransportRefused,
+} from "@wren/starling-email";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { CRM_FORMATS } from "../../src/crm/formats.js";

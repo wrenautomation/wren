@@ -3,14 +3,14 @@
  * playback copy, skipping what's cut; text and captions drawn live over it; each shape's crop
  * dragged in place; the timeline under it with the filmstrip, in and out, cut edges, text bars,
  * caption lines, the cover and the playhead. Every time is raw seconds on the recording, as the
- * edit keeps them (`@wren/studio/finish` does the sums the render does).
+ * edit keeps them (`@wren/starling-studio/finish` does the sums the render does).
  *
  * One saved value (cuts, text, crops, captions, cover, formats) on the save engine: journaled
  * per video, saved a pause after the last change, a drag set on release only. Each save sends
  * the fields that changed with what they were (`expect`), so a change made elsewhere meanwhile
  * opens Keep mine or Use theirs instead of being overwritten.
  */
-import { keepSegments } from "@wren/studio/cuts";
+import { keepSegments } from "@wren/starling-studio/cuts";
 import {
   addCut,
   type CroppedFormat,
@@ -21,8 +21,8 @@ import {
   shortCrop,
   snapFrame,
   trimCuts,
-} from "@wren/studio/finish";
-import type { Cut } from "@wren/studio/schema";
+} from "@wren/starling-studio/finish";
+import type { Cut } from "@wren/starling-studio/schema";
 import { Button, type RecordAct, SaveConflict, SaveStatus, useSaved } from "@wren/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { wrenRecords } from "../../records.js";

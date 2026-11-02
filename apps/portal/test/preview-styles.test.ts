@@ -6,8 +6,8 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { SLIDES_CSS } from "@wren/core/content/slides";
 import { PAGE_CSS } from "@wren/sites/render";
+import { SLIDES_CSS } from "@wren/starling-core/slides";
 import { describe, expect, it } from "vitest";
 
 const HEADERS = readFileSync(join(import.meta.dirname, "..", "web", "public", "_headers"), "utf8");

@@ -15,16 +15,6 @@ import {
   CALENDAR_CONSOLE_WRITES,
 } from "@wren/calendar/console-routes";
 import {
-  MAIL_ACCESS_APPS,
-  MAIL_ACCESS_ROUTES,
-  MAIL_ACCESS_WRITES,
-} from "@wren/channel-email/access/console-routes";
-import {
-  EMAIL_CONSOLE_APPS,
-  EMAIL_CONSOLE_ROUTES,
-  EMAIL_CONSOLE_WRITES,
-} from "@wren/channel-email/console-routes";
-import {
   SMS_CONSOLE_APPS,
   SMS_CONSOLE_ROUTES,
   SMS_CONSOLE_WRITES,
@@ -34,11 +24,6 @@ import {
   CONNECTORS_ROUTES,
   CONNECTORS_WRITES,
 } from "@wren/connectors/console-routes";
-import {
-  SOCIAL_ACCESS_APPS,
-  SOCIAL_ACCESS_ROUTES,
-  SOCIAL_ACCESS_WRITES,
-} from "@wren/content/connect/routes";
 import { type Need, needOf, type Permission, type RouteApps } from "@wren/core/access";
 import {
   ACCOUNTS_CONSOLE_APPS,
@@ -108,6 +93,21 @@ import {
   SITES_CONSOLE_ROUTES,
   SITES_CONSOLE_WRITES,
 } from "@wren/sites/console-routes";
+import {
+  MAIL_ACCESS_APPS,
+  MAIL_ACCESS_ROUTES,
+  MAIL_ACCESS_WRITES,
+} from "@wren/starling-email/access/console-routes";
+import {
+  EMAIL_CONSOLE_APPS,
+  EMAIL_CONSOLE_ROUTES,
+  EMAIL_CONSOLE_WRITES,
+} from "@wren/starling-email/console-routes";
+import {
+  SOCIAL_ACCESS_APPS,
+  SOCIAL_ACCESS_ROUTES,
+  SOCIAL_ACCESS_WRITES,
+} from "@wren/starling-inbound/connect/routes";
 import {
   VOICE_CONSOLE_APPS,
   VOICE_CONSOLE_ROUTES,

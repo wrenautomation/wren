@@ -1,11 +1,14 @@
 /**
  * Studio's compose view: one kind at a time, the kind tabs on top. A post (or a batch, or an X
  * thread) has its line and angle chips, the words, and each platform's version side by side with
- * how it fits, checked as he types by the server's own rules in `@wren/content/write`. A carousel,
+ * how it fits, checked as he types by the server's own rules in `@wren/starling-inbound/write`. A carousel,
  * a story and a blog post keep their own boxes. The words stay in the edits store until sent.
  * The line and the angle go with the words and stay on the idea: the waiting board shows the line.
  */
 
+import type { Platform } from "@wren/core/content";
+import type { MetroLine } from "@wren/pipeline/metro";
+import { THREAD_MAX, THREAD_MIN, threadPosts, X_POST_MAX } from "@wren/starling-core/thread";
 import {
   IDEA_ANGLES,
   type IdeaAngle,
@@ -13,10 +16,7 @@ import {
   ownThreadOf,
   PLATFORM_SPECS,
   splitPosts,
-} from "@wren/content/write";
-import type { Platform } from "@wren/core/content";
-import { THREAD_MAX, THREAD_MIN, threadPosts, X_POST_MAX } from "@wren/core/content/thread";
-import type { MetroLine } from "@wren/pipeline/metro";
+} from "@wren/starling-inbound/write";
 import {
   Button,
   cx,

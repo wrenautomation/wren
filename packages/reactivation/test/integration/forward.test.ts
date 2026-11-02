@@ -2,8 +2,9 @@
  * Forwarding replies to recruiters (R13): which replies go, to whom, from
  * where, and that a crash between the send and the mark never sends twice.
  */
-import { ConsoleTransport } from "@wren/channel-email";
+
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
+import { ConsoleTransport } from "@wren/starling-email";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { CRM_FORMATS } from "../../src/crm/formats.js";

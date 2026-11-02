@@ -1,4 +1,4 @@
-import type { Branch, Piece } from "@wren/content/pieces";
+import type { Branch, Piece } from "@wren/starling-inbound/pieces";
 import { describe, expect, it } from "vitest";
 import { shelfState, wentTo } from "./video-shelf-state.js";
 

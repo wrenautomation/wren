@@ -5,10 +5,11 @@
  * briefs are seeded directly. Tests that expose a bug assert the correct
  * behavior and are marked "Was a bug".
  */
-import { FakeVerifier, type LocalCheckerLike } from "@wren/channel-email";
+
 import type { SiteClient } from "@wren/core/content";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { FakeLlm, LlmError } from "@wren/llm";
+import { FakeVerifier, type LocalCheckerLike } from "@wren/starling-email";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {

@@ -10,6 +10,11 @@ import { mkdtemp, readdir, readFile, rm, symlink, writeFile } from "node:fs/prom
 import { tmpdir } from "node:os";
 import { join, relative, resolve } from "node:path";
 import * as clients from "@restatedev/restate-sdk-clients";
+import { ingressOf, type Settings } from "@wren/config";
+import { recordedRun } from "@wren/core";
+import { DESK } from "@wren/core/content/restate";
+import type { Db } from "@wren/db";
+import { loadLlmEnv, makeLlm } from "@wren/llm";
 import {
   activeKeywords,
   addKeywords,
@@ -34,13 +39,8 @@ import {
   siteText,
   storeProposals,
   syncSearch,
-} from "@wren/channel-search";
-import { SEARCH_KEY, type SearchWatch, type SearchWeek } from "@wren/channel-search/restate";
-import { ingressOf, type Settings } from "@wren/config";
-import { recordedRun } from "@wren/core";
-import { DESK } from "@wren/core/content/restate";
-import type { Db } from "@wren/db";
-import { loadLlmEnv, makeLlm } from "@wren/llm";
+} from "@wren/starling-search";
+import { SEARCH_KEY, type SearchWatch, type SearchWeek } from "@wren/starling-search/restate";
 import { expandHome, loadServiceAccountKey } from "@wrenautomation/autobrowse/google";
 import type { Command } from "commander";
 import { eq, inArray } from "drizzle-orm";

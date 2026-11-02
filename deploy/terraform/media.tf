@@ -32,7 +32,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "media" {
 }
 
 # A portal file (a post's thumbnail, a story photo): the browser PUTs it on a link
-# the worker signs, with the SHA-256 it hashed (packages/content/src/media.ts).
+# the worker signs, with the SHA-256 it hashed (packages/starling/inbound/src/media.ts).
 resource "aws_s3_bucket_cors_configuration" "media" {
   bucket = aws_s3_bucket.media.id
   cors_rule {

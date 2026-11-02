@@ -3,11 +3,12 @@
  * the crm_contacts record and the CRM's email as a contact candidate (evidence
  * `crm`, unverified). Re-importing the same export updates its rows in place.
  */
-import { contactCandidates } from "@wren/channel-email/schema";
+
 import { emailDomain, emailSyntaxError, type PeopleImportStats, runPeopleImport } from "@wren/core";
 import { noteProfileFrom, profileFrom } from "@wren/core/profiles-backfill";
 import { type ImportBatch, imports } from "@wren/core/schema";
 import type { Queryable } from "@wren/db";
+import { contactCandidates } from "@wren/starling-email/schema";
 import { eq, sql } from "drizzle-orm";
 import { crmContacts } from "../schema.js";
 import type { CrmCsvSource } from "./source.js";

@@ -7,12 +7,12 @@
  * (`./keys.ts`) with the key store's public key; it can't open one.
  */
 import { makeAuth } from "@wren/auth";
-// The narrow modules: the send index pulls in the whole outbox tick and Restate.
-import { GmailClient, plainMailer } from "@wren/channel-email/send/gmail";
 import { loadSsmEnv } from "@wren/config/ssm";
 import { isOperator, mayHandOff, mayHaveAccount } from "@wren/core/clients";
 import { sealerFromEnv } from "@wren/core/keys";
 import { cachedDb } from "@wren/db";
+// The narrow modules: the send index pulls in the whole outbox tick and Restate.
+import { GmailClient, plainMailer } from "@wren/starling-email/send/gmail";
 import { GMAIL_SEND_SCOPE, loadServiceAccountKey } from "@wrenautomation/autobrowse/google";
 import { IP_HEADER } from "../src/headers.js";
 import { fromEdge, toRequest, toResult, type UrlEvent, type UrlResult } from "./http.js";

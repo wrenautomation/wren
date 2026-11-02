@@ -29,7 +29,7 @@ Citations: `packages/research/src/schema.ts:257`
 
 ## If you change this
 
-- **Hits:** `contacts.ts`, `lift.ts:40`, the `lead_sheet` view (`packages/channel-email/src/views.ts`), `wren email sheet`
+- **Hits:** `contacts.ts`, `lift.ts:40`, the `lead_sheet` view (`packages/starling/channels/email/src/views.ts`), `wren email sheet`
 - **Does not hit:** compose, the Exa profiles stage
 
 ## Surfaces

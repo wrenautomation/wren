@@ -2,7 +2,7 @@
  * Wren's marketing, for Today and Marketing: pieces and their branches, and the week's cadence.
  * Synthetic data only.
  */
-import type { Piece } from "@wren/content/pieces";
+import type { Piece } from "@wren/starling-inbound/pieces";
 import type { Goal } from "../../modules/marketing/plan.js";
 import { ago } from "./shell.js";
 

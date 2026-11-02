@@ -2,7 +2,7 @@
 import { type MessageKind, MessagePreview, type RecordExtras } from "@wren/ui";
 import type { ListPage } from "../../module.js";
 
-/** A channel's preview data (`@wren/content`, `@wren/channel-meta`): the whole text, the app, its cap and feed cut. */
+/** A channel's preview data (`@wren/starling-inbound`, `@wren/starling-meta`): the whole text, the app, its cap and feed cut. */
 type Post = {
   site: string;
   title: string | null;

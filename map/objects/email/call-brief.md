@@ -4,7 +4,7 @@ cluster: email
 universe: live
 status: verified
 verified: 2026-10-07 @ 2cdad29
-entity: packages/channel-email/src/schema.ts:692
+entity: packages/starling/channels/email/src/schema.ts:692
 ---
 
 # call-brief
@@ -25,7 +25,7 @@ A rep must trust every line, so code gathers every fact and cites its source and
 - settings `calls.brief`: `leadMinutes` (60), `questions` (true), `ping` (true); `{}` is valid (`calls/settings.ts`)
 - read by `briefOf` (`calls/brief.ts:517`): the kept one, else one built live by code, unsaved
 
-Citations: `packages/channel-email/src/calls/brief.ts:402`, `packages/channel-email/src/calls/restate.ts:83`, `apps/worker/src/services/clients.ts:130`
+Citations: `packages/starling/channels/email/src/calls/brief.ts:402`, `packages/starling/channels/email/src/calls/restate.ts:83`, `apps/worker/src/services/clients.ts:130`
 
 ## Connected to
 
@@ -48,5 +48,5 @@ Citations: `packages/channel-email/src/calls/brief.ts:402`, `packages/channel-em
 
 ## See
 
-- Source: `packages/channel-email/src/calls/`
+- Source: `packages/starling/channels/email/src/calls/`
 - Design: `designs/2026-10-07-close-brief-outcome.md`

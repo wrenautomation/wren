@@ -1,0 +1,992 @@
+/**
+ * Cold outreach on Reddit and LinkedIn: three tables, each one fact. The words for each step
+ * are `dm` templates in the template store (store.ts).
+ *
+ * - `reach_accounts`: the accounts we speak as, one row per autobrowse
+ *   credential (`reddit@alt`, `linkedin@wren`), with the last health read
+ *   (age, karma, suspended) the warmup protocol runs on.
+ * - `reach_contacts`: a person on a platform, where a search found them,
+ *   what their page said, and where their sequence stands. The sticky
+ *   account lives here: one person is always reached from one account.
+ * - `reach_messages`: every connect, message and reply, both ways. Outbound
+ *   rows are written as intent (`sending`) before the platform is called, so
+ *   a crash never sends twice.
+ *
+ * Opt-outs ("stop messaging me") are `suppressions` rows of kind `handle`
+ * (core), the same table every channel reads.
+ */
+import {
+  PLATFORMS as CONTENT_PLATFORMS,
+  type Platform as ContentPlatform,
+} from "@wren/core/content";
+import { platformObjects } from "@wren/core/objects-schema";
+import { PASS_REASONS } from "@wren/core/pass-reasons";
+import { companies, people, runs } from "@wren/core/schema";
+import { baseColumns, oneOf } from "@wren/db/columns";
+import { PROOF_STATES } from "@wren/starling-core";
+import { sql } from "drizzle-orm";
+import {
+  boolean,
+  check,
+  date,
+  foreignKey,
+  index,
+  integer,
+  jsonb,
+  pgTable,
+  pgView,
+  primaryKey,
+  serial,
+  smallint,
+  text,
+  timestamp,
+  unique,
+  uniqueIndex,
+  uuid,
+  varchar,
+} from "drizzle-orm/pg-core";
+
+export const PLATFORMS = ["reddit", "linkedin"] as const;
+export type Platform = (typeof PLATFORMS)[number];
+
+/**
+ * Where a DM thread can be: Wren's reach logins, plus a client's connected Facebook Page,
+ * Instagram and X (designs/2026-10-07-client-social.md), whose DMs come in through `SocialInbox`.
+ */
+export const DM_PLATFORMS = [...PLATFORMS, "facebook", "instagram", "x"] as const;
+export type DmPlatform = (typeof DM_PLATFORMS)[number];
+/** A contact reach itself writes to: Reddit or LinkedIn, on Wren's logins. */
+export const isReachPlatform = (p: string): p is Platform =>
+  (PLATFORMS as readonly string[]).includes(p);
+
+/** `warming` = reads and organic steps only; `active` = may reach out; `paused` = nothing. */
+export const ACCOUNT_STATES = ["warming", "active", "paused", "retired"] as const;
+export type AccountState = (typeof ACCOUNT_STATES)[number];
+
+/**
+ * new → enrolled → (connected →) replied | finished | unreachable. `opted_out`
+ * = they said stop; `blocked` = the platform refused us on them.
+ */
+export const CONTACT_STATES = [
+  "new",
+  "enrolled",
+  "connected",
+  "replied",
+  "finished",
+  "unreachable",
+  "opted_out",
+  "blocked",
+] as const;
+export type ContactState = (typeof CONTACT_STATES)[number];
+
+export const DIRECTIONS = ["out", "in"] as const;
+export type Direction = (typeof DIRECTIONS)[number];
+
+/**
+ * `connect` = an invite (LinkedIn); `sequence` = a cold step; `manual` = typed by the operator;
+ * `inbound` = theirs; `follow_up` = a Follow-up or Nurture touch on a thread we wrote on.
+ */
+export const MESSAGE_KINDS = ["connect", "sequence", "manual", "inbound", "follow_up"] as const;
+export type MessageKind = (typeof MESSAGE_KINDS)[number];
+
+/**
+ * Outbound: queued → sending → sent | failed. `unknown` = the platform call's fate is lost; never
+ * resent. `proposed` = an invite the sweep picked, waiting on William's yes in To approve; only
+ * `queued` sends.
+ */
+export const MESSAGE_STATES = [
+  "proposed",
+  "queued",
+  "sending",
+  "sent",
+  "failed",
+  "unknown",
+  "skipped",
+  "received",
+] as const;
+export type MessageState = (typeof MESSAGE_STATES)[number];
+
+export const reachAccounts = pgTable(
+  "reach_accounts",
+  {
+    ...baseColumns,
+    platform: varchar("platform", { length: 16, enum: PLATFORMS }).notNull(),
+    /** The autobrowse credential key this account speaks as. */
+    account: varchar("account", { length: 120 }).notNull(),
+    /** The platform's handle, from the last health read. */
+    handle: varchar("handle", { length: 120 }),
+    state: varchar("state", { length: 16, enum: ACCOUNT_STATES }).notNull().default("warming"),
+    pausedReason: text("paused_reason"),
+    /** Day one of outreach from this account (fleet time): the LinkedIn ramp counts from here. */
+    startedOn: date("started_on").notNull(),
+    /** The last `health()` answer, as the adapter gave it. */
+    health: jsonb("health"),
+    healthAt: timestamp("health_at", { withTimezone: true }),
+    retiredAt: timestamp("retired_at", { withTimezone: true }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_reach_accounts" }),
+    unique("uq_reach_accounts_platform_account").on(t.platform, t.account),
+    oneOf("ck_reach_accounts_platform", t.platform, PLATFORMS),
+    oneOf("ck_reach_accounts_state", t.state, ACCOUNT_STATES),
+    check(
+      "ck_reach_accounts_paused_reason_iff_paused",
+      sql`((state)::text = 'paused'::text) = (paused_reason IS NOT NULL)`,
+    ),
+  ],
+);
+
+/**
+ * The account a draft goes out as, when a person picked one (designs/2026-10-15-accounts-first-class.md):
+ * one row per draft item (`thread:<id>`, `comment:<id>`, `dm:<id>`, `onpost:<id>`, `draft:<id>`).
+ * No row: the item's own account (its place's, the one they spoke to). Every send reads it.
+ */
+export const draftAccounts = pgTable(
+  "draft_accounts",
+  {
+    item: varchar("item", { length: 120 }).notNull(),
+    /** The login's key (`reddit@alt`, `linkedin@wren`). */
+    account: varchar("account", { length: 120 }).notNull(),
+    /** Who picked it: an email, or null for the console. */
+    by: varchar("by", { length: 255 }),
+    at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.item], name: "pk_draft_accounts" })],
+);
+export type DraftAccount = typeof draftAccounts.$inferSelect;
+
+/** Why an invite was proposed: the person, their firm's size and how they found us. */
+export interface InviteFit {
+  /** One line: "Founder at Acme, 51-200 people. Reacted to our post." */
+  why: string;
+  title: string | null;
+  company: string | null;
+  /** Employees, the top of a range ("11-50" = 50); null = not known. */
+  employees: number | null;
+  /** The size as its source said it ("11-50", "10 - 49", "12"). */
+  size: string | null;
+  /** How they engaged with us on LinkedIn (`reaction`, `mention`, `follow`); null = not seen. */
+  engaged: string | null;
+}
+
+export const reachContacts = pgTable(
+  "reach_contacts",
+  {
+    id: serial("id"),
+    platform: varchar("platform", { length: 16, enum: DM_PLATFORMS }).notNull(),
+    handle: varchar("handle", { length: 120 }).notNull(),
+    url: text("url").notNull(),
+    name: text("name"),
+    headline: text("headline"),
+    /** Where the search saw them (`r/startups`, `search:founder recruiting`, `company/acme`, `manual`). */
+    foundIn: varchar("found_in", { length: 200 }).notNull(),
+    companyId: integer("company_id"),
+    personId: integer("person_id"),
+    niche: varchar("niche", { length: 32 }),
+    /** The page as `enrich` read it; null until read. */
+    profile: jsonb("profile"),
+    enrichedAt: timestamp("enriched_at", { withTimezone: true }),
+    /** The sticky sender. */
+    accountId: uuid("account_id"),
+    state: varchar("state", { length: 16, enum: CONTACT_STATES }).notNull().default("new"),
+    stateReason: text("state_reason"),
+    sequence: varchar("sequence", { length: 64 }),
+    enrolledAt: timestamp("enrolled_at", { withTimezone: true }),
+    /** LinkedIn: when the invite was accepted (relationship read as connected). */
+    connectedAt: timestamp("connected_at", { withTimezone: true }),
+    /** LinkedIn: when we withdrew the invite (still pending after `withdrawAfterDays`). */
+    withdrawnAt: timestamp("withdrawn_at", { withTimezone: true }),
+    endedAt: timestamp("ended_at", { withTimezone: true }),
+    /** Last time the operator opened this thread; inbound after it is unread. */
+    readAt: timestamp("read_at", { withTimezone: true }),
+    /** Our next message, written for William to edit and send (drafts.ts); null = none waiting. */
+    draft: text("draft"),
+    draftAt: timestamp("draft_at", { withTimezone: true }),
+    /** The inbound message the draft answers; a newer one makes it stale. Null = a first message. */
+    draftFor: integer("draft_for"),
+    /** LinkedIn invites: why the sweep picked them, as To approve shows it. */
+    fit: jsonb("fit").$type<InviteFit>(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_reach_contacts" }),
+    unique("uq_reach_contacts_platform_handle").on(t.platform, t.handle),
+    index("ix_reach_contacts_state").on(t.state),
+    index("ix_reach_contacts_company_id").on(t.companyId),
+    index("ix_reach_contacts_person_id").on(t.personId),
+    index("ix_reach_contacts_account_id").on(t.accountId),
+    oneOf("ck_reach_contacts_platform", t.platform, DM_PLATFORMS),
+    oneOf("ck_reach_contacts_state", t.state, CONTACT_STATES),
+    foreignKey({
+      columns: [t.companyId],
+      foreignColumns: [companies.id],
+      name: "fk_reach_contacts_company_id_companies",
+    }).onDelete("set null"),
+    foreignKey({
+      columns: [t.personId],
+      foreignColumns: [people.id],
+      name: "fk_reach_contacts_person_id_people",
+    }).onDelete("set null"),
+    foreignKey({
+      columns: [t.accountId],
+      foreignColumns: [reachAccounts.id],
+      name: "fk_reach_contacts_account_id_reach_accounts",
+    }).onDelete("set null"),
+  ],
+);
+
+export const reachMessages = pgTable(
+  "reach_messages",
+  {
+    id: serial("id"),
+    contactId: integer("contact_id").notNull(),
+    accountId: uuid("account_id"),
+    direction: varchar("direction", { length: 4, enum: DIRECTIONS }).notNull(),
+    kind: varchar("kind", { length: 16, enum: MESSAGE_KINDS }).notNull(),
+    /** The sequence step (1-based) for `sequence` rows. */
+    step: smallint("step"),
+    /** The slot key the body was rendered from. */
+    template: varchar("template", { length: 120 }),
+    /** The `template_versions` hash of the body's words; null before 2026-10-06. */
+    templateVersion: varchar("template_version", { length: 12 }),
+    /** The variant picks behind this body (`{version, seed, picks}`), as email keeps them. */
+    provenance: jsonb("provenance"),
+    subject: text("subject"),
+    body: text("body").notNull(),
+    state: varchar("state", { length: 16, enum: MESSAGE_STATES }).notNull(),
+    stateReason: text("state_reason"),
+    /** Outbound: not before this. */
+    dueAt: timestamp("due_at", { withTimezone: true }),
+    sentAt: timestamp("sent_at", { withTimezone: true }),
+    /** The platform's id for it (an inbound message's name, a sent one's ref when given). */
+    ref: varchar("ref", { length: 200 }),
+    runId: uuid("run_id"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_reach_messages" }),
+    index("ix_reach_messages_contact_id").on(t.contactId),
+    index("ix_reach_messages_due").on(t.state, t.dueAt),
+    index("ix_reach_messages_account_id").on(t.accountId),
+    index("ix_reach_messages_run_id").on(t.runId),
+    /** One inbound row per platform id. */
+    uniqueIndex("uq_reach_messages_in_ref")
+      .on(t.contactId, t.ref)
+      .where(sql`(direction)::text = 'in'::text`),
+    /** One follow-up DM per contact and node (`provenance.follow`). */
+    uniqueIndex("uq_reach_messages_follow_up")
+      .on(t.contactId, sql`(${t.provenance} ->> 'follow')`)
+      .where(sql`(kind)::text = 'follow_up'::text`),
+    oneOf("ck_reach_messages_direction", t.direction, DIRECTIONS),
+    oneOf("ck_reach_messages_kind", t.kind, MESSAGE_KINDS),
+    oneOf("ck_reach_messages_state", t.state, MESSAGE_STATES),
+    foreignKey({
+      columns: [t.contactId],
+      foreignColumns: [reachContacts.id],
+      name: "fk_reach_messages_contact_id_reach_contacts",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [t.accountId],
+      foreignColumns: [reachAccounts.id],
+      name: "fk_reach_messages_account_id_reach_accounts",
+    }).onDelete("set null"),
+    foreignKey({
+      columns: [t.runId],
+      foreignColumns: [runs.id],
+      name: "fk_reach_messages_run_id_runs",
+    }).onDelete("set null"),
+  ],
+);
+
+/** What Reddit's inbox calls the message: a reply to our post, to our comment, or a mention of us. */
+/** `review`: a review of the business itself (designs/2026-10-09-review-replies.md). */
+/**
+ * `thread_reply`: said in the conversation under our comment but not to us: a reply to their
+ * own reply, or to someone else in it. The inbox never lists one; the thread watch reads it
+ * (designs/2026-10-15-engage-threads.md).
+ */
+export const COMMENT_KINDS = [
+  "post_reply",
+  "comment_reply",
+  "username_mention",
+  "review",
+  "thread_reply",
+] as const;
+export type CommentKind = (typeof COMMENT_KINDS)[number];
+
+/**
+ * What the sort read a comment as; `ours` = written by one of our accounts; `noise` = nothing to
+ * answer, settled in words (`noiseInWords`) and dropped without a model call.
+ */
+export const COMMENT_SORTS = ["asked", "question", "chat", "hostile", "ours", "noise"] as const;
+export type CommentSort = (typeof COMMENT_SORTS)[number];
+/** `new` until sorted; `waiting` on William; `answered` in the thread; `dropped` by him or the sort. */
+export const COMMENT_STATES = ["new", "waiting", "answered", "dropped"] as const;
+export type CommentState = (typeof COMMENT_STATES)[number];
+/** `reach` = an outreach account's inbox (answered as that account); `content` = our own posts. */
+export const COMMENT_CHANNELS = ["reach", "content"] as const;
+export type CommentChannel = (typeof COMMENT_CHANNELS)[number];
+
+/**
+ * Every comment on our posts and every answer to our comments (designs/2026-10-01-reach-reddit-linkedin.md,
+ * Comments; designs/2026-10-06-social-inbox.md). Reach rows come from an account's inbox; content rows
+ * from SocialWatch reading our published posts. One row per platform id; nothing is dropped, ours and
+ * removed ones included. Each new row leaves as a `comment` event on the executor.
+ */
+export const comments = pgTable(
+  "comments",
+  {
+    id: serial("id"),
+    platform: varchar("platform", { length: 16 }).$type<ContentPlatform>().notNull(),
+    /** Whose inbox listed it: the account that answers it. Null on a content comment. */
+    accountId: uuid("account_id"),
+    channel: varchar("channel", { length: 16, enum: COMMENT_CHANNELS }).notNull().default("reach"),
+    /** The comment's ref in `platform_objects`; so are `post`, `parent` (a comment, or the post) and `answerRef`. */
+    ref: varchar("ref", { length: 200 }).notNull(),
+    post: varchar("post", { length: 200 }).notNull(),
+    parent: varchar("parent", { length: 200 }).notNull(),
+    kind: varchar("kind", { length: 32, enum: COMMENT_KINDS }).notNull(),
+    place: varchar("place", { length: 200 }),
+    /** A review's stars, 1 to 5; null on anything else. */
+    stars: smallint("stars"),
+    postTitle: text("post_title"),
+    author: varchar("author", { length: 120 }).notNull(),
+    body: text("body").notNull(),
+    url: text("url").notNull(),
+    at: timestamp("at", { withTimezone: true }).notNull(),
+    raw: jsonb("raw").notNull(),
+    sort: varchar("sort", { length: 16, enum: COMMENT_SORTS }),
+    why: text("why"),
+    /** An answer for the thread, William's to edit and send. */
+    draft: text("draft"),
+    state: varchar("state", { length: 16, enum: COMMENT_STATES }).notNull().default("new"),
+    answer: text("answer"),
+    answerRef: varchar("answer_ref", { length: 200 }),
+    answeredAt: timestamp("answered_at", { withTimezone: true }),
+    /** Their DM thread, once William wrote to them. */
+    contactId: integer("contact_id"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_comments" }),
+    unique("uq_comments_platform_ref").on(t.platform, t.ref),
+    index("ix_comments_state").on(t.state),
+    index("ix_comments_account_id").on(t.accountId),
+    index("ix_comments_post").on(t.post),
+    index("ix_comments_platform_post").on(t.platform, t.post),
+    index("ix_comments_platform_parent").on(t.platform, t.parent),
+    index("ix_comments_platform_answer_ref").on(t.platform, t.answerRef),
+    index("ix_comments_contact_id").on(t.contactId),
+    oneOf("ck_comments_platform", t.platform, CONTENT_PLATFORMS),
+    oneOf("ck_comments_channel", t.channel, COMMENT_CHANNELS),
+    check(
+      "ck_comments_reach_has_account",
+      sql`((channel)::text <> 'reach'::text) OR (account_id IS NOT NULL)`,
+    ),
+    oneOf("ck_comments_kind", t.kind, COMMENT_KINDS),
+    check("ck_comments_stars", sql`stars IS NULL OR (stars BETWEEN 1 AND 5)`),
+    oneOf("ck_comments_sort", t.sort, COMMENT_SORTS),
+    oneOf("ck_comments_state", t.state, COMMENT_STATES),
+    foreignKey({
+      columns: [t.accountId],
+      foreignColumns: [reachAccounts.id],
+      name: "fk_comments_account_id_reach_accounts",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [t.contactId],
+      foreignColumns: [reachContacts.id],
+      name: "fk_comments_contact_id_reach_contacts",
+    }).onDelete("set null"),
+    // Every ref a row holds is a `platform_objects` row, spelled by `canonRef`: one spelling per
+    // object, so two readers meet on the unique key instead of keeping a comment twice.
+    foreignKey({
+      columns: [t.platform, t.ref],
+      foreignColumns: [platformObjects.platform, platformObjects.ref],
+      name: "fk_comments_platform_ref_platform_objects",
+    }).onUpdate("cascade"),
+    foreignKey({
+      columns: [t.platform, t.post],
+      foreignColumns: [platformObjects.platform, platformObjects.ref],
+      name: "fk_comments_platform_post_platform_objects",
+    }).onUpdate("cascade"),
+    foreignKey({
+      columns: [t.platform, t.parent],
+      foreignColumns: [platformObjects.platform, platformObjects.ref],
+      name: "fk_comments_platform_parent_platform_objects",
+    }).onUpdate("cascade"),
+    foreignKey({
+      columns: [t.platform, t.answerRef],
+      foreignColumns: [platformObjects.platform, platformObjects.ref],
+      name: "fk_comments_platform_answer_ref_platform_objects",
+    }).onUpdate("cascade"),
+  ],
+);
+
+/** One comment in a watched thread, as the snapshot keeps it (`ThreadNode` in `@wren/core/outreach`). */
+export interface ThreadNodeRow {
+  ref: string;
+  parent: string;
+  handle: string;
+  text: string;
+  at: string;
+  url: string;
+}
+
+/**
+ * A conversation we are in, watched for what the inbox never lists (designs/2026-10-15-engage-
+ * threads.md): one row per post a reach account's comment landed under. While `until` is ahead,
+ * the watch probes its comment count with the account's reads and reads it in full when it moves;
+ * each read keeps the post and every comment as a snapshot, the Engage context view's source.
+ */
+export const commentThreads = pgTable(
+  "comment_threads",
+  {
+    id: serial("id"),
+    platform: varchar("platform", { length: 16 }).$type<ContentPlatform>().notNull(),
+    post: varchar("post", { length: 200 }).notNull(),
+    /** The reach account that reads it: the one whose comment is in it. */
+    accountId: uuid("account_id").notNull(),
+    postTitle: text("post_title"),
+    postText: text("post_text"),
+    postUrl: text("post_url"),
+    postPlace: varchar("post_place", { length: 200 }),
+    postAuthor: varchar("post_author", { length: 120 }),
+    postMedia: text("post_media"),
+    postAt: timestamp("post_at", { withTimezone: true }),
+    /** Every comment the last read saw, oldest first, any depth. */
+    nodes: jsonb("nodes").$type<ThreadNodeRow[]>().notNull().default([]),
+    /** Comments the platform left behind "load more" on the last read. */
+    more: integer("more").notNull().default(0),
+    /** The platform's count at the last full read; a probe that matches it reads nothing more. */
+    count: integer("count"),
+    readAt: timestamp("read_at", { withTimezone: true }),
+    /** When the watch next probes it: soon after something lands, easing off as it goes quiet. */
+    checkAt: timestamp("check_at", { withTimezone: true }).notNull().defaultNow(),
+    /** When something of theirs, or our answer, last landed in it. */
+    activeAt: timestamp("active_at", { withTimezone: true }).notNull(),
+    /** The watch ends here: `followUpDays` after the last activity. */
+    until: timestamp("until", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_comment_threads" }),
+    unique("uq_comment_threads_platform_post").on(t.platform, t.post),
+    index("ix_comment_threads_account_id").on(t.accountId),
+    index("ix_comment_threads_until").on(t.until),
+    oneOf("ck_comment_threads_platform", t.platform, CONTENT_PLATFORMS),
+    check("ck_comment_threads_more", sql`more >= 0`),
+    foreignKey({
+      columns: [t.accountId],
+      foreignColumns: [reachAccounts.id],
+      name: "fk_comment_threads_account_id_reach_accounts",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [t.platform, t.post],
+      foreignColumns: [platformObjects.platform, platformObjects.ref],
+      name: "fk_comment_threads_platform_post_platform_objects",
+    }).onUpdate("cascade"),
+  ],
+);
+export type CommentThread = typeof commentThreads.$inferSelect;
+
+export type ReachAccount = typeof reachAccounts.$inferSelect;
+/**
+ * One row per LinkedIn invite: the connect row and its contact, with where it stands. Accepted
+ * and withdrawn come from the contact (`connected_at`, `withdrawn_at`); pending is a sent invite
+ * whose contact still waits; ended is one whose contact moved on (declined, opted out); queued is
+ * one not yet sent; proposed waits on his yes; else the row's own state (failed, unknown, skipped).
+ * Outreach → Invites.
+ */
+export const reachInvites = pgView("reach_invites", {
+  id: integer("id"),
+  contactId: integer("contact_id"),
+  accountId: uuid("account_id"),
+  handle: varchar("handle", { length: 120 }),
+  url: text("url"),
+  name: text("name"),
+  headline: text("headline"),
+  niche: varchar("niche", { length: 32 }),
+  personId: integer("person_id"),
+  companyId: integer("company_id"),
+  foundIn: varchar("found_in", { length: 200 }),
+  fit: jsonb("fit").$type<InviteFit>(),
+  note: text("note"),
+  status: varchar("status", { length: 16 }),
+  stateReason: text("state_reason"),
+  queuedAt: timestamp("queued_at", { withTimezone: true }),
+  sentAt: timestamp("sent_at", { withTimezone: true }),
+  connectedAt: timestamp("connected_at", { withTimezone: true }),
+  withdrawnAt: timestamp("withdrawn_at", { withTimezone: true }),
+}).as(
+  sql`SELECT m.id, m.contact_id, m.account_id, c.handle, c.url, c.name, c.headline, c.niche, c.person_id, c.company_id, c.found_in, c.fit, NULLIF(m.body, '') AS note, CASE WHEN c.connected_at IS NOT NULL THEN 'accepted' WHEN c.withdrawn_at IS NOT NULL THEN 'withdrawn' WHEN m.state = 'sent' AND c.state = 'enrolled' THEN 'pending' WHEN m.state = 'sent' THEN 'ended' WHEN m.state IN ('queued', 'sending') THEN 'queued' ELSE m.state END AS status, coalesce(m.state_reason, c.state_reason) AS state_reason, m.created_at AS queued_at, m.sent_at, c.connected_at, c.withdrawn_at FROM reach_messages m JOIN reach_contacts c ON c.id = m.contact_id WHERE m.kind = 'connect' AND m.direction = 'out'`,
+);
+
+export type ReachContact = typeof reachContacts.$inferSelect;
+export type ReachMessage = typeof reachMessages.$inferSelect;
+export type Comment = typeof comments.$inferSelect;
+
+/**
+ * Reddit discovery (designs/2026-10-06-reddit-discovery.md): people, places and threads, all read
+ * signed out through autobrowse's `reddit-public`. Raw reads are kept whole; the model's reading
+ * sits beside them, each fact with the words it came from.
+ */
+export const PLACE_STATES = ["found", "watching", "skipped"] as const;
+/**
+ * Why we comment in a place: `reach` finds buyers (business subs), `karma` earns a young account
+ * its karma with plain answers that never name Wren (designs/2026-10-18-reddit-karma.md).
+ */
+export const PLACE_PURPOSES = ["reach", "karma"] as const;
+export type PlacePurpose = (typeof PLACE_PURPOSES)[number];
+export const THREAD_STATES = [
+  "new",
+  "dropped",
+  "ranked",
+  "queued",
+  "commented",
+  "skipped",
+] as const;
+export const THREAD_KINDS = ["help", "tools", "story", "venting", "hiring", "other"] as const;
+
+/** One fact the model read off their own words. */
+export interface Quoted {
+  value: string;
+  quote: string;
+}
+
+/** What code reads off a profile, $0. */
+export interface PersonFacts {
+  ageDays: number | null;
+  karma: number | null;
+  /** Where they post most, by count. */
+  places: { place: string; n: number }[];
+  /** Domains they linked, by count. */
+  domains: { domain: string; n: number }[];
+  /** The UTC hour they post most, and a guessed offset from it. */
+  peakHourUtc: number | null;
+}
+
+/** What the model reads off a profile: each fact quotes them. */
+export interface PersonRead {
+  role: Quoted | null;
+  business: Quoted | null;
+  size: Quoted | null;
+  location: Quoted | null;
+  website: Quoted | null;
+  struggles: Quoted[];
+  why: string;
+}
+
+export const redditPeople = pgTable(
+  "reddit_people",
+  {
+    /** Lowercase: Reddit names ignore case. */
+    handle: varchar("handle", { length: 64 }).notNull(),
+    name: varchar("name", { length: 64 }).notNull(),
+    /** The three reads: about, last 100 posts, last 100 comments. */
+    raw: jsonb("raw").notNull(),
+    facts: jsonb("facts").$type<PersonFacts>().notNull(),
+    read: jsonb("read").$type<PersonRead>(),
+    fit: smallint("fit"),
+    /** A domain they call their own, from their words; never guessed. */
+    site: varchar("site", { length: 253 }),
+    readAt: timestamp("read_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.handle], name: "pk_reddit_people" }),
+    index("ix_reddit_people_read_at").on(t.readAt),
+    check("ck_reddit_people_fit", sql`${t.fit} between 0 and 10`),
+  ],
+);
+
+/** A subreddit's rules and pace in plain words, as the model read them. */
+export interface PlaceJudged {
+  fit: number;
+  why: string;
+  rules: string;
+  mayComment: boolean;
+  mayPost: boolean;
+  linkOnly: boolean;
+  karmaMin: number | null;
+  ageMinDays: number | null;
+  postsADay: number;
+  medianComments: number;
+}
+
+export const redditPlaces = pgTable(
+  "reddit_places",
+  {
+    /** Lowercase, without r/. */
+    subreddit: varchar("subreddit", { length: 64 }).notNull(),
+    name: varchar("name", { length: 64 }).notNull(),
+    /** "topic: <words>", "named" or "people": how it was found. */
+    foundBy: text("found_by").notNull(),
+    /** about, rules, top of the week and new, as read. */
+    raw: jsonb("raw"),
+    judged: jsonb("judged").$type<PlaceJudged>(),
+    fit: smallint("fit"),
+    subscribers: integer("subscribers"),
+    state: varchar("state", { length: 16, enum: PLACE_STATES }).notNull().default("found"),
+    purpose: varchar("purpose", { length: 16, enum: PLACE_PURPOSES }).notNull().default("reach"),
+    /** The pool account that works it: one per place, so two of ours never meet. */
+    accountId: uuid("account_id"),
+    readAt: timestamp("read_at", { withTimezone: true }),
+    threadsAt: timestamp("threads_at", { withTimezone: true }),
+    /** When its account joined it on Reddit; null until then. Joined subs read as a member's. */
+    joinedAt: timestamp("joined_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.subreddit], name: "pk_reddit_places" }),
+    index("ix_reddit_places_state").on(t.state),
+    index("ix_reddit_places_account_id").on(t.accountId),
+    oneOf("ck_reddit_places_state", t.state, PLACE_STATES),
+    oneOf("ck_reddit_places_purpose", t.purpose, PLACE_PURPOSES),
+    check("ck_reddit_places_fit", sql`${t.fit} between 0 and 10`),
+    foreignKey({
+      columns: [t.accountId],
+      foreignColumns: [reachAccounts.id],
+      name: "fk_reddit_places_account_id_reach_accounts",
+    }).onDelete("set null"),
+  ],
+);
+
+export const redditThreads = pgTable(
+  "reddit_threads",
+  {
+    /**
+     * Always `reddit`. A plain column, not a generated one, so the keys below can cascade
+     * (designs/2026-10-20-platform-objects.md).
+     */
+    platform: varchar("platform", { length: 16 }).notNull().default("reddit"),
+    /** The post's fullname, t3_…. A platform object. */
+    id: varchar("id", { length: 20 }).notNull(),
+    subreddit: varchar("subreddit", { length: 64 }).notNull(),
+    title: text("title").notNull(),
+    body: text("body").notNull(),
+    author: varchar("author", { length: 64 }).notNull(),
+    url: text("url").notNull(),
+    postedAt: timestamp("posted_at", { withTimezone: true }).notNull(),
+    comments: integer("comments").notNull(),
+    raw: jsonb("raw").notNull(),
+    /** Code's reason to drop it, $0; null when it passed. */
+    dropped: text("dropped"),
+    kind: varchar("kind", { length: 16, enum: THREAD_KINDS }),
+    fit: smallint("fit"),
+    angle: text("angle"),
+    /** What to answer: the post (t3_…) or a comment in it that asks (t1_…). */
+    target: varchar("target", { length: 20 }),
+    targetText: text("target_text"),
+    draft: text("draft"),
+    /** What the draft read: the thread, the OP, our own facts. */
+    sources: jsonb("sources").$type<{ label: string; text: string }[]>(),
+    state: varchar("state", { length: 16, enum: THREAD_STATES }).notNull().default("new"),
+    accountId: uuid("account_id"),
+    /** When the scheduler sends the draft (`pacing.ts`); null: it waits for his click. */
+    sendAt: timestamp("send_at", { withTimezone: true }),
+    answer: text("answer"),
+    answerRef: varchar("answer_ref", { length: 20 }),
+    answeredAt: timestamp("answered_at", { withTimezone: true }),
+    /** Our comment's score two days on: the place's hit rate. */
+    score: integer("score"),
+    scoredAt: timestamp("scored_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_reddit_threads" }),
+    index("ix_reddit_threads_subreddit").on(t.subreddit),
+    index("ix_reddit_threads_state").on(t.state),
+    index("ix_reddit_threads_account_id").on(t.accountId),
+    index("ix_reddit_threads_platform_target").on(t.platform, t.target),
+    index("ix_reddit_threads_platform_answer_ref").on(t.platform, t.answerRef),
+    check("ck_reddit_threads_platform", sql`${t.platform} = 'reddit'`),
+    oneOf("ck_reddit_threads_state", t.state, THREAD_STATES),
+    oneOf("ck_reddit_threads_kind", t.kind, THREAD_KINDS),
+    check("ck_reddit_threads_fit", sql`${t.fit} between 0 and 10`),
+    foreignKey({
+      columns: [t.subreddit],
+      foreignColumns: [redditPlaces.subreddit],
+      name: "fk_reddit_threads_subreddit_reddit_places",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [t.accountId],
+      foreignColumns: [reachAccounts.id],
+      name: "fk_reddit_threads_account_id_reach_accounts",
+    }).onDelete("set null"),
+    // The post, the comment we answer and our reply are platform objects, under one spelling.
+    foreignKey({
+      columns: [t.platform, t.id],
+      foreignColumns: [platformObjects.platform, platformObjects.ref],
+      name: "fk_reddit_threads_platform_id_platform_objects",
+    }).onUpdate("cascade"),
+    foreignKey({
+      columns: [t.platform, t.target],
+      foreignColumns: [platformObjects.platform, platformObjects.ref],
+      name: "fk_reddit_threads_platform_target_platform_objects",
+    }).onUpdate("cascade"),
+    foreignKey({
+      columns: [t.platform, t.answerRef],
+      foreignColumns: [platformObjects.platform, platformObjects.ref],
+      name: "fk_reddit_threads_platform_answer_ref_platform_objects",
+    }).onUpdate("cascade"),
+  ],
+);
+
+/**
+ * What a subreddit asks of an account before our comment stays up (designs/2026-10-14-reddit-gates.md).
+ * One row per place and where the fact came from: `removal` (a mod or AutoModerator removed our
+ * comment, with the numbers it stated), `rules` (the rules the place read names), `manual` (set by
+ * hand). The effective floor is the highest of the rows not cleared. `hold` is a removal that
+ * stated nothing: an unknown gate, held for every account until he clears it.
+ */
+export const REQUIREMENT_SOURCES = ["removal", "rules", "manual"] as const;
+export type RequirementSource = (typeof REQUIREMENT_SOURCES)[number];
+
+export const redditRequirements = pgTable(
+  "reddit_requirements",
+  {
+    subreddit: varchar("subreddit", { length: 64 }).notNull(),
+    source: varchar("source", { length: 16, enum: REQUIREMENT_SOURCES }).notNull(),
+    /** Account age in days, total karma and comment karma; null = not stated. */
+    minAgeDays: integer("min_age_days"),
+    minKarma: integer("min_karma"),
+    minCommentKarma: integer("min_comment_karma"),
+    /** A gate we can't count (a verified email): shown, never enforced. */
+    other: text("other"),
+    hold: boolean("hold").notNull().default(false),
+    /** The proof item (`thread:t3_x`) a removal was learned from. */
+    item: varchar("item", { length: 80 }),
+    /** The words it came from, shortened. */
+    evidence: text("evidence"),
+    learnedAt: timestamp("learned_at", { withTimezone: true }).notNull().defaultNow(),
+    /** He lifted it: the row counts for nothing until a newer removal. */
+    clearedAt: timestamp("cleared_at", { withTimezone: true }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.subreddit, t.source], name: "pk_reddit_requirements" }),
+    oneOf("ck_reddit_requirements_source", t.source, REQUIREMENT_SOURCES),
+    check(
+      "ck_reddit_requirements_floors",
+      sql`coalesce(${t.minAgeDays}, 0) >= 0 and coalesce(${t.minKarma}, 0) >= 0 and coalesce(${t.minCommentKarma}, 0) >= 0`,
+    ),
+    foreignKey({
+      columns: [t.subreddit],
+      foreignColumns: [redditPlaces.subreddit],
+      name: "fk_reddit_requirements_subreddit_reddit_places",
+    }).onDelete("cascade"),
+  ],
+);
+
+export type RedditRequirement = typeof redditRequirements.$inferSelect;
+
+export type RedditPerson = typeof redditPeople.$inferSelect;
+export type RedditPlace = typeof redditPlaces.$inferSelect;
+export type RedditThread = typeof redditThreads.$inferSelect;
+
+/**
+ * Others' posts to comment on, like, and follow the author of (designs/2026-10-07-posting-flow.md,
+ * item 4; designs/2026-10-07-touches.md): on LinkedIn, X or Instagram, found by a topic search, a
+ * company's or account's posts or a key person's, ranked by code, drafted by the model, then
+ * `queued` in To approve. Only his Comment posts it, with a like and a follow under the caps.
+ * Dropped: too old, ours, or no words.
+ */
+export const REACH_POST_STATES = ["found", "queued", "commented", "skipped", "dropped"] as const;
+export type ReachPostState = (typeof REACH_POST_STATES)[number];
+export const REACH_POST_PLATFORMS = [
+  "linkedin",
+  "x",
+  "instagram",
+  "youtube",
+  "tiktok",
+  "threads",
+] as const;
+export type ReachPostPlatform = (typeof REACH_POST_PLATFORMS)[number];
+
+export const reachPosts = pgTable(
+  "reach_posts",
+  {
+    id: serial("id"),
+    platform: varchar("platform", { length: 12, enum: REACH_POST_PLATFORMS })
+      .notNull()
+      .default("linkedin"),
+    /**
+     * What the platform's routes take: LinkedIn's `urn:li:activity:N` (or `ugcPost`, `share`), X's
+     * post id, Instagram's shortcode. A platform object; the key may rewrite it when a learned
+     * link gives a LinkedIn post its API URN.
+     */
+    ref: varchar("ref", { length: 255 }).notNull(),
+    author: text("author").notNull(),
+    authorUrl: text("author_url"),
+    /** The author's handle as `normalizeHandle` keeps it: X and Instagram usernames, LinkedIn vanity. */
+    handle: varchar("handle", { length: 120 }),
+    headline: text("headline"),
+    text: text("text").notNull(),
+    url: text("url").notNull(),
+    /** When it was posted, as the page's age label read at `created_at`; null = unknown. */
+    postedAt: timestamp("posted_at", { withTimezone: true }),
+    reactions: integer("reactions").notNull().default(0),
+    comments: integer("comments").notNull().default(0),
+    /** `topic: <words>`, `company: <handle>`, `account: <handle>` or `person: <handle>`. */
+    foundBy: varchar("found_by", { length: 200 }).notNull(),
+    /** The read's account (`linkedin@wren`, `x@wren`). */
+    account: varchar("account", { length: 80 }).notNull(),
+    /** Code's rank, higher first, and one line on why. */
+    fit: smallint("fit"),
+    why: text("why"),
+    state: varchar("state", { length: 12, enum: REACH_POST_STATES }).notNull().default("found"),
+    stateReason: text("state_reason"),
+    draft: text("draft"),
+    queuedAt: timestamp("queued_at", { withTimezone: true }),
+    /** When the scheduler sends the draft (`pacing.ts`); null: it waits for his click. */
+    sendAt: timestamp("send_at", { withTimezone: true }),
+    /** What we posted, when, and who clicked. */
+    comment: text("comment"),
+    commentedAt: timestamp("commented_at", { withTimezone: true }),
+    commentedBy: varchar("commented_by", { length: 120 }),
+    /** Our like on the post and our follow of its author, each sent with his Comment. */
+    likedAt: timestamp("liked_at", { withTimezone: true }),
+    followedAt: timestamp("followed_at", { withTimezone: true }),
+    /** Auto like/follow tries that failed; at `ACT_TRIES` the act is parked (`reach-posts/acts.ts`). */
+    likeFails: smallint("like_fails").notNull().default(0),
+    followFails: smallint("follow_fails").notNull().default(0),
+    /** The last failure's words, for a person who clears the park. */
+    actError: text("act_error"),
+    raw: jsonb("raw").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_reach_posts" }),
+    unique("uq_reach_posts_platform_ref").on(t.platform, t.ref),
+    index("ix_reach_posts_state").on(t.state),
+    oneOf("ck_reach_posts_state", t.state, REACH_POST_STATES),
+    oneOf("ck_reach_posts_platform", t.platform, REACH_POST_PLATFORMS),
+    foreignKey({
+      columns: [t.platform, t.ref],
+      foreignColumns: [platformObjects.platform, platformObjects.ref],
+      name: "fk_reach_posts_platform_ref_platform_objects",
+    }).onUpdate("cascade"),
+  ],
+);
+
+export type ReachPost = typeof reachPosts.$inferSelect;
+
+/**
+ * People he passed on (Engage's Pass): not a lead, not worth a reply, spam. Their open comments,
+ * posts and threads close when he passes, and new ones land closed, so nothing of theirs is
+ * drafted again. `handle` is `passKey`'s; `until` null is for good. Lifting keeps the row.
+ */
+export const reachPasses = pgTable(
+  "reach_passes",
+  {
+    id: serial("id"),
+    platform: varchar("platform", { length: 16 }).notNull(),
+    handle: varchar("handle", { length: 200 }).notNull(),
+    /** As the row showed them. */
+    name: text("name").notNull(),
+    reason: varchar("reason", { length: 16, enum: PASS_REASONS }).notNull(),
+    note: text("note"),
+    /** The typed id he passed from: `comment:4`, `onpost:9`, `thread:t3_x`, `dm:3`. */
+    item: varchar("item", { length: 80 }),
+    by: varchar("by", { length: 120 }),
+    until: timestamp("until", { withTimezone: true }),
+    liftedAt: timestamp("lifted_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_reach_passes" }),
+    unique("uq_reach_passes_platform_handle").on(t.platform, t.handle),
+    oneOf("ck_reach_passes_reason", t.reason, PASS_REASONS),
+  ],
+);
+
+export type ReachPass = typeof reachPasses.$inferSelect;
+
+/**
+ * Whether each comment we sent is there for a stranger (designs/2026-10-14-comment-proof.md):
+ * one row per sent item (`thread:t3_x`, `onpost:9`, `comment:4`), the newest check's answer,
+ * with every check before it in `checks`. The person's touch line shows the newest state.
+ */
+export const commentProofs = pgTable(
+  "comment_proofs",
+  {
+    item: varchar("item", { length: 80 }).notNull(),
+    platform: varchar("platform", { length: 16 }).notNull(),
+    state: varchar("state", { length: 16, enum: PROOF_STATES }).notNull().default("pending"),
+    /** The comment's permalink, else its post's page. */
+    url: text("url"),
+    /** The screenshot, `s3://` in the media bucket. */
+    shot: text("shot"),
+    note: text("note"),
+    checkedAt: timestamp("checked_at", { withTimezone: true }),
+    /** Every check, oldest first: the item's proof history (`round` 1, 2, 3 = 2 min, 1 h, 24 h; 0 by hand). */
+    checks: jsonb("checks")
+      .$type<
+        { at: string; state: string; note: string | null; shot: string | null; round: number }[]
+      >()
+      .notNull()
+      .default([]),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.item], name: "pk_comment_proofs" }),
+    index("ix_comment_proofs_checked_at").on(t.checkedAt),
+    oneOf("ck_comment_proofs_state", t.state, PROOF_STATES),
+  ],
+);
+
+export type CommentProofRow = typeof commentProofs.$inferSelect;
+
+/**
+ * One send that must land at most once (designs/2026-10-16-maybe-sent.md): a thread comment, an
+ * answer, a comment on someone's post, a DM. `sending` while a call is out (a second invocation
+ * is refused); `sent` once it went out or our words were found on the site; `unsure` when a send
+ * may have gone out and no read could tell. Unsure waits in To approve for a person: open it
+ * on the site, mark it posted, or send it again. Nothing resends it by itself.
+ */
+export const SEND_ATTEMPT_STATES = ["sending", "sent", "unsure"] as const;
+export type SendAttemptState = (typeof SEND_ATTEMPT_STATES)[number];
+export const sendAttempts = pgTable(
+  "send_attempts",
+  {
+    /** The item's typed id: `thread:<id>`, `comment:<id>`, `onpost:<id>`, `dm:<message id>`. */
+    item: varchar("item", { length: 80 }).notNull(),
+    state: varchar("state", { length: 12, enum: SEND_ATTEMPT_STATES }).notNull(),
+    platform: varchar("platform", { length: 16 }).notNull(),
+    /** The login it went out as (`reddit@alt`); null = the platform's default. */
+    account: varchar("account", { length: 80 }),
+    /** The words sent, as sent. */
+    words: text("words").notNull(),
+    /** Where: a post or comment ref, or a handle. */
+    target: varchar("target", { length: 200 }).notNull(),
+    /** The page to check it on. */
+    url: text("url"),
+    /** Calls made to the site: at most two before a person decides. */
+    tries: smallint("tries").notNull().default(0),
+    /** The invocation holding it while `sending`. */
+    invocation: varchar("invocation", { length: 120 }),
+    /**
+     * This send's key (designs/2026-10-16-send-verdicts.md): autobrowse keeps one verdict per
+     * key. A claim makes it, a take-over keeps it, a send again makes a new one. Null on a row
+     * from before keys, or one parked without a send.
+     */
+    sendKey: varchar("send_key", { length: 200 }),
+    /** The platform's id for what went out, when found or given. */
+    ref: varchar("ref", { length: 200 }),
+    sentAt: timestamp("sent_at", { withTimezone: true }),
+    /** Why it is unsure: the failure's words and what the read said. */
+    why: text("why"),
+    /** Who sent it: `wren` (a rule, like a keyword) or null (a person's send). */
+    via: varchar("via", { length: 12, enum: ["person", "wren"] }),
+    /** `found` (read back on the site), `sent`, or the person who marked it. */
+    settledBy: varchar("settled_by", { length: 120 }),
+    startedAt: timestamp("started_at", { withTimezone: true }).notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.item], name: "pk_send_attempts" }),
+    index("ix_send_attempts_state").on(t.state),
+    oneOf("ck_send_attempts_state", t.state, SEND_ATTEMPT_STATES),
+  ],
+);
+
+export type SendAttempt = typeof sendAttempts.$inferSelect;

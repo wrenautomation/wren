@@ -4,10 +4,11 @@
  * A fetcher that finds no page and no LinkedIn account, so company checks end
  * unresolved; the fake LLM cites the first fact it is given.
  */
-import { FakeVerifier, type LocalCheckerLike } from "@wren/channel-email";
+
 import { SiteCallError, type SiteClient } from "@wren/core/content";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
+import { FakeVerifier, type LocalCheckerLike } from "@wren/starling-email";
 import type { Fetcher } from "@wrenautomation/read/fetch";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";

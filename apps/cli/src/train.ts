@@ -5,11 +5,11 @@
  * read [person] and [email] unless `--include-people`.
  */
 import { writeFileSync } from "node:fs";
-import { backfillTraining } from "@wren/content";
 import { DRAFT_RECORD_KINDS, type DraftRecordKind, isDraftKind } from "@wren/core/draft-record";
 import { jsonl, type TrainAsk, trainPairs, trainRecords } from "@wren/core/train";
 import { clientDatabases, type Db } from "@wren/db";
 import { type NoteLine, noteLines } from "@wren/notes/train";
+import { backfillTraining } from "@wren/starling-inbound";
 import { type Command, InvalidArgumentError } from "commander";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;

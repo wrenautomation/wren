@@ -1,0 +1,59 @@
+{
+  "name": "@wren/starling-email",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./calls": "./src/calls/index.ts",
+    "./calls/settings": "./src/calls/settings.ts",
+    "./components": "./src/components.ts",
+    "./sequences-settings": "./src/sequences-settings.ts",
+    "./schema": "./src/schema.ts",
+    "./views": "./src/views.ts",
+    "./records": "./src/records.ts",
+    "./console-routes": "./src/console-routes.ts",
+    "./outreach": "./src/outreach/index.ts",
+    "./restate": "./src/restate/index.ts",
+    "./send": "./src/send/index.ts",
+    "./send/*": "./src/send/*.ts",
+    "./inbox": "./src/inbox/index.ts",
+    "./listmonk": "./src/listmonk/index.ts",
+    "./spam": "./src/spam/index.ts",
+    "./access/*": "./src/access/*.ts"
+  },
+  "scripts": {
+    "test:integration": "vitest run test/integration",
+    "test:schema": "vitest run test/integration/legacy-parity.test.ts",
+    "test:unit": "vitest run src",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@restatedev/restate-sdk": "1.17.1",
+    "@wren/config": "workspace:*",
+    "@wren/core": "workspace:*",
+    "@wren/db": "workspace:*",
+    "@wren/experiments": "workspace:*",
+    "@wren/llm": "workspace:*",
+    "@wren/research": "workspace:*",
+    "@wrenautomation/autobrowse": "0.8.4",
+    "@wrenautomation/read": "0.29.0",
+    "drizzle-orm": "0.45.2",
+    "imapflow": "2.2.4",
+    "libmime": "5.4.7",
+    "mailifier": "0.3.9",
+    "nodemailer": "10.0.14",
+    "smol-toml": "1.8.0",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@restatedev/restate-sdk-clients": "1.17.1",
+    "@restatedev/restate-sdk-testcontainers": "1.17.1",
+    "@testcontainers/postgresql": "12.1.0",
+    "@types/libmime": "5.3.0",
+    "@types/nodemailer": "8.0.2",
+    "postgres": "3.4.9",
+    "typescript": "5.9.3",
+    "vitest": "5.0.1"
+  }
+}

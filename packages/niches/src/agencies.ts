@@ -1,6 +1,6 @@
 /** Marketing / build agencies: directory-sourced firms, people crawled from their sites. */
 import { join } from "node:path";
-import { twoEmailSequence } from "@wren/channel-email";
+import { twoEmailSequence } from "@wren/starling-email";
 import { ClutchPagesSource } from "./agencies/clutch-pages.js";
 import { AgencyDirectoryCsvSource, DIRECTORY_DOMAINS } from "./agencies/directory.js";
 import { shopifyProfileDataset } from "./agencies/profiles.js";

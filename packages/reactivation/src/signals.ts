@@ -5,7 +5,7 @@
  * capped one. Biggest companies (most CRM people) first, so a cap costs the
  * small ones. Ctrl-C is a pause; re-running resumes.
  */
-import { eachConcurrently } from "@wren/channel-email";
+
 import { type Feed, NO_FEED } from "@wren/core";
 import type { SiteClient } from "@wren/core/content";
 import type { Queryable } from "@wren/db";
@@ -17,6 +17,7 @@ import {
   recordCompanyCheck,
 } from "@wren/research/companies";
 import { failedRead } from "@wren/research/pacing";
+import { eachConcurrently } from "@wren/starling-email";
 import type { Fetcher } from "@wrenautomation/read/fetch";
 import { type SQL, sql } from "drizzle-orm";
 import { failedLine, hiringLine } from "./feed.js";

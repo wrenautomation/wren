@@ -7,7 +7,6 @@
 import { readFile } from "node:fs/promises";
 import { basename } from "node:path";
 import * as restateClients from "@restatedev/restate-sdk-clients";
-import { siteExport } from "@wren/channel-email";
 import { ingressOf, type Settings } from "@wren/config";
 import { getClient, listOperators, normalEmail } from "@wren/core/clients";
 import { atomic, type Db, type Queryable, serializable } from "@wren/db";
@@ -63,6 +62,7 @@ import {
 import { MAX_FILE_BYTES, newFileKey, s3Files, typeOfName } from "@wren/delivery/files";
 import { type DeliveryWatch, WATCH, WATCH_KEY } from "@wren/delivery/restate";
 import { seedSample } from "@wren/delivery/sample";
+import { siteExport } from "@wren/starling-email";
 import type { Command } from "commander";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;

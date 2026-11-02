@@ -10,6 +10,10 @@
  * counts the mover's thread at the firm they work at now. Each move is tried
  * once; a miss again after a month.
  */
+
+import { applyPattern, PATTERNS } from "@wren/core";
+import type { Queryable } from "@wren/db";
+import { findHomepage, type HomepageFetcher, type Resolves } from "@wren/research/discovery";
 import {
   COMMON_GUESS_RANKS,
   contactCandidates,
@@ -20,10 +24,7 @@ import {
   transitionCandidate,
   verifications,
   waitingDomains,
-} from "@wren/channel-email";
-import { applyPattern, PATTERNS } from "@wren/core";
-import type { Queryable } from "@wren/db";
-import { findHomepage, type HomepageFetcher, type Resolves } from "@wren/research/discovery";
+} from "@wren/starling-email";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { type MoverOutcome, moverAddresses } from "./schema.js";
 import { LATEST_CRM_ROW, whereFinding } from "./score.js";

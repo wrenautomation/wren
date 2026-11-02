@@ -4,7 +4,7 @@ cluster: email
 universe: live
 status: verified
 verified: 2026-09-28 @ 28823cd
-entity: packages/channel-email/src/schema.ts:410
+entity: packages/starling/channels/email/src/schema.ts:410
 ---
 
 # inbox-sync-cursor
@@ -19,7 +19,7 @@ A per-sender cursor makes a re-run cheap and a one-day overlap harmless, because
 
 - `sender`, `cursor_ms`, `synced_at`, `stats` (`schema.ts:411`–`414`)
 
-Citations: `packages/channel-email/src/schema.ts:410`
+Citations: `packages/starling/channels/email/src/schema.ts:410`
 
 ## Connected to
 
@@ -39,4 +39,4 @@ Citations: `packages/channel-email/src/schema.ts:410`
 
 ## See
 
-- Source: `packages/channel-email/src/inbox/sync.ts`
+- Source: `packages/starling/channels/email/src/inbox/sync.ts`

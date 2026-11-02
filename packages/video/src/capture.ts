@@ -1,5 +1,5 @@
 /**
- * One still of a page, for a promo's screen scene (`@wren/studio` promo). Same Chromium as the
+ * One still of a page, for a promo's screen scene (`@wren/starling-studio` promo). Same Chromium as the
  * recorder; the page settles on network idle, then a short wait for its own motion.
  */
 export interface CaptureOptions {

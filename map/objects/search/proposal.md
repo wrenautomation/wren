@@ -4,7 +4,7 @@ cluster: search
 universe: live
 status: verified
 verified: 2026-09-30 @ 99fd3f6
-entity: packages/channel-search/src/schema.ts:163
+entity: packages/starling/search/src/schema.ts:163
 ---
 
 # proposal
@@ -19,7 +19,7 @@ The copy is William's and a lander push is a deploy, so a proposal never applies
 
 - `made_on`, `page`, `kind` title / description / heading / copy / faq / page, `current`, `proposed`, `why`, `keywords`, `state` open / taken / dropped, `pr`, `llm` (the model call, on rows from before the skill; null since) (`schema.ts:163`)
 
-Citations: `packages/channel-search/src/propose.ts:78`, `packages/channel-search/src/apply.ts:24`
+Citations: `packages/starling/search/src/propose.ts:78`, `packages/starling/search/src/apply.ts:24`
 
 ## Connected to
 

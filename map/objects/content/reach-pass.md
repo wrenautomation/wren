@@ -4,7 +4,7 @@ cluster: content
 universe: live
 status: verified
 verified: 2026-10-13 (passes.test.ts)
-entity: packages/outreach/src/schema.ts:649
+entity: packages/starling/outbound/src/schema.ts:649
 ---
 
 # reach-pass (people he's done with: never proposed again)
@@ -18,7 +18,7 @@ William, 2026-10-13: "a big rejection functionality ... some of these i dont wan
 ## Shape
 
 - Table `reach_passes` (migration 0238): one row per (`platform`, `handle`); `handle` is `passKey` (handle, else name, lowercased, no @); `name` as the row showed it; `reason` one of `PASS_REASONS` (`packages/core/src/pass-reasons.ts`); `note`; `item` the typed id he passed from; `by`; `until` (not now: 30 days, else null = for good); `lifted_at`. A second pass on the same person updates the row and clears the lift
-- Code `packages/outreach/src/passes.ts`: `passOn` (the picked row closes through `dropComment`/`skipPost`/`skipThread` with the note "<reason label>: <note>", so a draft is kept as turned down; a DM is marked read; then `closeOpen` closes their comments (`dropped`), posts (`skipped`, `state_reason` "passed: …") and threads (`skipped`)), `passedOn` (active keys per platform), `liftPass`, `listPasses`
+- Code `packages/starling/outbound/src/passes.ts`: `passOn` (the picked row closes through `dropComment`/`skipPost`/`skipThread` with the note "<reason label>: <note>", so a draft is kept as turned down; a DM is marked read; then `closeOpen` closes their comments (`dropped`), posts (`skipped`, `state_reason` "passed: …") and threads (`skipped`)), `passedOn` (active keys per platform), `liftPass`, `listPasses`
 - Intake: `keepComments` (dropped, why "You passed on them", not returned for drafting), `keepPosts` (`dropped`, "you passed on them"), `keepThreads` (`dropped`, same)
 - Desk: `ReachDesk.passOn {ids, reason, note}`, `liftPass {platform, handle}`, `passes`
 - Console: action `marketing.pass` "Pass on them" (key x, bulk, reason form) on `marketing.engage` and `marketing.explore`

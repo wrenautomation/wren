@@ -37,7 +37,7 @@ Citations: `packages/delivery/src/schema.ts:364`, `:372`, `:443`, `packages/deli
 
 ## If you change this
 
-- **Hits:** [[processes/billing-watch]], [[processes/delivery-watch]] (reminders, overdue and dispute flags, the setup gate), [[clients/client-health]] (money), the `books.econ_*` views (read `invoices` by name), the portal's Account → Billing and Money → Payments in, To approve (`credit:` items, `packages/content/src/social/records.ts`), [[processes/migrate]].
+- **Hits:** [[processes/billing-watch]], [[processes/delivery-watch]] (reminders, overdue and dispute flags, the setup gate), [[clients/client-health]] (money), the `books.econ_*` views (read `invoices` by name), the portal's Account → Billing and Money → Payments in, To approve (`credit:` items, `packages/starling/inbound/src/social/records.ts`), [[processes/migrate]].
 - **Does not hit:** `packages/payments` and Stripe; client databases.
 
 ## Surfaces

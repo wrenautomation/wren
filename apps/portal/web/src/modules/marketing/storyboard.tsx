@@ -6,7 +6,7 @@
  * what it would be with the changed frames marked, and Apply saves it through `VideoDesk.set`.
  * Nothing renders until Render. The timeline and the rest of the editor are one tab away.
  */
-import type { Proposal } from "@wren/studio/change";
+import type { Proposal } from "@wren/starling-studio/change";
 import {
   CAPTION_LOOK,
   type CroppedFormat,
@@ -24,9 +24,9 @@ import {
   reelY,
   shortCrop,
   type TextOverlay,
-} from "@wren/studio/finish";
-import type { Cut } from "@wren/studio/schema";
-import type { Beat, Storyboard as Board, Show } from "@wren/studio/storyboard";
+} from "@wren/starling-studio/finish";
+import type { Cut } from "@wren/starling-studio/schema";
+import type { Beat, Storyboard as Board, Show } from "@wren/starling-studio/storyboard";
 import {
   ACTIONS,
   answerIn,

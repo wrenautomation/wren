@@ -1,4 +1,4 @@
-import type { TikTokNumbers } from "@wren/content/connect";
+import type { TikTokNumbers } from "@wren/starling-inbound/connect";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { AccountFace, TikTokNumbersView } from "./social-bits.js";

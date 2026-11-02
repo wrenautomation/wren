@@ -7,6 +7,9 @@
  * authoritative verdict exists: a weaker verifier's word does not block a
  * stronger one.
  */
+
+import { retryDue } from "@wren/core/checks";
+import type { Queryable } from "@wren/db";
 import {
   type CandidateState,
   contactCandidates,
@@ -17,9 +20,7 @@ import {
   transitionCandidate,
   verifications,
   waitingDomains,
-} from "@wren/channel-email";
-import { retryDue } from "@wren/core/checks";
-import type { Queryable } from "@wren/db";
+} from "@wren/starling-email";
 import { and, eq, inArray, notExists, or, sql } from "drizzle-orm";
 import { WHERE_STAGE } from "../score.js";
 

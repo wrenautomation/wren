@@ -10,7 +10,7 @@
  * record.
  */
 
-import type { Storyboard as Board } from "@wren/studio/storyboard";
+import type { Storyboard as Board } from "@wren/starling-studio/storyboard";
 import {
   ACTIONS,
   answerIn,

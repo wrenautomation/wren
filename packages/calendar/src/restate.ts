@@ -23,12 +23,12 @@
  * Texts go through SmsWatch's reminder pass, which reads these calls next to cal.com's.
  */
 import * as restate from "@restatedev/restate-sdk";
-import { bookingEmit, bookingFired } from "@wren/channel-email/calls";
 import { type Client, findClient, isLive, listDomains, sendsOn } from "@wren/core/clients";
 import { executorEmit, type FireTriggers } from "@wren/core/executor";
 import { serviceHandler } from "@wren/core/restate";
 import { canonicalZone } from "@wren/core/time";
 import type { Db } from "@wren/db";
+import { bookingEmit, bookingFired } from "@wren/starling-email/calls";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import {

@@ -4,7 +4,7 @@ cluster: email
 universe: live
 status: verified
 verified: 2026-09-28 @ 28823cd
-entity: packages/channel-email/src/schema.ts:442
+entity: packages/starling/channels/email/src/schema.ts:442
 ---
 
 # postmaster-day
@@ -19,7 +19,7 @@ The complaint rate is the one number that can end a domain and the only one we c
 
 - `domain`, `day`, `spam_rate`, `domain_reputation`, SPF/DKIM/DMARC ratios, `delivery_error_rate`, TLS counts, `raw`, `run_id` (`schema.ts:443`–`455`)
 
-Citations: `packages/channel-email/src/schema.ts:442`, `packages/channel-email/src/inbox/postmaster.ts:364`
+Citations: `packages/starling/channels/email/src/schema.ts:442`, `packages/starling/channels/email/src/inbox/postmaster.ts:364`
 
 Per client (Inbox health installed): `PostmasterScheduler/<c>/daily` reads its `accounts.postmaster` domains into its own database, only those whose `domain` account holds `postmaster.verified` (`clientPostmaster`, `restate/postmaster-scheduler.ts`); the rest are `not_verified` on the pass. Wren's Postmaster login reads them.
 
@@ -42,4 +42,4 @@ Per client (Inbox health installed): `PostmasterScheduler/<c>/daily` reads its `
 
 ## See
 
-- Source: `packages/channel-email/src/inbox/postmaster.ts`
+- Source: `packages/starling/channels/email/src/inbox/postmaster.ts`

@@ -6,12 +6,13 @@
  * `applyBooking`, the path cal.com's webhook takes: it matches the message by `r` code or
  * address, stops the firm's follow-ups and counts the call.
  */
-import { applyBooking, type BookingChange, type BookingOutcome } from "@wren/channel-email/inbox";
-import { callBookings } from "@wren/channel-email/schema";
+
 import type { MeetingOutcome } from "@wren/core/calls";
 import { noteProfileFrom, profileFrom } from "@wren/core/profiles-backfill";
 import { linkByName } from "@wren/core/profiles-link";
 import { type Db, type Queryable, serializable, sqlState } from "@wren/db";
+import { applyBooking, type BookingChange, type BookingOutcome } from "@wren/starling-email/inbox";
+import { callBookings } from "@wren/starling-email/schema";
 import { and, asc, eq, gt, lt, ne, sql } from "drizzle-orm";
 import type { Rules } from "./rules.js";
 import { type BookingSource, bookings, type CalendarBooking } from "./schema.js";

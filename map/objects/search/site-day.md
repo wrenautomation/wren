@@ -4,7 +4,7 @@ cluster: search
 universe: live
 status: verified
 verified: 2026-10-05 @ fa06f2a
-entity: packages/channel-search/src/schema.ts:223
+entity: packages/starling/search/src/schema.ts:223
 ---
 
 # site-day
@@ -13,15 +13,15 @@ The lander's visits for one day, channel and campaign, by the visitor's first to
 
 ## Why this shape
 
-Counts only, never a visitor id, so nothing about a person is stored. The whole `/api/export` is rolled up per day and upserted, so a re-read overwrites the day, never adds (`packages/channel-search/src/site-days.ts:43`, `:116`). One step in `SearchWatch`'s daily pass, never failing it (`packages/channel-search/src/restate/watch.ts:95`). `bookings` are booking-link clicks. `calls` are real cal.com bookings: email when the link carried a code, else the first touch of the application with that email, else `other`. `paid` counts an engagement on its first paid invoice's day under its own `source_channel` (`callsAndPaid`, `:140`).
+Counts only, never a visitor id, so nothing about a person is stored. The whole `/api/export` is rolled up per day and upserted, so a re-read overwrites the day, never adds (`packages/starling/search/src/site-days.ts:43`, `:116`). One step in `SearchWatch`'s daily pass, never failing it (`packages/starling/search/src/restate/watch.ts:95`). `bookings` are booking-link clicks. `calls` are real cal.com bookings: email when the link carried a code, else the first touch of the application with that email, else `other`. `paid` counts an engagement on its first paid invoice's day under its own `source_channel` (`callsAndPaid`, `:140`).
 
 ## Shape
 
-- key (`day`, `channel`, `campaign`); `visits`, `first_touches`, `forms`, `bookings`, `watch_plays`, `calls`, `paid` (`packages/channel-search/src/schema.ts:223`); channels `SITE_CHANNELS` (`:206`), from `touchChannel` in core
-- views `marketing_site_day_records` (`packages/channel-search/src/schema.ts:343`) and `marketing_funnel_records` (`:368`, 30d/90d/all per channel)
-- `marketing.session` (`packages/channel-search/src/records.ts:224`) is not stored: it reads the lander's `replays` export live and signs each S3 chunk on open
+- key (`day`, `channel`, `campaign`); `visits`, `first_touches`, `forms`, `bookings`, `watch_plays`, `calls`, `paid` (`packages/starling/search/src/schema.ts:223`); channels `SITE_CHANNELS` (`:206`), from `touchChannel` in core
+- views `marketing_site_day_records` (`packages/starling/search/src/schema.ts:343`) and `marketing_funnel_records` (`:368`, 30d/90d/all per channel)
+- `marketing.session` (`packages/starling/search/src/records.ts:224`) is not stored: it reads the lander's `replays` export live and signs each S3 chunk on open
 
-Citations: `packages/channel-search/src/site-days.ts:43`
+Citations: `packages/starling/search/src/site-days.ts:43`
 
 ## Connected to
 
@@ -43,4 +43,4 @@ Citations: `packages/channel-search/src/site-days.ts:43`
 
 ## See
 
-- Source: `packages/channel-search/src/site-days.ts`
+- Source: `packages/starling/search/src/site-days.ts`

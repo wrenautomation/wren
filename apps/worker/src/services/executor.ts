@@ -3,10 +3,6 @@
  */
 import { billsStep } from "@wren/books";
 import { BOOKS_KEY } from "@wren/books/restate";
-import { emailTouchStep } from "@wren/channel-email";
-import { isGoogleMailbox } from "@wren/channel-email/access/access";
-import { briefStep, CALL_BRIEF } from "@wren/channel-email/calls";
-import { EMAIL_TOUCH } from "@wren/channel-email/components";
 import {
   clientSms,
   firstTextStep,
@@ -27,8 +23,6 @@ import {
 } from "@wren/channel-sms/components";
 import { SENDER_KEY } from "@wren/channel-sms/restate";
 import { ingressOf } from "@wren/config";
-import { commentGuide } from "@wren/content";
-import { askFollowEmail } from "@wren/content/inbox";
 import { findClient, sendsOn } from "@wren/core/clients";
 import type { Platform } from "@wren/core/content";
 import { setFieldStep } from "@wren/core/custom-fields";
@@ -55,11 +49,17 @@ import {
   type VideoReader,
 } from "@wren/learn";
 import { gatewayGemini, llmForKey, withPart } from "@wren/llm";
-import { touchStep as reachTouchStep, sortStep } from "@wren/outreach";
 import { collectSteps } from "@wren/pipeline/collect";
 import { shapeWorkflowsOf, soundShapes } from "@wren/pipeline/journeys";
 import { journeySteps } from "@wren/pipeline/steps";
 import { youtubeByUrl } from "@wren/research/sops";
+import { emailTouchStep } from "@wren/starling-email";
+import { isGoogleMailbox } from "@wren/starling-email/access/access";
+import { briefStep, CALL_BRIEF } from "@wren/starling-email/calls";
+import { EMAIL_TOUCH } from "@wren/starling-email/components";
+import { commentGuide } from "@wren/starling-inbound";
+import { askFollowEmail } from "@wren/starling-inbound/inbox";
+import { touchStep as reachTouchStep, sortStep } from "@wren/starling-outbound";
 import { CALL_NOW, callNowStep } from "@wren/voice/node";
 import { clientTriageStep, triageStep, mail as watchMail } from "@wren/watch";
 import { geminiReader } from "@wrenautomation/read/video";

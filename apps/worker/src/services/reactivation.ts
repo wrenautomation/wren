@@ -1,13 +1,14 @@
 /**
  * Reactivation: a client's portal, the loop, and the CLI's `crm run` door.
  */
-import { defaultLocalChecker } from "@wren/channel-email";
+
 import { ingressOf } from "@wren/config";
 import { sitesHost } from "@wren/core/content/box";
 import { ingressSites } from "@wren/core/content/ingress";
 import { meteredModel, meteredSites } from "@wren/core/metered";
 import { llmForKey } from "@wren/llm";
 import { makeCrmRun, makeReactivation, makeReactivationPortal } from "@wren/reactivation/restate";
+import { defaultLocalChecker } from "@wren/starling-email";
 import { PoliteFetcher } from "@wrenautomation/read/fetch";
 import { type AnyService, BOOKS_DESK_TIMEOUT_MS, type Deps } from "./deps.js";
 

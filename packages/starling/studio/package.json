@@ -1,0 +1,46 @@
+{
+  "name": "@wren/starling-studio",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./schema": "./src/schema.ts",
+    "./cuts": "./src/cuts.ts",
+    "./finish": "./src/finish.ts",
+    "./edit": "./src/edit.ts",
+    "./change": "./src/change.ts",
+    "./storyboard": "./src/storyboard.ts",
+    "./sentences": "./src/sentences.ts",
+    "./hash": "./src/render-hash.ts",
+    "./stress": "./src/stress.ts",
+    "./punctuate": "./src/punctuate.ts",
+    "./bar": "./src/bar.ts"
+  },
+  "scripts": {
+    "test:unit": "vitest run src",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.533",
+    "@remotion/google-fonts": "4.0.533",
+    "@wren/core": "workspace:*",
+    "@wren/db": "workspace:*",
+    "@wren/research": "workspace:*",
+    "@wren/video": "workspace:*",
+    "@wrenautomation/models": "0.29.0",
+    "@wrenautomation/read": "0.29.0",
+    "diff": "8.0.4",
+    "drizzle-orm": "0.45.2",
+    "onnxruntime-node": "1.30.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "remotion": "4.0.533",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@types/react": "19.3.0",
+    "typescript": "5.9.3",
+    "vitest": "5.0.1"
+  }
+}

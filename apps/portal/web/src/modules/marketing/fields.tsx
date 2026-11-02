@@ -5,8 +5,8 @@
  * post as its platform shows it beside them, live as he types. On a draft and in To approve it
  * edits; on a posted one it shows what went out. Drafts, To approve and Posts all draw it here.
  */
-import type { FieldView } from "@wren/core/content/shapes";
-import type { TikTokCreator } from "@wren/core/content/tiktok";
+import type { FieldView } from "@wren/starling-core/shapes";
+import type { TikTokCreator } from "@wren/starling-core/tiktok";
 import {
   ACTIONS,
   Button,
@@ -37,7 +37,7 @@ import { type CarouselShape, SlidesEditor } from "./slides.js";
 import type { ThreadShape } from "./thread.js";
 import { TIKTOK_PANEL_KEYS, TikTokPanel, type TikTokValues } from "./tiktok.js";
 
-/** `@wren/content`'s `shapeView`: a draft's fields, words and file links. */
+/** `@wren/starling-inbound`'s `shapeView`: a draft's fields, words and file links. */
 export type Shape = {
   draftId: string;
   platform: string;

@@ -17,7 +17,7 @@ import {
   REEL,
   reelCaption,
   reelY,
-} from "@wren/studio/finish";
+} from "@wren/starling-studio/finish";
 import { cx } from "@wren/ui";
 import { type ReactNode, type PointerEvent as ReactPointerEvent, useMemo } from "react";
 import { OverlayText, ShownCaption } from "./finish-caption.js";

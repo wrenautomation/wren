@@ -20,7 +20,7 @@ Spend never starts by accident and the watch only ever stops it. A retry after a
 
 ## Steps
 
-1. `Ads` handlers (`packages/channel-meta/src/restate.ts`); Graph calls (`ads.ts`).
+1. `Ads` handlers (`packages/starling/channels/meta/src/restate.ts`); Graph calls (`ads.ts`).
 2. Record (`launches.ts:12`, `:17`).
 3. Watch (`watch.ts`); verdicts and the idea (`bridge.ts:237`, `:240`).
 4. Lead forms and leads (`Ads.leadForm/leadForms/leads`).
@@ -40,4 +40,4 @@ Spend never starts by accident and the watch only ever stops it. A retry after a
 ## See
 
 - Objects: [[ads/ad-launch]]
-- Source: `packages/channel-meta/src/restate.ts`
+- Source: `packages/starling/channels/meta/src/restate.ts`

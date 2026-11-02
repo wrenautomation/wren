@@ -3,12 +3,12 @@
  * consoles.
  */
 import { ingressOf } from "@wren/config";
-import { putMedia, s3MediaHost } from "@wren/content";
 import { ingressSites } from "@wren/core/content/ingress";
 import { DESK } from "@wren/core/content/restate";
 import { makeLearnPictures, type PictureStore } from "@wren/learn";
 import { makeLearnConsole } from "@wren/learn/console";
 import { gatewayEmbed } from "@wren/llm";
+import { putMedia, s3MediaHost } from "@wren/starling-inbound";
 import { makeWatch, makeWatchConsole } from "@wren/watch/restate";
 import { gmailPushTopic } from "@wrenautomation/autobrowse/google";
 import { type AnyService, BOOKS_DESK_TIMEOUT_MS, type Deps, googleKey } from "./deps.js";

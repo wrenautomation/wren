@@ -56,7 +56,7 @@ const strings = (list) => [...list.matchAll(/"([^"]+)"/g)].map((m) => m[1]);
 
 const files = repoFiles(["packages", "apps", "map"]);
 const dirs = files
-  .filter((f) => /^(packages|apps)\/[^/]+\/package\.json$/.test(f))
+  .filter((f) => /^(packages|apps)\/(starling\/(channels\/)?)?[^/]+\/package\.json$/.test(f))
   .map((f) => dirname(f));
 const pkgOf = (file) => dirs.find((d) => file.startsWith(`${d}/`));
 const isTest = (f) => /\.test\.tsx?$/.test(f);
@@ -80,7 +80,9 @@ const OWNER_PACKAGES = "map/effects/CONTEXT.md";
 // The services, from the component registry.
 const loopsListed = new Set();
 const services = new Map();
-for (const f of files.filter((f) => /^packages\/[^/]+\/src\/(.*\/)?components\.ts$/.test(f))) {
+for (const f of files.filter((f) =>
+  /^packages\/(starling\/(channels\/)?)?[^/]+\/src\/(.*\/)?components\.ts$/.test(f),
+)) {
   for (const m of text(f).matchAll(/\bservices:\s*\[([^\]]*)\]/g))
     for (const name of strings(m[1])) services.set(name, { name, listedIn: pkgOf(f) });
   for (const m of text(f).matchAll(/\bloops:\s*\[([^\]]*)\]/g))

@@ -4,8 +4,8 @@
  * branch of a piece that waits. `Pieces/wren` through the console.
  */
 
-import type { Branch, Piece, PieceKind } from "@wren/content/pieces";
-import { PLATFORM_SPECS } from "@wren/content/write";
+import type { Branch, Piece, PieceKind } from "@wren/starling-inbound/pieces";
+import { PLATFORM_SPECS } from "@wren/starling-inbound/write";
 import {
   Button,
   ButtonLink,
@@ -86,7 +86,7 @@ function branchName(b: Pick<Branch, "platform" | "format">): string {
 }
 const markOf = (platform: string) => PLACES[platform]?.mark ?? platform;
 
-/** A draft, a failed send or a rendered recording waiting on him (`@wren/content/pieces`). */
+/** A draft, a failed send or a rendered recording waiting on him (`@wren/starling-inbound/pieces`). */
 const waits = (b: Branch) => b.state === "draft" || b.state === "failed" || b.state === "review";
 export const waitingOf = (p: Pick<Piece, "branches">) => p.branches.filter(waits);
 /** A piece's waiting branches and its children's. */

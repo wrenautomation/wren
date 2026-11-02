@@ -3,10 +3,11 @@
  * subscribers and campaigns live in Listmonk. `setup` writes the settings Wren needs and makes the
  * template; `sync` brings the lists and Wren's consents in line, both ways, now.
  */
-import { applySetup, listmonk } from "@wren/channel-email/listmonk";
-import { syncAllTopics } from "@wren/channel-email/restate";
+
 import type { Settings } from "@wren/config";
 import type { Db } from "@wren/db";
+import { applySetup, listmonk } from "@wren/starling-email/listmonk";
+import { syncAllTopics } from "@wren/starling-email/restate";
 import type { Command } from "commander";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;

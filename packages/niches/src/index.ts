@@ -3,7 +3,7 @@
  * template and sequence names repeat across niches, so campaigns address them as
  * (niche, name). Crawl hints and discovery words union when unscoped.
  */
-import { pyReprStr } from "@wren/channel-email";
+
 import { FORM_SEQUENCES, type SmsSequence, SPEED_SEQUENCES } from "@wren/channel-sms";
 import {
   BUILTIN_FORMATS,
@@ -13,6 +13,7 @@ import {
 } from "@wren/core";
 import { nameParts } from "@wren/core/templates/labels";
 import type { Dataset } from "@wren/research/fetch";
+import { pyReprStr } from "@wren/starling-email";
 import { agencies } from "./agencies.js";
 import type { Niche } from "./niche.js";
 import { recruiting } from "./recruiting.js";

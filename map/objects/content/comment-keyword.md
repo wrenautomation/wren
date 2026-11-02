@@ -4,7 +4,7 @@ cluster: content
 universe: live
 status: verified
 verified: 2026-10-20 (O2, wa-yvs.2: post is a platform object)
-entity: packages/content/src/schema.ts:1093
+entity: packages/starling/inbound/src/schema.ts:1093
 ---
 
 # comment-keyword
@@ -21,7 +21,7 @@ Meta's private reply is the only DM a page may send from a comment: one per comm
 - `keyword_hits`: `keyword_id` (cascade), `comment_id` (unique), `platform`, `author`, `state` queued/sent/failed, `why`, `ref`, `at`, `sent_at`
 - views `comment_keyword_records` (caught, sent, failed, last), `keyword_hit_records`
 
-Citations: `packages/content/src/social/keywords.ts`, `packages/content/src/restate/keyword-dm.ts`, `packages/content/src/restate/social.ts:223`
+Citations: `packages/starling/inbound/src/social/keywords.ts`, `packages/starling/inbound/src/restate/keyword-dm.ts`, `packages/starling/inbound/src/restate/social.ts:223`
 
 ## Connected to
 

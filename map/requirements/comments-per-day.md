@@ -1,6 +1,6 @@
 ---
 type: requirement
-covers: ["@wren/outreach/src/reach-posts/settings.ts", "@wren/outreach/src/reach-posts/pass.ts", "@wren/outreach/src/reach-posts/draft.ts"]
+covers: ["@wren/starling-outbound/src/reach-posts/settings.ts", "@wren/starling-outbound/src/reach-posts/pass.ts", "@wren/starling-outbound/src/reach-posts/draft.ts"]
 ---
 
 # 10 comments a day on others' posts

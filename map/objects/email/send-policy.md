@@ -4,7 +4,7 @@ cluster: email
 universe: live
 status: verified
 verified: 2026-10-04 @ afd15eb
-entity: packages/channel-email/src/send/policy.ts:79
+entity: packages/starling/channels/email/src/send/policy.ts:79
 ---
 
 # send-policy
@@ -18,9 +18,9 @@ Caps are per inbox because reputation is earned per address; the one fleet-wide 
 ## Shape
 
 - `SendPolicySettings`, `SendPolicyFields` (`policy.ts:54`, `:79`); `Ramp` (`:46`); the `WREN_SEND_*` keys in `packages/config/src/index.ts`
-- `campaign_controls(campaign, kill_switch, openers_per_day, updated_at, updated_by)` (`packages/channel-email/src/schema.ts:565`, migration 0066)
+- `campaign_controls(campaign, kill_switch, openers_per_day, updated_at, updated_by)` (`packages/starling/channels/email/src/schema.ts:565`, migration 0066)
 
-Citations: `packages/channel-email/src/send/policy.ts:79`
+Citations: `packages/starling/channels/email/src/send/policy.ts:79`
 
 ## Connected to
 
@@ -43,4 +43,4 @@ Citations: `packages/channel-email/src/send/policy.ts:79`
 
 ## See
 
-- Source: `packages/channel-email/src/send/policy.ts`
+- Source: `packages/starling/channels/email/src/send/policy.ts`

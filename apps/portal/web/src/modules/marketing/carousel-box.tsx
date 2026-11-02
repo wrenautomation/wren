@@ -5,8 +5,8 @@
  * it; the slide editor on each draft changes it later.
  */
 
-import { PLATFORM_SPECS } from "@wren/content/write";
-import { SLIDES_MAX, SLIDES_MIN, slidesFromText, slidesUnfit } from "@wren/core/content/slides";
+import { SLIDES_MAX, SLIDES_MIN, slidesFromText, slidesUnfit } from "@wren/starling-core/slides";
+import { PLATFORM_SPECS } from "@wren/starling-inbound/write";
 import { ACTIONS, Button, cx, messageOf, Section, TextAreaField, useEditForm } from "@wren/ui";
 import { useEffect, useState } from "react";
 import { QUIET } from "../work/bits.js";

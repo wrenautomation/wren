@@ -29,7 +29,7 @@ crash left half-done.
 
 ## The loop pattern
 
-All periodic work uses one shape: `packages/channel-email/src/restate/loop.ts`
+All periodic work uses one shape: `packages/starling/channels/email/src/restate/loop.ts`
 (the send loop in `send-scheduler.ts` is the same shape with a smarter delay).
 A Virtual Object with five handlers:
 

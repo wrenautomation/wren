@@ -5,7 +5,6 @@
  * desk, TikTok by yt-dlp here).
  */
 import type { Settings } from "@wren/config";
-import { contentPlaybooks } from "@wren/content/schema";
 import type { Db } from "@wren/db";
 import {
   type CatalogReader,
@@ -19,6 +18,7 @@ import {
 } from "@wren/learn";
 import { type LlmClient, loadLlmEnv, makeLlm } from "@wren/llm";
 import { audioSource, videoSource, youtubeSource } from "@wren/research/sops";
+import { contentPlaybooks } from "@wren/starling-inbound/schema";
 import type { Model } from "@wrenautomation/models";
 import { desc } from "drizzle-orm";
 import { ingressSites } from "./sites.js";

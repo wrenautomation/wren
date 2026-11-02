@@ -4,7 +4,7 @@ cluster: email
 universe: live
 status: verified
 verified: 2026-09-28 @ 28823cd
-entity: packages/channel-email/src/outreach/sequences.ts:23
+entity: packages/starling/channels/email/src/outreach/sequences.ts:23
 ---
 
 # sequence
@@ -21,7 +21,7 @@ An arm is one offer and one hook, the unit an A/B is read over; a sequence's arm
 - `EnrollmentRule { sequence, where? }`, `enrollmentPlan` (`plan.ts:67`, `:73`)
 - business-day math in `send/dates.ts`
 
-Citations: `packages/channel-email/src/outreach/sequences.ts:23`, `plan.ts:73`
+Citations: `packages/starling/channels/email/src/outreach/sequences.ts:23`, `plan.ts:73`
 
 ## Connected to
 
@@ -43,4 +43,4 @@ Citations: `packages/channel-email/src/outreach/sequences.ts:23`, `plan.ts:73`
 
 ## See
 
-- Source: `packages/channel-email/src/outreach/plan.ts`
+- Source: `packages/starling/channels/email/src/outreach/plan.ts`

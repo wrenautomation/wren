@@ -3,7 +3,7 @@
  * what blocks it and the next step; above them, each domain's one admin step as a checklist with
  * the links and the ID to paste. Connecting sends the person to Google or Microsoft to sign in.
  */
-import type { MailPageView } from "@wren/channel-email/access/console";
+import type { MailPageView } from "@wren/starling-email/access/console";
 import {
   Button,
   Callout,

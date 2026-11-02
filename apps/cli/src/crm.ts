@@ -11,8 +11,6 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import * as restate from "@restatedev/restate-sdk-clients";
-import { defaultLocalChecker, makeVerifier } from "@wren/channel-email";
-import type { InboxScheduler, SendScheduler } from "@wren/channel-email/restate";
 import { ingressOf, type Settings } from "@wren/config";
 import { recordedRun } from "@wren/core";
 import { mayApprove } from "@wren/core/access";
@@ -48,6 +46,8 @@ import {
   skipDrafts,
 } from "@wren/reactivation";
 import { type CrmRunObject, MAX_LIMIT, type Reactivation } from "@wren/reactivation/restate";
+import { defaultLocalChecker, makeVerifier } from "@wren/starling-email";
+import type { InboxScheduler, SendScheduler } from "@wren/starling-email/restate";
 import { PoliteFetcher, userAgent } from "@wrenautomation/read/fetch";
 import type { Command } from "commander";
 import { ingressSites } from "./sites.js";

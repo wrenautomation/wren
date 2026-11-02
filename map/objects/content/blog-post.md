@@ -4,7 +4,7 @@ cluster: content
 universe: live
 status: verified
 verified: 2026-10-13 @ 7b4e45de
-entity: packages/content/src/schema.ts
+entity: packages/starling/inbound/src/schema.ts
 ---
 
 # blog post
@@ -17,15 +17,15 @@ The lander's Markdown file is the post, so the site, its RSS and the newsletter'
 
 ## Shape
 
-- `blog_posts`: `slug` key, title, description, body, date, draft, published_at, emailed_at, commit_sha, from_ref (`packages/content/src/schema.ts`)
-- `slugOf`, `blogFile`, `blogProblem`, `keepBlogRow` (`packages/content/src/blog.ts`). The GitHub contents helper (`githubRepo`, `GithubFiles`: read, write, lastCommit) is core's `packages/core/src/github.ts`; the shape's git mirror uses it too ([[platform/shape]])
-- `Blog/wren`: posts, save (`from`: absent keeps `from_ref`, null clears it), audience, email (`packages/content/src/restate/blog.ts`)
+- `blog_posts`: `slug` key, title, description, body, date, draft, published_at, emailed_at, commit_sha, from_ref (`packages/starling/inbound/src/schema.ts`)
+- `slugOf`, `blogFile`, `blogProblem`, `keepBlogRow` (`packages/starling/inbound/src/blog.ts`). The GitHub contents helper (`githubRepo`, `GithubFiles`: read, write, lastCommit) is core's `packages/core/src/github.ts`; the shape's git mirror uses it too ([[platform/shape]])
+- `Blog/wren`: posts, save (`from`: absent keeps `from_ref`, null clears it), audience, email (`packages/starling/inbound/src/restate/blog.ts`)
 
-Citations: `packages/content/src/blog.ts:1`, `packages/core/src/github.ts:17`, `packages/content/src/restate/blog.ts:1`
+Citations: `packages/starling/inbound/src/blog.ts:1`, `packages/core/src/github.ts:17`, `packages/starling/inbound/src/restate/blog.ts:1`
 
 ## Connected to
 
-- **joins:** the `Newsletter` object (channel-email), the cadence record (`packages/content/src/analytics/records.ts`)
+- **joins:** the `Newsletter` object (channel-email), the cadence record (`packages/starling/inbound/src/analytics/records.ts`)
 - **looks-like-but-is-not:** [[content/draft]] (a platform post; a blog post has no platform)
 
 ## If you change this
@@ -38,9 +38,9 @@ Citations: `packages/content/src/blog.ts:1`, `packages/core/src/github.ts:17`, `
 | Surface | Role |
 |---|---|
 | Write → Blog post (`apps/portal/web/src/modules/marketing/blog-box.tsx`) | writes, emails; its From pick (recent long-video pieces, or Write's `?from=`) sets `from_ref` |
-| Marketing → Pieces (`packages/content/src/pieces.ts`) | reads; nests the post under its video |
+| Marketing → Pieces (`packages/starling/inbound/src/pieces.ts`) | reads; nests the post under its video |
 | Plan's Blog posts goal | reads |
 
 ## See
 
-- Source: `packages/content/src/blog.ts`
+- Source: `packages/starling/inbound/src/blog.ts`

@@ -3,7 +3,7 @@
  * framed section per platform with its state (Not connected, Waiting on review, Connected,
  * Broken), what blocks it and the next step. Connecting sends the person to the platform to sign in.
  */
-import type { SocialPageView } from "@wren/content/connect";
+import type { SocialPageView } from "@wren/starling-inbound/connect";
 import {
   Button,
   Callout,

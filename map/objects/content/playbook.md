@@ -4,7 +4,7 @@ cluster: content
 universe: live
 status: verified
 verified: 2026-10-04
-entity: packages/content/src/schema.ts:61
+entity: packages/starling/inbound/src/schema.ts:61
 ---
 
 # playbook
@@ -19,7 +19,7 @@ SOPs live in `../sops`, outside this public repo, so the text reaches the Lambda
 
 - `platform` (`PLATFORMS`), `sop` (the folder name), `text` (SOP.md, 16,000 chars max) (`schema.ts:61`–`74`)
 
-Citations: `packages/content/src/schema.ts:61`, `packages/content/src/playbook.ts`
+Citations: `packages/starling/inbound/src/schema.ts:61`, `packages/starling/inbound/src/playbook.ts`
 
 ## Connected to
 
@@ -42,4 +42,4 @@ Citations: `packages/content/src/schema.ts:61`, `packages/content/src/playbook.t
 
 ## See
 
-- Source: `packages/content/src/playbook.ts`
+- Source: `packages/starling/inbound/src/playbook.ts`

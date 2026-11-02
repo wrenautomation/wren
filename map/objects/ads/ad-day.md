@@ -4,7 +4,7 @@ cluster: ads
 universe: live
 status: verified
 verified: 2026-10-05 @ fa06f2a
-entity: packages/channel-meta/src/schema.ts:59
+entity: packages/starling/channels/meta/src/schema.ts:59
 ---
 
 # ad-day
@@ -13,14 +13,14 @@ One ad set's numbers for one day, as Meta's insights gave them. Table `ad_days`;
 
 ## Why this shape
 
-Meta's insights are read every pass and were thrown away. A row per ad set and day, upserted, keeps them: a re-read or a revised day overwrites, never adds (`packages/channel-meta/src/days.ts:23`). Written only by the step `AdsWatch` already runs, so no new loop (`packages/channel-meta/src/watch.ts:84`). Days exist only while a launch is active.
+Meta's insights are read every pass and were thrown away. A row per ad set and day, upserted, keeps them: a re-read or a revised day overwrites, never adds (`packages/starling/channels/meta/src/days.ts:23`). Written only by the step `AdsWatch` already runs, so no new loop (`packages/starling/channels/meta/src/watch.ts:84`). Days exist only while a launch is active.
 
 ## Shape
 
-- key (`adset_id`, `day`); `campaign_id`, names, `currency`, `spend`, `impressions`, `reach`, `clicks`, `leads` (`leadsOf`), `results` (`packages/channel-meta/src/schema.ts:59`)
-- view `marketing_ad_day_records`: cost per lead, the launch's state for pause and resume, age (`packages/channel-meta/src/schema.ts:93`)
+- key (`adset_id`, `day`); `campaign_id`, names, `currency`, `spend`, `impressions`, `reach`, `clicks`, `leads` (`leadsOf`), `results` (`packages/starling/channels/meta/src/schema.ts:59`)
+- view `marketing_ad_day_records`: cost per lead, the launch's state for pause and resume, age (`packages/starling/channels/meta/src/schema.ts:93`)
 
-Citations: `packages/channel-meta/src/days.ts:23`, `packages/channel-meta/src/records.ts:1`
+Citations: `packages/starling/channels/meta/src/days.ts:23`, `packages/starling/channels/meta/src/records.ts:1`
 
 ## Connected to
 
@@ -41,4 +41,4 @@ Citations: `packages/channel-meta/src/days.ts:23`, `packages/channel-meta/src/re
 
 ## See
 
-- Source: `packages/channel-meta/src/days.ts`
+- Source: `packages/starling/channels/meta/src/days.ts`

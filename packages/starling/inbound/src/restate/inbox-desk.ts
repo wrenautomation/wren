@@ -1,0 +1,736 @@
+/**
+ * InboxDesk (designs/2026-10-07-inbox-reply.md): reply from the Inbox on the thread's own
+ * channel, ask for a yes when the gate says so, keep notes, assign, close and snooze. A send goes
+ * through each channel's own desk, so its checks (opt-outs, caps, the text window, the live gates)
+ * still run.
+ */
+import * as restate from "@restatedev/restate-sdk";
+import { can, type Who, WREN } from "@wren/core/access";
+import { type Client, findClient } from "@wren/core/clients";
+import { businessFactLines } from "@wren/core/custom-fields";
+import type { KeyStore } from "@wren/core/keys";
+import { meteredModel } from "@wren/core/metered";
+import { isDemo, type Viewer, whoIs } from "@wren/core/portal";
+import { clientKey, errorText, PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
+import { gate } from "@wren/core/vendors";
+import type { Db } from "@wren/db";
+import { type LlmClient, llmForKey } from "@wren/llm";
+import { addInboxNote, teamEmails } from "@wren/notes/inbox";
+import { mailMentions, type SendMention } from "@wren/notes/mention-mail";
+import { markAnswered } from "@wren/starling-outbound";
+import { eq } from "drizzle-orm";
+import { z } from "zod";
+import { ChatRefusal, replyChat } from "../chat/store.js";
+import { autoModes, setAutoMode } from "../inbox/auto.js";
+import { partyOf, type ReplyOption, threadChannelOf } from "../inbox/conversation.js";
+import { clientRoutes, routeOf } from "../inbox/routes.js";
+import {
+  accessChannel,
+  askReply,
+  type Copied,
+  campaignOfAsker,
+  copiedOf,
+  failReply,
+  HeldReply,
+  mayWork,
+  partOf,
+  pickOption,
+  queueReply,
+  type ReplySender,
+  releaseReply,
+  replyGate,
+  replyWords,
+  sendOn,
+  settleReply,
+  waitingReply,
+} from "../inbox/send.js";
+import { suggestReply } from "../inbox/suggest.js";
+import { setThread } from "../inbox/threads.js";
+import {
+  AUTO_REPLY_MODES,
+  type AutoReplyMode,
+  INBOX_CHANNELS,
+  INBOX_STATUSES,
+  type InboxChannel,
+  type InboxStatus,
+  inboxReplies,
+} from "../schema.js";
+
+/** Where Disposition keeps Wren's replies (`DISPOSITION_KEY` in channel-email). */
+const FLEET = "fleet";
+
+/** The thread an asked reply answers, whatever its state; null when there is none. */
+async function askedThread(db: Db, id: number): Promise<string | null> {
+  const [r] = await db
+    .select({ thread: inboxReplies.thread })
+    .from(inboxReplies)
+    .where(eq(inboxReplies.id, id));
+  return r?.thread ?? null;
+}
+
+interface InboxDeskDeps {
+  /** Wren's database: the team, the clients, Wren's own threads. */
+  db: Db;
+  /** A client's own database, for a client's threads. */
+  clientDb?: (client: string) => Db;
+  /** The model Suggest drafts with; absent, Suggest refuses. */
+  llm?: LlmClient | null;
+  /** The model for threads holding Google data, one that doesn't train on it (`SuggestDeps.google`). */
+  google?: LlmClient | null;
+  /** Whether a client's mailbox is a Google one; absent, every one counts. */
+  googleMailbox?: (client: string, address: string) => Promise<boolean>;
+  /** Clients' own keys: a client on its own model key drafts on it. */
+  keys?: KeyStore | null;
+  /** Who signs a suggestion: his name. */
+  senderName: string;
+  /** What is true about him, for a suggestion's claims (`wrenFacts`). */
+  facts?: () => Promise<readonly string[]>;
+  /** Each channel's send path; absent, the channels' own desks over Restate. Tests pass a fake. */
+  channels?: (ctx: restate.Context, client: string | null, viewer: Viewer) => ReplySender;
+  /** Mail for a teammate `@`ed in a note, with the portal's origin; absent, the app only. */
+  mentionMail?: { send: SendMention; portal: string } | null;
+}
+
+type Fn<I, O> = (ctx: unknown, req: I) => Promise<O>;
+type ReachDesk = {
+  reply: Fn<{ contactId: number; body: string; viewer: Viewer }, unknown>;
+  answerComment: Fn<{ id: number; body: string; viewer: Viewer }, unknown>;
+};
+type SmsDesk = { reply: Fn<{ contactId: number; body: string; client?: string }, unknown> };
+/** A client's own connected accounts (`makeSocialInbox`). */
+type SocialInboxDesk = {
+  send: Fn<{ client: string; contactId: number; body: string; by?: string | null }, unknown>;
+  answer: Fn<{ client: string; id: number; body: string; by?: string | null }, unknown>;
+};
+/** `ReachDesk.armComment`: warm an answer that waits on a yes. */
+type ReachArm = { armComment: Fn<{ id: number; body: string }, { armed: boolean }> };
+
+/** A client's connected mailboxes (`makeMailReply`). */
+type MailReplyDesk = {
+  send: Fn<{ client: string; mailId: number; body: string; by?: string | null }, unknown>;
+};
+type Outcome = { ok: boolean; reason?: string | null; until?: string | null };
+type Disposition = {
+  approve: Fn<{ id: number; body: string }, Outcome>;
+  reply: Fn<{ threadEventId: number; body: string }, Outcome>;
+  followUp: Fn<{ enrollmentId: number; body: string }, Outcome>;
+};
+
+/** `InboxDesk.release`, sent to itself after a delay (`deliver`). */
+type ReleaseDesk = {
+  release: Fn<{ id: number; client?: string }, { state: "sent" | "queued" | "failed" | "gone" }>;
+};
+/** A beat past the cap's `until`, so the release finds the room already there. */
+const RELEASE_SLACK_MS = 1_000;
+
+/**
+ * The channels' own desks, called as this viewer. A client's DMs and comments go through its own
+ * connected accounts (`SocialInbox`); Wren's through reach. Mail to a client's mailbox goes back
+ * out through that mailbox (`MailReply`).
+ */
+function restateChannels(
+  ctx: restate.Context,
+  client: string | null,
+  viewer: Viewer,
+  db: Db,
+): ReplySender {
+  const reach = () => ctx.serviceClient<ReachDesk>({ name: "ReachDesk" });
+  const social = () => ctx.serviceClient<SocialInboxDesk>({ name: "SocialInbox" });
+  const by = viewer && !isDemo(viewer) ? (viewer.email ?? null) : null;
+  const disposition = () =>
+    ctx.objectClient<Disposition>(
+      { name: "Disposition" },
+      client ? clientKey(client, FLEET) : FLEET,
+    );
+  const ok = (o: Outcome) => {
+    if (!o.ok) throw new restate.TerminalError(o.reason ?? "not sent");
+  };
+  return {
+    dm: async (contactId, body) => {
+      if (client) await social().send({ client, contactId, body, by });
+      else await reach().reply({ contactId, body, viewer });
+    },
+    comment: async (id, body) => {
+      if (client) await social().answer({ client, id, body, by });
+      else await reach().answerComment({ id, body, viewer });
+    },
+    text: async (contactId, body) => {
+      await ctx
+        .serviceClient<SmsDesk>({ name: "SmsDesk" })
+        .reply({ contactId, body, ...(client ? { client } : {}) });
+    },
+    invite: async (id, body) => ok(await disposition().approve({ id, body })),
+    email: async (threadEventId, body) => ok(await disposition().reply({ threadEventId, body })),
+    thread: async (enrollmentId, body, campaign) => {
+      const out = await disposition().followUp({
+        enrollmentId,
+        body,
+        ...(campaign ? { campaign } : {}),
+      });
+      if (!out.ok && out.until)
+        throw new HeldReply(out.reason ?? "held by the frequency cap", new Date(out.until));
+      ok(out);
+    },
+    mail: async (mailId, body) => {
+      if (!client) throw new restate.TerminalError("Only a client's mailbox answers mail here.");
+      await ctx
+        .serviceClient<MailReplyDesk>({ name: "MailReply" })
+        .send({ client, mailId, body, by });
+    },
+    // A review off Maps: answered here, its words pasted on Google by whoever approved it.
+    posted: async (id, body) => {
+      const now = new Date(await ctx.date.now());
+      await ctx.run("posted", () =>
+        markAnswered(db, id, { body, ref: null, now, ...(by ? { by } : {}) }),
+      );
+    },
+    // A site chat has no desk: ours lands in the owner's database, and the bubble reads it.
+    chat: async (threadId, body) => {
+      await ctx.run("chat", async () => {
+        try {
+          await replyChat(db, threadId, body, by ?? "wren");
+        } catch (e) {
+          if (e instanceof ChatRefusal) throw new restate.TerminalError(e.message);
+          throw e;
+        }
+      });
+    },
+  };
+}
+
+const THREAD = z.string().min(3).max(80).describe("The Inbox thread's id: dm:5, text:8, reply:6");
+const BASE = z.looseObject({ thread: THREAD, ...PORTAL_FIELDS });
+const REPLY = BASE.extend({
+  channel: z.enum(INBOX_CHANNELS).describe("Where it goes: email, text, dm, comment or chat"),
+  target: z.string().min(1).max(80).describe("The channel's id from the thread's options"),
+  body: z.string().describe("The words"),
+});
+const PICK = BASE.extend({ channel: z.enum(INBOX_CHANNELS), target: z.string().min(1).max(80) });
+const ASKED = z.looseObject({ id: z.number().describe("The asked reply's id"), ...PORTAL_FIELDS });
+
+interface Req {
+  viewer?: Viewer;
+  client?: string;
+}
+
+export function makeInboxDesk(deps: InboxDeskDeps) {
+  const dbOf = (client: string | null): Db => {
+    if (!client) return deps.db;
+    if (!deps.clientDb) throw new restate.TerminalError("no client databases here");
+    return deps.clientDb(client);
+  };
+  /** Whoever asks, signed in; the console fills `viewer`. */
+  const by = (req: Req): string => {
+    const v = req.viewer;
+    if (!v || isDemo(v) || !v.email) throw new restate.TerminalError("sign in to do that");
+    return v.email.toLowerCase();
+  };
+  const clientOf = (req: Req): string | null => req.client || null;
+  /** Its refusals as terminal: a retry won't change them. */
+  const terminal = async <T>(fn: () => Promise<T>): Promise<T> => {
+    try {
+      return await fn();
+    } catch (err) {
+      if (err instanceof restate.TerminalError) throw err;
+      throw new restate.TerminalError(errorText(err));
+    }
+  };
+  const nowOf = async (ctx: restate.Context) => new Date(await ctx.date.now());
+  /** The client's name, once its `models` gate lets one call through; else why not. */
+  const clientSigner = async (client: string, now: Date): Promise<string> => {
+    const row = await findClient(deps.db, client);
+    if (!row) throw new Error(`no client ${client}`);
+    const g = await gate(deps.db, client, "models", 1, now);
+    if (!g.ok) throw new Error(`models: ${g.why}`);
+    return row.name;
+  };
+  /**
+   * A client's DM or comment goes out on its own connected account only: none, a broken one, or a
+   * platform with no API for it refuses, before anything is kept or sent. Never Wren's accounts.
+   * A reply to mail goes out through the client's mailbox it came to, connected.
+   */
+  const routed = (client: string | null, option: ReplyOption) =>
+    terminal(async () => {
+      if (!client) {
+        if (option.from) throw new Error("Only a client's connected mailbox answers mail here.");
+        return;
+      }
+      const shut = routeOf(option, await clientRoutes(deps.db, client));
+      if (shut) throw new Error(shut.off);
+    });
+  const channels = (ctx: restate.Context, client: string | null, viewer: Viewer) =>
+    deps.channels
+      ? deps.channels(ctx, client, viewer)
+      : restateChannels(ctx, client, viewer, dbOf(client));
+  /** Who they are, and the client's sends and approver: what the gate reads. */
+  const gateOf = (req: Req, option: ReplyOption) =>
+    terminal(async () => {
+      const client = clientOf(req);
+      const who: Who = await whoIs(deps.db, req.viewer as Viewer, client ?? undefined);
+      const row: Client | null = client ? await findClient(deps.db, client) : null;
+      if (client && !row) throw new Error(`no client ${client}`);
+      return replyGate({
+        channel: option.channel,
+        platform: option.platform,
+        part: partOf(option),
+        client: row,
+        who,
+      });
+    });
+  /**
+   * May they work here? Wren's own threads are the team's: the console checked the row. A
+   * client's need `act` there, on the thread's channel (`channel`, or the thread's own), read
+   * fresh, so a login never reaches a client it isn't in.
+   */
+  const mayHere = (req: Req, db: Db, at: { thread: string } | { channel: string | null }) =>
+    terminal(async () => {
+      const client = clientOf(req);
+      const who = await whoIs(deps.db, req.viewer as Viewer, client ?? undefined);
+      if (!client) {
+        if (!who || !("team" in who)) throw new Error("Wren's Inbox is the team's");
+        return;
+      }
+      const channel = "thread" in at ? await threadChannelOf(db, at.thread) : at.channel;
+      if (!mayWork(who, client, channel)) throw new Error("your role can't do that here");
+    });
+
+  /** Auto-reply's settings: anyone working here reads them; `manage` here changes them. */
+  const mayAuto = (req: Req, need: "read" | "manage") =>
+    terminal(async () => {
+      const client = clientOf(req);
+      const who = await whoIs(deps.db, req.viewer as Viewer, client ?? undefined);
+      if (!can(who, need, { client: client ?? WREN }))
+        throw new Error(need === "read" ? "no access" : "you don't manage this here");
+    });
+
+  /**
+   * Send a claimed reply on its channel. An email the frequency cap holds is queued instead: its
+   * yes stays, it leaves To approve, and `release` sends it once they have room, as a delayed
+   * call to this service. Any other refusal fails the row and throws. `queued` is when it goes.
+   */
+  const deliver = async (
+    ctx: restate.Context,
+    db: Db,
+    client: string | null,
+    viewer: Viewer,
+    row: { id: number; body: string; askedBy: string },
+    option: ReplyOption,
+  ): Promise<{ queued: Date | null }> => {
+    try {
+      await sendOn(channels(ctx, client, viewer), option, row.body, campaignOfAsker(row.askedBy));
+      return { queued: null };
+    } catch (err) {
+      if (!(err instanceof HeldReply)) {
+        await ctx.run("failed", () => failReply(db, row.id, errorText(err)));
+        throw err;
+      }
+      const now = await nowOf(ctx);
+      await ctx.run("queue", () => queueReply(db, row.id, err.until));
+      ctx.serviceSendClient<ReleaseDesk>({ name: "InboxDesk" }).release(
+        { id: row.id, ...(client ? { client } : {}) },
+        restate.rpc.sendOpts({
+          delay: Math.max(0, err.until.getTime() - now.getTime()) + RELEASE_SLACK_MS,
+        }),
+      );
+      return { queued: err.until };
+    }
+  };
+
+  return restate.service({
+    name: "InboxDesk",
+    handlers: {
+      /** Each channel's auto-reply mode (designs/2026-10-09-auto-reply.md). */
+      autoReplies: serviceHandler(
+        { input: z.looseObject({ ...PORTAL_FIELDS }) },
+        async (
+          ctx: restate.Context,
+          req: Req,
+        ): Promise<{ modes: Record<InboxChannel, AutoReplyMode>; held: boolean }> => {
+          by(req);
+          await ctx.run("may", () => mayAuto(req, "read"));
+          const modes = await ctx.run("modes", () => autoModes(dbOf(clientOf(req))));
+          // Auto sends nothing until William says go: it drafts like Suggest.
+          return { modes, held: true };
+        },
+      ),
+      autoReplySet: serviceHandler(
+        {
+          input: z.looseObject({
+            ...PORTAL_FIELDS,
+            channel: z.enum(INBOX_CHANNELS).describe("email, text, dm or comment"),
+            mode: z.enum(AUTO_REPLY_MODES).describe("off, suggest or auto"),
+          }),
+        },
+        async (
+          ctx: restate.Context,
+          req: Req & { channel: InboxChannel; mode: AutoReplyMode },
+        ): Promise<{ modes: Record<InboxChannel, AutoReplyMode>; held: boolean }> => {
+          const me = by(req);
+          await ctx.run("may", () => mayAuto(req, "manage"));
+          const db = dbOf(clientOf(req));
+          const modes = await ctx.run("set", async () => {
+            await setAutoMode(db, req.channel, req.mode, me);
+            return autoModes(db);
+          });
+          return { modes, held: true };
+        },
+      ),
+      /**
+       * Send a reply on the channel picked, through its own desk; when the gate says ask, it waits
+       * in To approve instead. The thread then waits on them.
+       */
+      reply: serviceHandler(
+        { input: REPLY, effect: "sends" },
+        async (
+          ctx: restate.Context,
+          req: Req & { thread: string; channel: InboxChannel; target: string; body: string },
+        ): Promise<{
+          sent: boolean;
+          asked: number | null;
+          why: string | null;
+          copy?: Copied;
+        }> => {
+          const me = by(req);
+          const client = clientOf(req);
+          const db = dbOf(client);
+          const body = await terminal(async () => replyWords(req.body));
+          const option = await ctx.run("pick", () =>
+            terminal(() => pickOption(db, req.thread, req.channel, req.target)),
+          );
+          await ctx.run("may", () =>
+            mayHere(req, db, { channel: accessChannel(option.channel, option.platform) }),
+          );
+          await ctx.run("route", () => routed(client, option));
+          const gate = await ctx.run("gate", () => gateOf(req, option));
+          if (gate.mode === "ask") {
+            const asked = await ctx.run("ask", async () => {
+              const p = await partyOf(db, req.thread);
+              const row = await askReply(db, {
+                thread: req.thread,
+                option,
+                body,
+                who: p?.who ?? null,
+                by: me,
+                why: gate.why,
+              });
+              return row.id;
+            });
+            return { sent: false, asked, why: gate.why };
+          }
+          await sendOn(channels(ctx, client, req.viewer as Viewer), option, body);
+          const now = await nowOf(ctx);
+          await ctx.run("waiting", () => setThread(db, req.thread, { status: "waiting" }, me, now));
+          const copy = copiedOf(option, body);
+          return { sent: true, asked: null, why: null, ...(copy ? { copy } : {}) };
+        },
+      ),
+      /** Ask for a yes: the reply waits in To approve. Nothing sends. */
+      ask: serviceHandler(
+        { input: REPLY },
+        async (
+          ctx: restate.Context,
+          req: Req & { thread: string; channel: InboxChannel; target: string; body: string },
+        ): Promise<{ asked: number }> => {
+          const me = by(req);
+          const db = dbOf(clientOf(req));
+          const body = await terminal(async () => replyWords(req.body));
+          const option = await ctx.run("pick", () =>
+            terminal(() => pickOption(db, req.thread, req.channel, req.target)),
+          );
+          await ctx.run("may", () =>
+            mayHere(req, db, { channel: accessChannel(option.channel, option.platform) }),
+          );
+          await ctx.run("route", () => routed(clientOf(req), option));
+          const asked = await ctx.run("ask", () =>
+            terminal(async () => {
+              const p = await partyOf(db, req.thread);
+              const row = await askReply(db, {
+                thread: req.thread,
+                option,
+                body,
+                who: p?.who ?? null,
+                by: me,
+                why: null,
+              });
+              return row.id;
+            }),
+          );
+          // Wren's comment answers: warm the browser now, so the yes sends at once.
+          if (!clientOf(req) && option.channel === "comment" && !option.copy)
+            ctx
+              .serviceSendClient<ReachArm>({ name: "ReachDesk" })
+              .armComment({ id: Number(option.target), body });
+          return { asked };
+        },
+      ),
+      /**
+       * A yes on an asked reply: sent on its channel now. A second yes finds it settled and stops.
+       * An email the frequency cap holds is queued with the yes kept, and sends itself (`release`).
+       */
+      approve: serviceHandler(
+        { input: ASKED, effect: "sends" },
+        async (
+          ctx: restate.Context,
+          req: Req & { id: number },
+        ): Promise<{ sent: boolean; queued?: string; copy?: Copied }> => {
+          const me = by(req);
+          const client = clientOf(req);
+          const db = dbOf(client);
+          const row = await ctx.run("read", () => terminal(() => waitingReply(db, req.id)));
+          const option = await ctx.run("pick", () =>
+            terminal(() => pickOption(db, row.thread, row.channel, row.target)),
+          );
+          await ctx.run("may", () =>
+            mayHere(req, db, { channel: accessChannel(option.channel, option.platform) }),
+          );
+          await ctx.run("route", () => routed(client, option));
+          const gate = await ctx.run("gate", () => gateOf(req, option));
+          if (gate.mode === "ask") throw new restate.TerminalError(gate.why ?? "you can't send");
+          const claimed = await ctx.run("claim", () => settleReply(db, req.id, "sent", me));
+          if (!claimed) throw new restate.TerminalError("that reply was settled already");
+          const { queued } = await deliver(ctx, db, client, req.viewer as Viewer, row, option);
+          if (queued) return { sent: false, queued: queued.toISOString() };
+          const now = await nowOf(ctx);
+          await ctx.run("waiting", () => setThread(db, row.thread, { status: "waiting" }, me, now));
+          const copy = copiedOf(option, row.body);
+          return { sent: true, ...(copy ? { copy } : {}) };
+        },
+      ),
+      /**
+       * A queued reply's turn, called by `approve` after a delay: nothing is asked again, the yes
+       * is on the row. It sends if they have room now, else queues again for when they will. A
+       * reply dropped meanwhile is `gone`; one the send refuses fails, with why on its row.
+       */
+      release: serviceHandler(
+        {
+          input: z.looseObject({ id: z.number(), client: z.string().optional() }),
+          effect: "sends",
+          ingressPrivate: true,
+        },
+        async (
+          ctx: restate.Context,
+          req: { id: number; client?: string },
+        ): Promise<{ state: "sent" | "queued" | "failed" | "gone" }> => {
+          const client = req.client || null;
+          const db = dbOf(client);
+          const row = await ctx.run("take", () => releaseReply(db, req.id));
+          if (!row) return { state: "gone" };
+          const me = row.decidedBy ?? row.askedBy;
+          try {
+            const option = await ctx.run("pick", () =>
+              terminal(() => pickOption(db, row.thread, row.channel, row.target)),
+            );
+            await ctx.run("route", () => routed(client, option));
+            const { queued } = await deliver(ctx, db, client, { email: me }, row, option);
+            if (queued) return { state: "queued" };
+          } catch (err) {
+            // `deliver` failed its own refusals; one before it failed nothing yet.
+            await ctx.run("failed", () => failReply(db, row.id, errorText(err)));
+            return { state: "failed" };
+          }
+          const now = await nowOf(ctx);
+          await ctx.run("waiting", () => setThread(db, row.thread, { status: "waiting" }, me, now));
+          return { state: "sent" };
+        },
+      ),
+      /** No to an asked reply: nothing sends. */
+      drop: serviceHandler(
+        { input: ASKED },
+        async (ctx: restate.Context, req: Req & { id: number }): Promise<{ dropped: boolean }> => {
+          const me = by(req);
+          const db = dbOf(clientOf(req));
+          await ctx.run("may", async () => {
+            const thread = await askedThread(db, req.id);
+            if (thread) await mayHere(req, db, { thread });
+          });
+          return { dropped: await ctx.run("drop", () => settleReply(db, req.id, "dropped", me)) };
+        },
+      ),
+      /** Words to start from: the DM drafter for a DM, else the dossier, touches and thread. */
+      suggest: serviceHandler(
+        { input: PICK },
+        async (
+          ctx: restate.Context,
+          req: Req & { thread: string; channel: InboxChannel; target: string },
+        ): Promise<{ text: string | null }> => {
+          by(req);
+          const llm = deps.llm;
+          if (!llm) throw new restate.TerminalError("no model is set for suggestions");
+          const client = clientOf(req);
+          const db = dbOf(client);
+          const option = await ctx.run("pick", () =>
+            terminal(() => pickOption(db, req.thread, req.channel, req.target)),
+          );
+          await ctx.run("may", () =>
+            mayHere(req, db, { channel: accessChannel(option.channel, option.platform) }),
+          );
+          const now = await nowOf(ctx);
+          const text = await ctx.run("suggest", () =>
+            terminal(async () => {
+              // A client's words are signed by the client, claim nothing of Wren's, and run on
+              // its own models gate.
+              const sender = client ? await clientSigner(client, now) : deps.senderName;
+              // A client's call runs on its own key or Wren's share, metered either way.
+              const meter = (m: LlmClient) =>
+                client
+                  ? meteredModel(m, {
+                      main: deps.db,
+                      client,
+                      part: "inbox.suggest",
+                      now: () => now,
+                      store: deps.keys ?? null,
+                      own: llmForKey,
+                    })
+                  : m;
+              return suggestReply(
+                db,
+                {
+                  llm: meter(llm),
+                  ...(client
+                    ? {
+                        google: {
+                          llm: deps.google ? meter(deps.google) : null,
+                          mailbox: (a: string) =>
+                            deps.googleMailbox?.(client, a) ?? Promise.resolve(true),
+                        },
+                      }
+                    : {}),
+                  sender,
+                  ...(client
+                    ? { facts: () => businessFactLines(deps.db, client) }
+                    : deps.facts
+                      ? { facts: deps.facts }
+                      : {}),
+                },
+                { thread: req.thread, channel: req.channel, target: req.target, now },
+              );
+            }),
+          );
+          return { text };
+        },
+      ),
+      /** A note on the thread and its person, never sent; a teammate `@`ed gets a mention. */
+      note: serviceHandler(
+        { input: BASE.extend({ body: z.string().describe("The note") }) },
+        async (
+          ctx: restate.Context,
+          req: Req & { thread: string; body: string },
+        ): Promise<{ id: string; mentioned: string[] }> => {
+          const me = by(req);
+          const client = clientOf(req);
+          const db = dbOf(client);
+          await ctx.run("may", () => mayHere(req, db, { thread: req.thread }));
+          const now = await nowOf(ctx);
+          const out = await ctx.run("note", () =>
+            terminal(async () => {
+              const p = await partyOf(db, req.thread);
+              if (!p) throw new Error("that thread is gone");
+              const { note, mentioned } = await addInboxNote(db, {
+                thread: req.thread,
+                personId: p.personId,
+                body: req.body,
+                by: me,
+                team: await teamEmails(deps.db, client),
+                now,
+              });
+              return { id: note.id, mentioned };
+            }),
+          );
+          const mail = deps.mentionMail;
+          if (out.mentioned.length && mail)
+            // Only this note's: a note-body mention waits for Notes, which checks who may open it.
+            await ctx.run("mail mentions", () =>
+              mailMentions(db, { ...mail, client, readerOf: async () => null }).catch(
+                (e: unknown) => console.warn(`mention mail: ${(e as Error).message}`),
+              ),
+            );
+          return out;
+        },
+      ),
+      /** Give the thread to a teammate, or to nobody. */
+      assign: serviceHandler(
+        {
+          input: BASE.extend({
+            assignee: z.string().nullish().describe("A teammate's email; empty is nobody"),
+          }),
+        },
+        async (
+          ctx: restate.Context,
+          req: Req & { thread: string; assignee?: string | null },
+        ): Promise<{ assignee: string | null }> => {
+          const me = by(req);
+          const client = clientOf(req);
+          const db = dbOf(client);
+          const who = req.assignee?.trim().toLowerCase() || null;
+          await ctx.run("may", () => mayHere(req, db, { thread: req.thread }));
+          const now = await nowOf(ctx);
+          await ctx.run("assign", () =>
+            terminal(async () => {
+              if (who && !(await teamEmails(deps.db, client)).includes(who))
+                throw new Error(`${who} is not on the team`);
+              await setThread(db, req.thread, { assignee: who }, me, now);
+            }),
+          );
+          return { assignee: who };
+        },
+      ),
+      /** Take the thread: it's the caller's. */
+      take: serviceHandler(
+        { input: BASE },
+        async (
+          ctx: restate.Context,
+          req: Req & { thread: string },
+        ): Promise<{ assignee: string }> => {
+          const me = by(req);
+          const db = dbOf(clientOf(req));
+          await ctx.run("may", () => mayHere(req, db, { thread: req.thread }));
+          const now = await nowOf(ctx);
+          await ctx.run("take", () => setThread(db, req.thread, { assignee: me }, me, now));
+          return { assignee: me };
+        },
+      ),
+      /** Open, waiting on them, or closed. Closing touches nothing on the channel. */
+      status: serviceHandler(
+        { input: BASE.extend({ status: z.enum(INBOX_STATUSES) }) },
+        async (
+          ctx: restate.Context,
+          req: Req & { thread: string; status: InboxStatus },
+        ): Promise<{ status: InboxStatus }> => {
+          const me = by(req);
+          const db = dbOf(clientOf(req));
+          await ctx.run("may", () => mayHere(req, db, { thread: req.thread }));
+          const now = await nowOf(ctx);
+          // Open or closed by hand also ends a snooze.
+          await ctx.run("status", () =>
+            setThread(db, req.thread, { status: req.status, snoozeUntil: null }, me, now),
+          );
+          return { status: req.status };
+        },
+      ),
+      /** Out of the way until then, or until they write; no time wakes it now. */
+      snooze: serviceHandler(
+        {
+          input: BASE.extend({
+            until: z.string().nullish().describe("When it comes back, ISO; empty wakes it"),
+          }),
+        },
+        async (
+          ctx: restate.Context,
+          req: Req & { thread: string; until?: string | null },
+        ): Promise<{ until: string | null }> => {
+          const me = by(req);
+          const db = dbOf(clientOf(req));
+          await ctx.run("may", () => mayHere(req, db, { thread: req.thread }));
+          const now = await nowOf(ctx);
+          const until = req.until ? new Date(req.until) : null;
+          if (until && (Number.isNaN(until.getTime()) || until <= now))
+            throw new restate.TerminalError("pick a time ahead");
+          await ctx.run("snooze", () => setThread(db, req.thread, { snoozeUntil: until }, me, now));
+          return { until: until?.toISOString() ?? null };
+        },
+      ),
+    },
+  });
+}
+
+export type InboxDesk = ReturnType<typeof makeInboxDesk>;

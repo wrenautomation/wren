@@ -525,7 +525,7 @@ export const settingsSchema = z.object({
         .filter(Boolean),
     ),
   /**
-   * Cold outreach on Reddit and LinkedIn (packages/outreach). Off = the loop
+   * Cold outreach on Reddit and LinkedIn (packages/starling/outbound). Off = the loop
    * queues and reads but sends nothing. Accounts are autobrowse credential
    * keys (`reddit@alt`), never william@wrenautomation's own logins.
    */

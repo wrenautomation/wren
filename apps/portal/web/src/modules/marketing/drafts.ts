@@ -3,9 +3,9 @@
  * gone out; ads and texts. `said` and the shared forms the other files take live here.
  */
 
-import { TIKTOK_COPY } from "@wren/core/content/tiktok";
 import { PASS_LABELS, PASS_REASONS } from "@wren/core/pass-reasons";
 import { REJECT_LABELS, REJECT_NOTE_MAX, REJECT_REASONS } from "@wren/core/reject-reasons";
+import { TIKTOK_COPY } from "@wren/starling-core/tiktok";
 import { type Action, type FormField, said } from "@wren/ui";
 import { draftActions } from "./ask.js";
 import { ATTACH, FIELDS, UPLOAD } from "./fields.js";

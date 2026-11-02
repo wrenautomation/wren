@@ -2,11 +2,12 @@
  * `crm lookup` against the migrated schema: who gets picked, what lands in
  * findings / documents / person_lookups, and that re-runs resume, not repeat.
  */
-import { FakeVerifier, type LocalCheckerLike } from "@wren/channel-email";
+
 import { people } from "@wren/core";
 import { SiteCallError, type SiteClient } from "@wren/core/content";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { findings, personLookups } from "@wren/research/schema";
+import { FakeVerifier, type LocalCheckerLike } from "@wren/starling-email";
 import { asc, eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { CRM_FORMATS } from "../../src/crm/formats.js";

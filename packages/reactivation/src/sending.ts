@@ -3,11 +3,12 @@
  * and Wren's send rules with the client's caps. Wren's window, days and gaps
  * carry over; Wren's opener caps, kill-switch exemptions and ramp are Wren's campaigns' and do not.
  */
-import { type SendPolicy, senderFleet, sendPolicyFor, sharedFor } from "@wren/channel-email";
-import type { SendScope } from "@wren/channel-email/restate";
+
 import { type Client, findClient } from "@wren/core/clients";
 import { clientOfKey } from "@wren/core/restate";
 import type { Db } from "@wren/db";
+import { type SendPolicy, senderFleet, sendPolicyFor, sharedFor } from "@wren/starling-email";
+import type { SendScope } from "@wren/starling-email/restate";
 import { type ReactivationSettings, reactivationSettingsOf } from "./settings.js";
 
 // Moved to channel-email with email sequences (O2); the same rules serve both.

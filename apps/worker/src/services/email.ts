@@ -3,6 +3,14 @@
  * the newsletter, compose and the queue, placement, Postmaster, opens and clicks, the Friday
  * report, and the Email console.
  */
+
+import type { Calendar } from "@wren/core/calendar";
+import { sitesHost } from "@wren/core/content/box";
+import { restateSites } from "@wren/core/content/restate";
+import { meteredModel } from "@wren/core/metered";
+import { clientKey, clientOfKey, LIMITS } from "@wren/core/restate";
+import { llmForKey } from "@wren/llm";
+import { clientSendScope } from "@wren/reactivation";
 import {
   Broadcast,
   campaignPolicy,
@@ -13,8 +21,8 @@ import {
   senderFleet,
   sequencesSendScope,
   sharedFor,
-} from "@wren/channel-email";
-import { type Listmonk, listmonk } from "@wren/channel-email/listmonk";
+} from "@wren/starling-email";
+import { type Listmonk, listmonk } from "@wren/starling-email/listmonk";
 import {
   DISPOSITION_KEY,
   inboxPush,
@@ -38,14 +46,7 @@ import {
   makeSendScheduler,
   type SendScope,
   syncTopicByName,
-} from "@wren/channel-email/restate";
-import type { Calendar } from "@wren/core/calendar";
-import { sitesHost } from "@wren/core/content/box";
-import { restateSites } from "@wren/core/content/restate";
-import { meteredModel } from "@wren/core/metered";
-import { clientKey, clientOfKey, LIMITS } from "@wren/core/restate";
-import { llmForKey } from "@wren/llm";
-import { clientSendScope } from "@wren/reactivation";
+} from "@wren/starling-email/restate";
 import { gmailPushTopic } from "@wrenautomation/autobrowse/google";
 import { ImapReader, type InboxReader, RoutedReader } from "@wrenautomation/autobrowse/mail";
 import { type AnyService, type Deps, googleKey } from "./deps.js";

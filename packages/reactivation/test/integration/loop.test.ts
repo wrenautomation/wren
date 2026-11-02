@@ -6,16 +6,16 @@
 import * as restate from "@restatedev/restate-sdk";
 import * as ingress from "@restatedev/restate-sdk-clients";
 import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
+import { ingressOf, loadSettings } from "@wren/config";
+import { clients } from "@wren/core/clients";
+import { startTestRestate } from "@wren/core/testing";
+import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import {
   ConsoleTransport,
   FakeVerifier,
   type LocalCheckerLike,
   SendPolicy,
-} from "@wren/channel-email";
-import { ingressOf, loadSettings } from "@wren/config";
-import { clients } from "@wren/core/clients";
-import { startTestRestate } from "@wren/core/testing";
-import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
+} from "@wren/starling-email";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { makeReactivation, type Reactivation } from "../../src/loop.js";

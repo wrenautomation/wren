@@ -1,5 +1,5 @@
 /** The Videos shelf's reads, kept apart from the page so they test without a browser. */
-import type { Piece } from "@wren/content/pieces";
+import type { Piece } from "@wren/starling-inbound/pieces";
 import type { TagTone } from "@wren/ui";
 
 export type ShelfRow = {

@@ -9,7 +9,7 @@
  * after a tab away; a board asks only for the cards that changed, and a board save over a
  * newer one is refused with both shown.
  *
- *   WREN_DATABASE_URL=postgres://...@127.0.0.1:5434/wren_writes_e2e tsx ../../packages/content/test/inbox-preview.ts
+ *   WREN_DATABASE_URL=postgres://...@127.0.0.1:5434/wren_writes_e2e tsx ../../packages/starling/inbound/test/inbox-preview.ts
  *   PORT=8792 WREN_DATABASE_URL=... pnpm preview      # then, in another shell:
  *   tsx scripts/writes-e2e.ts                          # the preview on :8792
  *

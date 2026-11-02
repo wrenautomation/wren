@@ -6,7 +6,7 @@
  * lists them. While the Mac is off a question waits in Restate.
  *
  * Ask Claude on a draft (designs/2026-10-06-content-desk.md, 3) is the same row and the same
- * desk call, per draft: `draftTurns` reads one draft's turns; `@wren/content`'s `DraftAsk`
+ * desk call, per draft: `draftTurns` reads one draft's turns; `@wren/starling-inbound`'s `DraftAsk`
  * writes them.
  */
 import * as restate from "@restatedev/restate-sdk";

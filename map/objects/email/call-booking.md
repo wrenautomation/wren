@@ -4,7 +4,7 @@ cluster: email
 universe: live
 status: verified
 verified: 2026-10-07 @ 2cdad29
-entity: packages/channel-email/src/schema.ts:639
+entity: packages/starling/channels/email/src/schema.ts:639
 ---
 
 # call-booking
@@ -13,7 +13,7 @@ A call booked on Wren's cal.com, from its webhook or the catch-up list, or on ou
 
 ## Why this shape
 
-A lead who books from an email's link must stop getting mail, and the booking must count as a result, whether or not William answered a reply first (designs/2026-10-04-booking-webhook.md). The row matches its email by the link's `r` code (`messages.link_code`), else by the attendee's address; a matched booking stops the firm with stop reason `booked` (`packages/channel-email/src/inbox/bookings.ts:139`). A cancel only marks the row and never restarts a sequence. A reschedule moves the row to the new uid and time. An unmatched booking is still kept.
+A lead who books from an email's link must stop getting mail, and the booking must count as a result, whether or not William answered a reply first (designs/2026-10-04-booking-webhook.md). The row matches its email by the link's `r` code (`messages.link_code`), else by the attendee's address; a matched booking stops the firm with stop reason `booked` (`packages/starling/channels/email/src/inbox/bookings.ts:139`). A cancel only marks the row and never restarts a sequence. A reschedule moves the row to the new uid and time. An unmatched booking is still kept.
 
 ## Shape
 
@@ -25,7 +25,7 @@ A lead who books from an email's link must stop getting mail, and the booking mu
 - each booking, move or cancel also fires the executor's Booking triggers (`bookingFired`, the `fire` dep; [[platform/executor]])
 - `call_invites` is the other source of "booked": a slot William approved from a reply
 
-Citations: `packages/channel-email/src/schema.ts:639`, `packages/channel-email/src/inbox/bookings.ts:66`, `packages/channel-email/src/calls/outcome.ts:36`
+Citations: `packages/starling/channels/email/src/schema.ts:639`, `packages/starling/channels/email/src/inbox/bookings.ts:66`, `packages/starling/channels/email/src/calls/outcome.ts:36`
 
 ## Connected to
 
@@ -50,4 +50,4 @@ Citations: `packages/channel-email/src/schema.ts:639`, `packages/channel-email/s
 
 ## See
 
-- Source: `packages/channel-email/src/inbox/bookings.ts`
+- Source: `packages/starling/channels/email/src/inbox/bookings.ts`

@@ -19,11 +19,11 @@ Append-only, so the first version and its prompt can't be written over. One narr
 
 - `item`, `round`, `kind`, `platform`, `event`, `via` (model, person, claude, wren), `by`, `text`, `title`, `ask`, `reason` (`REJECT_REASONS`, `packages/core/src/reject-reasons.ts:2`), `note`, `llm` (prompt, system, model, usage, raw answer on a model's `generated`), `slot`, `external_id` (the post a post, video or comment-on-a-post made, the comment a thread reply or comment answer made: a [[content/platform-object]] ref, key `fk_draft_events_platform_external_id_platform_objects`, migration 0312; `recordDraft` resolves it in its own transaction, one no rule reads goes to `meta.external_id` with the column null; a DM or invite makes a message, not an object, so its id is always in `meta.external_id`), `url`, `meta`, `run_id`, `ref`, `at`
 
-On a reach draft (`thread`, `post_comment`, `comment`, `dm`, `invite_note`) the model's `generated` step carries `meta.arm`, the draft-model test arm that chose `by` (`designs/2026-10-14-draft-models.md`); history and the Inbox's own suggestions have none. The scorecard (`draftScorecard`, `packages/outreach/src/draft-models.ts`) reads the last model `generated` step against the `sent`/`approved`/`rejected` after it, guard drops from `runs` (`command = 'guard'`, `model` set only for an arm's draft), the comment proof and replies.
+On a reach draft (`thread`, `post_comment`, `comment`, `dm`, `invite_note`) the model's `generated` step carries `meta.arm`, the draft-model test arm that chose `by` (`designs/2026-10-14-draft-models.md`); history and the Inbox's own suggestions have none. The scorecard (`draftScorecard`, `packages/starling/outbound/src/draft-models.ts`) reads the last model `generated` step against the `sent`/`approved`/`rejected` after it, guard drops from `runs` (`command = 'guard'`, `model` set only for an arm's draft), the comment proof and replies.
 
 Live steps take the database's clock as each row is written (`clock_timestamp()`); only the backfill and a video's first words set `at`. Reads order by `(at, id)`; `draft_activity.seq` is the step's id for the Activity tab.
 
-Citations: `packages/core/src/schema.ts:650`, `packages/core/src/draft-record.ts:93`, `packages/core/src/train.ts`, `packages/content/src/train-backfill.ts`
+Citations: `packages/core/src/schema.ts:650`, `packages/core/src/draft-record.ts:93`, `packages/core/src/train.ts`, `packages/starling/inbound/src/train-backfill.ts`
 
 ## Connected to
 
@@ -34,7 +34,7 @@ Citations: `packages/core/src/schema.ts:650`, `packages/core/src/draft-record.ts
 
 ## If you change this
 
-- **Hits:** the export and pairs (`packages/core/src/train.ts`), the backfill (`packages/content/src/train-backfill.ts`, keyed by `bf:` refs), the views `draft_activity`, `draft_outcomes`, `draft_people`, `done_records` (`packages/content/src/schema.ts`), the record page (`draftRecordOf`, `apps/portal/web/src/modules/marketing/versions.tsx`), and every `recordDraft` call: `packages/content/src/{draft,review,queue,draft-ask,video}.ts`, `packages/outreach/src/{comments,drafts,reach-posts}.ts`, `packages/outreach/src/discovery/threads.ts`, `packages/studio/src/edit.ts`, `keepSentEdit` (`packages/core/src/ask.ts`)
+- **Hits:** the export and pairs (`packages/core/src/train.ts`), the backfill (`packages/starling/inbound/src/train-backfill.ts`, keyed by `bf:` refs), the views `draft_activity`, `draft_outcomes`, `draft_people`, `done_records` (`packages/starling/inbound/src/schema.ts`), the record page (`draftRecordOf`, `apps/portal/web/src/modules/marketing/versions.tsx`), and every `recordDraft` call: `packages/starling/inbound/src/{draft,review,queue,draft-ask,video}.ts`, `packages/starling/outbound/src/{comments,drafts,reach-posts}.ts`, `packages/starling/outbound/src/discovery/threads.ts`, `packages/starling/studio/src/edit.ts`, `keepSentEdit` (`packages/core/src/ask.ts`)
 - **Does not hit:** `changes` (the records layer's field edits) or `runs` (still written as before)
 
 ## Surfaces

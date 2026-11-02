@@ -14,7 +14,7 @@
   "dependencies": {
     "@simplewebauthn/browser": "13.3.0",
     "@wren/auth": "workspace:*",
-    "@wren/channel-email": "workspace:*",
+    "@wren/starling-email": "workspace:*",
     "@wren/config": "workspace:*",
     "@wren/core": "workspace:*",
     "@wren/db": "workspace:*",

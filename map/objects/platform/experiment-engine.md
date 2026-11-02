@@ -23,9 +23,9 @@ Every test (a site experiment, a page split) needs the same math, so it lives on
 - `posteriors`, `pBest` (`:67`, `:84`), `withFloor`; strategies `even`, `thompson`, `epsilon`, `ucb1`; fitness `replies`, `interested`, `booked`, `opens`, `weighted`, `lexicographic` (`names.ts`)
 - `settingsSchema`: every field defaulted, so `{}` is valid (`settings.ts:10`). `mutation`, `seeding`, `models`, `strategistEvery`, `queueSize`, `autoApprove` are left from the email copy evolve, retired in d530bb9b: no caller reads them today
 - `seeded`, `betaDraw` (`rng.ts`); `simulate` (`simulate.ts:87`)
-- callers: site experiments (`packages/channel-search/src/experiments.ts`: Thompson on `booked`, 200 visitors before a variant drops or settles, P(best) 0.95 holds the shares at 90/10 until William ships or stops); [[platform/page-split]] (`packages/sites/src/split-call.ts`: `pBest` only)
+- callers: site experiments (`packages/starling/search/src/experiments.ts`: Thompson on `booked`, 200 visitors before a variant drops or settles, P(best) 0.95 holds the shares at 90/10 until William ships or stops); [[platform/page-split]] (`packages/sites/src/split-call.ts`: `pBest` only)
 
-Citations: `packages/experiments/src/engine.ts:1`, `packages/channel-search/src/experiments.ts:1`
+Citations: `packages/experiments/src/engine.ts:1`, `packages/starling/search/src/experiments.ts:1`
 
 ## Connected to
 
@@ -35,7 +35,7 @@ Citations: `packages/experiments/src/engine.ts:1`, `packages/channel-search/src/
 
 ## If you change this
 
-- **Hits:** `packages/channel-search/src/experiments.ts`, `packages/sites/src/split-call.ts`, `packages/core/test/integration/experiments.test.ts`
+- **Hits:** `packages/starling/search/src/experiments.ts`, `packages/sites/src/split-call.ts`, `packages/core/test/integration/experiments.test.ts`
 - **Does not hit:** the flag tables' shape
 
 ## Surfaces

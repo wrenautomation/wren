@@ -18,33 +18,6 @@ import {
   GoogleHost,
 } from "@wren/calendar";
 import {
-  activeSenders,
-  ConsoleTransport,
-  emailChecks,
-  GmailClient,
-  GmailTransport,
-  InstantlyTransport,
-  loadMailboxes,
-  loadRoster,
-  makeFiller,
-  makeNotifier,
-  makeVerifier,
-  type Notifier,
-  type PostmasterClient,
-  plainMailer,
-  RoutedTransport,
-  rosterFleet,
-  SendPolicy,
-  SmtpTransport,
-  type Transport,
-} from "@wren/channel-email";
-import { mailAccess, mailAppsFrom } from "@wren/channel-email/access/access";
-import { mailChecks } from "@wren/channel-email/access/setups";
-import { briefSettingsOf, CALL_BRIEF, landerVisits } from "@wren/channel-email/calls";
-import type { Campaign } from "@wren/channel-email/restate";
-import { metaChecks } from "@wren/channel-meta";
-import { searchConsoleChecks, searchConsoleClient } from "@wren/channel-search";
-import {
   answerChecks,
   CalcomBookings,
   type ClientSms,
@@ -61,25 +34,6 @@ import {
   TelnyxProvider,
 } from "@wren/channel-sms";
 import { ingressOf, type Settings } from "@wren/config";
-import { commentGuide, DEFAULT_VOICE, dmGuide, s3MediaHost } from "@wren/content";
-import {
-  liveFrom,
-  socialAccess,
-  socialAppsFrom,
-  socialChecks,
-  socialSites,
-} from "@wren/content/connect";
-import { ourPosts } from "@wren/content/our-posts";
-import {
-  autoReplyFire,
-  type ContentDesk,
-  clientDrafting,
-  DESK_KEY,
-  DESK_UNIT,
-  SOCIAL_KEY,
-  type SocialPushed,
-} from "@wren/content/restate";
-import { contentDrafts, contentPlaybooks } from "@wren/content/schema";
 import { resolve as dohResolve } from "@wren/core";
 import {
   type BroadcastMail,
@@ -121,13 +75,6 @@ import {
 import { LANDERS_BY_NICHE, NICHES, SMS_SEQUENCES } from "@wren/niches";
 import type { NoteTurns } from "@wren/notes/console";
 import { DRIVE_READ_SCOPE, googleDrive } from "@wren/notes/drive";
-import {
-  ArmedLlm,
-  type DmPlatform,
-  REACH_SEQUENCES,
-  policyFrom as reachPolicyFrom,
-  savedArms,
-} from "@wren/outreach";
 import { stripeChecks } from "@wren/payments/setups";
 import {
   type BrowserRenderer,
@@ -135,6 +82,59 @@ import {
   browserRenderer,
   cdpRenderer,
 } from "@wren/research";
+import {
+  activeSenders,
+  ConsoleTransport,
+  emailChecks,
+  GmailClient,
+  GmailTransport,
+  InstantlyTransport,
+  loadMailboxes,
+  loadRoster,
+  makeFiller,
+  makeNotifier,
+  makeVerifier,
+  type Notifier,
+  type PostmasterClient,
+  plainMailer,
+  RoutedTransport,
+  rosterFleet,
+  SendPolicy,
+  SmtpTransport,
+  type Transport,
+} from "@wren/starling-email";
+import { mailAccess, mailAppsFrom } from "@wren/starling-email/access/access";
+import { mailChecks } from "@wren/starling-email/access/setups";
+import { briefSettingsOf, CALL_BRIEF, landerVisits } from "@wren/starling-email/calls";
+import type { Campaign } from "@wren/starling-email/restate";
+import { commentGuide, DEFAULT_VOICE, dmGuide, s3MediaHost } from "@wren/starling-inbound";
+import {
+  liveFrom,
+  socialAccess,
+  socialAppsFrom,
+  socialChecks,
+  socialSites,
+} from "@wren/starling-inbound/connect";
+import { ourPosts } from "@wren/starling-inbound/our-posts";
+import {
+  autoReplyFire,
+  type ContentDesk,
+  clientDrafting,
+  DESK_KEY,
+  DESK_UNIT,
+  SOCIAL_KEY,
+  type SocialPushed,
+} from "@wren/starling-inbound/restate";
+import { contentDrafts, contentPlaybooks } from "@wren/starling-inbound/schema";
+import { metaChecks } from "@wren/starling-meta";
+import {
+  ArmedLlm,
+  type DmPlatform,
+  REACH_SEQUENCES,
+  policyFrom as reachPolicyFrom,
+  savedArms,
+} from "@wren/starling-outbound";
+import { searchConsoleChecks, searchConsoleClient } from "@wren/starling-search";
 import {
   expandHome,
   loadServiceAccountKey,

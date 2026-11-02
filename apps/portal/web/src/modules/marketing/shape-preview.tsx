@@ -4,7 +4,7 @@
  * post. Each draws in the device frame the message previews use, at the app's own width. A
  * platform without its own card (Facebook) keeps the generic feed preview.
  */
-import type { FieldView } from "@wren/core/content/shapes";
+import type { FieldView } from "@wren/starling-core/shapes";
 import { DeviceFrame, type MessageKind, MessagePreview, useDraftText } from "@wren/ui";
 import { type ReactNode, useState, useSyncExternalStore } from "react";
 import type { Shape } from "./fields.js";

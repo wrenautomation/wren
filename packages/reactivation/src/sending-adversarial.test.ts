@@ -2,8 +2,9 @@
  * A client mailbox's send rules and loop list at their edges: caps at 0, ramps
  * above the ceiling, every sender suspended, and dates only the regex liked.
  */
-import { SendPolicy } from "@wren/channel-email";
+
 import { loadSettings } from "@wren/config";
+import { SendPolicy } from "@wren/starling-email";
 import { describe, expect, it } from "vitest";
 import { mailboxLoops } from "./loop.js";
 import { senderFleet, sendingOff, sendPolicyFor, settingsOrNull } from "./sending.js";

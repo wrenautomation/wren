@@ -1,0 +1,819 @@
+/**
+ * MarketingConsole: a client's Marketing numbers in the portal (designs/2026-10-07-per-client-runs.md).
+ * The `records*` reads are what its posting, ads and search loops wrote into its own database,
+ * for anyone who may open that client, once `marketing.stats` is installed. A draft's verdict
+ * goes to `ContentDesk/<client>/desk`, only from whoever the client's approver is (Wren's team by
+ * default). Nothing here posts: an approved draft waits for the client's scheduler and its live
+ * flag. Its Inbox: the client's own threads through InboxDesk, with the client set to the one
+ * the guard opened. Wren's own Marketing is the console's.
+ */
+import * as restate from "@restatedev/restate-sdk";
+import { mayApprove } from "@wren/core/access";
+import type { Client } from "@wren/core/clients";
+import { REJECT_REASONS, rejectWhy } from "@wren/core/draft-record";
+import { flagsFor } from "@wren/core/flag-store";
+import { subjectOf } from "@wren/core/flags";
+import { UUID } from "@wren/core/ids";
+import {
+  MARKETING_CONSOLE_APPS,
+  MARKETING_CONSOLE_ROUTES,
+  POST_NOW,
+} from "@wren/core/marketing/console-routes";
+import {
+  accessOf,
+  answer,
+  isDemo,
+  PortalRefusal,
+  type PortalRequest,
+  pickClient,
+  pickForWrite,
+  portalService,
+  whoIs,
+} from "@wren/core/portal";
+import { metaOf, type RecordType } from "@wren/core/records";
+import {
+  type ExportAsk,
+  fenceFor,
+  type GetAsk,
+  type ListAsk,
+  meOf,
+  opens,
+  type RecordsApi,
+  type StatsAsk,
+  serveRecords,
+} from "@wren/core/records/serve";
+import { clientKey, PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
+import { type Db, snapshot } from "@wren/db";
+import type { TikTokCreator } from "@wren/starling-core/tiktok";
+import { SETTLE_OUTCOMES, type SettleOutcome } from "@wren/starling-outbound";
+import { z } from "zod";
+import {
+  deleteReport,
+  type ReportDeps,
+  type ReportInput,
+  reportsOf,
+  runReport,
+  saveReport,
+} from "../client-reports/store.js";
+import { REPORT_EVERY, REPORT_TILE_IDS } from "../client-reports/tiles.js";
+import type { ReplyOption } from "../inbox/conversation.js";
+import { clientRoutes, withRoutes } from "../inbox/routes.js";
+import {
+  PROMO_PIECES,
+  PROMO_PLATFORMS,
+  type PromoPiece,
+  type PromoPlatform,
+  promotable,
+} from "../promo.js";
+import {
+  AUTO_REPLY_MODES,
+  type AutoReplyMode,
+  INBOX_CHANNELS,
+  INBOX_STATUSES,
+  type InboxChannel,
+  type InboxStatus,
+} from "../schema.js";
+import type { ShapeView } from "../shape-view.js";
+import { type ContentDesk, clientDrafting, DESK_UNIT, type FunnelRequest } from "./desk.js";
+import type { InboxDesk } from "./inbox-desk.js";
+import { startReport } from "./reports.js";
+import type { SocialInbox } from "./social-inbox.js";
+
+const MARKETING_STATS = "marketing.stats";
+
+interface MarketingConsoleDeps {
+  /** Main: the client registry. */
+  db: Db;
+  /** A client's database. */
+  open: (client: Pick<Client, "id" | "database">) => Db;
+  /** The record types a client's Marketing serves: what its loops write. */
+  records: readonly RecordType[];
+  /**
+   * The client's connected TikTok as `creator_info` answers it now, or null with none: its
+   * draft's form draws from it (TikTok's Direct Post rules).
+   */
+  tiktokCreator?: (client: string) => Promise<TikTokCreator | null>;
+  /** Client reports' mail from portal@ (designs/2026-10-09-client-reports.md); absent, none. */
+  reportMail?: ReportDeps["mail"];
+  /** A new report's zone. */
+  zone?: string;
+}
+
+interface ReportSaveRequest extends PortalRequest, ReportInput {
+  id?: number | null;
+}
+
+interface DraftsRequest extends PortalRequest {
+  /** Draft ids, as the record shows them. */
+  ids: string[];
+}
+/** A yes: at the next slot, at a time he picked, or on the next pass. */
+interface ApproveRequest extends DraftsRequest {
+  at?: string | null;
+  now?: boolean | null;
+  expect?: string | null;
+}
+interface RejectRequest extends DraftsRequest {
+  reason?: string | null;
+  note?: string | null;
+}
+interface RedraftRequest extends PortalRequest {
+  draftId: string;
+  note: string;
+}
+
+interface FieldsRequest extends PortalRequest {
+  draftId: string;
+  patch: Record<string, unknown>;
+}
+interface FunnelConsoleRequest extends PortalRequest {
+  draftId: string;
+  stage?: string | null;
+  to?: string | null;
+  video?: string | null;
+  linked?: string | boolean | null;
+}
+interface PromoteRequest extends PortalRequest {
+  /** The client's YouTube post. */
+  draftId: string;
+  /** Posts, an X thread, a carousel; none: posts. */
+  pieces?: PromoPiece[] | null;
+}
+interface SlidesRequest extends PortalRequest {
+  draftId: string;
+  slides?: { title: string; lines: string[] }[] | null;
+  draw?: boolean | null;
+}
+export interface AttachRequest extends PortalRequest {
+  draftId: string;
+  field: string;
+  name: string;
+  /** The `s3://` ref `draftUpload` answered, once the browser's PUT is done. */
+  source: string;
+}
+
+export interface UploadRequest extends PortalRequest {
+  draftId: string;
+  field: string;
+  name: string;
+  size: number;
+  sha256: string;
+}
+
+const CREATOR_TTL_MS = 30_000;
+const NO_TIKTOK = "Connect the client's TikTok under Account → Social to post to it.";
+const TIKTOK_UNREAD = "TikTok didn't answer for this account. Open the post again in a minute.";
+const NOT_YOURS = { wren: "Wren's team approves these", client: "the client approves these" };
+
+/** The handlers as plain functions: the service wraps them, tests call them. */
+export function marketingConsoleApi({
+  db,
+  open,
+  records,
+  tiktokCreator,
+  reportMail,
+  zone,
+}: MarketingConsoleDeps) {
+  const reportDeps: ReportDeps = { main: db, open, records, mail: reportMail };
+  /** The client a report change is on: never the demo, Marketing installed. */
+  const reporting = async (req: PortalRequest): Promise<Client> => {
+    const { client } = await pickForWrite(db, req);
+    if (!Object.hasOwn(client.products ?? {}, MARKETING_STATS))
+      throw new PortalRefusal("Marketing numbers is not installed", 404);
+    return client;
+  };
+  const byOf = (req: PortalRequest) => (isDemo(req.viewer) ? "demo" : req.viewer.email);
+  /** A client this viewer may open, with Marketing installed. */
+  const installed = async (req: PortalRequest): Promise<Client> => {
+    const client = await pickClient(db, req);
+    if (!Object.hasOwn(client.products ?? {}, MARKETING_STATS))
+      throw new PortalRefusal("Marketing numbers is not installed", 404);
+    return client;
+  };
+  /**
+   * The account a TikTok form draws, kept half a minute: each saved choice reads the post again,
+   * and TikTok allows 20 reads a minute per token. The post itself reads it fresh.
+   */
+  const creators = new Map<string, { at: number; value: Promise<TikTokCreator | null> }>();
+  const creatorOf = (client: string) => {
+    if (!tiktokCreator) return null;
+    const now = Date.now();
+    const hit = creators.get(client);
+    if (hit && now - hit.at < CREATOR_TTL_MS) return hit.value;
+    const value = tiktokCreator(client);
+    creators.set(client, { at: now, value });
+    value.catch(() => creators.delete(client));
+    return value;
+  };
+  const read = async <T>(req: PortalRequest, use: (api: RecordsApi) => Promise<T>) =>
+    readAt(await installed(req), req, use);
+  const readAt = <T>(client: Client, req: PortalRequest, use: (api: RecordsApi) => Promise<T>) =>
+    snapshot(open(client), (tx) =>
+      use(serveRecords(records, tx, undefined, fenceFor(req, client.id), meOf(req))),
+    );
+  return {
+    recordsTypes: async (req: PortalRequest) => {
+      const fence = fenceFor(req, (await installed(req)).id);
+      return records.filter((t) => !fence || opens(t, fence(t))).map((t) => metaOf(t, false));
+    },
+    recordsList: (req: PortalRequest & ListAsk) => read(req, (r) => r.list(req)),
+    /** A row; an Inbox thread's reply options say which need the client's own account. */
+    recordsGet: async (req: PortalRequest & GetAsk) => {
+      const client = await installed(req);
+      const out = await readAt(client, req, (r) => r.get(req));
+      const detail = out.detail as {
+        conversation?: { options?: ReplyOption[] };
+        shape?: ShapeView | null;
+      } | null;
+      const c = detail?.conversation;
+      if (c?.options) c.options = withRoutes(c.options, await clientRoutes(db, client.id));
+      // A TikTok draft still open: the account as TikTok answers now, read each time it opens.
+      const shape = detail?.shape;
+      const creator = shape?.platform === "tiktok" && shape.editable ? creatorOf(client.id) : null;
+      if (shape && creator)
+        shape.tiktok = await creator.then(
+          (creator) => ({ creator, note: creator ? null : NO_TIKTOK }),
+          () => ({ creator: null, note: TIKTOK_UNREAD }),
+        );
+      return out;
+    },
+    recordsExport: (req: PortalRequest & ExportAsk) => read(req, (r) => r.export(req)),
+    recordsStats: (req: PortalRequest & StatsAsk) => read(req, (r) => r.stats(req)),
+    /** Marketing → Reports: each report, its last runs, and who may get it. */
+    reports: async (req: PortalRequest) => {
+      const client = await installed(req);
+      return {
+        ...(await reportsOf(db, client.id)),
+        mail: reportMail?.on === true,
+        zone: zone ?? "America/Toronto",
+      };
+    },
+    reportSave: async (req: ReportSaveRequest) => {
+      const client = await reporting(req);
+      const { name, tiles, every, zone: z, recipients, on } = req;
+      const r = await saveReport(db, {
+        client: client.id,
+        id: req.id ?? null,
+        input: { name, tiles, every, zone: z, recipients, on },
+        by: byOf(req),
+        now: new Date(),
+      });
+      return { id: r.id };
+    },
+    reportDelete: async (req: PortalRequest & { id: number }) => {
+      const client = await reporting(req);
+      await deleteReport(db, client.id, req.id);
+      return { ok: true };
+    },
+    /** The period so far, kept on the page, mailed to nobody. */
+    reportRun: async (req: PortalRequest & { id: number }) => {
+      const client = await reporting(req);
+      const mine = (await reportsOf(db, client.id)).reports.some((r) => r.id === req.id);
+      if (!mine) throw new PortalRefusal("no such report", 404);
+      const s = await runReport(reportDeps, {
+        id: req.id,
+        at: new Date(),
+        closed: false,
+        by: byOf(req),
+      });
+      return { id: s?.id ?? null };
+    },
+    /**
+     * The client whose Inbox a change is on: never the demo, Marketing installed. InboxDesk
+     * then checks the viewer on the thread.
+     */
+    inboxing: async (req: PortalRequest): Promise<string> => {
+      const { client } = await pickForWrite(db, req);
+      if (!Object.hasOwn(client.products ?? {}, MARKETING_STATS))
+        throw new PortalRefusal("Marketing numbers is not installed", 404);
+      return client.id;
+    },
+    /** The client's desk key, or the refusal: never the demo, installed, its approver only. */
+    deciding: async (req: PortalRequest): Promise<string> => (await decide(req)).key,
+    /** The client whose unsure send this viewer may settle: its approver, as for a verdict. */
+    settling: async (req: PortalRequest): Promise<string> => (await decide(req)).client.id,
+    /**
+     * As `deciding`, for a yes that posts on the next pass (Post now): only where the `post_now`
+     * portal flag is on for this login, as the button shows. Wren's team passes, as with any flag.
+     */
+    decidingNow: async (req: PortalRequest): Promise<string> => {
+      const { client, key, who } = await decide(req);
+      if (who && "team" in who) return key;
+      const v = req.viewer;
+      const on = isDemo(v)
+        ? "off"
+        : ((await flagsFor(db, subjectOf(who, v.email, client.id)))[POST_NOW] ?? "off");
+      if (on === "off") throw new PortalRefusal("Post now isn't on for this workspace", 403);
+      return key;
+    },
+    /**
+     * A promo of the client's YouTube post, checked before it starts: its approver, its plan and
+     * model gate open, the post a video approved to go up. The platforms are its own logins'.
+     */
+    promoting: async (req: PromoteRequest) => {
+      const { client, key } = await decide(req);
+      const draftId = String(req.draftId ?? "");
+      if (!UUID.test(draftId)) throw new PortalRefusal("pick a YouTube post first", 400);
+      const plan = await clientDrafting(db, client.id);
+      if (!plan.ok) throw new PortalRefusal(plan.why, 409);
+      try {
+        await promotable(open(client), draftId);
+      } catch (err) {
+        throw new PortalRefusal((err as Error).message, 409);
+      }
+      const platforms: PromoPlatform[] = PROMO_PLATFORMS.filter((p) => plan.platforms.includes(p));
+      if (!platforms.length)
+        throw new PortalRefusal("none of this client's logins takes a promo yet", 409);
+      return { key, draftId, platforms };
+    },
+  };
+
+  async function decide(req: PortalRequest) {
+    const { client } = await pickForWrite(db, req);
+    if (!Object.hasOwn(client.products ?? {}, MARKETING_STATS))
+      throw new PortalRefusal("Marketing numbers is not installed", 404);
+    const v = req.viewer;
+    const who =
+      !isDemo(v) && !v.access && !v.operator ? await whoIs(db, v, client.id) : accessOf(req);
+    if (!mayApprove(who, client.id, client.approver))
+      throw new PortalRefusal(NOT_YOURS[client.approver === "client" ? "client" : "wren"], 403);
+    return { client, key: clientKey(client.id, DESK_UNIT), who };
+  }
+}
+
+/** Draft ids from a browser: strings, one page's worth. */
+const idsOf = (v: unknown): string[] => {
+  if (!Array.isArray(v) || !v.length || v.length > 500)
+    throw new PortalRefusal("pick a draft first", 400);
+  return v.map(String);
+};
+
+const RECORDS = { input: z.looseObject(PORTAL_FIELDS) };
+const APPROVE = {
+  input: z.looseObject({
+    ...PORTAL_FIELDS,
+    ids: z.array(z.union([z.string(), z.number()])).describe("Draft ids"),
+    at: z.iso.datetime({ offset: true }).nullish().describe("Post at this time (ISO)"),
+    now: z.boolean().nullish().describe("Post on the next pass"),
+    expect: z.string().nullish().describe("For one draft: the version on screen"),
+  }),
+};
+const REJECT = {
+  input: z.looseObject({
+    ...PORTAL_FIELDS,
+    ids: z.array(z.union([z.string(), z.number()])).describe("Draft ids"),
+    reason: z
+      .string()
+      .nullish()
+      .describe(`Why, as a quick pick: ${REJECT_REASONS.join(", ")}`),
+    note: z.string().nullish().describe("Why, in a few words"),
+  }),
+};
+
+const REPORT_ID = z.number().int().positive().describe("The report's id");
+const REPORT_SAVE = {
+  input: z.looseObject({
+    ...PORTAL_FIELDS,
+    id: REPORT_ID.nullish().describe("The report's id; empty makes a new one"),
+    name: z.string().min(1).max(120).describe("What the report is called"),
+    tiles: z.array(z.enum(REPORT_TILE_IDS)).min(1).max(REPORT_TILE_IDS.length),
+    every: z.enum(REPORT_EVERY).describe("week (Mondays) or month (the 1st)"),
+    zone: z.string().min(1).max(64).describe("IANA time zone it runs at 9:00 in"),
+    recipients: z.array(z.string().email().max(320)).max(10).describe("Members' addresses"),
+    on: z.boolean(),
+  }),
+};
+
+const THREAD = z.string().min(3).max(80).describe("The Inbox thread's id: text:8, reply:6");
+const ON_THREAD = (more: z.ZodRawShape = {}) => ({
+  input: z.looseObject({ ...PORTAL_FIELDS, thread: THREAD, ...more }),
+});
+const WHERE = {
+  channel: z.enum(INBOX_CHANNELS).describe("email, text, dm or comment"),
+  target: z.string().min(1).max(80).describe("The channel's id from the thread's options"),
+};
+const ASKED = {
+  input: z.looseObject({ ...PORTAL_FIELDS, id: z.number().describe("The asked reply") }),
+};
+
+interface ThreadRequest extends PortalRequest {
+  thread: string;
+}
+interface InboxReplyRequest extends ThreadRequest {
+  channel: InboxChannel;
+  target: string;
+  body: string;
+}
+
+const inboxClient = (ctx: restate.Context) => ctx.serviceClient<InboxDesk>({ name: "InboxDesk" });
+const SETTLE_SEND = {
+  input: z.looseObject({
+    ...PORTAL_FIELDS,
+    item: z.string().min(3).max(80).describe("The unsure send's typed id: sdm:<id>, comment:<id>"),
+    outcome: z
+      .enum(SETTLE_OUTCOMES)
+      .describe("posted: seen on the site; again: send it again; dropped: it did not go out"),
+  }),
+};
+type SettleRequest = PortalRequest & { item: string; outcome: SettleOutcome };
+type InboxClient = ReturnType<typeof inboxClient>;
+
+/** The desk's refusals (not waiting, no model, no About) are the viewer's answer. */
+async function desk<T>(go: () => Promise<T>): Promise<T> {
+  try {
+    return await go();
+  } catch (err) {
+    if (err instanceof restate.TerminalError) {
+      // A coded no (words that moved since the page drew them) keeps its code and field.
+      const m = err.metadata ?? {};
+      throw new PortalRefusal(
+        err.message,
+        409,
+        m.field,
+        m.code === "conflict" ? "conflict" : undefined,
+      );
+    }
+    throw err;
+  }
+}
+
+export function makeMarketingConsole(deps: MarketingConsoleDeps) {
+  const api = marketingConsoleApi(deps);
+  const deskOf = (ctx: restate.Context, key: string) =>
+    ctx.objectClient<ContentDesk>({ name: "ContentDesk" }, key);
+  /**
+   * InboxDesk on the client's own database: the client is the one the guard let this viewer
+   * open, never one the request names past that, and never Wren's.
+   */
+  const inbox = <T>(
+    ctx: restate.Context,
+    req: PortalRequest,
+    go: (d: InboxClient, at: { client: string; viewer: PortalRequest["viewer"] }) => Promise<T>,
+  ) =>
+    answer(async () => {
+      const client = await ctx.run("check", () => answer(() => api.inboxing(req)));
+      return desk(() => go(inboxClient(ctx), { client, viewer: req.viewer }));
+    });
+  return portalService({
+    name: "MarketingConsole",
+    main: deps.db,
+    routes: MARKETING_CONSOLE_ROUTES,
+    apps: MARKETING_CONSOLE_APPS,
+    unnamed: "first",
+    handlers: {
+      recordsTypes: serviceHandler(RECORDS, (_: restate.Context, req: PortalRequest) =>
+        answer(() => api.recordsTypes(req)),
+      ),
+      recordsList: serviceHandler(RECORDS, (_: restate.Context, req: PortalRequest & ListAsk) =>
+        answer(() => api.recordsList(req)),
+      ),
+      recordsGet: serviceHandler(RECORDS, (_: restate.Context, req: PortalRequest & GetAsk) =>
+        answer(() => api.recordsGet(req)),
+      ),
+      recordsExport: serviceHandler(RECORDS, (_: restate.Context, req: PortalRequest & ExportAsk) =>
+        answer(() => api.recordsExport(req)),
+      ),
+      recordsStats: serviceHandler(RECORDS, (_: restate.Context, req: PortalRequest & StatsAsk) =>
+        answer(() => api.recordsStats(req)),
+      ),
+      reports: serviceHandler(RECORDS, (_: restate.Context, req: PortalRequest) =>
+        answer(() => api.reports(req)),
+      ),
+      /** A report saved; its chain restarts from its next Monday or 1st. */
+      reportSave: serviceHandler(REPORT_SAVE, (ctx: restate.Context, req: ReportSaveRequest) =>
+        answer(async () => {
+          const out = await ctx.run("save", () => answer(() => api.reportSave(req)));
+          startReport(ctx, out.id);
+          return out;
+        }),
+      ),
+      reportDelete: serviceHandler(
+        { input: z.looseObject({ ...PORTAL_FIELDS, id: REPORT_ID }) },
+        (ctx: restate.Context, req: PortalRequest & { id: number }) =>
+          answer(() => ctx.run("delete", () => answer(() => api.reportDelete(req)))),
+      ),
+      reportRun: serviceHandler(
+        { input: z.looseObject({ ...PORTAL_FIELDS, id: REPORT_ID }) },
+        (ctx: restate.Context, req: PortalRequest & { id: number }) =>
+          answer(() => ctx.run("run", () => answer(() => api.reportRun(req)))),
+      ),
+      /** Yes on the client's drafts: each takes its platform's next slot; posting waits on its live flag. */
+      approveDraft: serviceHandler(APPROVE, (ctx: restate.Context, req: ApproveRequest) =>
+        answer(async () => {
+          const ids = idsOf(req.ids);
+          const key = await ctx.run("check", () =>
+            answer(() => (req.now ? api.decidingNow(req) : api.deciding(req))),
+          );
+          return desk(() =>
+            deskOf(ctx, key).approve({
+              ids,
+              viewer: req.viewer,
+              ...(req.at ? { at: req.at } : {}),
+              ...(req.now ? { now: true } : {}),
+              ...(req.expect ? { expect: req.expect } : {}),
+            }),
+          );
+        }),
+      ),
+      /** No on the client's drafts, with an optional why for the draft record. */
+      rejectDraft: serviceHandler(REJECT, (ctx: restate.Context, req: RejectRequest) =>
+        answer(async () => {
+          const ids = idsOf(req.ids);
+          let why: ReturnType<typeof rejectWhy>;
+          try {
+            why = rejectWhy(req);
+          } catch (err) {
+            throw new PortalRefusal((err as Error).message, 400);
+          }
+          const key = await ctx.run("check", () => answer(() => api.deciding(req)));
+          return desk(() => deskOf(ctx, key).reject({ ids, ...why, viewer: req.viewer }));
+        }),
+      ),
+      /** Rewrite one draft from the note, on the client's own model gate. */
+      redraft: serviceHandler(
+        {
+          input: z.looseObject({
+            ...PORTAL_FIELDS,
+            draftId: z.union([z.string(), z.number()]).describe("The draft's id"),
+            note: z.string().describe("What to change"),
+          }),
+        },
+        (ctx: restate.Context, req: RedraftRequest) =>
+          answer(async () => {
+            const note = typeof req.note === "string" ? req.note.trim() : "";
+            if (!note) throw new PortalRefusal("say what to change", 400);
+            const key = await ctx.run("check", () => answer(() => api.deciding(req)));
+            return desk(() => deskOf(ctx, key).redraft({ draftId: String(req.draftId), note }));
+          }),
+      ),
+      /** A client draft's fields (its platform's shape), from its approver. */
+      draftFields: serviceHandler(
+        {
+          input: z.looseObject({
+            ...PORTAL_FIELDS,
+            draftId: z.union([z.string(), z.number()]).describe("The draft's id"),
+            patch: z.record(z.string(), z.unknown()).describe("Fields; null unsets one"),
+          }),
+        },
+        (ctx: restate.Context, req: FieldsRequest) =>
+          answer(async () => {
+            const key = await ctx.run("check", () => answer(() => api.deciding(req)));
+            return desk(() =>
+              deskOf(ctx, key).fields({
+                draftId: String(req.draftId),
+                patch: req.patch,
+                viewer: req.viewer,
+              }),
+            );
+          }),
+      ),
+      /** A reply on the client's thread: sent, or asked in its To approve (InboxDesk's gate). */
+      inboxReply: serviceHandler(
+        ON_THREAD({ ...WHERE, body: z.string().describe("The words") }),
+        (ctx: restate.Context, req: InboxReplyRequest) =>
+          inbox(ctx, req, (d, at) =>
+            d.reply({
+              ...at,
+              thread: req.thread,
+              channel: req.channel,
+              target: req.target,
+              body: req.body,
+            }),
+          ),
+      ),
+      /** Ask for a yes: the reply waits in the client's To approve. */
+      inboxAsk: serviceHandler(
+        ON_THREAD({ ...WHERE, body: z.string().describe("The words") }),
+        (ctx: restate.Context, req: InboxReplyRequest) =>
+          inbox(ctx, req, (d, at) =>
+            d.ask({
+              ...at,
+              thread: req.thread,
+              channel: req.channel,
+              target: req.target,
+              body: req.body,
+            }),
+          ),
+      ),
+      /** Words to start from, signed by the client, on its own models gate. */
+      inboxSuggest: serviceHandler(
+        ON_THREAD(WHERE),
+        (ctx: restate.Context, req: Omit<InboxReplyRequest, "body">) =>
+          inbox(ctx, req, (d, at) =>
+            d.suggest({ ...at, thread: req.thread, channel: req.channel, target: req.target }),
+          ),
+      ),
+      /** A note for the client's team; an `@` teammate gets a mention. */
+      inboxNote: serviceHandler(
+        ON_THREAD({ body: z.string().describe("The note") }),
+        (ctx: restate.Context, req: ThreadRequest & { body: string }) =>
+          inbox(ctx, req, (d, at) => d.note({ ...at, thread: req.thread, body: req.body })),
+      ),
+      inboxAssign: serviceHandler(
+        ON_THREAD({
+          assignee: z.string().nullish().describe("A teammate's email; empty is nobody"),
+        }),
+        (ctx: restate.Context, req: ThreadRequest & { assignee?: string | null }) =>
+          inbox(ctx, req, (d, at) =>
+            d.assign({ ...at, thread: req.thread, assignee: req.assignee ?? null }),
+          ),
+      ),
+      inboxTake: serviceHandler(ON_THREAD(), (ctx: restate.Context, req: ThreadRequest) =>
+        inbox(ctx, req, (d, at) => d.take({ ...at, thread: req.thread })),
+      ),
+      inboxStatus: serviceHandler(
+        ON_THREAD({ status: z.enum(INBOX_STATUSES) }),
+        (ctx: restate.Context, req: ThreadRequest & { status: InboxStatus }) =>
+          inbox(ctx, req, (d, at) => d.status({ ...at, thread: req.thread, status: req.status })),
+      ),
+      inboxSnooze: serviceHandler(
+        ON_THREAD({
+          until: z.string().nullish().describe("When it comes back, ISO; empty wakes it"),
+        }),
+        (ctx: restate.Context, req: ThreadRequest & { until?: string | null }) =>
+          inbox(ctx, req, (d, at) =>
+            d.snooze({ ...at, thread: req.thread, until: req.until ?? null }),
+          ),
+      ),
+      /** A yes on an asked reply: sent on its channel, by someone the approver setting allows. */
+      inboxApprove: serviceHandler(
+        ASKED,
+        (ctx: restate.Context, req: PortalRequest & { id: number }) =>
+          inbox(ctx, req, (d, at) => d.approve({ ...at, id: req.id })),
+      ),
+      inboxDrop: serviceHandler(
+        ASKED,
+        (ctx: restate.Context, req: PortalRequest & { id: number }) =>
+          inbox(ctx, req, (d, at) => d.drop({ ...at, id: req.id })),
+      ),
+      /**
+       * A send of the client's that may have gone out (designs/2026-10-16-maybe-sent.md): its
+       * approver marks it posted, sends it again or drops it, through SocialInbox on its own
+       * database.
+       */
+      sendSettle: serviceHandler(SETTLE_SEND, (ctx: restate.Context, req: SettleRequest) =>
+        answer(async () => {
+          const client = await ctx.run("check", () => answer(() => api.settling(req)));
+          const by = isDemo(req.viewer) ? "demo" : req.viewer.email;
+          return desk(() =>
+            ctx
+              .serviceClient<SocialInbox>({ name: "SocialInbox" })
+              .settle({ client, item: req.item, outcome: req.outcome, by }),
+          );
+        }),
+      ),
+      /** The client's auto-reply modes, per channel. */
+      inboxAuto: serviceHandler(
+        { input: z.looseObject({ ...PORTAL_FIELDS }) },
+        (ctx: restate.Context, req: PortalRequest) => inbox(ctx, req, (d, at) => d.autoReplies(at)),
+      ),
+      inboxAutoSet: serviceHandler(
+        {
+          input: z.looseObject({
+            ...PORTAL_FIELDS,
+            channel: z.enum(INBOX_CHANNELS),
+            mode: z.enum(AUTO_REPLY_MODES),
+          }),
+        },
+        (
+          ctx: restate.Context,
+          req: PortalRequest & { channel: InboxChannel; mode: AutoReplyMode },
+        ) =>
+          inbox(ctx, req, (d, at) =>
+            d.autoReplySet({ ...at, channel: req.channel, mode: req.mode }),
+          ),
+      ),
+      /** A client draft's stage and target. Its posts carry no Wren link. */
+      draftFunnel: serviceHandler(
+        {
+          input: z.looseObject({
+            ...PORTAL_FIELDS,
+            draftId: z.union([z.string(), z.number()]).describe("The draft's id"),
+            stage: z.string().nullish(),
+            to: z.string().nullish(),
+            video: z.string().nullish(),
+            linked: z.union([z.string(), z.boolean()]).nullish(),
+          }),
+        },
+        (ctx: restate.Context, req: FunnelConsoleRequest) =>
+          answer(async () => {
+            const key = await ctx.run("check", () => answer(() => api.deciding(req)));
+            const { stage, to, video, linked } = req;
+            return desk(() =>
+              deskOf(ctx, key).funnel({
+                draftId: String(req.draftId),
+                ...({ stage, to, video, linked } as Omit<FunnelRequest, "draftId">),
+                viewer: req.viewer,
+              }),
+            );
+          }),
+      ),
+      /**
+       * Promote the client's YouTube post: one draft per platform its logins post on, pointing at
+       * the video, each waiting in its To approve. Checked here, then started, not awaited (a
+       * model call per platform). Nothing posts.
+       */
+      promote: serviceHandler(
+        {
+          input: z.looseObject({
+            ...PORTAL_FIELDS,
+            draftId: z.union([z.string(), z.number()]).describe("The YouTube post's draft id"),
+            pieces: z
+              .array(z.enum(PROMO_PIECES))
+              .nullish()
+              .describe("posts, thread, carousel; empty = posts"),
+          }),
+        },
+        (ctx: restate.Context, req: PromoteRequest) =>
+          answer(async () => {
+            const go = await ctx.run("check", () => answer(() => api.promoting(req)));
+            ctx.objectSendClient<ContentDesk>({ name: "ContentDesk" }, go.key).promote({
+              draftId: go.draftId,
+              platforms: go.platforms,
+              ...(req.pieces?.length ? { pieces: req.pieces } : {}),
+              viewer: req.viewer,
+            });
+            return { started: true, platforms: go.platforms };
+          }),
+      ),
+      /** A client carousel's slides, saved on both its drafts, and drawn on `draw`. */
+      draftSlides: serviceHandler(
+        {
+          input: z.looseObject({
+            ...PORTAL_FIELDS,
+            draftId: z.union([z.string(), z.number()]).describe("The draft's id"),
+            slides: z
+              .array(z.looseObject({ title: z.string(), lines: z.array(z.string()) }))
+              .nullish(),
+            draw: z.boolean().nullish(),
+          }),
+        },
+        (ctx: restate.Context, req: SlidesRequest) =>
+          answer(async () => {
+            const key = await ctx.run("check", () => answer(() => api.deciding(req)));
+            return desk(() =>
+              deskOf(ctx, key).slides({
+                draftId: String(req.draftId),
+                ...(req.slides ? { slides: req.slides } : {}),
+                ...(req.draw ? { draw: true } : {}),
+                viewer: req.viewer,
+              }),
+            );
+          }),
+      ),
+      /** Where the browser PUTs a file for a client draft's field: the bytes skip the call. */
+      draftUpload: serviceHandler(
+        {
+          input: z.looseObject({
+            ...PORTAL_FIELDS,
+            draftId: z.union([z.string(), z.number()]).describe("The draft's id"),
+            field: z.string(),
+            name: z.string(),
+            size: z.number(),
+            sha256: z.string().describe("The file's SHA-256, hex"),
+          }),
+        },
+        (ctx: restate.Context, req: UploadRequest) =>
+          answer(async () => {
+            const key = await ctx.run("check", () => answer(() => api.deciding(req)));
+            return desk(() =>
+              deskOf(ctx, key).attachUpload({
+                draftId: String(req.draftId),
+                field: req.field,
+                name: req.name,
+                size: req.size,
+                sha256: req.sha256,
+              }),
+            );
+          }),
+      ),
+      /** A file on a client draft's field (thumbnail, subtitles, cover), once it is up. */
+      draftAttach: serviceHandler(
+        {
+          input: z.looseObject({
+            ...PORTAL_FIELDS,
+            draftId: z.union([z.string(), z.number()]).describe("The draft's id"),
+            field: z.string(),
+            name: z.string(),
+            source: z.string().describe("The `s3://` ref draftUpload answered"),
+          }),
+        },
+        (ctx: restate.Context, req: AttachRequest) =>
+          answer(async () => {
+            const key = await ctx.run("check", () => answer(() => api.deciding(req)));
+            return desk(() =>
+              deskOf(ctx, key).attach({
+                draftId: String(req.draftId),
+                field: req.field,
+                name: req.name,
+                source: req.source,
+                viewer: req.viewer,
+              }),
+            );
+          }),
+      ),
+    },
+  });
+}
+
+export type MarketingConsoleService = ReturnType<typeof makeMarketingConsole>;

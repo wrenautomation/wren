@@ -4,7 +4,7 @@ cluster: content
 universe: live
 status: verified
 verified: 2026-10-11 @ ec72a24a (+ look tiers, batch)
-entity: packages/content/src/schema.ts:127
+entity: packages/starling/inbound/src/schema.ts:127
 ---
 
 # content-metric
@@ -19,7 +19,7 @@ Snapshots for a post's first 30 days (`metrics.ts:16`), so "what worked" is a qu
 
 - `draft_id` (cascade), `as_of`, `views`, `reactions`, `comments`, `shares`, `follows` (null: no `metrics` read fills it now; a post's follows are its `follows` insights day rows, which `draft_outcomes` reads), `fetched_with` (`schema.ts:131`–`171`)
 
-Citations: `packages/content/src/schema.ts:127`
+Citations: `packages/starling/inbound/src/schema.ts:127`
 
 ## Connected to
 
@@ -40,4 +40,4 @@ Citations: `packages/content/src/schema.ts:127`
 
 ## See
 
-- Source: `packages/content/src/metrics.ts`
+- Source: `packages/starling/inbound/src/metrics.ts`

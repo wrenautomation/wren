@@ -4,7 +4,7 @@ cluster: content
 universe: live
 status: verified
 verified: 2026-10-15 @ a26df44f
-entity: packages/content/src/connect/schema.ts:73
+entity: packages/starling/inbound/src/connect/schema.ts:73
 ---
 
 # social connection (a client's own social account)
@@ -28,11 +28,11 @@ GHL's Social Planner, on official APIs only. One app per platform, one sign-in p
 - DMs (`dms.ts`): Facebook, Instagram, X. `readDms` + `keepDms` into the client's `reach_contacts`/`reach_messages` (a `theirs` touch each); `planDm` (Meta's 24 h window, opt-outs), `sendDm`, `sentDm` (an `ours` touch, draft log)
 - Wren's own channels (`own.ts`): in Wren's workspace, for the team only, `SocialAccess.social` returns `own`, one row per `WREN_CONTENT_CHANNELS` channel: account, how it posts (setting names only, never values), token lapse and last renewal from `sites renew` runs, last post (`content_drafts`) and last failure (`draft_events`). `ownCheck` runs autobrowse's site check (`sites/status`, then one GET of its probe) on the box or desk; read only
 - TikTok numbers (`tiktok-numbers.ts`): `tiktokNumbers` reads followers, likes and video count (`user.info.stats`) and the 5 newest videos with views (`video.list`) on `social:<id>`, only for granted scopes, each part capped at 4 s; a refusal or a missing scope is a `gaps` line. `SocialAccess.social` adds it to each connected TikTok when `SocialConsoleDeps.sites` is set (the Worker passes `socialApi`)
-- Services: `SocialAccess` (`console.ts:209`, routes `console-routes.ts`; `connect` refuses the View as sandbox client, 403), `SocialCallback/land` (`console.ts:296`, private; portal Worker `/oauth/social/<platform>`, `apps/portal/src/oauth-landing.ts`), `SocialInbox` read/send/answer (`packages/content/src/restate/social-inbox.ts:71`)
+- Services: `SocialAccess` (`console.ts:209`, routes `console-routes.ts`; `connect` refuses the View as sandbox client, 403), `SocialCallback/land` (`console.ts:296`, private; portal Worker `/oauth/social/<platform>`, `apps/portal/src/oauth-landing.ts`), `SocialInbox` read/send/answer (`packages/starling/inbound/src/restate/social-inbox.ts:71`)
 - Setup: `setup.social`, check `social.token` hourly (`setups.ts`)
 - App reviews (`app-reviews.ts`, designs/2026-10-09-app-reviews.md): `REVIEWS` (each platform review: fields, permission text from `SOCIAL`'s scopes, screencast, open items, what it unlocks), `checkReview` (public pages for their words, callbacks served, prod keys, the 1024 icon at `deploy/reviews/`), `packetOf`. The mail apps' Google verification and Microsoft publisher verification sit in the same table. Filing is a person's act; a pass goes into `WREN_SOCIAL_LIVE`. Every callback is on `PORTAL` (app.wrenautomation.com), so TikTok's screencast is recorded there; its post step uses a client's Post now on Marketing → Drafts, shown only where the `post_now` portal flag is on (`MarketingConsole/approveDraft` with `now` checks it too; migration 0268 seeds it on for `wren_test`)
 
-Citations: `packages/content/src/connect/schema.ts:30`, `:73`; `packages/content/src/connect/access.ts:123`, `:179`; `packages/content/src/connect/console.ts:94`; `apps/worker/src/services/deps.ts:283`
+Citations: `packages/starling/inbound/src/connect/schema.ts:30`, `:73`; `packages/starling/inbound/src/connect/access.ts:123`, `:179`; `packages/starling/inbound/src/connect/console.ts:94`; `apps/worker/src/services/deps.ts:283`
 
 ## Connected to
 
@@ -59,5 +59,5 @@ Citations: `packages/content/src/connect/schema.ts:30`, `:73`; `packages/content
 
 ## See
 
-- Source: `packages/content/src/connect/`
+- Source: `packages/starling/inbound/src/connect/`
 - Design: `designs/2026-10-07-client-social.md`

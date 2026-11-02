@@ -13,7 +13,7 @@ Postgres 17 through Drizzle: every package owns its `src/schema.ts` (and `views.
 
 ## Why this shape
 
-`@wren/db` stays a leaf: the config lists paths, not imports (`drizzle.config.ts:3`). Casing is `snake_case` on the wire; every enum column carries a `oneOf` check so a bad value is refused by the database, not the app. Views are the read surface for numbers (`packages/channel-email/src/views.ts`, `packages/core/src/views.ts`).
+`@wren/db` stays a leaf: the config lists paths, not imports (`drizzle.config.ts:3`). Casing is `snake_case` on the wire; every enum column carries a `oneOf` check so a bad value is refused by the database, not the app. Views are the read surface for numbers (`packages/starling/channels/email/src/views.ts`, `packages/core/src/views.ts`).
 
 ## Shape
 

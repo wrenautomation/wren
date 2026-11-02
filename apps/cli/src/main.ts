@@ -5,9 +5,7 @@
  */
 import { userInfo } from "node:os";
 import * as clients from "@restatedev/restate-sdk-clients";
-import { ConsoleTransport, runWeeklyReport } from "@wren/channel-email";
 import { ingressOf, loadEnvFile, loadSettings } from "@wren/config";
-import { collectStatus, formatStatusLines, weekSlipped } from "@wren/content";
 import { WREN } from "@wren/core/access";
 import { type AuditSealer, SEALER_KEY } from "@wren/core/audit";
 import { type Client, clientUrl, getClient, listClients } from "@wren/core/clients";
@@ -28,6 +26,8 @@ import {
 import { loadLlmEnv, makeLlm } from "@wren/llm";
 import { mirrorShapes, WREN_WORKSPACE } from "@wren/pipeline/mirror";
 import type { JourneysService } from "@wren/pipeline/restate";
+import { ConsoleTransport, runWeeklyReport } from "@wren/starling-email";
+import { collectStatus, formatStatusLines, weekSlipped } from "@wren/starling-inbound";
 import { Command } from "commander";
 import { sql } from "drizzle-orm";
 import { registerAccounts } from "./accounts.js";

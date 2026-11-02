@@ -1,0 +1,538 @@
+/**
+ * What SocialWatch keeps (designs/2026-10-06-social-inbox.md): comments on our recent posts as
+ * `comments` rows (`channel = content`), activity as `social_activity`, and one follower count per
+ * platform per day in `social_days`. Every write is idempotent on the platform's id.
+ */
+import type { Platform } from "@wren/core/content";
+import { plural } from "@wren/core/notify";
+import { resolveComments } from "@wren/core/objects";
+import { atomic, type Queryable } from "@wren/db";
+import type { ActivityRow, Audience, CommentRow } from "@wren/starling-core";
+import { askedInWords, type Comment, comments } from "@wren/starling-outbound";
+import { keepTouch, touchFromAnswer, touchFromComment } from "@wren/starling-outbound/touches";
+import { and, desc, eq, gte, inArray, isNotNull, isNull, or, sql } from "drizzle-orm";
+import { keepLive } from "../analytics/store.js";
+import { contentDrafts, socialActivity, socialDays } from "../schema.js";
+import { linkCommentAuthors, touchFromActivity } from "../touches.js";
+
+const HOUR = 3_600_000;
+const DAY = 24 * HOUR;
+/** Posts this young are read for comments. */
+const RECENT_DAYS = 14;
+/** Older than this, a post is read every `SLOW_EVERY_MS`, not every pass. */
+export const FRESH_DAYS = 3;
+const SLOW_EVERY_MS = 2 * HOUR;
+
+export interface RecentPost {
+  platform: Platform;
+  /** The platform's post id. */
+  id: string;
+  url: string | null;
+  title: string;
+  publishedAt: string;
+}
+
+/**
+ * Posts published in the last `RECENT_DAYS` on these platforms, newest first, and older ones
+ * where someone commented in the last `followUpDays` (designs/2026-10-15-engage-threads.md): a
+ * conversation still going is read until it goes quiet.
+ */
+export async function recentPosts(
+  db: Queryable,
+  platforms: readonly Platform[],
+  now: Date,
+  followUpDays = 0,
+): Promise<RecentPost[]> {
+  if (!platforms.length) return [];
+  const fresh = gte(contentDrafts.publishedAt, new Date(now.getTime() - RECENT_DAYS * DAY));
+  const talking =
+    followUpDays > 0
+      ? sql`exists (select 1 from comments c where c.channel = 'content'
+          and c.platform = ${contentDrafts.platform} and c.post = ${contentDrafts.publishedId}
+          and c.sort is distinct from 'ours'
+          and c.at > ${new Date(now.getTime() - followUpDays * DAY).toISOString()}::timestamptz)`
+      : null;
+  const rows = await db
+    .select({
+      platform: contentDrafts.platform,
+      id: contentDrafts.publishedId,
+      url: contentDrafts.url,
+      title: contentDrafts.title,
+      text: contentDrafts.text,
+      publishedAt: contentDrafts.publishedAt,
+    })
+    .from(contentDrafts)
+    .where(
+      and(
+        inArray(contentDrafts.platform, [...platforms]),
+        isNotNull(contentDrafts.publishedId),
+        // a story takes no comments: Graph answers code 100 on every read
+        sql`coalesce(${contentDrafts.extra}->>'kind', '') <> 'story'`,
+        talking ? or(fresh, talking) : fresh,
+      ),
+    )
+    .orderBy(desc(contentDrafts.publishedAt));
+  return rows.flatMap((r) =>
+    r.id && r.publishedAt
+      ? [
+          {
+            platform: r.platform,
+            id: r.id,
+            url: r.url,
+            title: (r.title ?? r.text.split("\n")[0] ?? "").slice(0, 200),
+            publishedAt: r.publishedAt.toISOString(),
+          },
+        ]
+      : [],
+  );
+}
+
+/**
+ * How often a post's comments are read: young, then older. TikTok's come off its page in a
+ * browser, 24 a day, so its posts are read every 6 hours while young and daily after. LinkedIn's
+ * come off its page too, 60 a day: 2 hours while young, 8 after (an every-pass read spent the day's
+ * 60 by mid-morning and read nothing after).
+ */
+const EVERY: Partial<Record<Platform, { fresh: number; slow: number }>> = {
+  tiktok: { fresh: 6 * HOUR, slow: DAY },
+  linkedin: { fresh: 2 * HOUR, slow: 8 * HOUR },
+};
+
+/** Young posts every pass; older ones once per `SLOW_EVERY_MS` since their last read. */
+export const isDue = (p: RecentPost, lastRead: number | undefined, now: Date): boolean => {
+  const since = now.getTime() - (lastRead ?? 0);
+  const young = now.getTime() - new Date(p.publishedAt).getTime() <= FRESH_DAYS * DAY;
+  const every = EVERY[p.platform];
+  if (every) return since >= (young ? every.fresh : every.slow);
+  return young || since >= SLOW_EVERY_MS;
+};
+
+/**
+ * The net under named reads (`postsNamed`): while a tab watcher is alive, a post is read when a
+ * notification names it, and else daily while young, weekly after.
+ */
+export const isNetDue = (p: RecentPost, lastRead: number | undefined, now: Date): boolean => {
+  const young = now.getTime() - new Date(p.publishedAt).getTime() <= FRESH_DAYS * DAY;
+  return now.getTime() - (lastRead ?? 0) >= (young ? DAY : 7 * DAY);
+};
+
+/** A post id's number: `urn:li:ugcPost:7521201740759658496` → `7521201740759658496`. */
+const idNumber = (id: string) => /(\d{12,})\D*$/.exec(id)?.[1] ?? null;
+
+/**
+ * Our posts a notification names (`commented on your post`): its link carries the post's URN.
+ * Notifications and mentions only; a reaction's link names the post but brings no comment.
+ */
+export function postsNamed(
+  rows: readonly Pick<ActivityRow, "kind" | "url">[],
+  posts: readonly Pick<RecentPost, "platform" | "id">[],
+): string[] {
+  const links = rows
+    .filter((r) => (r.kind === "notification" || r.kind === "mention") && r.url)
+    .map((r) => {
+      try {
+        return decodeURIComponent(r.url as string);
+      } catch {
+        return r.url as string;
+      }
+    });
+  if (!links.length) return [];
+  return posts.flatMap((p) => {
+    const n = idNumber(p.id);
+    return n && links.some((l) => new RegExp(`\\b${n}\\b`).test(l))
+      ? [`${p.platform}:${p.id}`]
+      : [];
+  });
+}
+
+/**
+ * How long a held comment count is trusted. A count can lie (a held or deleted comment moves
+ * nothing), so a post is read in full this often anyway: young, then older. X and TikTok read
+ * through a capped page, so they sweep less often.
+ */
+const SWEEP: Partial<Record<Platform, { fresh: number; slow: number }>> = {
+  x: { fresh: 12 * HOUR, slow: 2 * DAY },
+  tiktok: { fresh: 12 * HOUR, slow: 2 * DAY },
+};
+const SWEEP_DEFAULT = { fresh: 6 * HOUR, slow: DAY };
+
+/**
+ * A due post whose comments need no read: its count (`probed`, from one `commentCounts` read for
+ * the platform) is the one kept at its last full read (`stored`), and that read is inside the
+ * sweep. Any missing number reads the post, as before.
+ */
+export const canSkip = (
+  p: RecentPost,
+  probed: number | undefined,
+  stored: number | undefined,
+  lastFull: number | undefined,
+  now: Date,
+): boolean => {
+  if (probed === undefined || stored === undefined || lastFull === undefined) return false;
+  if (probed !== stored) return false;
+  const young = now.getTime() - new Date(p.publishedAt).getTime() <= FRESH_DAYS * DAY;
+  const sweep = SWEEP[p.platform] ?? SWEEP_DEFAULT;
+  return now.getTime() - lastFull < (young ? sweep.fresh : sweep.slow);
+};
+
+/** The post of a comment on one of ours, as a read takes it; null: not one of ours. */
+export async function postOfComment(db: Queryable, id: number): Promise<RecentPost | null> {
+  const [c] = await db
+    .select({
+      platform: comments.platform,
+      post: comments.post,
+      title: comments.postTitle,
+      channel: comments.channel,
+    })
+    .from(comments)
+    .where(eq(comments.id, id));
+  if (c?.channel !== "content") return null;
+  return { platform: c.platform, id: c.post, url: null, title: c.title ?? "", publishedAt: "" };
+}
+
+export type KeptComment = Pick<Comment, "id" | "platform" | "author" | "post"> & {
+  asked: boolean;
+};
+
+/**
+ * Keep a post's comments; a re-read keeps nothing twice. Ours are kept and closed. Answers the new
+ * comments from other people, oldest first, each marked when its words ask for something.
+ */
+export async function keepPostComments(
+  db: Queryable,
+  post: RecentPost,
+  rows: readonly CommentRow[],
+  o: { reviews?: boolean; now?: Date } = {},
+): Promise<KeptComment[]> {
+  if (!rows.length) return [];
+  // The post and every comment are `platform_objects` first, in their one spelling (the reach
+  // reader meets the same comment on the same row); the insert writes the refs they return.
+  const kept = await atomic(db, async (tx) => {
+    const seen = await resolveComments(
+      tx,
+      post.platform,
+      { raw: post.id, url: post.url },
+      rows.map((c) => ({
+        raw: c.id,
+        parent: c.parentId && c.parentId !== post.id ? c.parentId : null,
+        author: c.author,
+        at: new Date(c.at),
+        url: c.url,
+      })),
+    );
+    const values = [...rows]
+      .filter((c) => seen.refs.has(c.id))
+      .sort((a, b) => a.at.localeCompare(b.at))
+      .map((c) => {
+        const got = seen.refs.get(c.id) as { ref: string; parent: string };
+        // A review the owner already answered, on the site or by hand, counts as answered.
+        const answered =
+          o.reviews && c.repliedWith
+            ? {
+                state: "answered" as const,
+                answer: c.repliedWith,
+                answeredAt: o.now ?? new Date(),
+              }
+            : {};
+        return {
+          platform: post.platform,
+          channel: "content" as const,
+          accountId: null,
+          ref: got.ref,
+          post: seen.post,
+          parent: got.parent,
+          kind: o.reviews
+            ? ("review" as const)
+            : got.parent !== seen.post
+              ? ("comment_reply" as const)
+              : ("post_reply" as const),
+          stars: o.reviews ? (c.stars ?? null) : null,
+          place: null,
+          postTitle: post.title,
+          author: c.author.slice(0, 120),
+          body: c.text,
+          url: c.url ?? post.url ?? "",
+          at: new Date(c.at),
+          raw: c.raw ?? c,
+          ...answered,
+          ...(c.mine
+            ? { sort: "ours" as const, state: "dropped" as const, why: "One of ours" }
+            : {}),
+        };
+      });
+    // A row kept before its reader named authors takes the name on the next read.
+    for (const c of rows) {
+      const got = c.authorName ? seen.refs.get(c.id) : undefined;
+      if (!got) continue;
+      await tx
+        .update(comments)
+        .set({
+          raw: sql`${comments.raw} || jsonb_build_object('authorName', ${c.authorName}::text)`,
+        })
+        .where(
+          and(
+            eq(comments.platform, post.platform),
+            eq(comments.ref, got.ref),
+            sql`coalesce(${comments.raw}->>'authorName', '') = ''`,
+          ),
+        );
+    }
+    if (!values.length) return [];
+    return tx.insert(comments).values(values).onConflictDoNothing().returning({
+      id: comments.id,
+      platform: comments.platform,
+      author: comments.author,
+      post: comments.post,
+      body: comments.body,
+      sort: comments.sort,
+    });
+  });
+  const theirs = kept
+    .filter((k) => k.sort !== "ours")
+    .map(({ sort: _, body, ...k }) => ({ ...k, asked: askedInWords(body) }))
+    .sort((a, b) => a.id - b.id);
+  for (const k of theirs) await keepTouch(`c:${k.id}`, () => touchFromComment(db, k.id));
+  if (post.platform === "linkedin" && theirs.length)
+    await keepTouch("comment authors", () => linkCommentAuthors(db));
+  await answeredByHand(db, post, rows);
+  return theirs;
+}
+
+/**
+ * Our reply under their comment, made on the platform by hand (a TikTok reply has no API): their
+ * comment counts as answered at our reply's time, so the reply rate counts it like any other.
+ */
+async function answeredByHand(db: Queryable, post: RecentPost, rows: readonly CommentRow[]) {
+  for (const c of rows) {
+    if (!c.mine || !c.parentId || c.parentId === post.id) continue;
+    // Our reply is an object before `answer_ref` names it.
+    const k = await atomic(db, async (tx) => {
+      const seen = await resolveComments(tx, post.platform, { raw: post.id, url: post.url }, [
+        { raw: c.id, parent: c.parentId, author: c.author, at: new Date(c.at), url: c.url },
+      ]);
+      const mine = seen.refs.get(c.id);
+      if (!mine || mine.parent === seen.post) return undefined;
+      const [row] = await tx
+        .update(comments)
+        .set({
+          state: "answered",
+          answer: c.text,
+          answerRef: mine.ref,
+          answeredAt: new Date(c.at),
+        })
+        .where(
+          and(
+            eq(comments.platform, post.platform),
+            eq(comments.ref, mine.parent),
+            isNull(comments.answeredAt),
+            sql`${comments.sort} is distinct from 'ours'`,
+          ),
+        )
+        .returning({ id: comments.id });
+      return row;
+    });
+    if (k) await keepTouch(`ca:${k.id}`, () => touchFromAnswer(db, k.id));
+  }
+}
+
+/**
+ * Reviews of the account (Business Profile) as comments on its place: `post` is the location, so
+ * the Inbox threads them like any comment and an answer goes back through `reply`.
+ */
+export async function keepReviews(
+  db: Queryable,
+  platform: Platform,
+  rows: readonly CommentRow[],
+  now: Date,
+): Promise<KeptComment[]> {
+  const kept: KeptComment[] = [];
+  const fresh = [];
+  for (const r of rows) if (!(await keptElsewhere(db, platform, r))) fresh.push(r);
+  for (const place of new Set(fresh.map((r) => r.postId)))
+    kept.push(
+      ...(await keepPostComments(
+        db,
+        { platform, id: place, url: null, title: "Reviews", publishedAt: now.toISOString() },
+        fresh.filter((r) => r.postId === place),
+        { reviews: true, now },
+      )),
+    );
+  return kept;
+}
+
+/** A review read off Google Maps, not through the Business Profile API. */
+export const fromMaps = (raw: unknown): boolean =>
+  (raw as { source?: unknown } | null)?.source === "maps";
+
+/**
+ * Is this review kept already under the other source's id? Maps and the API name one review
+ * differently, so it matches by author and time within a minute, or the same words. The API's
+ * read wins: it takes over a Maps row, which then answers on Google like any other.
+ */
+async function keptElsewhere(db: Queryable, platform: Platform, r: CommentRow): Promise<boolean> {
+  const at = new Date(r.at);
+  const [twin] = await db
+    .select({ id: comments.id, raw: comments.raw })
+    .from(comments)
+    .where(
+      and(
+        eq(comments.platform, platform),
+        eq(comments.kind, "review"),
+        eq(comments.author, r.author.slice(0, 120)),
+        sql`${comments.ref} <> ${r.id.slice(0, 200)}`,
+        sql`(abs(extract(epoch from ${comments.at} - ${at.toISOString()}::timestamptz)) <= 60
+          or (${comments.body} <> '' and ${comments.body} = ${r.text}))`,
+      ),
+    )
+    .limit(1);
+  if (!twin) return false;
+  if (fromMaps(twin.raw) && !fromMaps(r.raw))
+    await atomic(db, async (tx) => {
+      const seen = await resolveComments(tx, platform, { raw: r.postId }, [
+        { raw: r.id, author: r.author, at: new Date(r.at), url: r.url },
+      ]);
+      const got = seen.refs.get(r.id);
+      if (!got) return;
+      await tx
+        .update(comments)
+        .set({
+          ref: got.ref,
+          post: seen.post,
+          parent: got.parent,
+          url: r.url ?? "",
+          raw: r.raw ?? r,
+        })
+        .where(eq(comments.id, twin.id));
+    });
+  return true;
+}
+
+/** The newest kept activity time on the platform: the next read starts there. */
+export async function newestActivityAt(db: Queryable, platform: Platform): Promise<string | null> {
+  const [row] = await db
+    .select({ at: socialActivity.at })
+    .from(socialActivity)
+    .where(eq(socialActivity.platform, platform))
+    .orderBy(desc(socialActivity.at))
+    .limit(1);
+  return row?.at.toISOString() ?? null;
+}
+
+/** Keep activity rows once each; a row with no time takes `now`. Answers the new ones. */
+export async function keepActivity(
+  db: Queryable,
+  platform: Platform,
+  rows: readonly ActivityRow[],
+  now: Date,
+): Promise<Array<{ id: number; kind: ActivityRow["kind"] }>> {
+  if (!rows.length) return [];
+  const kept = await db
+    .insert(socialActivity)
+    .values(
+      rows.map((a) => ({
+        platform,
+        kind: a.kind,
+        ref: a.id.slice(0, 200),
+        actor: a.actor,
+        actorUrl: a.actorUrl,
+        text: a.text,
+        url: a.url,
+        at: a.at ? new Date(a.at) : now,
+        raw: a.raw ?? a,
+      })),
+    )
+    .onConflictDoNothing()
+    .returning({ id: socialActivity.id, kind: socialActivity.kind });
+  for (const k of kept) await keepTouch(`sa:${k.id}`, () => touchFromActivity(db, k.id));
+  // A LinkedIn comment notice may name who wrote a comment we hold only by URN.
+  if (platform === "linkedin" && kept.some((k) => k.kind === "notification"))
+    await keepTouch("comment authors", () => linkCommentAuthors(db));
+  return kept;
+}
+
+/** Whether the platform's count for `day` is already kept. */
+export async function hasDay(db: Queryable, platform: Platform, day: string): Promise<boolean> {
+  const [row] = await db
+    .select({ day: socialDays.day })
+    .from(socialDays)
+    .where(and(eq(socialDays.platform, platform), eq(socialDays.day, day)));
+  return !!row;
+}
+
+/** The day's follower count; the first read of the day stays, unless `latest` (a read on demand). */
+export async function keepDay(
+  db: Queryable,
+  platform: Platform,
+  day: string,
+  a: Audience,
+  latest = false,
+): Promise<boolean> {
+  const row = { followers: Math.max(0, Math.round(a.followers)), raw: a.raw ?? a };
+  const insert = db.insert(socialDays).values({ platform, day, ...row });
+  const kept = await (latest
+    ? insert.onConflictDoUpdate({ target: [socialDays.platform, socialDays.day], set: row })
+    : insert.onConflictDoNothing()
+  ).returning({ day: socialDays.day });
+  // The catalog's Followers row reads live from here on (designs/2026-10-07-content-analytics.md).
+  const at = new Date(a.asOf);
+  if (kept.length)
+    await keepLive(db, platform, ["account.followers"], Number.isNaN(+at) ? new Date() : at);
+  return kept.length > 0;
+}
+
+/** Mark activity rows seen: these ids, or every new one when `ids` is null. */
+export async function markSeen(db: Queryable, ids: readonly number[] | null): Promise<number> {
+  if (ids && !ids.length) return 0;
+  const done = await db
+    .update(socialActivity)
+    .set({ state: "seen" })
+    .where(
+      and(eq(socialActivity.state, "new"), ids ? inArray(socialActivity.id, [...ids]) : undefined),
+    )
+    .returning({ id: socialActivity.id });
+  return done.length;
+}
+
+export const PLATFORM_NAMES: Record<Platform, string> = {
+  linkedin: "LinkedIn",
+  reddit: "Reddit",
+  youtube: "YouTube",
+  x: "X",
+  instagram: "Instagram",
+  threads: "Threads",
+  facebook: "Facebook",
+  tiktok: "TikTok",
+  google_business: "Business Profile",
+};
+
+const KIND_WORDS: Record<ActivityRow["kind"], [string, string]> = {
+  follow: ["follow", "follows"],
+  subscribe: ["subscribe", "subscribes"],
+  mention: ["mention", "mentions"],
+  reaction: ["reaction", "reactions"],
+  notification: ["notification", "notifications"],
+};
+
+/** One line for the pass: "social: 3 comments (2 YouTube, 1 LinkedIn), 5 follows". Null = nothing kept. */
+export function pingOf(
+  kept: readonly Pick<KeptComment, "platform">[],
+  activity: readonly { kind: ActivityRow["kind"] }[],
+): string | null {
+  const parts: string[] = [];
+  if (kept.length) {
+    const by = new Map<string, number>();
+    for (const c of kept) {
+      const name = PLATFORM_NAMES[c.platform as Platform] ?? c.platform;
+      by.set(name, (by.get(name) ?? 0) + 1);
+    }
+    const each = [...by].sort((a, b) => b[1] - a[1]).map(([p, n]) => `${n} ${p}`);
+    parts.push(`${plural(kept.length, "comment")} (${each.join(", ")})`);
+  }
+  const kinds = new Map<ActivityRow["kind"], number>();
+  for (const a of activity) kinds.set(a.kind, (kinds.get(a.kind) ?? 0) + 1);
+  for (const [k, n] of [...kinds].sort((a, b) => b[1] - a[1])) {
+    const [one, many] = KIND_WORDS[k];
+    parts.push(plural(n, one, many));
+  }
+  return parts.length ? `social: ${parts.join(", ")}` : null;
+}

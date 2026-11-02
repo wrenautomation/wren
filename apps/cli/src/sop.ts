@@ -11,7 +11,6 @@ import { copyFile, mkdir, readdir, readFile, symlink, unlink, writeFile } from "
 import { homedir } from "node:os";
 import { basename, join, resolve } from "node:path";
 import type { Settings } from "@wren/config";
-import { learnBack, pushPlaybook } from "@wren/content";
 import { WREN } from "@wren/core/access";
 import { PLATFORMS, type Platform } from "@wren/core/content";
 import type { Db } from "@wren/db";
@@ -44,6 +43,7 @@ import {
   writeSkill,
   youtubeSource,
 } from "@wren/research/sops";
+import { learnBack, pushPlaybook } from "@wren/starling-inbound";
 import { claudeCode } from "@wrenautomation/models/command";
 import type { Command } from "commander";
 import { inArray } from "drizzle-orm";

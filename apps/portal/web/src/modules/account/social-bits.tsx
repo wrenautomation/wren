@@ -3,7 +3,7 @@
  * numbers (followers, likes, videos, its newest videos with their views), read as the page
  * opened. Pictures load from the platform's CDN, never through the portal's Worker.
  */
-import type { TikTokNumbers } from "@wren/content/connect";
+import type { TikTokNumbers } from "@wren/starling-inbound/connect";
 import { cx } from "@wren/ui";
 import { useState } from "react";
 import { PageRows, rowLines } from "../../page-rows.js";

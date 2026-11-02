@@ -2,8 +2,7 @@
  * Clients: health and flags, delivery and billing with their portals, domains, Ask, tokens and
  * call briefs.
  */
-import { plainMailer } from "@wren/channel-email";
-import { makeCallBriefs } from "@wren/channel-email/calls";
+
 import { makeAsk } from "@wren/core/ask";
 import { CustomHostnames } from "@wren/core/clients";
 import { failedRuns } from "@wren/core/executor";
@@ -15,6 +14,8 @@ import { s3Files } from "@wren/delivery/files";
 import { makeHealthConsole } from "@wren/delivery/health/console";
 import { makeDeliveryPortal, makeDeliveryWatch, makeDomainsResolver } from "@wren/delivery/restate";
 import { DEMO_NAME } from "@wren/reactivation/restate";
+import { plainMailer } from "@wren/starling-email";
+import { makeCallBriefs } from "@wren/starling-email/calls";
 import { WORKFLOWS } from "../workflows.js";
 import type { AnyService, Deps } from "./deps.js";
 

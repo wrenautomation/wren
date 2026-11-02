@@ -1,9 +1,9 @@
 /** DMs as the person meets them on a laptop and a phone: a thread's replies, and William's copy. */
-import { preview, type RenderFields } from "@wren/outreach/sequences";
+import { preview, type RenderFields } from "@wren/starling-outbound/sequences";
 import { exact, type MessageKind, MessagePreview, type RecordExtras } from "@wren/ui";
 import type { ListPage } from "../../module.js";
 
-/** `@wren/outreach`'s preview data: the app, who it comes from, its cap. */
+/** `@wren/starling-outbound`'s preview data: the app, who it comes from, its cap. */
 type Dm = { site: string; from: string | null; max: number };
 /** A template slot's message: `slot` where its words go. */
 type Frame = { subject: string | null; body: string; slot: string };

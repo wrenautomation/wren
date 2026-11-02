@@ -4,7 +4,7 @@ cluster: search
 universe: live
 status: verified
 verified: 2026-09-30 @ 99fd3f6
-entity: packages/channel-search/src/schema.ts:85
+entity: packages/starling/search/src/schema.ts:85
 ---
 
 # keyword
@@ -23,7 +23,7 @@ AI engines split a question into narrower searches and cite whoever answers the 
 - Index notices (2026-10-15): a page that flips in or out of the index, or a new page still out 14 days after its first check (`STALE_DAYS`, `sync.ts`). A new page alone is no notice: the watch submits the sitemap to Google (`submitSitemap`, `console.ts`, scope `webmasters`).
 - `search_answers`: engine × keyword × day, cited, rank, sources, "People also ask" (`schema.ts:121`)
 
-Citations: `packages/channel-search/src/schema.ts:85`, `packages/channel-search/src/keywords.ts:69`
+Citations: `packages/starling/search/src/schema.ts:85`, `packages/starling/search/src/keywords.ts:69`
 
 ## Connected to
 
@@ -46,4 +46,4 @@ Citations: `packages/channel-search/src/schema.ts:85`, `packages/channel-search/
 ## See
 
 - Process: [[search-loop]]
-- Source: `packages/channel-search/src/`
+- Source: `packages/starling/search/src/`

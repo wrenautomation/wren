@@ -4,7 +4,7 @@ cluster: ads
 universe: live
 status: verified
 verified: 2026-10-06 @ 9d6af2d
-entity: packages/channel-meta/src/audit.ts:551
+entity: packages/starling/channels/meta/src/audit.ts:551
 ---
 
 # ad-audit
@@ -13,15 +13,15 @@ A read-only audit of Wren's Meta ad account: cold start per dimension, scored co
 
 ## Why this shape
 
-Rules that need history (consolidation, objective alignment) mislead on a new account. So cold start is judged per dimension (account, pixel, conversions) from that dimension's own evidence, and missing or contradictory evidence stays `unknown` (`packages/channel-meta/src/audit.ts:191`). Scoring separates health from coverage, so thin evidence reads as thin, not as healthy (`packages/channel-meta/src/audit.ts:471`). Contract from claude-ads (MIT). Fixes are drafts: nothing writes to Meta.
+Rules that need history (consolidation, objective alignment) mislead on a new account. So cold start is judged per dimension (account, pixel, conversions) from that dimension's own evidence, and missing or contradictory evidence stays `unknown` (`packages/starling/channels/meta/src/audit.ts:191`). Scoring separates health from coverage, so thin evidence reads as thin, not as healthy (`packages/starling/channels/meta/src/audit.ts:471`). Contract from claude-ads (MIT). Fixes are drafts: nothing writes to Meta.
 
 ## Shape
 
-- evidence: account, campaigns, ad sets, ads, pixels, last 7 days, and a lag-mature conversion window; each read alone, a failed part is null (`packages/channel-meta/src/audit.ts:139`)
-- knobs: `ads.meta` settings (`packages/channel-meta/src/audit.ts:23`)
+- evidence: account, campaigns, ad sets, ads, pixels, last 7 days, and a lag-mature conversion window; each read alone, a failed part is null (`packages/starling/channels/meta/src/audit.ts:139`)
+- knobs: `ads.meta` settings (`packages/starling/channels/meta/src/audit.ts:23`)
 - controls: policy, measurement, creative, structure, delivery; no audiences yet (renormalized away)
 
-Citations: `packages/channel-meta/src/restate.ts:207`, `apps/cli/src/ads.ts:163`
+Citations: `packages/starling/channels/meta/src/restate.ts:207`, `apps/cli/src/ads.ts:163`
 
 ## Connected to
 

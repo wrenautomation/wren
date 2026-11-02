@@ -3,12 +3,7 @@
  * the pool-feeder that walks them per niche, and the page archive that moves old page HTML
  * off the box.
  */
-import { campaignPolicy, recheckLeads } from "@wren/channel-email";
-import {
-  dailyOpenerCapacity,
-  makePoolScheduler,
-  makeResolution,
-} from "@wren/channel-email/restate";
+
 import { ingressOf } from "@wren/config";
 import { sitesHost } from "@wren/core/content/box";
 import { ingressSites } from "@wren/core/content/ingress";
@@ -33,6 +28,12 @@ import {
   makePageArchive,
   makeProfileResearch,
 } from "@wren/research/restate";
+import { campaignPolicy, recheckLeads } from "@wren/starling-email";
+import {
+  dailyOpenerCapacity,
+  makePoolScheduler,
+  makeResolution,
+} from "@wren/starling-email/restate";
 import { serviceAccountToken } from "@wrenautomation/autobrowse/google";
 import { PoliteFetcher } from "@wrenautomation/read/fetch";
 import {

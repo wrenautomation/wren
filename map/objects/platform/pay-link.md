@@ -40,7 +40,7 @@ Citations: `packages/payments/src/schema.ts:39`, `packages/payments/src/schema.t
 
 ## If you change this
 
-- **Hits:** `states.ts` and its tests first (every order must end the same), the payment line on the person's timeline (`lineFrom.payLink`, `packages/core/src/profiles-backfill.ts`), the Stripe webhook URL registered on every client's account (path and client slug), To approve (`pay:<id>` items in `packages/content/src/social/records.ts`), the thread's Paid fact in Texts, webhooks out's `payment.received` payload.
+- **Hits:** `states.ts` and its tests first (every order must end the same), the payment line on the person's timeline (`lineFrom.payLink`, `packages/core/src/profiles-backfill.ts`), the Stripe webhook URL registered on every client's account (path and client slug), To approve (`pay:<id>` items in `packages/starling/inbound/src/social/records.ts`), the thread's Paid fact in Texts, webhooks out's `payment.received` payload.
 - **Does not hit:** cards or charges (none here).
 
 ## Surfaces

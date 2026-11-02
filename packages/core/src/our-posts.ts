@@ -1,7 +1,7 @@
 /**
  * What we've posted, as the material for a comment on someone else's post or thread. A comment
  * takes one of our points in fresh words (agree and add why, push back, the idea behind it) and
- * never retells theirs. Content reads the posts (`@wren/content/our-posts`); each target picks the
+ * never retells theirs. Content reads the posts (`@wren/starling-inbound/our-posts`); each target picks the
  * ones sharing the most words with it ($0).
  */
 

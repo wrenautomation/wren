@@ -10,10 +10,10 @@ import { readFile } from "node:fs/promises";
 import * as clients from "@restatedev/restate-sdk-clients";
 import { ingressOf, type Settings } from "@wren/config";
 import { settingsFor, setWrenSettings } from "@wren/core/clients";
-import type { Proof } from "@wren/core/content";
 import { PASS_REASONS, type PassReason } from "@wren/core/pass-reasons";
 import { REJECT_REASONS } from "@wren/core/reject-reasons";
 import { atomic, type Db, setAuditActor } from "@wren/db";
+import type { Proof } from "@wren/starling-core";
 import {
   backfillFromProofs,
   COMMENTS_COMPONENTS,
@@ -48,7 +48,7 @@ import {
   topicYields,
   viewOf,
   warmupOf,
-} from "@wren/outreach";
+} from "@wren/starling-outbound";
 import {
   type CommentProofsService,
   READS_KEY,
@@ -58,7 +58,7 @@ import {
   type RedditReadsObject,
   SENDER_KEY,
   WATCH_KEY,
-} from "@wren/outreach/restate";
+} from "@wren/starling-outbound/restate";
 import type { Command } from "commander";
 import { sql } from "drizzle-orm";
 import { pickFor } from "./accounts.js";

@@ -4,11 +4,17 @@
  * (`VideoDesk.propose`, then `set`), so Claude Code, the CLI and the portal change a video alike.
  * `undo` is the page's Undo. The integration test registers this with a fake model.
  */
-import { undoVideo } from "@wren/content";
+
 import type { Db } from "@wren/db";
-import { applyChange, type ChangeModel, type Proposal, proposeChange } from "@wren/studio/change";
-import { getEdit } from "@wren/studio/edit";
-import { beatText, storyboardOf, storyboardText } from "@wren/studio/storyboard";
+import { undoVideo } from "@wren/starling-inbound";
+import {
+  applyChange,
+  type ChangeModel,
+  type Proposal,
+  proposeChange,
+} from "@wren/starling-studio/change";
+import { getEdit } from "@wren/starling-studio/edit";
+import { beatText, storyboardOf, storyboardText } from "@wren/starling-studio/storyboard";
 import type { Command } from "commander";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;

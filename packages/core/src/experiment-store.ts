@@ -2,7 +2,7 @@
  * Experiments in the database (designs/2026-10-06-flags-experiments-surveys-heatmaps.md §3): a
  * site flag with a goal, the `marketing.experiment` record, and its buttons. Starting one puts
  * it live on the public site, so Start and Ship are William's (`manage` at Wren). SearchWatch
- * rolls up `flag_days` and moves the shares (`@wren/channel-search` experiments); the edge serves
+ * rolls up `flag_days` and moves the shares (`@wren/starling-search` experiments); the edge serves
  * them in place of the flag's rules (`./flag-store.ts` pushEdge).
  */
 import type { Queryable } from "@wren/db";

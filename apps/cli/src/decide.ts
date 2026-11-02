@@ -27,7 +27,7 @@ import { atomic, type Db, type Queryable } from "@wren/db";
 import { backfillLearnCalls, learnCalled, learnSource } from "@wren/learn/decide";
 import { loadLlmEnv, makeLlm } from "@wren/llm";
 import { leadOffers } from "@wren/offers";
-import { commentSource, commentsCalled } from "@wren/outreach/decide";
+import { commentSource, commentsCalled } from "@wren/starling-outbound/decide";
 import { type Command, InvalidArgumentError } from "commander";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;

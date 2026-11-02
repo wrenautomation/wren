@@ -17,7 +17,7 @@ An address lives in a dozen tables (leads, people, SMS contacts, consents, socia
 
 A client's rows kept on Wren's main database (its form entries, its pay links) are the one exception: a workspace view can't read main, so each becomes one line in `profile_events` in the client's workspace, written when the row lands or changes and upserted by source row. That is the timeline's only copy.
 
-Site visits on Wren's own profiles are read live from the lander's export by each `visitor` key when the profile page opens (`VisitReader`, `landerVisitLines` in `packages/channel-email/src/calls/site.ts`). Never stored. Client sites keep no visitor id; their kit keeps the visit's page list in `sessionStorage` and sends it with a form, kept on the entry as `site_forms.pages` and shown in its line.
+Site visits on Wren's own profiles are read live from the lander's export by each `visitor` key when the profile page opens (`VisitReader`, `landerVisitLines` in `packages/starling/channels/email/src/calls/site.ts`). Never stored. Client sites keep no visitor id; their kit keeps the visit's page list in `sessionStorage` and sends it with a form, kept on the entry as `site_forms.pages` and shown in its line.
 
 Only `resolveProfile` (`packages/core/src/profiles.ts:126`) writes profiles. Writers call it through `noteProfile` (`:337`) or `noteElsewhere` (`:369`, profile plus `profile_events` line), which never throw, so a profile failure never blocks a send or an import. Each key is locked by value (`pg_advisory_xact_lock`) in one order, so two writers holding the same address make one profile.
 

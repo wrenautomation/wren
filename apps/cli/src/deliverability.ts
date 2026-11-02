@@ -4,6 +4,9 @@
  * SpamAssassin in Docker on this machine; deliverability only reads.
  */
 import { resolve } from "node:path";
+import type { Settings } from "@wren/config";
+import type { Db } from "@wren/db";
+import { NICHE_NAMES, NICHES } from "@wren/niches";
 import {
   activePauses,
   buildMime,
@@ -22,11 +25,8 @@ import {
   placementVerdicts,
   sentenceReady,
   signed,
-} from "@wren/channel-email";
-import { coveringRenders, SPAM_LIMIT, type SpamScore, startSpamd } from "@wren/channel-email/spam";
-import type { Settings } from "@wren/config";
-import type { Db } from "@wren/db";
-import { NICHE_NAMES, NICHES } from "@wren/niches";
+} from "@wren/starling-email";
+import { coveringRenders, SPAM_LIMIT, type SpamScore, startSpamd } from "@wren/starling-email/spam";
 import type { Command } from "commander";
 import { sql } from "drizzle-orm";
 

@@ -7,13 +7,13 @@
  */
 import * as clients from "@restatedev/restate-sdk-clients";
 import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
-import { briefSettingsOf, briefStep, type SendAsk } from "@wren/channel-email/calls";
-import { EMAIL_COMPONENTS } from "@wren/channel-email/components";
 import { ingressOf } from "@wren/config";
 import { makeExecutor } from "@wren/core/executor";
 import { startTestRestate } from "@wren/core/testing";
 import { defineWorkflow } from "@wren/core/workflows";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
+import { briefSettingsOf, briefStep, type SendAsk } from "@wren/starling-email/calls";
+import { EMAIL_COMPONENTS } from "@wren/starling-email/components";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { makeCalendarConsole } from "../../src/console.js";

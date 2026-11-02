@@ -6,11 +6,11 @@
  * its `Disposition/<client>/replies` (email replies installed).
  */
 import * as clients from "@restatedev/restate-sdk-clients";
-import { openInvites } from "@wren/channel-email";
-import { DISPOSITION_KEY, type Disposition } from "@wren/channel-email/restate";
 import { ingressOf, type Settings } from "@wren/config";
 import { clientKey } from "@wren/core/restate";
 import type { Db } from "@wren/db";
+import { openInvites } from "@wren/starling-email";
+import { DISPOSITION_KEY, type Disposition } from "@wren/starling-email/restate";
 import type { Command } from "commander";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;

@@ -5,7 +5,7 @@
 import { getClient } from "@wren/core/clients";
 import { limitsView, setLimit, unsetLimit } from "@wren/core/limits";
 import type { Db } from "@wren/db";
-import { WREN_LIMITS } from "@wren/outreach/limits";
+import { WREN_LIMITS } from "@wren/starling-outbound/limits";
 import type { Command } from "commander";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;

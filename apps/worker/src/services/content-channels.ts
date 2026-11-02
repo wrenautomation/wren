@@ -2,36 +2,31 @@
  * The content channels per invocation and a client's, Meta ads' dependencies, and where
  * Reddit calls go: what `Content`, `Ads` and the research chain are wired with.
  */
-import { linkedinContent } from "@wren/channel-linkedin";
+
+import type { Settings } from "@wren/config";
+import { findClient, sendsOn } from "@wren/core/clients";
+import { asAccount, type Platform, type SiteClient } from "@wren/core/content";
+import { sitesHost } from "@wren/core/content/box";
+import { DESK, journaledSites, restateSites } from "@wren/core/content/restate";
+import type { KeyStore } from "@wren/core/keys";
+import { meteredSites } from "@wren/core/metered";
+import { dbSendJournal } from "@wren/core/send-journal";
+import type { Db } from "@wren/db";
+import { type ChannelsFor, type ContentClients, journaledHost } from "@wren/starling-core/service";
+import { clientContent, s3MediaHost } from "@wren/starling-inbound";
+import { businessProfileContent, connectionIdOf } from "@wren/starling-inbound/connect";
+import { linkedinContent } from "@wren/starling-linkedin";
 import {
   facebookContent,
   instagramContent,
   instagramWebContent,
   threadsContent,
-} from "@wren/channel-meta";
-import type { makeAds } from "@wren/channel-meta/restate";
-import { redditApi, redditContent } from "@wren/channel-reddit";
-import { tiktokContent } from "@wren/channel-tiktok";
-import { xContent } from "@wren/channel-x";
-import { youtubeContent } from "@wren/channel-youtube";
-import type { Settings } from "@wren/config";
-import { clientContent, s3MediaHost } from "@wren/content";
-import { businessProfileContent, connectionIdOf } from "@wren/content/connect";
-import { findClient, sendsOn } from "@wren/core/clients";
-import { asAccount, type Platform, type SiteClient } from "@wren/core/content";
-import { sitesHost } from "@wren/core/content/box";
-import {
-  type ChannelsFor,
-  type ContentClients,
-  DESK,
-  journaledHost,
-  journaledSites,
-  restateSites,
-} from "@wren/core/content/restate";
-import type { KeyStore } from "@wren/core/keys";
-import { meteredSites } from "@wren/core/metered";
-import { dbSendJournal } from "@wren/core/send-journal";
-import type { Db } from "@wren/db";
+} from "@wren/starling-meta";
+import type { makeAds } from "@wren/starling-meta/restate";
+import { redditApi, redditContent } from "@wren/starling-reddit";
+import { tiktokContent } from "@wren/starling-tiktok";
+import { xContent } from "@wren/starling-x";
+import { youtubeContent } from "@wren/starling-youtube";
 import type { Logger } from "pino";
 
 /**

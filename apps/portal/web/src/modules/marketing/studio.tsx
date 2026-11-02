@@ -4,7 +4,7 @@
  * then every draft that waits as a table: approve one in place with an Undo, or open it to edit,
  * rewrite or post now. A New card, a due card for a post and Plan's links open compose
  * (`?make=`): a post in his own words (one or a batch, each platform's version checked as he types
- * by the server's own rules in `@wren/content/write`), an X thread, a carousel, a story, a blog
+ * by the server's own rules in `@wren/starling-inbound/write`), an X thread, a carousel, a story, a blog
  * post, or a video (from a recording). Write's old address lands here (`WritePage`). Wren's own:
  * ContentDesk through the console.
  */

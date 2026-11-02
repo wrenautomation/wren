@@ -6,8 +6,8 @@
  * menus open on hover, a field's choices beside it, and a diagonal toward them keeps them open
  * (a phone taps); a form's unsent words survive a page switch. At a desk's width and a phone's.
  *
- *   WREN_DATABASE_URL=postgres://...@127.0.0.1:5434/wren_libs tsx ../../packages/content/test/inbox-preview.ts
- *   WREN_DATABASE_URL=... tsx ../../packages/content/test/libs-preview.ts   # 600 people
+ *   WREN_DATABASE_URL=postgres://...@127.0.0.1:5434/wren_libs tsx ../../packages/starling/inbound/test/inbox-preview.ts
+ *   WREN_DATABASE_URL=... tsx ../../packages/starling/inbound/test/libs-preview.ts   # 600 people
  *   PORT=8792 WREN_DATABASE_URL=... pnpm preview      # then, in another shell:
  *   tsx scripts/libs-e2e.ts                            # the preview on :8792
  *

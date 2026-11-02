@@ -6,8 +6,9 @@
  * any retry, so a crash between the send and the mark never forwards twice. A
  * row is locked while it is sent, so two overlapping passes never both send it.
  */
-import type { OutgoingEmail, Transport } from "@wren/channel-email";
+
 import { atomic, type Queryable } from "@wren/db";
+import type { OutgoingEmail, Transport } from "@wren/starling-email";
 import { sql } from "drizzle-orm";
 import { REACTIVATION } from "./compose.js";
 import { ensureHandoff, handoffRecruiter, replyRef } from "./handoff.js";

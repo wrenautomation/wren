@@ -32,7 +32,7 @@ export type CamBox = [number, number, number, number];
 const SET = "marketing.videoSet";
 /** A new Short with nothing picked runs this long from the playhead. */
 const NEW_SHORT_S = 30;
-/** The on-screen title's limit (`CARD.maxChars` in @wren/studio/props). */
+/** The on-screen title's limit (`CARD.maxChars` in @wren/starling-studio/props). */
 const CARD_MAX = 60;
 
 const LAYOUT_NAMES: Record<LayoutShow, string> = {

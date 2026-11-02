@@ -25,11 +25,11 @@ Citations: `packages/research/src/schema.ts:68`
 
 - **owned-by:** [[research/document]], [[leads/company]], [[ledger/run]]
 - **owns:** nothing; applying writes [[leads/person]] and the email pick
-- **joins:** `email_llm_calls`, `email_stage_costs` views (`packages/channel-email/src/views.ts:16`, `:41`)
+- **joins:** `email_llm_calls`, `email_stage_costs` views (`packages/starling/channels/email/src/views.ts:16`, `:41`)
 
 ## If you change this
 
-- **Hits:** `packages/research/src/enrichment/store.ts:24`, `email-scan.ts:245`, `contacts.ts:265` (`contact_scan`, deterministic), `email-pick/`, `extraction.ts`, `opener.ts`; the two cost views; `recruiting_facts` (reads `firmographics`/`ppp-foia`, `opener` and `video`, `packages/core/src/views.ts:79`); disposition's audit record (`packages/channel-email/src/inbox/disposition.ts`)
+- **Hits:** `packages/research/src/enrichment/store.ts:24`, `email-scan.ts:245`, `contacts.ts:265` (`contact_scan`, deterministic), `email-pick/`, `extraction.ts`, `opener.ts`; the two cost views; `recruiting_facts` (reads `firmographics`/`ppp-foia`, `opener` and `video`, `packages/core/src/views.ts:79`); disposition's audit record (`packages/starling/channels/email/src/inbox/disposition.ts`)
 - **Does not hit:** `content_drafts.llm` (the content loop keeps its own record); a person's "Research this person" run (`lookUpPerson`'s `elsewhere` layer) never writes `enrichments`, its findings live in `profile_findings` ([[leads/profile]])
 
 ## Surfaces

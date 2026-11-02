@@ -1,25 +1,35 @@
 // The package layers (designs/2026-10-24-code-quality-handoff.md, Dependency inversion): arrows
 // point down. A package imports its own layer or a lower one, never a higher one, and never in a
 // cycle; apps import anything. A new package goes in one row here, or this fails naming it.
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, globSync, readdirSync, readFileSync } from "node:fs";
 
 const LAYERS = [
   // What everything stands on: no product knowledge.
   "auth config connectors core db experiments llm notes offers research sites ui video",
+  // Starling's shared contract: what its channels and both sides speak.
+  "starling-core",
   // One vendor or one outside system behind an interface.
-  "channel-email channel-linkedin channel-meta channel-reddit channel-search channel-sms channel-tiktok channel-x channel-youtube",
+  "channel-sms starling-email starling-linkedin starling-meta starling-reddit starling-search starling-tiktok starling-x starling-youtube",
   // One domain, used by products: the money, the calendar, the shape, the papers, the studio.
-  "books calendar documents learn niches payments pipeline studio watch",
+  "books calendar documents learn niches payments pipeline starling-studio watch",
   // What a client buys or Wren runs as a loop.
-  "content delivery outreach reactivation voice",
+  "delivery reactivation starling-inbound starling-outbound voice",
 ].flatMap((row, layer) => row.split(" ").map((name) => [name, layer]));
 const layerOf = new Map(LAYERS);
 
+// Package dirs from the workspace globs, nested ones too (packages/starling/*).
+const dirs = readFileSync("pnpm-workspace.yaml", "utf8")
+  .split("\n")
+  .map((l) => /^\s*-\s*["']?(packages\/[^"'\s]+)/.exec(l)?.[1])
+  .filter(Boolean)
+  .flatMap((g) => globSync(g))
+  .filter((d) => existsSync(`${d}/package.json`));
+
 const deps = new Map();
-for (const dir of readdirSync("packages", { withFileTypes: true }).filter((d) => d.isDirectory())) {
+for (const dir of dirs) {
   let pkg;
   try {
-    pkg = JSON.parse(readFileSync(`packages/${dir.name}/package.json`, "utf8"));
+    pkg = JSON.parse(readFileSync(`${dir}/package.json`, "utf8"));
   } catch {
     continue;
   }
@@ -41,7 +51,8 @@ for (const [name, imports] of deps) {
     continue;
   }
   for (const dep of imports)
-    if ((layerOf.get(dep) ?? -1) > layer)
+    if (!layerOf.has(dep)) bad.push(`${name} -> ${dep}: ${dep} is not in a layer`);
+    else if (layerOf.get(dep) > layer)
       bad.push(`${name} -> ${dep}: a lower layer imports a higher one`);
 }
 // A cycle: DFS, the stack says where it closes.
@@ -68,10 +79,8 @@ const sources = (dir) =>
         ? [`${dir}/${d.name}`]
         : [],
   );
-for (const dir of readdirSync("packages", { withFileTypes: true }).filter((d) => d.isDirectory()))
-  for (const file of existsSync(`packages/${dir.name}/src`)
-    ? sources(`packages/${dir.name}/src`)
-    : [])
+for (const dir of dirs)
+  for (const file of existsSync(`${dir}/src`) ? sources(`${dir}/src`) : [])
     if (YT_DLP.test(readFileSync(file, "utf8")))
       bad.push(`${file}: runs yt-dlp itself; read through @wrenautomation/read/video`);
 

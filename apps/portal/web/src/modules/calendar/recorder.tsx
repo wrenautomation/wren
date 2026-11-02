@@ -5,8 +5,8 @@
  */
 import type { RecorderState } from "@wren/calendar/recorder";
 import type { RecordingDetail } from "@wren/calendar/records";
-import type { CallNotes } from "@wren/channel-email/calls";
 import { modelLabel } from "@wren/core/models/labels";
+import type { CallNotes } from "@wren/starling-email/calls";
 import { Button, type RecordExtras, tipProps } from "@wren/ui";
 import { type ReactNode, useState } from "react";
 import { call } from "../../api.js";

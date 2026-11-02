@@ -4,6 +4,9 @@
  * mailbox, sensible text, no contact names for the operator, and a failure
  * that never blocks the rest. A failing test here is a bug, marked "Was a bug:".
  */
+
+import type { Db } from "@wren/db";
+import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import {
   buildMime,
   ConsoleTransport,
@@ -11,9 +14,7 @@ import {
   type SendReceipt,
   type Transport,
   TransportRefused,
-} from "@wren/channel-email";
-import type { Db } from "@wren/db";
-import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
+} from "@wren/starling-email";
 import { type SQL, sql } from "drizzle-orm";
 import { PgDialect } from "drizzle-orm/pg-core";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";

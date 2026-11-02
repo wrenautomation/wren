@@ -1,5 +1,5 @@
 /** Recruiting and staffing firms: the dead lead reactivation pilot, sold to the owner or MD. */
-import { twoEmailSequence } from "@wren/channel-email";
+import { twoEmailSequence } from "@wren/starling-email";
 import { defineNiche, rawLocation, US_METROS } from "./niche.js";
 import {
   recruitingDatasets,

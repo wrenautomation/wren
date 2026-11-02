@@ -4,7 +4,7 @@ cluster: content
 universe: live
 status: verified
 verified: 2026-10-09 @ e53ab9fd
-entity: packages/content/src/schema.ts:860
+entity: packages/starling/inbound/src/schema.ts:860
 ---
 
 # auto-reply
@@ -23,7 +23,7 @@ A draft on arrival is an `inbox_replies` row (`asked_by` = `auto`), so To approv
 - **Auto is held**: it drafts like Suggest with why "Auto is held". The send path and the model's send check come with William's go.
 - Settings: `InboxDesk.autoReplies` / `autoReplySet` (`manage` to change); a client's through `MarketingConsole.inboxAuto` / `inboxAutoSet`.
 
-Citations: `packages/content/src/inbox/auto.ts:1`, `packages/content/src/restate/auto-reply.ts:1`, `packages/content/src/restate/inbox-desk.ts:1`, `apps/portal/web/src/modules/marketing/auto-reply.tsx:1`
+Citations: `packages/starling/inbound/src/inbox/auto.ts:1`, `packages/starling/inbound/src/restate/auto-reply.ts:1`, `packages/starling/inbound/src/restate/inbox-desk.ts:1`, `apps/portal/web/src/modules/marketing/auto-reply.tsx:1`
 
 ## Connected to
 

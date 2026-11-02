@@ -1,13 +1,13 @@
 /**
  * One-to-one outreach on a platform where we talk as an account: find
  * people, read one, connect, message, read replies. The contract every
- * platform adapter (`@wren/channel-reddit`, `@wren/channel-linkedin`) meets
- * and the one thing `@wren/outreach` (the loop, the tables, the CLI) knows.
+ * platform adapter (`@wren/starling-reddit`, `@wren/starling-linkedin`) meets
+ * and the one thing `@wren/starling-outbound` (the loop, the tables, the CLI) knows.
  *
  * An adapter is one account: it is built over a `SiteClient` already pinned
  * with `asAccount(sites, "reddit@alt")`, so the loop never passes an account
  * down. Nothing here paces or caps: the adapter answers one call; the loop
- * decides whether to make it (policy.ts in `@wren/outreach`) and the worker's
+ * decides whether to make it (policy.ts in `@wren/starling-outbound`) and the worker's
  * own caps ledger refuses past them with a 429 either way.
  */
 import type { FetchedWith } from "../content/index.js";

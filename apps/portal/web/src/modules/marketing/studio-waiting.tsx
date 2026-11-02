@@ -5,9 +5,9 @@
  * first. By line groups the rows under each offer line.
  */
 
-import { ownThreadOf, PLATFORM_SPECS } from "@wren/content/write";
-import { threadPosts } from "@wren/core/content/thread";
 import type { MetroLine } from "@wren/pipeline/metro";
+import { threadPosts } from "@wren/starling-core/thread";
+import { ownThreadOf, PLATFORM_SPECS } from "@wren/starling-inbound/write";
 import {
   ACTIONS,
   BottomSheet,

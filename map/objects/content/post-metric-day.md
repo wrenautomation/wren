@@ -4,7 +4,7 @@ cluster: content
 universe: live
 status: verified
 verified: 2026-10-07 @ d4d285c5
-entity: packages/content/src/schema.ts:276
+entity: packages/starling/inbound/src/schema.ts:276
 ---
 
 # post-metric-day
@@ -24,7 +24,7 @@ Every number a platform answers is kept per day and never overwritten across day
 - LinkedIn's dashboard (autobrowse `GET /analytics/dashboard` as `linkedin@wren`) lands `profile_visits` and `search_appearances` on `account_metric_days` on the day read; they are LinkedIn's window totals (90 days, last week), shown as Followers columns
 - `content_digests`: Monday's "what worked" lines per platform, first kept (`schema.ts:346`)
 
-Citations: `packages/content/src/schema.ts:276`, `packages/content/src/analytics/store.ts:59`, `packages/content/src/analytics/digest.ts:262`
+Citations: `packages/starling/inbound/src/schema.ts:276`, `packages/starling/inbound/src/analytics/store.ts:59`, `packages/starling/inbound/src/analytics/digest.ts:262`
 
 ## Connected to
 
@@ -48,5 +48,5 @@ Citations: `packages/content/src/schema.ts:276`, `packages/content/src/analytics
 
 ## See
 
-- Source: `packages/content/src/analytics/`
+- Source: `packages/starling/inbound/src/analytics/`
 - Design: `designs/2026-10-07-content-analytics.md`

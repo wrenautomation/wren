@@ -4,7 +4,7 @@
  * URN or `<platform>:<handle>`. `backfill` folds the source tables in; `link` ties a handle to a
  * person by hand.
  */
-import { backfillTouches } from "@wren/content";
+
 import {
   answerOf,
   linkHandle,
@@ -14,6 +14,7 @@ import {
   touchText,
 } from "@wren/core/touches";
 import type { Db } from "@wren/db";
+import { backfillTouches } from "@wren/starling-inbound";
 import { type Command, InvalidArgumentError } from "commander";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;

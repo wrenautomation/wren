@@ -2,7 +2,7 @@
  * A draft's editor shows the same idea's other platforms (`siblings` on the draft's detail), so
  * every version of one piece is a click apart (designs/2026-10-14-saving-and-ui-audit.md).
  */
-import { PLATFORM_SPECS } from "@wren/content/write";
+import { PLATFORM_SPECS } from "@wren/starling-inbound/write";
 import { cx, PlatformMark, type RecordExtras, Tag, type TagTone } from "@wren/ui";
 import type { ListPage } from "../../module.js";
 import { QUIET } from "../work/bits.js";

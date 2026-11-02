@@ -8,8 +8,8 @@ import * as clients from "@restatedev/restate-sdk-clients";
 import { ingressOf, type Settings } from "@wren/config";
 import { dollars, keyAccounts, VAULT_KEYS_KEY, type VaultKeys } from "@wren/core/vault-keys";
 import type { Db } from "@wren/db";
-import { movePlace, pickAccount, policyFrom } from "@wren/outreach";
-import { accountRecordOf } from "@wren/outreach/records";
+import { movePlace, pickAccount, policyFrom } from "@wren/starling-outbound";
+import { accountRecordOf } from "@wren/starling-outbound/records";
 import type { Command } from "commander";
 import { sql } from "drizzle-orm";
 

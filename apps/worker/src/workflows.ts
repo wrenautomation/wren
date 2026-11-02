@@ -3,19 +3,20 @@
  * cross packages. Shared blocks first, then what's sold, then Wren's own business on top.
  * `components.test.ts` checks them against the catalog.
  */
-import { emailCadence } from "@wren/channel-email";
+
 import { textCadence } from "@wren/channel-sms";
-import { CONTENT_WORKFLOWS } from "@wren/content/components";
 import { FOLLOW_WORKFLOWS } from "@wren/core/follow";
 import { setupWorkflow } from "@wren/core/setup";
 import { defineWorkflow, type Workflow } from "@wren/core/workflows";
 import { DELIVERY_WORKFLOWS } from "@wren/delivery/components";
 import { LEARN_WORKFLOWS } from "@wren/learn/components";
 import { NICHES, SMS_SEQUENCES } from "@wren/niches";
-import { REACH_SEQUENCES, reachCadence } from "@wren/outreach";
-import { OUTREACH_WORKFLOWS } from "@wren/outreach/components";
 import { MONEY_WORKFLOW } from "@wren/pipeline/collect";
 import { RESEARCH_WORKFLOWS } from "@wren/research/components";
+import { emailCadence } from "@wren/starling-email";
+import { CONTENT_WORKFLOWS } from "@wren/starling-inbound/components";
+import { REACH_SEQUENCES, reachCadence } from "@wren/starling-outbound";
+import { OUTREACH_WORKFLOWS } from "@wren/starling-outbound/components";
 import { WATCH_WORKFLOWS } from "@wren/watch/components";
 import { SETUPS } from "./setups.js";
 

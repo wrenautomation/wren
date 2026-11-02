@@ -32,8 +32,8 @@ Citations: `packages/core/src/templates.ts:1`, `packages/core/src/schema.ts:1063
 ## Connected to
 
 - **owns:** the versions each send pins: `messages.template_version`, `sms_messages.template_version`, `reach_messages.template_version`, `compositions.prompt_version`
-- **feeds:** [[email/template]] (`liveEmails`), SMS step bodies (`liveTexts`, `packages/channel-sms/src/template-store.ts:86`), DMs (`liveDms`, `packages/outreach/src/store.ts:34`)
-- **posts:** the video footers `post:youtube/footer`, `post:youtube/shorts-footer`, `post:instagram/reel-footer` (`VIDEO_FOOTERS`, `packages/content/src/video.ts`), read through `liveOrDefault` by [[content/video-edit]] Approve
+- **feeds:** [[email/template]] (`liveEmails`), SMS step bodies (`liveTexts`, `packages/channel-sms/src/template-store.ts:86`), DMs (`liveDms`, `packages/starling/outbound/src/store.ts:34`)
+- **posts:** the video footers `post:youtube/footer`, `post:youtube/shorts-footer`, `post:instagram/reel-footer` (`VIDEO_FOOTERS`, `packages/starling/inbound/src/video.ts`), read through `liveOrDefault` by [[content/video-edit]] Approve
 - **prompts:** `prompt:reactivation/compose` (`COMPOSE_PROMPT_REF`, `packages/reactivation/src/compose.ts:300`), `prompt:content/draft-ask`, `prompt:content/video-ask`, all read through `livePrompt`
 - **looks-like-but-is-not:** [[platform/offer]] (offers stay in code: the lander reads a snapshot)
 

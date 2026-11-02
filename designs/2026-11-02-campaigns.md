@@ -34,11 +34,13 @@ Ranked by: one workflow engine (the 10-25 rule), then true numbers per campaign,
 |---|---|
 | `offer` | the registry offer its CTAs sell |
 | `audience` | a segment id, or the out lines that feed it |
-| `ctas` | the ladder: an ordered list of `{ label, station }`, each a `cta`, `form`, `visit` or `book` station inside the group |
+| `ctas` | the ladder: an ordered list of `{ label, station }`, each a station inside the group whose action is `cta`, `form`, `visit` or `book` |
 | `accounts` | per platform, the account that acts |
-| `caps` | per act per day, under the platform caps |
+| `caps` | per `<platform>.<act>` per day (`linkedin.comment: 20`), under the platform caps |
 | `from`, `until` | dates. None: open-ended |
 | `status` | `live`, `paused` or `ended` |
+
+Every field is optional on the group. `status` resolves to `live` when no campaign above it sets one.
 
 Rules:
 - The id is the group id. Ids never change across versions, so numbers join across versions.
@@ -51,6 +53,8 @@ Rules:
 ## Phases
 
 1. **Model.** Add `campaign` to `MetroGroup`, with its check rules and its form in the metro file. Add `wren campaigns` (list, show). Each workspace gets one default campaign that holds today's global settings, so no loop stops.
+   - The default campaign is computed, not stored: id `default`, every station outside a campaign group, status `live`, fields unset (a loop reads its settings as today). No shape needs a new version, and a group may not take the id `default`.
+   - `LineEntry.campaign` stays text until phase 2, when `/go/` links and the Meta spend join move to group ids together.
 2. **Attribution.** `campaign` column on touches, `content_drafts`, `reach_posts`, `reach_messages`, email `messages` and `sms_messages`. Each act stamps the campaign of its station. `/go/` links carry it. A numbers view per campaign: people in, acts, cost and conversions.
 3. **Loops take a campaign.** The content planner plans per campaign: platforms, cadence and CTA. Reach passes pick from the campaign's audience, with its accounts and caps. Cold email enrolls into a campaign. Newsletters run as a campaign's lap.
 4. **Logic in the runtime.** The executor runs `split` (fan-out), `join` (all, any, n of m) and `race` (first event wins, the other branches stop). A campaign on many channels needs race: a reply on one channel stops the rest.

@@ -6,13 +6,13 @@
  */
 import { readFile, writeFile } from "node:fs/promises";
 import * as clients from "@restatedev/restate-sdk-clients";
-import type { LaunchSpec, MetaObjective } from "@wren/channel-meta";
-import { formatLaunches, listLaunches, META_OBJECTIVES, specFromPost } from "@wren/channel-meta";
-import { type AdsService, type AdsWatch, WATCH_KEY } from "@wren/channel-meta/restate";
 import { ingressOf, type Settings } from "@wren/config";
-import { adFormats, getDraft, uploadMedia } from "@wren/content";
-import { isStoredMedia, isUrl } from "@wren/core/content";
 import type { Db } from "@wren/db";
+import { isStoredMedia, isUrl } from "@wren/starling-core";
+import { adFormats, getDraft, uploadMedia } from "@wren/starling-inbound";
+import type { LaunchSpec, MetaObjective } from "@wren/starling-meta";
+import { formatLaunches, listLaunches, META_OBJECTIVES, specFromPost } from "@wren/starling-meta";
+import { type AdsService, type AdsWatch, WATCH_KEY } from "@wren/starling-meta/restate";
 import type { Command } from "commander";
 import { eq } from "drizzle-orm";
 

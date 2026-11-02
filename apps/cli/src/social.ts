@@ -4,7 +4,7 @@
  */
 import * as clients from "@restatedev/restate-sdk-clients";
 import { ingressOf, type Settings } from "@wren/config";
-import { SOCIAL_KEY, type SocialDesk, type SocialWatch } from "@wren/content/restate";
+import { SOCIAL_KEY, type SocialDesk, type SocialWatch } from "@wren/starling-inbound/restate";
 import type { Command } from "commander";
 import { ingressSites } from "./sites.js";
 

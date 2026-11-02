@@ -72,7 +72,7 @@ export const INBOX_QUEUES: OverviewQueue[] = [
 /**
  * The states in which a queue's rows wait on the viewer: the same field and values as the record's
  * "waiting" view (`where`). Only those rows can read late; an answered row shows its age.
- * Sources: INBOX_OPEN and INBOX_WAITING in `@wren/content` social records, the `needs_you` mail
+ * Sources: INBOX_OPEN and INBOX_WAITING in `@wren/starling-inbound` social records, the `needs_you` mail
  * queue, unread mentions, and open issues and asks.
  */
 const OPEN: Record<string, { field: string; values: readonly string[] }> = {

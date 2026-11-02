@@ -4,7 +4,7 @@ cluster: email
 universe: live
 status: verified
 verified: 2026-10-05 @ f21d65f
-entity: packages/channel-email/src/schema.ts:918
+entity: packages/starling/channels/email/src/schema.ts:918
 ---
 
 # placement-check
@@ -22,7 +22,7 @@ Postmaster says nothing below its volume threshold, so warmup is blind without s
 - plain notes: `PLAIN_NOTES`, one per day (`plainNote`, `restate/placement-scheduler.ts:79`)
 - seeds: `WREN_PLACEMENT_SEEDS` (`packages/config/src/index.ts:111`); empty = the loop sends nothing
 
-Citations: `packages/channel-email/src/schema.ts:918`, `packages/channel-email/src/restate/placement-scheduler.ts:308`, `packages/channel-email/src/inbox/placement.ts:205`
+Citations: `packages/starling/channels/email/src/schema.ts:918`, `packages/starling/channels/email/src/restate/placement-scheduler.ts:308`, `packages/starling/channels/email/src/inbox/placement.ts:205`
 
 ## Connected to
 
@@ -45,4 +45,4 @@ Citations: `packages/channel-email/src/schema.ts:918`, `packages/channel-email/s
 
 ## See
 
-- Source: `packages/channel-email/src/restate/placement-scheduler.ts`
+- Source: `packages/starling/channels/email/src/restate/placement-scheduler.ts`

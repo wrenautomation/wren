@@ -7,6 +7,12 @@ import { readFile } from "node:fs/promises";
 import { extname } from "node:path";
 import * as clients from "@restatedev/restate-sdk-clients";
 import { ingressOf, type Settings } from "@wren/config";
+import { setWrenSettings } from "@wren/core/clients";
+import { PLATFORMS, type Platform } from "@wren/core/content";
+import { REJECT_NOTE_MAX, REJECT_REASONS, rejectWhy } from "@wren/core/draft-record";
+import type { Db } from "@wren/db";
+import { isStoredMedia, isUrl, type Media } from "@wren/starling-core";
+import { coerceField, fieldViews } from "@wren/starling-core/shapes";
 import {
   approveDrafts,
   askSwap,
@@ -48,7 +54,7 @@ import {
   variantWindows,
   waitingSwaps,
   whatWorked,
-} from "@wren/content";
+} from "@wren/starling-inbound";
 import type {
   ContentDesk,
   ContentMetrics,
@@ -56,19 +62,14 @@ import type {
   ContentScheduler,
   DraftReport,
   PlannerSettings,
-} from "@wren/content/restate";
+} from "@wren/starling-inbound/restate";
 import {
   DEFAULT_PLAN_PLATFORMS,
   DESK_KEY,
   METRICS_KEY,
   PLANNER_KEY,
   SCHEDULER_KEY,
-} from "@wren/content/restate";
-import { setWrenSettings } from "@wren/core/clients";
-import { isStoredMedia, isUrl, type Media, PLATFORMS, type Platform } from "@wren/core/content";
-import { coerceField, fieldViews } from "@wren/core/content/shapes";
-import { REJECT_NOTE_MAX, REJECT_REASONS, rejectWhy } from "@wren/core/draft-record";
-import type { Db } from "@wren/db";
+} from "@wren/starling-inbound/restate";
 import type { Command } from "commander";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;

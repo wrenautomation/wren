@@ -6,7 +6,6 @@
  */
 import { createWriteStream } from "node:fs";
 import { resolve } from "node:path";
-import { emailFacts } from "@wren/channel-email";
 import type { Db } from "@wren/db";
 import {
   type Dossier,
@@ -16,6 +15,7 @@ import {
   nicheCompanyIds,
   withFacts,
 } from "@wren/research/dossier";
+import { emailFacts } from "@wren/starling-email";
 import type { Command } from "commander";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;

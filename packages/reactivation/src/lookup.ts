@@ -4,7 +4,7 @@
  * them (then once the cap lifts) or `again` asks for a fresh pass. Ctrl-C is a
  * pause; re-running resumes.
  */
-import { eachConcurrently } from "@wren/channel-email";
+
 import { type Feed, NO_FEED } from "@wren/core";
 import { hold, retryDue } from "@wren/core/checks";
 import type { SiteClient } from "@wren/core/content";
@@ -17,6 +17,7 @@ import {
   lookUpPerson,
   recordLookup,
 } from "@wren/research/people";
+import { eachConcurrently } from "@wren/starling-email";
 import { type SQL, sql } from "drizzle-orm";
 import { type Judge, settleDrafts } from "./family.js";
 import { failedLine, fullName, headline, lookupLine } from "./feed.js";

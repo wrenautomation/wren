@@ -5,9 +5,10 @@
  * sources a page can cite. Tests that expose a bug assert the correct behavior
  * and are marked "Bug".
  */
-import { signed } from "@wren/channel-email";
+
 import { addMember, clients } from "@wren/core/clients";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
+import { signed } from "@wren/starling-email";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { briefLines, MARKS } from "../../src/brief.js";

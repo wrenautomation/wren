@@ -5,13 +5,14 @@
  * run; the stages after it would work on half a list. `crmStatus` says where
  * things stand afterwards.
  */
-import type { EmailVerifier, LocalCheckerLike } from "@wren/channel-email";
+
 import { type Feed, NO_FEED } from "@wren/core";
 import type { SiteClient } from "@wren/core/content";
 import type { Queryable } from "@wren/db";
 import type { LlmClient } from "@wren/llm";
 import { keepingAnswers } from "@wren/research";
 import { politeHomepageFetcher } from "@wren/research/discovery";
+import type { EmailVerifier, LocalCheckerLike } from "@wren/starling-email";
 import type { Fetcher } from "@wrenautomation/read/fetch";
 import { type CrmBriefStats, writeCrmBriefs } from "./brief.js";
 import { type CrmComposeStats, composeCrmEmails } from "./compose.js";

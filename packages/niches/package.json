@@ -12,7 +12,7 @@
     "test:integration": "vitest run test/integration"
   },
   "dependencies": {
-    "@wren/channel-email": "workspace:*",
+    "@wren/starling-email": "workspace:*",
     "@wren/channel-sms": "workspace:*",
     "@wren/core": "workspace:*",
     "@wren/offers": "workspace:*",

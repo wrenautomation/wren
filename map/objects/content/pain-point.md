@@ -4,12 +4,12 @@ cluster: content
 universe: live
 status: verified
 verified: 2026-10-26 @ HEAD
-entity: packages/outreach/src/pain.ts
+entity: packages/starling/outbound/src/pain.ts
 ---
 
 # pain-point
 
-A pain a post's author states about their own business, kept with the quote that proves it, and the person's entry onto Wren's outreach line because of it. The pain points line of `designs/2026-10-25-ingestion-engine.md` (phase 3): a `sourced` out line on Wren's map whose list the pain pass fills. `packages/outreach/src/pain.ts`; loop `PainFeed/all` (`apps/worker/src/pain-feed.ts`).
+A pain a post's author states about their own business, kept with the quote that proves it, and the person's entry onto Wren's outreach line because of it. The pain points line of `designs/2026-10-25-ingestion-engine.md` (phase 3): a `sourced` out line on Wren's map whose list the pain pass fills. `packages/starling/outbound/src/pain.ts`; loop `PainFeed/all` (`apps/worker/src/pain-feed.ts`).
 
 ## Why this shape
 
@@ -50,5 +50,5 @@ A pain is a finding with proof like a study's claim ([[research/study]]), so his
 
 ## See
 
-- Tests: `packages/outreach/src/pain.test.ts` (proof rule, key, prompt, fire), `packages/outreach/test/integration/pain.test.ts` (the pass on Postgres: batch once, waits, keeps and drops, cursor, idempotent, filters), `packages/pipeline/src/workflow.test.ts` (a shape with the line is sound)
+- Tests: `packages/starling/outbound/src/pain.test.ts` (proof rule, key, prompt, fire), `packages/starling/outbound/test/integration/pain.test.ts` (the pass on Postgres: batch once, waits, keeps and drops, cursor, idempotent, filters), `packages/pipeline/src/workflow.test.ts` (a shape with the line is sound)
 - Design `designs/2026-10-25-ingestion-engine.md` phase 3 and its 2026-10-26 log entry; docs `docs/restate-operations.md` (`PainFeed/all/start`)

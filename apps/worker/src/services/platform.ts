@@ -3,8 +3,6 @@
  * dead letters and the loop watch, and the console portal every page calls.
  */
 import { BOOKS_CONSOLE_VIEWS } from "@wren/books";
-import { landerVisitLines } from "@wren/channel-email/calls";
-import { EMAIL_CONSOLE_VIEWS, EMAIL_COST_VIEWS } from "@wren/channel-email/views";
 import { makeAuditSealer } from "@wren/core/audit";
 import { cacheFrom } from "@wren/core/cache";
 import { makeConsolePortal, restateAdmin, restateAdminGet } from "@wren/core/console";
@@ -21,8 +19,10 @@ import { learnSource } from "@wren/learn/decide";
 import { makeLlm } from "@wren/llm";
 import { notesContext } from "@wren/notes/console";
 import { leadOffers } from "@wren/offers";
-import { policyFrom as reachPolicyFrom } from "@wren/outreach";
-import { commentSource } from "@wren/outreach/decide";
+import { landerVisitLines } from "@wren/starling-email/calls";
+import { EMAIL_CONSOLE_VIEWS, EMAIL_COST_VIEWS } from "@wren/starling-email/views";
+import { policyFrom as reachPolicyFrom } from "@wren/starling-outbound";
+import { commentSource } from "@wren/starling-outbound/decide";
 import { COMPONENTS } from "../components.js";
 import { consoleRecords } from "../console-records.js";
 import { SETUPS } from "../setups.js";

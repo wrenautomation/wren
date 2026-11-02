@@ -18,6 +18,22 @@
         ".storybook/vitest.config.ts"
       ]
     },
+    "packages/starling/*": {
+      "entry": [
+        "src/**/*.test.{ts,tsx}",
+        "test/**/*.{ts,tsx}",
+        "scripts/*.{mjs,ts}",
+        ".storybook/vitest.config.ts"
+      ]
+    },
+    "packages/starling/channels/*": {
+      "entry": [
+        "src/**/*.test.{ts,tsx}",
+        "test/**/*.{ts,tsx}",
+        "scripts/*.{mjs,ts}",
+        ".storybook/vitest.config.ts"
+      ]
+    },
     "packages/voice": {
       "entry": ["src/box/main.ts", "src/**/*.test.ts", "test/**/*.ts"]
     },
@@ -58,7 +74,7 @@
     "apps/phone": {
       "ignore": ["public/**"]
     },
-    "packages/studio": {
+    "packages/starling/studio": {
       "entry": [
         "src/**/*.test.{ts,tsx}",
         "test/**/*.{ts,tsx}",

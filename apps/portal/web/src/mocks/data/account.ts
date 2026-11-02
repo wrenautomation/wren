@@ -4,9 +4,10 @@
  * change, so a story sees a row go. `forgetAccount()` puts it back before each story, and
  * `ACCOUNT_CALLS` keeps the writes sent, in order. Synthetic data only.
  */
-import type { MailPageView } from "@wren/channel-email/access/console";
+
 import type { ConnectorsPageView } from "@wren/connectors";
-import type { SocialPageView } from "@wren/content/connect";
+import type { MailPageView } from "@wren/starling-email/access/console";
+import type { SocialPageView } from "@wren/starling-inbound/connect";
 import type { Answers } from "../api.js";
 import { ANSWERS } from "./index.js";
 import { ago } from "./shell.js";

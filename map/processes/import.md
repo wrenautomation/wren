@@ -25,7 +25,7 @@ Identity constraints must never decide what gets stored: a clash is recorded as 
 3. Upsert the company (`ingest/importer.ts:235`, `:256`; domain conflict → `:269`, `:272`).
 4. Insert the lead (`ingest/importer.ts:381`) or person (`people/importer.ts:195`); sighting (`:262`, `:335`; `people/importer.ts:234`).
 5. A niche with a `screen` runs it next: `runScreen` marks no-buyer firms in `companies.decline_reason` and fills blank countries (`packages/core/src/ingest/screen.ts`). Also `wren email screen`.
-6. Named leads become `registry` people holding their own address (`runListedContacts`, `packages/channel-email/src/resolution/listed.ts`). Also `wren email contacts`.
+6. Named leads become `registry` people holding their own address (`runListedContacts`, `packages/starling/channels/email/src/resolution/listed.ts`). Also `wren email contacts`.
 7. Discovery batches open their own import (`packages/research/src/discovery/service.ts:106`).
 
 ## If you change this

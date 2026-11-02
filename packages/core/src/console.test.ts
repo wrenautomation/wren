@@ -627,7 +627,7 @@ describe("builtWords", () => {
     expect(builtWords(part, "the search_console account", name)).toBe("The Search Console account");
     expect(builtWords(part, "the door's hook", name)).toBe("The door's hook");
     expect(builtWords(part, "SOCIAL_EVERY_MS, SLOW_EVERY_MS", name)).toBeNull();
-    expect(builtWords(part, "warmupOf in @wren/channel-reddit", name)).toBeNull();
+    expect(builtWords(part, "warmupOf in @wren/starling-reddit", name)).toBeNull();
     expect(builtWords(part, "PoolScheduler limits.youtube", name)).toBeNull();
   });
 });

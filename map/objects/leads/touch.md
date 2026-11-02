@@ -22,8 +22,8 @@ Each touch already lives in its source table (`reach_messages`, `comments`, `red
 - `person_touch_lines` view: the People Touches tab, keyed `li:<people.id>` and `<platform>:<handle>` (`:153`); `link` is `touches.link`, `context` is the touch's `url` (the post or profile it sits on; the broken Instagram `/p/<numeric id>/` form is hidden), and `what` carries no URL
 - `itemLink(platform, kind, ref)` (`packages/core/src/touch-link.ts`, pure): the item's own permalink (LinkedIn comment/reply URN, Reddit comment, X status, Facebook `<post>_<comment>`, Instagram permalink + comment id, YouTube `lc`) or null. Writers pass it as `TouchIn.link`; `recordTouch` fills a kept row's null `link` and returns `linked`; `wren touches backfill` counts links filled (dry run too)
 - `profile_timeline` touch branch: `link = touches.link`, `context = url`, and a `note` of "No link for this one" when `link` is null; the People timeline, the `people.event` record ("Its page", "Where") and Outreach's Touches tab show it, in a new tab
-- `normalizeHandle` (`packages/core/src/touches.ts:161`; a bare YouTube `UC…` id keeps its case, as from a `/channel/` URL), `resolveHandle` (`:304`), `mergeHandle` (`:364`: a LinkedIn comment URN moved to the profile a notice names, `linkCommentAuthors` in `packages/content/src/touches.ts`), `recordTouch` (`:432`), `respond` (`:496`), `touchesFor` (`:587`), `touchesContext` (`:764`), `touchFacts` (`:820`)
-- writers per source: `packages/outreach/src/touches.ts`, `packages/content/src/touches.ts`
+- `normalizeHandle` (`packages/core/src/touches.ts:161`; a bare YouTube `UC…` id keeps its case, as from a `/channel/` URL), `resolveHandle` (`:304`), `mergeHandle` (`:364`: a LinkedIn comment URN moved to the profile a notice names, `linkCommentAuthors` in `packages/starling/inbound/src/touches.ts`), `recordTouch` (`:432`), `respond` (`:496`), `touchesFor` (`:587`), `touchesContext` (`:764`), `touchFacts` (`:820`)
+- writers per source: `packages/starling/outbound/src/touches.ts`, `packages/starling/inbound/src/touches.ts`
 
 Citations: `packages/core/src/touches-schema.ts:98`, `packages/core/src/touches.ts:432`
 
@@ -37,7 +37,7 @@ Citations: `packages/core/src/touches-schema.ts:98`, `packages/core/src/touches.
 
 ## If you change this
 
-- **Hits:** the writers in `recordSent`, `receive`, `markAccepted`, `applyWithdraw`, `keepComments`, `markAnswered`, `markCommented`, `markPostCommented`, `keepPostComments`, `keepActivity`; DM prompt (`packages/outreach/src/drafts.ts` `dmContext`); compose `touch.*` facts (`packages/channel-email/src/outreach/facts.ts`); the call brief (`packages/channel-email/src/calls/brief.ts`); `wren dossier` (`packages/channel-email/src/dossier.ts`); Outreach → People (`packages/outreach/src/records.ts` `personRecord`)
+- **Hits:** the writers in `recordSent`, `receive`, `markAccepted`, `applyWithdraw`, `keepComments`, `markAnswered`, `markCommented`, `markPostCommented`, `keepPostComments`, `keepActivity`; DM prompt (`packages/starling/outbound/src/drafts.ts` `dmContext`); compose `touch.*` facts (`packages/starling/channels/email/src/outreach/facts.ts`); the call brief (`packages/starling/channels/email/src/calls/brief.ts`); `wren dossier` (`packages/starling/channels/email/src/dossier.ts`); Outreach → People (`packages/starling/outbound/src/records.ts` `personRecord`)
 - **Does not hit:** the source tables (a touch only reads them); email `messages` (email touches are not social)
 
 ## Surfaces

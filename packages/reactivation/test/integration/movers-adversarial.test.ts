@@ -3,9 +3,10 @@
  * address at the new firm (site, guesses, the check), then who scoring sends
  * to compose and who it keeps warm. Synthetic people and firms only.
  */
-import { type EmailVerifier, FakeVerifier, type LocalCheckerLike } from "@wren/channel-email";
+
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import type { HomepageFetcher } from "@wren/research/discovery";
+import { type EmailVerifier, FakeVerifier, type LocalCheckerLike } from "@wren/starling-email";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { composeSubjects } from "../../src/compose.js";

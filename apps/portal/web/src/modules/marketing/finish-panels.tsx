@@ -10,7 +10,7 @@ import {
   type OverlaySize,
   snapFrame,
   type TextOverlay,
-} from "@wren/studio/finish";
+} from "@wren/starling-studio/finish";
 import { ACTIONS, Button, cx, EditConflict, type RecordAct, useEdit } from "@wren/ui";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import {

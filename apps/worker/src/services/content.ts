@@ -4,12 +4,18 @@
  * the site chat.
  */
 import type { ObjectContext } from "@restatedev/restate-sdk";
-import { isGoogleMailbox } from "@wren/channel-email/access/access";
-import { makeAds, makeAdsWatch } from "@wren/channel-meta/restate";
 import { placeIdOf } from "@wren/channel-sms";
-import { tiktokCreator } from "@wren/channel-tiktok";
-import { slidePainter } from "@wren/content";
-import { liveConnections, loginOf } from "@wren/content/connect";
+import { restateAdmin } from "@wren/core/console";
+import { asAccount, type Platform } from "@wren/core/content";
+import { DESK, restateSites } from "@wren/core/content/restate";
+import { pausedUnder } from "@wren/core/dead-letters";
+import { wrenFacts } from "@wren/core/facts";
+import { githubRepo } from "@wren/core/github";
+import { LIMITS } from "@wren/core/restate";
+import { makeContent } from "@wren/starling-core/service";
+import { isGoogleMailbox } from "@wren/starling-email/access/access";
+import { slidePainter } from "@wren/starling-inbound";
+import { liveConnections, loginOf } from "@wren/starling-inbound/connect";
 import {
   makeAutoReply,
   makeBlog,
@@ -29,15 +35,10 @@ import {
   makeSocialWatch,
   makeVideoDesk,
   socialPushed,
-} from "@wren/content/restate";
-import { restateAdmin } from "@wren/core/console";
-import { asAccount, type Platform } from "@wren/core/content";
-import { DESK, makeContent, restateSites } from "@wren/core/content/restate";
-import { pausedUnder } from "@wren/core/dead-letters";
-import { wrenFacts } from "@wren/core/facts";
-import { githubRepo } from "@wren/core/github";
-import { LIMITS } from "@wren/core/restate";
-import { wakeWatch } from "@wren/outreach/restate";
+} from "@wren/starling-inbound/restate";
+import { makeAds, makeAdsWatch } from "@wren/starling-meta/restate";
+import { wakeWatch } from "@wren/starling-outbound/restate";
+import { tiktokCreator } from "@wren/starling-tiktok";
 import { clientMarketing } from "../marketing.js";
 import { adsFor, contentClientsFor, contentFor } from "./content-channels.js";
 import type { AnyService, Deps } from "./deps.js";

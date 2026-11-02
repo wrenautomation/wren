@@ -72,7 +72,7 @@ const ROUTES: readonly Row[] = [
     why: "a file upload; no post names it yet",
   },
   {
-    // `UPLOAD_PATH` in packages/channel-linkedin/src/content.ts: initializeUpload and the parts.
+    // `UPLOAD_PATH` in packages/starling/channels/linkedin/src/content.ts: initializeUpload and the parts.
     site: "linkedin",
     path: /^\/upload$/,
     kind: "staging",

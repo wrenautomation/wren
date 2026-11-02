@@ -23,7 +23,7 @@ The browser streams a frame each time the page changes (CDP screencast) at twice
 - `encode` (`encode.ts:104`): steady 30 fps, zooms, captions as pictures
 - `capturePage` (`capture.ts:14`): one still, for a promo's screen scene
 - `publish` (`publish.ts:32`): `v/<id>.mp4`, `v/<id>.jpg`, `v/<id>.json` in a CDN bucket
-- callers: [[reactivation/demo-video]] (`packages/reactivation/src/video/`), the studio promo (`packages/studio/src/promo.ts`, `finish-look.ts`), slides (`packages/core/src/content/slides.ts`), `apps/cli`
+- callers: [[reactivation/demo-video]] (`packages/reactivation/src/video/`), the studio promo (`packages/starling/studio/src/promo.ts`, `finish-look.ts`), slides (`packages/starling/core/src/slides.ts`), `apps/cli`
 
 Citations: `packages/video/src/index.ts:1`, `packages/video/src/publish.ts:32`
 

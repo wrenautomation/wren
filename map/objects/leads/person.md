@@ -34,7 +34,7 @@ Citations: `packages/core/src/schema.ts:135`
 
 ## If you change this
 
-- **Hits:** `packages/core/src/views.ts:14`; the people importer (`packages/core/src/people/importer.ts:195`); extraction apply (`packages/research/src/enrichment/store.ts`); fact assembly (`packages/channel-email/src/outreach/facts.ts`); candidate minting (`packages/channel-email/src/resolution/service.ts:155`)
+- **Hits:** `packages/core/src/views.ts:14`; the people importer (`packages/core/src/people/importer.ts:195`); extraction apply (`packages/research/src/enrichment/store.ts`); fact assembly (`packages/starling/channels/email/src/outreach/facts.ts`); candidate minting (`packages/starling/channels/email/src/resolution/service.ts:155`)
 - **Does not hit:** `leads` columns; SMS contacts (they key on the phone, `person_id` is optional)
 
 ## Surfaces

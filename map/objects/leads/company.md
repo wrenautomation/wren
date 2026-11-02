@@ -13,13 +13,13 @@ A business we might reach. Table `companies`, one row per business; in prose a "
 
 ## Why this shape
 
-The company is the unit of outreach: one active email enrollment per company (`packages/channel-email/src/schema.ts:201`), one SMS thread per company (`packages/channel-sms/src/enroll.ts:1`). Identity is the domain, but a row is never dropped to keep a key clean: `raw` keeps the source row, and a domain clash lands in `import_errors` instead of overwriting (`packages/core/src/ingest/importer.ts:269`).
+The company is the unit of outreach: one active email enrollment per company (`packages/starling/channels/email/src/schema.ts:201`), one SMS thread per company (`packages/channel-sms/src/enroll.ts:1`). Identity is the domain, but a row is never dropped to keep a key clean: `raw` keeps the source row, and a domain clash lands in `import_errors` instead of overwriting (`packages/core/src/ingest/importer.ts:269`).
 
 ## Shape
 
 - `id`, `domain`, `name`, `import_id`, `raw`, `source_key`, `social_url`, `linkedin_url`, `country`, `domain_verified_at`, `niche`, `timezone` (`packages/core/src/schema.ts:160`–`173`)
 - `decline_reason`: why the firm is no buyer (platform_site, chain, public_body, foreign, or the niche's rule); NULL = in play. Set by `runScreen` (`packages/core/src/ingest/screen.ts`); every stage filters with `inPlay`
-- `timezone` is filled per niche from location text, never guessed (`packages/channel-email/src/send/lead-timezone.ts:110`)
+- `timezone` is filled per niche from location text, never guessed (`packages/starling/channels/email/src/send/lead-timezone.ts:110`)
 - `linkedin_url`: the firm's LinkedIn page, canonical, written only by a company lookup whose cached page names a website on the firm's registrable domain (`packages/research/src/companies/profile.ts:307`, `:118`)
 - `domain` and `domain_verified_at` are set by discovery when a guessed host proves out (`packages/research/src/discovery/service.ts:247`)
 - `crawled_at`, `named_at`, `lead_at`: when the firm first had a document, a person, a verified named lead. Kept exact per statement by triggers on `documents`, `people` and `leads` (`company_firsts_sync`, migration 0226), so `email_firm_records` reads them instead of aggregating three tables (`packages/core/src/schema.ts:1158`)
@@ -36,7 +36,7 @@ Citations: `packages/core/src/schema.ts:157`
 
 ## If you change this
 
-- **Hits:** `packages/core/src/views.ts` and every niche facts view; both importers (`packages/core/src/ingest/importer.ts:235`, `packages/core/src/people/importer.ts:136`); discovery (`packages/research/src/discovery/service.ts:247`, `:388`); the send walk's per-company clock (`packages/channel-email/src/send/deliver.ts:377`); `Niche.companyLocation` (`packages/niches/src/niche.ts:26`)
+- **Hits:** `packages/core/src/views.ts` and every niche facts view; both importers (`packages/core/src/ingest/importer.ts:235`, `packages/core/src/people/importer.ts:136`); discovery (`packages/research/src/discovery/service.ts:247`, `:388`); the send walk's per-company clock (`packages/starling/channels/email/src/send/deliver.ts:377`); `Niche.companyLocation` (`packages/niches/src/niche.ts:26`)
 - **Firsts:** a new table that marks a pipeline stage needs its own trigger (0226); `TRUNCATE` of a child table skips the triggers, so test fixtures that truncate it must truncate `companies` too; `loadtest/scenarios/portal-reads.js` measures the firm reads
 - **Does not hit:** stored `messages` (facts are pinned at compose, never re-read); `.email` templates
 

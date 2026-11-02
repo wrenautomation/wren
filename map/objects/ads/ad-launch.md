@@ -4,7 +4,7 @@ cluster: ads
 universe: live
 status: verified
 verified: 2026-09-28 @ 28823cd
-entity: packages/channel-meta/src/schema.ts:13
+entity: packages/starling/channels/meta/src/schema.ts:13
 ---
 
 # ad-launch
@@ -20,7 +20,7 @@ A launch is PAUSED; `start` is the one command that spends and must name the dai
 - `name`, `ad_account_id`, `campaign_id`, `adset_id`, `creative_id`, `ad_id`, `spec`, `status` (paused | active | stopped), `daily_budget_usd`, `started_at`, `stopped_at`, `stop_reason` (`schema.ts:17`–`29`)
 - `LaunchSpec` (`ads.ts:39`); `recordLaunch` (`launches.ts:12`)
 
-Citations: `packages/channel-meta/src/schema.ts:13`
+Citations: `packages/starling/channels/meta/src/schema.ts:13`
 
 ## Connected to
 
@@ -30,7 +30,7 @@ Citations: `packages/channel-meta/src/schema.ts:13`
 ## If you change this
 
 - **Hits:** `ads.ts`, `launches.ts:17`, `restate.ts` (`Ads` handlers), `watch.ts`, `wren ads *`, `walkthrough/02-meta-ads.md`
-- **Does not hit:** content adapters on the same site (`channel-meta/src/content.ts`)
+- **Does not hit:** content adapters on the same site (`packages/starling/channels/meta/src/content.ts`)
 
 ## Surfaces
 
@@ -43,4 +43,4 @@ Citations: `packages/channel-meta/src/schema.ts:13`
 
 ## See
 
-- Source: `packages/channel-meta/src/restate.ts`
+- Source: `packages/starling/channels/meta/src/restate.ts`

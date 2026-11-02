@@ -1,10 +1,11 @@
 /**
  * Search: Search Console daily, the answer engines and edit proposals weekly.
  */
-import { searchConsoleClient } from "@wren/channel-search";
-import { makeSearchWatch, makeSearchWeek } from "@wren/channel-search/restate";
+
 import { DESK, restateSites } from "@wren/core/content/restate";
 import { LIMITS } from "@wren/core/restate";
+import { searchConsoleClient } from "@wren/starling-search";
+import { makeSearchWatch, makeSearchWeek } from "@wren/starling-search/restate";
 import { type AnyService, type Deps, googleKey } from "./deps.js";
 
 /** The search domain's services, in the order they were served from `services.ts`. */

@@ -4,7 +4,7 @@ cluster: content
 universe: live
 status: verified
 verified: 2026-10-06 @ HEAD
-entity: packages/content/src/media.ts:45
+entity: packages/starling/inbound/src/media.ts:45
 ---
 
 # media
@@ -20,7 +20,7 @@ Graph, TikTok and the box take URLs, not bytes, and the worker has none of the l
 - `uploadMedia`, `putMedia` (bytes in hand), `s3MediaHost`, `parseStored` (`media.ts:45`, `:60`, `:39`); `Media` on ideas and drafts (`schema.ts:44`, `:67`)
 - bucket from `WREN_MEDIA_BUCKET` in settings
 
-Citations: `packages/content/src/media.ts:45`
+Citations: `packages/starling/inbound/src/media.ts:45`
 
 ## Connected to
 
@@ -37,10 +37,10 @@ Citations: `packages/content/src/media.ts:45`
 | Surface | Role |
 |---|---|
 | `wren content add` | uploads |
-| `ContentDesk.attach` (`attachFile`, `packages/content/src/attach.ts`) | stores a draft field's file: thumbnail, Reel cover, subtitles; magic bytes checked, 2 MB |
+| `ContentDesk.attach` (`attachFile`, `packages/starling/inbound/src/attach.ts`) | stores a draft field's file: thumbnail, Reel cover, subtitles; magic bytes checked, 2 MB |
 | `marketing.draft`/`approval`/`post` loads (`shapeView`) | sign a GET per stored field file |
 | `Content.publish` | signs |
 
 ## See
 
-- Source: `packages/content/src/media.ts`
+- Source: `packages/starling/inbound/src/media.ts`

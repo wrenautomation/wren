@@ -4,7 +4,7 @@ cluster: email
 universe: live
 status: verified
 verified: 2026-10-20 @ b1df347e
-entity: packages/channel-email/src/send/transport.ts:82
+entity: packages/starling/channels/email/src/send/transport.ts:82
 ---
 
 # transport
@@ -22,7 +22,7 @@ Sending is the one irreversible act, so the contract answers two questions after
 - `RoutedTransport` (`transport.ts:96`) picks per sender: roster `transport = "smtp"` → its `SmtpTransport`, `"instantly"` → `InstantlyTransport` (`inbox/instantly.ts:13`, refuses every send sender-level: wren only reads those inboxes), else Gmail. Logins from the mailboxes file (`send/mailboxes.ts`, `WREN_MAILBOXES_FILE`; SSM `/wren/prod/mailboxes`). The IMAP helpers (`imapClient`, `withImap`, `specialFolder`, `inFolder`, `Login`) and the service-account token code live in autobrowse (`./mail`, `./google`); wren imports them directly
 - `messages.transport` names the inner transport that made the attempt (`carrierOf`); reconcile asks that one and refuses to answer for another (`send/reconcile.ts:1`)
 
-Citations: `packages/channel-email/src/send/transport.ts:82`
+Citations: `packages/starling/channels/email/src/send/transport.ts:82`
 
 ## Connected to
 
@@ -43,4 +43,4 @@ Citations: `packages/channel-email/src/send/transport.ts:82`
 
 ## See
 
-- Source: `packages/channel-email/src/send/gmail.ts`, `send/smtp.ts`, `inbox/instantly.ts`; autobrowse `src/mail/*.ts`, `src/google/*.ts`
+- Source: `packages/starling/channels/email/src/send/gmail.ts`, `send/smtp.ts`, `inbox/instantly.ts`; autobrowse `src/mail/*.ts`, `src/google/*.ts`

@@ -10,7 +10,7 @@ import {
   type ShownLine,
   type TextOverlay,
   wordState,
-} from "@wren/studio/finish";
+} from "@wren/starling-studio/finish";
 import { cx } from "@wren/ui";
 import type { PointerEvent as ReactPointerEvent } from "react";
 

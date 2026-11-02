@@ -2,6 +2,9 @@
  * CRM import, health and verify against the migrated schema: numbers end to end,
  * re-import idempotence, duplicate people, the verify funnel and the health gate.
  */
+
+import { companies, importErrors, people } from "@wren/core";
+import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import {
   contactCandidates,
   type EmailVerifier,
@@ -10,9 +13,7 @@ import {
   type LocalCheckerLike,
   type Verdict,
   verifications,
-} from "@wren/channel-email";
-import { companies, importErrors, people } from "@wren/core";
-import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
+} from "@wren/starling-email";
 import { asc, eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { CRM_FORMATS } from "../../src/crm/formats.js";

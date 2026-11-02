@@ -38,7 +38,7 @@ import { WREN } from "../../module.js";
 import { notes } from "../notes/api.js";
 import { Compose } from "../notes/comments.js";
 
-/** `@wren/content/inbox`'s `Entry`: one line of the timeline. */
+/** `@wren/starling-inbound/inbox`'s `Entry`: one line of the timeline. */
 export type Entry = {
   id: string;
   at: string;
@@ -52,7 +52,7 @@ export type Entry = {
   mentions?: string[];
   start?: string;
 };
-/** `@wren/content/inbox`'s `ReplyOption`: a channel a reply can take. */
+/** `@wren/starling-inbound/inbox`'s `ReplyOption`: a channel a reply can take. */
 export type ReplyOption = {
   channel: "email" | "text" | "dm" | "comment";
   target: string;

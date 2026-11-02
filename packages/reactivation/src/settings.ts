@@ -4,7 +4,7 @@
  * fill what a client never set. Everything off until `on`, sending off until
  * `stages.send`, so adding a client never emails anyone.
  */
-import { sendingOverridesSchema } from "@wren/channel-email/sequences-settings";
+import { sendingOverridesSchema } from "@wren/starling-email/sequences-settings";
 import { z } from "zod";
 
 const email = z.string().trim().toLowerCase().email();

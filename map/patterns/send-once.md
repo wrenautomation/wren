@@ -1,6 +1,6 @@
 ---
 type: pattern
-covers: ["@wren/core/src/send-verdict.ts", "@wren/core/src/maybe-sent.ts", "@wren/outreach/src/settle-send.ts"]
+covers: ["@wren/core/src/send-verdict.ts", "@wren/core/src/maybe-sent.ts", "@wren/starling-outbound/src/settle-send.ts"]
 rule:
   when: { tags: ["effect:sends", "effect:posts"], reaches: ["SiteClient.call(_, !GET)"] }
   must: [withSendKey, sendOnce, deliveryOf, maybeSent]

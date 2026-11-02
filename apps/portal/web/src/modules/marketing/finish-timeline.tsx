@@ -8,8 +8,8 @@ import {
   snapTime,
   type TextOverlay,
   trimCuts,
-} from "@wren/studio/finish";
-import type { Cut } from "@wren/studio/schema";
+} from "@wren/starling-studio/finish";
+import type { Cut } from "@wren/starling-studio/schema";
 import { Button, cx } from "@wren/ui";
 import { type PointerEvent as ReactPointerEvent, useEffect, useRef, useState } from "react";
 import {

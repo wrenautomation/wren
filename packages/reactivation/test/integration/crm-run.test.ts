@@ -5,13 +5,13 @@
  */
 import * as ingress from "@restatedev/restate-sdk-clients";
 import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
-import { FakeVerifier, type LocalCheckerLike } from "@wren/channel-email";
 import { ingressOf } from "@wren/config";
 import { clients } from "@wren/core/clients";
 import type { SiteClient } from "@wren/core/content";
 import { startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { FakeLlm, type LlmClient } from "@wren/llm";
+import { FakeVerifier, type LocalCheckerLike } from "@wren/starling-email";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { CRM_FORMATS } from "../../src/crm/formats.js";

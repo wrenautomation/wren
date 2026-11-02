@@ -14,7 +14,7 @@ HOST="${PROBE_HOST:-probe.wrenautomation.com}"
 SEARCH="${SEARCH_HOST-$([ "$HOST" = probe.wrenautomation.com ] && echo search.wrenautomation.com || true)}"
 DIR=/opt/wren-vps
 # pnpm keeps a package next to the workspace member that depends on it.
-BUNDLE=packages/channel-email/node_modules/mailifier/dist/mailifier.mjs
+BUNDLE=packages/starling/channels/email/node_modules/mailifier/dist/mailifier.mjs
 [ -f "$BUNDLE" ] || { echo "no $BUNDLE; run pnpm install" >&2; exit 1; }
 IP="$(dig +short A "$HOST" | tail -1)"
 PTR="$(dig +short -x "$IP" | sed 's/\.$//')"

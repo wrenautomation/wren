@@ -2,18 +2,19 @@
  * Cold outreach on Reddit and LinkedIn over the Mac's desk worker: sender, watch, desk,
  * comment proofs and Reddit reads.
  */
-import { DEFAULT_VOICE, putMedia } from "@wren/content";
-import { ourPosts } from "@wren/content/our-posts";
+
 import { settingsFor } from "@wren/core/clients";
 import { wrenFacts } from "@wren/core/facts";
-import { discoverySettingsSchema, WREN_AUDIENCE } from "@wren/outreach";
+import { DEFAULT_VOICE, putMedia } from "@wren/starling-inbound";
+import { ourPosts } from "@wren/starling-inbound/our-posts";
+import { discoverySettingsSchema, WREN_AUDIENCE } from "@wren/starling-outbound";
 import {
   makeCommentProofs,
   makeReachDesk,
   makeReachSender,
   makeReachWatch,
   makeRedditReads,
-} from "@wren/outreach/restate";
+} from "@wren/starling-outbound/restate";
 import { type AnyService, type Deps, playbooksOf } from "./deps.js";
 
 /** The reach domain's services, in the order they were served from `services.ts`. */

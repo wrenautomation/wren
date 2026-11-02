@@ -29,8 +29,8 @@ import {
   listTemplates as listDms,
   MESSAGE_MAX,
   REACH_SEQUENCES,
-} from "@wren/outreach";
-import { dmCopyRecord } from "@wren/outreach/records";
+} from "@wren/starling-outbound";
+import { dmCopyRecord } from "@wren/starling-outbound/records";
 
 /** Only the words: the rest of a copy row is its slot's, fixed in code. */
 const PATCH = wordsPatch({ body: MESSAGE_MAX });

@@ -22,7 +22,7 @@ Search Console has no webhook and reports days late, so it is polled and re-read
 
 ## Steps
 
-1. Daily: `syncSearch` (`packages/channel-search/src/sync.ts:47`) in a `runs` row; a page entering or leaving the index is one notice.
+1. Daily: `syncSearch` (`packages/starling/search/src/sync.ts:47`) in a `runs` row; a page entering or leaving the index is one notice.
 2. Monday: `discoverKeywords` (`keywords.ts:69`) and `fanOut` (`keywords.ts:121`).
 3. `ask` each due keyword per engine (`answers.ts:45`), `recordAnswer` (`answers.ts:100`); three failures in a row stop that engine for the week.
 4. Counts notice: brief ready.

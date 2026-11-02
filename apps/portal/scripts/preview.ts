@@ -21,10 +21,6 @@ import {
   calendarOwner,
   ownerDeps,
 } from "@wren/calendar/restate";
-import { mailAccess, mailAppsFrom } from "@wren/channel-email/access/access";
-import { mailConsoleApi } from "@wren/channel-email/access/console";
-import { MAIL_ACCESS_APPS, MAIL_ACCESS_ROUTES } from "@wren/channel-email/access/console-routes";
-import { EMAIL_CONSOLE_VIEWS } from "@wren/channel-email/views";
 import { SMS_CONSOLE_APPS, SMS_CONSOLE_ROUTES } from "@wren/channel-sms/console-routes";
 import { smsConsoleApi } from "@wren/channel-sms/restate";
 import { CONTENT_CHANNELS, loadEnvFile, loadSettings } from "@wren/config";
@@ -35,19 +31,6 @@ import {
   connectorsConsoleApi,
 } from "@wren/connectors";
 import { CONNECTORS_APPS, CONNECTORS_ROUTES } from "@wren/connectors/console-routes";
-import { swapShortMedia, undoVideo, waitingIdeas } from "@wren/content";
-import {
-  liveFrom,
-  type OwnSites,
-  ownSwitchesOf,
-  SOCIAL_ACCESS_APPS,
-  SOCIAL_ACCESS_ROUTES,
-  SOCIAL_APPS,
-  socialAccess,
-  socialAppsFrom,
-  socialConsoleApi,
-} from "@wren/content/connect";
-import { pieceRows, piecesOf } from "@wren/content/pieces";
 import { type Need, type RouteApps, routeAt } from "@wren/core/access";
 import { accountsApi } from "@wren/core/accounts/console";
 import { ACCOUNTS_CONSOLE_APPS, ACCOUNTS_CONSOLE_ROUTES } from "@wren/core/accounts/console-routes";
@@ -93,7 +76,6 @@ import { notesApi } from "@wren/notes/console";
 import { NOTES_CONSOLE_APPS, NOTES_CONSOLE_ROUTES } from "@wren/notes/console-routes";
 import { googleDrive } from "@wren/notes/drive";
 import { LIVE_PREFIX, Room, RoomRefusal, type SyncAnswer } from "@wren/notes/room";
-import { pickAccount } from "@wren/outreach";
 import { paymentsConsoleApi } from "@wren/payments/console";
 import { PAYMENTS_CONSOLE_APPS, PAYMENTS_CONSOLE_ROUTES } from "@wren/payments/console-routes";
 import { pipelineConsoleApi } from "@wren/pipeline/console";
@@ -104,14 +86,32 @@ import { SITES_CONSOLE_APPS, SITES_CONSOLE_ROUTES } from "@wren/sites/console-ro
 import { FORM_PATH, KIT_JS, KIT_PATH, TRACK_PATH } from "@wren/sites/kit";
 import { FORM_CSP, PAGE_CSP } from "@wren/sites/render";
 import { sitesPublicApi } from "@wren/sites/service";
-import { proposeChange } from "@wren/studio/change";
-import { setEdit, setLine, setWords } from "@wren/studio/edit";
-import { withFallback } from "@wren/studio/stress";
+import { mailAccess, mailAppsFrom } from "@wren/starling-email/access/access";
+import { mailConsoleApi } from "@wren/starling-email/access/console";
+import { MAIL_ACCESS_APPS, MAIL_ACCESS_ROUTES } from "@wren/starling-email/access/console-routes";
+import { EMAIL_CONSOLE_VIEWS } from "@wren/starling-email/views";
+import { swapShortMedia, undoVideo, waitingIdeas } from "@wren/starling-inbound";
+import {
+  liveFrom,
+  type OwnSites,
+  ownSwitchesOf,
+  SOCIAL_ACCESS_APPS,
+  SOCIAL_ACCESS_ROUTES,
+  SOCIAL_APPS,
+  socialAccess,
+  socialAppsFrom,
+  socialConsoleApi,
+} from "@wren/starling-inbound/connect";
+import { pieceRows, piecesOf } from "@wren/starling-inbound/pieces";
+import { pickAccount } from "@wren/starling-outbound";
+import { proposeChange } from "@wren/starling-studio/change";
+import { setEdit, setLine, setWords } from "@wren/starling-studio/edit";
+import { withFallback } from "@wren/starling-studio/stress";
 import { dictationApi } from "@wren/voice/console";
 import { VOICE_CONSOLE_APPS, VOICE_CONSOLE_ROUTES } from "@wren/voice/console-routes";
 import { WebSocketServer } from "ws";
-import { marketingConsoleApi } from "../../../packages/content/src/restate/marketing-console.js";
 import { PORTAL_APPS } from "../../../packages/reactivation/src/portal/routes.js";
+import { marketingConsoleApi } from "../../../packages/starling/inbound/src/restate/marketing-console.js";
 import { COMPONENTS } from "../../worker/src/components.js";
 import { consoleRecords } from "../../worker/src/console-records.js";
 import { clientMarketing } from "../../worker/src/marketing.js";

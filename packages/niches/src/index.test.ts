@@ -4,8 +4,8 @@
  */
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { twoEmailSequence } from "@wren/channel-email";
 import { OFFER_IDS } from "@wren/offers";
+import { twoEmailSequence } from "@wren/starling-email";
 import { describe, expect, it } from "vitest";
 import {
   agencies,

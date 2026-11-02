@@ -5,8 +5,8 @@
  * yes, then what went out. Each goal still edits in place under Goals (`recordsEdit`).
  */
 
-import { PLATFORM_SPECS } from "@wren/content/write";
 import type { Edited } from "@wren/core/edits";
+import { PLATFORM_SPECS } from "@wren/starling-inbound/write";
 import {
   Button,
   ButtonLink,

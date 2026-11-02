@@ -9,8 +9,8 @@ import {
   FPS,
   type Point,
   type TextOverlay,
-} from "@wren/studio/finish";
-import type { Cut } from "@wren/studio/schema";
+} from "@wren/starling-studio/finish";
+import type { Cut } from "@wren/starling-studio/schema";
 import type { ReactNode } from "react";
 import type { CamBox, LayoutRange, Short } from "./finish-parts.js";
 

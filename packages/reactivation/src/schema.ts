@@ -1,7 +1,7 @@
-import { contactCandidates, enrollments, threadEvents } from "@wren/channel-email/schema";
 import { companies, imports, people, runs } from "@wren/core/schema";
 import { oneOf } from "@wren/db/columns";
 import { findings } from "@wren/research/schema";
+import { contactCandidates, enrollments, threadEvents } from "@wren/starling-email/schema";
 import { sql } from "drizzle-orm";
 import {
   boolean,

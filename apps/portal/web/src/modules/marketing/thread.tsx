@@ -10,7 +10,7 @@ import {
   withLink,
   X_POST_MAX,
   xLength,
-} from "@wren/core/content/thread";
+} from "@wren/starling-core/thread";
 import {
   Button,
   DeviceFrame,
@@ -22,7 +22,7 @@ import {
 } from "@wren/ui";
 import { useRef, useState } from "react";
 
-/** `@wren/content`'s `ThreadView`: the limits, and each saved post's count and flags. */
+/** `@wren/starling-inbound`'s `ThreadView`: the limits, and each saved post's count and flags. */
 export type ThreadShape = {
   min: number;
   max: number;

@@ -2,9 +2,7 @@
  * Client accounts: setups watched and run, the Accounts console, mail, social and connector
  * access with their callbacks, the social inbox, the mail reader and marketing bounces.
  */
-import { sweepGrants } from "@wren/channel-email/access/access";
-import { makeMailAccess, makeMailCallback } from "@wren/channel-email/access/console";
-import { makeBounceScheduler } from "@wren/channel-email/restate";
+
 import { findPlace, PLACE_FINDER } from "@wren/channel-sms";
 import { CONTENT_CHANNELS } from "@wren/config";
 import {
@@ -14,8 +12,6 @@ import {
   makeConnectorSync,
   makeConnectors,
 } from "@wren/connectors";
-import { makeSocialAccess, makeSocialCallback, ownSwitchesOf } from "@wren/content/connect";
-import { makeMailReply, makeSocialInbox } from "@wren/content/restate";
 import { makeAccountsConsole } from "@wren/core/accounts/console";
 import { sitesHost } from "@wren/core/content/box";
 import { DESK, journaledSites, restateSites } from "@wren/core/content/restate";
@@ -24,8 +20,17 @@ import { meteredSites } from "@wren/core/metered";
 import { dbSendJournal } from "@wren/core/send-journal";
 import { makeSetupAgent } from "@wren/core/setup-agent";
 import { makeSetupWatch } from "@wren/core/setup-watch";
-import { WREN_LIMITS } from "@wren/outreach/limits";
 import { crmLanding } from "@wren/reactivation";
+import { sweepGrants } from "@wren/starling-email/access/access";
+import { makeMailAccess, makeMailCallback } from "@wren/starling-email/access/console";
+import { makeBounceScheduler } from "@wren/starling-email/restate";
+import {
+  makeSocialAccess,
+  makeSocialCallback,
+  ownSwitchesOf,
+} from "@wren/starling-inbound/connect";
+import { makeMailReply, makeSocialInbox } from "@wren/starling-inbound/restate";
+import { WREN_LIMITS } from "@wren/starling-outbound/limits";
 import { makeMailReader } from "@wren/watch/clients";
 import { SETUPS } from "../setups.js";
 import type { AnyService, Deps } from "./deps.js";

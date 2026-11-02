@@ -12,7 +12,7 @@ export const FUNNEL = "marketing.draftFunnel";
 
 export type FunnelVideo = { id: string; title: string | null; url: string | null; status: string };
 export type FunnelPage = { id: string; title: string; slug: string; live: boolean };
-/** `@wren/content`'s `FunnelView` with the videos it may point at. */
+/** `@wren/starling-inbound`'s `FunnelView` with the videos it may point at. */
 export type Funnel = {
   stage: "reach" | "trust" | "convert";
   to: "video" | "site" | "booking" | "page" | "repo";

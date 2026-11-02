@@ -5,9 +5,10 @@
  * verified for real, scores and briefs seeded. Tests that expose a bug assert
  * the correct behavior and are marked "Bug".
  */
-import { FakeVerifier, type LocalCheckerLike } from "@wren/channel-email";
+
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { FakeLlm, LlmError } from "@wren/llm";
+import { FakeVerifier, type LocalCheckerLike } from "@wren/starling-email";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { approveDrafts, skipDrafts } from "../../src/approve.js";

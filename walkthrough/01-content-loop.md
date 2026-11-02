@@ -53,7 +53,7 @@ pnpm wren content approve <draftId> --now              # the queue's next pass
 
 Slots (`WREN_SEND_TIMEZONE`, default America/Chicago): LinkedIn 08:30
 weekdays, X 12:00 weekdays, Facebook 13:00, YouTube 15:00, Instagram 18:00,
-TikTok 19:00 daily. `packages/content/src/slots.ts`.
+TikTok 19:00 daily. `packages/starling/inbound/src/slots.ts`.
 
 ## The loops
 

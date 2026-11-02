@@ -11,7 +11,7 @@ import {
   type ReportEvery,
   type ReportLine,
   shown,
-} from "@wren/content/client-reports";
+} from "@wren/starling-inbound/client-reports";
 import {
   Button,
   Callout,

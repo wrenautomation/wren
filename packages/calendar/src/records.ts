@@ -4,10 +4,11 @@
  * Its detail is the pre-call brief of its mirror in `call_bookings`. Wren's own calls, so Wren's
  * team.
  */
-import { briefOf, type CallNotes, type Segment } from "@wren/channel-email/calls";
-import { callBookings, callRecordings } from "@wren/channel-email/schema";
+
 import { MEETING_OUTCOMES, outcomeStatus } from "@wren/core/calls";
 import { date, defineRecord, link, name, number, status, text } from "@wren/core/records";
+import { briefOf, type CallNotes, type Segment } from "@wren/starling-email/calls";
+import { callBookings, callRecordings } from "@wren/starling-email/schema";
 import { eq, sql } from "drizzle-orm";
 import { mirrorUid } from "./book.js";
 

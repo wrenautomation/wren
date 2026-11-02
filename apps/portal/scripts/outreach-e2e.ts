@@ -6,7 +6,7 @@
  * the tab hidden goes once and lands on return.
  *
  *   WREN_DATABASE_URL=postgres://...@127.0.0.1:5434/wren_outreach_preview \
- *     tsx ../../packages/content/test/outreach-preview.ts
+ *     tsx ../../packages/starling/inbound/test/outreach-preview.ts
  *   PORT=8792 WREN_DATABASE_URL=... pnpm preview      # then, in another shell:
  *   tsx scripts/outreach-e2e.ts                        # the preview on :8792
  *

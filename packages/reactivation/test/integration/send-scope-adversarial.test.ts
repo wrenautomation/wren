@@ -6,19 +6,19 @@
  */
 import * as ingress from "@restatedev/restate-sdk-clients";
 import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
-import { ConsoleTransport, SendPolicy } from "@wren/channel-email";
-import {
-  makeSendScheduler,
-  NO_SCOPE,
-  oneScope,
-  type SendScheduler,
-} from "@wren/channel-email/restate";
 import { ingressOf, loadSettings } from "@wren/config";
 import { addClient, updateClient } from "@wren/core/clients";
 import { clientOfKey } from "@wren/core/restate";
 import { startTestRestate } from "@wren/core/testing";
 import { cachedDb, clientDatabaseUrl, type Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
+import { ConsoleTransport, SendPolicy } from "@wren/starling-email";
+import {
+  makeSendScheduler,
+  NO_SCOPE,
+  oneScope,
+  type SendScheduler,
+} from "@wren/starling-email/restate";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { clientSendScope } from "../../src/sending.js";
