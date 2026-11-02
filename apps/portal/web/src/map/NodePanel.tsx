@@ -485,6 +485,7 @@ function CampaignPanel(p: PartProps & { id: string }) {
   return (
     <Card name={c.label} kind={`Campaign · ${STATUS_WORD[c.status]}`} onClose={p.onClose}>
       <Numbers lines={campaignSays(data.campaigns.get(id))} window={window} />
+      <Facts items={campaignFacts(c, all, lineOf)} />
       {editing && p.onOpenDraft ? (
         <CampaignForm
           metro={metro}
@@ -496,9 +497,7 @@ function CampaignPanel(p: PartProps & { id: string }) {
           }}
           onCancel={() => setEditing(false)}
         />
-      ) : (
-        <Facts items={campaignFacts(c, all, lineOf)} />
-      )}
+      ) : null}
       <Opens
         label="CTA ladder"
         empty="No CTAs."

@@ -157,7 +157,12 @@ export interface PanelRef {
 }
 
 /** The address param each panel kind uses. A station keeps `?node=`, the id older links carry. */
-const PANEL_PARAM = { station: "node", track: "track", line: "line", campaign: "campaign" } as const;
+const PANEL_PARAM = {
+  station: "node",
+  track: "track",
+  line: "line",
+  campaign: "campaign",
+} as const;
 const PANEL_KINDS = Object.keys(PANEL_PARAM) as PanelRef["kind"][];
 
 /** The panel a Map address names (`?node=`, `?track=`, `?line=` or `?campaign=`), or none. */
