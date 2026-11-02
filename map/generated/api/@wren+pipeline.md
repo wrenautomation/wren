@@ -1,6 +1,6 @@
 # @wren/pipeline: interface
 
-Exports: 425. Files: 48.
+Exports: 432. Files: 48.
 
 ## packages/core/src/logic.ts
 
@@ -65,12 +65,14 @@ Exports: 425. Files: 48.
 
 ## packages/pipeline/src/convert.ts
 
+- **gateWhy** (function) `(metro: MetroBody, g: MetroStation): string[]`
 - **graphOf** (function) `(metro: MetroBody): ShapeBody`
 - **isStrayNote** (function) `(note: string): boolean`
 - **lowerable** (function) `(metro: MetroBody): string[]`
 - **metroOf** (function) `(graph: ShapeBody): MetroResult`
 - **strayFieldsOf** (function) `(graph: ShapeBody): StrayField[]`
 - **strayNote** (function) `(s: StrayField): string`
+- **wireWait** (function) `(wait: string): string`
 - **withoutStrayFields** (function) `(graph: ShapeBody): ShapeBody`
 
 ## packages/pipeline/src/diff.ts
@@ -106,7 +108,7 @@ Exports: 425. Files: 48.
 - **ON_GRAPH** (const) `"The shape is on the graph model. Undo by node or edge."`
 - **ON_METRO** (const) `"The shape is on the metro model. Export, edit the YAML, import."`
 - **edgeOf** (function) `(from: string, to: string, o: { loop?: boolean; label?: string; id?: string } = {}): ShapeEdge`
-- **editShape** (function) `(db: Queryable, o: { change: (body: ShapeBody) => ShapeBody; note: string; by: string; triggers: ReadonlySet<string>; moves?: Moves; }): Promise<{ number: number; createdAt: Date; draft: string | null; note: string; parent: number | null; run: ShapeBody; body: StoredBody; createdBy: string; depths: Record<string, number>; }>`
+- **editShape** (function) `(db: Queryable, o: { change: (body: ShapeBody) => ShapeBody; note: string; by: string; triggers: ReadonlySet<string>; moves?: Moves; }): Promise<{ number: number; createdAt: Date; body: StoredBody; draft: string | null; note: string; createdBy: string; run: ShapeBody; parent: number | null; depths: Record<string, number>; }>`
 - **openOn** (function) `(db: Queryable, id: string): Promise<number>`
 - **undoChange** (function) `(newest: ShapeBody, a: ShapeBody, b: ShapeBody, change: ShapeChange): ShapeBody`
 - **undoStoredChange** (function) `(newest: StoredBody, a: StoredBody, b: StoredBody, change: StoredChange): StoredBody`
@@ -259,7 +261,7 @@ Exports: 425. Files: 48.
 ## packages/pipeline/src/metro-ops.ts
 
 - **MetroOp** (type) `type MetroOp = | { op: "add"; on: "line"; item: MetroLine } | { op: "add"; on: "station"; item: MetroStation } | { op: "add"; on: "track"; item: MetroTrack } | { op: "add"; on: "group"; item: MetroGroup } | { op: "rename"; on: "line" | "station" | "group"; id: string; label: string } | { op: "rename"; on: "shape"; name: string } | { op: "move"; on: "station"; id: string; line?: string; column?: Column; group?: string | null } | { op: "move"; on: "track"; id: string; from?: string; to?: string } | { op: "move"; on: "group"; id: string; line: string } | { op: "move"; on: "line"; id: string; before: string | null } | { op: "remove"; on: OpOn; id: string } | { op: "set"; on: OpOn; id: string; field: string; value: unknown } | { op: "attach"; on: "line" | "station" | "group"; id: string; ref: Attach } | { op: "detach"; on: "line" | "station" | "group"; id: string; ref: string };`
-- **MetroOpSchema** (const) `z.ZodDiscriminatedUnion<[z.ZodObject<{ op: z.ZodLiteral<"add">; on: z.ZodEnum<{ line: "line"; group: "group"; station: "station"; track: "track"; }>; item: z.ZodRecord<z.ZodString, z.ZodUnknown>; }, z.core.$strict>, z.ZodObject<{ op: z.ZodLiteral<"rename">; on: z.ZodEnum<{ line: "line"; group: "grou…`
+- **MetroOpSchema** (const) `z.ZodDiscriminatedUnion<[z.ZodObject<{ op: z.ZodLiteral<"add">; on: z.ZodEnum<{ group: "group"; line: "line"; track: "track"; station: "station"; }>; item: z.ZodRecord<z.ZodString, z.ZodUnknown>; }, z.core.$strict>, z.ZodObject<{ op: z.ZodLiteral<"rename">; on: z.ZodEnum<{ group: "group"; line: "lin…`
 - **applyOp** (function) `(body: MetroBody, op: MetroOp): MetroBody`
 - **applyOps** (function) `(body: MetroBody, ops: readonly MetroOp[]): MetroBody`
 - **editMetro** (function) `(body: StoredBody, ops: unknown, ctx?: ShapeCheckContext): { body: MetroBody; lines: string[]; warnings: string[] }`
@@ -314,10 +316,12 @@ Exports: 425. Files: 48.
 - **ACTIONS** (const) `readonly ["comment", "reply", "dm", "email", "text", "call", "cta", "visit", "form", "book", "held", "proposal", "signed", "other"]`
 - **Action** (type) `type Action = (typeof ACTIONS)[number];`
 - **Advance** (interface) `interface Advance { trigger: string; with?: Record<string, string | number>; }`
-- **Crossing** (interface) `interface Crossing { edge: string | null; from: string | null; to: string; at: string; }`
+- **Crossing** (interface) `interface Crossing { edge: string | null; from: string | null; to: string; at: string; branch?: string; }`
 - **DROPPED** (const) `"dropped"`
 - **EDGE_ID_MAX** (const) `number`
 - **GROUP_ID** (const) `RegExp`
+- **Gate** (interface) `interface Gate { id: string; kind: GateKind; rule?: string; }`
+- **GateKind** (type) `type GateKind = (typeof GATE_KINDS)[number];`
 - **HoldNode** (type) `type HoldNode = StepNode | OfferNode | PlanNode | JobNode;`
 - **IDLE_DAYS_MAX** (const) `365`
 - **JOBS** (const) `readonly ["read", "extract", "call", "measure"]`
@@ -332,9 +336,9 @@ Exports: 425. Files: 48.
 - **Research** (type) `type Research = (typeof RESEARCH_LEVELS)[number];`
 - **STAGE_KEY** (const) `RegExp`
 - **SUBJECT_KINDS** (const) `readonly ["person", "document"]`
-- **ShapeBody** (interface) `interface ShapeBody { name: string; nodes: ShapeNode[]; edges: ShapeEdge[]; }`
+- **ShapeBody** (interface) `interface ShapeBody { name: string; nodes: ShapeNode[]; edges: ShapeEdge[]; gates?: Gate[]; campaigns?: Record<string, string>; }`
 - **ShapeCheckContext** (interface) `interface ShapeCheckContext { triggers: ReadonlySet<string>; group(id: string): { active: boolean } | undefined; source(id: string): { exists: true } | undefined; }`
-- **ShapeEdge** (interface) `interface ShapeEdge { id: string; from: string; to: string; kind: EdgeKind; label?: string; }`
+- **ShapeEdge** (interface) `interface ShapeEdge { id: string; from: string; to: string; kind: EdgeKind; label?: string; cond?: string; wait?: string; }`
 - **ShapeNode** (type) `type ShapeNode = SourceNode | StepNode | OfferNode | PlanNode | JobNode;`
 - **SourceNode** (interface) `interface SourceNode extends NodeBase { kind: "source"; via: Via; channel?: string; campaign?: string; source?: string; group?: string; sop?: string; study?: string; parked?: true; }`
 - **StepNode** (interface) `interface StepNode extends NodeBase { kind: "step"; action: Action; advance: Advance[]; research?: Research; idleDays?: number; }`
@@ -348,6 +352,7 @@ Exports: 425. Files: 48.
 - **edgeIdOf** (function) `(from: string, to: string): string`
 - **edgesOf** (function) `(body: ShapeBody, ids: readonly string[]): ShapeEdge[]`
 - **flowEdgesFrom** (function) `(body: ShapeBody, id: string): ShapeEdge[]`
+- **gateOf** (function) `(body: ShapeBody, id: string): Gate | undefined`
 - **holds** (function) `(n: ShapeNode): n is HoldNode`
 - **isEnd** (function) `(body: ShapeBody, id: string): boolean`
 - **isSource** (function) `(n: ShapeNode): n is SourceNode`
@@ -399,13 +404,13 @@ Exports: 425. Files: 48.
 - **SHAPE_RECORD** (const) `"pipeline.shape"`
 - **STALE_DAYS** (const) `14`
 - **TERMS_RECORD** (const) `"pipeline.terms"`
-- **dealRows** (function) `(db: Queryable, o: { id?: string } = {}): Promise<{ id: string; journey: string; name: string; profile: number; node: string | null; entry: string; offer: string; offer_version: number; plan: string | null; terms_number: number | null; status: "open" | "ended" | "won" | "lost"; collected: number; scheduled: number | null; currency: string; …`
-- **draftRows** (function) `(db: Queryable): Promise<{ id: string; name: string; state: "draft" | "proposed" | "dropped" | "applied"; base: number; note: string; created_by: string; created_at: Date; updated_at: Date; applied_version: number | null; decided_by: string | null; decided_at: Date | null; drop_reason: string | null; }[]>`
+- **dealRows** (function) `(db: Queryable, o: { id?: string } = {}): Promise<{ id: string; journey: string; name: string; profile: number; node: string | null; entry: string; offer: string; offer_version: number; plan: string | null; terms_number: number | null; status: "won" | "ended" | "open" | "lost"; collected: number; scheduled: number | null; currency: string; …`
+- **draftRows** (function) `(db: Queryable): Promise<{ id: string; name: string; state: "proposed" | "dropped" | "draft" | "applied"; base: number; note: string; created_by: string; created_at: Date; updated_at: Date; applied_version: number | null; decided_by: string | null; decided_at: Date | null; drop_reason: string | null; }[]>`
 - **entryRecord** (function) `(): RecordType`
-- **entryRows** (function) `(db: Queryable): Promise<{ id: string; name: string; via: "ads" | "group" | "manual" | "outbound" | "found" | "referral" | "organic" | "sourced"; channel: string | null; campaign: string | null; parked: string | null; open_journeys: number; journeys: number; last_arrival: Date | null; }[]>`
+- **entryRows** (function) `(db: Queryable): Promise<{ id: string; name: string; via: "manual" | "referral" | "ads" | "outbound" | "group" | "found" | "organic" | "sourced"; channel: string | null; campaign: string | null; parked: string | null; open_journeys: number; journeys: number; last_arrival: Date | null; }[]>`
 - **journeyRecord** (function) `(): RecordType`
-- **journeyRows** (function) `(db: Queryable, o: { id?: string; now?: Date } = {}): Promise<{ id: string; name: string; profile: number; email: string; version: number; node: string; node_name: string; trail: string; status: "open" | "done" | "dropped"; flag: string | null; ghost: string | null; entry: string; owner: string | null; days_at_node: number; reason: string | null; opene…`
-- **offerRows** (function) `(db: Queryable, o: { now?: Date } = {}): Promise<{ id: string; name: string; status: "draft" | "live" | "retired" | "paused"; version: number; audience: string; promise: string; live_plans: number; open_journeys: number; hash: string; synced_at: Date; synced_by: string; why: string; }[]>`
+- **journeyRows** (function) `(db: Queryable, o: { id?: string; now?: Date } = {}): Promise<{ id: string; name: string; profile: number; email: string; version: number; node: string; node_name: string; trail: string; status: "dropped" | "done" | "open"; flag: string | null; ghost: string | null; entry: string; owner: string | null; days_at_node: number; reason: string | null; opene…`
+- **offerRows** (function) `(db: Queryable, o: { now?: Date } = {}): Promise<{ id: string; name: string; status: "draft" | "paused" | "retired" | "live"; version: number; audience: string; promise: string; live_plans: number; open_journeys: number; hash: string; synced_at: Date; synced_by: string; why: string; }[]>`
 - **readTerms** (function) `(t: Terms): string`
 - **shapeDetail** (function) `(db: Queryable): Promise<{ body: ShapeBody; depths: Record<string, number>; metro: import("./metro.js").MetroBody | null; drawErrors: string[]; places: Record<string, number> | null; versions: VersionLine[]; } | null>`
 - **shapeRecord** (function) `(): RecordType`
@@ -435,7 +440,7 @@ Exports: 425. Files: 48.
 - **MoveRequest** (interface) `interface MoveRequest { client?: string | null; journey: string; to: string; by: string; reason?: string; }`
 - **OpenRequest** (interface) `interface OpenRequest { client?: string | null; person: string; at?: string; entry?: string; by: string; }`
 - **RebuildRequest** (interface) `interface RebuildRequest { client?: string | null; journey: string; }`
-- **makeJourneys** (function) `(deps: JourneysDeps): restate.ServiceDefinition<"Journeys", { open: (ctx: restate.Context, req: OpenRequest) => Promise<{ journey: string; node: string; }>; move: (ctx: restate.Context, req: MoveRequest) => Promise<{ journey: string; from: string; to: string; status: "open" | "done" | "dropped"; }>; drop: (ctx: restate.C…`
+- **makeJourneys** (function) `(deps: JourneysDeps): restate.ServiceDefinition<"Journeys", { open: (ctx: restate.Context, req: OpenRequest) => Promise<{ journey: string; node: string; }>; move: (ctx: restate.Context, req: MoveRequest) => Promise<{ journey: string; from: string; to: string; status: "dropped" | "done" | "open"; }>; drop: (ctx: restate.C…`
 
 ## packages/pipeline/src/schedule.ts
 
@@ -498,6 +503,7 @@ Exports: 425. Files: 48.
 
 ## packages/pipeline/src/steps.ts
 
+- **CampaignStop** (interface) `interface CampaignStop { profile: number; campaign: string | null; gate: string; cause: { kind: string; ref: string }; }`
 - **causeOf** (function) `(e: ExecutorEvent, now: Date): Cause`
 - **factsOf** (function) `(data: Record<string, unknown>): CauseFacts`
 - **journeySteps** (function) `(d: JourneyStepDeps): Record<string, Step>`
@@ -563,6 +569,7 @@ Exports: 425. Files: 48.
 
 ## packages/pipeline/src/workflow.ts
 
+- **ARMED_PORT** (const) `"armed"`
 - **JOURNEY_PORT** (const) `"journey"`
 - **MOVE_STEP** (const) `"journey.move"`
 - **STAGE_STEP** (const) `"journey.stage"`

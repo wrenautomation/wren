@@ -574,9 +574,6 @@ export function graphOf(metro: MetroBody): ShapeBody {
   };
 }
 
-/** Off until `journey.move` runs branches (phase 4, slice 3). */
-const RUN_LOGIC = false;
-
 /** Why a split, join or race cannot run (designs/2026-11-02-campaigns.md, phase 4 rules). */
 export function gateWhy(metro: MetroBody, g: MetroStation): string[] {
   const why: string[] = [];
@@ -618,8 +615,8 @@ export function gateWhy(metro: MetroBody, g: MetroStation): string[] {
 }
 
 /**
- * Why `graphOf` cannot run this body. Empty when it can. The runtime does not run logic stations,
- * exits, exit tracks or frames yet, an out line must be a source with its one start station, and
+ * Why `graphOf` cannot run this body. Empty when it can. The runtime runs split, join and race
+ * (`gateWhy`), but not other logic stations, exits, exit tracks or frames yet, an out line must be a source with its one start station, and
  * a station must be what a node needs: a step has an action, a plan has terms, a deal has an offer.
  */
 export function lowerable(metro: MetroBody): string[] {
@@ -629,7 +626,7 @@ export function lowerable(metro: MetroBody): string[] {
     if (s.kind === "exit")
       why.push(`Station "${s.id}" is an exit. The runtime does not run exits yet.`);
     else if ((LOGIC_KINDS as readonly string[]).includes(s.kind)) {
-      if (!GATE_KINDS_RUN.includes(s.kind) || !RUN_LOGIC)
+      if (!GATE_KINDS_RUN.includes(s.kind))
         why.push(`Station "${s.id}" is a ${s.kind} station. The runtime does not run it yet.`);
       else why.push(...gateWhy(metro, s));
     }

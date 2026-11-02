@@ -1,6 +1,6 @@
 # @wren/starling-email: interface
 
-Exports: 843. Files: 118.
+Exports: 844. Files: 118.
 
 ## node_modules/.pnpm/mailifier@0.3.9/node_modules/mailifier/dist/client.d.ts
 
@@ -941,6 +941,7 @@ Exports: 843. Files: 118.
 - **nextSendAt** (function) `(db: Queryable, policy: SendPolicy, senders: readonly string[], now: Date, ramps?: RampMap | null): Promise<Date | null>`
 - **recordStop** (function) `(db: Queryable, enrollment: Enrollment, reason: StopReason, opts: { detail?: string | null; now?: Date; messages?: Message[]; shared?: SharedSuppressions | null; } = {}): Promise<number>`
 - **sendDue** (function) `(db: Db, opts: SendDueOptions): Promise<SendStats>`
+- **stopCampaignEnrollments** (function) `(db: Queryable, opts: { campaign: string | null; emails: readonly string[]; persons: readonly number[]; reason: StopReason; detail: string; now: Date; }): Promise<number>`
 - **stopCompany** (function) `(db: Queryable, opts: { companyId: number; reason: StopReason; detail?: string | null; now?: Date; shared?: SharedSuppressions | null; }): Promise<number>`
 - **todaysSends** (function) `(db: Queryable, policy: SendPolicy, now: Date): Promise<{ sentToday: Map<string, number>; openersToday: number; nicheOpeners: Map<string, number>; }>`
 

@@ -1,6 +1,6 @@
 # @wren/pipeline
 
-Role: package. Files: 53.
+Role: package. Files: 54.
 
 ## Uses
 
@@ -22,6 +22,7 @@ flowchart LR
   nattach_ts["attach.ts"]
   nattribution_ts["attribution.ts"]
   nblame_ts["blame.ts"]
+  nbranches_ts["branches.ts"]
   ncampaign_numbers_ts["campaign-numbers.ts"]
   ncarry_ts["carry.ts"]
   nchain_methods_ts["chain-methods.ts"]
@@ -81,12 +82,14 @@ flowchart LR
   nblame_ts --> ndiff_ts
   nblame_ts -.-> nhistory_ts
   nblame_ts -.-> nmodel_ts
+  nbranches_ts --> nmodel_ts
   ncampaign_numbers_ts --> nmetro_campaigns_ts
   ncampaign_numbers_ts --> nmetro_ts
   ncampaign_numbers_ts --> nnumbers_ts
   ncampaign_numbers_ts --> nschema_ts
   ncampaign_numbers_ts -.-> nstored_ts
-  ncarry_ts -.-> nmodel_ts
+  ncarry_ts --> nbranches_ts
+  ncarry_ts --> nmodel_ts
   ncarry_ts --> nschema_ts
   ncarry_ts --> nstored_ts
   ncarry_ts --> nworkflow_ts
@@ -124,6 +127,7 @@ flowchart LR
   nconvert_shape_ts --> nstore_ts
   nconvert_shape_ts --> nstored_ts
   nconvert_shape_ts --> nworkflow_ts
+  nconvert_ts --> nmetro_campaigns_ts
   nconvert_ts --> nmetro_ts
   nconvert_ts --> nmodel_ts
   ndiff_ts -.-> nmodel_ts
@@ -196,6 +200,7 @@ flowchart LR
   nmirror_ts --> nschema_ts
   nmirror_ts --> nshape_file_ts
   nmirror_ts --> nstore_ts
+  nmoves_ts --> nbranches_ts
   nmoves_ts --> nentry_ts
   nmoves_ts --> njourneys_ts
   nmoves_ts --> nmodel_ts
@@ -215,7 +220,7 @@ flowchart LR
   nrecords_ts -.-> nhistory_ts
   nrecords_ts -.-> nicp_ts
   nrecords_ts --> nmetro_ts
-  nrecords_ts -.-> nmodel_ts
+  nrecords_ts --> nmodel_ts
   nrecords_ts --> nmoves_ts
   nrecords_ts --> nnumbers_ts
   nrecords_ts --> nschedule_ts
@@ -227,6 +232,7 @@ flowchart LR
   nrestate_ts --> nmoves_ts
   nrestate_ts --> nschema_ts
   nrestate_ts --> nstore_ts
+  nschema_ts -.-> nbranches_ts
   nschema_ts -.-> ncarry_ts
   nschema_ts --> nhistory_ts
   nschema_ts --> nmodel_ts
@@ -244,6 +250,7 @@ flowchart LR
   nstarter_ts --> nshape_file_ts
   nstarter_ts --> nstore_ts
   nsteps_ts --> nattribution_ts
+  nsteps_ts --> nbranches_ts
   nsteps_ts --> nentry_ts
   nsteps_ts --> njourneys_ts
   nsteps_ts --> nmodel_ts
@@ -290,6 +297,7 @@ flowchart LR
 - attach.ts
 - attribution.ts
 - blame.ts
+- branches.ts
 - campaign-numbers.ts
 - carry.ts
 - chain-methods.ts

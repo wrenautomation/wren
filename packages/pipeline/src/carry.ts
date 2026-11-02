@@ -6,7 +6,10 @@
  * position did not change (or an operator named the new place in `moves`).
  *
  * A journey on a node the new body lacks, and `moves` does not name, stays on its version: a
- * ghost. Its moves follow its own version's edges.
+ * ghost. Its moves follow its own version's edges. With branches (designs/2026-11-02-campaigns.md,
+ * phase 4) every branch must land, a waiting one on its split and track. A branch before a race,
+ * in the old or the new version, keeps the journey a ghost too: carry sets no clock, so the old
+ * one rings in its own version, and a later carry takes the journey once a move took it on.
  *
  * `moves` also sends the open deals made at a moved node to the new node (`remapDeals`), so a
  * deal stays on a node the shape still has.
@@ -14,7 +17,8 @@
 import { events } from "@wren/core/schema";
 import { atomic, type Queryable } from "@wren/db";
 import { and, eq, inArray, lt } from "drizzle-orm";
-import type { Crossing } from "./model.js";
+import { type Branch, branchesOf, MAIN, racesAfter, storedOf } from "./branches.js";
+import { type Crossing, gateOf, type ShapeBody } from "./model.js";
 import { instances, pipelineDeals, shapeVersions } from "./schema.js";
 import { runOf } from "./stored.js";
 import { shapeFlowId } from "./workflow.js";
@@ -42,7 +46,26 @@ export async function carryJourneys(
       .where(eq(shapeVersions.number, toVersion))
       .limit(1);
     if (!target) return 0;
-    const inBody = new Set(runOf(target.body).nodes.map((n) => n.id));
+    const body = runOf(target.body);
+    const inBody = new Set(body.nodes.map((n) => n.id));
+    // A waiting branch lands on the same split and track.
+    const lands = (b: Branch) =>
+      b.pin
+        ? gateOf(body, b.node)?.kind === "split" &&
+          body.edges.some((e) => e.id === b.pin && e.from === b.node)
+        : inBody.has(b.node);
+    const olds = new Map<number, ShapeBody | null>();
+    const oldOf = async (v: number) => {
+      if (!olds.has(v)) {
+        const [r] = await tx
+          .select({ body: shapeVersions.body })
+          .from(shapeVersions)
+          .where(eq(shapeVersions.number, v))
+          .limit(1);
+        olds.set(v, r ? runOf(r.body) : null);
+      }
+      return olds.get(v) ?? null;
+    };
     const open = await tx
       .select()
       .from(instances)
@@ -50,18 +73,41 @@ export async function carryJourneys(
       .for("update");
     let moved = 0;
     for (const j of open) {
+      const was = branchesOf(j.branches, j.node);
+      const old = await oldOf(j.version);
+      if (old && was.some((b) => !b.pin && racesAfter(old, b.node).length > 0)) continue;
+      const bs = was.map((b) => (b.pin ? b : { ...b, node: moves[b.node] ?? b.node }));
+      if (!bs.every(lands)) continue;
+      // Carry sets no clock: a station before a race is reached by a move only.
+      if (bs.some((b) => !b.pin && racesAfter(body, b.node).length > 0)) continue;
       const node = moves[j.node] ?? j.node;
-      if (!inBody.has(node)) continue;
       const at = new Date();
       // The operator's move is a crossing the trail should show; a plain carry is not.
-      const trail: Crossing[] =
-        node === j.node
-          ? j.trail
-          : [...j.trail, { edge: null, from: j.node, to: node, at: at.toISOString() }];
+      const trail: Crossing[] = [
+        ...j.trail,
+        ...bs.flatMap((b, i) =>
+          b.node === was[i]?.node
+            ? []
+            : [
+                {
+                  edge: null,
+                  from: was[i]?.node ?? null,
+                  to: b.node,
+                  at: at.toISOString(),
+                  ...(b.key === MAIN ? {} : { branch: b.key }),
+                },
+              ],
+        ),
+      ];
+      const branches = storedOf(bs);
       // A plain carry sets `version` only: the segments trigger fires on `node`, and nothing moved.
       await tx
         .update(instances)
-        .set(node === j.node ? { version: toVersion } : { version: toVersion, node, trail })
+        .set(
+          trail.length === j.trail.length
+            ? { version: toVersion }
+            : { version: toVersion, node, trail, branches },
+        )
         .where(eq(instances.id, j.id));
       await tx
         .insert(events)
@@ -80,6 +126,7 @@ export async function carryJourneys(
             edges: [],
             skipped: [],
             trail,
+            branches,
             cause: { kind: "version", ref: String(j.version), at: at.toISOString() },
           },
           by: CARRY_BY,

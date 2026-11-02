@@ -313,6 +313,7 @@ export async function rebuildJourney(db: Queryable, id: string): Promise<Rebuilt
       if (cause.kind === "version") {
         // A carry holds the trail so far; one without it leaves the trail as it was.
         if (Array.isArray(data.trail)) trail = data.trail as Crossing[];
+        if (Array.isArray(data.branches)) branches = data.branches as Branch[];
         continue;
       }
       const edges = Array.isArray(data.edges) ? data.edges.map(String) : [];

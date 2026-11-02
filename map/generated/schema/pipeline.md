@@ -82,6 +82,7 @@ Indexes:
 
 ## pipeline.instances (table)
 
+- `branches jsonb = '[]'::jsonb`
 - `closed_at timestamp with time zone null`
 - `document_id integer null`
 - `drop_reason text null`

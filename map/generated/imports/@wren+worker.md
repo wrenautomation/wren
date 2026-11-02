@@ -1,6 +1,6 @@
 # @wren/worker
 
-Role: package. Files: 40.
+Role: package. Files: 41.
 
 ## Uses
 
@@ -50,6 +50,7 @@ flowchart LR
   nscripts_["scripts/ (2)"]
   nbox_slot_ts["box-slot.ts"]
   nbox_ts["box.ts"]
+  ncampaign_stop_ts["campaign-stop.ts"]
   ncomponents_ts["components.ts"]
   nconsole_records_ts["console-records.ts"]
   ngallery_ts["gallery.ts"]
@@ -91,6 +92,7 @@ flowchart LR
   nservices_ --> nworkflows_ts
   nservices_ --> nmarketing_ts
   nservices_ --> ncomponents_ts
+  nservices_ --> ncampaign_stop_ts
   nservices_ --> njourney_research_ts
   nservices_ --> nline_feed_ts
   nservices_ --> npain_feed_ts
@@ -103,6 +105,7 @@ flowchart LR
 
 - box-slot.ts
 - box.ts
+- campaign-stop.ts
 - components.ts
 - console-records.ts
 - gallery.ts

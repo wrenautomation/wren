@@ -1,6 +1,6 @@
 # @wren/channel-sms: interface
 
-Exports: 339. Files: 42.
+Exports: 340. Files: 42.
 
 ## packages/channel-sms/src/bookings.ts
 
@@ -66,6 +66,7 @@ Exports: 339. Files: 42.
 - **queueManual** (function) `(db: Queryable, input: { contactId: number; body: string; now: Date; policy: Pick<SmsPolicy, "monthlyPerContact">; kind?: "manual" | "pay" | "doc"; }): Promise<SmsMessage>`
 - **reconcile** (function) `(db: Queryable, now: Date): Promise<number>`
 - **skipQueued** (function) `(db: Queryable, contactId: number, why: string): Promise<number>`
+- **stopCampaignTexts** (function) `(db: Queryable, o: { campaign: string | null; phones: readonly string[]; persons: readonly number[]; why: string; now: Date; }): Promise<number>`
 - **textedThisMonth** (function) `(db: Queryable, e164: string, now: Date): Promise<number>`
 - **tick** (function) `(db: Db, opts: TickOptions): Promise<TickStats>`
 

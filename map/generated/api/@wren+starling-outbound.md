@@ -1,6 +1,6 @@
 # @wren/starling-outbound: interface
 
-Exports: 531. Files: 56.
+Exports: 532. Files: 56.
 
 ## packages/starling/channels/reddit/src/warmup.ts
 
@@ -78,6 +78,7 @@ Exports: 531. Files: 56.
 - **loadByAccount** (function) `(db: Queryable, platform: Platform): Promise<Map<string, number>>`
 - **profileOf** (function) `(c: ReachContact): Profile | null`
 - **setContactState** (function) `(db: Queryable, id: number, state: ContactState, o: { reason?: string | null; now: Date; ended?: boolean }): Promise<void>`
+- **stopCampaignContacts** (function) `(db: Queryable, o: { campaign: string | null; handles: ReadonlyArray<{ platform: string; handle: string }>; persons: readonly number[]; why: string; now: Date; }): Promise<number>`
 
 ## packages/starling/outbound/src/decide.ts
 

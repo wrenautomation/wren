@@ -455,7 +455,8 @@ function counted(lines: SQL, least: number, most: number | undefined): SQL {
 /**
  * A journey as a test on `p.id`, from `pipeline.instances`. "Reached" reads the journey's own
  * trail (one `{ edge, from, to, at }` per crossing): the node is where it sits or an edge ended
- * there. A node a journey skipped is not on its trail.
+ * there. A node a journey skipped is not on its trail. "At" counts any branch there, not only the
+ * front.
  */
 function journeySql(c: JourneyCondition, now: Date): SQL {
   const from = since(now, c.days);
@@ -463,7 +464,7 @@ function journeySql(c: JourneyCondition, now: Date): SQL {
   const at = now.toISOString();
   return sql`p.id in (select j.profile_id from pipeline.instances j
     where true
-      ${c.node && !c.reached ? sql`and j.node = ${c.node}` : sql``}
+      ${c.node && !c.reached ? sql`and (j.node = ${c.node} or j.branches @> ${JSON.stringify([{ node: c.node }])}::jsonb)` : sql``}
       ${c.node && c.reached ? sql`and (j.node = ${c.node} or j.trail @> ${JSON.stringify([{ to: c.node }])}::jsonb)` : sql``}
       ${c.status ? sql`and j.status = ${c.status}` : sql``}
       ${c.entry ? sql`and j.entry = ${c.entry}` : sql``}

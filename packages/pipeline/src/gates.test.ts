@@ -1,7 +1,7 @@
 import { checkWorkflows } from "@wren/core/workflows";
 import { describe, expect, it } from "vitest";
 import { ctx, metroShape } from "../test/fixtures.js";
-import { gateWhy, graphOf, wireWait } from "./convert.js";
+import { gateWhy, graphOf, lowerable, wireWait } from "./convert.js";
 import type { MetroBody, MetroStation, MetroTrack } from "./metro.js";
 import { checkShape } from "./model.js";
 import { ARMED_PORT, shapeWorkflow } from "./workflow.js";
@@ -132,9 +132,16 @@ describe("gateWhy", () => {
     return s ? gateWhy(b, s) : [];
   };
 
-  it("passes the logic body", () => {
+  it("passes the logic body, so the runtime runs it", () => {
     const b = logic();
     expect(["race", "fork", "both"].flatMap((id) => why(b, id))).toEqual([]);
+    expect(lowerable(b)).toEqual([]);
+  });
+
+  it("refuses to run a gate that breaks a rule", () => {
+    const b = logic();
+    b.tracks.push(track("fork", "both"));
+    expect(lowerable(b)).toContain('Track "fork_to_both" runs logic station to logic station.');
   });
 
   it("refuses a second track out of the station before a gate, logic to logic, an arm with no trigger", () => {

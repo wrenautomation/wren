@@ -204,6 +204,12 @@ Build order: the `campaign` column and its writer go in together, loop by loop, 
       - SMS: `stopCampaignTexts` sets new and enrolled contacts to `finished`, not `stopped`: `stopped` would also block answers, reminders and review asks. Queued sequence and follow-up texts skip.
     - Only a cause that crosses a cond arm wins. A forced hand move (with a reason) wins nothing, so it stops nothing: the operator chose the station, not the race. A hand move with no reason to the arm's station wins it, with reason `manual`.
     - Built (slice 4): arrival at the station before a race emits on `armed` with subject `race:<journey>:<gate>`. The cause is `clock`. A clock that finds its branch moved on, or the journey closed, does nothing.
-    - A publish carries each branch whose node is in the new version. A branch on a node or gate the new version lacks refuses the publish, as a missing node does today.
+    - Built (slice 6): a publish carries a journey only when every branch lands. A branch lands on its node, or with `moves` on the named node. A waiting branch lands on the same split and track. A journey with a branch that does not land stays on its version as a ghost, as a missing node does today. The carry event holds `branches`, so a rebuild keeps them.
+    - A clock set in an old version (slice 6). Options:
+      - A. The clock follows the journey into the new version. The held event sits on the old version's wire, so its move would land in the old workflow. Rejected.
+      - B. The carry sets a new clock for the time left. The carry runs in the publish's transaction, outside the executor, and a wire wait is fixed. Too much plumbing.
+      - C. A journey with a branch before a race, in the old or the new version, stays a ghost. Carry sets no clock: a station before a race is reached by a move only. Chosen: it uses the ghost path that exists, and a race is days long. Costs: a journey on a clock lags one publish. A person already at a station that a new version puts a race after gets no clock: a cause moves them on in their old version, and a later publish carries them.
+      - Follow-up (WA-1009): a clock sweep. A worker loop finds open journeys with a branch before a race and no `race:<journey>:<gate>` event since they arrived, and fires the armed event. Then carry can land them, and a lost clock heals.
+    - The earlier rule said a branch the new version lacks refuses the publish. The code never refused: a missing node has always made a ghost. Slice 6 keeps that.
     - `now` in the numbers counts the front only. A person with branches in two campaigns shows as now in one. Accepted until a reader needs both.
     - Gates never show as arrivals: `skipped` and stage events leave them out.
