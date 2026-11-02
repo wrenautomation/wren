@@ -22,6 +22,8 @@ export interface Arrival {
   node: string;
   /** `YYYY-MM-DD`, UTC. */
   day: string;
+  /** A new version carried it here: it counts for deals, not as people in. */
+  carried?: boolean;
 }
 
 export interface CampaignNumber {
@@ -102,7 +104,7 @@ export function campaignNumbers(x: CampaignInputs): CampaignNumber[] {
     const inWindow = (!x.from || a.day >= x.from) && (!x.to || a.day <= x.to);
     for (const c of chainOf(a.version, a.node)) {
       add(ever, c, a.journey);
-      if (!inWindow) continue;
+      if (!inWindow || a.carried) continue;
       add(people, c, a.journey);
       if (mapOf(a.version).ctas.get(c)?.has(a.node)) add(converted, c, a.journey);
     }
@@ -139,15 +141,15 @@ export function campaignNumbers(x: CampaignInputs): CampaignNumber[] {
   ];
 }
 
-/** Every journey's arrival at a station, as `node_counts` reads them. */
+/** Every journey's arrival at a station, and each carry to a new version (`node_counts` skips those). */
 async function arrivalsOf(db: Queryable): Promise<Arrival[]> {
   const rows = (await db.execute(sql`
     select substr(e.subject, 9) journey,
       substring(e.workflow from '^shape\\.v([0-9]+)$')::int version,
-      substr(e.node, 3) node, to_char((e.at at time zone 'UTC')::date, 'YYYY-MM-DD') as day
+      substr(e.node, 3) node, to_char((e.at at time zone 'UTC')::date, 'YYYY-MM-DD') as day,
+      coalesce(e.data -> 'cause' ->> 'kind', '') = 'version' carried
     from events e
-    where e.workflow ~ '^shape\\.v[0-9]+$' and e.subject like 'journey:%' and left(e.node, 2) = 's_'
-      and coalesce(e.data -> 'cause' ->> 'kind', '') <> 'version'`)) as unknown as Arrival[];
+    where e.workflow ~ '^shape\\.v[0-9]+$' and e.subject like 'journey:%' and left(e.node, 2) = 's_'`)) as unknown as Arrival[];
   return rows.map((r) => ({ ...r, version: Number(r.version) }));
 }
 

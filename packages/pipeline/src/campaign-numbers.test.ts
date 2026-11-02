@@ -63,6 +63,14 @@ describe("campaignNumbers", () => {
     expect(r.spring).toMatchObject({ people: 1, converted: 1, deals: 1 });
   });
 
+  it("counts a journey a new version carried for its deals, not as a person in", () => {
+    const r = rowsOf({
+      arrivals: [{ ...at("a", "book"), carried: true }],
+      deals: [{ journey: "a" }],
+    });
+    expect(r.spring).toMatchObject({ people: 0, converted: 0, deals: 1 });
+  });
+
   it("counts open journeys at its stations", () => {
     const r = rowsOf({
       open: [

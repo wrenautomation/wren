@@ -15,7 +15,7 @@ Exports: 422. Files: 48.
 
 ## packages/pipeline/src/campaign-numbers.ts
 
-- **Arrival** (interface) `interface Arrival { journey: string; version: number; node: string; day: string; }`
+- **Arrival** (interface) `interface Arrival { journey: string; version: number; node: string; day: string; carried?: boolean; }`
 - **CampaignNumber** (interface) `interface CampaignNumber { campaign: string; label: string; status: CampaignStatus; gone: boolean; people: number; converted: number; now: number; deals: number; }`
 - **campaignNumbers** (function) `(x: CampaignInputs): CampaignNumber[]`
 - **campaignNumbersOf** (function) `(db: Queryable, f: { window?: NumberWindow; from?: string; to?: string; now?: Date } = {}): Promise<CampaignNumber[]>`

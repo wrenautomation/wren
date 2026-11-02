@@ -100,7 +100,7 @@
     ],
     "file": "packages/pipeline/src/campaign-numbers.ts",
     "kind": "interface",
-    "sig": "interface Arrival { journey: string; version: number; node: string; day: string; }"
+    "sig": "interface Arrival { journey: string; version: number; node: string; day: string; carried?: boolean; }"
    }
   },
   {

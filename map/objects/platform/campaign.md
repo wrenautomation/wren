@@ -25,7 +25,7 @@ The `default` campaign is computed, never stored: it holds every station outside
 - `checkCampaigns` (`:211`), run by `checkMetro` after the group rules: reserved id, known fields, segment active, audience lines are out lines, each CTA station inside the group (or below) with action `cta`, `form`, `visit` or `book`, channels in `CAMPAIGN_CHANNELS`, caps 0–10000 and not over the parent's, dates in order
 - File form: `campaign`, `audience`, `ctas` types in `metro-file.ts`
 - Merge: `campaign` is one field. Both sides changed it is a conflict, so the CTA ladder never interleaves.
-- Numbers: `campaignNumbers` (`campaign-numbers.ts`) per campaign: people in, converted (reached a CTA), open now, deals. Read off journey arrivals, each on the version it was on, so ids join across versions. A parent counts its children; a person in two campaigns counts in both. Acts and cost wait on the act stamp (phase 3).
+- Numbers: `campaignNumbers` (`campaign-numbers.ts`) per campaign: people in, converted (reached a CTA), open now, deals. Read off journey arrivals, each on the version it was on, so ids join across versions. A journey a new version carried counts for deals, not as a person in. A parent counts its children; a person in two campaigns counts in both. Acts and cost wait on the act stamp (phase 3).
 
 Citations: `packages/pipeline/src/metro-campaigns.ts:146`, `packages/pipeline/src/metro.ts`, `packages/pipeline/src/campaign-numbers.ts`, `apps/cli/src/campaigns.ts`
 
