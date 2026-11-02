@@ -120,6 +120,8 @@ export async function readMap(client: string, window: Window): Promise<MapRead> 
       lines: linesOf(of("line")),
       people: got.people,
       ghosts: [...held.values()],
+      // None from a Lambda older than the portal.
+      campaigns: new Map((got.campaigns ?? []).map((c) => [c.campaign, c])),
     },
   };
 }

@@ -164,6 +164,7 @@ flowchart LR
   nlines_ts --> nschema_ts
   nlines_ts --> nstored_ts
   nlines_ts --> nworkflow_ts
+  nmap_read_ts --> ncampaign_numbers_ts
   nmap_read_ts -.-> nhistory_ts
   nmap_read_ts -.-> nmetro_ts
   nmap_read_ts -.-> nmodel_ts

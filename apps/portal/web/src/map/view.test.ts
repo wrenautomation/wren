@@ -120,6 +120,15 @@ describe("viewOf", () => {
     expect(v.groups).toEqual([{ id: "g1", label: "Talk" }]);
   });
 
+  it("notes a campaign's status on its group, a paused parent's on its child", () => {
+    const groups: MetroBody["groups"] = [
+      { id: "g1", label: "Talk", line: "web", stations: [], campaign: { status: "paused" } },
+      { id: "g2", label: "Book", line: "web", parent: "g1", stations: ["book"], campaign: {} },
+    ];
+    const c = viewOf({ ...metro, groups }, numbers, [], NOW);
+    expect(c.groups?.map((g) => g.note)).toEqual(["paused", "paused"]);
+  });
+
   it("maps kind, column, group and the track label", () => {
     const by = (id: string) => v.stations.find((s) => s.id === id);
     expect(by("check")?.kind).toBe("dec");

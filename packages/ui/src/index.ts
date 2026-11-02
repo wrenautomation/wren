@@ -159,6 +159,7 @@ export {
   TextAreaField,
   TextField,
   useEditForm,
+  useFieldArray,
 } from "./edit-form.js";
 export {
   Alert,

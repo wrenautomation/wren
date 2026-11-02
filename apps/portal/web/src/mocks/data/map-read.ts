@@ -62,7 +62,7 @@ export function mapReadOf(ask: Ask, body: Record<string, unknown>): MapAnswer {
     detail?: MapAnswer["shape"];
   } | null;
   const d = got?.detail;
-  if (!d?.body) return { shape: null, numbers: [], people: [], ghosts: [] };
+  if (!d?.body) return { shape: null, numbers: [], people: [], ghosts: [], campaigns: [] };
   const per = (kind: "station" | "track" | "line") =>
     rowsOf(ask, { ...at, record: "pipeline.number", where: { kind, window: body.window } }).map(
       (r) => numberOf(r, kind),
@@ -83,5 +83,6 @@ export function mapReadOf(ask: Ask, body: Record<string, unknown>): MapAnswer {
       sort: "-movedAt",
     }).map(personOf),
     ghosts: rowsOf(ask, { ...at, record: "pipeline.journey", view: "ghost" }).map(personOf),
+    campaigns: [],
   };
 }

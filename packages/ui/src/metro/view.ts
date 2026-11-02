@@ -127,6 +127,8 @@ export interface ViewGroup {
    * bottom row. Folded, the lap is one ring.
    */
   lap?: string | undefined;
+  /** Folded, a word before its steps: a campaign's status ("paused"). */
+  note?: string | undefined;
 }
 
 export interface MetroView {

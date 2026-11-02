@@ -268,10 +268,11 @@ export function MapPage({
   const pick = (n: number) =>
     setPicked((p) => (p.includes(n) ? p.filter((x) => x !== n) : [...p.slice(-1), n]));
   const onPick = (p: MetroPick) => {
-    // A fold opens or closes by itself in the map; only a station or track has a panel.
-    if (p.kind === "group") return;
+    // A fold opens or closes by itself in the map; of the groups, only a campaign has a panel.
+    const id = p.kind === "group" ? (p.group ?? p.id) : p.id;
+    if (p.kind === "group" && !data?.metro?.groups.some((g) => g.id === id && g.campaign)) return;
     setHistory(false);
-    open({ kind: p.kind, id: p.id });
+    open({ kind: p.kind === "group" ? "campaign" : p.kind, id });
   };
   const closeHistory = () => {
     setHistory(false);
@@ -547,6 +548,8 @@ export function MapPage({
                 onOpen={open}
                 onHistory={openVersion}
                 onClose={() => open(null)}
+                canEdit={mayEdit}
+                onOpenDraft={openDraft}
               />
             ) : null}
             {draftId && row ? (

@@ -42,6 +42,9 @@ import { browserEnv } from "./save/env.js";
 import { readKept, writeForm } from "./save/journal.js";
 import { stableKey } from "./save/writes.js";
 
+// Rows of a list field (a CTA ladder): React Hook Form's own, so a caller needs no second copy.
+export { useFieldArray } from "react-hook-form";
+
 type Values = Record<string, unknown>;
 
 /** The fields of `values` that differ from `from`: what is worth keeping. */

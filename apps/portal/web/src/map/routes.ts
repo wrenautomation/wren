@@ -150,18 +150,19 @@ export const mapNodeHref = (nodeId: string, client: string | null): string =>
 /** The node a Map address names (`?node=`), or none. The Map opens it, as a click would. */
 export const nodeOfParams = (params: URLSearchParams): string | null => params.get("node") || null;
 
-/** A part of the Map that has a panel: a station (the hub too), a track or a line. */
+/** A part of the Map that has a panel: a station (the hub too), a track, a line or a campaign. */
 export interface PanelRef {
-  kind: "station" | "track" | "line";
+  kind: "station" | "track" | "line" | "campaign";
   id: string;
 }
 
 /** The address param each panel kind uses. A station keeps `?node=`, the id older links carry. */
-const PANEL_PARAM = { station: "node", track: "track", line: "line" } as const;
+const PANEL_PARAM = { station: "node", track: "track", line: "line", campaign: "campaign" } as const;
+const PANEL_KINDS = Object.keys(PANEL_PARAM) as PanelRef["kind"][];
 
-/** The panel a Map address names (`?node=`, `?track=` or `?line=`), or none. */
+/** The panel a Map address names (`?node=`, `?track=`, `?line=` or `?campaign=`), or none. */
 export function panelOfParams(params: URLSearchParams): PanelRef | null {
-  for (const kind of ["station", "track", "line"] as const) {
+  for (const kind of PANEL_KINDS) {
     const id = params.get(PANEL_PARAM[kind]);
     if (id) return { kind, id };
   }
@@ -169,11 +170,8 @@ export function panelOfParams(params: URLSearchParams): PanelRef | null {
 }
 
 /** The params that name a panel; every other kind is cleared. None closes the panel. */
-export const panelParams = (p: PanelRef | null): Params => ({
-  node: p?.kind === "station" ? p.id : null,
-  track: p?.kind === "track" ? p.id : null,
-  line: p?.kind === "line" ? p.id : null,
-});
+export const panelParams = (p: PanelRef | null): Params =>
+  Object.fromEntries(PANEL_KINDS.map((k) => [PANEL_PARAM[k], p?.kind === k ? p.id : null]));
 
 /** A track on the Map: the Map's home with the track's panel open (Today's task opens it). */
 export const mapTrackHref = (trackId: string, client: string | null): string =>

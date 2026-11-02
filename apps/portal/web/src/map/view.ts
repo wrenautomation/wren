@@ -14,6 +14,7 @@ import {
   isContentKind,
   type MetroBody,
 } from "@wren/pipeline/metro";
+import { campaignsOf } from "@wren/pipeline/metro-campaigns";
 import type { MetroDiff } from "@wren/pipeline/metro-diff";
 import type { IconName } from "@wren/ui";
 import {
@@ -162,6 +163,7 @@ export function viewOf(
   };
   const groupOf = new Map<string, string>();
   for (const g of metro.groups) for (const id of g.stations) groupOf.set(id, g.id);
+  const status = new Map(campaignsOf(metro).map((c) => [c.id, c.status]));
   const stationBy = new Map(metro.stations.map((s) => [s.id, s] as const));
 
   const lines = metro.lines.map((l) => lineOf(l, mark.lines.get(l.id)));
@@ -203,6 +205,8 @@ export function viewOf(
       id: g.id,
       label: g.label,
       ...(g.parent ? { parent: g.parent } : {}),
+      // A campaign says its status, inherited: a paused parent holds it.
+      ...(status.has(g.id) ? { note: status.get(g.id) } : {}),
     })),
   };
 }

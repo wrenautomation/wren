@@ -1,6 +1,6 @@
 # @wren/ui: interface
 
-Exports: 704. Files: 124.
+Exports: 705. Files: 125.
 
 ## node_modules/.pnpm/@tanstack+query-core@5.104.0/node_modules/@tanstack/query-core/build/modern/focusManager.d.cts
 
@@ -23,6 +23,10 @@ Exports: 704. Files: 124.
 - **reveal** (function) `(nodes: readonly FoldNode[], id: string | undefined): Fold`
 - **stepDepth** (function) `(nodes: readonly FoldNode[], depth: number, d: number): Fold`
 - **toggle** (function) `(nodes: readonly FoldNode[], fold: Fold, id: string, on: boolean): Fold`
+
+## node_modules/.pnpm/react-hook-form@7.89.0_@types+react@19.3.0_react@19.3.0/node_modules/react-hook-form/dist/useFieldArray.d.ts
+
+- **useFieldArray** (function) `(props: UseFieldArrayProps<TFieldValues, TFieldArrayName, TKeyName, TTransformedValues>): UseFieldArrayReturn<TFieldValues, TFieldArrayName, TKeyName>`
 
 ## node_modules/.pnpm/sonner@2.0.8_@types+react@19.3.0_react-dom@19.3.0_react@19.3.0__react@19.3.0/node_modules/sonner/dist/index.d.ts
 
@@ -525,7 +529,7 @@ Exports: 704. Files: 124.
 - **PlatformTile** (function) `({ mark, className }: { mark: string; className?: string }): import("react").JSX.Element`
 - **StageSquare** (function) `({ line, className }: { line: number; className?: string }): import("react").JSX.Element`
 - **TintSwatch** (function) `({ tint, className }: { tint: number; className?: string }): import("react").JSX.Element`
-- **hostMark** (function) `(site: string): "reddit" | "email" | "linkedin" | "dm" | "call" | "text" | "web" | "meta" | "youtube" | "x" | "tiktok" | "instagram" | "facebook" | "threads" | "google" | "whatsapp" | "podcast" | "discord" | undefined`
+- **hostMark** (function) `(site: string): "email" | "dm" | "youtube" | "instagram" | "linkedin" | "reddit" | "x" | "threads" | "facebook" | "tiktok" | "text" | "web" | "meta" | "call" | "google" | "whatsapp" | "discord" | "podcast" | undefined`
 - **lineColor** (function) `(line: number): string`
 - **markName** (function) `(mark: Mark): string`
 - **tintColor** (function) `(tint: number): "var(--ui-cue-1)" | "var(--ui-cue-2)" | "var(--ui-cue-3)" | "var(--ui-cue-4)" | "var(--ui-cue-5)" | "var(--ui-cue-6)" | "var(--ui-cue-7)" | "var(--ui-cue-8)"`
@@ -663,7 +667,7 @@ Exports: 704. Files: 124.
 - **DEFAULT_COLUMNS** (const) `string[]`
 - **LineTier** (type) `type LineTier = "out" | "front" | "core" | "content";`
 - **MetroView** (interface) `interface MetroView { title?: string; lines: ViewLine[]; stations: ViewStation[]; tracks: ViewTrack[]; groups?: ViewGroup[]; columns?: string[]; }`
-- **ViewGroup** (interface) `interface ViewGroup { id: string; label: string; parent?: string | undefined; lap?: string | undefined; }`
+- **ViewGroup** (interface) `interface ViewGroup { id: string; label: string; parent?: string | undefined; lap?: string | undefined; note?: string | undefined; }`
 - **ViewKind** (type) `type ViewKind = | "att" | "time" | "cash" | "exit" | "hub" | "plan" | "dec" | "race" | "split" | "join" | "ab" | "ok" | "link";`
 - **ViewLine** (interface) `interface ViewLine { id: string; label?: string; offer?: string; tier: LineTier; colour?: number; plan?: boolean; mark?: Mark; }`
 - **ViewStation** (interface) `interface ViewStation { id: string; kind: ViewKind; line: string; column: string; spans?: string[]; group?: string; ring?: boolean; flow?: string; label?: string; icon?: IconName; sub?: string; was?: string; now?: number; arrived?: number; bad?: boolean; rule?: string; repeat?: string; repeatIcon?: IconName | null; plans?: string; bundle?: boolean; template?: string; platform?: string; mark?: Mark; }`

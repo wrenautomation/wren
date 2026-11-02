@@ -213,3 +213,21 @@ Build order: the `campaign` column and its writer go in together, loop by loop, 
     - The earlier rule said a branch the new version lacks refuses the publish. The code never refused: a missing node has always made a ghost. Slice 6 keeps that.
     - `now` in the numbers counts the front only. A person with branches in two campaigns shows as now in one. Accepted until a reader needs both.
     - Gates never show as arrivals: `skipped` and stage events leave them out.
+- 2026-11-02, phase 5 (WA-999): the map.
+  - The numbers ride `pipeline/mapRead`: `MapAnswer.campaigns`, read beside the station numbers. One call: separate calls woke cold Lambdas (`read.ts`). The arrivals query took 30 ms over 2.9k events on prod.
+  - A folded campaign says its status (live, paused, ended), then its steps and people now. The word sets it apart from a plain group. A paused parent's status shows on its children.
+  - A pick on a campaign, its circle or its fold tab, opens its card (`?campaign=<id>`). A plain group only folds, as before.
+  - The card: numbers (people, converted, now, deals, acts), each field with "from <parent>" when inherited, the CTA ladder (each opens its station), the stations, and people here. People here and `now` count the front only.
+  - How the portal edits a campaign. Options:
+
+  | | How | For | Against |
+  |---|---|---|---|
+  | **A. Form → draft (chosen)** | The card's form makes a draft with one `set` op on the group's `campaign`, then opens it in the draft review (propose, apply) | One path for every shape change. A campaign edit is a version, as the model says. The metro file and the form meet the same check | A pause takes two steps: save, then apply |
+  | B. Form → version | The form publishes a version at once | A pause is one step | Skips the review and the check against a newer version |
+  | C. Metro file only | Export, edit, import | Works today | William asked for the portal too |
+
+  - Ranked by: one path for shape changes, then review, then speed. A wins.
+  - The form sets the whole `campaign` map in one op. It shows the group's own fields only; inherited values show as hints. A field left empty is unset, so it inherits.
+  - Offer: a pick from the offers on the shape's lines, plus the one set now. Segment: text, checked by the server (the portal has no segment list). Lines: the out lines as checks.
+  - A draft edit keeps an op that fails the checks and returns it as a warning; apply refuses it later. The form wants the answer now: on a refusal or a warning it drops the draft (with a reason) and shows the server's words. The base is the live version, which passed the checks, so a warning is the edit's own.
+  - A CTA's station: a pick from the stations with a CTA action in the campaign and the groups under it. A station picked before it lost its action stays in the list, so the server says why.

@@ -148,12 +148,21 @@ describe("map panel links", () => {
       kind: "line",
       id: "signed",
     });
+    expect(panelOfParams(new URLSearchParams("campaign=guide"))).toEqual({
+      kind: "campaign",
+      id: "guide",
+    });
     expect(panelOfParams(new URLSearchParams("window=7"))).toBeNull();
   });
 
   it("names one panel and clears the others", () => {
-    expect(panelParams({ kind: "track", id: "t" })).toEqual({ node: null, track: "t", line: null });
-    expect(panelParams(null)).toEqual({ node: null, track: null, line: null });
+    expect(panelParams({ kind: "track", id: "t" })).toEqual({
+      node: null,
+      track: "t",
+      line: null,
+      campaign: null,
+    });
+    expect(panelParams(null)).toEqual({ node: null, track: null, line: null, campaign: null });
   });
 
   it("links a track, with the client when it is not Wren's", () => {

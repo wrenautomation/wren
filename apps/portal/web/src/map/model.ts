@@ -2,6 +2,7 @@
  * The Map's data, pure (no reads, so a test imports it alone): the windows, what a read gives, and
  * the lines a panel says. `view.ts` turns it into the drawing.
  */
+import type { CampaignNumber } from "@wren/pipeline/campaign-numbers";
 import type { VersionLine } from "@wren/pipeline/history";
 import type { MetroBody } from "@wren/pipeline/metro";
 import type { ShapeBody } from "@wren/pipeline/model";
@@ -100,6 +101,8 @@ export interface MapData {
   /** Open journeys, newest move first. */
   people: Person[];
   ghosts: Ghost[];
+  /** Each campaign's numbers over the window, by campaign id. */
+  campaigns: Map<string, CampaignNumber>;
 }
 
 const cash = (s: Sum | null) => (s ? money(s.amount, s.currency, true) : "none");
@@ -120,6 +123,20 @@ export function stationSays(kind: string, x: NodeNumbers | undefined): string[] 
     `Arrived: ${num(x.arrived ?? 0)}`,
     `Left: ${num(x.left ?? 0)}`,
     `Median days there: ${x.medianDays == null ? "none" : num(Math.round(x.medianDays * 10) / 10)}`,
+  ];
+}
+
+/** A campaign's numbers as lines: people in, converted, now, deals, then each act by its cap word. */
+export function campaignSays(x: CampaignNumber | undefined): string[] {
+  if (!x) return ["No numbers yet."];
+  return [
+    `People in: ${num(x.people)}`,
+    `Converted: ${num(x.converted)}`,
+    `Now: ${num(x.now)}`,
+    `Deals: ${num(x.deals)}`,
+    ...Object.entries(x.acts)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([k, n]) => `${k}: ${num(n)}`),
   ];
 }
 

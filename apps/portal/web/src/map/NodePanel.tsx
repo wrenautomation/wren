@@ -3,17 +3,21 @@
  * people on it newest first with a link to each journey, the tracks in and out, and the way into
  * the app that manages it. A track: who moves it, its promise, who waits and the crossings. A line:
  * its numbers and its stations. The hub: its leads and a link to People. A station and a line
- * link to their focus page. Read only; the shape is changed by an edit, never here.
+ * link to their focus page. A campaign: its numbers, fields, CTA ladder, stations and people; an
+ * edit to it saves as a draft for review.
  */
 import type { BlameLine } from "@wren/pipeline/history";
 import type { MetroStation, MetroTrack } from "@wren/pipeline/metro";
-import { Button, ButtonLink, Icon, num } from "@wren/ui";
+import { type Campaign, campaignsOf } from "@wren/pipeline/metro-campaigns";
+import { Button, ButtonLink, Facts, Icon, num } from "@wren/ui";
 import type { MetroPart } from "@wren/ui/metro";
-import type { ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 import { href } from "../route.js";
 import { BlameList } from "./BlameList.js";
+import { CampaignForm } from "./CampaignForm.js";
 import { focusHref } from "./focus.js";
 import {
+  campaignSays,
   DEFAULT_WINDOW,
   lineSays,
   type MapData,
@@ -246,6 +250,10 @@ interface PartProps {
   /** A line of the part's history was picked: History opens on its version. */
   onHistory: (line: BlameLine) => void;
   onClose: () => void;
+  /** The viewer may change the shape: a campaign shows Edit. */
+  canEdit?: boolean | undefined;
+  /** A draft was made from the panel: open it for review. */
+  onOpenDraft?: ((id: string) => void) | undefined;
 }
 
 function HubPanel({ data, client, window, onClose }: PartProps) {
@@ -383,6 +391,162 @@ function LinePanel(p: PartProps & { id: string }) {
   );
 }
 
+const STATUS_WORD = { live: "Live", paused: "Paused", ended: "Ended" } as const;
+
+/** Buttons that open parts, one per line, under a heading. */
+function Opens({
+  label,
+  rows,
+  empty,
+}: {
+  label: string;
+  rows: { key: string; name: string; aside?: string | undefined; open: () => void }[];
+  empty: string;
+}) {
+  return (
+    <section aria-label={label}>
+      <h3 className={h3}>{label}</h3>
+      {rows.length ? (
+        <ul className="list-none">
+          {rows.map((r) => (
+            <li key={r.key}>
+              <button
+                type="button"
+                aria-label={`${label}: ${r.name}`}
+                onClick={r.open}
+                className="flex min-h-9 w-full cursor-pointer items-center gap-2 border-0 bg-transparent p-0 text-left text-(--ui-ink) hover:bg-(--ui-hover)"
+              >
+                <span className="min-w-0 flex-1 wrap-anywhere whitespace-normal">{r.name}</span>
+                {r.aside ? (
+                  <span className="text-[12.5px] text-(--ui-ink-3)">{r.aside}</span>
+                ) : null}
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-(--ui-ink-3)">{empty}</p>
+      )}
+    </section>
+  );
+}
+
+/** A campaign's facts; a value its group does not set says where it comes from. */
+function campaignFacts(c: Campaign, all: readonly Campaign[], lineOf: (id: string) => string) {
+  const up = all.find((x) => x.id === c.parent)?.label;
+  const from = (own: boolean, v: string) => (own || !up ? v : `${v}, from ${up}`);
+  const o = c.own;
+  const rows: [string, string][] = [
+    ["Status", from(!!o.status, STATUS_WORD[c.status])],
+    ...(c.from || c.until
+      ? [
+          [
+            "Dates",
+            from(!!(o.from || o.until), `${c.from ?? "any day"} to ${c.until ?? "no end"}`),
+          ] as [string, string],
+        ]
+      : []),
+    ...(c.offer ? [["Offer", from(!!o.offer, c.offer)] as [string, string]] : []),
+    ...(c.audience?.segment
+      ? [["Segment", from(!!o.audience?.segment, c.audience.segment)] as [string, string]]
+      : []),
+    ...(c.audience?.lines?.length
+      ? [
+          ["Source lines", from(!!o.audience?.lines, c.audience.lines.map(lineOf).join(", "))] as [
+            string,
+            string,
+          ],
+        ]
+      : []),
+    ...Object.entries(c.accounts).map(
+      ([ch, a]) => [`Account, ${ch}`, from(!!o.accounts?.[ch], a)] as [string, string],
+    ),
+    ...Object.entries(c.caps).map(
+      ([k, n]) => [`Cap, ${k}`, from(o.caps?.[k] != null, `${num(n)} a day`)] as [string, string],
+    ),
+  ];
+  return rows;
+}
+
+function CampaignPanel(p: PartProps & { id: string }) {
+  const { data, id, at, window } = p;
+  const [editing, setEditing] = useState(false);
+  const metro = data.metro;
+  const all = metro ? campaignsOf(metro) : [];
+  const c = all.find((x) => x.id === id);
+  if (!metro || !c) return null;
+  const nameOf = (s: string) => metro.stations.find((x) => x.id === s)?.label ?? s;
+  const lineOf = (l: string) => metro.lines.find((x) => x.id === l)?.label ?? l;
+  // Its own stations and those of the campaigns inside it.
+  const inside = new Set([id]);
+  for (const x of all) if (x.parent && inside.has(x.parent)) inside.add(x.id);
+  const stations = new Set(all.filter((x) => inside.has(x.id)).flatMap((x) => x.stations));
+  const children = all.filter((x) => x.parent === id);
+  return (
+    <Card name={c.label} kind={`Campaign · ${STATUS_WORD[c.status]}`} onClose={p.onClose}>
+      <Numbers lines={campaignSays(data.campaigns.get(id))} window={window} />
+      {editing && p.onOpenDraft ? (
+        <CampaignForm
+          metro={metro}
+          campaign={c}
+          at={at}
+          onDraft={(d) => {
+            setEditing(false);
+            p.onOpenDraft?.(d);
+          }}
+          onCancel={() => setEditing(false)}
+        />
+      ) : (
+        <Facts items={campaignFacts(c, all, lineOf)} />
+      )}
+      <Opens
+        label="CTA ladder"
+        empty="No CTAs."
+        rows={c.ctas.map((x, i) => ({
+          key: `${i}:${x.station}`,
+          name: x.label,
+          aside: nameOf(x.station),
+          open: () => p.onOpen({ kind: "station", id: x.station }),
+        }))}
+      />
+      {children.length ? (
+        <Opens
+          label="Campaigns inside"
+          empty=""
+          rows={children.map((x) => ({
+            key: x.id,
+            name: x.label,
+            aside: STATUS_WORD[x.status],
+            open: () => p.onOpen({ kind: "campaign", id: x.id }),
+          }))}
+        />
+      ) : null}
+      <Opens
+        label="Stations"
+        empty="No stations."
+        rows={metro.stations
+          .filter((s) => stations.has(s.id))
+          .map((s) => ({
+            key: s.id,
+            name: s.label,
+            aside: STATION_WORD[s.kind],
+            open: () => p.onOpen({ kind: "station", id: s.id }),
+          }))}
+      />
+      <PeopleHere people={data.people.filter((x) => stations.has(x.node))} at={at} />
+      <BlameList at={at} ask={{ group: id }} label="Campaign history" onOpen={p.onHistory} />
+      {p.canEdit && p.onOpenDraft && !editing ? (
+        <footer className="flex flex-wrap items-center gap-2">
+          <Button tone="primary" size="dense" onClick={() => setEditing(true)}>
+            Edit
+          </Button>
+          <span className="text-[12.5px] text-(--ui-ink-3)">Saves as a draft for review.</span>
+        </footer>
+      ) : null}
+    </Card>
+  );
+}
+
 /** "Focus": the part's own page (`/map/<kind>/<id>`), in the same workspace and window. */
 function FocusLink({
   part,
@@ -405,15 +569,17 @@ function FocusLink({
 export function NodePanel({ part, ...p }: PartProps & { part: PanelRef }) {
   if (part.kind === "line") return <LinePanel {...p} id={part.id} />;
   if (part.kind === "track") return <TrackPanel {...p} id={part.id} />;
+  if (part.kind === "campaign") return <CampaignPanel key={part.id} {...p} id={part.id} />;
   const hub = p.data.metro?.stations.find((s) => s.id === part.id)?.kind === "hub";
   return hub ? <HubPanel {...p} /> : <StationPanel {...p} id={part.id} />;
 }
 
-/** Whether the shape holds the part: a station or ghost, a track, a line. */
+/** Whether the shape holds the part: a station or ghost, a track, a line, a campaign. */
 export function holds(data: MapData, part: PanelRef): boolean {
   const m = data.metro;
   if (part.kind === "station")
     return !!m?.stations.some((s) => s.id === part.id) || data.ghosts.some((g) => g.id === part.id);
   if (part.kind === "track") return !!m?.tracks.some((t) => t.id === part.id);
+  if (part.kind === "campaign") return !!m?.groups.some((g) => g.id === part.id && g.campaign);
   return !!m?.lines.some((l) => l.id === part.id);
 }

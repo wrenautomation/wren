@@ -16,7 +16,7 @@ export interface Kept {
 /** One key for each workspace: a client's Map keeps its own view. */
 export const keptKey = (client: string): string => `map:view:${client}`;
 
-const KINDS = ["station", "track", "line"];
+const KINDS = ["station", "track", "line", "campaign"];
 
 /** The kept view in `raw`, or an empty one. Reads only what it knows. */
 export function keptOf(raw: string | null): Kept {

@@ -353,8 +353,12 @@ function foldRuns(
             ...(each.arrived !== undefined ? { arrived: each.arrived } : {}),
           }
         : {
-            // Its steps, then the people in it now: the layout makes room for both.
-            sub: [foldSteps(fold), now !== undefined ? `${now.toLocaleString("en-US")} now` : null]
+            // Its note, its steps, then the people in it now: the layout makes room for them.
+            sub: [
+              groups.get(k)?.note,
+              foldSteps(fold),
+              now !== undefined ? `${now.toLocaleString("en-US")} now` : null,
+            ]
               .filter(Boolean)
               .join(" \u00b7 "),
             ...(now !== undefined ? { now } : {}),

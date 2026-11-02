@@ -33,6 +33,19 @@ vi.mock("../api.js", () => ({
       ghosts: [
         { id: "j1", name: "Sam", node: "old", nodeName: "Old", movedAt: null, daysAtNode: 3 },
       ],
+      campaigns: [
+        {
+          campaign: "guide",
+          label: "Guide",
+          status: "live",
+          gone: false,
+          people: 12,
+          converted: 3,
+          now: 4,
+          deals: 1,
+          acts: { "linkedin.invite": 20 },
+        },
+      ],
     };
   },
 }));
@@ -66,6 +79,7 @@ describe("readMap", () => {
     expect(map?.ghosts).toEqual([
       { id: "old", name: "Old", people: [expect.objectContaining({ name: "Sam" })] },
     ]);
+    expect(map?.campaigns.get("guide")?.converted).toBe(3);
   });
 
   it("keeps one line row for each currency", async () => {

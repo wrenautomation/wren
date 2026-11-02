@@ -4,6 +4,7 @@
  * five Lambdas, and each cold one took about 3.7 s to start. One call wakes one.
  */
 import type { Queryable } from "@wren/db";
+import { type CampaignNumber, campaignNumbersOf } from "./campaign-numbers.js";
 import type { VersionLine } from "./history.js";
 import type { MetroBody } from "./metro.js";
 import type { ShapeBody } from "./model.js";
@@ -38,16 +39,20 @@ export interface MapAnswer {
   people: MapPerson[];
   /** Open journeys on a node the newest shape dropped, oldest move first. */
   ghosts: MapPerson[];
+  /** Each campaign's numbers for the window, the default first. */
+  campaigns: CampaignNumber[];
 }
 
 const MAP_KINDS = new Set(["station", "track", "line"]);
 
 export async function mapAnswerOf(db: Queryable, window: MapWindow): Promise<MapAnswer> {
   const shape = await shapeDetail(db);
-  if (!shape) return { shape: null, numbers: [], people: [], ghosts: [] };
-  const [numbers, journeys] = await Promise.all([
-    numberRows(db, window === "all" ? {} : { window: Number(window) as 7 | 30 | 90 }),
+  if (!shape) return { shape: null, numbers: [], people: [], ghosts: [], campaigns: [] };
+  const span = window === "all" ? {} : { window: Number(window) as 7 | 30 | 90 };
+  const [numbers, journeys, campaigns] = await Promise.all([
+    numberRows(db, span),
     journeyRows(db),
+    campaignNumbersOf(db, span),
   ]);
   const open = journeys.filter((j) => j.status === "open");
   const person = (j: (typeof open)[number]): MapPerson => ({
@@ -72,5 +77,6 @@ export async function mapAnswerOf(db: Queryable, window: MapWindow): Promise<Map
       .filter((j) => j.ghost)
       .map(person)
       .reverse(),
+    campaigns,
   };
 }

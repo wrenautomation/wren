@@ -409,4 +409,44 @@ describe("ops on a metro live through the console", () => {
       "Replied",
     );
   });
+  it("sets a campaign on a group in a draft, refuses a bad cap, and drops with a reason", async () => {
+    const a = api();
+    const live = (await shapeVersionsOf(pg.db)).at(-1);
+    if (!live) throw new Error("no live version");
+    const line = metroView(live.body).stations.find((x) => x.id === "engaged")?.line;
+    if (!line) throw new Error("no line on engaged");
+    const made = await a.shapeDraftNew({ ...op(), name: "Campaign by console" });
+    const set = (value: unknown) => ({
+      op: "set",
+      on: "group",
+      id: "push",
+      field: "campaign",
+      value,
+    });
+    const edited = await a.shapeDraftEdit({
+      ...op(),
+      id: made.id,
+      ops: [
+        {
+          op: "add",
+          on: "group",
+          item: { id: "push", label: "Push", line, stations: ["engaged"] },
+        },
+        set({ status: "paused", caps: { "email.opener": 30 } }),
+      ],
+    });
+    expect(edited.id).toBe(made.id);
+    expect(edited.warnings).toEqual([]);
+    // Email spends openers only: the draft keeps the edit, and apply would refuse it.
+    const bad = await a.shapeDraftEdit({
+      ...op(),
+      id: made.id,
+      ops: [set({ caps: { "email.bogus": 1 } })],
+    });
+    expect(bad.warnings.join(" ")).toMatch(/email\.bogus/);
+    // Null takes the field off: the group is a plain group again.
+    await a.shapeDraftEdit({ ...op(), id: made.id, ops: [set(null)] });
+    await expect(a.shapeDraftDrop({ ...op(), id: made.id, reason: "" })).rejects.toBeTruthy();
+    await a.shapeDraftDrop({ ...op(), id: made.id, reason: "Test done." });
+  });
 });
