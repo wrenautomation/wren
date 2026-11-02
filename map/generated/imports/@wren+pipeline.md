@@ -1,6 +1,6 @@
 # @wren/pipeline
 
-Role: package. Files: 52.
+Role: package. Files: 53.
 
 ## Uses
 
@@ -22,6 +22,7 @@ flowchart LR
   nattach_ts["attach.ts"]
   nattribution_ts["attribution.ts"]
   nblame_ts["blame.ts"]
+  ncampaign_numbers_ts["campaign-numbers.ts"]
   ncarry_ts["carry.ts"]
   nchain_methods_ts["chain-methods.ts"]
   nchain_ts["chain.ts"]
@@ -80,6 +81,11 @@ flowchart LR
   nblame_ts --> ndiff_ts
   nblame_ts -.-> nhistory_ts
   nblame_ts -.-> nmodel_ts
+  ncampaign_numbers_ts --> nmetro_campaigns_ts
+  ncampaign_numbers_ts --> nmetro_ts
+  ncampaign_numbers_ts --> nnumbers_ts
+  ncampaign_numbers_ts --> nschema_ts
+  ncampaign_numbers_ts -.-> nstored_ts
   ncarry_ts -.-> nmodel_ts
   ncarry_ts --> nschema_ts
   ncarry_ts --> nstored_ts
@@ -283,6 +289,7 @@ flowchart LR
 - attach.ts
 - attribution.ts
 - blame.ts
+- campaign-numbers.ts
 - carry.ts
 - chain-methods.ts
 - chain.ts

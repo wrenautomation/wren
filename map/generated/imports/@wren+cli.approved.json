@@ -1031,6 +1031,11 @@
   },
   {
    "from": "@wren/cli/src/campaigns.ts",
+   "to": "@wren/pipeline/src/campaign-numbers.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/campaigns.ts",
    "to": "@wren/pipeline/src/metro-campaigns.ts",
    "kind": "imports"
   },
@@ -1038,6 +1043,14 @@
    "from": "@wren/cli/src/campaigns.ts",
    "to": "@wren/pipeline/src/metro.ts",
    "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/campaigns.ts",
+   "to": "@wren/pipeline/src/numbers.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
   },
   {
    "from": "@wren/cli/src/campaigns.ts",

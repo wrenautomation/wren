@@ -1,14 +1,17 @@
 /**
  * `wren [--client <id>] campaigns …` (designs/2026-11-02-campaigns.md): the campaigns of the
  * newest shape, or of `--version <n>`. A campaign is a group with campaign fields; its edits go
- * through `wren shape` (export, edit the YAML, import) or a draft op. `--json` everywhere.
+ * through `wren shape` (export, edit the YAML, import) or a draft op. `numbers` reads the journeys.
+ * `--json` everywhere.
  */
 import type { Db } from "@wren/db";
+import { type CampaignNumber, campaignNumbersOf } from "@wren/pipeline/campaign-numbers";
 import { isMetro } from "@wren/pipeline/metro";
 import { type Campaign, campaignsOf } from "@wren/pipeline/metro-campaigns";
+import type { NumberWindow } from "@wren/pipeline/numbers";
 import { shapeVersionsOf } from "@wren/pipeline/store";
 import type { Command } from "commander";
-import { numberArg } from "./pipeline.js";
+import { numberArg, windowArg } from "./pipeline.js";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
 
@@ -52,6 +55,18 @@ export function campaignLines(c: Campaign): string[] {
   ].filter(Boolean);
 }
 
+/** One campaign's numbers on a line. */
+export function campaignNumberLine(n: CampaignNumber): string {
+  return [
+    n.campaign,
+    n.gone ? "gone" : n.status,
+    `${n.people} in`,
+    `${n.converted} converted`,
+    `${n.now} now`,
+    `${n.deals} deal${n.deals === 1 ? "" : "s"}`,
+  ].join("  ");
+}
+
 export function registerCampaigns(program: Command, withDb: WithDb): void {
   const cmd = program
     .command("campaigns")
@@ -91,5 +106,20 @@ export function registerCampaigns(program: Command, withDb: WithDb): void {
       if (!c) throw new Error(`no campaign ${id}; wren campaigns list`);
       if (o.json) return console.log(JSON.stringify(c, null, 2));
       for (const line of campaignLines(c)) console.log(line);
+    });
+
+  cmd
+    .command("numbers")
+    .description(
+      "Per campaign: people in, converted (reached a CTA), open now, deals. From the journeys",
+    )
+    .option("--window <days>", "the last 7, 30 or 90 days, or all", windowArg)
+    .option("--json", "rows as JSON")
+    .action(async (o: { window?: NumberWindow; json?: boolean }) => {
+      const rows = await withDb((db) =>
+        campaignNumbersOf(db, o.window ? { window: o.window } : {}),
+      );
+      if (o.json) return console.log(JSON.stringify(rows, null, 2));
+      for (const n of rows) console.log(campaignNumberLine(n));
     });
 }

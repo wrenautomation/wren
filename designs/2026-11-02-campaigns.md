@@ -54,13 +54,13 @@ Rules:
 
 1. **Model.** Add `campaign` to `MetroGroup`, with its check rules and its form in the metro file. Add `wren campaigns` (list, show). Each workspace gets one default campaign that holds today's global settings, so no loop stops.
    - The default campaign is computed, not stored: id `default`, every station outside a campaign group, status `live`, fields unset (a loop reads its settings as today). No shape needs a new version, and a group may not take the id `default`.
-   - `LineEntry.campaign` stays text until phase 2, when `/go/` links and the Meta spend join move to group ids together.
-2. **Attribution.** `campaign` column on touches, `content_drafts`, `reach_posts`, `reach_messages`, email `messages` and `sms_messages`. Each act stamps the campaign of its station. `/go/` links carry it. A numbers view per campaign: people in, acts, cost and conversions.
-3. **Loops take a campaign.** The content planner plans per campaign: platforms, cadence and CTA. Reach passes pick from the campaign's audience, with its accounts and caps. Cold email enrolls into a campaign. Newsletters run as a campaign's lap.
+   - `LineEntry.campaign` stays text: the `utm_campaign` word an ads or `/go/` source matches. It moves to group ids with `/go/` links in phase 3, and the Meta spend join when ads start.
+2. **Numbers from the journeys.** `wren campaigns numbers [--window]`: per campaign, people in, converted (reached a CTA station), open now, deals (`campaign-numbers.ts`). A journey is in a campaign when it arrived at a station of it, on the version it was on then. A parent counts its children.
+3. **Loops take a campaign, and stamp it.** A `campaign` column on touches, `content_drafts`, `reach_posts`, `reach_messages`, email `messages` and `sms_messages`, null for the default. Each loop writes it as it learns the campaign: the content planner plans per campaign (platforms, cadence, CTA), reach passes pick from the campaign's audience with its accounts and caps, cold email enrolls into a campaign, newsletters run as a campaign's lap. `/go/` links carry the group id. Acts and cost join the numbers.
 4. **Logic in the runtime.** The executor runs `split` (fan-out), `join` (all, any, n of m) and `race` (first event wins, the other branches stop). A campaign on many channels needs race: a reply on one channel stops the rest.
 5. **The map.** A campaign circle shows its fields and numbers. It is edited in the portal and in the metro file.
 
-Attribution comes before control. Numbers per campaign show what to change before loops depend on campaigns.
+Numbers come before control. The journey numbers show what to change before loops depend on campaigns.
 
 ## Caps
 
@@ -79,3 +79,12 @@ Two levels. The global cap per account and platform guards against a bot flag; n
   - A CTA station may sit in a group below the campaign, never above it.
   - The default campaign is computed by `campaignsOf`, never stored.
 - 2026-11-02: caps have two levels, global and per campaign; they do not conflict. First come, first served under the global cap for now. William: "doesn't matter how we do it as long as we just avoid getting bot flagged". The global caps hold in every phase.
+- 2026-11-02, phase 2 re-plan (WA-999): no act writer knows its station. The 27 writers of the six act tables run on global settings, and no loop knows a campaign. So "each act stamps the campaign of its station" has no source until phase 3. Options:
+
+  | | How | For | Against |
+  |---|---|---|---|
+  | **A. Journey numbers now, the stamp with its writers in phase 3 (chosen)** | Phase 2 reads the journeys. Phase 3 adds the column and its writer together | No column that nobody writes. Real numbers now | Acts and cost per campaign wait for phase 3 |
+  | B. Columns on six tables now, null | The design as written | The schema is ready | Every row null until phase 3: a stale path |
+  | C. Stamp `touches`, `messages`, `sms_messages` only | `touches` mirrors the reach rows by `ref` | 11 writers, not 27 | Our posts are not touches. Still null until phase 3 |
+
+  Ranked by: true numbers, then no stale paths, then fewest writers. In every option the column is null for the default, so no backfill. William may still pick B.

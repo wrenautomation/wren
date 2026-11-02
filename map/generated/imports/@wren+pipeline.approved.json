@@ -54,6 +54,15 @@
    }
   },
   {
+   "id": "@wren/pipeline/src/campaign-numbers.ts",
+   "role": "file",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "description": "Numbers per campaign, read off the journeys: a journey is in a campaign when it arrived at a station of it, on the version it was on then"
+   }
+  },
+  {
    "id": "@wren/pipeline/src/carry.ts",
    "role": "file",
    "parent": "@wren/pipeline",
@@ -583,6 +592,42 @@
   {
    "from": "@wren/pipeline/src/blame.ts",
    "to": "@wren/pipeline/src/model.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/campaign-numbers.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/campaign-numbers.ts",
+   "to": "@wren/pipeline/src/metro-campaigns.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/campaign-numbers.ts",
+   "to": "@wren/pipeline/src/metro.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/campaign-numbers.ts",
+   "to": "@wren/pipeline/src/numbers.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/campaign-numbers.ts",
+   "to": "@wren/pipeline/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/campaign-numbers.ts",
+   "to": "@wren/pipeline/src/stored.ts",
    "kind": "imports",
    "attrs": {
     "type": true

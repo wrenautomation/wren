@@ -3,7 +3,7 @@ type: object
 cluster: platform
 universe: live
 status: verified
-verified: 2026-11-02 @ 44745874 + WA-999 phase 1 (model, check rules, metro file, `wren campaigns`; no loop reads it yet)
+verified: 2026-11-02 @ 19647a0f + WA-999 phase 2 (journey numbers per campaign; no loop reads it yet)
 entity: packages/pipeline/src/metro-campaigns.ts:146
 ---
 
@@ -25,13 +25,14 @@ The `default` campaign is computed, never stored: it holds every station outside
 - `checkCampaigns` (`:211`), run by `checkMetro` after the group rules: reserved id, known fields, segment active, audience lines are out lines, each CTA station inside the group (or below) with action `cta`, `form`, `visit` or `book`, channels in `CAMPAIGN_CHANNELS`, caps 0–10000 and not over the parent's, dates in order
 - File form: `campaign`, `audience`, `ctas` types in `metro-file.ts`
 - Merge: `campaign` is one field. Both sides changed it is a conflict, so the CTA ladder never interleaves.
+- Numbers: `campaignNumbers` (`campaign-numbers.ts`) per campaign: people in, converted (reached a CTA), open now, deals. Read off journey arrivals, each on the version it was on, so ids join across versions. A parent counts its children; a person in two campaigns counts in both. Acts and cost wait on the act stamp (phase 3).
 
-Citations: `packages/pipeline/src/metro-campaigns.ts:146`, `packages/pipeline/src/metro.ts`, `apps/cli/src/campaigns.ts`
+Citations: `packages/pipeline/src/metro-campaigns.ts:146`, `packages/pipeline/src/metro.ts`, `packages/pipeline/src/campaign-numbers.ts`, `apps/cli/src/campaigns.ts`
 
 ## Connected to
 
 - **is:** a [[platform/shape]] group
-- **joins:** an offer of the registry; a [[leads/segment]]; `LineEntry.campaign` stays text until phase 2
+- **joins:** an offer of the registry; a [[leads/segment]]; `LineEntry.campaign` stays text (a `utm_campaign` word) until phase 3
 - **not:** the email worker's `Campaign` (`compose-scheduler.ts:39`, a niche send plan), a Meta campaign, an SMS 10DLC registration
 
 ## If you change this
@@ -43,9 +44,9 @@ Citations: `packages/pipeline/src/metro-campaigns.ts:146`, `packages/pipeline/sr
 
 | Surface | Role |
 |---|---|
-| `wren campaigns list\|show` | reads |
+| `wren campaigns list\|show\|numbers` | reads |
 | `wren shape` export/import, draft `set` op | writes |
 
 ## See
 
-- Source: `packages/pipeline/src/metro-campaigns.ts`, `apps/cli/src/campaigns.ts`
+- Source: `packages/pipeline/src/metro-campaigns.ts`, `packages/pipeline/src/campaign-numbers.ts`, `apps/cli/src/campaigns.ts`

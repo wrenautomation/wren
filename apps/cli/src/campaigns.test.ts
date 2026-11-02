@@ -1,7 +1,7 @@
 import type { Campaign } from "@wren/pipeline/metro-campaigns";
 import { Command } from "commander";
 import { describe, expect, it } from "vitest";
-import { campaignLine, campaignLines, registerCampaigns } from "./campaigns.js";
+import { campaignLine, campaignLines, campaignNumberLine, registerCampaigns } from "./campaigns.js";
 
 const fallback: Campaign = {
   id: "default",
@@ -54,11 +54,21 @@ describe("campaign lines", () => {
     ]);
   });
 
-  it("registers list and show", () => {
+  it("writes one numbers row a campaign", () => {
+    const n = { campaign: "spring", label: "Spring", people: 4, converted: 1, now: 2, deals: 1 };
+    expect(campaignNumberLine({ ...n, status: "live", gone: false })).toBe(
+      "spring  live  4 in  1 converted  2 now  1 deal",
+    );
+    expect(campaignNumberLine({ ...n, status: "ended", gone: true, deals: 0 })).toBe(
+      "spring  gone  4 in  1 converted  2 now  0 deals",
+    );
+  });
+
+  it("registers list, show and numbers", () => {
     const p = new Command("wren");
     registerCampaigns(p, (async () => {
       throw new Error("no database in this test");
     }) as never);
-    expect(p.commands[0]?.commands.map((c) => c.name())).toEqual(["list", "show"]);
+    expect(p.commands[0]?.commands.map((c) => c.name())).toEqual(["list", "show", "numbers"]);
   });
 });

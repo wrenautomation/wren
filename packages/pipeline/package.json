@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     "./blame": "./src/blame.ts",
+    "./campaign-numbers": "./src/campaign-numbers.ts",
     "./carry": "./src/carry.ts",
     "./collect": "./src/collect.ts",
     "./components": "./src/components.ts",
