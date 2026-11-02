@@ -26,7 +26,13 @@ describe("stopCampaignContacts", () => {
     await addProspects(
       pg.db,
       "linkedin",
-      handles.map((h) => ({ handle: h, url: `https://example.com/in/${h}`, foundIn: "people" })),
+      handles.map((h) => ({
+        handle: h,
+        url: `https://example.com/in/${h}`,
+        name: null,
+        headline: null,
+        foundIn: "people",
+      })),
     );
     const set = async (h: string, campaign: string | null, state: ContactState) => {
       const c = await contactByHandle(pg.db, "linkedin", h);
