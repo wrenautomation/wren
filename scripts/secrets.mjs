@@ -124,6 +124,12 @@ if (import.meta.url === `file://${process.argv[1]}` && cmd === "set") {
       return new Promise((done) => from.on("end", () => done(to.write(mask(held, values)))));
     };
     const ends = [pipe(child.stdout, process.stdout), pipe(child.stderr, process.stderr)];
+    // reader gone (`| head`): stop quietly, like a shell pipe
+    process.stdout.on("error", (err) => {
+      if (err.code !== "EPIPE") throw err;
+      child.kill();
+      process.exit(0);
+    });
     // no shell to say "not found": a missing program is an error event
     child.on("error", (err) => {
       console.error(`secrets.mjs: ${file}: ${err.message}`);
