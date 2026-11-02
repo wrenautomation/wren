@@ -3,7 +3,7 @@ type: object
 cluster: content
 universe: live
 status: verified
-verified: 2026-10-20 (O3, wa-yvs.3; ref keyed to platform_objects)
+verified: 2026-11-02 @ e0b27ae3 + WA-999 phase 3 (drafting walks campaigns)
 entity: packages/starling/outbound/src/schema.ts:770
 ---
 
@@ -26,6 +26,7 @@ William, 2026-10-07: "10 comments a day on others' posts", all gated for his app
   - `draft.ts`: `guardedComment` (the platform's guide + his voice + last 5 `onpost` edits + `factsBlock`, then `guardDraft`; run name `<platform>.comment_draft`), `draftPost`, `redraftPosts`.
   - `pass.ts`: `postsPass` (`READS_PER_PASS` 10, 10, 1; `IG_GRAPH_PER_PASS` 8), `keepPosts`, `postsToDraft` (fit ≥ `minFit` now, one per author, none by an author queued or commented on this week), `keyPeople`.
   - `acts.ts`: `planPostComment`, `markPostCommented`, `followAct` (shared with People's Follow), `postActs` (the comment where it is a site call, the like, the follow), `autoActs` (`ACT_BREAK` 3 failures in a row, or a sign-in or block, hold the act till the UTC day turns), `markActFailed`, `markPostActed`, `skipPost`, `listPosts`.
+- Campaigns ([[platform/campaign]]): the drafting step of `postsPass` walks the live campaigns whose `accounts.<platform>` is the settings' account, in body order, then the default (`sweepsOn`). Each drafts from posts whose author is a person in its segment (`social_handles.person_id`) under its `<platform>.comment` cap (queued in 24 h) and what is left of `perDay`. `draftPost` stamps `reach_posts.campaign` (migration 0355) on queue; the like and follow inherit it. Reads stay global. Stats `passes` per sweep. The watch reads the campaigns once a platform (`campaigns <platform>` step)
 - Objects (migration 0313, [[content/platform-object]]): (`platform`, `ref`) holds a composite key to `platform_objects`, cascade on update. `keepPosts` calls `resolveObjects` once per pass inside one transaction with the inserts (the post's URL, handle and time go with it); a ref no rule reads is skipped. `keepPasted` resolves the post first and refuses a ref no rule reads (`ReachRefusal`). The row keeps the ref that comes back
 - The send runs under the `onpost:<id>` ledger claim and a send key ([[content/send-attempt]]). Not sent (`before_submit`, `verified_absent`): a slot's send leaves the schedule without spending its one retry (`sendHeld`, `packages/starling/outbound/src/scheduled.ts`), and the next pass sends it anew under a new key. A platform's refusal fails it (`sendFailed`). Unknown: the slot leaves the schedule and the post waits in To approve ("May have gone out"); Not sent, drop skips it
 - A used daily cap on a read (autobrowse's 429 with a wait of hours, `capWaitMs`) ends the pass's reads with `capped`, no error; the next day's pass is past the reset (2026-10-15)

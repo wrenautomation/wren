@@ -410,6 +410,7 @@
      "drafts",
      "heldNiches",
      "live",
+     "liveCampaigns",
      "policy",
      "senderName",
      "sequences",
@@ -607,6 +608,7 @@
      "db",
      "drafts",
      "live",
+     "liveCampaigns",
      "postedAt",
      "sitesFor"
     ],
@@ -2534,6 +2536,11 @@
   },
   {
    "from": "route:ReachDesk/invites",
+   "to": "table:public.segment_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/invites",
    "to": "table:public.site_form_defs",
    "kind": "reads"
   },
@@ -3445,6 +3452,11 @@
   {
    "from": "route:ReachDesk/postsNow",
    "to": "table:public.reddit_threads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/postsNow",
+   "to": "table:public.segment_members",
    "kind": "reads"
   },
   {

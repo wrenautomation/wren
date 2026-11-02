@@ -18,9 +18,10 @@ import { siteCallErrorFrom } from "@wren/core/content/restate";
 import { resolveObjects } from "@wren/core/objects";
 import type { PassOutcome } from "@wren/core/restate";
 import { companies, people } from "@wren/core/schema";
-import { startTestRestate } from "@wren/core/testing";
+import { segmentOf, startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
+import type { LoopCampaign } from "@wren/starling-core/campaigns";
 import { eq, inArray, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { DEFAULT_POLICY } from "../../src/policy.js";
@@ -51,6 +52,8 @@ import { REACH_SEQUENCES } from "../../src/sequences.js";
 const NOW = new Date("2026-10-07T15:00:00Z");
 /** The watch's clock: a test that needs a new day moves it on. */
 let now = NOW;
+/** The live metro campaigns the watch reads; none = the default alone. */
+let campaigns: LoopCampaign[] = [];
 const ago = (h: number) => new Date(now.getTime() - h * HOUR).toISOString();
 const HOUR = 3_600_000;
 
@@ -150,6 +153,7 @@ beforeAll(async () => {
     senderName: "Test",
     heldNiches: [],
     clock: () => now,
+    liveCampaigns: async () => campaigns,
     // Journaled like the desk's calls; a site's error keeps its status, as `restateSites` does.
     sitesFor: (ctx) => ({
       call: async <T>(...a: Parameters<SiteClient["call"]>) => {
@@ -204,7 +208,12 @@ beforeEach(async () => {
     "wren_settings",
     "draft_events",
     "runs",
+    "segment_members",
+    "segments",
+    "profile_keys",
+    "profiles",
   ]);
+  campaigns = [];
   routes = {};
   calls.length = 0;
   invent = 0;
@@ -362,6 +371,65 @@ describe("the daily pass", () => {
     const out = statsOf(await sync())?.posts[0];
     expect(out).toMatchObject({ reads: 0, capped: true, queued: 0, errors: [] });
     expect(calls.filter((c) => c.path === "/search/results/content")).toHaveLength(1);
+  });
+});
+
+describe("campaigns", () => {
+  it("a segment campaign drafts first under its comment cap, stamped; the default takes the rest", async () => {
+    await settings({
+      account: "linkedin@wren",
+      perDay: 3,
+      maxAgeHours: 72,
+      topics: [],
+      pages: ["acme-staffing"],
+      people: false,
+      minFit: 0,
+      like: false,
+      follow: false,
+    });
+    routes["/company/acme-staffing/posts"] = () => feed([post(6), post(7), post(8), post(9)]);
+    // Two authors are people in the segment, linked by their LinkedIn handle.
+    const [co] = await db()
+      .insert(companies)
+      .values({ domain: "campaign-firm.example", name: "Campaign Firm", niche: "recruiting" })
+      .returning();
+    const ids: number[] = [];
+    for (const n of [7, 9]) {
+      const [pe] = await db()
+        .insert(people)
+        .values({
+          companyId: (co as { id: number }).id,
+          fullName: `Author ${n}`,
+          isCompliance: false,
+          origin: "website",
+          originRef: "test",
+          raw: {},
+        })
+        .returning();
+      const id = (pe as { id: number }).id;
+      ids.push(id);
+      await db().execute(sql`insert into social_handles (platform, handle, person_id)
+        values ('linkedin', ${`author-${n}`}, ${id})`);
+    }
+    campaigns = [
+      {
+        id: "spring",
+        accounts: { linkedin: "linkedin@wren" },
+        audience: { segment: String(await segmentOf(db(), ids)) },
+        caps: { "linkedin.comment": 1 },
+      },
+    ];
+
+    const out = statsOf(await sync())?.posts[0];
+    expect(out?.passes).toEqual([
+      { campaign: "spring", queued: 1 },
+      { campaign: null, queued: 2 },
+    ]);
+    const queued = (await rows()).filter((r) => r.state === "queued");
+    const spring = queued.filter((r) => r.campaign === "spring").map((r) => r.ref);
+    expect(spring).toHaveLength(1);
+    expect([post(7).ref, post(9).ref]).toContain(spring[0]);
+    expect(queued.filter((r) => r.campaign === null)).toHaveLength(2);
   });
 });
 

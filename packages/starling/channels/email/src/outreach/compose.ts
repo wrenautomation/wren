@@ -20,6 +20,7 @@
 import { randomBytes } from "node:crypto";
 import { activeElsewhere } from "@wren/core/leads";
 import { noteProfile } from "@wren/core/profiles";
+import { personInSegment } from "@wren/core/segments";
 import type { FactValues } from "@wren/core/slots";
 import { MissingFactError, type Rendered, render, type Template, toSource } from "@wren/core/slots";
 import { emailRef, recordVersion } from "@wren/core/templates";
@@ -179,13 +180,7 @@ const eligibleSql = (
       WHERE newest.kind IN ('job_change', 'left') AND newest.confidence >= ${MOVED_ON_CONFIDENCE}
     )
     AND ${gate(sql`pf.company_id`)}
-    ${
-      segment === null
-        ? sql``
-        : sql`AND EXISTS (
-            SELECT 1 FROM profile_keys k JOIN segment_members sm ON sm.profile_id = k.profile_id
-            WHERE k.kind = 'person' AND k.value = pf.person_id::text AND sm.segment_id = ${segment})`
-    }
+    ${segment === null ? sql`` : sql`AND ${personInSegment(sql`pf.person_id`, segment)}`}
     ${
       companyMatch === null
         ? sql``

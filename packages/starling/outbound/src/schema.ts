@@ -192,6 +192,8 @@ export const reachContacts = pgTable(
     stateReason: text("state_reason"),
     sequence: varchar("sequence", { length: 64 }),
     enrolledAt: timestamp("enrolled_at", { withTimezone: true }),
+    /** The metro campaign it was enrolled for; its messages inherit it. Null = the default. */
+    campaign: text("campaign"),
     /** LinkedIn: when the invite was accepted (relationship read as connected). */
     connectedAt: timestamp("connected_at", { withTimezone: true }),
     /** LinkedIn: when we withdrew the invite (still pending after `withdrawAfterDays`). */
@@ -837,6 +839,8 @@ export const reachPosts = pgTable(
     stateReason: text("state_reason"),
     draft: text("draft"),
     queuedAt: timestamp("queued_at", { withTimezone: true }),
+    /** The metro campaign it was queued for; its like and follow inherit it. Null = the default. */
+    campaign: text("campaign"),
     /** When the scheduler sends the draft (`pacing.ts`); null: it waits for his click. */
     sendAt: timestamp("send_at", { withTimezone: true }),
     /** What we posted, when, and who clicked. */

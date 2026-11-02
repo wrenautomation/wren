@@ -44,6 +44,8 @@ export interface EnrollOptions {
   take?: number;
   /** Send from this account (its credential) rather than the lightest active one. */
   account?: string;
+  /** The metro campaign stamped on each contact; unset = the default. */
+  campaign?: string | null;
   now: Date;
   runId?: string | null;
 }
@@ -174,6 +176,7 @@ export async function enroll(db: Queryable, o: EnrollOptions): Promise<EnrollSta
         accountId: account.id,
         sequence: seq.name,
         enrolledAt: o.now,
+        campaign: o.campaign ?? null,
       })
       .where(eq(reachContacts.id, c.id));
     await db.insert(reachMessages).values(queued);

@@ -2010,11 +2010,21 @@
   },
   {
    "from": "@wren/starling-outbound/src/invites.ts",
+   "to": "@wren/core/src/segments.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/starling-outbound/src/invites.ts",
    "to": "@wren/db/src/index.ts",
    "kind": "imports",
    "attrs": {
     "type": true
    }
+  },
+  {
+   "from": "@wren/starling-outbound/src/invites.ts",
+   "to": "@wren/starling-core/src/campaigns.ts",
+   "kind": "imports"
   },
   {
    "from": "@wren/starling-outbound/src/invites.ts",
@@ -2409,6 +2419,11 @@
   },
   {
    "from": "@wren/starling-outbound/src/reach-posts/pass.ts",
+   "to": "@wren/core/src/segments.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/starling-outbound/src/reach-posts/pass.ts",
    "to": "@wren/db/src/index.ts",
    "kind": "imports"
   },
@@ -2419,6 +2434,11 @@
    "attrs": {
     "type": true
    }
+  },
+  {
+   "from": "@wren/starling-outbound/src/reach-posts/pass.ts",
+   "to": "@wren/starling-core/src/campaigns.ts",
+   "kind": "imports"
   },
   {
    "from": "@wren/starling-outbound/src/reach-posts/pass.ts",
@@ -2755,6 +2775,14 @@
    "from": "@wren/starling-outbound/src/restate/deps.ts",
    "to": "@wren/llm/src/index.ts",
    "kind": "imports"
+  },
+  {
+   "from": "@wren/starling-outbound/src/restate/deps.ts",
+   "to": "@wren/starling-core/src/campaigns.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
   },
   {
    "from": "@wren/starling-outbound/src/restate/deps.ts",

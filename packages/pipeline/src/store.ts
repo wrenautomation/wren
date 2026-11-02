@@ -268,7 +268,7 @@ export async function newestShape(db: Queryable): Promise<ShapeVersion | null> {
   return row ?? null;
 }
 
-/** The newest shape's campaigns a loop pass runs on `now`'s UTC day, the default last. */
+/** The newest shape's campaigns a loop pass runs on `now`'s UTC day, in body order, no default. */
 export async function liveCampaignsOf(db: Queryable, now: Date): Promise<Campaign[]> {
   const body = (await newestShape(db))?.body;
   return liveCampaigns(isMetro(body) ? body : null, now.toISOString().slice(0, 10));

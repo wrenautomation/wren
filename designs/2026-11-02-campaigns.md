@@ -56,7 +56,7 @@ Rules:
    - The default campaign is computed, not stored: id `default`, every station outside a campaign group, status `live`, fields unset (a loop reads its settings as today). No shape needs a new version, and a group may not take the id `default`.
    - `LineEntry.campaign` stays text: the `utm_campaign` word an ads or `/go/` source matches. It moves to group ids with `/go/` links in phase 3, and the Meta spend join when ads start.
 2. **Numbers from the journeys.** `wren campaigns numbers [--window]`: per campaign, people in, converted (reached a CTA station), open now, deals (`campaign-numbers.ts`). A journey is in a campaign when it arrived at a station of it, on the version it was on then. A parent counts its children.
-3. **Loops take a campaign, and stamp it.** A `campaign` column on touches, `content_drafts`, `reach_posts`, `reach_messages`, email `enrollments` (its messages inherit it) and `sms_messages`, null for the default. Each loop writes it as it learns the campaign: the content planner plans per campaign (platforms, cadence, CTA), reach passes pick from the campaign's audience with its accounts and caps, cold email enrolls into a campaign, newsletters run as a campaign's lap. `/go/` links carry the group id. Acts and cost join the numbers.
+3. **Loops take a campaign, and stamp it.** A `campaign` column at the level each loop enrolls or queues, null for the default: email `enrollments`, `reach_contacts`, `reach_posts`, `content_drafts`, `sms_messages`. Messages, invites, DMs, likes, follows and touches inherit it through their parent row. Each loop writes it as it learns the campaign: the content planner plans per campaign (platforms, cadence, CTA), reach passes pick from the campaign's audience with its accounts and caps, cold email enrolls into a campaign, newsletters run as a campaign's lap. `/go/` links carry the group id. Acts and cost join the numbers.
 4. **Logic in the runtime.** The executor runs `split` (fan-out), `join` (all, any, n of m) and `race` (first event wins, the other branches stop). A campaign on many channels needs race: a reply on one channel stops the rest.
 5. **The map.** A campaign circle shows its fields and numbers. It is edited in the portal and in the metro file.
 
@@ -115,3 +115,13 @@ Build order: the `campaign` column and its writer go in together, loop by loop, 
   - From and until use the UTC day.
   - The shape sits above the channels (`scripts/layers-guard.mjs`). `LoopCampaign` and `capLeft` sit in `@wren/starling-core/campaigns`; the worker passes `liveCampaignsOf`.
   - `exhausted` means the default sweep found nobody. A dry campaign is not a dry pool.
+- 2026-11-02, phase 3 reach (WA-999):
+  - Invites: the stamp is `reach_contacts.campaign`, set at enroll. The invite, the DMs after it and their touches inherit it through `contact_id` and `ref`.
+  - Comments: the stamp is `reach_posts.campaign`, set when the draft is queued. The like and follow on that post inherit it. A follow from People has no post: it stays the default.
+  - A campaign joins a pass when its `accounts.<platform>` is the pass's account (any case).
+  - Caps: `linkedin.invite` counts the campaign's invites queued or proposed, the same as the top-up's day target. `<platform>.comment` counts its comments queued in the last 24 hours, the same as `perDay`. Both sit inside the global left (`capLeft`).
+  - `CAMPAIGN_ACTS` refuses a cap on `linkedin.follow` or `linkedin.message`: follows inherit a comment's campaign, and DMs are his click.
+  - Segment: invites by the person (`p.id`); comments by the post's author, through `social_handles.person_id`. Most authors are not in People, so a segment comment campaign often drafts nothing. Engaged strangers sit out a segment campaign: they have no profile.
+  - A `lines` audience does not narrow reach yet. Reads (searches, pages) stay global; only the drafting walks the campaigns.
+  - Reddit is out: its accounts are warming.
+  - `liveCampaigns` returns the campaigns only, never the default. Each loop adds its own default sweep last (`sweepsOn`, `campaignSweeps`).

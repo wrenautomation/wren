@@ -7370,6 +7370,14 @@
   },
   {
    "from": "@wren/core/src/testing.ts",
+   "to": "@wren/db/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/core/src/testing.ts",
    "to": "@wren/db/src/testing.ts",
    "kind": "imports"
   },

@@ -525,7 +525,7 @@ Exports: 704. Files: 124.
 - **PlatformTile** (function) `({ mark, className }: { mark: string; className?: string }): import("react").JSX.Element`
 - **StageSquare** (function) `({ line, className }: { line: number; className?: string }): import("react").JSX.Element`
 - **TintSwatch** (function) `({ tint, className }: { tint: number; className?: string }): import("react").JSX.Element`
-- **hostMark** (function) `(site: string): "reddit" | "email" | "linkedin" | "dm" | "call" | "text" | "web" | "meta" | "youtube" | "x" | "tiktok" | "instagram" | "facebook" | "threads" | "google" | "whatsapp" | "discord" | "podcast" | undefined`
+- **hostMark** (function) `(site: string): "reddit" | "email" | "linkedin" | "dm" | "call" | "text" | "web" | "meta" | "youtube" | "x" | "tiktok" | "instagram" | "facebook" | "threads" | "google" | "whatsapp" | "podcast" | "discord" | undefined`
 - **lineColor** (function) `(line: number): string`
 - **markName** (function) `(mark: Mark): string`
 - **tintColor** (function) `(tint: number): "var(--ui-cue-1)" | "var(--ui-cue-2)" | "var(--ui-cue-3)" | "var(--ui-cue-4)" | "var(--ui-cue-5)" | "var(--ui-cue-6)" | "var(--ui-cue-7)" | "var(--ui-cue-8)"`

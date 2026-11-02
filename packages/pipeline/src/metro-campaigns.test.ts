@@ -131,7 +131,7 @@ describe("campaign rules", () => {
       caps: {
         linkedin: 3,
         "myspace.post": 1,
-        "x.post": 2.5,
+        "x.comment": 2.5,
         "email.opener": 10_001,
         "email.send": 5,
       },
@@ -143,7 +143,7 @@ describe("campaign rules", () => {
       'Campaign "spring" account on linkedin needs an id of 1 to 120 characters, no spaces.',
       'Campaign "spring" has cap "linkedin". Use <channel>.<act>, as linkedin.comment.',
       expect.stringContaining('caps "myspace"'),
-      'Campaign "spring" caps x.post at 2.5. Use a whole number from 0 to 10000.',
+      'Campaign "spring" caps x.comment at 2.5. Use a whole number from 0 to 10000.',
       'Campaign "spring" caps email.opener at 10001. Use a whole number from 0 to 10000.',
       'Campaign "spring" caps email.send. email acts: opener.',
       'Campaign "spring" has from "2026-13-01". Use a date, YYYY-MM-DD.',
@@ -226,19 +226,19 @@ describe("campaignsOf", () => {
 });
 
 describe("liveCampaigns", () => {
-  it("runs live campaigns inside their dates in body order, the default last", () => {
+  it("runs live campaigns inside their dates in body order, never the default", () => {
     const b = withCampaigns({ from: "2026-11-01" }, { until: "2026-11-10" });
-    expect(liveCampaigns(b, "2026-11-05").map((c) => c.id)).toEqual(["spring", "late", "default"]);
-    expect(liveCampaigns(b, "2026-11-11").map((c) => c.id)).toEqual(["spring", "default"]);
-    expect(liveCampaigns(b, "2026-10-31").map((c) => c.id)).toEqual(["default"]);
+    expect(liveCampaigns(b, "2026-11-05").map((c) => c.id)).toEqual(["spring", "late"]);
+    expect(liveCampaigns(b, "2026-11-11").map((c) => c.id)).toEqual(["spring"]);
+    expect(liveCampaigns(b, "2026-10-31")).toEqual([]);
   });
 
   it("leaves out a paused campaign and the live ones it holds", () => {
     const b = withCampaigns({ status: "paused" }, { status: "live" });
-    expect(liveCampaigns(b, "2026-11-05").map((c) => c.id)).toEqual(["default"]);
+    expect(liveCampaigns(b, "2026-11-05")).toEqual([]);
   });
 
-  it("is the default only for a graph shape", () => {
-    expect(liveCampaigns(null, "2026-11-05").map((c) => c.id)).toEqual([DEFAULT_CAMPAIGN]);
+  it("is none for a graph shape", () => {
+    expect(liveCampaigns(null, "2026-11-05")).toEqual([]);
   });
 });

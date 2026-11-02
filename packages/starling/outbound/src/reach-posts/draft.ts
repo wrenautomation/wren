@@ -116,7 +116,8 @@ export async function draftPost(
   db: Queryable,
   llm: LlmClient,
   id: number,
-  o: CommentDraftOptions & { now: Date },
+  /** `campaign`: the metro campaign stamped on the queued post; unset = the default. */
+  o: CommentDraftOptions & { now: Date; campaign?: string | null },
 ): Promise<"queued" | "dropped" | "gone"> {
   const [p] = await db.select().from(reachPosts).where(eq(reachPosts.id, id));
   if (p?.state !== "found") return "gone";
@@ -124,7 +125,7 @@ export async function draftPost(
   if (!(await modelDrafts(db))) {
     await db
       .update(reachPosts)
-      .set({ state: "queued", queuedAt: o.now })
+      .set({ state: "queued", queuedAt: o.now, campaign: o.campaign ?? null })
       .where(eq(reachPosts.id, id));
     return "queued";
   }
@@ -139,7 +140,7 @@ export async function draftPost(
   }
   await db
     .update(reachPosts)
-    .set({ state: "queued", draft: g.text, queuedAt: o.now })
+    .set({ state: "queued", draft: g.text, queuedAt: o.now, campaign: o.campaign ?? null })
     .where(eq(reachPosts.id, id));
   await recordDraft(db, {
     item: `onpost:${id}`,

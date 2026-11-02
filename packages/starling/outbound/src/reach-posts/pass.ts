@@ -14,8 +14,10 @@
 
 import { canonRef, resolveObjects } from "@wren/core/objects";
 import type { OurPost } from "@wren/core/our-posts";
+import { personInSegment } from "@wren/core/segments";
 import { atomic, type Queryable } from "@wren/db";
 import type { LlmClient } from "@wren/llm";
+import { capLeft, type LoopCampaign, sweepsOn } from "@wren/starling-core/campaigns";
 import { and, eq, gte, isNotNull, sql } from "drizzle-orm";
 import { passedOn, passKey } from "../passes.js";
 import { type ReachPostPlatform, reachAccounts, reachPosts } from "../schema.js";
@@ -151,8 +153,13 @@ export async function keepPosts(
   });
 }
 
-/** One platform's comments queued in the last day: the cap counts them. */
-async function queuedToday(db: Queryable, platform: ReachPostPlatform, now: Date): Promise<number> {
+/** One platform's comments queued in the last day, or one campaign's: the caps count them. */
+async function queuedToday(
+  db: Queryable,
+  platform: ReachPostPlatform,
+  now: Date,
+  campaign: string | null = null,
+): Promise<number> {
   const [r] = await db
     .select({ n: sql<number>`count(*)::int` })
     .from(reachPosts)
@@ -160,6 +167,7 @@ async function queuedToday(db: Queryable, platform: ReachPostPlatform, now: Date
       and(
         eq(reachPosts.platform, platform),
         gte(reachPosts.queuedAt, new Date(now.getTime() - 24 * HOUR)),
+        campaign === null ? undefined : eq(reachPosts.campaign, campaign),
       ),
     );
   return r?.n ?? 0;
@@ -169,7 +177,8 @@ async function queuedToday(db: Queryable, platform: ReachPostPlatform, now: Date
  * The best found posts inside the guard and at the minimum fit now, one per author, none by an
  * author we queued or commented on this week. A post's fit was ranked when found: its timing
  * points are counted again at its age now, so a post that went quiet sinks. A post under the
- * minimum stays found: a lower minimum later can still pick it.
+ * minimum stays found: a lower minimum later can still pick it. With a `segment`, only posts whose
+ * author is a person in it (`social_handles.person_id`).
  */
 async function postsToDraft(
   db: Queryable,
@@ -179,10 +188,12 @@ async function postsToDraft(
     halfLifeHours: number;
     maxAgeHours: number;
     minFit: number;
+    segment?: number | null;
     now: Date;
   },
 ): Promise<number[]> {
   if (limit <= 0) return [];
+  const seg = o.segment ?? null;
   const since = new Date(o.now.getTime() - o.maxAgeHours * HOUR).toISOString();
   const week = new Date(o.now.getTime() - AUTHOR_GAP_MS).toISOString();
   const rows = (await db.execute(sql`
@@ -193,6 +204,13 @@ async function postsToDraft(
       AND p.state = 'found'
       AND p.fit >= ${o.minFit - MOMENTUM_MAX}
       AND coalesce(p.posted_at, p.created_at) >= ${since}
+      ${
+        seg === null
+          ? sql``
+          : sql`AND EXISTS (SELECT 1 FROM social_handles h
+              WHERE h.platform = p.platform AND h.handle = p.handle
+                AND ${personInSegment(sql`h.person_id`, seg)})`
+      }
       AND NOT EXISTS (SELECT 1 FROM reach_posts q
         WHERE q.platform = p.platform
           AND coalesce(q.handle, q.author_url, q.author) = coalesce(p.handle, p.author_url, p.author)
@@ -291,6 +309,8 @@ export interface PostsStats {
   /** The search words this pass planned, and his own that rest for finding nothing on target. */
   topics: string[];
   rested: string[];
+  /** Queued per sweep, the campaigns in body order, the default (null) last. Unset: no drafting. */
+  passes?: Array<{ campaign: string | null; queued: number }>;
   errors: string[];
 }
 
@@ -316,6 +336,8 @@ export async function postsPass(
     capped?: (err: unknown) => boolean;
     /** A cap still held from an earlier pass: no reads; drafts of kept posts go on. */
     held?: boolean;
+    /** Live metro campaigns; none = the default alone. */
+    campaigns?: readonly LoopCampaign[];
   },
 ): Promise<PostsStats> {
   const s = o.settings;
@@ -458,29 +480,49 @@ export async function postsPass(
   const posts = o.ours
     ? await o.step("our posts", async () => [...((await o.ours?.()) ?? [])])
     : [];
-  const ids = await o.step("to draft", () =>
-    postsToDraft(db, need, {
-      platform,
-      halfLifeHours: s.halfLifeHours,
-      maxAgeHours: s.maxAgeHours,
-      minFit: s.minFit,
-      now: o.now,
-    }),
-  );
-  for (const id of ids)
-    try {
-      const r = await o.step(`draft post ${id}`, () =>
-        draftPost(db, llm, id, {
-          guide,
-          facts,
-          ours: posts,
-          ...(o.voice ? { voice: o.voice } : {}),
-          now: o.now,
-        }),
-      );
-      if (r === "queued") out.queued++;
-    } catch (err) {
-      out.errors.push(`draft ${id}: ${err instanceof Error ? err.message : String(err)}`);
-    }
+  // The account's campaigns first in body order, each under its `<platform>.comment` cap; the
+  // default takes what is left of `perDay`.
+  let left = need;
+  out.passes = [];
+  for (const sweep of sweepsOn(o.campaigns ?? [], platform, "comment", s.account)) {
+    if (left <= 0) break;
+    const name = sweep.campaign ?? "default";
+    const used =
+      sweep.campaign === null
+        ? 0
+        : await o.step(`queued today ${name}`, () =>
+            queuedToday(db, platform, o.now, sweep.campaign),
+          );
+    const ids = await o.step(`to draft ${name}`, () =>
+      postsToDraft(db, capLeft(left, sweep.cap, used), {
+        platform,
+        halfLifeHours: s.halfLifeHours,
+        maxAgeHours: s.maxAgeHours,
+        minFit: s.minFit,
+        segment: sweep.segment,
+        now: o.now,
+      }),
+    );
+    let queued = 0;
+    for (const id of ids)
+      try {
+        const r = await o.step(`draft post ${id}`, () =>
+          draftPost(db, llm, id, {
+            guide,
+            facts,
+            ours: posts,
+            ...(o.voice ? { voice: o.voice } : {}),
+            campaign: sweep.campaign,
+            now: o.now,
+          }),
+        );
+        if (r === "queued") queued++;
+      } catch (err) {
+        out.errors.push(`draft ${id}: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    out.queued += queued;
+    left -= queued;
+    out.passes.push({ campaign: sweep.campaign, queued });
+  }
   return out;
 }

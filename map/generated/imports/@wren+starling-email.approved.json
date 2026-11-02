@@ -2402,6 +2402,11 @@
   },
   {
    "from": "@wren/starling-email/src/outreach/compose.ts",
+   "to": "@wren/core/src/segments.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/starling-email/src/outreach/compose.ts",
    "to": "@wren/core/src/slots/index.ts",
    "kind": "imports",
    "attrs": {

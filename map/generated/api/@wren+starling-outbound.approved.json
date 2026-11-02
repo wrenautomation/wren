@@ -841,7 +841,7 @@
     ],
     "file": "packages/starling/outbound/src/enroll.ts",
     "kind": "interface",
-    "sig": "interface EnrollOptions { sequence: ReachSequence; sender: string; contactIds?: readonly number[]; ordered?: boolean; first?: \"queued\" | \"proposed\"; enrichedOnly?: boolean; limit: number; take?: number; account?: string; now: Date; runId?: string | null; }"
+    "sig": "interface EnrollOptions { sequence: ReachSequence; sender: string; contactIds?: readonly number[]; ordered?: boolean; first?: \"queued\" | \"proposed\"; enrichedOnly?: boolean; limit: number; take?: number; account?: string; campaign?: string | null; now: Date; runId?: string | null; }"
    }
   },
   {
@@ -1624,7 +1624,7 @@
     ],
     "file": "packages/starling/outbound/src/reach-posts/pass.ts",
     "kind": "interface",
-    "sig": "interface PostsStats { platform: ReachPostPlatform; account: string; reads: number; kept: number; dropped: number; queued: number; scheduled?: number; acts?: ActsStats; capped: boolean; topics: string[]; rested: string[]; errors: string[]; }"
+    "sig": "interface PostsStats { platform: ReachPostPlatform; account: string; reads: number; kept: number; dropped: number; queued: number; scheduled?: number; acts?: ActsStats; capped: boolean; topics: string[]; rested: string[]; passes?: Array<{ campaign: string | null; queued: number }>; errors: string[]; }"
    }
   },
   {
@@ -1892,7 +1892,7 @@
     ],
     "file": "packages/starling/outbound/src/restate/deps.ts",
     "kind": "interface",
-    "sig": "interface ReachDeps { db: Db; pushes?: (ctx: restate.ObjectContext) => Promise<ReachView>; fire?: FireTriggers; policy: ReachPolicy; sequences: ReadonlyMap<string, ReachSequence>; live: boolean; senderName: string; heldNiches: readonly string[]; sitesFor: (ctx: restate.Context) => SiteClient; deskUp?: (ctx: restate.Context) => Promise<boolean>; notifier?: Notifier; clock?: () => Date; postedAt?: (platform: Platform) => Promise<string | null>; drafts?: { llm: LlmClient | null; guide?: DmGuide; commentGuide?: (platform: DmPlatform | ReachPostPlatform) => Promise<string>; voice?: string; facts?: () => Promise<readonly string[]>; ours?: () => Promise<readonly OurPost[]>; }; clients?: ReachClients; }"
+    "sig": "interface ReachDeps { db: Db; pushes?: (ctx: restate.ObjectContext) => Promise<ReachView>; fire?: FireTriggers; policy: ReachPolicy; sequences: ReadonlyMap<string, ReachSequence>; live: boolean; senderName: string; heldNiches: readonly string[]; sitesFor: (ctx: restate.Context) => SiteClient; deskUp?: (ctx: restate.Context) => Promise<boolean>; notifier?: Notifier; clock?: () => Date; postedAt?: (platform: Platform) => Promise<string | null>; drafts?: { llm: LlmClient | null; guide?: DmGuide; commentGuide?: (platform: DmPlatform | ReachPostPlatform) => Promise<string>; voice?: string; facts?: () => Promise<readonly string[]>; ours?: () => Promise<readonly OurPost[]>; }; clients?: ReachClients; liveCampaigns?: (db: Db, now: Date) => Promise<readonly LoopCampaign[]>; }"
    }
   },
   {
@@ -2763,7 +2763,7 @@
     ],
     "file": "packages/starling/outbound/src/invites.ts",
     "kind": "interface",
-    "sig": "interface TopUpStats { target: number; queued: number; added: number; enrolled: number; leadBusy: number; }"
+    "sig": "interface TopUpStats { target: number; queued: number; added: number; enrolled: number; leadBusy: number; passes: Array<{ campaign: string | null; enrolled: number }>; }"
    }
   },
   {
@@ -3809,7 +3809,7 @@
     "file": "packages/starling/outbound/src/drafts.ts",
     "inferred": true,
     "kind": "function",
-    "sig": "(db: Queryable, contactId: number, now = new Date()): Promise<{ contact: { name: string | null; id: number; state: \"finished\" | \"enrolled\" | \"replied\" | \"new\" | \"connected\" | \"unreachable\" | \"opted_out\" | \"blocked\"; createdAt: Date; draft: string | null; personId: number | null; niche: string | null; companyId: number | null; endedAt: Date | null; url:…"
+    "sig": "(db: Queryable, contactId: number, now = new Date()): Promise<{ contact: { name: string | null; id: number; state: \"finished\" | \"enrolled\" | \"replied\" | \"new\" | \"connected\" | \"unreachable\" | \"opted_out\" | \"blocked\"; createdAt: Date; draft: string | null; personId: number | null; niche: string | null; companyId: number | null; campaign: string | null; e…"
    }
   },
   {
@@ -3927,7 +3927,7 @@
     ],
     "file": "packages/starling/outbound/src/reach-posts/draft.ts",
     "kind": "function",
-    "sig": "(db: Queryable, llm: LlmClient, id: number, o: CommentDraftOptions & { now: Date }): Promise<\"queued\" | \"dropped\" | \"gone\">"
+    "sig": "(db: Queryable, llm: LlmClient, id: number, o: CommentDraftOptions & { now: Date; campaign?: string | null }): Promise<\"queued\" | \"dropped\" | \"gone\">"
    }
   },
   {
@@ -5500,7 +5500,7 @@
     ],
     "file": "packages/starling/outbound/src/invites.ts",
     "kind": "function",
-    "sig": "(db: Queryable, partial: Partial<PickSettings>, held: readonly string[], limit: number): Promise<InviteTarget[]>"
+    "sig": "(db: Queryable, partial: Partial<PickSettings>, held: readonly string[], limit: number, segment: number | null = null): Promise<InviteTarget[]>"
    }
   },
   {
@@ -5897,7 +5897,7 @@
     ],
     "file": "packages/starling/outbound/src/reach-posts/pass.ts",
     "kind": "function",
-    "sig": "(db: Queryable, o: { platform: ReachPostPlatform; settings: CommentsSettings; read: PostReader; llm: LlmClient | null; guide?: () => Promise<string>; voice?: string; facts?: () => Promise<readonly string[]>; ours?: () => Promise<readonly OurPost[]>; now: Date; step: <T>(name: string, fn: () => Promise<T>) => Promise<T>; capped?: (err: unknown) => boolean; held?: boolean; }): Promise<PostsStats>"
+    "sig": "(db: Queryable, o: { platform: ReachPostPlatform; settings: CommentsSettings; read: PostReader; llm: LlmClient | null; guide?: () => Promise<string>; voice?: string; facts?: () => Promise<readonly string[]>; ours?: () => Promise<readonly OurPost[]>; now: Date; step: <T>(name: string, fn: () => Promise<T>) => Promise<T>; capped?: (err: unknown) => boolean; held?: boolean; campaigns?: readonly LoopCampaign[]; }): Promise<PostsStats>"
    }
   },
   {
@@ -7282,7 +7282,7 @@
     ],
     "file": "packages/starling/outbound/src/invites.ts",
     "kind": "function",
-    "sig": "(db: Queryable, o: { settings: InviteSettings; account: ReachAccount; policy: ReachPolicy; sequences: ReadonlyMap<string, ReachSequence>; sender: string; held: readonly string[]; now: Date; runId?: string | null; }): Promise<TopUpStats>"
+    "sig": "(db: Queryable, o: { settings: InviteSettings; account: ReachAccount; policy: ReachPolicy; sequences: ReadonlyMap<string, ReachSequence>; sender: string; held: readonly string[]; campaigns?: readonly LoopCampaign[]; now: Date; runId?: string | null; }): Promise<TopUpStats>"
    }
   },
   {

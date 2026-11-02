@@ -2,6 +2,7 @@
 import { loadSettings } from "@wren/config";
 import { companies } from "@wren/core";
 import { field, type Template, template, text } from "@wren/core/slots";
+import { segmentOf } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import type { LoopCampaign } from "@wren/starling-core/campaigns";
 import { eq, sql } from "drizzle-orm";
@@ -353,35 +354,6 @@ describe("topUp", () => {
   });
 
   describe("campaigns", () => {
-    /** A segment holding these people, by their `person` profile key. */
-    async function segmentOf(personIds: number[]): Promise<number> {
-      const rows = (await db().execute(
-        sql`INSERT INTO segments (name, kind, by) VALUES ('spring people', 'manual', 'test') RETURNING id`,
-      )) as unknown as { id: number }[];
-      const segment = Number(rows[0]?.id);
-      for (const id of personIds) {
-        const [key] = (await db().execute(
-          sql`SELECT profile_id FROM profile_keys WHERE kind = 'person' AND value = ${String(id)}`,
-        )) as unknown as { profile_id: number }[];
-        const profile =
-          key?.profile_id ??
-          Number(
-            (
-              (await db().execute(
-                sql`INSERT INTO profiles DEFAULT VALUES RETURNING id`,
-              )) as unknown as { id: number }[]
-            )[0]?.id,
-          );
-        if (!key)
-          await db().execute(sql`INSERT INTO profile_keys (profile_id, kind, value, source)
-            VALUES (${profile}, 'person', ${String(id)}, 'test')`);
-        await db().execute(
-          sql`INSERT INTO segment_members (segment_id, profile_id) VALUES (${segment}, ${profile})`,
-        );
-      }
-      return segment;
-    }
-
     const spring = (over: Partial<LoopCampaign>): LoopCampaign => ({
       id: "spring",
       accounts: { email: SENDER },
@@ -394,7 +366,7 @@ describe("topUp", () => {
       const [person] = (await db().execute(
         sql`SELECT id FROM people WHERE company_id = ${marketing.id}`,
       )) as unknown as { id: number }[];
-      const segment = await segmentOf([Number(person?.id)]);
+      const segment = await segmentOf(db(), [Number(person?.id)]);
       const campaigns = [
         spring({ offer: "marketing-offer", audience: { segment: String(segment) } }),
       ];

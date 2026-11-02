@@ -511,6 +511,11 @@ export function compileRule(n: Node, now: Date): SQL {
   return n.not ? sql`not ${body}` : body;
 }
 
+/** A person (an id expression) is in the segment, by their `person` profile key. */
+export const personInSegment = (personId: SQL, segment: number): SQL =>
+  sql`EXISTS (SELECT 1 FROM profile_keys k JOIN segment_members sm ON sm.profile_id = k.profile_id
+    WHERE k.kind = 'person' AND k.value = ${personId}::text AND sm.segment_id = ${segment})`;
+
 /** The live profiles a rule matches, as a select of `id`. */
 export const matchingSql = (rule: Rule, now: Date): SQL =>
   sql`select p.id from profiles p where p.merged_into is null and ${compileRule(rule, now)}`;

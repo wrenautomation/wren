@@ -214,14 +214,14 @@ Exports: 531. Files: 56.
 - **DRAFT_MAX** (const) `1000`
 - **DmGuide** (type) `type DmGuide = (platform: DmPlatform) => Promise<string>;`
 - **contactsToDraft** (function) `(db: Queryable, limit: number, now = new Date()): Promise<number[]>`
-- **dmContext** (function) `(db: Queryable, contactId: number, now = new Date()): Promise<{ contact: { name: string | null; id: number; state: "finished" | "enrolled" | "replied" | "new" | "connected" | "unreachable" | "opted_out" | "blocked"; createdAt: Date; draft: string | null; personId: number | null; niche: string | null; companyId: number | null; endedAt: Date | null; url:…`
+- **dmContext** (function) `(db: Queryable, contactId: number, now = new Date()): Promise<{ contact: { name: string | null; id: number; state: "finished" | "enrolled" | "replied" | "new" | "connected" | "unreachable" | "opted_out" | "blocked"; createdAt: Date; draft: string | null; personId: number | null; niche: string | null; companyId: number | null; campaign: string | null; e…`
 - **draftDm** (function) `(db: Queryable, llm: LlmClient, contactId: number, o: { sender: string; guide?: DmGuide; facts?: readonly string[]; now: Date; }): Promise<string | null>`
 - **draftsToday** (function) `(db: Queryable, now: Date): Promise<number>`
 - **queueDraft** (function) `(db: Queryable, contact: ReachContact, body: string | null | undefined, subject: string | null, now: Date, by = "console"): Promise<{ id: number; state: "proposed" | "sent" | "sending" | "skipped" | "failed" | "unknown" | "queued" | "received"; runId: string | null; createdAt: Date; step: number | null; template: string | null; templateVersion: string | null; subject: string | null; body: string; provenance: unknown; sen…`
 
 ## packages/starling/outbound/src/enroll.ts
 
-- **EnrollOptions** (interface) `interface EnrollOptions { sequence: ReachSequence; sender: string; contactIds?: readonly number[]; ordered?: boolean; first?: "queued" | "proposed"; enrichedOnly?: boolean; limit: number; take?: number; account?: string; now: Date; runId?: string | null; }`
+- **EnrollOptions** (interface) `interface EnrollOptions { sequence: ReachSequence; sender: string; contactIds?: readonly number[]; ordered?: boolean; first?: "queued" | "proposed"; enrichedOnly?: boolean; limit: number; take?: number; account?: string; campaign?: string | null; now: Date; runId?: string | null; }`
 - **EnrollStats** (interface) `interface EnrollStats { considered: number; enrolled: number; noAccount: boolean; leadBusy: number; }`
 - **enroll** (function) `(db: Queryable, o: EnrollOptions): Promise<EnrollStats>`
 
@@ -277,7 +277,7 @@ Exports: 531. Files: 56.
 - **InviteSettings** (type) `type InviteSettings = z.infer<typeof invitesSettingsSchema>;`
 - **ProposedInvite** (interface) `interface ProposedInvite { id: number; handle: string; name: string | null; fit: InviteFit | null; at: Date; }`
 - **SweepStats** (interface) `interface SweepStats { accepted: number[]; backfilled: number; byHand: number; settled: number; drift: { site: number; wren: number; gone: string[] } | null; withdrawn: number; gone: number; errors: string[]; }`
-- **TopUpStats** (interface) `interface TopUpStats { target: number; queued: number; added: number; enrolled: number; leadBusy: number; }`
+- **TopUpStats** (interface) `interface TopUpStats { target: number; queued: number; added: number; enrolled: number; leadBusy: number; passes: Array<{ campaign: string | null; enrolled: number }>; }`
 - **VANITY** (const) `SQL<unknown>`
 - **applyWithdraw** (function) `(db: Queryable, contactId: number, r: { withdrawn: boolean; relationship: Relationship }, days: number, now: Date): Promise<WithdrawOutcome>`
 - **approveInvites** (function) `(db: Queryable, contactIds: readonly number[], now: Date): Promise<number[]>`
@@ -287,11 +287,11 @@ Exports: 531. Files: 56.
 - **invitedSql** (function) `(contactId: SQL): SQL<unknown>`
 - **invitesSettingsSchema** (const) `z.ZodObject<{ account: z.ZodDefault<z.ZodString>; perDay: z.ZodDefault<z.ZodNumber>; niches: z.ZodDefault<z.ZodArray<z.ZodString>>; titles: z.ZodDefault<z.ZodArray<z.ZodString>>; decisionMakers: z.ZodDefault<z.ZodBoolean>; minEmployees: z.ZodDefault<z.ZodNumber>; knownSizeOnly: z.ZodDefault<z.ZodBoo…`
 - **markAccepted** (function) `(db: Queryable, accountId: string, connections: readonly Connection[], now: Date): Promise<{ accepted: number[]; byHand: number }>`
-- **peopleForInvites** (function) `(db: Queryable, partial: Partial<PickSettings>, held: readonly string[], limit: number): Promise<InviteTarget[]>`
+- **peopleForInvites** (function) `(db: Queryable, partial: Partial<PickSettings>, held: readonly string[], limit: number, segment: number | null = null): Promise<InviteTarget[]>`
 - **proposedInvites** (function) `(db: Queryable, limit = 100): Promise<ProposedInvite[]>`
 - **skipInvites** (function) `(db: Queryable, contactIds: readonly number[], now: Date): Promise<number[]>`
 - **sweepInvites** (function) `(db: Queryable, ch: OutreachChannel, account: ReachAccount, s: InviteSettings, now: Date, run: Journal = (_n, fn) => fn()): Promise<SweepStats>`
-- **topUp** (function) `(db: Queryable, o: { settings: InviteSettings; account: ReachAccount; policy: ReachPolicy; sequences: ReadonlyMap<string, ReachSequence>; sender: string; held: readonly string[]; now: Date; runId?: string | null; }): Promise<TopUpStats>`
+- **topUp** (function) `(db: Queryable, o: { settings: InviteSettings; account: ReachAccount; policy: ReachPolicy; sequences: ReadonlyMap<string, ReachSequence>; sender: string; held: readonly string[]; campaigns?: readonly LoopCampaign[]; now: Date; runId?: string | null; }): Promise<TopUpStats>`
 - **whyOf** (function) `(t: InviteTarget): InviteFit`
 
 ## packages/starling/outbound/src/limits.ts
@@ -369,14 +369,14 @@ Exports: 531. Files: 56.
 ## packages/starling/outbound/src/reach-posts/draft.ts
 
 - **RedraftResult** (interface) `interface RedraftResult { redrafted: number[]; dropped: { id: number; why: string }[]; skipped: { id: number; why: string }[]; }`
-- **draftPost** (function) `(db: Queryable, llm: LlmClient, id: number, o: CommentDraftOptions & { now: Date }): Promise<"queued" | "dropped" | "gone">`
+- **draftPost** (function) `(db: Queryable, llm: LlmClient, id: number, o: CommentDraftOptions & { now: Date; campaign?: string | null }): Promise<"queued" | "dropped" | "gone">`
 - **redraftPosts** (function) `(db: Queryable, llm: LlmClient, ids: readonly number[], o: CommentDraftOptions & { settings: Readonly<Record<ReachPostPlatform, CommentsSettings>>; why?: string; now: Date; }): Promise<RedraftResult>`
 
 ## packages/starling/outbound/src/reach-posts/pass.ts
 
-- **PostsStats** (interface) `interface PostsStats { platform: ReachPostPlatform; account: string; reads: number; kept: number; dropped: number; queued: number; scheduled?: number; acts?: ActsStats; capped: boolean; topics: string[]; rested: string[]; errors: string[]; }`
+- **PostsStats** (interface) `interface PostsStats { platform: ReachPostPlatform; account: string; reads: number; kept: number; dropped: number; queued: number; scheduled?: number; acts?: ActsStats; capped: boolean; topics: string[]; rested: string[]; passes?: Array<{ campaign: string | null; queued: number }>; errors: string[]; }`
 - **keepPosts** (function) `(db: Queryable, posts: readonly FeedPost[], o: { platform: ReachPostPlatform; foundBy: string; account: string; topics: readonly string[]; audience?: readonly string[]; key?: boolean; ours: readonly string[]; halfLifeHours: number; maxAgeHours: number; now: Date; }): Promise<{ found: number[]; dropped: number }>`
-- **postsPass** (function) `(db: Queryable, o: { platform: ReachPostPlatform; settings: CommentsSettings; read: PostReader; llm: LlmClient | null; guide?: () => Promise<string>; voice?: string; facts?: () => Promise<readonly string[]>; ours?: () => Promise<readonly OurPost[]>; now: Date; step: <T>(name: string, fn: () => Promise<T>) => Promise<T>; capped?: (err: unknown) => boolean; held?: boolean; }): Promise<PostsStats>`
+- **postsPass** (function) `(db: Queryable, o: { platform: ReachPostPlatform; settings: CommentsSettings; read: PostReader; llm: LlmClient | null; guide?: () => Promise<string>; voice?: string; facts?: () => Promise<readonly string[]>; ours?: () => Promise<readonly OurPost[]>; now: Date; step: <T>(name: string, fn: () => Promise<T>) => Promise<T>; capped?: (err: unknown) => boolean; held?: boolean; campaigns?: readonly LoopCampaign[]; }): Promise<PostsStats>`
 
 ## packages/starling/outbound/src/reach-posts/rank.ts
 
@@ -455,7 +455,7 @@ Exports: 531. Files: 56.
 ## packages/starling/outbound/src/restate/deps.ts
 
 - **ReachClients** (interface) `interface ReachClients { clientDb: (id: string) => Db; llm: LlmClient | null; keys?: KeyStore | null; dmGuide?: (db: Db, platform: DmPlatform) => Promise<string>; facts?: (db: Db) => Promise<{ label: string; text: string }[]>; }`
-- **ReachDeps** (interface) `interface ReachDeps { db: Db; pushes?: (ctx: restate.ObjectContext) => Promise<ReachView>; fire?: FireTriggers; policy: ReachPolicy; sequences: ReadonlyMap<string, ReachSequence>; live: boolean; senderName: string; heldNiches: readonly string[]; sitesFor: (ctx: restate.Context) => SiteClient; deskUp?: (ctx: restate.Context) => Promise<boolean>; notifier?: Notifier; clock?: () => Date; postedAt?: (platform: Platform) => Promise<string | null>; drafts?: { llm: LlmClient | null; guide?: DmGuide; commentGuide?: (platform: DmPlatform | ReachPostPlatform) => Promise<string>; voice?: string; facts?: () => Promise<readonly string[]>; ours?: () => Promise<readonly OurPost[]>; }; clients?: ReachClients; }`
+- **ReachDeps** (interface) `interface ReachDeps { db: Db; pushes?: (ctx: restate.ObjectContext) => Promise<ReachView>; fire?: FireTriggers; policy: ReachPolicy; sequences: ReadonlyMap<string, ReachSequence>; live: boolean; senderName: string; heldNiches: readonly string[]; sitesFor: (ctx: restate.Context) => SiteClient; deskUp?: (ctx: restate.Context) => Promise<boolean>; notifier?: Notifier; clock?: () => Date; postedAt?: (platform: Platform) => Promise<string | null>; drafts?: { llm: LlmClient | null; guide?: DmGuide; commentGuide?: (platform: DmPlatform | ReachPostPlatform) => Promise<string>; voice?: string; facts?: () => Promise<readonly string[]>; ours?: () => Promise<readonly OurPost[]>; }; clients?: ReachClients; liveCampaigns?: (db: Db, now: Date) => Promise<readonly LoopCampaign[]>; }`
 - **ReachView** (type) `type ReachView = { pushed: string[]; watched: string[] };`
 - **SENDER_KEY** (const) `"fleet"`
 - **WATCH_KEY** (const) `"daily"`

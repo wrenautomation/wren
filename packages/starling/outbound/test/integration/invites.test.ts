@@ -8,7 +8,9 @@
 import { setWrenSettings } from "@wren/core/clients";
 import { fakeOutreachChannel } from "@wren/core/outreach";
 import { companies, people } from "@wren/core/schema";
+import { segmentOf } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
+import type { LoopCampaign } from "@wren/starling-core/campaigns";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { addAccount, setAccountState } from "../../src/accounts.js";
@@ -48,6 +50,10 @@ const TABLES = [
   "people",
   "companies",
   "wren_settings",
+  "segment_members",
+  "segments",
+  "profile_keys",
+  "profiles",
 ];
 const POLICY: ReachPolicy = { ...DEFAULT_POLICY, gapSeconds: 0 };
 // Thursday 14:00 New York.
@@ -124,7 +130,7 @@ async function person(
   return p as { id: number };
 }
 
-const top = (settings = SETTINGS, now = OPEN) =>
+const top = (settings = SETTINGS, now = OPEN, campaigns: readonly LoopCampaign[] = []) =>
   topUp(db(), {
     settings,
     account: acct,
@@ -132,6 +138,7 @@ const top = (settings = SETTINGS, now = OPEN) =>
     sequences: REACH_SEQUENCES,
     sender: "William",
     held: ["ria"],
+    campaigns,
     now,
   });
 const tickAt = (now: Date) =>
@@ -535,5 +542,66 @@ describe("linkedin invites", () => {
       .from(reachMessages)
       .where(eq(reachMessages.kind, "connect"));
     expect(bare.map((r) => r.body).sort()).toEqual(["", "Hi Alice."]);
+  });
+});
+
+describe("campaigns", () => {
+  const campaign = (id: string, over: Partial<LoopCampaign>): LoopCampaign => ({
+    id,
+    accounts: { linkedin: KEY },
+    caps: {},
+    ...over,
+  });
+  const stamps = async () =>
+    Object.fromEntries(
+      (await db().select().from(reachContacts)).map((c) => [c.handle, c.campaign]),
+    );
+
+  it("a segment campaign on this account goes first under its cap; the default takes the rest", async () => {
+    const alice = await person("alice-a", { title: "Founder" });
+    const bob = await person("bob-d", { title: "Owner" });
+    const carol = await person("carol-c", { title: "CEO" });
+    await person("dan-e", { title: "Owner" });
+    await engaged("stranger-x", "follow", "Stranger X");
+    const spring = campaign("spring", {
+      accounts: { linkedin: "LinkedIn@Wren" },
+      audience: { segment: String(await segmentOf(db(), [alice.id, carol.id], "spring")) },
+      caps: { "linkedin.invite": 1 },
+    });
+    // Another account's campaign: never this top-up's.
+    const away = campaign("away", {
+      accounts: { linkedin: "linkedin@other" },
+      audience: { segment: String(await segmentOf(db(), [bob.id], "away")) },
+    });
+
+    const first = await top(SETTINGS, OPEN, [away, spring]);
+    expect(first.passes).toEqual([
+      { campaign: "spring", enrolled: 1 },
+      { campaign: null, enrolled: 4 },
+    ]);
+    const s = await stamps();
+    // Spring's one is from its segment; the stranger has no profile, so sits out.
+    expect(
+      Object.entries(s)
+        .filter(([, c]) => c === "spring")
+        .map(([h]) => h),
+    ).toEqual([expect.stringMatching(/^(alice-a|carol-c)$/)]);
+    expect(Object.values(s).filter((c) => c === null)).toHaveLength(4);
+    expect(s["stranger-x"]).toBeNull();
+    expect(Object.values(s)).not.toContain("away");
+
+    // Spring's cap is used: the next top-up gives it nothing.
+    await person("fay-f", { title: "Founder" });
+    const next = await top(SETTINGS, OPEN, [away, spring]);
+    expect(next.passes).toEqual([{ campaign: null, enrolled: 1 }]);
+  });
+
+  it("no campaign on the account: the default alone, as before", async () => {
+    await person("alice-a", { title: "Founder" });
+    const out = await top(SETTINGS, OPEN, [
+      campaign("away", { accounts: { linkedin: "linkedin@other" } }),
+    ]);
+    expect(out.passes).toEqual([{ campaign: null, enrolled: 1 }]);
+    expect(await stamps()).toEqual({ "alice-a": null });
   });
 });

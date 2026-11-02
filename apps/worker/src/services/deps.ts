@@ -76,6 +76,7 @@ import { LANDERS_BY_NICHE, NICHES, SMS_SEQUENCES } from "@wren/niches";
 import type { NoteTurns } from "@wren/notes/console";
 import { DRIVE_READ_SCOPE, googleDrive } from "@wren/notes/drive";
 import { stripeChecks } from "@wren/payments/setups";
+import { liveCampaignsOf } from "@wren/pipeline/store";
 import {
   type BrowserRenderer,
   browserbaseRenderer,
@@ -766,6 +767,8 @@ export async function buildDeps(
       dmGuide: (d: Db, p: DmPlatform) => dmGuide(d, p),
       facts: (d: Db) => playbooksOf(d),
     },
+    // Phase 3 of designs/2026-11-02-campaigns.md: invites and comments walk the campaigns first.
+    liveCampaigns: liveCampaignsOf,
     ...reachNotify,
   };
   // A booked call's brief: Wren's or the client's database, its settings, the worker's model.

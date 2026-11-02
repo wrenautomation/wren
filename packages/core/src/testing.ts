@@ -4,7 +4,9 @@ import {
   RestateTestEnvironment,
   type TestEnvironmentOptions,
 } from "@restatedev/restate-sdk-testcontainers";
+import type { Queryable } from "@wren/db";
 import { selfRemoving } from "@wren/db/testing";
+import { sql } from "drizzle-orm";
 import { EXECUTOR, type ExecutorEvent } from "./executor.js";
 
 /** Restate for one test file, sized for tests: one partition and a 64 MiB RocksDB take a container
@@ -47,4 +49,36 @@ export function executorRecorder() {
     },
   });
   return { service, emitted };
+}
+
+/** A manual segment holding these people, by their `person` profile key (made if missing). */
+export async function segmentOf(
+  db: Queryable,
+  personIds: readonly number[],
+  name = "test",
+): Promise<number> {
+  const one = async (q: ReturnType<typeof sql>) =>
+    ((await db.execute(q)) as unknown as Record<string, number>[])[0];
+  const segment = Number(
+    (
+      await one(
+        sql`INSERT INTO segments (name, kind, by) VALUES (${name}, 'manual', 'test') RETURNING id`,
+      )
+    )?.id,
+  );
+  for (const id of personIds) {
+    const key = await one(
+      sql`SELECT profile_id FROM profile_keys WHERE kind = 'person' AND value = ${String(id)}`,
+    );
+    const profile =
+      key?.profile_id ??
+      Number((await one(sql`INSERT INTO profiles DEFAULT VALUES RETURNING id`))?.id);
+    if (!key)
+      await db.execute(sql`INSERT INTO profile_keys (profile_id, kind, value, source)
+        VALUES (${profile}, 'person', ${String(id)}, 'test')`);
+    await db.execute(
+      sql`INSERT INTO segment_members (segment_id, profile_id) VALUES (${segment}, ${profile})`,
+    );
+  }
+  return segment;
 }

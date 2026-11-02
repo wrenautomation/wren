@@ -1979,6 +1979,11 @@
   },
   {
    "from": "@wren/worker/src/services/deps.ts",
+   "to": "@wren/pipeline/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/services/deps.ts",
    "to": "@wren/research/src/index.ts",
    "kind": "imports"
   },
@@ -2086,11 +2091,6 @@
   {
    "from": "@wren/worker/src/services/email.ts",
    "to": "@wren/llm/src/index.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/services/email.ts",
-   "to": "@wren/pipeline/src/metro-campaigns.ts",
    "kind": "imports"
   },
   {

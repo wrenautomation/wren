@@ -10,7 +10,9 @@
 import { settingsFor } from "@wren/core/clients";
 import { capWaitMs } from "@wren/core/content";
 import type { Connection, OutreachChannel, Relationship } from "@wren/core/outreach";
+import { personInSegment } from "@wren/core/segments";
 import type { Queryable } from "@wren/db";
+import { capLeft, type LoopCampaign, sweepsOn } from "@wren/starling-core/campaigns";
 import { and, eq, inArray, isNull, or, type SQL, sql } from "drizzle-orm";
 import { z } from "zod";
 import { healthOf } from "./accounts.js";
@@ -159,13 +161,15 @@ type PickSettings = Pick<
  * settings' niches; then, unless they engaged with us, a decision-maker title, the settings'
  * words and the size floor. Ranked: engaged first, then title tier, then firm size (largest
  * first, unknown last); one a channel held last time goes last. With `engaged` on, people who
- * engaged and aren't in People come after the engaged ones who are.
+ * engaged and aren't in People come after the engaged ones who are. With a `segment`, only its
+ * people: an engaged stranger has no profile to be in one.
  */
 export async function peopleForInvites(
   db: Queryable,
   partial: Partial<PickSettings>,
   held: readonly string[],
   limit: number,
+  segment: number | null = null,
 ): Promise<InviteTarget[]> {
   if (limit <= 0) return [];
   const s = { ...invitesSettingsSchema.parse({}), ...partial };
@@ -201,11 +205,12 @@ export async function peopleForInvites(
       ${s.niches.length ? sql`AND co.niche IN ${any(s.niches)}` : sql``}
       ${held.length ? sql`AND (co.niche IS NULL OR co.niche NOT IN ${any(held)})` : sql``}
       AND (eng.vanity IS NOT NULL OR (${fit}))
+      ${segment === null ? sql`` : sql`AND ${personInSegment(sql`p.id`, segment)}`}
     ORDER BY rc.state_reason IS NOT NULL, eng.vanity IS NULL, tier, sz.n IS NULL, sz.n DESC, p.id
     LIMIT ${limit}`)) as unknown as Row[];
   // Engaged, not in People: no title or firm to filter on, and no niche to hold.
   const outsiders =
-    s.engaged && !s.niches.length
+    s.engaged && !s.niches.length && segment === null
       ? ((await db.execute(sql`
     WITH eng AS (${ENGAGED})
     SELECT NULL::int person_id, eng.vanity, coalesce(eng.actor, eng.vanity) name, NULL title,
@@ -284,9 +289,32 @@ export interface TopUpStats {
   added: number;
   enrolled: number;
   leadBusy: number;
+  /** Enrolled per sweep, the campaigns in body order, the default (null) last. */
+  passes: Array<{ campaign: string | null; enrolled: number }>;
 }
 
-/** Propose (or, on `autoApprove`, queue) invites from `account` until tomorrow's are waiting. */
+/** Invites queued or proposed from the account for one campaign: what its cap counts. */
+async function campaignInvites(db: Queryable, accountId: string, campaign: string) {
+  const [r] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(reachMessages)
+    .innerJoin(reachContacts, eq(reachContacts.id, reachMessages.contactId))
+    .where(
+      and(
+        eq(reachMessages.accountId, accountId),
+        eq(reachMessages.kind, "connect"),
+        inArray(reachMessages.state, ["queued", "proposed"]),
+        eq(reachContacts.campaign, campaign),
+      ),
+    );
+  return r?.n ?? 0;
+}
+
+/**
+ * Propose (or, on `autoApprove`, queue) invites from `account` until tomorrow's are waiting. The
+ * live campaigns on the account go first in body order, each from its segment under its
+ * `linkedin.invite` cap; the default takes what is left of the ramp.
+ */
 export async function topUp(
   db: Queryable,
   o: {
@@ -296,6 +324,8 @@ export async function topUp(
     sequences: ReadonlyMap<string, ReachSequence>;
     sender: string;
     held: readonly string[];
+    /** Live metro campaigns; none = the default alone. */
+    campaigns?: readonly LoopCampaign[];
     now: Date;
     runId?: string | null;
   },
@@ -318,12 +348,38 @@ export async function topUp(
       ),
     );
   const queued = q?.n ?? 0;
-  const need = target - queued;
-  const stats = { target, queued, added: 0, enrolled: 0, leadBusy: 0 };
+  let need = target - queued;
+  const stats: TopUpStats = { target, queued, added: 0, enrolled: 0, leadBusy: 0, passes: [] };
   if (!seq || need <= 0 || standing.frozen) return stats;
+  for (const sweep of sweepsOn(o.campaigns ?? [], "linkedin", "invite", o.account.account)) {
+    if (need <= 0) break;
+    const used =
+      sweep.campaign === null ? 0 : await campaignInvites(db, o.account.id, sweep.campaign);
+    const take = capLeft(need, sweep.cap, used);
+    if (take <= 0) continue;
+    const r = await proposeInvites(db, o, seq, take, sweep.segment, sweep.campaign);
+    stats.added += r.added;
+    stats.enrolled += r.enrolled;
+    stats.leadBusy += r.leadBusy;
+    stats.passes.push({ campaign: sweep.campaign, enrolled: r.enrolled });
+    need -= r.enrolled;
+  }
+  return stats;
+}
+
+/** One sweep of the top-up: up to `take` people, ranked, enrolled and stamped with `campaign`. */
+async function proposeInvites(
+  db: Queryable,
+  o: Parameters<typeof topUp>[1],
+  seq: ReachSequence,
+  take: number,
+  segment: number | null,
+  campaign: string | null,
+): Promise<{ added: number; enrolled: number; leadBusy: number }> {
+  const out = { added: 0, enrolled: 0, leadBusy: 0 };
   // Three for each slot: a lead another channel holds stays `new` and is tried again later.
-  const people = await peopleForInvites(db, o.settings, o.held, need * 3);
-  if (people.length === 0) return stats;
+  const people = await peopleForInvites(db, o.settings, o.held, take * 3, segment);
+  if (people.length === 0) return out;
   for (const niche of new Set(people.map((p) => p.niche))) {
     const r = await addProspects(
       db,
@@ -339,7 +395,7 @@ export async function topUp(
         })),
       { niche },
     );
-    stats.added += r.added;
+    out.added += r.added;
   }
   const contacts = await db
     .select({ id: reachContacts.id, handle: reachContacts.handle })
@@ -373,12 +429,13 @@ export async function topUp(
     ordered: true,
     first: o.settings.autoApprove ? "queued" : "proposed",
     limit: ranked.length,
-    take: need,
+    take,
     account: o.account.account,
+    campaign,
     now: o.now,
     runId: o.runId ?? null,
   });
-  return { ...stats, enrolled: e.enrolled, leadBusy: e.leadBusy };
+  return { ...out, enrolled: e.enrolled, leadBusy: e.leadBusy };
 }
 
 /** One invite waiting on his yes, as the CLI lists it; `id` is the contact's. */

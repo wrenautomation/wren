@@ -1,11 +1,13 @@
 # @wren/starling-core: interface
 
-Exports: 130. Files: 10.
+Exports: 132. Files: 10.
 
 ## packages/starling/core/src/campaigns.ts
 
 - **LoopCampaign** (interface) `interface LoopCampaign { id: string; offer?: string; audience?: { segment?: string; lines?: string[] }; accounts: Readonly<Record<string, string>>; caps: Readonly<Record<string, number>>; }`
+- **Sweep** (interface) `interface Sweep { campaign: string | null; segment: number | null; cap?: number; }`
 - **capLeft** (function) `(global: number, cap: number | undefined, used: number): number`
+- **sweepsOn** (function) `(live: readonly LoopCampaign[], channel: string, act: string, account: string): Sweep[]`
 
 ## packages/starling/core/src/index.ts
 

@@ -4438,6 +4438,7 @@ Indexes:
 ## public.reach_contacts (table)
 
 - `account_id uuid null`
+- `campaign text null`
 - `company_id integer null`
 - `connected_at timestamp with time zone null`
 - `created_at timestamp with time zone = now()`
@@ -4563,6 +4564,7 @@ Indexes:
 - `act_error text null`
 - `author text`
 - `author_url text null`
+- `campaign text null`
 - `comment text null`
 - `commented_at timestamp with time zone null`
 - `commented_by varchar(120) null`

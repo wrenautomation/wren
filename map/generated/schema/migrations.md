@@ -1,6 +1,6 @@
 # Migrations
 
-Files: 354.
+Files: 355.
 
 - 0000_initial_tables.sql
 - 0001_email_channel_tables.sql
@@ -356,3 +356,4 @@ Files: 354.
 - 0352_send_via_keyword_handed.sql
 - 0353_loop_wakes.sql
 - 0354_enrollment_campaign.sql
+- 0355_reach_campaign.sql

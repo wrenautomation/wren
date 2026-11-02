@@ -15,6 +15,7 @@ import type { OutreachChannel } from "@wren/core/outreach";
 import { clientKey } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import { type LlmClient, llmForKey } from "@wren/llm";
+import type { LoopCampaign } from "@wren/starling-core/campaigns";
 import { linkedinOutreach } from "@wren/starling-linkedin";
 import { redditOutreach } from "@wren/starling-reddit";
 import type { ClientReach, ReachPart } from "../clients.js";
@@ -96,6 +97,11 @@ export interface ReachDeps {
   };
   /** Runs per client (`ReachWatch/<client>/daily`): none, and a client's key stops. */
   clients?: ReachClients;
+  /**
+   * The live metro campaigns in `db` (the shape sits above this layer). Invites and comments walk
+   * them first, the default last. Unset: the default alone.
+   */
+  liveCampaigns?: (db: Db, now: Date) => Promise<readonly LoopCampaign[]>;
 }
 
 export interface ReachClients {

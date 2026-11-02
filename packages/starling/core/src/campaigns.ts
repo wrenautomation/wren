@@ -24,3 +24,36 @@ export interface LoopCampaign {
 export function capLeft(global: number, cap: number | undefined, used: number): number {
   return Math.max(0, cap === undefined ? global : Math.min(global, cap - used));
 }
+
+/** One run of a loop pass: a campaign, or the default (null), which runs last. */
+export interface Sweep {
+  campaign: string | null;
+  /** Only people in this segment; null = anyone. */
+  segment: number | null;
+  /** The campaign's day cap on the act; unset = the global cap alone. */
+  cap?: number;
+}
+
+/**
+ * The campaigns that act as `account` on `channel`, in body order, then the default. Pure. A
+ * campaign with another account, or none on the channel, sits out. The cap read is `<channel>.<act>`.
+ */
+export function sweepsOn(
+  live: readonly LoopCampaign[],
+  channel: string,
+  act: string,
+  account: string,
+): Sweep[] {
+  const out: Sweep[] = [];
+  for (const c of live) {
+    if (c.accounts[channel]?.toLowerCase() !== account.toLowerCase()) continue;
+    const cap = c.caps[`${channel}.${act}`];
+    out.push({
+      campaign: c.id,
+      segment: c.audience?.segment === undefined ? null : Number(c.audience.segment),
+      ...(cap === undefined ? {} : { cap }),
+    });
+  }
+  out.push({ campaign: null, segment: null });
+  return out;
+}

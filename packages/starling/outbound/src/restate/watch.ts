@@ -152,7 +152,7 @@ export async function invitesPass(
   const sweep = ch
     ? await sweepInvites(deps.db, ch, a, s, now, (name, fn) => ctx.run(name, fn))
     : emptySweep(["no channel"]);
-  const top = await ctx.run(`top up ${a.account}`, () =>
+  const top = await ctx.run(`top up ${a.account}`, async () =>
     topUp(deps.db, {
       settings: s,
       account: a,
@@ -160,6 +160,7 @@ export async function invitesPass(
       sequences: deps.sequences,
       sender: deps.senderName,
       held: deps.heldNiches,
+      campaigns: deps.liveCampaigns ? await deps.liveCampaigns(deps.db, now) : [],
       now,
     }),
   );
@@ -222,6 +223,8 @@ export async function postsFor(
   holds: CapHolds = {},
 ): Promise<PostsStats> {
   const guide = deps.drafts?.commentGuide;
+  const live = deps.liveCampaigns;
+  const campaigns = live ? await ctx.run(`campaigns ${platform}`, () => live(deps.db, now)) : [];
   const stats = await postsPass(deps.db, {
     platform,
     settings,
@@ -239,6 +242,7 @@ export async function postsFor(
     // a used or switched-off cap holds the platform's reads till it resets, not one pass
     capped: (err) => holdCap(holds, `${platform} posts`, err, now.getTime()),
     held: capHeld(holds, `${platform} posts`, now.getTime()),
+    campaigns,
   });
   const sites = deps.sitesFor(ctx);
   const account = settings.account;

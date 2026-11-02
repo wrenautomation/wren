@@ -773,6 +773,20 @@
    }
   },
   {
+   "id": "@wren/starling-core#Sweep",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/campaigns"
+    ],
+    "file": "packages/starling/core/src/campaigns.ts",
+    "kind": "interface",
+    "sig": "interface Sweep { campaign: string | null; segment: number | null; cap?: number; }"
+   }
+  },
+  {
    "id": "@wren/starling-core#THREAD_BREAK",
    "role": "export",
    "parent": "@wren/starling-core",
@@ -1651,6 +1665,20 @@
     "file": "packages/starling/core/src/slides.ts",
     "kind": "function",
     "sig": "(slides: readonly Slide[]): string | null"
+   }
+  },
+  {
+   "id": "@wren/starling-core#sweepsOn",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/campaigns"
+    ],
+    "file": "packages/starling/core/src/campaigns.ts",
+    "kind": "function",
+    "sig": "(live: readonly LoopCampaign[], channel: string, act: string, account: string): Sweep[]"
    }
   },
   {

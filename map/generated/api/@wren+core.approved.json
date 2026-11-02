@@ -23775,6 +23775,20 @@
    }
   },
   {
+   "id": "@wren/core#personInSegment",
+   "role": "export",
+   "parent": "@wren/core",
+   "group": "@wren/core",
+   "attrs": {
+    "entries": [
+     "@wren/core/segments"
+    ],
+    "file": "packages/core/src/segments.ts",
+    "kind": "function",
+    "sig": "(personId: SQL, segment: number): SQL"
+   }
+  },
+  {
    "id": "@wren/core#personKeyOf",
    "role": "export",
    "parent": "@wren/core",
@@ -27122,6 +27136,20 @@
     "file": "packages/core/src/segments.ts",
     "kind": "function",
     "sig": "(db: Queryable): Promise<Map<number, string>>"
+   }
+  },
+  {
+   "id": "@wren/core#segmentOf",
+   "role": "export",
+   "parent": "@wren/core",
+   "group": "@wren/core",
+   "attrs": {
+    "entries": [
+     "@wren/core/testing"
+    ],
+    "file": "packages/core/src/testing.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, personIds: readonly number[], name = \"test\"): Promise<number>"
    }
   },
   {

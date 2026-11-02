@@ -3,7 +3,7 @@ type: object
 cluster: leads
 universe: live
 status: verified
-verified: 2026-10-07 @ 4e8e9e3d
+verified: 2026-10-07 @ 4e8e9e3d + 2026-11-02 WA-999 (campaign inherit line)
 entity: packages/core/src/touches-schema.ts:97
 ---
 
@@ -23,6 +23,7 @@ Each touch already lives in its source table (`reach_messages`, `comments`, `red
 - `itemLink(platform, kind, ref)` (`packages/core/src/touch-link.ts`, pure): the item's own permalink (LinkedIn comment/reply URN, Reddit comment, X status, Facebook `<post>_<comment>`, Instagram permalink + comment id, YouTube `lc`) or null. Writers pass it as `TouchIn.link`; `recordTouch` fills a kept row's null `link` and returns `linked`; `wren touches backfill` counts links filled (dry run too)
 - `profile_timeline` touch branch: `link = touches.link`, `context = url`, and a `note` of "No link for this one" when `link` is null; the People timeline, the `people.event` record ("Its page", "Where") and Outreach's Touches tab show it, in a new tab
 - `normalizeHandle` (`packages/core/src/touches.ts:161`; a bare YouTube `UC…` id keeps its case, as from a `/channel/` URL), `resolveHandle` (`:304`), `mergeHandle` (`:364`: a LinkedIn comment URN moved to the profile a notice names, `linkCommentAuthors` in `packages/starling/inbound/src/touches.ts`), `recordTouch` (`:432`), `respond` (`:496`), `touchesFor` (`:587`), `touchesContext` (`:764`), `touchFacts` (`:820`)
+- No `campaign` column: a touch's campaign is its parent's, through `ref` (`rm:` → `reach_contacts.campaign`, `rp:` → `reach_posts.campaign`; [[platform/campaign]])
 - writers per source: `packages/starling/outbound/src/touches.ts`, `packages/starling/inbound/src/touches.ts`
 
 Citations: `packages/core/src/touches-schema.ts:98`, `packages/core/src/touches.ts:432`

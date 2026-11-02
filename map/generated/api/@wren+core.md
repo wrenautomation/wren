@@ -1,6 +1,6 @@
 # @wren/core: interface
 
-Exports: 2218. Files: 217.
+Exports: 2220. Files: 217.
 
 ## packages/core/src/access-records.ts
 
@@ -2165,6 +2165,7 @@ Exports: 2218. Files: 217.
 - **listSegments** (function) `(db: Queryable, state?: SegmentState): Promise<Segment[]>`
 - **markUsed** (function) `(db: Queryable, ids: readonly number[], now: Date): Promise<void>`
 - **matchingSql** (function) `(rule: Rule, now: Date): SQL`
+- **personInSegment** (function) `(personId: SQL, segment: number): SQL`
 - **pickGroup** (function) `(groups: readonly Pick<Segment, "id" | "name" | "kind">[], said: string | number | null | undefined): { group: Pick<Segment, "id" | "name" | "kind"> } | { make: string }`
 - **previewRule** (function) `(db: Queryable, raw: unknown, now: Date): Promise<Preview>`
 - **readRule** (function) `(raw: unknown): { rule: Rule } | { problems: string[] }`
@@ -2582,6 +2583,7 @@ Exports: 2218. Files: 217.
 ## packages/core/src/testing.ts
 
 - **executorRecorder** (function) `(): { service: restate.ServiceDefinition<"Executor", { emit: (_ctx: restate.Context, req: { client: string | null; workflow: string; from: string; events: ExecutorEvent[]; }) => Promise<{ arrived: number; seen: number; waiting: number; failed: number; out: number; }>; }>; emitted: { client: string | nul…`
+- **segmentOf** (function) `(db: Queryable, personIds: readonly number[], name = "test"): Promise<number>`
 - **startTestRestate** (function) `(options: TestEnvironmentOptions): Promise<RestateTestEnvironment>`
 
 ## packages/core/src/time.ts

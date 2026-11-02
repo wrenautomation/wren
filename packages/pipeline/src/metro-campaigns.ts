@@ -43,6 +43,14 @@ export const CAMPAIGN_CHANNELS: readonly string[] = [
 const CAMPAIGN_ACTS: Readonly<Record<string, readonly string[]>> = {
   // Cold email: openers queued a day (`ComposeScheduler`).
   email: ["opener"],
+  // Invites proposed a day (`topUp`); comments queued in 24h (`postsPass`). Follows and DMs inherit.
+  linkedin: ["invite", "comment"],
+  // Comments queued in 24h (`postsPass`).
+  x: ["comment"],
+  instagram: ["comment"],
+  youtube: ["comment"],
+  tiktok: ["comment"],
+  threads: ["comment"],
 };
 
 /** The widest a day cap goes. */
@@ -213,20 +221,17 @@ const pick = <K extends string, V>(k: K, v: V | undefined): { [P in K]?: V } =>
 
 /**
  * The campaigns a loop pass runs on `day` (`YYYY-MM-DD`, UTC): live and inside their dates, in
- * body order, the default last. First come, first served is this order.
+ * body order. First come, first served is this order. The default is left out: a loop runs it
+ * last, on what the campaigns leave. A graph shape, or none, has no campaigns.
  */
 export function liveCampaigns(body: MetroBody | null, day: string): Campaign[] {
-  // A graph shape, or none: the default only.
-  const [fallback, ...rest] = body ? campaignsOf(body) : [defaultCampaign()];
-  return [
-    ...rest.filter(
-      (c) =>
-        c.status === "live" &&
-        (c.from === undefined || c.from <= day) &&
-        (c.until === undefined || day <= c.until),
-    ),
-    fallback as Campaign,
-  ];
+  return (body ? campaignsOf(body) : []).filter(
+    (c) =>
+      c.id !== DEFAULT_CAMPAIGN &&
+      c.status === "live" &&
+      (c.from === undefined || c.from <= day) &&
+      (c.until === undefined || day <= c.until),
+  );
 }
 
 /** The campaign that holds a station: its nearest campaign group, else the default. */

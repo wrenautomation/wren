@@ -3,7 +3,7 @@ type: object
 cluster: content
 universe: live
 status: verified
-verified: 2026-10-16 (send verdicts: not-sent hold)
+verified: 2026-11-02 @ e0b27ae3 + WA-999 phase 3 (invites walk campaigns)
 entity: packages/starling/outbound/src/schema.ts:356
 ---
 
@@ -28,6 +28,7 @@ William, 2026-10-06 (relayed): 20 a day, a plan then the build. The sender is `l
 - autobrowse's own daily cap (`connect: 20`): a send it refuses with a wait of hours (`capWaitMs`, `@wren/core/content`) moves that row and every queued invite of the account to the reset (`recordFailure`, `tick.ts`; held `cap`, no failure), so no tick asks before then (2026-10-15: one person was asked 8 times, an hour apart). A short 429 still holds the row an hour. A send autobrowse says did not go out (`not_sent`: busy browser, never submitted, read back absent) holds it 5 min under a new key (`recordNotSent`, `NOT_SENT_HOLD_MS`), held `not-sent`, no failure; an unknown one parks the message `unknown` and its [[content/send-attempt]] `dm:<id>`
 - No invite offered (already connected, invite pending, Follow only): autobrowse's connect answers `{ sent: false, relationship }`, the adapter a `NoInvite` (`@wren/core/outreach`); `recordNoInvite` (`tick.ts`) marks the row `skipped` (no cap, no failure; stat `noInvite`) and the contact `connected` (already connected, nothing queued after) or `unreachable` (pending, Follow only; a later accept in the sweep still lifts it), so no top-up proposes them again. An older autobrowse's "no invite dialog" error reads the same, reason `unknown` (2026-10-15)
 - Drafted notes (`packages/starling/outbound/src/invite-notes.ts`): after the top-up, `notesPass` (`restate/watch.ts`) drafts a note on proposed invites while `notesLeft` (cap less sent, less noted and waiting) lasts; the note sits on the row's `body` with `provenance.source = model`, 200 characters at most, facts guard as DMs. To approve shows it in the draft box; his words at Send invite (`setInviteNote`) are `edited`. Each step is in the draft record as `note:<contact id>`, kind `invite_note` (generated, edited, approved, rejected, sent)
+- Campaigns ([[platform/campaign]]): `topUp` walks the live campaigns whose `accounts.linkedin` is the account, in body order, then the default (`sweepsOn`). Each takes from its segment's people (`peopleForInvites` `segment`; engaged strangers sit out) under its `linkedin.invite` cap (its invites queued or proposed) and the global left (`capLeft`). The contact carries `reach_contacts.campaign` (migration 0355, set by `enroll`); the invite, the DMs and their touches inherit it. Stats `passes` per sweep
 - Ramp: `standingOf` in `policy.ts`, 1 on the first send day then +3 a send day to 20 (`sendDaysBetween`; weekends don't count). William 10-06.
 - Loop: ReachWatch every 6 h (`invitesPass`, `restate/watch.ts:136`); desk handlers `withdrawInvite` (`restate/desk-invites.ts:38`), `invites` (`:60`), `proposedInvites` (`:77`), `approveInvites` (`:83`, effect sends), `skipInvites` (`:108`)
 - autobrowse: `GET /connections`, `POST /in/{vanity}/withdraw` (`src/sites/linkedin.ts`), via `packages/starling/channels/linkedin/src/outreach.ts`
