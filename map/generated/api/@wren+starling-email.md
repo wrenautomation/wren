@@ -1,6 +1,6 @@
 # @wren/starling-email: interface
 
-Exports: 841. Files: 118.
+Exports: 843. Files: 118.
 
 ## node_modules/.pnpm/mailifier@0.3.9/node_modules/mailifier/dist/client.d.ts
 
@@ -467,7 +467,7 @@ Exports: 841. Files: 118.
 
 ## packages/starling/channels/email/src/outreach/compose.ts
 
-- **ComposeOptions** (interface) `interface ComposeOptions { readonly niche: string; readonly fill?: Filler; readonly sequence: Sequence; readonly offer: string; readonly offerFacts?: Readonly<Record<string, string>>; readonly site?: string | null; readonly templates: ReadonlyMap<string, Template>; readonly verificationHorizonDays: number; readonly senders: readonly string[]; readonly signatures?: Readonly<Record<string, string>>; readonly trackOpens?: boolean; readonly factsView?: string | null; readonly limit?: number | null; readonly autoApprove?: boolean; readonly runId?: string | null; readonly kind?: ComposeKind; readonly where?: Readonly<Record<string, string>>; readonly roleInboxNeedsVerdict?: boolean; readonly audience?: Audience; readonly recontact?: RecontactPolicy; readonly shared?: SharedSuppressions | null; }`
+- **ComposeOptions** (interface) `interface ComposeOptions { readonly niche: string; readonly fill?: Filler; readonly sequence: Sequence; readonly offer: string; readonly offerFacts?: Readonly<Record<string, string>>; readonly site?: string | null; readonly templates: ReadonlyMap<string, Template>; readonly verificationHorizonDays: number; readonly senders: readonly string[]; readonly signatures?: Readonly<Record<string, string>>; readonly trackOpens?: boolean; readonly factsView?: string | null; readonly limit?: number | null; readonly autoApprove?: boolean; readonly runId?: string | null; readonly kind?: ComposeKind; readonly where?: Readonly<Record<string, string>>; readonly roleInboxNeedsVerdict?: boolean; readonly audience?: Audience; readonly recontact?: RecontactPolicy; readonly shared?: SharedSuppressions | null; readonly campaign?: string | null; readonly segment?: number | null; }`
 - **ComposeStats** (interface) `interface ComposeStats { enrolled: number; enrolled_person: number; enrolled_role_inbox: number; messages_drafted: number; auto_approved: number; facts_refused: number; skipped_no_address: number; skipped_suppressed: number; skipped_missing_facts: number; skipped_where: number; skipped_address_done: number; skipped_already_enrolled: number; skipped_lead_busy: number; flagged_possible_duplicate: number; }`
 - **EligiblePerson** (interface) `interface EligiblePerson { readonly personId: number; readonly companyId: number; readonly fullName: string | null; readonly title: string | null; readonly roleRank: number; readonly companyName: string | null; readonly companyDomain: string | null; readonly email: string | null; readonly suppressed: boolean; readonly wouldEnroll: boolean; }`
 - **bestReachableFirst** (function) `(groups: Iterable<R[]>, addressable: ReadonlySet<number>): R[][]`
@@ -659,13 +659,15 @@ Exports: 841. Files: 118.
 ## packages/starling/channels/email/src/restate/compose-scheduler.ts
 
 - **Campaign** (interface) `interface Campaign { readonly niche: string; readonly plan: readonly EnrollmentRule[]; readonly mailsRoleInboxes: boolean; readonly sequences: ReadonlyMap<string, Sequence>; readonly offers: ReadonlyMap<string, string>; readonly offerFacts: ReadonlyMap<string, Readonly<Record<string, string>>>; readonly site?: string | null; readonly factsView: string | null; readonly senders: readonly string[]; readonly ramps?: RampMap; readonly signatures: Readonly<Record<string, string>>; readonly companyLocation: (company: Company) => string | null; readonly recontact: RecontactPolicy; readonly fill?: Filler; }`
+- **CampaignSweep** (interface) `interface CampaignSweep { campaign: string | null; senders: readonly string[]; rules: { rule: EnrollmentRule; audience: Audience }[]; segment: number | null; cap?: number; }`
 - **ComposeScheduler** (type) `type ComposeScheduler = ReturnType<typeof makeComposeScheduler>;`
-- **TopUpStats** (interface) `interface TopUpStats { niche: string; refresh: RefreshStats; timezones: TimezoneFillStats; capacity_per_day: number; queued: number; target: number; shortfall: number; enrolled: number; messages_drafted: number; passes: { sequence: string; audience: Audience; stats: ComposeStats }[]; skipped: { sequence: string; why: string }[]; exhausted: boolean; }`
+- **TopUpStats** (interface) `interface TopUpStats { niche: string; refresh: RefreshStats; timezones: TimezoneFillStats; capacity_per_day: number; queued: number; target: number; shortfall: number; enrolled: number; messages_drafted: number; passes: { campaign: string | null; sequence: string; audience: Audience; stats: ComposeStats }[]; skipped: { sequence: string; why: string }[]; exhausted: boolean; }`
+- **campaignSweeps** (function) `(live: readonly LoopCampaign[], campaign: Pick<Campaign, "plan" | "offers" | "senders">): CampaignSweep[]`
 - **dailyOpenerCapacity** (function) `(policy: SendPolicy, niche: string, senders: readonly string[], now: Date, ramps?: RampMap): number`
 - **makeComposeScheduler** (function) `(deps: ComposeSchedulerDeps): restate.VirtualObjectDefinition<string, Record<never, never> & Record<never, (ctx: restate.ObjectContext) => Promise<import("@wren/core/restate").PassOutcome<TopUpStats>>> & { sync: (ctx: restate.ObjectContext) => Promise<import("@wren/core/restate").PassOutcome<TopUpStats>>; start: (ctx: restate.Ob…`
-- **queuedOpeners** (function) `(db: Db, niche: string): Promise<number>`
+- **queuedOpeners** (function) `(db: Db, niche: string, campaign?: string): Promise<number>`
 - **refreshCampaign** (function) `(db: Db, campaign: Campaign, trackOpens: boolean, staleOnly = false): Promise<RefreshStats>`
-- **topUp** (function) `(db: Db, campaign: Campaign, opts: { policy: SendPolicy; now: Date; daysAhead: number; verificationHorizonDays: number; trackOpens: boolean; roleInboxNeedsVerdict: boolean; runId: string | null; shared?: SharedSuppressions | null; }): Promise<TopUpStats>`
+- **topUp** (function) `(db: Db, campaign: Campaign, opts: { policy: SendPolicy; now: Date; daysAhead: number; verificationHorizonDays: number; trackOpens: boolean; roleInboxNeedsVerdict: boolean; runId: string | null; shared?: SharedSuppressions | null; campaigns?: readonly LoopCampaign[]; }): Promise<TopUpStats>`
 
 ## packages/starling/channels/email/src/restate/console.ts
 

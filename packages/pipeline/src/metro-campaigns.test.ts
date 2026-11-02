@@ -10,6 +10,7 @@ import {
   campaignOfStation,
   campaignsOf,
   DEFAULT_CAMPAIGN,
+  liveCampaigns,
 } from "./metro-campaigns.js";
 import { ACTIONS } from "./model.js";
 
@@ -45,7 +46,7 @@ const FULL: CampaignFields = {
     { label: "Book a call", station: "book" },
   ],
   accounts: { linkedin: "william", email: "hello" },
-  caps: { "linkedin.comment": 20, "email.send": 50 },
+  caps: { "linkedin.comment": 20, "email.opener": 50 },
   from: "2026-11-01",
   until: "2026-12-31",
   status: "live",
@@ -127,7 +128,13 @@ describe("campaign rules", () => {
   it("checks accounts, caps and dates", () => {
     const bad = {
       accounts: { myspace: "me", linkedin: "two words" },
-      caps: { linkedin: 3, "myspace.post": 1, "x.post": 2.5, "email.send": 10_001 },
+      caps: {
+        linkedin: 3,
+        "myspace.post": 1,
+        "x.post": 2.5,
+        "email.opener": 10_001,
+        "email.send": 5,
+      },
       from: "2026-13-01",
       until: "soon",
     } as unknown as CampaignFields;
@@ -137,7 +144,8 @@ describe("campaign rules", () => {
       'Campaign "spring" has cap "linkedin". Use <channel>.<act>, as linkedin.comment.',
       expect.stringContaining('caps "myspace"'),
       'Campaign "spring" caps x.post at 2.5. Use a whole number from 0 to 10000.',
-      'Campaign "spring" caps email.send at 10001. Use a whole number from 0 to 10000.',
+      'Campaign "spring" caps email.opener at 10001. Use a whole number from 0 to 10000.',
+      'Campaign "spring" caps email.send. email acts: opener.',
       'Campaign "spring" has from "2026-13-01". Use a date, YYYY-MM-DD.',
       'Campaign "spring" has until "soon". Use a date, YYYY-MM-DD.',
     ]);
@@ -192,7 +200,7 @@ describe("campaignsOf", () => {
       offer: "offer-a",
       ctas: FULL.ctas,
       accounts: { linkedin: "wren", email: "hello" },
-      caps: { "linkedin.comment": 5, "email.send": 50 },
+      caps: { "linkedin.comment": 5, "email.opener": 50 },
       from: "2026-11-01",
       status: "live",
       own: { accounts: { linkedin: "wren" }, caps: { "linkedin.comment": 5 } },
@@ -214,5 +222,23 @@ describe("campaignsOf", () => {
     const spring = b.groups.find((g) => g.id === "spring");
     if (spring) spring.parent = "late";
     expect(campaignsOf(b).map((c) => c.id)).toEqual(["default", "spring", "late"]);
+  });
+});
+
+describe("liveCampaigns", () => {
+  it("runs live campaigns inside their dates in body order, the default last", () => {
+    const b = withCampaigns({ from: "2026-11-01" }, { until: "2026-11-10" });
+    expect(liveCampaigns(b, "2026-11-05").map((c) => c.id)).toEqual(["spring", "late", "default"]);
+    expect(liveCampaigns(b, "2026-11-11").map((c) => c.id)).toEqual(["spring", "default"]);
+    expect(liveCampaigns(b, "2026-10-31").map((c) => c.id)).toEqual(["default"]);
+  });
+
+  it("leaves out a paused campaign and the live ones it holds", () => {
+    const b = withCampaigns({ status: "paused" }, { status: "live" });
+    expect(liveCampaigns(b, "2026-11-05").map((c) => c.id)).toEqual(["default"]);
+  });
+
+  it("is the default only for a graph shape", () => {
+    expect(liveCampaigns(null, "2026-11-05").map((c) => c.id)).toEqual([DEFAULT_CAMPAIGN]);
   });
 });

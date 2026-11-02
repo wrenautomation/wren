@@ -20,6 +20,7 @@ Compose writes the whole sequence before anything can send (`packages/starling/c
 - `person_id`, `company_id`, `niche`, `sequence_name`, `sequence_snapshot`, `offer`, `state` (active | finished | stopped), `stop_reason`, `kind` (person | role_inbox), `to_email`, `sender`, `run_id`, `contact_round` (`:176`–`192`)
 - transitions: `ENROLLMENT_TRANSITIONS` (`packages/starling/channels/email/src/state.ts:29`)
 - `lead_id` and `candidate_id` (FKs, indexed, set at enrollment: the address and its evidence; null on rows older than 2026-10-06 that no lead matched). View `lead_channels`: one row per channel enrollment, per lead (`packages/core`). `enrollment_outcomes` now carries `last_touch_at` and `outcome`; `contact_outcomes` is a plain select from it, so recycling and the funnel read one definition
+- `campaign` (migration 0354): the metro campaign (group id) it was composed for, null = the default. Its messages inherit it through `enrollment_id`; `queuedOpeners(db, niche, campaign)` counts a campaign's queue for its cap ([[platform/campaign]])
 - `ix_enrollments_to_email` on `lower(to_email)` (migration 0281): every read by address (a profile's timeline, the people map, leads) joins on it
 
 Citations: `packages/starling/channels/email/src/schema.ts:172`
@@ -27,7 +28,7 @@ Citations: `packages/starling/channels/email/src/schema.ts:172`
 ## Connected to
 
 - **owns:** [[email/message]] (one per step), [[email/thread-event]], [[email/call-booking]] (a matched one stops it with `stop_reason` `booked`, outcome warm)
-- **owned-by:** [[leads/company]], [[leads/person]] (person kind), [[email/sequence]], [[platform/offer]] by name
+- **owned-by:** [[platform/campaign]] (stamp, null = default), [[leads/company]], [[leads/person]] (person kind), [[email/sequence]], [[platform/offer]] by name
 - **looks-like-but-is-not:** [[sms/sms-contact]] in state `enrolled`
 
 ## If you change this

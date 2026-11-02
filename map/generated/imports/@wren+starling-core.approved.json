@@ -19,6 +19,15 @@
    }
   },
   {
+   "id": "@wren/starling-core/src/campaigns.ts",
+   "role": "file",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "description": "What a loop reads of a metro campaign"
+   }
+  },
+  {
    "id": "@wren/starling-core/src/index.ts",
    "role": "file",
    "parent": "@wren/starling-core",

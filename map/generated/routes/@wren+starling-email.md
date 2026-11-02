@@ -51,7 +51,7 @@ File: packages/starling/channels/email/src/restate/console.ts
 - **recordsTypes** `PortalRequest` → `import("@wren/core/records").RecordMeta[]` (serviceHandler): reads public.client_members, public.clients, public.roles
 - **resume** `SenderRequest` → `{ resumed: string[]; }` (serviceHandler): writes public.sender_pauses
 - **resumeOpeners** `CampaignsRequest` → `Done` (serviceHandler): writes public.campaign_controls; reads public.client_members, public.clients, public.email_campaign_records, public.roles
-- **setCampaign** `CampaignRequest` → `{ updatedAt: Date; updatedBy: string; campaign: string; openersPerDay: number | null; killSwitch: boolean | null; }` (serviceHandler): writes public.campaign_controls; reads public.client_members, public.clients, public.email_campaign_records, public.roles
+- **setCampaign** `CampaignRequest` → `{ updatedAt: Date; campaign: string; updatedBy: string; openersPerDay: number | null; killSwitch: boolean | null; }` (serviceHandler): writes public.campaign_controls; reads public.client_members, public.clients, public.email_campaign_records, public.roles
 - **stopOpeners** `CampaignsRequest` → `Done` (serviceHandler): writes public.campaign_controls; reads public.client_members, public.clients, public.email_campaign_records, public.roles
 
 ## InboxPush (object)

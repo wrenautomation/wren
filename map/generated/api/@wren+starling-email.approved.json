@@ -842,6 +842,20 @@
    }
   },
   {
+   "id": "@wren/starling-email#CampaignSweep",
+   "role": "export",
+   "parent": "@wren/starling-email",
+   "group": "@wren/starling-email",
+   "attrs": {
+    "entries": [
+     "@wren/starling-email/restate"
+    ],
+    "file": "packages/starling/channels/email/src/restate/compose-scheduler.ts",
+    "kind": "interface",
+    "sig": "interface CampaignSweep { campaign: string | null; senders: readonly string[]; rules: { rule: EnrollmentRule; audience: Audience }[]; segment: number | null; cap?: number; }"
+   }
+  },
+  {
    "id": "@wren/starling-email#CandidateEvidence",
    "role": "export",
    "parent": "@wren/starling-email",
@@ -1029,7 +1043,7 @@
     ],
     "file": "packages/starling/channels/email/src/outreach/compose.ts",
     "kind": "interface",
-    "sig": "interface ComposeOptions { readonly niche: string; readonly fill?: Filler; readonly sequence: Sequence; readonly offer: string; readonly offerFacts?: Readonly<Record<string, string>>; readonly site?: string | null; readonly templates: ReadonlyMap<string, Template>; readonly verificationHorizonDays: number; readonly senders: readonly string[]; readonly signatures?: Readonly<Record<string, string>>; readonly trackOpens?: boolean; readonly factsView?: string | null; readonly limit?: number | null; readonly autoApprove?: boolean; readonly runId?: string | null; readonly kind?: ComposeKind; readonly where?: Readonly<Record<string, string>>; readonly roleInboxNeedsVerdict?: boolean; readonly audience?: Audience; readonly recontact?: RecontactPolicy; readonly shared?: SharedSuppressions | null; }"
+    "sig": "interface ComposeOptions { readonly niche: string; readonly fill?: Filler; readonly sequence: Sequence; readonly offer: string; readonly offerFacts?: Readonly<Record<string, string>>; readonly site?: string | null; readonly templates: ReadonlyMap<string, Template>; readonly verificationHorizonDays: number; readonly senders: readonly string[]; readonly signatures?: Readonly<Record<string, string>>; readonly trackOpens?: boolean; readonly factsView?: string | null; readonly limit?: number | null; readonly autoApprove?: boolean; readonly runId?: string | null; readonly kind?: ComposeKind; readonly where?: Readonly<Record<string, string>>; readonly roleInboxNeedsVerdict?: boolean; readonly audience?: Audience; readonly recontact?: RecontactPolicy; readonly shared?: SharedSuppressions | null; readonly campaign?: string | null; readonly segment?: number | null; }"
    }
   },
   {
@@ -5225,7 +5239,7 @@
     ],
     "file": "packages/starling/channels/email/src/restate/compose-scheduler.ts",
     "kind": "interface",
-    "sig": "interface TopUpStats { niche: string; refresh: RefreshStats; timezones: TimezoneFillStats; capacity_per_day: number; queued: number; target: number; shortfall: number; enrolled: number; messages_drafted: number; passes: { sequence: string; audience: Audience; stats: ComposeStats }[]; skipped: { sequence: string; why: string }[]; exhausted: boolean; }"
+    "sig": "interface TopUpStats { niche: string; refresh: RefreshStats; timezones: TimezoneFillStats; capacity_per_day: number; queued: number; target: number; shortfall: number; enrolled: number; messages_drafted: number; passes: { campaign: string | null; sequence: string; audience: Audience; stats: ComposeStats }[]; skipped: { sequence: string; why: string }[]; exhausted: boolean; }"
    }
   },
   {
@@ -6173,6 +6187,20 @@
     "file": "packages/starling/channels/email/src/send/campaign-controls.ts",
     "kind": "function",
     "sig": "(db: Queryable, policy: SendPolicy): Promise<SendPolicy>"
+   }
+  },
+  {
+   "id": "@wren/starling-email#campaignSweeps",
+   "role": "export",
+   "parent": "@wren/starling-email",
+   "group": "@wren/starling-email",
+   "attrs": {
+    "entries": [
+     "@wren/starling-email/restate"
+    ],
+    "file": "packages/starling/channels/email/src/restate/compose-scheduler.ts",
+    "kind": "function",
+    "sig": "(live: readonly LoopCampaign[], campaign: Pick<Campaign, \"plan\" | \"offers\" | \"senders\">): CampaignSweep[]"
    }
   },
   {
@@ -9992,7 +10020,7 @@
     ],
     "file": "packages/starling/channels/email/src/restate/compose-scheduler.ts",
     "kind": "function",
-    "sig": "(db: Db, niche: string): Promise<number>"
+    "sig": "(db: Db, niche: string, campaign?: string): Promise<number>"
    }
   },
   {
@@ -11940,7 +11968,7 @@
     ],
     "file": "packages/starling/channels/email/src/restate/compose-scheduler.ts",
     "kind": "function",
-    "sig": "(db: Db, campaign: Campaign, opts: { policy: SendPolicy; now: Date; daysAhead: number; verificationHorizonDays: number; trackOpens: boolean; roleInboxNeedsVerdict: boolean; runId: string | null; shared?: SharedSuppressions | null; }): Promise<TopUpStats>"
+    "sig": "(db: Db, campaign: Campaign, opts: { policy: SendPolicy; now: Date; daysAhead: number; verificationHorizonDays: number; trackOpens: boolean; roleInboxNeedsVerdict: boolean; runId: string | null; shared?: SharedSuppressions | null; campaigns?: readonly LoopCampaign[]; }): Promise<TopUpStats>"
    }
   },
   {

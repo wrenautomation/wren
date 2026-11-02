@@ -10,6 +10,8 @@ import { restateSites } from "@wren/core/content/restate";
 import { meteredModel } from "@wren/core/metered";
 import { clientKey, clientOfKey, LIMITS } from "@wren/core/restate";
 import { llmForKey } from "@wren/llm";
+import { DEFAULT_CAMPAIGN } from "@wren/pipeline/metro-campaigns";
+import { liveCampaignsOf } from "@wren/pipeline/store";
 import { clientSendScope } from "@wren/reactivation";
 import {
   Broadcast,
@@ -263,6 +265,9 @@ export function emailServices(deps: Deps): AnyService[] {
         trackOpens: settings.openTracking,
         roleInboxNeedsVerdict: freeVerdicts,
         clientDb,
+        // Phase 3 of designs/2026-11-02-campaigns.md: the default runs on what campaigns leave.
+        liveCampaigns: async (cdb, now) =>
+          (await liveCampaignsOf(cdb, now)).filter((c) => c.id !== DEFAULT_CAMPAIGN),
         ...emailNotify,
       }),
     );

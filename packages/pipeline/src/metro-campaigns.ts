@@ -36,6 +36,15 @@ export const CAMPAIGN_CHANNELS: readonly string[] = [
   "sms",
 ];
 
+/**
+ * The acts a loop spends, per channel. A channel listed here refuses other acts; a channel not
+ * listed takes any slug until its loop reads campaigns (designs/2026-11-02-campaigns.md, phase 3).
+ */
+const CAMPAIGN_ACTS: Readonly<Record<string, readonly string[]>> = {
+  // Cold email: openers queued a day (`ComposeScheduler`).
+  email: ["opener"],
+};
+
 /** The widest a day cap goes. */
 export const CAP_MAX = 10_000;
 /** The longest an account id or a CTA label may be, in characters. */
@@ -175,16 +184,7 @@ export function campaignsOf(body: MetroBody): Campaign[] {
   const campaigns = body.groups.filter((g) => g.campaign !== undefined);
   for (const g of campaigns) resolve(g, new Set());
 
-  const fallback: Campaign = {
-    id: DEFAULT_CAMPAIGN,
-    label: "Default",
-    ctas: [],
-    accounts: {},
-    caps: {},
-    status: "live",
-    stations: [],
-    own: {},
-  };
+  const fallback = defaultCampaign();
   const groupOf = new Map<string, MetroGroup>();
   for (const g of body.groups)
     for (const s of g.stations ?? []) if (!groupOf.has(s)) groupOf.set(s, g);
@@ -196,8 +196,38 @@ export function campaignsOf(body: MetroBody): Campaign[] {
   return [fallback, ...campaigns.map((g) => resolved.get(g.id) as Campaign)];
 }
 
+/** The default campaign, empty: no stations yet, fields unset, live. */
+const defaultCampaign = (): Campaign => ({
+  id: DEFAULT_CAMPAIGN,
+  label: "Default",
+  ctas: [],
+  accounts: {},
+  caps: {},
+  status: "live",
+  stations: [],
+  own: {},
+});
+
 const pick = <K extends string, V>(k: K, v: V | undefined): { [P in K]?: V } =>
   (v === undefined ? {} : { [k]: v }) as { [P in K]?: V };
+
+/**
+ * The campaigns a loop pass runs on `day` (`YYYY-MM-DD`, UTC): live and inside their dates, in
+ * body order, the default last. First come, first served is this order.
+ */
+export function liveCampaigns(body: MetroBody | null, day: string): Campaign[] {
+  // A graph shape, or none: the default only.
+  const [fallback, ...rest] = body ? campaignsOf(body) : [defaultCampaign()];
+  return [
+    ...rest.filter(
+      (c) =>
+        c.status === "live" &&
+        (c.from === undefined || c.from <= day) &&
+        (c.until === undefined || day <= c.until),
+    ),
+    fallback as Campaign,
+  ];
+}
 
 /** The campaign that holds a station: its nearest campaign group, else the default. */
 export function campaignOfStation(body: MetroBody, station: string): string {
@@ -360,6 +390,11 @@ function checkCaps(who: string, caps: unknown, errors: string[]): void {
     if (!m) errors.push(`${who} has cap "${k}". Use <channel>.<act>, as linkedin.comment.`);
     else if (!CAMPAIGN_CHANNELS.includes(m[1] as string))
       errors.push(`${who} caps "${m[1]}". Use ${CAMPAIGN_CHANNELS.join(", ")}.`);
+    else {
+      const acts = CAMPAIGN_ACTS[m[1] as string];
+      if (acts && !acts.includes(m[2] as string))
+        errors.push(`${who} caps ${k}. ${m[1]} acts: ${acts.join(", ")}.`);
+    }
     if (typeof n !== "number" || !Number.isInteger(n) || n < 0 || n > CAP_MAX)
       errors.push(
         `${who} caps ${k} at ${JSON.stringify(n)}. Use a whole number from 0 to ${CAP_MAX}.`,

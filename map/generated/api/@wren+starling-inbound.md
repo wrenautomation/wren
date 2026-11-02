@@ -74,7 +74,7 @@ Exports: 638. Files: 88.
 - **REPORT_EVERY** (const) `readonly ["week", "month"]`
 - **REPORT_HOUR** (const) `9`
 - **REPORT_TILES** (const) `readonly [{ readonly id: "views"; readonly label: "Content views"; readonly record: "marketing.post"; readonly sum: "views"; readonly view: "all"; }, { readonly id: "post_visits"; readonly label: "Site visitors from posts"; readonly record: "marketing.link_day"; readonly sum: "clicks"; readonly view…`
-- **REPORT_TILE_IDS** (const) `["views" | "forms" | "calls" | "spend" | "post_visits" | "ad_impressions" | "search_impressions" | "visits" | "bookings" | "paid", ...("views" | "forms" | "calls" | "spend" | "post_visits" | "ad_impressions" | "search_impressions" | "visits" | "bookings" | "paid")[]]`
+- **REPORT_TILE_IDS** (const) `["calls" | "views" | "spend" | "forms" | "post_visits" | "ad_impressions" | "search_impressions" | "visits" | "bookings" | "paid", ...("calls" | "views" | "spend" | "forms" | "post_visits" | "ad_impressions" | "search_impressions" | "visits" | "bookings" | "paid")[]]`
 - **ReportEvery** (type) `type ReportEvery = (typeof REPORT_EVERY)[number];`
 - **ReportLine** (interface) `interface ReportLine { tile: ReportTileId; label: string; value: number | null; prior: number | null; currency: string | null; error?: string; }`
 - **ReportTileId** (type) `type ReportTileId = ReportTile["id"];`
@@ -94,7 +94,7 @@ Exports: 638. Files: 88.
 - **ClientPlannerSettings** (type) `type ClientPlannerSettings = z.infer<typeof clientPlannerSchema>;`
 - **POSTS_UNIT** (const) `"posts"`
 - **SOCIAL_UNIT** (const) `"social"`
-- **clientPlannerSchema** (const) `z.ZodObject<{ about: z.ZodOptional<z.ZodString>; voice: z.ZodOptional<z.ZodString>; platforms: z.ZodOptional<z.ZodArray<z.ZodEnum<{ linkedin: "linkedin"; reddit: "reddit"; }>>>; draft: z.ZodDefault<z.ZodBoolean>; }, z.core.$strip>`
+- **clientPlannerSchema** (const) `z.ZodObject<{ about: z.ZodOptional<z.ZodString>; voice: z.ZodOptional<z.ZodString>; platforms: z.ZodOptional<z.ZodArray<z.ZodEnum<{ reddit: "reddit"; linkedin: "linkedin"; }>>>; draft: z.ZodDefault<z.ZodBoolean>; }, z.core.$strip>`
 
 ## packages/starling/inbound/src/connect/access.ts
 
@@ -106,7 +106,7 @@ Exports: 638. Files: 88.
 - **liveConnections** (function) `(main: Queryable, client: string): Promise<SocialConnectionRow[]>`
 - **loginOf** (function) `(id: number): string`
 - **platformStates** (function) `(conns: readonly SocialConnectionRow[], o: { apps: SocialApps; live: ReadonlySet<SocialPlatform>; ready: boolean; now: Date }): PlatformView[]`
-- **socialAccess** (function) `(deps: SocialDeps): { connection: (id: number) => Promise<{ id: number; client: string; platform: "youtube" | "instagram" | "linkedin" | "x" | "facebook" | "tiktok" | "google_business" | "linkedin_page"; accountId: number; externalId: string; name: string | null; handle: string | null; scopes: string; tokenRef: string;…`
+- **socialAccess** (function) `(deps: SocialDeps): { connection: (id: number) => Promise<{ id: number; client: string; platform: "linkedin" | "youtube" | "linkedin_page" | "x" | "tiktok" | "instagram" | "google_business" | "facebook"; accountId: number; externalId: string; name: string | null; handle: string | null; scopes: string; tokenRef: string;…`
 - **socialAppsFrom** (function) `(keys: KeyStore | null, env: Record<string, string | undefined> = {}): () => Promise<SocialApps>`
 - **tokenName** (function) `(platform: SocialPlatform, externalId: string): string`
 
@@ -512,7 +512,7 @@ Exports: 638. Files: 88.
 - **liveOf** (function) `(db: Queryable, ideaId: string): Promise<Map<string, string>>`
 - **promoBase** (function) `(db: Queryable, videoDraft: string): Promise<PromoBase>`
 - **promosOf** (function) `(db: Queryable, videoDraft: string): Promise<PromoRow[]>`
-- **promotable** (function) `(db: Queryable, videoDraft: string): Promise<{ id: string; title: string | null; text: string; status: "approved" | "rejected" | "draft" | "publishing" | "published" | "failed"; url: string | null; platform: Platform; extra: Record<string, unknown>; ref: string | null; }>`
+- **promotable** (function) `(db: Queryable, videoDraft: string): Promise<{ id: string; title: string | null; text: string; status: "draft" | "approved" | "rejected" | "failed" | "publishing" | "published"; url: string | null; platform: Platform; extra: Record<string, unknown>; ref: string | null; }>`
 - **promoteVideo** (function) `(db: Queryable, llm: LlmClient, videoDraft: string, platforms: readonly PromoPlatform[] = PROMO_PLATFORMS, o: DraftOptions & { pieces?: readonly PromoPiece[] } = {}): Promise<{ ideaId: string; results: DraftResult[] }>`
 - **videoDraftOf** (function) `(db: Queryable, video: number): Promise<string>`
 
@@ -552,7 +552,7 @@ Exports: 638. Files: 88.
 ## packages/starling/inbound/src/restate/blog.ts
 
 - **Blog** (type) `type Blog = ReturnType<typeof makeBlog>;`
-- **makeBlog** (function) `(deps: BlogDeps): restate.VirtualObjectDefinition<"Blog", { posts: (ctx: restate.ObjectSharedContext) => Promise<{ on: boolean; site: string; posts: { date: string; description: string; title: string; createdAt: Date; updatedAt: Date; draft: boolean; publishedAt: Date | null; updatedBy: string | null; body: string; s…`
+- **makeBlog** (function) `(deps: BlogDeps): restate.VirtualObjectDefinition<"Blog", { posts: (ctx: restate.ObjectSharedContext) => Promise<{ on: boolean; site: string; posts: { date: string; description: string; createdAt: Date; updatedAt: Date; body: string; draft: boolean; title: string; publishedAt: Date | null; updatedBy: string | null; s…`
 
 ## packages/starling/inbound/src/restate/chat.ts
 
@@ -753,7 +753,7 @@ Exports: 638. Files: 88.
 - **accountMetricDays** (const) `import("drizzle-orm/pg-core").PgTableWithColumns<{ name: "account_metric_days"; schema: undefined; columns: { platform: import("drizzle-orm/pg-core").PgColumn<{ name: "platform"; tableName: "account_metric_days"; dataType: "string"; columnType: "PgVarchar"; data: Platform; driverParam: string; notNu…`
 - **adFormatRecords** (const) `import("drizzle-orm/pg-core").PgViewWithSelection<"ad_format_records", false, { id: import("drizzle-orm/pg-core").PgColumn<{ name: "id"; tableName: "ad_format_records"; dataType: "string"; columnType: "PgText"; data: string; driverParam: string; notNull: false; hasDefault: false; isPrimaryKey: false…`
 - **adFormats** (const) `import("drizzle-orm/pg-core").PgTableWithColumns<{ name: "ad_formats"; schema: undefined; columns: { slug: import("drizzle-orm/pg-core").PgColumn<{ name: "slug"; tableName: "ad_formats"; dataType: "string"; columnType: "PgVarchar"; data: string; driverParam: string; notNull: true; hasDefault: false;…`
-- **autoReplies** (const) `import("drizzle-orm/pg-core").PgTableWithColumns<{ name: "auto_replies"; schema: undefined; columns: { channel: import("drizzle-orm/pg-core").PgColumn<{ name: "channel"; tableName: "auto_replies"; dataType: "string"; columnType: "PgVarchar"; data: "email" | "dm" | "text" | "comment" | "chat"; driver…`
+- **autoReplies** (const) `import("drizzle-orm/pg-core").PgTableWithColumns<{ name: "auto_replies"; schema: undefined; columns: { channel: import("drizzle-orm/pg-core").PgColumn<{ name: "channel"; tableName: "auto_replies"; dataType: "string"; columnType: "PgVarchar"; data: "comment" | "email" | "dm" | "text" | "chat"; driver…`
 - **blogPosts** (const) `import("drizzle-orm/pg-core").PgTableWithColumns<{ name: "blog_posts"; schema: undefined; columns: { slug: import("drizzle-orm/pg-core").PgColumn<{ name: "slug"; tableName: "blog_posts"; dataType: "string"; columnType: "PgVarchar"; data: string; driverParam: string; notNull: true; hasDefault: false;…`
 - **chatMessages** (const) `import("drizzle-orm/pg-core").PgTableWithColumns<{ name: "chat_messages"; schema: undefined; columns: { id: import("drizzle-orm/pg-core").PgColumn<{ name: "id"; tableName: "chat_messages"; dataType: "number"; columnType: "PgSerial"; data: number; driverParam: number; notNull: true; hasDefault: true;…`
 - **chatThreads** (const) `import("drizzle-orm/pg-core").PgTableWithColumns<{ name: "chat_threads"; schema: undefined; columns: { id: import("drizzle-orm/pg-core").PgColumn<{ name: "id"; tableName: "chat_threads"; dataType: "number"; columnType: "PgSerial"; data: number; driverParam: number; notNull: true; hasDefault: true; i…`

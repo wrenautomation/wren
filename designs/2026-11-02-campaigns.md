@@ -56,7 +56,7 @@ Rules:
    - The default campaign is computed, not stored: id `default`, every station outside a campaign group, status `live`, fields unset (a loop reads its settings as today). No shape needs a new version, and a group may not take the id `default`.
    - `LineEntry.campaign` stays text: the `utm_campaign` word an ads or `/go/` source matches. It moves to group ids with `/go/` links in phase 3, and the Meta spend join when ads start.
 2. **Numbers from the journeys.** `wren campaigns numbers [--window]`: per campaign, people in, converted (reached a CTA station), open now, deals (`campaign-numbers.ts`). A journey is in a campaign when it arrived at a station of it, on the version it was on then. A parent counts its children.
-3. **Loops take a campaign, and stamp it.** A `campaign` column on touches, `content_drafts`, `reach_posts`, `reach_messages`, email `messages` and `sms_messages`, null for the default. Each loop writes it as it learns the campaign: the content planner plans per campaign (platforms, cadence, CTA), reach passes pick from the campaign's audience with its accounts and caps, cold email enrolls into a campaign, newsletters run as a campaign's lap. `/go/` links carry the group id. Acts and cost join the numbers.
+3. **Loops take a campaign, and stamp it.** A `campaign` column on touches, `content_drafts`, `reach_posts`, `reach_messages`, email `enrollments` (its messages inherit it) and `sms_messages`, null for the default. Each loop writes it as it learns the campaign: the content planner plans per campaign (platforms, cadence, CTA), reach passes pick from the campaign's audience with its accounts and caps, cold email enrolls into a campaign, newsletters run as a campaign's lap. `/go/` links carry the group id. Acts and cost join the numbers.
 4. **Logic in the runtime.** The executor runs `split` (fan-out), `join` (all, any, n of m) and `race` (first event wins, the other branches stop). A campaign on many channels needs race: a reply on one channel stops the rest.
 5. **The map.** A campaign circle shows its fields and numbers. It is edited in the portal and in the metro file.
 
@@ -66,13 +66,13 @@ Numbers come before control. The journey numbers show what to change before loop
 
 Two levels. The global cap per account and platform guards against a bot flag; no act passes it. A campaign cap is a second, smaller limit inside it. Campaigns take from the global cap first come, first served. When campaigns compete for many accounts, phase 3 sets how they split.
 
-## Phase 3: how a loop learns its campaign (proposed, needs William)
+## Phase 3: how a loop learns its campaign
 
 Today each loop runs one pass on global settings: the content planner, the reach passes (follows, comments, invites, DMs), cold email enrollment, SMS. Global caps sit in several places: `limits` rows (`outbound/src/limits.ts`, ramped), the reach policy (`policy.ts`), and autobrowse's own caps on the Mac.
 
 | | How | For | Against |
 |---|---|---|---|
-| **A. One pass walks the campaigns (recommended)** | Each pass reads the live campaigns, in body order, the default last. Per campaign: its audience, accounts and caps. Every act stamps the campaign it ran for | First come, first served is body order, the same every pass. The global count is read once per pass. The default campaign is today's pass, unchanged. One Restate key per loop, as today | A slow campaign delays the ones after it in the same pass |
+| **A. One pass walks the campaigns (chosen)** | Each pass reads the live campaigns, in body order, the default last. Per campaign: its audience, accounts and caps. Every act stamps the campaign it ran for | First come, first served is body order, the same every pass. The global count is read once per pass. The default campaign is today's pass, unchanged. One Restate key per loop, as today | A slow campaign delays the ones after it in the same pass |
 | B. One loop per campaign | A Restate key per campaign id | Campaigns run apart, in parallel | The global cap becomes a shared counter across keys: a race on every act, the bot-flag guard at risk |
 | C. A campaign is a filter on today's pass | The pass picks targets as today, then gives each to the first campaign whose audience takes it | Least change | The content planner cannot plan per campaign: a filter has no cadence or CTA |
 
@@ -104,3 +104,14 @@ Build order: the `campaign` column and its writer go in together, loop by loop, 
   | C. Stamp `touches`, `messages`, `sms_messages` only | `touches` mirrors the reach rows by `ref` | 11 writers, not 27 | Our posts are not touches. Still null until phase 3 |
 
   Ranked by: true numbers, then no stale paths, then fewest writers. In every option the column is null for the default, so no backfill. William may still pick B.
+- 2026-11-02: phase 2 re-plan option A and phase 3 option A (William: "A, A go"). The act stamp lands with its writer in phase 3; each loop pass walks the live campaigns in body order, the default last.
+- 2026-11-02, phase 3 cold email (WA-999):
+  - The stamp is `enrollments.campaign`, not a `messages` column. Messages inherit it through `enrollment_id`, so the three message writers stay as they are.
+  - A campaign joins a niche's pass when its `accounts.email` is one of the niche's senders. It sends from that inbox only. No email account: no cold email.
+  - Its `offer` picks the plan rules that pitch it. No offer: every rule.
+  - Its segment gates the person pass by the `person` profile key. Role inboxes sit out: they have no profile. A `lines` audience does not narrow cold email yet.
+  - Cap `email.opener`: openers a day. The queue holds `daysAhead` days, so campaign left = cap × days − its queued openers, inside the global shortfall (`capLeft`). `CAMPAIGN_ACTS` lists the email acts; a check refuses others.
+  - One active enrollment per company, person and address: a company sits in one email campaign at a time, the first in body order.
+  - From and until use the UTC day.
+  - The shape sits above the channels (`scripts/layers-guard.mjs`). `LoopCampaign` and `capLeft` sit in `@wren/starling-core/campaigns`; the worker passes `liveCampaignsOf`.
+  - `exhausted` means the default sweep found nobody. A dry campaign is not a dry pool.

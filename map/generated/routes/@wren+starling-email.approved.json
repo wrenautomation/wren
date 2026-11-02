@@ -496,7 +496,7 @@
      "policy"
     ],
     "input": "CampaignRequest",
-    "output": "{ updatedAt: Date; updatedBy: string; campaign: string; openersPerDay: number | null; killSwitch: boolean | null; }",
+    "output": "{ updatedAt: Date; campaign: string; updatedBy: string; openersPerDay: number | null; killSwitch: boolean | null; }",
     "wrap": "serviceHandler"
    }
   },

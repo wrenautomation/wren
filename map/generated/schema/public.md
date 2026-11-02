@@ -2190,6 +2190,7 @@ Indexes:
 ## public.enrollments (table)
 
 - `away_until date null`
+- `campaign text null`
 - `candidate_id integer null`
 - `company_id integer`
 - `contact_round integer = 1`

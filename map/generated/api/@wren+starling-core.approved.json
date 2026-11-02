@@ -355,6 +355,20 @@
    }
   },
   {
+   "id": "@wren/starling-core#LoopCampaign",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/campaigns"
+    ],
+    "file": "packages/starling/core/src/campaigns.ts",
+    "kind": "interface",
+    "sig": "interface LoopCampaign { id: string; offer?: string; audience?: { segment?: string; lines?: string[] }; accounts: Readonly<Record<string, string>>; caps: Readonly<Record<string, number>>; }"
+   }
+  },
+  {
    "id": "@wren/starling-core#MANY_POSTS",
    "role": "export",
    "parent": "@wren/starling-core",
@@ -975,6 +989,20 @@
     "file": "packages/starling/core/src/insights.ts",
     "kind": "function",
     "sig": "(published: string | null | undefined, now: Date): boolean"
+   }
+  },
+  {
+   "id": "@wren/starling-core#capLeft",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/campaigns"
+    ],
+    "file": "packages/starling/core/src/campaigns.ts",
+    "kind": "function",
+    "sig": "(global: number, cap: number | undefined, used: number): number"
    }
   },
   {

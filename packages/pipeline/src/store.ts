@@ -12,6 +12,7 @@ import { and, asc, desc, eq, lte, sql } from "drizzle-orm";
 import { carryJourneys, type Moves, remapDeals } from "./carry.js";
 import { canonicalJson } from "./diff.js";
 import { isMetro } from "./metro.js";
+import { type Campaign, liveCampaigns } from "./metro-campaigns.js";
 import { depthOf, type ShapeCheckContext } from "./model.js";
 import { Refused } from "./refused.js";
 import {
@@ -265,6 +266,12 @@ export async function shapeContext(
 export async function newestShape(db: Queryable): Promise<ShapeVersion | null> {
   const [row] = await db.select().from(shapeVersions).orderBy(desc(shapeVersions.number)).limit(1);
   return row ?? null;
+}
+
+/** The newest shape's campaigns a loop pass runs on `now`'s UTC day, the default last. */
+export async function liveCampaignsOf(db: Queryable, now: Date): Promise<Campaign[]> {
+  const body = (await newestShape(db))?.body;
+  return liveCampaigns(isMetro(body) ? body : null, now.toISOString().slice(0, 10));
 }
 
 /** Every shape version, oldest first. */

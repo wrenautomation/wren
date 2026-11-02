@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./campaigns": "./src/campaigns.ts",
     "./page-inbox": "./src/page-inbox.ts",
     "./service": "./src/service.ts",
     "./shapes": "./src/shapes.ts",

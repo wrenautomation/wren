@@ -73,7 +73,7 @@
      "site"
     ],
     "input": "void",
-    "output": "{ on: boolean; site: string; posts: { date: string; description: string; title: string; createdAt: Date; body: string; updatedAt: Date; updatedBy: string | null; draft: boolean; publishedAt: Date | null; slug: string; emailedAt: Date | null; commitSha: string | null; fromRef: string | null; }[]; }",
+    "output": "{ on: boolean; site: string; posts: { date: string; description: string; title: string; createdAt: Date; updatedAt: Date; body: string; draft: boolean; updatedBy: string | null; publishedAt: Date | null; slug: string; emailedAt: Date | null; commitSha: string | null; fromRef: string | null; }[]; }",
     "wrap": "sharedHandler"
    }
   },
@@ -90,7 +90,7 @@
      "zone"
     ],
     "input": "{ slug?: string; title: string; description: string; body: string; publish: boolean; from?: string | null; viewer?: unknown; }",
-    "output": "{ post: { date: string; description: string; title: string; createdAt: Date; body: string; updatedAt: Date; updatedBy: string | null; draft: boolean; publishedAt: Date | null; slug: string; emailedAt: Date | null; commitSha: string | null; fromRef: string | null; }; url: string; }",
+    "output": "{ post: { date: string; description: string; title: string; createdAt: Date; updatedAt: Date; body: string; draft: boolean; updatedBy: string | null; publishedAt: Date | null; slug: string; emailedAt: Date | null; commitSha: string | null; fromRef: string | null; }; url: string; }",
     "tags": [
      "effect:posts"
     ],
@@ -1247,7 +1247,7 @@
      "@aws-sdk/client-s3",
      "@smithy/core"
     ],
-    "output": "{ started: boolean; platforms: (\"linkedin\" | \"x\" | \"instagram\" | \"reddit\")[]; }",
+    "output": "{ started: boolean; platforms: (\"linkedin\" | \"instagram\" | \"x\" | \"reddit\")[]; }",
     "wrap": "serviceHandler"
    }
   },
@@ -1420,7 +1420,7 @@
      "zone"
     ],
     "input": "PortalRequest",
-    "output": "{ mail: boolean; zone: string; reports: { sends: { id: number; from: string; to: string; closed: boolean; lines: import(\"../client-reports/tiles.js\").ReportLine[]; sentTo: string[]; why: string | null; by: string | null; at: string; }[]; id: number; name: string; tiles: (\"paid\" | \"views\" | \"calls\" | \"post_visits\" | \"ad_impressions\" | \"search_impressions\" | \"visits\" | \"forms\" | \"bookings\" | \"spend\")[]; every: \"month\" | \"week\"; zone: string; recipients: string[]; on: boolean; nextAt: string | null; by: string; updatedAt: string; }[]; members: { email: string; role: string; }[]; }",
+    "output": "{ mail: boolean; zone: string; reports: { sends: { id: number; from: string; to: string; closed: boolean; lines: import(\"../client-reports/tiles.js\").ReportLine[]; sentTo: string[]; why: string | null; by: string | null; at: string; }[]; id: number; name: string; tiles: (\"calls\" | \"views\" | \"bookings\" | \"paid\" | \"forms\" | \"spend\" | \"visits\" | \"post_visits\" | \"ad_impressions\" | \"search_impressions\")[]; every: \"month\" | \"week\"; zone: string; recipients: string[]; on: boolean; nextAt: string | null; by: string; updatedAt: string; }[]; members: { email: string; role: string; }[]; }",
     "wrap": "serviceHandler"
    }
   },

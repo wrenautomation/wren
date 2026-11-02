@@ -219,6 +219,8 @@ export const enrollments = pgTable(
     contactRound: integer("contact_round").default(1).notNull(),
     /** Their out-of-office said they're away through this day: the next step waits for the sending day after. */
     awayUntil: date("away_until"),
+    /** The metro campaign (a group id) it was enrolled for; null = the default. Its messages inherit it. */
+    campaign: text("campaign"),
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_enrollments" }),

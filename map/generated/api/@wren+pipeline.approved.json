@@ -1630,7 +1630,7 @@
     "file": "packages/pipeline/src/metro-ops.ts",
     "inferred": true,
     "kind": "const",
-    "sig": "z.ZodDiscriminatedUnion<[z.ZodObject<{ op: z.ZodLiteral<\"add\">; on: z.ZodEnum<{ line: \"line\"; group: \"group\"; station: \"station\"; track: \"track\"; }>; item: z.ZodRecord<z.ZodString, z.ZodUnknown>; }, z.core.$strict>, z.ZodObject<{ op: z.ZodLiteral<\"rename\">; on: z.ZodEnum<{ line: \"line\"; group: \"grou…"
+    "sig": "z.ZodDiscriminatedUnion<[z.ZodObject<{ op: z.ZodLiteral<\"add\">; on: z.ZodEnum<{ group: \"group\"; line: \"line\"; track: \"track\"; station: \"station\"; }>; item: z.ZodRecord<z.ZodString, z.ZodUnknown>; }, z.core.$strict>, z.ZodObject<{ op: z.ZodLiteral<\"rename\">; on: z.ZodEnum<{ group: \"group\"; line: \"lin…"
    }
   },
   {
@@ -3326,7 +3326,7 @@
     "file": "packages/pipeline/src/records.ts",
     "inferred": true,
     "kind": "function",
-    "sig": "(db: Queryable, o: { id?: string } = {}): Promise<{ id: string; journey: string; name: string; profile: number; node: string | null; entry: string; offer: string; offer_version: number; plan: string | null; terms_number: number | null; status: \"open\" | \"ended\" | \"won\" | \"lost\"; collected: number; scheduled: number | null; currency: string; …"
+    "sig": "(db: Queryable, o: { id?: string } = {}): Promise<{ id: string; journey: string; name: string; profile: number; node: string | null; entry: string; offer: string; offer_version: number; plan: string | null; terms_number: number | null; status: \"won\" | \"ended\" | \"open\" | \"lost\"; collected: number; scheduled: number | null; currency: string; …"
    }
   },
   {
@@ -3469,7 +3469,7 @@
     "file": "packages/pipeline/src/records.ts",
     "inferred": true,
     "kind": "function",
-    "sig": "(db: Queryable): Promise<{ id: string; name: string; state: \"draft\" | \"proposed\" | \"dropped\" | \"applied\"; base: number; note: string; created_by: string; created_at: Date; updated_at: Date; applied_version: number | null; decided_by: string | null; decided_at: Date | null; drop_reason: string | null; }[]>"
+    "sig": "(db: Queryable): Promise<{ id: string; name: string; state: \"proposed\" | \"dropped\" | \"draft\" | \"applied\"; base: number; note: string; created_by: string; created_at: Date; updated_at: Date; applied_version: number | null; decided_by: string | null; decided_at: Date | null; drop_reason: string | null; }[]>"
    }
   },
   {
@@ -3640,7 +3640,7 @@
     "file": "packages/pipeline/src/edit.ts",
     "inferred": true,
     "kind": "function",
-    "sig": "(db: Queryable, o: { change: (body: ShapeBody) => ShapeBody; note: string; by: string; triggers: ReadonlySet<string>; moves?: Moves; }): Promise<{ number: number; createdAt: Date; draft: string | null; note: string; parent: number | null; run: ShapeBody; body: StoredBody; createdBy: string; depths: Record<string, number>; }>"
+    "sig": "(db: Queryable, o: { change: (body: ShapeBody) => ShapeBody; note: string; by: string; triggers: ReadonlySet<string>; moves?: Moves; }): Promise<{ number: number; createdAt: Date; body: StoredBody; draft: string | null; note: string; createdBy: string; run: ShapeBody; parent: number | null; depths: Record<string, number>; }>"
    }
   },
   {
@@ -3712,7 +3712,7 @@
     "file": "packages/pipeline/src/records.ts",
     "inferred": true,
     "kind": "function",
-    "sig": "(db: Queryable): Promise<{ id: string; name: string; via: \"ads\" | \"group\" | \"manual\" | \"outbound\" | \"found\" | \"referral\" | \"organic\" | \"sourced\"; channel: string | null; campaign: string | null; parked: string | null; open_journeys: number; journeys: number; last_arrival: Date | null; }[]>"
+    "sig": "(db: Queryable): Promise<{ id: string; name: string; via: \"manual\" | \"referral\" | \"ads\" | \"outbound\" | \"group\" | \"found\" | \"organic\" | \"sourced\"; channel: string | null; campaign: string | null; parked: string | null; open_journeys: number; journeys: number; last_arrival: Date | null; }[]>"
    }
   },
   {
@@ -4166,7 +4166,7 @@
     "file": "packages/pipeline/src/records.ts",
     "inferred": true,
     "kind": "function",
-    "sig": "(db: Queryable, o: { id?: string; now?: Date } = {}): Promise<{ id: string; name: string; profile: number; email: string; version: number; node: string; node_name: string; trail: string; status: \"open\" | \"done\" | \"dropped\"; flag: string | null; ghost: string | null; entry: string; owner: string | null; days_at_node: number; reason: string | null; opene…"
+    "sig": "(db: Queryable, o: { id?: string; now?: Date } = {}): Promise<{ id: string; name: string; profile: number; email: string; version: number; node: string; node_name: string; trail: string; status: \"dropped\" | \"done\" | \"open\"; flag: string | null; ghost: string | null; entry: string; owner: string | null; days_at_node: number; reason: string | null; opene…"
    }
   },
   {
@@ -4223,6 +4223,34 @@
     "file": "packages/pipeline/src/lines.ts",
     "kind": "function",
     "sig": "(db: Db, now: Date, limit = 200): Promise<LinePass>"
+   }
+  },
+  {
+   "id": "@wren/pipeline#liveCampaigns",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro-campaigns"
+    ],
+    "file": "packages/pipeline/src/metro-campaigns.ts",
+    "kind": "function",
+    "sig": "(body: MetroBody | null, day: string): Campaign[]"
+   }
+  },
+  {
+   "id": "@wren/pipeline#liveCampaignsOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/store"
+    ],
+    "file": "packages/pipeline/src/store.ts",
+    "kind": "function",
+    "sig": "(db: Queryable, now: Date): Promise<Campaign[]>"
    }
   },
   {
@@ -4294,7 +4322,7 @@
     "file": "packages/pipeline/src/restate.ts",
     "inferred": true,
     "kind": "function",
-    "sig": "(deps: JourneysDeps): restate.ServiceDefinition<\"Journeys\", { open: (ctx: restate.Context, req: OpenRequest) => Promise<{ journey: string; node: string; }>; move: (ctx: restate.Context, req: MoveRequest) => Promise<{ journey: string; from: string; to: string; status: \"open\" | \"done\" | \"dropped\"; }>; drop: (ctx: restate.C…"
+    "sig": "(deps: JourneysDeps): restate.ServiceDefinition<\"Journeys\", { open: (ctx: restate.Context, req: OpenRequest) => Promise<{ journey: string; node: string; }>; move: (ctx: restate.Context, req: MoveRequest) => Promise<{ journey: string; from: string; to: string; status: \"dropped\" | \"done\" | \"open\"; }>; drop: (ctx: restate.C…"
    }
   },
   {
@@ -4636,7 +4664,7 @@
     "file": "packages/pipeline/src/records.ts",
     "inferred": true,
     "kind": "function",
-    "sig": "(db: Queryable, o: { now?: Date } = {}): Promise<{ id: string; name: string; status: \"draft\" | \"live\" | \"retired\" | \"paused\"; version: number; audience: string; promise: string; live_plans: number; open_journeys: number; hash: string; synced_at: Date; synced_by: string; why: string; }[]>"
+    "sig": "(db: Queryable, o: { now?: Date } = {}): Promise<{ id: string; name: string; status: \"draft\" | \"paused\" | \"retired\" | \"live\"; version: number; audience: string; promise: string; live_plans: number; open_journeys: number; hash: string; synced_at: Date; synced_by: string; why: string; }[]>"
    }
   },
   {

@@ -592,7 +592,7 @@
      "db"
     ],
     "input": "{ state?: string | null; limit?: number | null }",
-    "output": "{ id: number; platform: \"youtube\" | \"linkedin\" | \"x\" | \"tiktok\" | \"instagram\" | \"threads\"; state: \"skipped\" | \"dropped\" | \"found\" | \"queued\" | \"commented\"; author: string; fit: number | null; why: string | null; draft: string | null; url: string; foundBy: string; }[]",
+    "output": "{ id: number; platform: \"linkedin\" | \"instagram\" | \"x\" | \"youtube\" | \"tiktok\" | \"threads\"; state: \"skipped\" | \"queued\" | \"dropped\" | \"found\" | \"commented\"; author: string; fit: number | null; why: string | null; draft: string | null; url: string; foundBy: string; }[]",
     "wrap": "serviceHandler"
    }
   },

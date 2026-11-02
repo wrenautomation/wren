@@ -2049,6 +2049,11 @@
   },
   {
    "from": "@wren/pipeline/src/store.ts",
+   "to": "@wren/pipeline/src/metro-campaigns.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/pipeline/src/store.ts",
    "to": "@wren/pipeline/src/metro.ts",
    "kind": "imports"
   },

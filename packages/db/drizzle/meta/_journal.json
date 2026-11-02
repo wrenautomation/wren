@@ -2472,6 +2472,13 @@
       "when": 1793584000857,
       "tag": "0353_loop_wakes",
       "breakpoints": true
+    },
+    {
+      "idx": 354,
+      "version": "7",
+      "when": 1793647220931,
+      "tag": "0354_enrollment_campaign",
+      "breakpoints": true
     }
   ]
 }

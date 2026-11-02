@@ -3,7 +3,7 @@ type: object
 cluster: platform
 universe: live
 status: verified
-verified: 2026-11-02 @ 19647a0f + WA-999 phase 2 (journey numbers per campaign; no loop reads it yet)
+verified: 2026-11-02 @ 3ab0d2c0 + WA-999 phase 3 (cold email reads campaigns)
 entity: packages/pipeline/src/metro-campaigns.ts:146
 ---
 
@@ -25,9 +25,11 @@ The `default` campaign is computed, never stored: it holds every station outside
 - `checkCampaigns` (`:211`), run by `checkMetro` after the group rules: reserved id, known fields, segment active, audience lines are out lines, each CTA station inside the group (or below) with action `cta`, `form`, `visit` or `book`, channels in `CAMPAIGN_CHANNELS`, caps 0–10000 and not over the parent's, dates in order
 - File form: `campaign`, `audience`, `ctas` types in `metro-file.ts`
 - Merge: `campaign` is one field. Both sides changed it is a conflict, so the CTA ladder never interleaves.
-- Numbers: `campaignNumbers` (`campaign-numbers.ts`) per campaign: people in, converted (reached a CTA), open now, deals. Read off journey arrivals, each on the version it was on, so ids join across versions. A journey a new version carried counts for deals, not as a person in. A parent counts its children; a person in two campaigns counts in both. Acts and cost wait on the act stamp (phase 3).
+- Loops (phase 3): `liveCampaigns(body, day)` (`metro-campaigns.ts`): live, inside its UTC dates, body order, the default last; `liveCampaignsOf(db, now)` (`store.ts`) on the newest shape. A channel sits below the shape, so a loop reads `LoopCampaign` and the cap function `capLeft` (smaller of global left and campaign left) from `@wren/starling-core/campaigns`; the worker passes the live campaigns in. `CAMPAIGN_ACTS` lists the acts a loop spends (`email.opener`); a cap on another act of a listed channel is refused.
+- Cold email: `campaignSweeps` (`compose-scheduler.ts`). A campaign whose `accounts.email` is a niche sender composes from that inbox, its offer's plan rules, its segment's people (person pass only), under its `email.opener` cap, before the default. It stamps `enrollments.campaign` ([[email/enrollment]]).
+- Numbers: `campaignNumbers` (`campaign-numbers.ts`) per campaign: people in, converted (reached a CTA), open now, deals. Read off journey arrivals, each on the version it was on, so ids join across versions. A journey a new version carried counts for deals, not as a person in. A parent counts its children; a person in two campaigns counts in both. Acts and cost wait on the act stamp of every loop (phase 3).
 
-Citations: `packages/pipeline/src/metro-campaigns.ts:146`, `packages/pipeline/src/metro.ts`, `packages/pipeline/src/campaign-numbers.ts`, `apps/cli/src/campaigns.ts`
+Citations: `packages/pipeline/src/metro-campaigns.ts:146`, `packages/starling/core/src/campaigns.ts`, `packages/starling/channels/email/src/restate/compose-scheduler.ts`, `packages/pipeline/src/metro.ts`, `packages/pipeline/src/campaign-numbers.ts`, `apps/cli/src/campaigns.ts`
 
 ## Connected to
 
@@ -37,8 +39,8 @@ Citations: `packages/pipeline/src/metro-campaigns.ts:146`, `packages/pipeline/sr
 
 ## If you change this
 
-- **Hits:** `checkMetro` (every shape save, import and draft), the metro file schema, `wren campaigns`
-- **Does not hit:** any loop or the runtime (phase 3); the map UI (phase 5)
+- **Hits:** `checkMetro` (every shape save, import and draft), the metro file schema, `wren campaigns`; the cold email top-up (`ComposeScheduler`, each pass)
+- **Does not hit:** the reach, content and SMS loops yet (phase 3, next); the runtime; the map UI (phase 5)
 
 ## Surfaces
 
@@ -46,6 +48,7 @@ Citations: `packages/pipeline/src/metro-campaigns.ts:146`, `packages/pipeline/sr
 |---|---|
 | `wren campaigns list\|show\|numbers` | reads |
 | `wren shape` export/import, draft `set` op | writes |
+| `ComposeScheduler/<niche>` | reads (live campaigns, each pass) |
 
 ## See
 

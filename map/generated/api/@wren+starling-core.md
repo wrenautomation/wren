@@ -1,6 +1,11 @@
 # @wren/starling-core: interface
 
-Exports: 128. Files: 9.
+Exports: 130. Files: 10.
+
+## packages/starling/core/src/campaigns.ts
+
+- **LoopCampaign** (interface) `interface LoopCampaign { id: string; offer?: string; audience?: { segment?: string; lines?: string[] }; accounts: Readonly<Record<string, string>>; caps: Readonly<Record<string, number>>; }`
+- **capLeft** (function) `(global: number, cap: number | undefined, used: number): number`
 
 ## packages/starling/core/src/index.ts
 

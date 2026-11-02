@@ -254,6 +254,7 @@ flowchart LR
   nsteps_ts --> nworkflow_ts
   nstore_ts --> ncarry_ts
   nstore_ts --> ndiff_ts
+  nstore_ts --> nmetro_campaigns_ts
   nstore_ts --> nmetro_ts
   nstore_ts --> nmodel_ts
   nstore_ts --> nrefused_ts

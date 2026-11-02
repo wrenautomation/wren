@@ -1192,6 +1192,11 @@
    "kind": "imports"
   },
   {
+   "from": "@wren/starling-email",
+   "to": "@wren/starling-core",
+   "kind": "imports"
+  },
+  {
    "from": "@wren/starling-email/src/access/access.ts",
    "to": "@wren/core/src/access.ts",
    "kind": "imports"
@@ -3110,6 +3115,11 @@
    "attrs": {
     "type": true
    }
+  },
+  {
+   "from": "@wren/starling-email/src/restate/compose-scheduler.ts",
+   "to": "@wren/starling-core/src/campaigns.ts",
+   "kind": "imports"
   },
   {
    "from": "@wren/starling-email/src/restate/compose-scheduler.ts",

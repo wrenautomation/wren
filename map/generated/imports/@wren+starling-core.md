@@ -1,6 +1,6 @@
 # @wren/starling-core
 
-Role: package. Files: 9.
+Role: package. Files: 10.
 
 ## Uses
 
@@ -16,6 +16,7 @@ Dotted: types only.
 
 ```mermaid
 flowchart LR
+  ncampaigns_ts["campaigns.ts"]
   nindex_ts["index.ts"]
   ninsights_ts["insights.ts"]
   npage_inbox_ts["page-inbox.ts"]
@@ -36,6 +37,7 @@ flowchart LR
 
 ## Files
 
+- campaigns.ts
 - index.ts
 - insights.ts
 - page-inbox.ts

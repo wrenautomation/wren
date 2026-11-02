@@ -113,10 +113,10 @@ Exports: 531. Files: 56.
 - **movePlace** (function) `(db: Queryable, sub: string, account: string): Promise<void>`
 - **paceOf** (function) `(latest: readonly Post[]): { postsADay: number; medianComments: number }`
 - **placeBySub** (function) `(db: Queryable, sub: string): Promise<RedditPlace>`
-- **placesDue** (function) `(db: Queryable, now: Date, everyMs: number, limit: number, purpose: PlacePurpose = "reach"): Promise<{ subreddit: string; name: string; foundBy: string; raw: unknown; judged: PlaceJudged | null; fit: number | null; subscribers: number | null; state: "found" | "watching" | "skipped"; purpose: "reach" | "karma"; accountId: string | null; readAt: Date | null; threadsAt: Date | null; joinedAt: …`
+- **placesDue** (function) `(db: Queryable, now: Date, everyMs: number, limit: number, purpose: PlacePurpose = "reach"): Promise<{ subreddit: string; name: string; foundBy: string; raw: unknown; judged: PlaceJudged | null; fit: number | null; subscribers: number | null; state: "skipped" | "found" | "watching"; purpose: "reach" | "karma"; accountId: string | null; readAt: Date | null; threadsAt: Date | null; joinedAt: …`
 - **placesOfPeople** (function) `(db: Queryable): Promise<string[]>`
 - **placesToJoin** (function) `(db: Queryable, limit: number): Promise<{ subreddit: string; account: string; }[]>`
-- **placesToRead** (function) `(db: Queryable, now: Date, limit: number): Promise<{ subreddit: string; state: "found" | "watching" | "skipped"; purpose: "reach" | "karma"; }[]>`
+- **placesToRead** (function) `(db: Queryable, now: Date, limit: number): Promise<{ subreddit: string; state: "skipped" | "found" | "watching"; purpose: "reach" | "karma"; }[]>`
 - **settleKarmaPlace** (function) `(db: Queryable, sub: string, now: Date): Promise<RedditPlace["state"] | null>`
 - **skipPlace** (function) `(db: Queryable, sub: string): Promise<void>`
 - **threadsRead** (function) `(db: Queryable, sub: string, now: Date): Promise<void>`
@@ -214,10 +214,10 @@ Exports: 531. Files: 56.
 - **DRAFT_MAX** (const) `1000`
 - **DmGuide** (type) `type DmGuide = (platform: DmPlatform) => Promise<string>;`
 - **contactsToDraft** (function) `(db: Queryable, limit: number, now = new Date()): Promise<number[]>`
-- **dmContext** (function) `(db: Queryable, contactId: number, now = new Date()): Promise<{ contact: { id: number; name: string | null; createdAt: Date; state: "new" | "enrolled" | "connected" | "replied" | "finished" | "unreachable" | "opted_out" | "blocked"; headline: string | null; platform: "reddit" | "linkedin" | "x" | "instagram" | "facebook"; accountId: string | null; url:…`
+- **dmContext** (function) `(db: Queryable, contactId: number, now = new Date()): Promise<{ contact: { name: string | null; id: number; state: "finished" | "enrolled" | "replied" | "new" | "connected" | "unreachable" | "opted_out" | "blocked"; createdAt: Date; draft: string | null; personId: number | null; niche: string | null; companyId: number | null; endedAt: Date | null; url:…`
 - **draftDm** (function) `(db: Queryable, llm: LlmClient, contactId: number, o: { sender: string; guide?: DmGuide; facts?: readonly string[]; now: Date; }): Promise<string | null>`
 - **draftsToday** (function) `(db: Queryable, now: Date): Promise<number>`
-- **queueDraft** (function) `(db: Queryable, contact: ReachContact, body: string | null | undefined, subject: string | null, now: Date, by = "console"): Promise<{ id: number; createdAt: Date; state: "unknown" | "skipped" | "queued" | "proposed" | "sending" | "sent" | "failed" | "received"; kind: "sequence" | "manual" | "connect" | "inbound" | "follow_up"; accountId: string | null; ref: string | null; body: string; contactId: number; stateReason: str…`
+- **queueDraft** (function) `(db: Queryable, contact: ReachContact, body: string | null | undefined, subject: string | null, now: Date, by = "console"): Promise<{ id: number; state: "proposed" | "sent" | "sending" | "skipped" | "failed" | "unknown" | "queued" | "received"; runId: string | null; createdAt: Date; step: number | null; template: string | null; templateVersion: string | null; subject: string | null; body: string; provenance: unknown; sen…`
 
 ## packages/starling/outbound/src/enroll.ts
 
@@ -317,7 +317,7 @@ Exports: 531. Files: 56.
 
 - **Who** (interface) `interface Who { platform: string; handle: string; name: string; }`
 - **liftPass** (function) `(db: Queryable, platform: string, handle: string, now: Date): Promise<boolean>`
-- **listPasses** (function) `(db: Queryable, o: { limit?: number } = {}): Promise<{ id: number; platform: string; handle: string; name: string; reason: "not_lead" | "not_worth" | "spam" | "competitor" | "rude" | "not_now"; note: string | null; item: string | null; by: string | null; until: Date | null; liftedAt: Date | null; createdAt: Date; }[]>`
+- **listPasses** (function) `(db: Queryable, o: { limit?: number } = {}): Promise<{ id: number; platform: string; handle: string; name: string; reason: "not_now" | "spam" | "not_lead" | "not_worth" | "competitor" | "rude"; note: string | null; item: string | null; by: string | null; until: Date | null; liftedAt: Date | null; createdAt: Date; }[]>`
 - **passKey** (function) `(handle: string | null | undefined, name: string): string`
 - **passOn** (function) `(db: Queryable, items: readonly string[], o: { reason: PassReason; note?: string | null; by?: string | null; now: Date }): Promise<{ people: number; closed: number }>`
 - **passedOn** (function) `(db: Queryable, platform: string): Promise<Set<string>>`
@@ -356,7 +356,7 @@ Exports: 531. Files: 56.
 - **ActsStats** (interface) `interface ActsStats { liked: number; followed: number; held: string[]; errors: string[]; }`
 - **autoActs** (function) `(db: Queryable, o: { platform: ReachPostPlatform; settings: Pick<CommentsSettings, "like" | "follow" | "minFit">; call: (act: SiteAct) => Promise<unknown>; step: <T>(name: string, fn: () => Promise<T>) => Promise<T>; holds: CapHolds; now: Date; followsLeft?: number; }): Promise<ActsStats>`
 - **followAct** (function) `(platform: ReachPostPlatform, who: { handle: string } | { company: string }): SiteAct`
-- **listPosts** (function) `(db: Queryable, o: { state?: string; limit?: number } = {}): Promise<{ id: number; platform: "linkedin" | "youtube" | "x" | "tiktok" | "instagram" | "threads"; state: "dropped" | "found" | "skipped" | "queued" | "commented"; author: string; fit: number | null; why: string | null; draft: string | null; url: string; foundBy: string; }[]>`
+- **listPosts** (function) `(db: Queryable, o: { state?: string; limit?: number } = {}): Promise<{ id: number; platform: "linkedin" | "youtube" | "x" | "tiktok" | "instagram" | "threads"; state: "dropped" | "skipped" | "queued" | "found" | "commented"; author: string; fit: number | null; why: string | null; draft: string | null; url: string; foundBy: string; }[]>`
 - **markActFailed** (function) `(db: Queryable, id: number, act: "like" | "follow", error: string): Promise<void>`
 - **markPostActed** (function) `(db: Queryable, id: number, act: "like" | "follow", now: Date): Promise<void>`
 - **markPostCommented** (function) `(db: Queryable, post: ReachPost, r: { body: string; by: string; now: Date }): Promise<void>`
@@ -648,7 +648,7 @@ Exports: 531. Files: 56.
 - **itemOf** (function) `(item: string): { kind: SendItem; id: string }`
 - **markPosted** (function) `(outer: Queryable, item: string, o: Partial<Pick<TickOptions, "sequences" | "sender">> & { by: string; now: Date }): Promise<TickStats>`
 - **requeueDm** (function) `(db: Queryable, id: number, now: Date): Promise<void>`
-- **unsureItem** (function) `(db: Queryable, item: string): Promise<{ account: string | null; startedAt: Date; state: "sending" | "sent" | "unsure"; item: string; target: string; words: string; platform: string; ref: string | null; url: string | null; why: string | null; sentAt: Date | null; tries: number; invocation: string | null; sendKey: string | null; v…`
+- **unsureItem** (function) `(db: Queryable, item: string): Promise<{ state: "sent" | "sending" | "unsure"; updatedAt: Date; sentAt: Date | null; startedAt: Date; words: string; why: string | null; url: string | null; target: string; item: string; account: string | null; platform: string; ref: string | null; tries: number; invocation: string | null; sendKey:…`
 
 ## packages/starling/outbound/src/store.ts
 

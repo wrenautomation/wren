@@ -87,6 +87,10 @@ export interface ComposeOptions {
   readonly recontact?: RecontactPolicy;
   /** A client's database: main's suppressions gate too (an opt-out anywhere). */
   readonly shared?: SharedSuppressions | null;
+  /** The metro campaign this enrolls for, stamped on each enrollment. Absent: the default. */
+  readonly campaign?: string | null;
+  /** Only people in this segment (by their `person` profile key). Role inboxes have no profile. */
+  readonly segment?: number | null;
 }
 
 export interface ComposeStats {
@@ -153,7 +157,12 @@ const MOVED_ON_CONFIDENCE = 0.8;
 // within each company. First contact: a company with ANY enrollment is out. A person whose
 // newest lookup finding says they moved on (job_change or left, sure enough) is out; the
 // firm falls to its next person.
-const eligibleSql = (niche: string, companyMatch: string | null, gate: Gate) => sql`
+const eligibleSql = (
+  niche: string,
+  companyMatch: string | null,
+  gate: Gate,
+  segment: number | null = null,
+) => sql`
   SELECT pf.person_id, pf.company_id, pf.full_name, pf.title, pf.role_rank,
          pf.company_name, pf.company_domain
   FROM person_facts pf
@@ -170,6 +179,13 @@ const eligibleSql = (niche: string, companyMatch: string | null, gate: Gate) => 
       WHERE newest.kind IN ('job_change', 'left') AND newest.confidence >= ${MOVED_ON_CONFIDENCE}
     )
     AND ${gate(sql`pf.company_id`)}
+    ${
+      segment === null
+        ? sql``
+        : sql`AND EXISTS (
+            SELECT 1 FROM profile_keys k JOIN segment_members sm ON sm.profile_id = k.profile_id
+            WHERE k.kind = 'person' AND k.value = pf.person_id::text AND sm.segment_id = ${segment})`
+    }
     ${
       companyMatch === null
         ? sql``
@@ -382,6 +398,8 @@ interface Shared {
   readonly recordedVersions: Set<string>;
   readonly autoApprove: boolean;
   readonly runId: string | null;
+  readonly campaign: string | null;
+  readonly segment: number | null;
   readonly stats: ComposeStats;
   readonly where: Readonly<Record<string, string>>;
   readonly roleInboxVerdict: "none" | "any" | number;
@@ -427,6 +445,8 @@ export async function compose(db: Queryable, opts: ComposeOptions): Promise<Comp
     recordedVersions: new Set(),
     autoApprove: opts.autoApprove ?? false,
     runId: opts.runId ?? null,
+    campaign: opts.campaign ?? null,
+    segment: opts.segment ?? null,
     stats: newStats(),
     where: opts.where ?? {},
     roleInboxVerdict: roleInboxVerdict(
@@ -452,7 +472,9 @@ export async function compose(db: Queryable, opts: ComposeOptions): Promise<Comp
   if (kind === "person" || kind === "all") {
     await personPass(db, shared, opts.verificationHorizonDays, limit);
   }
-  if (kind === "role_inbox" || kind === "all") await roleInboxPass(db, shared, limit);
+  // A segment holds people; a role inbox is a company's.
+  if ((kind === "role_inbox" || kind === "all") && shared.segment === null)
+    await roleInboxPass(db, shared, limit);
   return shared.stats;
 }
 
@@ -471,7 +493,9 @@ async function personPass(
   limit: number | null,
 ) {
   const stats = shared.stats;
-  const rows = rowsAs<EligibleRow>(await db.execute(eligibleSql(shared.niche, null, shared.gate)));
+  const rows = rowsAs<EligibleRow>(
+    await db.execute(eligibleSql(shared.niche, null, shared.gate, shared.segment)),
+  );
   const addressable = await peopleWithAddress(
     db,
     rows.map((r) => r.person_id),
@@ -801,6 +825,7 @@ async function enroll(
       offer: shared.offer,
       state: "active",
       runId: shared.runId,
+      campaign: shared.campaign,
       contactRound: sql`(SELECT count(*) + 1 FROM enrollments WHERE company_id = ${input.companyId})`,
     })
     .returning({ id: enrollments.id });

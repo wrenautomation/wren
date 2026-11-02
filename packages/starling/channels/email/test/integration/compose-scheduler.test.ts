@@ -3,7 +3,8 @@ import { loadSettings } from "@wren/config";
 import { companies } from "@wren/core";
 import { field, type Template, template, text } from "@wren/core/slots";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
-import { eq } from "drizzle-orm";
+import type { LoopCampaign } from "@wren/starling-core/campaigns";
+import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { sequence, sequenceStep } from "../../src/outreach/sequences.js";
 import { DEFAULT_RECONTACT } from "../../src/recontact.js";
@@ -96,7 +97,7 @@ beforeAll(async () => {
 });
 afterAll(() => pg.stop());
 beforeEach(async () => {
-  await truncate(pg.db, TABLES);
+  await truncate(pg.db, [...TABLES, "segments", "segment_members", "profiles", "profile_keys"]);
   await liveCopy(pg.db, "agencies", COPY);
 });
 const db = () => pg.db;
@@ -349,5 +350,93 @@ describe("topUp", () => {
       (m) => m.enrollmentId !== startedId && m.enrollmentId !== inactiveId,
     );
     for (const m of others) expect(after.get(m.id)?.body.startsWith("new body")).toBe(true);
+  });
+
+  describe("campaigns", () => {
+    /** A segment holding these people, by their `person` profile key. */
+    async function segmentOf(personIds: number[]): Promise<number> {
+      const rows = (await db().execute(
+        sql`INSERT INTO segments (name, kind, by) VALUES ('spring people', 'manual', 'test') RETURNING id`,
+      )) as unknown as { id: number }[];
+      const segment = Number(rows[0]?.id);
+      for (const id of personIds) {
+        const [key] = (await db().execute(
+          sql`SELECT profile_id FROM profile_keys WHERE kind = 'person' AND value = ${String(id)}`,
+        )) as unknown as { profile_id: number }[];
+        const profile =
+          key?.profile_id ??
+          Number(
+            (
+              (await db().execute(
+                sql`INSERT INTO profiles DEFAULT VALUES RETURNING id`,
+              )) as unknown as { id: number }[]
+            )[0]?.id,
+          );
+        if (!key)
+          await db().execute(sql`INSERT INTO profile_keys (profile_id, kind, value, source)
+            VALUES (${profile}, 'person', ${String(id)}, 'test')`);
+        await db().execute(
+          sql`INSERT INTO segment_members (segment_id, profile_id) VALUES (${segment}, ${profile})`,
+        );
+      }
+      return segment;
+    }
+
+    const spring = (over: Partial<LoopCampaign>): LoopCampaign => ({
+      id: "spring",
+      accounts: { email: SENDER },
+      caps: {},
+      ...over,
+    });
+
+    it("enrolls a campaign's segment first, stamped, then the default on the rest", async () => {
+      const { marketing, build, tied } = await seedAgencies();
+      const [person] = (await db().execute(
+        sql`SELECT id FROM people WHERE company_id = ${marketing.id}`,
+      )) as unknown as { id: number }[];
+      const segment = await segmentOf([Number(person?.id)]);
+      const campaigns = [
+        spring({ offer: "marketing-offer", audience: { segment: String(segment) } }),
+      ];
+      const stats = await topUp(db(), CAMPAIGN, { ...opts(3), campaigns });
+      expect(stats.enrolled).toBe(3);
+      expect(
+        stats.passes
+          .filter((p) => p.stats.enrolled > 0)
+          .map((p) => [p.campaign, p.sequence, p.stats.enrolled]),
+      ).toEqual([
+        ["spring", "marketing-days-0-5", 1],
+        [null, "build-days-0-5", 1],
+        [null, "marketing-days-0-5", 1],
+      ]);
+      const byCampaign = new Map(
+        (await allEnrollments(db())).map((e) => [e.companyId, e.campaign]),
+      );
+      expect(byCampaign.get(marketing.id)).toBe("spring");
+      expect(byCampaign.get(build.id)).toBeNull();
+      expect(byCampaign.get(tied.id)).toBeNull();
+      expect(await queuedOpeners(db(), "agencies", "spring")).toBe(1);
+    });
+
+    it("holds a campaign to its opener cap; the global target still holds", async () => {
+      await seedAgencies();
+      const campaigns = [spring({ caps: { "email.opener": 1 } })];
+      const stats = await topUp(db(), CAMPAIGN, { ...opts(1), campaigns });
+      expect(stats).toMatchObject({ target: 2, enrolled: 2 });
+      const counts = new Map<string, number>();
+      for (const p of stats.passes) {
+        const k = p.campaign ?? "default";
+        counts.set(k, (counts.get(k) ?? 0) + p.stats.enrolled);
+      }
+      expect(Object.fromEntries(counts)).toEqual({ spring: 1, default: 1 });
+    });
+
+    it("leaves out a campaign whose email account is not this niche's sender", async () => {
+      await seedAgencies();
+      const campaigns = [spring({ accounts: { email: "other@elsewhere.test" } })];
+      const stats = await topUp(db(), CAMPAIGN, { ...opts(3), campaigns });
+      expect(stats.passes.every((p) => p.campaign === null)).toBe(true);
+      expect(stats.enrolled).toBe(3);
+    });
   });
 });

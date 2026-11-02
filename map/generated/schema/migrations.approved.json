@@ -1765,6 +1765,11 @@
    "id": "migration:0353_loop_wakes.sql",
    "role": "migration",
    "group": "migrations"
+  },
+  {
+   "id": "migration:0354_enrollment_campaign.sql",
+   "role": "migration",
+   "group": "migrations"
   }
  ],
  "edges": []
