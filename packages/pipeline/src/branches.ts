@@ -221,8 +221,7 @@ export const racesAfter = (body: ShapeBody, node: string): Gate[] =>
   });
 
 /** The campaign a node is in; null is the default. */
-const campaignAt =(body: ShapeBody, node: string): string | null =>
-  body.campaigns?.[node] ?? null;
+const campaignAt = (body: ShapeBody, node: string): string | null => body.campaigns?.[node] ?? null;
 
 /**
  * May a cause no branch can reach open a new branch at `to`? Only in a campaign that holds no
