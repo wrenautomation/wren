@@ -9,6 +9,7 @@
 
 import {
   type Column,
+  DURATION,
   HUB,
   isContentKind,
   kindOfAction,
@@ -18,10 +19,13 @@ import {
   type MetroStation,
   type MetroTrack,
 } from "./metro.js";
+import { campaignsOf, DEFAULT_CAMPAIGN } from "./metro-campaigns.js";
 import {
   type Action,
   type Advance,
   edgeIdOf,
+  type Gate,
+  type GateKind,
   isSource,
   type Job,
   type NodeKind,
@@ -33,6 +37,26 @@ import {
   type SourceNode,
   type StepNode,
 } from "./model.js";
+
+/** The logic kinds the runtime runs (phase 4); the rest stay refused. */
+const GATE_KINDS_RUN: readonly string[] = ["split", "join", "race"];
+const UNIT = { m: "minute", h: "hour", d: "day" } as const;
+/** A logic station touching a content station: content lines run no logic. */
+const isContentLine = (metro: MetroBody, s: MetroStation): boolean => {
+  const kind = new Map(metro.stations.map((x) => [x.id, x.kind] as const));
+  return metro.tracks.some(
+    (t) =>
+      (t.from === s.id && isContentKind(kind.get(t.to) ?? "")) ||
+      (t.to === s.id && isContentKind(kind.get(t.from) ?? "")),
+  );
+};
+
+/** A track's wait ("3d") as a wire wait ("3 days"). */
+export const wireWait = (wait: string): string => {
+  const n = Number(wait.slice(0, -1));
+  const unit = UNIT[wait.slice(-1) as keyof typeof UNIT];
+  return `${n} ${unit}${n === 1 ? "" : "s"}`;
+};
 
 type MetroResult = { ok: true; body: MetroBody; notes: string[] } | { ok: false; errors: string[] };
 
@@ -505,13 +529,19 @@ export function graphOf(metro: MetroBody): ShapeBody {
     } else continue;
     lowered.add(s.id);
   }
+  const gates: Gate[] = [];
+  for (const s of metro.stations) {
+    if (!GATE_KINDS_RUN.includes(s.kind) || isContentLine(metro, s)) continue;
+    gates.push({ id: s.id, kind: s.kind as GateKind, ...(s.rule ? { rule: s.rule } : {}) });
+    lowered.add(s.id);
+  }
   const hub = new Set(metro.stations.filter((s) => s.kind === "hub").map((s) => s.id));
   const outIds = outs.map((l) => l.id);
   const edges: ShapeEdge[] = [];
   for (const t of metro.tracks) {
     if (hub.has(t.to)) continue;
     if (hub.has(t.from)) {
-      if (!lowered.has(t.to)) continue;
+      if (!lowered.has(t.to) || gates.some((g) => g.id === t.to)) continue;
       for (const entry of t.entries ?? outIds) {
         if (!outIds.includes(entry)) continue;
         edges.push({ id: edgeIdOf(entry, t.to), from: entry, to: t.to, kind: "flow" });
@@ -525,9 +555,66 @@ export function graphOf(metro: MetroBody): ShapeBody {
       to: t.to,
       kind: t.kind === "back" ? "loop" : "flow",
       ...(t.label !== undefined ? { label: t.label } : {}),
+      ...(t.cond !== undefined ? { cond: t.cond } : {}),
+      ...(t.wait !== undefined && DURATION.test(t.wait) ? { wait: wireWait(t.wait) } : {}),
     });
   }
-  return { name: metro.name, nodes, edges };
+  // A station's campaign, when not the default: what a branch and a race stop belong to.
+  const campaigns: Record<string, string> = {};
+  for (const c of campaignsOf(metro)) {
+    if (c.id === DEFAULT_CAMPAIGN) continue;
+    for (const id of c.stations) if (lowered.has(id)) campaigns[id] = c.id;
+  }
+  return {
+    name: metro.name,
+    nodes,
+    edges,
+    ...(gates.length ? { gates } : {}),
+    ...(Object.keys(campaigns).length ? { campaigns } : {}),
+  };
+}
+
+/** Off until `journey.move` runs branches (phase 4, slice 3). */
+const RUN_LOGIC = false;
+
+/** Why a split, join or race cannot run (designs/2026-11-02-campaigns.md, phase 4 rules). */
+export function gateWhy(metro: MetroBody, g: MetroStation): string[] {
+  const why: string[] = [];
+  const by = new Map(metro.stations.map((s) => [s.id, s] as const));
+  const ins = metro.tracks.filter((t) => t.to === g.id);
+  const outs = metro.tracks.filter((t) => t.from === g.id);
+  const logic = (id: string) => (LOGIC_KINDS as readonly string[]).includes(by.get(id)?.kind ?? "");
+  if (isContentLine(metro, g)) why.push(`Logic station "${g.id}" is on a content line.`);
+  for (const t of [...ins, ...outs]) {
+    const other = t.from === g.id ? t.to : t.from;
+    if (by.get(other)?.kind === "hub")
+      why.push(`Track "${t.id}" joins the hub to a logic station.`);
+    else if (logic(other)) why.push(`Track "${t.id}" runs logic station to logic station.`);
+    if (t.kind === "back") why.push(`Track "${t.id}" is a back track at a logic station.`);
+  }
+  if (g.kind !== "join" && ins.length !== 1)
+    why.push(
+      `${g.kind === "race" ? "Race" : "Split"} "${g.id}" needs one track in, not ${ins.length}.`,
+    );
+  if (g.kind === "join" && outs.length !== 1)
+    why.push(`Join "${g.id}" needs one track out, not ${outs.length}.`);
+  // The station before a gate leaves only by it, so arriving there is arriving at the gate.
+  for (const t of ins) {
+    const others = metro.tracks.filter(
+      (o) => o.from === t.from && o.id !== t.id && o.kind !== "back",
+    );
+    if (others.length)
+      why.push(`Station "${t.from}" leads into "${g.id}", so it may have no other track out.`);
+  }
+  if (g.kind === "race")
+    for (const t of outs) {
+      const to = by.get(t.to);
+      if (t.wait === undefined && to && !logic(to.id) && !(to.advance ?? []).length)
+        why.push(
+          `Arm "${t.id}" of race "${g.id}" leads to "${t.to}", which has no trigger to win it.`,
+        );
+    }
+  return why;
 }
 
 /**
@@ -542,7 +629,9 @@ export function lowerable(metro: MetroBody): string[] {
     if (s.kind === "exit")
       why.push(`Station "${s.id}" is an exit. The runtime does not run exits yet.`);
     else if ((LOGIC_KINDS as readonly string[]).includes(s.kind)) {
-      why.push(`Station "${s.id}" is a ${s.kind} station. The runtime does not run it yet.`);
+      if (!GATE_KINDS_RUN.includes(s.kind) || !RUN_LOGIC)
+        why.push(`Station "${s.id}" is a ${s.kind} station. The runtime does not run it yet.`);
+      else why.push(...gateWhy(metro, s));
     }
   }
   for (const t of metro.tracks) {

@@ -151,12 +151,31 @@ export interface ShapeEdge {
   to: string;
   kind: EdgeKind;
   label?: string;
+  /** An arm out of a race, won by a cause through it. A label only. */
+  cond?: string;
+  /** The race's clock arm: "3 days", as a wire wait. */
+  wait?: string;
+}
+
+export const GATE_KINDS = ["split", "join", "race"] as const;
+export type GateKind = (typeof GATE_KINDS)[number];
+
+/** A logic station the runtime runs (designs/2026-11-02-campaigns.md, phase 4). Holds nothing. */
+export interface Gate {
+  id: string;
+  kind: GateKind;
+  /** Join: `all`, `any` or `<n> of <m>`. */
+  rule?: string;
 }
 
 export interface ShapeBody {
   name: string;
   nodes: ShapeNode[];
   edges: ShapeEdge[];
+  /** None when the shape has no logic station. */
+  gates?: Gate[];
+  /** Node or gate id → its campaign; the default's are left out. None when no campaign. */
+  campaigns?: Record<string, string>;
 }
 
 /** One step of a journey's trail: a crossing of an edge (null when forced by hand). */
@@ -167,6 +186,8 @@ export interface Crossing {
   to: string;
   /** ISO time. */
   at: string;
+  /** The branch that crossed; none is the first. */
+  branch?: string;
 }
 
 /** A group is a segment: its id as text, a positive whole number. */
@@ -210,6 +231,8 @@ export const flowEdgesFrom = (body: ShapeBody, id: string): ShapeEdge[] =>
 
 /** A node no flow edge leaves: a journey that reaches it is done. */
 export const isEnd = (body: ShapeBody, id: string): boolean => flowEdgesFrom(body, id).length === 0;
+export const gateOf = (body: ShapeBody, id: string): Gate | undefined =>
+  body.gates?.find((g) => g.id === id);
 
 /**
  * Check a new shape. Returns what is wrong, in plain English. Empty means ok.
@@ -246,8 +269,16 @@ export function checkShape(next: ShapeBody, ctx: ShapeCheckContext): string[] {
     checkNode(n, ctx, errors);
   }
 
+  const gates = next.gates ?? [];
+  for (const g of gates) {
+    if (!STAGE_KEY.test(g.id) || g.id.length > NODE_ID_MAX)
+      errors.push(`Gate id "${g.id}" breaks the node id rule.`);
+    if (ids.includes(g.id) || gates.filter((o) => o.id === g.id).length > 1)
+      errors.push(`Gate id "${g.id}" is used twice.`);
+    if (!GATE_KINDS.includes(g.kind)) errors.push(`Gate "${g.id}" has kind "${g.kind}".`);
+  }
   const edgeIds = next.edges.map((e) => e.id);
-  const known = new Set(ids);
+  const known = new Set([...ids, ...gates.map((g) => g.id)]);
   const kindOf = new Map(next.nodes.map((n) => [n.id, n.kind]));
   for (const [i, e] of next.edges.entries()) {
     if (typeof e.id !== "string" || !EDGE_ID.test(e.id)) {
@@ -293,7 +324,7 @@ export function checkShape(next: ShapeBody, ctx: ShapeCheckContext): string[] {
   const flows = real.filter((e) => e.kind === "flow");
 
   const cycle = cycleOf(
-    ids,
+    [...known],
     flows.map((e) => [e.from, e.to]),
   );
   if (cycle) {

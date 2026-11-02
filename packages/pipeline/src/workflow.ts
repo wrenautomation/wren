@@ -23,6 +23,8 @@ export const MOVE_STEP = "journey.move";
 export const STAGE_STEP = "journey.stage";
 /** The port every move node has for a journey event: a manual move. */
 export const JOURNEY_PORT = "journey";
+/** A move node's out port before a race: the race's clock, held on the wire by its wait. */
+export const ARMED_PORT = "armed";
 
 /** The trigger a `group` source listens on: a person entering the group. */
 const SEGMENT_TRIGGER = "trigger.segment";
@@ -115,6 +117,16 @@ export function shapeWorkflow(versionNumber: number, body: ShapeBody, scope: Sco
     triggers.push({ node, tos, kind });
   }
 
+  // A race's clock: from the move into the station before it, held, into its wait arm's station.
+  const clocks = new Map<string, Array<{ to: string; wait: string }>>();
+  for (const g of body.gates ?? []) {
+    if (g.kind !== "race") continue;
+    const before = body.edges.find((e) => e.kind === "flow" && e.to === g.id)?.from;
+    const arm = body.edges.find((e) => e.from === g.id && e.wait);
+    if (!before || !arm?.wait || !takes.has(before) || !takes.has(arm.to)) continue;
+    clocks.set(before, [...(clocks.get(before) ?? []), { to: arm.to, wait: arm.wait }]);
+  }
+
   for (const n of held) {
     const as = movesAs(n);
     const doc = as === "doc";
@@ -134,7 +146,10 @@ export function shapeWorkflow(versionNumber: number, body: ShapeBody, scope: Sco
           : `Moves a person's journey forward to ${n.name}, or opens one there.`,
         icon: "board",
         in: inputs,
-        out: [port("moved", "moves", as)],
+        out: [
+          port("moved", "moves", as),
+          ...(clocks.has(n.id) ? [port(ARMED_PORT, "race clocks", "journey" as EventKind)] : []),
+        ],
         run: MOVE_STEP,
       },
       with: { to: n.id },
@@ -153,6 +168,13 @@ export function shapeWorkflow(versionNumber: number, body: ShapeBody, scope: Sco
     });
     wire(`m_${n.id}.moved`, `s_${n.id}.in`);
     wire(`in.${n.id}`, `m_${n.id}.${JOURNEY_PORT}`);
+    for (const c of clocks.get(n.id) ?? [])
+      wires.push({
+        from: `m_${n.id}.${ARMED_PORT}`,
+        to: `m_${c.to}.${JOURNEY_PORT}`,
+        via: "events",
+        wait: c.wait,
+      });
   }
   for (const t of triggers) {
     nodes.push(t.node);

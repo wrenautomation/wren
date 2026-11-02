@@ -176,3 +176,28 @@ Build order: the `campaign` column and its writer go in together, loop by loop, 
     - A race won by an event stops the campaign's other acts for that person. It fires `journey.raced` with the campaign. Each loop stops the person's rows stamped with it: the email enrollment, the reach contact, the SMS contact. This is "a reply on one channel stops the rest".
   - A race `cond` is free text today, and no event matches it. Recommended: a cond must be an until word (`reply`, `booking`, `answer`, `cancelled`, `logic.ts` `UNTILS`); `checkMetro` refuses others.
   - `condition` and `ab` stay refused by `lowerable`. `graphOf` of a body with no logic station stays the same, node for node (Restate replays `shape.v<n>` in that order).
+- 2026-11-02, phase 4 decision (WA-999). William: "not sure about branches, your call ... as long as you cleanly map your solution to common realistic business cases". Chosen: A, branches on the one row. A race arm is won by the trigger of the station it leads to, not by fixed words.
+  - Why not fixed words (`UNTILS`): real races also wait on a payment, a signature or a form. The station after an arm already names its trigger, so the cond stays a label. `lowerable` refuses an arm whose station has no trigger.
+  - The cases, and how each runs:
+
+  | Case | Shape | How it runs |
+  |---|---|---|
+  | Proposal follow-up | `proposal sent` → race: `replied` (trigger.reply) or wait 3d → `follow-up` | Arrival at `proposal sent` sets the clock. A reply first: the journey moves to `replied`, and the campaign's other acts for this person stop. No reply in 3 days: the clock moves it to `follow-up` |
+  | Multichannel outreach | Loops send on email, LinkedIn and SMS for the campaign; `contacted` → race: `replied` or wait 14d → `nurture` | The loops do the channels, not a split. A reply on any channel wins the race and stops the campaign's email sequence, reach contact and SMS contact for this person |
+  | Invoice reminder | `invoice sent` → race: `paid` (trigger.payment) or wait 7d → `reminder` | Same as the follow-up, with a payment as the event |
+  | Onboarding | `won` → split: `contract signed`, `paid`, `intake form` → join all → `kickoff` | Each event opens its own branch, in any order. `kickoff` moves only when all three are in. A kickoff booked early is refused, unless moved by hand |
+  | Sales-ready | `lead` → split: `guide read`, `webinar attended`, `pricing visited` → join 2 of 3 → `call offered` | The second signal meets the rule. The third branch closes |
+  | Two campaigns | A guide campaign and a webinar campaign, each with its own entry | A person in the guide campaign who signs up for the webinar gets a second branch, keyed by the webinar campaign. Each campaign's numbers count them |
+
+  - Rules:
+    - A branch is `{key, node}`. No branches stored means one branch at `node`, so open journeys carry over as they are. `node` is the front: the branch that moved last. The board, segments and the `mine` view read it.
+    - A cause at a station moves the nearest branch that has a legal path to it. A path may cross a split on any track no other branch took. The other tracks wait at the split as their own branches.
+    - A branch at the station before a join counts as in. A path through a join passes only when the rule is met. Then the join's branches close into one, and so does every other branch that can reach the join. Reach honours the pin: a branch waiting at a split leaves only by its own track, so an inner join never closes an outer split's branch.
+    - A path through a race takes a cond arm by a cause, or the wait arm by the clock only. The clock is a wire wait on the executor (`wire.wait`), set on arrival at the station before the race. A clock that fires after the branch moved on does nothing. The clock event has its own subject (`race:<journey>:<gate>`, so the executor's hold never blocks a real move), names its branch, and never opens a journey.
+    - A cause at a station no branch can reach opens a new branch there, only when the station is in a campaign that holds no branch and a source into it takes the cause. Else it is refused, as today.
+    - Any cause that pulls through a cond arm wins it, also one at a station past the arm's own.
+    - A station with a track into a logic station has no other track out, but a back track. No track runs logic to logic. No logic on a content line.
+    - A race won by an event calls `stopCampaign(person, campaign)`. The worker wires it to each loop: it ends the person's email enrollment, reach contact and SMS contact stamped with that campaign (null for the default). A race in the default campaign stops the default rows too: a person who replied or paid gets no more cold acts.
+    - A publish carries each branch whose node is in the new version. A branch on a node or gate the new version lacks refuses the publish, as a missing node does today.
+    - `now` in the numbers counts the front only. A person with branches in two campaigns shows as now in one. Accepted until a reader needs both.
+    - Gates never show as arrivals: `skipped` and stage events leave them out.

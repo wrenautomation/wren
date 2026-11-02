@@ -595,10 +595,12 @@ describe("lowerable", () => {
     ]) {
       expect(ids.has(gone)).toBe(false);
     }
+    const ends = new Set([...ids, ...(g.gates ?? []).map((x) => x.id)]);
     for (const e of g.edges) {
-      expect(ids.has(e.from)).toBe(true);
-      expect(ids.has(e.to)).toBe(true);
+      expect(ends.has(e.from)).toBe(true);
+      expect(ends.has(e.to)).toBe(true);
     }
+    expect(g.gates?.map((x) => x.id)).toEqual(["wait", "fork", "merge"]);
     expect(g.nodes.find((n) => n.id === "signed")).toMatchObject({
       kind: "offer",
       offer: "offer-a",
