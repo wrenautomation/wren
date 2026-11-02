@@ -157,7 +157,7 @@ export interface ShapeEdge {
   wait?: string;
 }
 
-export const GATE_KINDS = ["split", "join", "race"] as const;
+const GATE_KINDS = ["split", "join", "race"] as const;
 export type GateKind = (typeof GATE_KINDS)[number];
 
 /** A logic station the runtime runs (designs/2026-11-02-campaigns.md, phase 4). Holds nothing. */

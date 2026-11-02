@@ -4,7 +4,7 @@ import { ctx, metroShape } from "../test/fixtures.js";
 import { gateWhy, graphOf, wireWait } from "./convert.js";
 import type { MetroBody, MetroStation, MetroTrack } from "./metro.js";
 import { checkShape } from "./model.js";
-import { shapeWorkflow } from "./workflow.js";
+import { ARMED_PORT, shapeWorkflow } from "./workflow.js";
 
 const at = (id: string, more: Partial<MetroStation> = {}): MetroStation => ({
   id,
@@ -104,14 +104,14 @@ describe("gates in the graph", () => {
   it("wires the race clock from the station before it, held by the wait", () => {
     const w = shapeWorkflow(1, graphOf(logic()), "wren");
     expect(w.wires).toContainEqual({
-      from: "m_sent.armed",
+      from: `m_sent.${ARMED_PORT}`,
       to: "m_follow.journey",
       via: "events",
       wait: "3 days",
     });
     expect(w.nodes.find((n) => n.id === "m_sent")?.own?.out.map((p) => p.id)).toEqual([
       "moved",
-      "armed",
+      ARMED_PORT,
     ]);
     expect(w.nodes.find((n) => n.id === "m_replied")?.own?.out.map((p) => p.id)).toEqual(["moved"]);
     expect(checkWorkflows([w], [])).toEqual([]);
