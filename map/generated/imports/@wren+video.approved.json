@@ -28,7 +28,7 @@
    "parent": "@wren/video",
    "group": "@wren/video",
    "attrs": {
-    "description": "One still of a page, for a promo's screen scene (`@wren/studio` promo)"
+    "description": "One still of a page, for a promo's screen scene (`@wren/starling-studio` promo)"
    }
   },
   {

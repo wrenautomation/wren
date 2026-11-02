@@ -8,7 +8,7 @@ Role: package. Files: 195.
 
 ## Outside packages
 
-node:child_process, node:fs, node:http, node:os, node:path, node:url, node:util
+@base-ui/react@1.8.0, @hookform/resolvers@5.9.1, @material/material-color-utilities@0.3.0, @storybook/addon-vitest@10.6.2, @storybook/react-vite@10.6.2, @tailwindcss/vite@4.3.3, @tanstack/query-async-storage-persister@5.104.0, @tanstack/query-broadcast-client-experimental@5.104.0, @tanstack/query-persist-client-core@5.104.0, @tanstack/react-query@5.104.0, @tanstack/react-table@9.2.4, @tanstack/react-virtual@3.14.13, @vitejs/plugin-react@6.1.1, @vitest/browser-playwright@5.0.1, @wrenautomation/autobrowse@0.8.4, @wrenautomation/orrery@0.28.0, @xyflow/react@12.12.0, agentation@3.1.2, class-variance-authority@0.7.1, cmdk@1.1.1, cn@0.4.0, elkjs@0.12.0, lucide-react@1.51.0, motion@14.0.0, node:child_process, node:fs, node:http, node:os, node:path, node:url, node:util, playwright@1.63.0, react-dom@19.3.0, react-hook-form@7.89.0, react@19.3.0, recharts@3.10.1, simple-icons@16.34.0, sonner@2.0.8, vite@8.3.0, vitest@5.0.1, zod@4.6.5
 
 ## Folders
 

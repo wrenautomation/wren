@@ -183,7 +183,7 @@
    "parent": "@wren/portal",
    "group": "@wren/portal",
    "attrs": {
-    "description": "The portal's screens as JSON, for kestrel's ui layer (kestrel.json `layers.ui.dump`): areas in order, each app (and the name it is exported as) and its pages, each page's template and record or its own file"
+    "description": "The portal's screens as JSON, for kestrel's ui layer (kestrel.json `layers.ui.dump`): areas in order, each app (and the name it is exported as) and its pages, each page's template and record or its own file, `home` (what `/` draws, per workspace), and `api`: each client path's first part → the Restate service"
    }
   },
   {
@@ -192,7 +192,7 @@
    "parent": "@wren/portal",
    "group": "@wren/portal",
    "attrs": {
-    "description": "Comment threads in a real browser, on Marketing → Comments since Engage went outbound only (2026-10-16-outreach-app.md), on a local preview seeded by `packages/content/test/threads-preview.ts`: one person's two comments show as one row, newest first; the row's whole thread draws nested; Reply from Wren on a deep reply sends that comment's ref, once however often it's pressed; and on a phone the thread opens as its own sheet"
+    "description": "Comment threads in a real browser, on Marketing → Comments since Engage went outbound only (2026-10-16-outreach-app.md), on a local preview seeded by `packages/starling/inbound/test/threads-preview.ts`: one person's two comments show as one row, newest first; the row's whole thread draws nested; Reply from Wren on a deep reply sends that comment's ref, once however often it's pressed; and on a phone the thread opens as its own sheet"
    }
   },
   {
@@ -1065,7 +1065,7 @@
    "parent": "@wren/portal",
    "group": "@wren/portal",
    "attrs": {
-    "description": "A made-up birdwatch run as `weaver serve` sends it: Research's story and tree test read it"
+    "description": "A made-up birdwatch run as `birdwatch serve` sends it: Research's story and tree test read it"
    }
   },
   {
@@ -2934,7 +2934,7 @@
    "parent": "@wren/portal",
    "group": "@wren/portal",
    "attrs": {
-    "description": "Research: birdwatch runs read from `weaver serve` on this Mac, live"
+    "description": "Research: birdwatch runs read from `birdwatch serve` on this Mac, live"
    }
   },
   {
@@ -2952,7 +2952,7 @@
    "parent": "@wren/portal",
    "group": "@wren/portal",
    "attrs": {
-    "description": "Research reads `weaver serve` on this Mac (engine `packages/weaver/src/app/serve.ts`): the browser asks 127.0.0.1 itself, so Chrome asks once to let the portal reach the local network"
+    "description": "Research reads `birdwatch serve` on this Mac (engine `packages/birdwatch/src/app/serve.ts`): the browser asks 127.0.0.1 itself, so Chrome asks once to let the portal reach the local network"
    }
   },
   {
@@ -3889,11 +3889,6 @@
   },
   {
    "from": "@wren/portal",
-   "to": "@wren/channel-email",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/portal",
    "to": "@wren/channel-sms",
    "kind": "imports"
   },
@@ -3905,11 +3900,6 @@
   {
    "from": "@wren/portal",
    "to": "@wren/connectors",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/portal",
-   "to": "@wren/content",
    "kind": "imports"
   },
   {
@@ -3954,11 +3944,6 @@
   },
   {
    "from": "@wren/portal",
-   "to": "@wren/outreach",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/portal",
    "to": "@wren/payments",
    "kind": "imports"
   },
@@ -3979,7 +3964,27 @@
   },
   {
    "from": "@wren/portal",
-   "to": "@wren/studio",
+   "to": "@wren/starling-core",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/portal",
+   "to": "@wren/starling-email",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/portal",
+   "to": "@wren/starling-inbound",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/portal",
+   "to": "@wren/starling-outbound",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/portal",
+   "to": "@wren/starling-studio",
    "kind": "imports"
   },
   {
@@ -4059,26 +4064,6 @@
   },
   {
    "from": "@wren/portal/scripts/preview.ts",
-   "to": "@wren/channel-email/src/access/access.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/portal/scripts/preview.ts",
-   "to": "@wren/channel-email/src/access/console-routes.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/portal/scripts/preview.ts",
-   "to": "@wren/channel-email/src/access/console.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/portal/scripts/preview.ts",
-   "to": "@wren/channel-email/src/views.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/portal/scripts/preview.ts",
    "to": "@wren/channel-sms/src/console-routes.ts",
    "kind": "imports"
   },
@@ -4100,26 +4085,6 @@
   {
    "from": "@wren/portal/scripts/preview.ts",
    "to": "@wren/connectors/src/index.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/portal/scripts/preview.ts",
-   "to": "@wren/content/src/connect/index.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/portal/scripts/preview.ts",
-   "to": "@wren/content/src/index.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/portal/scripts/preview.ts",
-   "to": "@wren/content/src/pieces.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/portal/scripts/preview.ts",
-   "to": "@wren/content/src/restate/marketing-console.ts",
    "kind": "imports"
   },
   {
@@ -4307,11 +4272,6 @@
   },
   {
    "from": "@wren/portal/scripts/preview.ts",
-   "to": "@wren/outreach/src/index.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/portal/scripts/preview.ts",
    "to": "@wren/payments/src/console-routes.ts",
    "kind": "imports"
   },
@@ -4387,17 +4347,62 @@
   },
   {
    "from": "@wren/portal/scripts/preview.ts",
-   "to": "@wren/studio/src/change.ts",
+   "to": "@wren/starling-email/src/access/access.ts",
    "kind": "imports"
   },
   {
    "from": "@wren/portal/scripts/preview.ts",
-   "to": "@wren/studio/src/edit.ts",
+   "to": "@wren/starling-email/src/access/console-routes.ts",
    "kind": "imports"
   },
   {
    "from": "@wren/portal/scripts/preview.ts",
-   "to": "@wren/studio/src/stress.ts",
+   "to": "@wren/starling-email/src/access/console.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/portal/scripts/preview.ts",
+   "to": "@wren/starling-email/src/views.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/portal/scripts/preview.ts",
+   "to": "@wren/starling-inbound/src/connect/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/portal/scripts/preview.ts",
+   "to": "@wren/starling-inbound/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/portal/scripts/preview.ts",
+   "to": "@wren/starling-inbound/src/pieces.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/portal/scripts/preview.ts",
+   "to": "@wren/starling-inbound/src/restate/marketing-console.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/portal/scripts/preview.ts",
+   "to": "@wren/starling-outbound/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/portal/scripts/preview.ts",
+   "to": "@wren/starling-studio/src/change.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/portal/scripts/preview.ts",
+   "to": "@wren/starling-studio/src/edit.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/portal/scripts/preview.ts",
+   "to": "@wren/starling-studio/src/stress.ts",
    "kind": "imports"
   },
   {
@@ -4687,11 +4692,6 @@
   },
   {
    "from": "@wren/portal/src/oauth-landing.ts",
-   "to": "@wren/content/src/connect/platforms.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/portal/src/oauth-landing.ts",
    "to": "@wren/portal/src/edge.ts",
    "kind": "imports"
   },
@@ -4702,6 +4702,11 @@
    "attrs": {
     "type": true
    }
+  },
+  {
+   "from": "@wren/portal/src/oauth-landing.ts",
+   "to": "@wren/starling-inbound/src/connect/platforms.ts",
+   "kind": "imports"
   },
   {
    "from": "@wren/portal/src/pay.ts",
@@ -4736,27 +4741,12 @@
   },
   {
    "from": "@wren/portal/src/services.ts",
-   "to": "@wren/channel-email/src/access/console-routes.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/portal/src/services.ts",
-   "to": "@wren/channel-email/src/console-routes.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/portal/src/services.ts",
    "to": "@wren/channel-sms/src/console-routes.ts",
    "kind": "imports"
   },
   {
    "from": "@wren/portal/src/services.ts",
    "to": "@wren/connectors/src/console-routes.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/portal/src/services.ts",
-   "to": "@wren/content/src/connect/console-routes.ts",
    "kind": "imports"
   },
   {
@@ -4837,6 +4827,21 @@
   {
    "from": "@wren/portal/src/services.ts",
    "to": "@wren/sites/src/console-routes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/portal/src/services.ts",
+   "to": "@wren/starling-email/src/access/console-routes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/portal/src/services.ts",
+   "to": "@wren/starling-email/src/console-routes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/portal/src/services.ts",
+   "to": "@wren/starling-inbound/src/connect/console-routes.ts",
    "kind": "imports"
   },
   {
@@ -6490,23 +6495,7 @@
   },
   {
    "from": "@wren/portal/web/src/mocks/data/account.ts",
-   "to": "@wren/channel-email/src/access/console.ts",
-   "kind": "imports",
-   "attrs": {
-    "type": true
-   }
-  },
-  {
-   "from": "@wren/portal/web/src/mocks/data/account.ts",
    "to": "@wren/connectors/src/index.ts",
-   "kind": "imports",
-   "attrs": {
-    "type": true
-   }
-  },
-  {
-   "from": "@wren/portal/web/src/mocks/data/account.ts",
-   "to": "@wren/content/src/connect/index.ts",
    "kind": "imports",
    "attrs": {
     "type": true
@@ -6529,6 +6518,22 @@
    "from": "@wren/portal/web/src/mocks/data/account.ts",
    "to": "@wren/portal/web/src/mocks/data/shell.ts",
    "kind": "imports"
+  },
+  {
+   "from": "@wren/portal/web/src/mocks/data/account.ts",
+   "to": "@wren/starling-email/src/access/console.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/portal/web/src/mocks/data/account.ts",
+   "to": "@wren/starling-inbound/src/connect/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
   },
   {
    "from": "@wren/portal/web/src/mocks/data/apps.ts",
@@ -6875,14 +6880,6 @@
   },
   {
    "from": "@wren/portal/web/src/mocks/data/marketing.ts",
-   "to": "@wren/content/src/pieces.ts",
-   "kind": "imports",
-   "attrs": {
-    "type": true
-   }
-  },
-  {
-   "from": "@wren/portal/web/src/mocks/data/marketing.ts",
    "to": "@wren/portal/web/src/mocks/data/shell.ts",
    "kind": "imports"
   },
@@ -6894,6 +6891,14 @@
   {
    "from": "@wren/portal/web/src/mocks/data/marketing.ts",
    "to": "@wren/portal/web/src/modules/marketing/plan.tsx",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/portal/web/src/mocks/data/marketing.ts",
+   "to": "@wren/starling-inbound/src/pieces.ts",
    "kind": "imports",
    "attrs": {
     "type": true
@@ -7539,14 +7544,6 @@
   },
   {
    "from": "@wren/portal/web/src/modules/account/Mail.tsx",
-   "to": "@wren/channel-email/src/access/console.ts",
-   "kind": "imports",
-   "attrs": {
-    "type": true
-   }
-  },
-  {
-   "from": "@wren/portal/web/src/modules/account/Mail.tsx",
    "to": "@wren/portal/web/src/api.ts",
    "kind": "imports"
   },
@@ -7577,6 +7574,14 @@
    "from": "@wren/portal/web/src/modules/account/Mail.tsx",
    "to": "@wren/portal/web/src/page-rows.tsx",
    "kind": "imports"
+  },
+  {
+   "from": "@wren/portal/web/src/modules/account/Mail.tsx",
+   "to": "@wren/starling-email/src/access/console.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
   },
   {
    "from": "@wren/portal/web/src/modules/account/Mail.tsx",
@@ -7659,14 +7664,6 @@
   },
   {
    "from": "@wren/portal/web/src/modules/account/OwnSocial.tsx",
-   "to": "@wren/content/src/connect/index.ts",
-   "kind": "imports",
-   "attrs": {
-    "type": true
-   }
-  },
-  {
-   "from": "@wren/portal/web/src/modules/account/OwnSocial.tsx",
    "to": "@wren/portal/web/src/api.ts",
    "kind": "imports"
   },
@@ -7674,6 +7671,14 @@
    "from": "@wren/portal/web/src/modules/account/OwnSocial.tsx",
    "to": "@wren/portal/web/src/modules/work/bits.tsx",
    "kind": "imports"
+  },
+  {
+   "from": "@wren/portal/web/src/modules/account/OwnSocial.tsx",
+   "to": "@wren/starling-inbound/src/connect/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
   },
   {
    "from": "@wren/portal/web/src/modules/account/OwnSocial.tsx",
@@ -7748,14 +7753,6 @@
   },
   {
    "from": "@wren/portal/web/src/modules/account/Social.tsx",
-   "to": "@wren/content/src/connect/index.ts",
-   "kind": "imports",
-   "attrs": {
-    "type": true
-   }
-  },
-  {
-   "from": "@wren/portal/web/src/modules/account/Social.tsx",
    "to": "@wren/portal/web/src/api.ts",
    "kind": "imports"
   },
@@ -7796,6 +7793,14 @@
    "from": "@wren/portal/web/src/modules/account/Social.tsx",
    "to": "@wren/portal/web/src/page-rows.tsx",
    "kind": "imports"
+  },
+  {
+   "from": "@wren/portal/web/src/modules/account/Social.tsx",
+   "to": "@wren/starling-inbound/src/connect/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
   },
   {
    "from": "@wren/portal/web/src/modules/account/Social.tsx",
@@ -8137,16 +8142,16 @@
   },
   {
    "from": "@wren/portal/web/src/modules/account/social-bits.tsx",
-   "to": "@wren/content/src/connect/index.ts",
+   "to": "@wren/portal/web/src/page-rows.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/portal/web/src/modules/account/social-bits.tsx",
+   "to": "@wren/starling-inbound/src/connect/index.ts",
    "kind": "imports",
    "attrs": {
     "type": true
    }
-  },
-  {
-   "from": "@wren/portal/web/src/modules/account/social-bits.tsx",
-   "to": "@wren/portal/web/src/page-rows.tsx",
-   "kind": "imports"
   },
   {
    "from": "@wren/portal/web/src/modules/account/social-bits.tsx",
@@ -8260,14 +8265,6 @@
   },
   {
    "from": "@wren/portal/web/src/modules/calendar/recorder.tsx",
-   "to": "@wren/channel-email/src/calls/index.ts",
-   "kind": "imports",
-   "attrs": {
-    "type": true
-   }
-  },
-  {
-   "from": "@wren/portal/web/src/modules/calendar/recorder.tsx",
    "to": "@wren/core/src/model-labels.ts",
    "kind": "imports"
   },
@@ -8298,6 +8295,14 @@
    "from": "@wren/portal/web/src/modules/calendar/recorder.tsx",
    "to": "@wren/portal/web/src/player/index.ts",
    "kind": "imports"
+  },
+  {
+   "from": "@wren/portal/web/src/modules/calendar/recorder.tsx",
+   "to": "@wren/starling-email/src/calls/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
   },
   {
    "from": "@wren/portal/web/src/modules/calendar/recorder.tsx",
@@ -8379,14 +8384,6 @@
   },
   {
    "from": "@wren/portal/web/src/modules/calls/brief.tsx",
-   "to": "@wren/channel-email/src/calls/index.ts",
-   "kind": "imports",
-   "attrs": {
-    "type": true
-   }
-  },
-  {
-   "from": "@wren/portal/web/src/modules/calls/brief.tsx",
    "to": "@wren/core/src/calls.ts",
    "kind": "imports"
   },
@@ -8399,6 +8396,14 @@
    "from": "@wren/portal/web/src/modules/calls/brief.tsx",
    "to": "@wren/portal/web/src/modules/calendar/recorder.tsx",
    "kind": "imports"
+  },
+  {
+   "from": "@wren/portal/web/src/modules/calls/brief.tsx",
+   "to": "@wren/starling-email/src/calls/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
   },
   {
    "from": "@wren/portal/web/src/modules/calls/brief.tsx",
@@ -9620,16 +9625,6 @@
   },
   {
    "from": "@wren/portal/web/src/modules/marketing/carousel-box.tsx",
-   "to": "@wren/content/src/write.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/portal/web/src/modules/marketing/carousel-box.tsx",
-   "to": "@wren/core/src/content/slides.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/portal/web/src/modules/marketing/carousel-box.tsx",
    "to": "@wren/portal/web/src/modules/marketing/desk.ts",
    "kind": "imports"
   },
@@ -9646,6 +9641,16 @@
   {
    "from": "@wren/portal/web/src/modules/marketing/carousel-box.tsx",
    "to": "@wren/portal/web/src/modules/work/bits.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/portal/web/src/modules/marketing/carousel-box.tsx",
+   "to": "@wren/starling-core/src/slides.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/portal/web/src/modules/marketing/carousel-box.tsx",
+   "to": "@wren/starling-inbound/src/write.ts",
    "kind": "imports"
   },
   {
@@ -9744,16 +9749,16 @@
   },
   {
    "from": "@wren/portal/web/src/modules/marketing/dms.tsx",
-   "to": "@wren/outreach/src/sequences.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/portal/web/src/modules/marketing/dms.tsx",
    "to": "@wren/portal/web/src/module.ts",
    "kind": "imports",
    "attrs": {
     "type": true
    }
+  },
+  {
+   "from": "@wren/portal/web/src/modules/marketing/dms.tsx",
+   "to": "@wren/starling-outbound/src/sequences.ts",
+   "kind": "imports"
   },
   {
    "from": "@wren/portal/web/src/modules/marketing/dms.tsx",
@@ -9795,11 +9800,6 @@
   },
   {
    "from": "@wren/portal/web/src/modules/marketing/drafts.ts",
-   "to": "@wren/core/src/content/tiktok.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/portal/web/src/modules/marketing/drafts.ts",
    "to": "@wren/core/src/pass-reasons.ts",
    "kind": "imports"
   },
@@ -9826,6 +9826,11 @@
   {
    "from": "@wren/portal/web/src/modules/marketing/drafts.ts",
    "to": "@wren/portal/web/src/modules/marketing/slides.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/portal/web/src/modules/marketing/drafts.ts",
+   "to": "@wren/starling-core/src/tiktok.ts",
    "kind": "imports"
   },
   {
@@ -9973,22 +9978,6 @@
   },
   {
    "from": "@wren/portal/web/src/modules/marketing/fields.tsx",
-   "to": "@wren/core/src/content/shapes.ts",
-   "kind": "imports",
-   "attrs": {
-    "type": true
-   }
-  },
-  {
-   "from": "@wren/portal/web/src/modules/marketing/fields.tsx",
-   "to": "@wren/core/src/content/tiktok.ts",
-   "kind": "imports",
-   "attrs": {
-    "type": true
-   }
-  },
-  {
-   "from": "@wren/portal/web/src/modules/marketing/fields.tsx",
    "to": "@wren/portal/web/src/api.ts",
    "kind": "imports"
   },
@@ -10045,12 +10034,28 @@
   },
   {
    "from": "@wren/portal/web/src/modules/marketing/fields.tsx",
+   "to": "@wren/starling-core/src/shapes.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/portal/web/src/modules/marketing/fields.tsx",
+   "to": "@wren/starling-core/src/tiktok.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/portal/web/src/modules/marketing/fields.tsx",
    "to": "@wren/ui/src/index.ts",
    "kind": "imports"
   },
   {
    "from": "@wren/portal/web/src/modules/marketing/finish-caption.tsx",
-   "to": "@wren/studio/src/finish.ts",
+   "to": "@wren/starling-studio/src/finish.ts",
    "kind": "imports"
   },
   {
@@ -10068,12 +10073,12 @@
   },
   {
    "from": "@wren/portal/web/src/modules/marketing/finish-data.ts",
-   "to": "@wren/studio/src/finish.ts",
+   "to": "@wren/starling-studio/src/finish.ts",
    "kind": "imports"
   },
   {
    "from": "@wren/portal/web/src/modules/marketing/finish-data.ts",
-   "to": "@wren/studio/src/schema.ts",
+   "to": "@wren/starling-studio/src/schema.ts",
    "kind": "imports",
    "attrs": {
     "type": true
@@ -10091,7 +10096,7 @@
   },
   {
    "from": "@wren/portal/web/src/modules/marketing/finish-panels.tsx",
-   "to": "@wren/studio/src/finish.ts",
+   "to": "@wren/starling-studio/src/finish.ts",
    "kind": "imports"
   },
   {
@@ -10126,7 +10131,7 @@
   },
   {
    "from": "@wren/portal/web/src/modules/marketing/finish-stage.tsx",
-   "to": "@wren/studio/src/finish.ts",
+   "to": "@wren/starling-studio/src/finish.ts",
    "kind": "imports"
   },
   {
@@ -10151,12 +10156,12 @@
   },
   {
    "from": "@wren/portal/web/src/modules/marketing/finish-timeline.tsx",
-   "to": "@wren/studio/src/finish.ts",
+   "to": "@wren/starling-studio/src/finish.ts",
    "kind": "imports"
   },
   {
    "from": "@wren/portal/web/src/modules/marketing/finish-timeline.tsx",
-   "to": "@wren/studio/src/schema.ts",
+   "to": "@wren/starling-studio/src/schema.ts",
    "kind": "imports",
    "attrs": {
     "type": true
@@ -10217,17 +10222,17 @@
   },
   {
    "from": "@wren/portal/web/src/modules/marketing/finish.tsx",
-   "to": "@wren/studio/src/cuts.ts",
+   "to": "@wren/starling-studio/src/cuts.ts",
    "kind": "imports"
   },
   {
    "from": "@wren/portal/web/src/modules/marketing/finish.tsx",
-   "to": "@wren/studio/src/finish.ts",
+   "to": "@wren/starling-studio/src/finish.ts",
    "kind": "imports"
   },
   {
    "from": "@wren/portal/web/src/modules/marketing/finish.tsx",
-   "to": "@wren/studio/src/schema.ts",
+   "to": "@wren/starling-studio/src/schema.ts",
    "kind": "imports",
    "attrs": {
     "type": true
@@ -10593,19 +10598,6 @@
   },
   {
    "from": "@wren/portal/web/src/modules/marketing/pieces.tsx",
-   "to": "@wren/content/src/pieces.ts",
-   "kind": "imports",
-   "attrs": {
-    "type": true
-   }
-  },
-  {
-   "from": "@wren/portal/web/src/modules/marketing/pieces.tsx",
-   "to": "@wren/content/src/write.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/portal/web/src/modules/marketing/pieces.tsx",
    "to": "@wren/portal/web/src/api.ts",
    "kind": "imports"
   },
@@ -10639,17 +10631,25 @@
   },
   {
    "from": "@wren/portal/web/src/modules/marketing/pieces.tsx",
+   "to": "@wren/starling-inbound/src/pieces.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/portal/web/src/modules/marketing/pieces.tsx",
+   "to": "@wren/starling-inbound/src/write.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/portal/web/src/modules/marketing/pieces.tsx",
    "to": "@wren/ui/src/index.ts",
    "kind": "imports"
   },
   {
    "from": "@wren/portal/web/src/modules/marketing/places.ts",
    "to": "@wren/ui/src/index.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/portal/web/src/modules/marketing/plan.tsx",
-   "to": "@wren/content/src/write.ts",
    "kind": "imports"
   },
   {
@@ -10695,6 +10695,11 @@
   },
   {
    "from": "@wren/portal/web/src/modules/marketing/plan.tsx",
+   "to": "@wren/starling-inbound/src/write.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/portal/web/src/modules/marketing/plan.tsx",
    "to": "@wren/ui/src/index.ts",
    "kind": "imports"
   },
@@ -10714,11 +10719,6 @@
   {
    "from": "@wren/portal/web/src/modules/marketing/proof.tsx",
    "to": "@wren/ui/src/index.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/portal/web/src/modules/marketing/reports.tsx",
-   "to": "@wren/content/src/client-reports/tiles.ts",
    "kind": "imports"
   },
   {
@@ -10744,6 +10744,11 @@
   {
    "from": "@wren/portal/web/src/modules/marketing/reports.tsx",
    "to": "@wren/portal/web/src/modules/work/bits.tsx",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/portal/web/src/modules/marketing/reports.tsx",
+   "to": "@wren/starling-inbound/src/client-reports/tiles.ts",
    "kind": "imports"
   },
   {
@@ -10787,14 +10792,6 @@
   },
   {
    "from": "@wren/portal/web/src/modules/marketing/shape-preview.tsx",
-   "to": "@wren/core/src/content/shapes.ts",
-   "kind": "imports",
-   "attrs": {
-    "type": true
-   }
-  },
-  {
-   "from": "@wren/portal/web/src/modules/marketing/shape-preview.tsx",
    "to": "@wren/portal/web/src/modules/marketing/fields.tsx",
    "kind": "imports",
    "attrs": {
@@ -10813,12 +10810,15 @@
   },
   {
    "from": "@wren/portal/web/src/modules/marketing/shape-preview.tsx",
-   "to": "@wren/ui/src/index.ts",
-   "kind": "imports"
+   "to": "@wren/starling-core/src/shapes.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
   },
   {
-   "from": "@wren/portal/web/src/modules/marketing/siblings.tsx",
-   "to": "@wren/content/src/write.ts",
+   "from": "@wren/portal/web/src/modules/marketing/shape-preview.tsx",
+   "to": "@wren/ui/src/index.ts",
    "kind": "imports"
   },
   {
@@ -10836,17 +10836,22 @@
   },
   {
    "from": "@wren/portal/web/src/modules/marketing/siblings.tsx",
+   "to": "@wren/starling-inbound/src/write.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/portal/web/src/modules/marketing/siblings.tsx",
    "to": "@wren/ui/src/index.ts",
    "kind": "imports"
   },
   {
    "from": "@wren/portal/web/src/modules/marketing/slides.tsx",
-   "to": "@wren/core/src/content/slides.ts",
+   "to": "@wren/portal/web/src/modules/marketing/draft-patch.ts",
    "kind": "imports"
   },
   {
    "from": "@wren/portal/web/src/modules/marketing/slides.tsx",
-   "to": "@wren/portal/web/src/modules/marketing/draft-patch.ts",
+   "to": "@wren/starling-core/src/slides.ts",
    "kind": "imports"
   },
   {
@@ -10932,7 +10937,7 @@
   },
   {
    "from": "@wren/portal/web/src/modules/marketing/storyboard.tsx",
-   "to": "@wren/studio/src/change.ts",
+   "to": "@wren/starling-studio/src/change.ts",
    "kind": "imports",
    "attrs": {
     "type": true
@@ -10940,12 +10945,12 @@
   },
   {
    "from": "@wren/portal/web/src/modules/marketing/storyboard.tsx",
-   "to": "@wren/studio/src/finish.ts",
+   "to": "@wren/starling-studio/src/finish.ts",
    "kind": "imports"
   },
   {
    "from": "@wren/portal/web/src/modules/marketing/storyboard.tsx",
-   "to": "@wren/studio/src/schema.ts",
+   "to": "@wren/starling-studio/src/schema.ts",
    "kind": "imports",
    "attrs": {
     "type": true
@@ -10953,7 +10958,7 @@
   },
   {
    "from": "@wren/portal/web/src/modules/marketing/storyboard.tsx",
-   "to": "@wren/studio/src/storyboard.ts",
+   "to": "@wren/starling-studio/src/storyboard.ts",
    "kind": "imports",
    "attrs": {
     "type": true
@@ -10966,17 +10971,7 @@
   },
   {
    "from": "@wren/portal/web/src/modules/marketing/studio-common.ts",
-   "to": "@wren/content/src/write.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/portal/web/src/modules/marketing/studio-common.ts",
    "to": "@wren/core/src/content/index.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/portal/web/src/modules/marketing/studio-common.ts",
-   "to": "@wren/core/src/content/thread.ts",
    "kind": "imports"
   },
   {
@@ -10999,6 +10994,16 @@
   },
   {
    "from": "@wren/portal/web/src/modules/marketing/studio-common.ts",
+   "to": "@wren/starling-core/src/thread.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/portal/web/src/modules/marketing/studio-common.ts",
+   "to": "@wren/starling-inbound/src/write.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/portal/web/src/modules/marketing/studio-common.ts",
    "to": "@wren/ui/src/index.ts",
    "kind": "imports",
    "attrs": {
@@ -11007,21 +11012,11 @@
   },
   {
    "from": "@wren/portal/web/src/modules/marketing/studio-compose.tsx",
-   "to": "@wren/content/src/write.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/portal/web/src/modules/marketing/studio-compose.tsx",
    "to": "@wren/core/src/content/index.ts",
    "kind": "imports",
    "attrs": {
     "type": true
    }
-  },
-  {
-   "from": "@wren/portal/web/src/modules/marketing/studio-compose.tsx",
-   "to": "@wren/core/src/content/thread.ts",
-   "kind": "imports"
   },
   {
    "from": "@wren/portal/web/src/modules/marketing/studio-compose.tsx",
@@ -11077,6 +11072,16 @@
   {
    "from": "@wren/portal/web/src/modules/marketing/studio-compose.tsx",
    "to": "@wren/portal/web/src/route.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/portal/web/src/modules/marketing/studio-compose.tsx",
+   "to": "@wren/starling-core/src/thread.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/portal/web/src/modules/marketing/studio-compose.tsx",
+   "to": "@wren/starling-inbound/src/write.ts",
    "kind": "imports"
   },
   {
@@ -11153,16 +11158,6 @@
   },
   {
    "from": "@wren/portal/web/src/modules/marketing/studio-waiting.tsx",
-   "to": "@wren/content/src/write.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/portal/web/src/modules/marketing/studio-waiting.tsx",
-   "to": "@wren/core/src/content/thread.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/portal/web/src/modules/marketing/studio-waiting.tsx",
    "to": "@wren/pipeline/src/metro.ts",
    "kind": "imports",
    "attrs": {
@@ -11222,6 +11217,16 @@
   {
    "from": "@wren/portal/web/src/modules/marketing/studio-waiting.tsx",
    "to": "@wren/portal/web/src/route.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/portal/web/src/modules/marketing/studio-waiting.tsx",
+   "to": "@wren/starling-core/src/thread.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/portal/web/src/modules/marketing/studio-waiting.tsx",
+   "to": "@wren/starling-inbound/src/write.ts",
    "kind": "imports"
   },
   {
@@ -11328,7 +11333,7 @@
   },
   {
    "from": "@wren/portal/web/src/modules/marketing/thread-context.tsx",
-   "to": "@wren/outreach/src/index.ts",
+   "to": "@wren/starling-outbound/src/index.ts",
    "kind": "imports",
    "attrs": {
     "type": true
@@ -11341,7 +11346,7 @@
   },
   {
    "from": "@wren/portal/web/src/modules/marketing/thread.tsx",
-   "to": "@wren/core/src/content/thread.ts",
+   "to": "@wren/starling-core/src/thread.ts",
    "kind": "imports"
   },
   {
@@ -11371,12 +11376,12 @@
   },
   {
    "from": "@wren/portal/web/src/modules/marketing/tiktok.tsx",
-   "to": "@wren/core/src/content/tiktok.ts",
+   "to": "@wren/portal/web/src/modules/work/bits.tsx",
    "kind": "imports"
   },
   {
    "from": "@wren/portal/web/src/modules/marketing/tiktok.tsx",
-   "to": "@wren/portal/web/src/modules/work/bits.tsx",
+   "to": "@wren/starling-core/src/tiktok.ts",
    "kind": "imports"
   },
   {
@@ -11419,7 +11424,7 @@
   },
   {
    "from": "@wren/portal/web/src/modules/marketing/video-shelf-state.ts",
-   "to": "@wren/content/src/pieces.ts",
+   "to": "@wren/starling-inbound/src/pieces.ts",
    "kind": "imports",
    "attrs": {
     "type": true
@@ -11534,7 +11539,7 @@
   },
   {
    "from": "@wren/portal/web/src/modules/marketing/videos.tsx",
-   "to": "@wren/studio/src/storyboard.ts",
+   "to": "@wren/starling-studio/src/storyboard.ts",
    "kind": "imports",
    "attrs": {
     "type": true

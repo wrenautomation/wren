@@ -1,0 +1,4636 @@
+{
+ "layer": "routes",
+ "nodes": [
+  {
+   "id": "route:CommentProofs/check",
+   "role": "route",
+   "parent": "service:CommentProofs",
+   "group": "@wren/starling-outbound",
+   "attrs": {
+    "deps": [
+     "db",
+     "keep",
+     "linkedinAccount",
+     "notifier",
+     "sitesFor"
+    ],
+    "input": "ProofCheck",
+    "output": "Proof",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/accounts",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/starling-outbound",
+   "attrs": {
+    "deps": [
+     "db",
+     "policy"
+    ],
+    "input": "{ client?: string | null } | null",
+    "output": "AccountView[]",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/actOnPost",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/starling-outbound",
+   "attrs": {
+    "deps": [
+     "clients",
+     "db",
+     "live",
+     "sitesFor"
+    ],
+    "input": "{ id: number; act: \"like\" | \"follow\" }",
+    "output": "{ id: number; act: \"like\" | \"follow\" }",
+    "reaches": [
+     "SiteClient.call(_, !GET)"
+    ],
+    "tags": [
+     "effect:sends"
+    ],
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/addAccount",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/starling-outbound",
+   "attrs": {
+    "deps": [
+     "db",
+     "policy"
+    ],
+    "input": "{ platform: string; account: string }",
+    "output": "AccountView",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/addContact",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/starling-outbound",
+   "attrs": {
+    "deps": [
+     "db"
+    ],
+    "input": "{ platform: string; handle: string; name?: string | null; niche?: string | null }",
+    "output": "ReachContact",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/answerComment",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/starling-outbound",
+   "attrs": {
+    "input": "{ id: number; body?: string | null; again?: boolean }",
+    "output": "{ ref: string | null; }",
+    "tags": [
+     "effect:sends"
+    ],
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/approveInvites",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/starling-outbound",
+   "attrs": {
+    "deps": [
+     "db"
+    ],
+    "input": "{ ids: number[]; note?: string | null; viewer?: unknown }",
+    "output": "{ approved: number[] }",
+    "tags": [
+     "effect:sends"
+    ],
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/armComment",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/starling-outbound",
+   "attrs": {
+    "deps": [
+     "db"
+    ],
+    "input": "{ id: number; body?: string | null }",
+    "output": "{ armed: boolean }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/commentPost",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/starling-outbound",
+   "attrs": {
+    "deps": [
+     "clients",
+     "db",
+     "live",
+     "sitesFor"
+    ],
+    "input": "{ id: number; body?: string | null; at?: string | null; again?: boolean }",
+    "output": "{ commented: number; held?: string }",
+    "reaches": [
+     "SiteClient.call(_, !GET)",
+     "sendOnce",
+     "withSendKey"
+    ],
+    "tags": [
+     "effect:sends"
+    ],
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/commentThread",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/starling-outbound",
+   "attrs": {
+    "deps": [
+     "clock",
+     "db",
+     "live",
+     "sitesFor"
+    ],
+    "input": "{ id: string; body?: string | null; at?: string | null; again?: boolean }",
+    "output": "{ ref: string | null; held?: string }",
+    "reaches": [
+     "SiteClient.call(_, !GET)",
+     "sendOnce",
+     "withSendKey"
+    ],
+    "tags": [
+     "effect:sends"
+    ],
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/contacts",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/starling-outbound",
+   "attrs": {
+    "deps": [
+     "db"
+    ],
+    "input": "{ platform?: string | null; state?: ContactState | null; limit?: number }",
+    "output": "ReachContact[]",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/dmComment",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/starling-outbound",
+   "attrs": {
+    "deps": [
+     "db",
+     "live"
+    ],
+    "input": "{ id: number; body: string; again?: boolean }",
+    "output": "{ contactId: number; messageId: number }",
+    "reaches": [
+     "sendOnce",
+     "withSendKey"
+    ],
+    "tags": [
+     "effect:sends"
+    ],
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/draftModels",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/starling-outbound",
+   "attrs": {
+    "deps": [
+     "clients",
+     "db",
+     "drafts",
+     "live"
+    ],
+    "input": "{ since?: string | null }",
+    "output": "Scorecard",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/draftPerson",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/starling-outbound",
+   "attrs": {
+    "deps": [
+     "db",
+     "drafts",
+     "live",
+     "senderName"
+    ],
+    "input": "{ id: string }",
+    "output": "{ contactId: number; draft: string | null }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/dropComment",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/starling-outbound",
+   "attrs": {
+    "deps": [
+     "db"
+    ],
+    "input": "{ id: number; reason?: unknown; note?: unknown }",
+    "output": "void",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/enrich",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/starling-outbound",
+   "attrs": {
+    "deps": [
+     "db",
+     "sitesFor"
+    ],
+    "input": "{ contactId: number; accountId?: string | null }",
+    "output": "Profile",
+    "reaches": [
+     "SiteClient.call(_, !GET)"
+    ],
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/enroll",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/starling-outbound",
+   "attrs": {
+    "deps": [
+     "db",
+     "heldNiches",
+     "live",
+     "senderName",
+     "sequences"
+    ],
+    "input": "{ sequence: string; limit?: number; contactIds?: number[]; enrichedOnly?: boolean; niche?: string | null; }",
+    "output": "EnrollStats",
+    "tags": [
+     "effect:sends"
+    ],
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/find",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/starling-outbound",
+   "attrs": {
+    "deps": [
+     "db",
+     "heldNiches",
+     "sitesFor"
+    ],
+    "input": "{ accountId: string; query: string; limit?: number; cursor?: string | null; niche?: string | null; }",
+    "output": "{ found: Found; added: AddStats }",
+    "reaches": [
+     "SiteClient.call(_, !GET)"
+    ],
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/findCreators",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/starling-outbound",
+   "attrs": {
+    "deps": [
+     "clients",
+     "db",
+     "sitesFor"
+    ],
+    "input": "{ q: string; only?: CreatorSite[] }",
+    "output": "{ hits: (import(\"../creator-search.js\").CreatorHit & { followed: boolean; })[]; failed: { site: CreatorSite; why: string; }[]; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/followPerson",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/starling-outbound",
+   "attrs": {
+    "deps": [
+     "clients",
+     "db",
+     "live",
+     "sitesFor"
+    ],
+    "input": "{ id: string }",
+    "output": "{ platform: string; handle: string }",
+    "reaches": [
+     "SiteClient.call(_, !GET)"
+    ],
+    "tags": [
+     "effect:sends"
+    ],
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/health",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/starling-outbound",
+   "attrs": {
+    "deps": [
+     "db",
+     "policy",
+     "sitesFor"
+    ],
+    "input": "{ id: string }",
+    "output": "AccountView",
+    "reaches": [
+     "SiteClient.call(_, !GET)"
+    ],
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/invitePerson",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/starling-outbound",
+   "attrs": {
+    "deps": [
+     "db"
+    ],
+    "input": "{ id: string }",
+    "output": "{ contactId: number }",
+    "tags": [
+     "effect:sends"
+    ],
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/invites",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/starling-outbound",
+   "attrs": {
+    "deps": [
+     "clients",
+     "db",
+     "drafts",
+     "heldNiches",
+     "live",
+     "policy",
+     "senderName",
+     "sequences",
+     "sitesFor"
+    ],
+    "input": "void",
+    "output": "InvitesPass | { off: string }",
+    "reaches": [
+     "SiteClient.call(_, !GET)"
+    ],
+    "tags": [
+     "effect:sends"
+    ],
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/liftPass",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/starling-outbound",
+   "attrs": {
+    "deps": [
+     "db"
+    ],
+    "input": "{ platform: string; handle: string }",
+    "output": "{ lifted: boolean; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/markRead",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/starling-outbound",
+   "attrs": {
+    "deps": [
+     "db"
+    ],
+    "input": "{ contactId: number }",
+    "output": "void",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/messageFrom",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/starling-outbound",
+   "attrs": {
+    "deps": [
+     "db",
+     "live"
+    ],
+    "input": "{ id: string; body: string }",
+    "output": "{ contactId: number; sent: \"dm\" | \"invite\" }",
+    "tags": [
+     "effect:sends"
+    ],
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/messagePerson",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/starling-outbound",
+   "attrs": {
+    "deps": [
+     "db",
+     "live"
+    ],
+    "input": "{ id: string; body?: string | null }",
+    "output": "{ contactId: number; messageId: number }",
+    "tags": [
+     "effect:sends"
+    ],
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/movePlace",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/starling-outbound",
+   "attrs": {
+    "deps": [
+     "db"
+    ],
+    "input": "{ subreddit: string; account: string }",
+    "output": "void",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/passOn",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/starling-outbound",
+   "attrs": {
+    "deps": [
+     "db"
+    ],
+    "input": "{ ids: string[]; reason: PassReason; note?: string | null }",
+    "output": "{ people: number; closed: number }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/passes",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/starling-outbound",
+   "attrs": {
+    "deps": [
+     "db"
+    ],
+    "input": "void",
+    "output": "{ id: number; platform: string; handle: string; name: string; reason: \"not_now\" | \"not_lead\" | \"not_worth\" | \"spam\" | \"competitor\" | \"rude\"; note: string | null; item: string | null; by: string | null; until: Date | null; liftedAt: Date | null; createdAt: Date; }[]",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/paste",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/starling-outbound",
+   "attrs": {
+    "deps": [
+     "clients",
+     "clock",
+     "db",
+     "drafts",
+     "postedAt",
+     "sitesFor"
+    ],
+    "hosts": [
+     "www.reddit.com"
+    ],
+    "input": "{ url: string }",
+    "output": "Pasted",
+    "reaches": [
+     "SiteClient.call(_, !GET)"
+    ],
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/pick",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/starling-outbound",
+   "attrs": {
+    "deps": [
+     "clients",
+     "clock",
+     "db",
+     "drafts",
+     "postedAt",
+     "sitesFor"
+    ],
+    "hosts": [
+     "www.reddit.com"
+    ],
+    "input": "{ id: string; act: \"reply\" | \"follow\" }",
+    "output": "Pasted",
+    "reaches": [
+     "SiteClient.call(_, !GET)"
+    ],
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/posts",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/starling-outbound",
+   "attrs": {
+    "deps": [
+     "db"
+    ],
+    "input": "{ state?: string | null; limit?: number | null }",
+    "output": "{ id: number; platform: \"youtube\" | \"linkedin\" | \"x\" | \"tiktok\" | \"instagram\" | \"threads\"; state: \"skipped\" | \"dropped\" | \"found\" | \"queued\" | \"commented\"; author: string; fit: number | null; why: string | null; draft: string | null; url: string; foundBy: string; }[]",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/postsNow",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/starling-outbound",
+   "attrs": {
+    "deps": [
+     "clients",
+     "db",
+     "drafts",
+     "live",
+     "postedAt",
+     "sitesFor"
+    ],
+    "input": "void",
+    "output": "PostsStats[]",
+    "reaches": [
+     "SiteClient.call(_, !GET)"
+    ],
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/proposedInvites",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/starling-outbound",
+   "attrs": {
+    "deps": [
+     "db"
+    ],
+    "input": "void",
+    "output": "ProposedInvite[]",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/readThread",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/starling-outbound",
+   "attrs": {
+    "deps": [
+     "clients",
+     "db",
+     "live",
+     "sitesFor"
+    ],
+    "input": "{ id: number }",
+    "output": "{ read: boolean }",
+    "reaches": [
+     "SiteClient.call(_, !GET)"
+    ],
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/redraftPosts",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/starling-outbound",
+   "attrs": {
+    "deps": [
+     "clients",
+     "db",
+     "drafts",
+     "postedAt"
+    ],
+    "input": "{ ids: number[] }",
+    "output": "RedraftResult",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/reply",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/starling-outbound",
+   "attrs": {
+    "deps": [
+     "db"
+    ],
+    "input": "{ contactId: number; body?: string | null; subject?: string | null }",
+    "output": "{ messageId: number }",
+    "tags": [
+     "effect:sends"
+    ],
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/replyInThread",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/starling-outbound",
+   "attrs": {
+    "deps": [
+     "db",
+     "live"
+    ],
+    "input": "{ id: number; ref: string; body?: string | null; account?: string | null }",
+    "output": "{ id: number; ref: string | null }",
+    "tags": [
+     "effect:sends"
+    ],
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/schedule",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/starling-outbound",
+   "attrs": {
+    "deps": [
+     "clients",
+     "db",
+     "live",
+     "postedAt"
+    ],
+    "input": "{ posts?: boolean; threads?: boolean }",
+    "output": "{ slots: Slotted[] }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/setAccountState",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/starling-outbound",
+   "attrs": {
+    "deps": [
+     "db",
+     "policy"
+    ],
+    "input": "{ id: string; state: AccountState; reason?: string | null; client?: string | null }",
+    "output": "AccountView",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/setTemplate",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/starling-outbound",
+   "attrs": {
+    "deps": [
+     "db",
+     "live",
+     "senderName"
+    ],
+    "input": "Omit<SetTemplate, \"by\"> & { by?: string | null; viewer?: { email?: string } }",
+    "output": "SlotView",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/settleSend",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/starling-outbound",
+   "attrs": {
+    "deps": [
+     "db",
+     "live",
+     "senderName",
+     "sequences"
+    ],
+    "input": "{ item: string; outcome: SettleOutcome; viewer?: unknown }",
+    "output": "{ item: string; outcome: SettleOutcome }",
+    "tags": [
+     "effect:sends"
+    ],
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/skipInvites",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/starling-outbound",
+   "attrs": {
+    "deps": [
+     "db"
+    ],
+    "input": "{ ids: number[]; viewer?: unknown }",
+    "output": "{ skipped: number[] }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/skipPlace",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/starling-outbound",
+   "attrs": {
+    "deps": [
+     "db"
+    ],
+    "input": "{ subreddit: string }",
+    "output": "void",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/skipPost",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/starling-outbound",
+   "attrs": {
+    "deps": [
+     "db"
+    ],
+    "input": "{ ids: number[]; by?: unknown; reason?: unknown; note?: unknown }",
+    "output": "{ skipped: number[] }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/skipThread",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/starling-outbound",
+   "attrs": {
+    "deps": [
+     "db"
+    ],
+    "input": "{ id: string; reason?: unknown; note?: unknown }",
+    "output": "void",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/stats",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/starling-outbound",
+   "attrs": {
+    "deps": [
+     "db"
+    ],
+    "input": "{ platform?: string | null; days?: number }",
+    "output": "ReachStats",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/templates",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/starling-outbound",
+   "attrs": {
+    "deps": [
+     "db",
+     "live",
+     "senderName"
+    ],
+    "input": "void",
+    "output": "SlotView[]",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/thread",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/starling-outbound",
+   "attrs": {
+    "deps": [
+     "db"
+    ],
+    "input": "{ contactId: number }",
+    "output": "Thread",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/threads",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/starling-outbound",
+   "attrs": {
+    "deps": [
+     "db"
+    ],
+    "input": "ThreadFilter",
+    "output": "ThreadSummary[]",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/unschedule",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/starling-outbound",
+   "attrs": {
+    "deps": [
+     "db"
+    ],
+    "input": "{ posts?: number[]; threads?: string[] }",
+    "output": "void",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/watchPlace",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/starling-outbound",
+   "attrs": {
+    "deps": [
+     "clock",
+     "db"
+    ],
+    "input": "{ subreddit: string }",
+    "output": "{ account: string | null; }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:ReachDesk/withdrawInvite",
+   "role": "route",
+   "parent": "service:ReachDesk",
+   "group": "@wren/starling-outbound",
+   "attrs": {
+    "deps": [
+     "clients",
+     "db",
+     "live",
+     "sitesFor"
+    ],
+    "input": "{ contactId: number }",
+    "output": "{ outcome: string }",
+    "reaches": [
+     "SiteClient.call(_, !GET)"
+    ],
+    "tags": [
+     "effect:sends"
+    ],
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "service:CommentProofs",
+   "role": "service",
+   "parent": "@wren/starling-outbound",
+   "group": "@wren/starling-outbound",
+   "attrs": {
+    "factory": "makeCommentProofs",
+    "file": "packages/starling/outbound/src/restate/proofs.ts",
+    "kind": "service"
+   }
+  },
+  {
+   "id": "service:ReachDesk",
+   "role": "service",
+   "parent": "@wren/starling-outbound",
+   "group": "@wren/starling-outbound",
+   "attrs": {
+    "factory": "makeReachDesk",
+    "file": "packages/starling/outbound/src/restate/desk.ts",
+    "kind": "service"
+   }
+  }
+ ],
+ "edges": [
+  {
+   "from": "route:CommentProofs/check",
+   "to": "table:public.comments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:CommentProofs/check",
+   "to": "table:public.platform_objects",
+   "kind": "reads"
+  },
+  {
+   "from": "route:CommentProofs/check",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:CommentProofs/check",
+   "to": "table:public.reach_posts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:CommentProofs/check",
+   "to": "table:public.reddit_places",
+   "kind": "reads"
+  },
+  {
+   "from": "route:CommentProofs/check",
+   "to": "table:public.reddit_threads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:CommentProofs/check",
+   "to": "table:public.comment_proofs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:CommentProofs/check",
+   "to": "table:public.reddit_requirements",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/accounts",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/actOnPost",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/actOnPost",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/actOnPost",
+   "to": "table:public.leads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/actOnPost",
+   "to": "table:public.own_contact_points",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/actOnPost",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/actOnPost",
+   "to": "table:public.platform_objects",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/actOnPost",
+   "to": "table:public.reach_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/actOnPost",
+   "to": "table:public.wren_settings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/actOnPost",
+   "to": "table:pipeline.deals",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/actOnPost",
+   "to": "table:pipeline.instances",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/actOnPost",
+   "to": "table:public.profile_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/actOnPost",
+   "to": "table:public.profile_findings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/actOnPost",
+   "to": "table:public.profile_keys",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/actOnPost",
+   "to": "table:public.profile_lookups",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/actOnPost",
+   "to": "table:public.profile_merges",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/actOnPost",
+   "to": "table:public.profile_trait_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/actOnPost",
+   "to": "table:public.profile_traits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/actOnPost",
+   "to": "table:public.profiles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/actOnPost",
+   "to": "table:public.reach_posts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/actOnPost",
+   "to": "table:public.social_handles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/actOnPost",
+   "to": "table:public.touches",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/addAccount",
+   "to": "table:public.reach_accounts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/addContact",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/addContact",
+   "to": "table:public.contact_candidates",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/addContact",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/addContact",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/addContact",
+   "to": "table:public.reach_contacts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/approveInvites",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/approveInvites",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/approveInvites",
+   "to": "table:public.reach_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/approveInvites",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/approveInvites",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/approveInvites",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/approveInvites",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/approveInvites",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/approveInvites",
+   "to": "table:public.reach_messages",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/armComment",
+   "to": "table:public.comments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/armComment",
+   "to": "table:public.draft_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/armComment",
+   "to": "table:public.platform_objects",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/armComment",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/armComment",
+   "to": "table:public.reach_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/armComment",
+   "to": "table:public.reddit_places",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/armComment",
+   "to": "table:public.reddit_threads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/commentPost",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/commentPost",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/commentPost",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/commentPost",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/commentPost",
+   "to": "table:public.draft_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/commentPost",
+   "to": "table:public.leads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/commentPost",
+   "to": "table:public.own_contact_points",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/commentPost",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/commentPost",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/commentPost",
+   "to": "table:public.reddit_places",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/commentPost",
+   "to": "table:public.wren_settings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/commentPost",
+   "to": "table:pipeline.deals",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/commentPost",
+   "to": "table:pipeline.instances",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/commentPost",
+   "to": "table:public.comments",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/commentPost",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/commentPost",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/commentPost",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/commentPost",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/commentPost",
+   "to": "table:public.profile_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/commentPost",
+   "to": "table:public.profile_findings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/commentPost",
+   "to": "table:public.profile_keys",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/commentPost",
+   "to": "table:public.profile_lookups",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/commentPost",
+   "to": "table:public.profile_merges",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/commentPost",
+   "to": "table:public.profile_trait_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/commentPost",
+   "to": "table:public.profile_traits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/commentPost",
+   "to": "table:public.profiles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/commentPost",
+   "to": "table:public.reach_contacts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/commentPost",
+   "to": "table:public.reach_messages",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/commentPost",
+   "to": "table:public.reach_posts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/commentPost",
+   "to": "table:public.reddit_threads",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/commentPost",
+   "to": "table:public.runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/commentPost",
+   "to": "table:public.send_attempts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/commentPost",
+   "to": "table:public.social_handles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/commentPost",
+   "to": "table:public.touches",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/commentThread",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/commentThread",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/commentThread",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/commentThread",
+   "to": "table:public.draft_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/commentThread",
+   "to": "table:public.leads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/commentThread",
+   "to": "table:public.own_contact_points",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/commentThread",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/commentThread",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/commentThread",
+   "to": "table:public.reddit_places",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/commentThread",
+   "to": "table:public.reddit_requirements",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/commentThread",
+   "to": "table:pipeline.deals",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/commentThread",
+   "to": "table:pipeline.instances",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/commentThread",
+   "to": "table:public.comments",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/commentThread",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/commentThread",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/commentThread",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/commentThread",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/commentThread",
+   "to": "table:public.profile_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/commentThread",
+   "to": "table:public.profile_findings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/commentThread",
+   "to": "table:public.profile_keys",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/commentThread",
+   "to": "table:public.profile_lookups",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/commentThread",
+   "to": "table:public.profile_merges",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/commentThread",
+   "to": "table:public.profile_trait_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/commentThread",
+   "to": "table:public.profile_traits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/commentThread",
+   "to": "table:public.profiles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/commentThread",
+   "to": "table:public.reach_contacts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/commentThread",
+   "to": "table:public.reach_messages",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/commentThread",
+   "to": "table:public.reach_posts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/commentThread",
+   "to": "table:public.reddit_threads",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/commentThread",
+   "to": "table:public.runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/commentThread",
+   "to": "table:public.send_attempts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/commentThread",
+   "to": "table:public.social_handles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/commentThread",
+   "to": "table:public.touches",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/contacts",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/contacts",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/contacts",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/contacts",
+   "to": "table:public.reach_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/dmComment",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/dmComment",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/dmComment",
+   "to": "table:public.contact_candidates",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/dmComment",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/dmComment",
+   "to": "table:public.draft_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/dmComment",
+   "to": "table:public.leads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/dmComment",
+   "to": "table:public.own_contact_points",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/dmComment",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/dmComment",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/dmComment",
+   "to": "table:public.reddit_places",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/dmComment",
+   "to": "table:pipeline.deals",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/dmComment",
+   "to": "table:pipeline.instances",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/dmComment",
+   "to": "table:public.comments",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/dmComment",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/dmComment",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/dmComment",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/dmComment",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/dmComment",
+   "to": "table:public.profile_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/dmComment",
+   "to": "table:public.profile_findings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/dmComment",
+   "to": "table:public.profile_keys",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/dmComment",
+   "to": "table:public.profile_lookups",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/dmComment",
+   "to": "table:public.profile_merges",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/dmComment",
+   "to": "table:public.profile_trait_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/dmComment",
+   "to": "table:public.profile_traits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/dmComment",
+   "to": "table:public.profiles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/dmComment",
+   "to": "table:public.reach_contacts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/dmComment",
+   "to": "table:public.reach_messages",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/dmComment",
+   "to": "table:public.reach_posts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/dmComment",
+   "to": "table:public.reddit_threads",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/dmComment",
+   "to": "table:public.runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/dmComment",
+   "to": "table:public.send_attempts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/dmComment",
+   "to": "table:public.social_handles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/dmComment",
+   "to": "table:public.touches",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/draftModels",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/draftModels",
+   "to": "table:public.comment_proofs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/draftModels",
+   "to": "table:public.draft_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/draftModels",
+   "to": "table:public.draft_outcomes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/draftModels",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/draftModels",
+   "to": "table:public.wren_settings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/draftPerson",
+   "to": "table:calendar.bookings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/draftPerson",
+   "to": "table:public.call_bookings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/draftPerson",
+   "to": "table:public.chat_messages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/draftPerson",
+   "to": "table:public.chat_threads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/draftPerson",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/draftPerson",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/draftPerson",
+   "to": "table:public.comments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/draftPerson",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/draftPerson",
+   "to": "table:public.consent_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/draftPerson",
+   "to": "table:public.consents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/draftPerson",
+   "to": "table:public.contact_candidates",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/draftPerson",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/draftPerson",
+   "to": "table:public.email_clicks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/draftPerson",
+   "to": "table:public.enrollments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/draftPerson",
+   "to": "table:public.imports",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/draftPerson",
+   "to": "table:public.lead_channels",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/draftPerson",
+   "to": "table:public.leads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/draftPerson",
+   "to": "table:public.messages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/draftPerson",
+   "to": "table:public.open_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/draftPerson",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/draftPerson",
+   "to": "table:public.profile_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/draftPerson",
+   "to": "table:public.profile_keys",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/draftPerson",
+   "to": "table:public.profile_site_reads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/draftPerson",
+   "to": "table:public.profile_traits",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/draftPerson",
+   "to": "table:public.profiles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/draftPerson",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/draftPerson",
+   "to": "table:public.reach_messages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/draftPerson",
+   "to": "table:public.reddit_people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/draftPerson",
+   "to": "table:public.site_form_defs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/draftPerson",
+   "to": "table:public.site_forms",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/draftPerson",
+   "to": "table:public.site_pages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/draftPerson",
+   "to": "table:public.sms_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/draftPerson",
+   "to": "table:public.sms_messages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/draftPerson",
+   "to": "table:public.social_handles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/draftPerson",
+   "to": "table:public.thread_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/draftPerson",
+   "to": "table:public.topics",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/draftPerson",
+   "to": "table:public.touches",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/draftPerson",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/draftPerson",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/draftPerson",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/draftPerson",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/draftPerson",
+   "to": "table:public.reach_contacts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/draftPerson",
+   "to": "table:public.runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/dropComment",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/dropComment",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/dropComment",
+   "to": "table:public.reach_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/dropComment",
+   "to": "table:public.comments",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/dropComment",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/dropComment",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/dropComment",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/dropComment",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/enrich",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/enrich",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/enrich",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/enrich",
+   "to": "table:public.reach_contacts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/enroll",
+   "to": "table:calendar.bookings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/enroll",
+   "to": "table:public.call_bookings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/enroll",
+   "to": "table:public.chat_messages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/enroll",
+   "to": "table:public.chat_threads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/enroll",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/enroll",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/enroll",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/enroll",
+   "to": "table:public.consent_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/enroll",
+   "to": "table:public.consents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/enroll",
+   "to": "table:public.email_clicks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/enroll",
+   "to": "table:public.enrollments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/enroll",
+   "to": "table:public.lead_channels",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/enroll",
+   "to": "table:public.messages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/enroll",
+   "to": "table:public.open_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/enroll",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/enroll",
+   "to": "table:public.profile_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/enroll",
+   "to": "table:public.profile_keys",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/enroll",
+   "to": "table:public.profile_site_reads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/enroll",
+   "to": "table:public.profile_traits",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/enroll",
+   "to": "table:public.profiles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/enroll",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/enroll",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/enroll",
+   "to": "table:public.site_form_defs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/enroll",
+   "to": "table:public.site_forms",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/enroll",
+   "to": "table:public.site_pages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/enroll",
+   "to": "table:public.sms_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/enroll",
+   "to": "table:public.sms_messages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/enroll",
+   "to": "table:public.social_handles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/enroll",
+   "to": "table:public.template_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/enroll",
+   "to": "table:public.templates",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/enroll",
+   "to": "table:public.thread_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/enroll",
+   "to": "table:public.topics",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/enroll",
+   "to": "table:public.touches",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/enroll",
+   "to": "table:public.reach_contacts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/enroll",
+   "to": "table:public.reach_messages",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/find",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/find",
+   "to": "table:public.contact_candidates",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/find",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/find",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/find",
+   "to": "table:public.reach_contacts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/findCreators",
+   "to": "table:learn.sources",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/findCreators",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/findCreators",
+   "to": "table:public.wren_settings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/followPerson",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/followPerson",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/followPerson",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/followPerson",
+   "to": "table:public.imports",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/followPerson",
+   "to": "table:public.leads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/followPerson",
+   "to": "table:public.own_contact_points",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/followPerson",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/followPerson",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/followPerson",
+   "to": "table:public.reach_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/followPerson",
+   "to": "table:public.wren_settings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/followPerson",
+   "to": "table:pipeline.deals",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/followPerson",
+   "to": "table:pipeline.instances",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/followPerson",
+   "to": "table:public.profile_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/followPerson",
+   "to": "table:public.profile_findings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/followPerson",
+   "to": "table:public.profile_keys",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/followPerson",
+   "to": "table:public.profile_lookups",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/followPerson",
+   "to": "table:public.profile_merges",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/followPerson",
+   "to": "table:public.profile_trait_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/followPerson",
+   "to": "table:public.profile_traits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/followPerson",
+   "to": "table:public.profiles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/followPerson",
+   "to": "table:public.social_handles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/followPerson",
+   "to": "table:public.touches",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/health",
+   "to": "table:public.reach_accounts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/invitePerson",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/invitePerson",
+   "to": "table:public.contact_candidates",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/invitePerson",
+   "to": "table:public.imports",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/invitePerson",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/invitePerson",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/invitePerson",
+   "to": "table:public.reach_contacts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/invites",
+   "to": "table:calendar.bookings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/invites",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/invites",
+   "to": "table:public.call_bookings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/invites",
+   "to": "table:public.chat_messages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/invites",
+   "to": "table:public.chat_threads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/invites",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/invites",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/invites",
+   "to": "table:public.comments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/invites",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/invites",
+   "to": "table:public.consent_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/invites",
+   "to": "table:public.consents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/invites",
+   "to": "table:public.contact_candidates",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/invites",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/invites",
+   "to": "table:public.email_clicks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/invites",
+   "to": "table:public.enrollments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/invites",
+   "to": "table:public.lead_channels",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/invites",
+   "to": "table:public.leads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/invites",
+   "to": "table:public.messages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/invites",
+   "to": "table:public.open_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/invites",
+   "to": "table:public.own_contact_points",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/invites",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/invites",
+   "to": "table:public.profile_site_reads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/invites",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/invites",
+   "to": "table:public.reach_invites",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/invites",
+   "to": "table:public.reddit_people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/invites",
+   "to": "table:public.site_form_defs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/invites",
+   "to": "table:public.site_forms",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/invites",
+   "to": "table:public.site_pages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/invites",
+   "to": "table:public.sms_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/invites",
+   "to": "table:public.sms_messages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/invites",
+   "to": "table:public.template_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/invites",
+   "to": "table:public.templates",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/invites",
+   "to": "table:public.thread_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/invites",
+   "to": "table:public.topics",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/invites",
+   "to": "table:public.wren_settings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/invites",
+   "to": "table:pipeline.deals",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/invites",
+   "to": "table:pipeline.instances",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/invites",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/invites",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/invites",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/invites",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/invites",
+   "to": "table:public.profile_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/invites",
+   "to": "table:public.profile_findings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/invites",
+   "to": "table:public.profile_keys",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/invites",
+   "to": "table:public.profile_lookups",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/invites",
+   "to": "table:public.profile_merges",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/invites",
+   "to": "table:public.profile_trait_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/invites",
+   "to": "table:public.profile_traits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/invites",
+   "to": "table:public.profiles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/invites",
+   "to": "table:public.reach_contacts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/invites",
+   "to": "table:public.reach_messages",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/invites",
+   "to": "table:public.runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/invites",
+   "to": "table:public.send_attempts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/invites",
+   "to": "table:public.social_handles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/invites",
+   "to": "table:public.touches",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/liftPass",
+   "to": "table:public.reach_passes",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/markRead",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/markRead",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/markRead",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/markRead",
+   "to": "table:public.reach_contacts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/messageFrom",
+   "to": "table:calendar.bookings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messageFrom",
+   "to": "table:public.call_bookings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messageFrom",
+   "to": "table:public.chat_messages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messageFrom",
+   "to": "table:public.chat_threads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messageFrom",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messageFrom",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messageFrom",
+   "to": "table:public.comments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messageFrom",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messageFrom",
+   "to": "table:public.consent_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messageFrom",
+   "to": "table:public.consents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messageFrom",
+   "to": "table:public.contact_candidates",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messageFrom",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messageFrom",
+   "to": "table:public.draft_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messageFrom",
+   "to": "table:public.email_clicks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messageFrom",
+   "to": "table:public.enrollments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messageFrom",
+   "to": "table:public.imports",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messageFrom",
+   "to": "table:public.lead_channels",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messageFrom",
+   "to": "table:public.leads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messageFrom",
+   "to": "table:public.messages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messageFrom",
+   "to": "table:public.open_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messageFrom",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messageFrom",
+   "to": "table:public.profile_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messageFrom",
+   "to": "table:public.profile_keys",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messageFrom",
+   "to": "table:public.profile_site_reads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messageFrom",
+   "to": "table:public.profile_traits",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messageFrom",
+   "to": "table:public.profiles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messageFrom",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messageFrom",
+   "to": "table:public.reach_posts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messageFrom",
+   "to": "table:public.reddit_people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messageFrom",
+   "to": "table:public.reddit_places",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messageFrom",
+   "to": "table:public.reddit_threads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messageFrom",
+   "to": "table:public.site_form_defs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messageFrom",
+   "to": "table:public.site_forms",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messageFrom",
+   "to": "table:public.site_pages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messageFrom",
+   "to": "table:public.sms_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messageFrom",
+   "to": "table:public.sms_messages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messageFrom",
+   "to": "table:public.social_handles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messageFrom",
+   "to": "table:public.thread_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messageFrom",
+   "to": "table:public.topics",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messageFrom",
+   "to": "table:public.touches",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messageFrom",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/messageFrom",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/messageFrom",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/messageFrom",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/messageFrom",
+   "to": "table:public.reach_contacts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/messageFrom",
+   "to": "table:public.reach_messages",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/messageFrom",
+   "to": "table:public.runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/messagePerson",
+   "to": "table:calendar.bookings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messagePerson",
+   "to": "table:public.call_bookings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messagePerson",
+   "to": "table:public.chat_messages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messagePerson",
+   "to": "table:public.chat_threads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messagePerson",
+   "to": "table:public.client_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messagePerson",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messagePerson",
+   "to": "table:public.comments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messagePerson",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messagePerson",
+   "to": "table:public.consent_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messagePerson",
+   "to": "table:public.consents",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messagePerson",
+   "to": "table:public.contact_candidates",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messagePerson",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messagePerson",
+   "to": "table:public.draft_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messagePerson",
+   "to": "table:public.email_clicks",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messagePerson",
+   "to": "table:public.enrollments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messagePerson",
+   "to": "table:public.imports",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messagePerson",
+   "to": "table:public.lead_channels",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messagePerson",
+   "to": "table:public.leads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messagePerson",
+   "to": "table:public.messages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messagePerson",
+   "to": "table:public.open_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messagePerson",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messagePerson",
+   "to": "table:public.profile_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messagePerson",
+   "to": "table:public.profile_keys",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messagePerson",
+   "to": "table:public.profile_site_reads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messagePerson",
+   "to": "table:public.profile_traits",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messagePerson",
+   "to": "table:public.profiles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messagePerson",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messagePerson",
+   "to": "table:public.reddit_people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messagePerson",
+   "to": "table:public.site_form_defs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messagePerson",
+   "to": "table:public.site_forms",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messagePerson",
+   "to": "table:public.site_pages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messagePerson",
+   "to": "table:public.sms_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messagePerson",
+   "to": "table:public.sms_messages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messagePerson",
+   "to": "table:public.social_handles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messagePerson",
+   "to": "table:public.thread_events",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messagePerson",
+   "to": "table:public.topics",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messagePerson",
+   "to": "table:public.touches",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/messagePerson",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/messagePerson",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/messagePerson",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/messagePerson",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/messagePerson",
+   "to": "table:public.reach_contacts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/messagePerson",
+   "to": "table:public.reach_messages",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/messagePerson",
+   "to": "table:public.runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/movePlace",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/movePlace",
+   "to": "table:public.reddit_places",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/passOn",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/passOn",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/passOn",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/passOn",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/passOn",
+   "to": "table:public.reddit_places",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/passOn",
+   "to": "table:public.comments",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/passOn",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/passOn",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/passOn",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/passOn",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/passOn",
+   "to": "table:public.reach_contacts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/passOn",
+   "to": "table:public.reach_passes",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/passOn",
+   "to": "table:public.reach_posts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/passOn",
+   "to": "table:public.reddit_threads",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/passes",
+   "to": "table:public.reach_passes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/paste",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/paste",
+   "to": "table:public.comments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/paste",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/paste",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/paste",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/paste",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/paste",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/paste",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/paste",
+   "to": "table:public.reach_posts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/paste",
+   "to": "table:public.reddit_places",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/paste",
+   "to": "table:public.reddit_threads",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/paste",
+   "to": "table:public.runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/paste",
+   "to": "table:public.wren_settings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/pick",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/pick",
+   "to": "table:public.comments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/pick",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/pick",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/pick",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/pick",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/pick",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/pick",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/pick",
+   "to": "table:public.reach_posts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/pick",
+   "to": "table:public.reddit_places",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/pick",
+   "to": "table:public.reddit_threads",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/pick",
+   "to": "table:public.runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/pick",
+   "to": "table:public.wren_settings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/posts",
+   "to": "table:public.platform_objects",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/posts",
+   "to": "table:public.reach_posts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/postsNow",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/postsNow",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/postsNow",
+   "to": "table:public.comments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/postsNow",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/postsNow",
+   "to": "table:public.leads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/postsNow",
+   "to": "table:public.limits",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/postsNow",
+   "to": "table:public.own_contact_points",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/postsNow",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/postsNow",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/postsNow",
+   "to": "table:public.reach_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/postsNow",
+   "to": "table:public.reach_passes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/postsNow",
+   "to": "table:public.reddit_threads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/postsNow",
+   "to": "table:public.send_attempts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/postsNow",
+   "to": "table:public.social_activity",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/postsNow",
+   "to": "table:public.social_connections",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/postsNow",
+   "to": "table:public.wren_settings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/postsNow",
+   "to": "table:pipeline.deals",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/postsNow",
+   "to": "table:pipeline.instances",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/postsNow",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/postsNow",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/postsNow",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/postsNow",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/postsNow",
+   "to": "table:public.profile_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/postsNow",
+   "to": "table:public.profile_findings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/postsNow",
+   "to": "table:public.profile_keys",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/postsNow",
+   "to": "table:public.profile_lookups",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/postsNow",
+   "to": "table:public.profile_merges",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/postsNow",
+   "to": "table:public.profile_trait_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/postsNow",
+   "to": "table:public.profile_traits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/postsNow",
+   "to": "table:public.profiles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/postsNow",
+   "to": "table:public.reach_posts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/postsNow",
+   "to": "table:public.runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/postsNow",
+   "to": "table:public.social_handles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/postsNow",
+   "to": "table:public.touches",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/proposedInvites",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/proposedInvites",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/proposedInvites",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/proposedInvites",
+   "to": "table:public.reach_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/proposedInvites",
+   "to": "table:public.reach_messages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/proposedInvites",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/readThread",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/readThread",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/readThread",
+   "to": "table:public.draft_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/readThread",
+   "to": "table:public.leads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/readThread",
+   "to": "table:public.own_contact_points",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/readThread",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/readThread",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/readThread",
+   "to": "table:public.reach_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/readThread",
+   "to": "table:public.reach_passes",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/readThread",
+   "to": "table:public.reddit_places",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/readThread",
+   "to": "table:public.reddit_threads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/readThread",
+   "to": "table:public.wren_settings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/readThread",
+   "to": "table:pipeline.deals",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/readThread",
+   "to": "table:pipeline.instances",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/readThread",
+   "to": "table:public.comment_threads",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/readThread",
+   "to": "table:public.comments",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/readThread",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/readThread",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/readThread",
+   "to": "table:public.profile_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/readThread",
+   "to": "table:public.profile_findings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/readThread",
+   "to": "table:public.profile_keys",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/readThread",
+   "to": "table:public.profile_lookups",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/readThread",
+   "to": "table:public.profile_merges",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/readThread",
+   "to": "table:public.profile_trait_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/readThread",
+   "to": "table:public.profile_traits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/readThread",
+   "to": "table:public.profiles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/readThread",
+   "to": "table:public.social_handles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/readThread",
+   "to": "table:public.touches",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/redraftPosts",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/redraftPosts",
+   "to": "table:public.comments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/redraftPosts",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/redraftPosts",
+   "to": "table:public.reddit_threads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/redraftPosts",
+   "to": "table:public.wren_settings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/redraftPosts",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/redraftPosts",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/redraftPosts",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/redraftPosts",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/redraftPosts",
+   "to": "table:public.reach_posts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/redraftPosts",
+   "to": "table:public.runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/reply",
+   "to": "table:public.comments",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/reply",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/reply",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/reply",
+   "to": "table:public.draft_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/reply",
+   "to": "table:public.leads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/reply",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/reply",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/reply",
+   "to": "table:public.reddit_people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/reply",
+   "to": "table:public.social_handles",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/reply",
+   "to": "table:public.touches",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/reply",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/reply",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/reply",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/reply",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/reply",
+   "to": "table:public.reach_contacts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/reply",
+   "to": "table:public.reach_messages",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/reply",
+   "to": "table:public.runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/replyInThread",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/replyInThread",
+   "to": "table:public.comment_threads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/replyInThread",
+   "to": "table:public.content_drafts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/replyInThread",
+   "to": "table:public.leads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/replyInThread",
+   "to": "table:public.own_contact_points",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/replyInThread",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/replyInThread",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/replyInThread",
+   "to": "table:public.reach_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/replyInThread",
+   "to": "table:public.reach_posts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/replyInThread",
+   "to": "table:public.reddit_places",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/replyInThread",
+   "to": "table:public.reddit_requirements",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/replyInThread",
+   "to": "table:public.reddit_threads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/replyInThread",
+   "to": "table:pipeline.deals",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/replyInThread",
+   "to": "table:pipeline.instances",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/replyInThread",
+   "to": "table:public.comments",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/replyInThread",
+   "to": "table:public.draft_accounts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/replyInThread",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/replyInThread",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/replyInThread",
+   "to": "table:public.profile_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/replyInThread",
+   "to": "table:public.profile_findings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/replyInThread",
+   "to": "table:public.profile_keys",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/replyInThread",
+   "to": "table:public.profile_lookups",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/replyInThread",
+   "to": "table:public.profile_merges",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/replyInThread",
+   "to": "table:public.profile_trait_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/replyInThread",
+   "to": "table:public.profile_traits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/replyInThread",
+   "to": "table:public.profiles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/replyInThread",
+   "to": "table:public.social_handles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/replyInThread",
+   "to": "table:public.touches",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/schedule",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/schedule",
+   "to": "table:public.draft_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/schedule",
+   "to": "table:public.platform_objects",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/schedule",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/schedule",
+   "to": "table:public.reddit_requirements",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/schedule",
+   "to": "table:public.send_attempts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/schedule",
+   "to": "table:public.wren_settings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/schedule",
+   "to": "table:public.reach_posts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/schedule",
+   "to": "table:public.reddit_places",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/schedule",
+   "to": "table:public.reddit_threads",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/setAccountState",
+   "to": "table:public.reach_accounts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/setTemplate",
+   "to": "table:public.template_versions",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/setTemplate",
+   "to": "table:public.templates",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/settleSend",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/settleSend",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/settleSend",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/settleSend",
+   "to": "table:public.draft_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/settleSend",
+   "to": "table:public.leads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/settleSend",
+   "to": "table:public.own_contact_points",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/settleSend",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/settleSend",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/settleSend",
+   "to": "table:public.reddit_places",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/settleSend",
+   "to": "table:public.template_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/settleSend",
+   "to": "table:public.templates",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/settleSend",
+   "to": "table:pipeline.deals",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/settleSend",
+   "to": "table:pipeline.instances",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/settleSend",
+   "to": "table:public.comments",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/settleSend",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/settleSend",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/settleSend",
+   "to": "table:public.marketing_sends",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/settleSend",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/settleSend",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/settleSend",
+   "to": "table:public.profile_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/settleSend",
+   "to": "table:public.profile_findings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/settleSend",
+   "to": "table:public.profile_keys",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/settleSend",
+   "to": "table:public.profile_lookups",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/settleSend",
+   "to": "table:public.profile_merges",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/settleSend",
+   "to": "table:public.profile_trait_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/settleSend",
+   "to": "table:public.profile_traits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/settleSend",
+   "to": "table:public.profiles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/settleSend",
+   "to": "table:public.reach_contacts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/settleSend",
+   "to": "table:public.reach_messages",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/settleSend",
+   "to": "table:public.reach_posts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/settleSend",
+   "to": "table:public.reddit_threads",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/settleSend",
+   "to": "table:public.runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/settleSend",
+   "to": "table:public.send_attempts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/settleSend",
+   "to": "table:public.social_handles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/settleSend",
+   "to": "table:public.touches",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/skipInvites",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/skipInvites",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/skipInvites",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/skipInvites",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/skipInvites",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/skipInvites",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/skipInvites",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/skipInvites",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/skipInvites",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/skipInvites",
+   "to": "table:public.reach_contacts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/skipInvites",
+   "to": "table:public.reach_messages",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/skipPlace",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/skipPlace",
+   "to": "table:public.reddit_places",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/skipPost",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/skipPost",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/skipPost",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/skipPost",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/skipPost",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/skipPost",
+   "to": "table:public.reach_posts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/skipThread",
+   "to": "table:public.decisions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/skipThread",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/skipThread",
+   "to": "table:public.reddit_places",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/skipThread",
+   "to": "table:public.decision_calls",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/skipThread",
+   "to": "table:public.draft_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/skipThread",
+   "to": "table:public.platform_object_refs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/skipThread",
+   "to": "table:public.platform_objects",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/skipThread",
+   "to": "table:public.reddit_threads",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/stats",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/stats",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/stats",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/stats",
+   "to": "table:public.reach_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/stats",
+   "to": "table:public.reach_messages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/stats",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/templates",
+   "to": "table:public.template_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/templates",
+   "to": "table:public.templates",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/thread",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/thread",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/thread",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/thread",
+   "to": "table:public.reach_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/thread",
+   "to": "table:public.reach_messages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/thread",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/threads",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/threads",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/threads",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/threads",
+   "to": "table:public.reach_contacts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/threads",
+   "to": "table:public.reach_messages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/threads",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/unschedule",
+   "to": "table:public.platform_objects",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/unschedule",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/unschedule",
+   "to": "table:public.reddit_places",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/unschedule",
+   "to": "table:public.reach_posts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/unschedule",
+   "to": "table:public.reddit_threads",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/watchPlace",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/watchPlace",
+   "to": "table:public.reddit_places",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/withdrawInvite",
+   "to": "table:pipeline.shape_versions",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/withdrawInvite",
+   "to": "table:public.clients",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/withdrawInvite",
+   "to": "table:public.companies",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/withdrawInvite",
+   "to": "table:public.leads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/withdrawInvite",
+   "to": "table:public.own_contact_points",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/withdrawInvite",
+   "to": "table:public.people",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/withdrawInvite",
+   "to": "table:public.reach_accounts",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/withdrawInvite",
+   "to": "table:public.reach_messages",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/withdrawInvite",
+   "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/withdrawInvite",
+   "to": "table:public.wren_settings",
+   "kind": "reads"
+  },
+  {
+   "from": "route:ReachDesk/withdrawInvite",
+   "to": "table:pipeline.deals",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/withdrawInvite",
+   "to": "table:pipeline.instances",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/withdrawInvite",
+   "to": "table:public.profile_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/withdrawInvite",
+   "to": "table:public.profile_findings",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/withdrawInvite",
+   "to": "table:public.profile_keys",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/withdrawInvite",
+   "to": "table:public.profile_lookups",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/withdrawInvite",
+   "to": "table:public.profile_merges",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/withdrawInvite",
+   "to": "table:public.profile_trait_events",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/withdrawInvite",
+   "to": "table:public.profile_traits",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/withdrawInvite",
+   "to": "table:public.profiles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/withdrawInvite",
+   "to": "table:public.reach_contacts",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/withdrawInvite",
+   "to": "table:public.social_handles",
+   "kind": "writes"
+  },
+  {
+   "from": "route:ReachDesk/withdrawInvite",
+   "to": "table:public.touches",
+   "kind": "writes"
+  }
+ ]
+}

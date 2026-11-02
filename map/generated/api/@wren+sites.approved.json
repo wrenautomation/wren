@@ -2451,7 +2451,7 @@
     "file": "packages/sites/src/store.ts",
     "inferred": true,
     "kind": "function",
-    "sig": "(db: Db, f: { page: SitePage | null; form?: string | null; view: string | null; fields: Record<string, string>; touch: unknown; split?: string | null; formSplit?: string | null; arm?: FormArm | null; } & EntryMeta, open?: OpenClient): Promise<{ page: string | null; why: string | null; split: string | null; at: Date; id: string; channel: string; pages: SeenPage[] | null; fields: Record<string, string>; arm: string | null; form: string | null; consent: FormConsent | null; entered: boolean; formSplit: string | null; touch: FormTouch…"
+    "sig": "(db: Db, f: { page: SitePage | null; form?: string | null; view: string | null; fields: Record<string, string>; touch: unknown; split?: string | null; formSplit?: string | null; arm?: FormArm | null; } & EntryMeta, open?: OpenClient): Promise<{ split: string | null; at: Date; id: string; why: string | null; arm: string | null; form: string | null; fields: Record<string, string>; channel: string; pages: SeenPage[] | null; consent: FormConsent | null; page: string | null; entered: boolean; formSplit: string | null; touch: FormTouch…"
    }
   },
   {
@@ -2625,7 +2625,7 @@
     "file": "packages/sites/src/console.ts",
     "inferred": true,
     "kind": "function",
-    "sig": "(deps: { db: Db; write?: Write | null; shareKey?: string | null }): restate.ServiceDefinition<\"SitesConsole\", { offers: (_: restate.Context, req: PortalRequest) => Promise<{ offers: { id: string; name: string; status: \"retired\" | \"paused\" | \"draft\" | \"live\"; audience: string; }[]; templates: { id: string; name: string; blurb: string; }[]; ai: boolean; }>; detail: (_…"
+    "sig": "(deps: { db: Db; write?: Write | null; shareKey?: string | null }): restate.ServiceDefinition<\"SitesConsole\", { offers: (_: restate.Context, req: PortalRequest) => Promise<{ offers: { id: string; name: string; status: \"draft\" | \"paused\" | \"retired\" | \"live\"; audience: string; }[]; templates: { id: string; name: string; blurb: string; }[]; ai: boolean; }>; detail: (_…"
    }
   },
   {
@@ -3364,7 +3364,7 @@
     "file": "packages/sites/src/console.ts",
     "inferred": true,
     "kind": "function",
-    "sig": "(deps: { db: Db; write?: Write | null; shareKey?: string | null }): { offers(req: PortalRequest): Promise<{ offers: { id: string; name: string; status: \"retired\" | \"paused\" | \"draft\" | \"live\"; audience: string; }[]; templates: { id: string; name: string; blurb: string; }[]; ai: boolean; }>; detail(req: IdRequest): Promise<PageDetail>; create(req: CreateRequest): Pro…"
+    "sig": "(deps: { db: Db; write?: Write | null; shareKey?: string | null }): { offers(req: PortalRequest): Promise<{ offers: { id: string; name: string; status: \"draft\" | \"paused\" | \"retired\" | \"live\"; audience: string; }[]; templates: { id: string; name: string; blurb: string; }[]; ai: boolean; }>; detail(req: IdRequest): Promise<PageDetail>; create(req: CreateRequest): Pro…"
    }
   },
   {

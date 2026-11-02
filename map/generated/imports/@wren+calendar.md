@@ -4,14 +4,14 @@ Role: package. Files: 18.
 
 ## Uses
 
-- @wren/channel-email
 - @wren/channel-sms (types only)
 - @wren/core
 - @wren/db
+- @wren/starling-email
 
 ## Outside packages
 
-@restatedev/restate-sdk@1.17.1, @wrenautomation/autobrowse@0.5.0, drizzle-orm@0.45.2, node:crypto, zod@4.6.5
+@restatedev/restate-sdk@1.17.1, @wrenautomation/autobrowse@0.8.4, drizzle-orm@0.45.2, node:crypto, zod@4.6.5
 
 ## Folders
 

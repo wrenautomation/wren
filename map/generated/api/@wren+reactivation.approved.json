@@ -2346,7 +2346,7 @@
     "file": "packages/reactivation/src/compose.ts",
     "inferred": true,
     "kind": "function",
-    "sig": "(): import(\"@wren/channel-email\").Template"
+    "sig": "(): import(\"@wren/starling-email\").Template"
    }
   },
   {
@@ -3536,7 +3536,7 @@
     "entries": [
      "@wren/reactivation"
     ],
-    "file": "packages/channel-email/src/sequences.ts",
+    "file": "packages/starling/channels/email/src/sequences.ts",
     "kind": "function",
     "sig": "(settings: Sending, base: SendPolicy): SendPolicy"
    }
@@ -3550,7 +3550,7 @@
     "entries": [
      "@wren/reactivation"
     ],
-    "file": "packages/channel-email/src/sequences.ts",
+    "file": "packages/starling/channels/email/src/sequences.ts",
     "kind": "function",
     "sig": "(settings: Senders): Fleet"
    }

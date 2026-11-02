@@ -1411,7 +1411,7 @@
     "file": "packages/payments/src/service.ts",
     "inferred": true,
     "kind": "function",
-    "sig": "(ctx: restate.Context, d: PaymentsDeps, id: string): Promise<(\"paid\" | \"failed\" | \"refunded\")[]>"
+    "sig": "(ctx: restate.Context, d: PaymentsDeps, id: string): Promise<(\"failed\" | \"paid\" | \"refunded\")[]>"
    }
   },
   {

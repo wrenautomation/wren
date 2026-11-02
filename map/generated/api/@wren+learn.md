@@ -30,11 +30,11 @@ Exports: 316. Files: 27.
 - **beatsOf** (function) `(raw: Answer["beats"]): Beat[]`
 - **breakdownItem** (function) `(db: Db, judgeFor: JudgeFor, id: number, hand?: { facts: Record<string, unknown>; by: BreakdownBy }): Promise<boolean>`
 - **breakdownPrompt** (function) `(item: { kind?: BrokenDown; title: string; url: string; text: string; }): string`
-- **breakdownSchema** (const) `z.ZodObject<{ hook_style: z.ZodEnum<{ other: "other"; news: "news"; question: "question"; story: "story"; contrarian: "contrarian"; "demo-first": "demo-first"; "result-first": "result-first"; "identity-call": "identity-call"; "list-tease": "list-tease"; warning: "warning"; "how-to": "how-to"; "patte…`
+- **breakdownSchema** (const) `z.ZodObject<{ hook_style: z.ZodEnum<{ other: "other"; question: "question"; story: "story"; news: "news"; contrarian: "contrarian"; "demo-first": "demo-first"; "result-first": "result-first"; "identity-call": "identity-call"; "list-tease": "list-tease"; warning: "warning"; "how-to": "how-to"; "patte…`
 - **factsOf** (function) `(item: { kind: BrokenDown; text: string; transcript: string }, v: Answer): Record<string, unknown> | null`
 - **filmFactsOf** (function) `(transcript: string): FilmFacts | null`
 - **postCounts** (function) `(text: string): Omit<PostFacts, "shape" | "format">`
-- **postFactsSchema** (const) `z.ZodObject<{ format: z.ZodNullable<z.ZodEnum<{ text: "text"; video: "video"; doc: "doc"; carousel: "carousel"; image: "image"; }>>; chars: z.ZodNumber; lines: z.ZodNumber; first_line_chars: z.ZodNumber; link: z.ZodNullable<z.ZodEnum<{ comment: "comment"; none: "none"; body: "body"; }>>; hashtags: z…`
+- **postFactsSchema** (const) `z.ZodObject<{ format: z.ZodNullable<z.ZodEnum<{ text: "text"; video: "video"; doc: "doc"; carousel: "carousel"; image: "image"; }>>; chars: z.ZodNumber; lines: z.ZodNumber; first_line_chars: z.ZodNumber; link: z.ZodNullable<z.ZodEnum<{ comment: "comment"; body: "body"; none: "none"; }>>; hashtags: z…`
 
 ## packages/learn/src/calls.ts
 
@@ -129,8 +129,8 @@ Exports: 316. Files: 27.
 - **Place** (type) `type Place = (typeof PLACES)[number] | 'c${number}' | 's${number}';`
 - **SORTS** (const) `readonly ["newest", "score", "length", "source", "title"]`
 - **Sort** (type) `type Sort = (typeof SORTS)[number];`
-- **addCollection** (function) `(db: Queryable, client: string, p: { name: string; parentId?: number | null; by?: string | null }): Promise<{ name: string; id: number; parentId: number | null; client: string; by: string | null; createdAt: Date; }>`
-- **browse** (function) `(db: Queryable, client: string, b: Browse): Promise<{ place: string; sort: "title" | "length" | "source" | "score" | "newest"; items: (Card & { pick: LearnPick | null; })[]; more: boolean; total: number; types: Partial<Record<ItemType, number>>; sources: { n: number; id: number; name: string; kind: "reddit" | "youtube" | "x" | "tiktok" | "ins…`
+- **addCollection** (function) `(db: Queryable, client: string, p: { name: string; parentId?: number | null; by?: string | null }): Promise<{ name: string; id: number; createdAt: Date; client: string; by: string | null; parentId: number | null; }>`
+- **browse** (function) `(db: Queryable, client: string, b: Browse): Promise<{ place: string; sort: "length" | "title" | "source" | "score" | "newest"; items: (Card & { pick: LearnPick | null; })[]; more: boolean; total: number; types: Partial<Record<ItemType, number>>; sources: { n: number; id: number; name: string; kind: "reddit" | "youtube" | "x" | "tiktok" | "ins…`
 - **dropCollection** (function) `(db: Queryable, client: string, id: number): Promise<boolean>`
 - **editCollection** (function) `(db: Queryable, client: string, p: { id: number; name?: string | null | undefined; parentId?: number | null }): Promise<{ id: number; client: string; name: string; parentId: number | null; by: string | null; createdAt: Date; }>`
 - **home** (function) `(db: Queryable, client: string, now = new Date()): Promise<{ shelves: { type: "reddit" | "link" | "youtube" | "x" | "tiktok" | "instagram" | "newsletter" | "shorts" | "podcast" | "blog" | "releases"; total: number; items: (Card & { pick: LearnPick | null; })[]; }[]; continue: (Card & { pick: LearnPick | null; })[]; top: (Card & { pick: LearnPick | n…`
@@ -213,7 +213,7 @@ Exports: 316. Files: 27.
 - **Hit** (interface) `interface Hit { id: number; title: string; url: string; kind: string; source: string; score: number | null; savedAt: Date | null; at: Date; snippet: string; rank: number; }`
 - **Saved** (interface) `interface Saved { id: number; url: string; kind: ItemKind; fresh: boolean; unread: boolean; }`
 - **findItems** (function) `(db: Queryable, client: string, q: string, limit = 6): Promise<Found[]>`
-- **itemOf** (function) `(db: Queryable, client: string, id: number): Promise<{ source: string | null; sops: { id: number; itemId: number | null; noteId: string | null; client: string | null; title: string | null; text: string | null; sop: string; state: "added" | "asked" | "failed"; file: string | null; points: Date | null; error: string | null; by: string | null; as…`
+- **itemOf** (function) `(db: Queryable, client: string, id: number): Promise<{ source: string | null; sops: { id: number; itemId: number | null; noteId: string | null; client: string | null; title: string | null; text: string | null; sop: string; state: "failed" | "added" | "asked"; file: string | null; points: Date | null; error: string | null; by: string | null; as…`
 - **listItems** (function) `(db: Queryable, client: string, o: { saved?: boolean; waiting?: boolean; limit?: number } = {}): Promise<{ id: number; title: string; kind: "post" | "video" | "reel" | "article" | "film" | "episode"; url: string; score: number | null; verdict: "drop" | "hold" | "show" | null; readAt: Date | null; readFailure: string | null; savedAt: Date | null; source: string | null; }[]>`
 - **saveLink** (function) `(db: Db, p: { client: string; url: string; by: string | null; via: Via; title?: string | null; kind?: ItemKind; creator?: string | null; now?: Date; stats?: PostStats | null; worth?: boolean; }): Promise<Saved>`
 - **searchItems** (function) `(db: Queryable, client: string, q: string, limit = 40, embed: Embed | null = null): Promise<Hit[]>`
@@ -361,7 +361,7 @@ Exports: 316. Files: 27.
 ## packages/learn/src/sops.ts
 
 - **askNoteSop** (function) `(db: Db, notesDb: Db, p: { client: string; noteId: string; sop: string; title: string; text: string; by: string }): Promise<{ sop: string; state: "asked" | "added"; note: string | null }>`
-- **askSop** (function) `(db: Db, p: { client: string; itemId: number; sop: string; by: string | null }): Promise<{ error: string | null; title: string | null; file: string | null; id: number; state: "added" | "asked" | "failed"; text: string | null; client: string | null; by: string | null; sop: string; askedAt: Date; itemId: number | null; noteId: string | null; points: Date | null; doneAt: Date | nul…`
+- **askSop** (function) `(db: Db, p: { client: string; itemId: number; sop: string; by: string | null }): Promise<{ id: number; state: "failed" | "added" | "asked"; client: string | null; title: string | null; by: string | null; error: string | null; file: string | null; text: string | null; sop: string; askedAt: Date; itemId: number | null; noteId: string | null; points: Date | null; doneAt: Date | nul…`
 - **clientAskedOnRead** (function) `(db: Db, clientDb: (client: string) => Db): (itemId: number) => Promise<void>`
 - **sopLibrary** (function) `(db: Queryable, client: string, sopsDir: string | null): Promise<SopRow[]>`
 - **writeAsked** (function) `(db: Db, sopsDir: string, writer: SopWriter, only?: { itemId?: number; sop?: string }): Promise<Array<{ sop: string; file: string | null; error: string | null }>>`

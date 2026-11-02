@@ -1,0 +1,61 @@
+{
+ "layer": "routes",
+ "nodes": [
+  {
+   "id": "route:SearchWeek/run",
+   "role": "route",
+   "parent": "service:SearchWeek",
+   "group": "@wren/starling-search",
+   "attrs": {
+    "deps": [
+     "console",
+     "db",
+     "desk",
+     "fetch",
+     "llm",
+     "notifier",
+     "origin"
+    ],
+    "input": "{ today: string }",
+    "output": "WeekStats",
+    "reaches": [
+     "SiteClient.call(_, !GET)"
+    ],
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "service:SearchWeek",
+   "role": "service",
+   "parent": "@wren/starling-search",
+   "group": "@wren/starling-search",
+   "attrs": {
+    "factory": "makeSearchWeek",
+    "file": "packages/starling/search/src/restate/watch.ts",
+    "kind": "service"
+   }
+  }
+ ],
+ "edges": [
+  {
+   "from": "route:SearchWeek/run",
+   "to": "table:public.search_days",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SearchWeek/run",
+   "to": "table:public.runs",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SearchWeek/run",
+   "to": "table:public.search_answers",
+   "kind": "writes"
+  },
+  {
+   "from": "route:SearchWeek/run",
+   "to": "table:public.search_keywords",
+   "kind": "writes"
+  }
+ ]
+}

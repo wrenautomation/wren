@@ -763,7 +763,7 @@
     "file": "packages/calendar/src/console.ts",
     "inferred": true,
     "kind": "function",
-    "sig": "(d: Pick<ClientCalendarDeps, \"main\" | \"open\" | \"portal\"> & { mailer?: unknown }): { installed: (req: PortalRequest) => Promise<{ name: string; id: string; accounts: Record<string, string>; sends: string[]; createdAt: Date; database: string; products: Record<string, unknown>; look: unknown; demo: boolean; setupMode: \"self\" | \"for_you\"; buysOk: boolean; approver: \"client\" | \"wren\" …"
+    "sig": "(d: Pick<ClientCalendarDeps, \"main\" | \"open\" | \"portal\"> & { mailer?: unknown }): { installed: (req: PortalRequest) => Promise<{ name: string; id: string; createdAt: Date; accounts: Record<string, string>; sends: string[]; database: string; products: Record<string, unknown>; look: unknown; demo: boolean; setupMode: \"self\" | \"for_you\"; buysOk: boolean; approver: \"client\" | \"wren\" …"
    }
   },
   {

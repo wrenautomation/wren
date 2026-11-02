@@ -1801,7 +1801,7 @@
     "file": "packages/books/src/report.ts",
     "inferred": true,
     "kind": "function",
-    "sig": "(db: Db, id: number): Promise<{ id: number; sha256: string; mediaType: string; size: number; storeKey: string; source: \"file\" | \"mailbox\" | \"attachment\"; parentId: number | null; filename: string | null; mailbox: string | null; mailboxKey: string | null; messageId: string | null; fromAddress: string | null; fromName: str…"
+    "sig": "(db: Db, id: number): Promise<{ id: number; sha256: string; mediaType: string; size: number; storeKey: string; source: \"file\" | \"attachment\" | \"mailbox\"; parentId: number | null; filename: string | null; mailbox: string | null; mailboxKey: string | null; messageId: string | null; fromAddress: string | null; fromName: str…"
    }
   },
   {

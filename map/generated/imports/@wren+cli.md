@@ -1,17 +1,13 @@
 # @wren/cli
 
-Role: package. Files: 67.
+Role: package. Files: 68.
 
 ## Uses
 
 - @wren/books
 - @wren/calendar
-- @wren/channel-email
-- @wren/channel-meta
-- @wren/channel-search
 - @wren/channel-sms
 - @wren/config
-- @wren/content
 - @wren/core
 - @wren/db
 - @wren/delivery
@@ -20,19 +16,24 @@ Role: package. Files: 67.
 - @wren/niches
 - @wren/notes
 - @wren/offers
-- @wren/outreach
 - @wren/pipeline
 - @wren/reactivation
 - @wren/research
 - @wren/sites
-- @wren/studio
+- @wren/starling-core
+- @wren/starling-email
+- @wren/starling-inbound
+- @wren/starling-meta
+- @wren/starling-outbound
+- @wren/starling-search
+- @wren/starling-studio
 - @wren/video
 - @wren/watch
 - @wren/worker
 
 ## Outside packages
 
-@duckdb/node-api@1.5.6-r.1, @restatedev/restate-sdk-clients@1.17.1, @wrenautomation/autobrowse@0.5.0, @wrenautomation/falcon@0.8.2, @wrenautomation/models@0.8.2, @wrenautomation/weaver@0.8.2, commander@15.0.0, drizzle-orm@0.45.2, esbuild@0.28.2, node:child_process, node:crypto, node:fs, node:os, node:path, node:url, node:util
+@duckdb/node-api@1.5.6-r.1, @restatedev/restate-sdk-clients@1.17.1, @wrenautomation/autobrowse@0.8.4, @wrenautomation/models@0.29.0, @wrenautomation/read@0.29.0, commander@15.0.0, drizzle-orm@0.45.2, esbuild@0.28.2, node:child_process, node:crypto, node:fs, node:os, node:path, node:url, node:util
 
 ## Folders
 
@@ -49,6 +50,7 @@ flowchart LR
   nbooks_ts["books.ts"]
   ncalendar_ts["calendar.ts"]
   ncalls_ts["calls.ts"]
+  ncampaigns_ts["campaigns.ts"]
   nclient_scope_ts["client-scope.ts"]
   nclients_ts["clients.ts"]
   ncontent_ts["content.ts"]
@@ -108,6 +110,7 @@ flowchart LR
   nwrite_ts["write.ts"]
   nvitest_config_ts["vitest.config.ts"]
   nbooks_ts --> nsites_ts
+  ncampaigns_ts --> npipeline_ts
   nclients_ts --> nargs_ts
   nclients_ts --> nproducts_ts
   ncrm_ts --> nsites_ts
@@ -129,6 +132,7 @@ flowchart LR
   nmain_ts --> nbooks_ts
   nmain_ts --> ncalendar_ts
   nmain_ts --> ncalls_ts
+  nmain_ts --> ncampaigns_ts
   nmain_ts --> nclient_scope_ts
   nmain_ts --> nclients_ts
   nmain_ts --> ncontent_ts
@@ -203,6 +207,7 @@ flowchart LR
 - books.ts
 - calendar.ts
 - calls.ts
+- campaigns.ts
 - client-scope.ts
 - clients.ts
 - content.ts

@@ -2,11 +2,6 @@
 
 Exports: 266. Files: 48.
 
-## packages/channel-email/src/sequences.ts
-
-- **sendPolicyFor** (function) `(settings: Sending, base: SendPolicy): SendPolicy`
-- **senderFleet** (function) `(settings: Senders): Fleet`
-
 ## packages/core/src/portal.ts
 
 - **PortalRequest** (interface) `interface PortalRequest { viewer: Viewer; client?: string; asClient?: boolean; viewAs?: ViewAs | unknown; }`
@@ -80,7 +75,7 @@ Exports: 266. Files: 48.
 - **buildComposePrompt** (function) `(s: ComposeSubject, profile: Pick<ClientProfile, "firm" | "sells" | "voice">, sender: Pick<Sender, "name">, prompt: Pick<LiveTemplate, "template"> = { template: composeDefault() }): string`
 - **composeBlocked** (function) `(settings: ReactivationSettings, profile: ClientProfile | null, gate: { ok: boolean; reason: string }, demo = false): string | null`
 - **composeCrmEmails** (function) `(db: Queryable, llm: LlmClient, opts: ComposeOptions): Promise<CrmComposeStats>`
-- **composeDefault** (function) `(): import("@wren/channel-email").Template`
+- **composeDefault** (function) `(): import("@wren/starling-email").Template`
 - **composeDue** (function) `(db: Queryable, settings: ReactivationSettings, profile: ClientProfile | null, demo = false): Promise<{ due: number; blocked: string | null }>`
 - **composeEligible** (function) `(db: Queryable, catchAll = false): Promise<number>`
 - **composeRoom** (function) `(db: Queryable, perDay: number): Promise<number>`
@@ -411,3 +406,8 @@ Exports: 266. Files: 48.
 - **WalkCopy** (interface) `interface WalkCopy { home: string; run: string; brief: string; emails: string; why: string; }`
 - **WalkOptions** (interface) `interface WalkOptions { dir: string; origin?: string; copy?: Partial<WalkCopy>; offer?: Offer; ffmpeg?: string; }`
 - **renderWalk** (function) `(brief: VideoBrief, o: WalkOptions): Promise<Encoded>`
+
+## packages/starling/channels/email/src/sequences.ts
+
+- **sendPolicyFor** (function) `(settings: Sending, base: SendPolicy): SendPolicy`
+- **senderFleet** (function) `(settings: Senders): Fleet`

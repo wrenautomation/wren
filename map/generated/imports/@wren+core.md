@@ -1,6 +1,6 @@
 # @wren/core
 
-Role: package. Files: 255.
+Role: package. Files: 248.
 
 ## Uses
 
@@ -8,7 +8,7 @@ Role: package. Files: 255.
 
 ## Outside packages
 
-@aws-sdk/client-ec2@3.1136.0, @jitl/quickjs-singlefile-mjs-release-sync@0.32.0, @restatedev/restate-sdk-clients@1.17.1, @restatedev/restate-sdk-testcontainers@1.17.1, @restatedev/restate-sdk@1.17.1, @typesafe-ai/sdk@0.6.0, @wrenautomation/models@0.8.2, csv-parse@7.0.2, drizzle-orm@0.45.2, entities@8.1.0, free-email-domains@1.12.20, node:async_hooks, node:crypto, node:dns, node:fs, node:https, node:net, node:path, node:process, node:tls, node:url, postal-mime@4.0.4, quickjs-emscripten-core@0.32.0, tldts@7.4.16, zod@4.6.5
+@aws-sdk/client-ec2@3.1136.0, @jitl/quickjs-singlefile-mjs-release-sync@0.32.0, @restatedev/restate-sdk-clients@1.17.1, @restatedev/restate-sdk-testcontainers@1.17.1, @restatedev/restate-sdk@1.17.1, @typesafe-ai/sdk@0.6.0, @wrenautomation/models@0.29.0, csv-parse@7.0.2, drizzle-orm@0.45.2, entities@8.1.0, free-email-domains@1.12.20, node:async_hooks, node:crypto, node:dns, node:fs, node:https, node:net, node:path, node:process, node:tls, node:url, postal-mime@4.0.4, quickjs-emscripten-core@0.32.0, tldts@7.4.16, zod@4.6.5
 
 ## Folders
 
@@ -44,7 +44,7 @@ flowchart LR
   nconsole_routes_ts["console-routes.ts"]
   nconsole_ts["console.ts"]
   nconsole_["console/ (18)"]
-  ncontent_["content/ (15)"]
+  ncontent_["content/ (8)"]
   ncustom_console_ts["custom-console.ts"]
   ncustom_fields_ts["custom-fields.ts"]
   ncustom_schema_ts["custom-schema.ts"]
@@ -331,7 +331,6 @@ flowchart LR
   ncontent_ -.-> nnotify_ts
   ncontent_ --> nrestate_
   ncontent_ --> nlogic_ts
-  ncontent_ --> nmetered_ts
   ncontent_ --> nsend_journal_ts
   ncontent_ --> nsend_verdict_ts
   ncontent_ --> ntime_ts
@@ -792,7 +791,7 @@ flowchart LR
 - console-routes.ts
 - console.ts
 - console/: src/console/api/calls.ts, src/console/api/clients.ts, src/console/api/components.ts, src/console/api/context.ts, src/console/api/executions.ts, src/console/api/library.ts, src/console/api/loops.ts, src/console/api/records.ts, src/console/api/requests.ts, src/console/api/workflows.ts, src/console/components.ts, src/console/console-api.ts, src/console/console-portal.ts, src/console/executions.ts, src/console/handlers.ts, src/console/loops.ts, src/console/restate-admin.ts, src/console/settings.ts
-- content/: src/content/autobrowse.ts, src/content/box.ts, src/content/do.ts, src/content/index.ts, src/content/ingress.ts, src/content/insights.ts, src/content/page-inbox.ts, src/content/proof.ts, src/content/renewal.ts, src/content/restate.ts, src/content/routes.ts, src/content/shapes.ts, src/content/slides.ts, src/content/thread.ts, src/content/tiktok.ts
+- content/: src/content/autobrowse.ts, src/content/box.ts, src/content/do.ts, src/content/index.ts, src/content/ingress.ts, src/content/renewal.ts, src/content/restate.ts, src/content/routes.ts
 - custom-console.ts
 - custom-fields.ts
 - custom-schema.ts

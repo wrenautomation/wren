@@ -26,11 +26,11 @@ Exports: 250. Files: 28.
 - **IdRequest** (interface) `interface IdRequest extends PortalRequest { id: string; }`
 - **IdsRequest** (interface) `interface IdsRequest extends PortalRequest { ids: string[]; }`
 - **SaveRequest** (interface) `interface SaveRequest extends IdRequest { content: unknown; why?: string | null; expect?: number | null; }`
-- **makeSitesConsole** (function) `(deps: { db: Db; write?: Write | null; shareKey?: string | null }): restate.ServiceDefinition<"SitesConsole", { offers: (_: restate.Context, req: PortalRequest) => Promise<{ offers: { id: string; name: string; status: "retired" | "paused" | "draft" | "live"; audience: string; }[]; templates: { id: string; name: string; blurb: string; }[]; ai: boolean; }>; detail: (_…`
+- **makeSitesConsole** (function) `(deps: { db: Db; write?: Write | null; shareKey?: string | null }): restate.ServiceDefinition<"SitesConsole", { offers: (_: restate.Context, req: PortalRequest) => Promise<{ offers: { id: string; name: string; status: "draft" | "paused" | "retired" | "live"; audience: string; }[]; templates: { id: string; name: string; blurb: string; }[]; ai: boolean; }>; detail: (_…`
 - **pageApprovalId** (function) `(id: string, number: number): string`
 - **parsePageApprovalId** (function) `(id: string): { id: string; number: number } | null`
 - **retireApprovalId** (function) `(id: string): string`
-- **sitesApi** (function) `(deps: { db: Db; write?: Write | null; shareKey?: string | null }): { offers(req: PortalRequest): Promise<{ offers: { id: string; name: string; status: "retired" | "paused" | "draft" | "live"; audience: string; }[]; templates: { id: string; name: string; blurb: string; }[]; ai: boolean; }>; detail(req: IdRequest): Promise<PageDetail>; create(req: CreateRequest): Pro…`
+- **sitesApi** (function) `(deps: { db: Db; write?: Write | null; shareKey?: string | null }): { offers(req: PortalRequest): Promise<{ offers: { id: string; name: string; status: "draft" | "paused" | "retired" | "live"; audience: string; }[]; templates: { id: string; name: string; blurb: string; }[]; ai: boolean; }>; detail(req: IdRequest): Promise<PageDetail>; create(req: CreateRequest): Pro…`
 
 ## packages/sites/src/detail.ts
 
@@ -268,7 +268,7 @@ Exports: 250. Files: 28.
 - **duplicatePage** (function) `(db: Db, id: string, d: { by: string; title?: string | null; angle?: string | null; audience?: string | null }): Promise<SitePage>`
 - **formFieldsOf** (function) `(raw: unknown): Record<string, string>`
 - **importLanderClicks** (function) `(db: Db, rows: readonly LanderClick[]): Promise<number>`
-- **keepForm** (function) `(db: Db, f: { page: SitePage | null; form?: string | null; view: string | null; fields: Record<string, string>; touch: unknown; split?: string | null; formSplit?: string | null; arm?: FormArm | null; } & EntryMeta, open?: OpenClient): Promise<{ page: string | null; why: string | null; split: string | null; at: Date; id: string; channel: string; pages: SeenPage[] | null; fields: Record<string, string>; arm: string | null; form: string | null; consent: FormConsent | null; entered: boolean; formSplit: string | null; touch: FormTouch…`
+- **keepForm** (function) `(db: Db, f: { page: SitePage | null; form?: string | null; view: string | null; fields: Record<string, string>; touch: unknown; split?: string | null; formSplit?: string | null; arm?: FormArm | null; } & EntryMeta, open?: OpenClient): Promise<{ split: string | null; at: Date; id: string; why: string | null; arm: string | null; form: string | null; fields: Record<string, string>; channel: string; pages: SeenPage[] | null; consent: FormConsent | null; page: string | null; entered: boolean; formSplit: string | null; touch: FormTouch…`
 - **markForm** (function) `(db: Db, id: string, entered: boolean, why: string | null): Promise<void>`
 - **pageById** (function) `(db: Queryable, id: string): Promise<SitePage | null>`
 - **pageNumbers** (function) `(db: Queryable, id: string): Promise<{ days: DayNumbers[]; sources: SourceNumbers[]; }>`

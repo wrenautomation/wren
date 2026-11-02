@@ -32,7 +32,7 @@ Exports: 80. Files: 15.
 ## packages/calendar/src/console.ts
 
 - **IdsRequest** (interface) `interface IdsRequest extends PortalRequest { ids: string[]; reason?: string | null; }`
-- **calendarRecordsApi** (function) `(d: Pick<ClientCalendarDeps, "main" | "open" | "portal"> & { mailer?: unknown }): { installed: (req: PortalRequest) => Promise<{ name: string; id: string; accounts: Record<string, string>; sends: string[]; createdAt: Date; database: string; products: Record<string, unknown>; look: unknown; demo: boolean; setupMode: "self" | "for_you"; buysOk: boolean; approver: "client" | "wren" …`
+- **calendarRecordsApi** (function) `(d: Pick<ClientCalendarDeps, "main" | "open" | "portal"> & { mailer?: unknown }): { installed: (req: PortalRequest) => Promise<{ name: string; id: string; createdAt: Date; accounts: Record<string, string>; sends: string[]; database: string; products: Record<string, unknown>; look: unknown; demo: boolean; setupMode: "self" | "for_you"; buysOk: boolean; approver: "client" | "wren" …`
 - **makeCalendarConsole** (function) `(deps: CalendarConsoleDeps): restate.ServiceDefinition<"CalendarConsole", { range: (ctx: restate.Context, req: RangeRequest) => Promise<CalendarRange>; recordsTypes: (_: restate.Context, req: PortalRequest) => Promise<import("@wren/core/records").RecordMeta[]>; recordsList: (_: restate.Context, req: PortalRequest & ListAsk) => …`
 - **rangeOf** (function) `(db: Db, calendar: string, settings: unknown, req: { from: string; to: string }): Promise<CalendarRange>`
 

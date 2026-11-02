@@ -1,6 +1,6 @@
 # Migrations
 
-Files: 350.
+Files: 353.
 
 - 0000_initial_tables.sql
 - 0001_email_channel_tables.sql
@@ -352,3 +352,6 @@ Files: 350.
 - 0348_source_replied_booked.sql
 - 0349_reach_posts_more_platforms.sql
 - 0350_reach_posts_tiktok_threads.sql
+- 0351_reach_posts_act_fails.sql
+- 0352_send_via_keyword_handed.sql
+- 0353_loop_wakes.sql

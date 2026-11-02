@@ -1,0 +1,1826 @@
+{
+ "layer": "api",
+ "nodes": [
+  {
+   "id": "@wren/starling-core#ACTIVITY_KINDS",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core"
+    ],
+    "file": "packages/starling/core/src/index.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"follow\", \"subscribe\", \"mention\", \"reaction\", \"notification\"]"
+   }
+  },
+  {
+   "id": "@wren/starling-core#AccountInsights",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core"
+    ],
+    "file": "packages/starling/core/src/insights.ts",
+    "kind": "interface",
+    "sig": "interface AccountInsights { days: Array<{ day: string; values: InsightValue[] }>; gaps: InsightGap[]; asOf: string; }"
+   }
+  },
+  {
+   "id": "@wren/starling-core#ActivityKind",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core"
+    ],
+    "file": "packages/starling/core/src/index.ts",
+    "kind": "type",
+    "sig": "type ActivityKind = (typeof ACTIVITY_KINDS)[number];"
+   }
+  },
+  {
+   "id": "@wren/starling-core#ActivityQuery",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core"
+    ],
+    "file": "packages/starling/core/src/index.ts",
+    "kind": "interface",
+    "sig": "interface ActivityQuery { since?: string; limit?: number; }"
+   }
+  },
+  {
+   "id": "@wren/starling-core#ActivityRow",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core"
+    ],
+    "file": "packages/starling/core/src/index.ts",
+    "kind": "interface",
+    "sig": "interface ActivityRow { id: string; kind: ActivityKind; actor: string | null; actorUrl: string | null; text: string; url: string | null; at: string | null; raw: unknown; }"
+   }
+  },
+  {
+   "id": "@wren/starling-core#Audience",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core"
+    ],
+    "file": "packages/starling/core/src/index.ts",
+    "kind": "interface",
+    "sig": "interface Audience { followers: number; asOf: string; raw: unknown; }"
+   }
+  },
+  {
+   "id": "@wren/starling-core#CONTENT_LIST_LIMIT",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core"
+    ],
+    "file": "packages/starling/core/src/index.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "100"
+   }
+  },
+  {
+   "id": "@wren/starling-core#Channels",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/service"
+    ],
+    "file": "packages/starling/core/src/service.ts",
+    "kind": "type",
+    "sig": "type Channels = Partial<Record<Platform, ContentChannel>>;"
+   }
+  },
+  {
+   "id": "@wren/starling-core#ChannelsFor",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/service"
+    ],
+    "file": "packages/starling/core/src/service.ts",
+    "kind": "type",
+    "sig": "type ChannelsFor = ( ctx: restate.Context, o?: { arm?: boolean; account?: string | null }, ) => Channels;"
+   }
+  },
+  {
+   "id": "@wren/starling-core#CommentRow",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core"
+    ],
+    "file": "packages/starling/core/src/index.ts",
+    "kind": "interface",
+    "sig": "interface CommentRow { id: string; postId: string; author: string; authorName?: string; text: string; at: string; repliedWith?: string; parentId?: string; url?: string; mine?: boolean; stars?: number; raw?: unknown; }"
+   }
+  },
+  {
+   "id": "@wren/starling-core#Content",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/service"
+    ],
+    "file": "packages/starling/core/src/service.ts",
+    "kind": "type",
+    "sig": "type Content = ReturnType<typeof makeContent>;"
+   }
+  },
+  {
+   "id": "@wren/starling-core#ContentChannel",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core"
+    ],
+    "file": "packages/starling/core/src/index.ts",
+    "kind": "interface",
+    "sig": "interface ContentChannel { readonly platform: Platform; publish(post: Post): Promise<Published>; list(q?: ListQuery): Promise<PublishedRow[]>; metrics(id: string): Promise<Metrics>; metricsMany?(posts: { id: string; kind?: string | null }[]): Promise<Metrics[]>; commentCounts?(ids: string[]): Promise<Record<string, number>>; comments(id: string, q?: ListQuery): Promise<CommentRow[]>; reply?(commentId: string, text: string, on?: { postId?: string | null }): Promise<void>; privateReply?(commentId: string, text: string): Promise<{ ref: string | null }>; reviews?(q?: ActivityQuery): Promise<CommentRow[]>; activity?(q?: ActivityQuery): Promise<ActivityRow[]>; audience?(): Promise<Audience>; following?(): Promise<FollowingRow[]>; ownComments?(): Promise<OwnCommentRow[]>; insights?(q: InsightsQuery): Promise<Insights>; accountInsights?(): Promise<AccountInsights>; reportDays?(q: { after?: string | null }): Promise<ReportDays>; update?(id: string, patch: PostPatch): Promise<void>; }"
+   }
+  },
+  {
+   "id": "@wren/starling-core#ContentClients",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/service"
+    ],
+    "file": "packages/starling/core/src/service.ts",
+    "kind": "interface",
+    "sig": "interface ContentClients { channels: (ctx: restate.Context, client: string, part: ContentPart) => Promise<Channels>; sends: (client: string) => Promise<boolean>; }"
+   }
+  },
+  {
+   "id": "@wren/starling-core#FieldInput",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/shapes"
+    ],
+    "file": "packages/starling/core/src/shapes.ts",
+    "kind": "type",
+    "sig": "type FieldInput = | \"line\" | \"long\" | \"pick\" | \"switch\" | \"list\" | \"image\" | \"files\" | \"captions\" | \"number\" | \"slides\";"
+   }
+  },
+  {
+   "id": "@wren/starling-core#FieldView",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/shapes"
+    ],
+    "file": "packages/starling/core/src/shapes.ts",
+    "kind": "interface",
+    "sig": "interface FieldView extends FieldUi { key: string; value: unknown; }"
+   }
+  },
+  {
+   "id": "@wren/starling-core#FieldsOf",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/shapes"
+    ],
+    "file": "packages/starling/core/src/shapes.ts",
+    "kind": "type",
+    "sig": "type FieldsOf<P extends Platform> = z.output<(typeof SHAPES)[P][\"schema\"]>;"
+   }
+  },
+  {
+   "id": "@wren/starling-core#FollowingRow",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core"
+    ],
+    "file": "packages/starling/core/src/index.ts",
+    "kind": "interface",
+    "sig": "interface FollowingRow { handle: string; name: string | null; url: string | null; at: string | null; }"
+   }
+  },
+  {
+   "id": "@wren/starling-core#GAP_STATES",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core"
+    ],
+    "file": "packages/starling/core/src/insights.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"needs_scope\", \"needs_william\", \"not_built\", \"no_api\", \"error\", \"waiting\"]"
+   }
+  },
+  {
+   "id": "@wren/starling-core#GapState",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core"
+    ],
+    "file": "packages/starling/core/src/insights.ts",
+    "kind": "type",
+    "sig": "type GapState = (typeof GAP_STATES)[number];"
+   }
+  },
+  {
+   "id": "@wren/starling-core#InsightGap",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core"
+    ],
+    "file": "packages/starling/core/src/insights.ts",
+    "kind": "interface",
+    "sig": "interface InsightGap { metric: string; state: GapState; why: string; }"
+   }
+  },
+  {
+   "id": "@wren/starling-core#InsightValue",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core"
+    ],
+    "file": "packages/starling/core/src/insights.ts",
+    "kind": "interface",
+    "sig": "interface InsightValue { metric: string; key?: string; value: number; }"
+   }
+  },
+  {
+   "id": "@wren/starling-core#Insights",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core"
+    ],
+    "file": "packages/starling/core/src/insights.ts",
+    "kind": "interface",
+    "sig": "interface Insights { values: InsightValue[]; gaps: InsightGap[]; asOf: string; fetchedWith?: FetchedWith; }"
+   }
+  },
+  {
+   "id": "@wren/starling-core#InsightsQuery",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core"
+    ],
+    "file": "packages/starling/core/src/insights.ts",
+    "kind": "interface",
+    "sig": "interface InsightsQuery { id: string; published?: string | null; kind?: string | null; media?: \"image\" | \"video\" | null; read?: unknown; }"
+   }
+  },
+  {
+   "id": "@wren/starling-core#KeepShot",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core"
+    ],
+    "file": "packages/starling/core/src/proof.ts",
+    "kind": "type",
+    "sig": "type KeepShot = (jpeg: Uint8Array) => Promise<string>;"
+   }
+  },
+  {
+   "id": "@wren/starling-core#ListQuery",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core"
+    ],
+    "file": "packages/starling/core/src/index.ts",
+    "kind": "interface",
+    "sig": "interface ListQuery { limit?: number; before?: string; }"
+   }
+  },
+  {
+   "id": "@wren/starling-core#MANY_POSTS",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/service"
+    ],
+    "file": "packages/starling/core/src/service.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "100"
+   }
+  },
+  {
+   "id": "@wren/starling-core#METRICS",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core"
+    ],
+    "file": "packages/starling/core/src/insights.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly views: \"views\"; readonly reach: \"reach\"; readonly impressions: \"impressions\"; readonly ctr: \"ctr\"; readonly impressionsDay: \"impressions_day\"; readonly ctrDay: \"ctr_day\"; readonly likes: \"likes\"; readonly comments: \"comments\"; readonly shares: \"shares\"; readonly saves: \"saves\"; readonly i…"
+   }
+  },
+  {
+   "id": "@wren/starling-core#Media",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core"
+    ],
+    "file": "packages/starling/core/src/index.ts",
+    "kind": "interface",
+    "sig": "interface Media { kind: \"image\" | \"video\"; source: string; title?: string; }"
+   }
+  },
+  {
+   "id": "@wren/starling-core#MediaHost",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core"
+    ],
+    "file": "packages/starling/core/src/index.ts",
+    "kind": "interface",
+    "sig": "interface MediaHost { host(source: string): Promise<string>; }"
+   }
+  },
+  {
+   "id": "@wren/starling-core#MetricName",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core"
+    ],
+    "file": "packages/starling/core/src/insights.ts",
+    "kind": "type",
+    "sig": "type MetricName = (typeof METRICS)[keyof typeof METRICS];"
+   }
+  },
+  {
+   "id": "@wren/starling-core#Metrics",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core"
+    ],
+    "file": "packages/starling/core/src/index.ts",
+    "kind": "interface",
+    "sig": "interface Metrics { id: string; views: number; reactions: number; comments: number; shares: number; follows?: number | null; read?: unknown; asOf: string; fetchedWith: FetchedWith; }"
+   }
+  },
+  {
+   "id": "@wren/starling-core#OwnCommentRow",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core"
+    ],
+    "file": "packages/starling/core/src/index.ts",
+    "kind": "interface",
+    "sig": "interface OwnCommentRow { id: string; url: string; at: string; text: string; postId: string; reply: boolean; to: { handle: string; name: string | null } | null; }"
+   }
+  },
+  {
+   "id": "@wren/starling-core#PROOF_STATES",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core"
+    ],
+    "file": "packages/starling/core/src/proof.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"live\", \"hidden\", \"missing\", \"pending\"]"
+   }
+  },
+  {
+   "id": "@wren/starling-core#Post",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core"
+    ],
+    "file": "packages/starling/core/src/index.ts",
+    "kind": "interface",
+    "sig": "interface Post { text: string; media?: Media; scheduledFor?: string; extra?: Record<string, unknown>; }"
+   }
+  },
+  {
+   "id": "@wren/starling-core#PostPatch",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core"
+    ],
+    "file": "packages/starling/core/src/index.ts",
+    "kind": "interface",
+    "sig": "interface PostPatch { title?: string; thumbnail?: string; hook?: string; }"
+   }
+  },
+  {
+   "id": "@wren/starling-core#Proof",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core"
+    ],
+    "file": "packages/starling/core/src/proof.ts",
+    "kind": "interface",
+    "sig": "interface Proof { state: ProofState; checkedAt: string; url: string | null; shot: string | null; note: string | null; }"
+   }
+  },
+  {
+   "id": "@wren/starling-core#ProofTarget",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core"
+    ],
+    "file": "packages/starling/core/src/proof.ts",
+    "kind": "interface",
+    "sig": "interface ProofTarget { platform: string; ref: string | null; parent: string | null; url: string | null; text?: string | null; account?: string | null; post?: string | null; peers?: string[]; }"
+   }
+  },
+  {
+   "id": "@wren/starling-core#Published",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core"
+    ],
+    "file": "packages/starling/core/src/index.ts",
+    "kind": "interface",
+    "sig": "interface Published { id: string; url: string; publishedAt: string; fetchedWith: FetchedWith; notes?: string[]; }"
+   }
+  },
+  {
+   "id": "@wren/starling-core#PublishedRow",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core"
+    ],
+    "file": "packages/starling/core/src/index.ts",
+    "kind": "interface",
+    "sig": "interface PublishedRow extends Published { preview: string; text?: string; title?: string; }"
+   }
+  },
+  {
+   "id": "@wren/starling-core#RedditReads",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core"
+    ],
+    "file": "packages/starling/core/src/proof.ts",
+    "kind": "interface",
+    "sig": "interface RedditReads { open: RedditThing | null; inThread: boolean | null; own?: RedditThing | null; }"
+   }
+  },
+  {
+   "id": "@wren/starling-core#ReportDays",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core"
+    ],
+    "file": "packages/starling/core/src/insights.ts",
+    "kind": "interface",
+    "sig": "interface ReportDays { rows: Array<{ id: string; day: string; values: InsightValue[] }>; gaps: InsightGap[]; cursor: string | null; asOf: string; }"
+   }
+  },
+  {
+   "id": "@wren/starling-core#SENDS_OFF",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/service"
+    ],
+    "file": "packages/starling/core/src/service.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"Sends off. An admin turns them on.\""
+   }
+  },
+  {
+   "id": "@wren/starling-core#SHAPES",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/shapes"
+    ],
+    "file": "packages/starling/core/src/shapes.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly youtube: Shape<{ kind: { zod: z.ZodOptional<z.ZodEnum<{ video: \"video\"; short: \"short\"; community: \"community\"; }>>; ui: { label: string; input: FieldInput; status: FieldStatus; max?: number; maxTotal?: number; options: readonly { value: string; label: string; }[]; required?: boolean; def…"
+   }
+  },
+  {
+   "id": "@wren/starling-core#SLIDES_CSS",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/slides"
+    ],
+    "file": "packages/starling/core/src/slides.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "string"
+   }
+  },
+  {
+   "id": "@wren/starling-core#SLIDES_MAX",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/slides"
+    ],
+    "file": "packages/starling/core/src/slides.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "10"
+   }
+  },
+  {
+   "id": "@wren/starling-core#SLIDES_MIN",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/slides"
+    ],
+    "file": "packages/starling/core/src/slides.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "5"
+   }
+  },
+  {
+   "id": "@wren/starling-core#SLIDE_LINES_MAX",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/slides"
+    ],
+    "file": "packages/starling/core/src/slides.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "4"
+   }
+  },
+  {
+   "id": "@wren/starling-core#SLIDE_LINE_MAX",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/slides"
+    ],
+    "file": "packages/starling/core/src/slides.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "110"
+   }
+  },
+  {
+   "id": "@wren/starling-core#SLIDE_PX",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/slides"
+    ],
+    "file": "packages/starling/core/src/slides.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "1080"
+   }
+  },
+  {
+   "id": "@wren/starling-core#SLIDE_TITLE_MAX",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/slides"
+    ],
+    "file": "packages/starling/core/src/slides.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "70"
+   }
+  },
+  {
+   "id": "@wren/starling-core#Shape",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/shapes"
+    ],
+    "file": "packages/starling/core/src/shapes.ts",
+    "kind": "interface",
+    "sig": "interface Shape<F extends Fields = Fields> extends ShapeRules { schema: SchemaOf<F>; fields: readonly (FieldUi & { key: string })[]; }"
+   }
+  },
+  {
+   "id": "@wren/starling-core#ShapeError",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/shapes"
+    ],
+    "file": "packages/starling/core/src/shapes.ts",
+    "kind": "class",
+    "sig": "override name"
+   }
+  },
+  {
+   "id": "@wren/starling-core#Slide",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/slides"
+    ],
+    "file": "packages/starling/core/src/slides.ts",
+    "kind": "interface",
+    "sig": "interface Slide { title: string; lines: string[]; }"
+   }
+  },
+  {
+   "id": "@wren/starling-core#THREAD_BREAK",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/thread"
+    ],
+    "file": "packages/starling/core/src/thread.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"\\n\\n---\\n\\n\""
+   }
+  },
+  {
+   "id": "@wren/starling-core#THREAD_MAX",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/thread"
+    ],
+    "file": "packages/starling/core/src/thread.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "7"
+   }
+  },
+  {
+   "id": "@wren/starling-core#THREAD_MIN",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/thread"
+    ],
+    "file": "packages/starling/core/src/thread.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "3"
+   }
+  },
+  {
+   "id": "@wren/starling-core#TIKTOK_BC_URL",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/tiktok"
+    ],
+    "file": "packages/starling/core/src/tiktok.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"https://www.tiktok.com/legal/page/global/bc-policy/en\""
+   }
+  },
+  {
+   "id": "@wren/starling-core#TIKTOK_COPY",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/tiktok"
+    ],
+    "file": "packages/starling/core/src/tiktok.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "{ readonly disclose: \"Disclose post content\"; readonly discloseHint: \"Indicate whether this content promotes yourself, a brand, product or service.\"; readonly yourBrand: \"Your brand\"; readonly yourBrandHint: \"You are promoting yourself or your own business. This content will be classified as Brand O…"
+   }
+  },
+  {
+   "id": "@wren/starling-core#TIKTOK_MUSIC_URL",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/tiktok"
+    ],
+    "file": "packages/starling/core/src/tiktok.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"https://www.tiktok.com/legal/page/global/music-usage-confirmation/en\""
+   }
+  },
+  {
+   "id": "@wren/starling-core#TIKTOK_PRIVACY",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/tiktok"
+    ],
+    "file": "packages/starling/core/src/tiktok.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"PUBLIC_TO_EVERYONE\", \"MUTUAL_FOLLOW_FRIENDS\", \"FOLLOWER_OF_CREATOR\", \"SELF_ONLY\"]"
+   }
+  },
+  {
+   "id": "@wren/starling-core#TIKTOK_PRIVACY_LABELS",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/tiktok"
+    ],
+    "file": "packages/starling/core/src/tiktok.ts",
+    "kind": "const",
+    "sig": "Record<TikTokPrivacy, string>"
+   }
+  },
+  {
+   "id": "@wren/starling-core#TikTokCreator",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/tiktok"
+    ],
+    "file": "packages/starling/core/src/tiktok.ts",
+    "kind": "interface",
+    "sig": "interface TikTokCreator { nickname: string; username: string | null; avatarUrl: string | null; privacyOptions: TikTokPrivacy[]; commentOff: boolean; duetOff: boolean; stitchOff: boolean; maxVideoSec: number | null; canPost: boolean; why: string | null; }"
+   }
+  },
+  {
+   "id": "@wren/starling-core#TikTokPrivacy",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/tiktok"
+    ],
+    "file": "packages/starling/core/src/tiktok.ts",
+    "kind": "type",
+    "sig": "type TikTokPrivacy = (typeof TIKTOK_PRIVACY)[number];"
+   }
+  },
+  {
+   "id": "@wren/starling-core#WREN_X_SUBSCRIPTION",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/thread"
+    ],
+    "file": "packages/starling/core/src/thread.ts",
+    "kind": "const",
+    "sig": "XSubscription"
+   }
+  },
+  {
+   "id": "@wren/starling-core#X_POST_MAX",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/thread"
+    ],
+    "file": "packages/starling/core/src/thread.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "280"
+   }
+  },
+  {
+   "id": "@wren/starling-core#YOUTUBE_PRIVACY",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/shapes"
+    ],
+    "file": "packages/starling/core/src/shapes.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"private\", \"unlisted\", \"public\"]"
+   }
+  },
+  {
+   "id": "@wren/starling-core#browserRead",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core"
+    ],
+    "file": "packages/starling/core/src/insights.ts",
+    "kind": "function",
+    "sig": "(metrics: readonly string[], q: Pick<InsightsQuery, \"published\">, now: Date, work: () => Promise<InsightValue[]>, into: { values: InsightValue[]; gaps: InsightGap[] }): Promise<boolean>"
+   }
+  },
+  {
+   "id": "@wren/starling-core#browserReadDue",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core"
+    ],
+    "file": "packages/starling/core/src/insights.ts",
+    "kind": "function",
+    "sig": "(published: string | null | undefined, now: Date): boolean"
+   }
+  },
+  {
+   "id": "@wren/starling-core#carouselFiles",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/slides"
+    ],
+    "file": "packages/starling/core/src/slides.ts",
+    "kind": "function",
+    "sig": "(d: { extra?: Readonly<Record<string, unknown>> | null; }): CarouselFiles"
+   }
+  },
+  {
+   "id": "@wren/starling-core#carouselUnfit",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/slides"
+    ],
+    "file": "packages/starling/core/src/slides.ts",
+    "kind": "function",
+    "sig": "(d: { platform: string; extra?: Readonly<Record<string, unknown>> | null; }): string | null"
+   }
+  },
+  {
+   "id": "@wren/starling-core#cleanSlides",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/slides"
+    ],
+    "file": "packages/starling/core/src/slides.ts",
+    "kind": "function",
+    "sig": "(v: unknown): Slide[]"
+   }
+  },
+  {
+   "id": "@wren/starling-core#coerceField",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/shapes"
+    ],
+    "file": "packages/starling/core/src/shapes.ts",
+    "kind": "function",
+    "sig": "(platform: Platform, key: string, raw: string): unknown"
+   }
+  },
+  {
+   "id": "@wren/starling-core#consented",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/shapes"
+    ],
+    "file": "packages/starling/core/src/shapes.ts",
+    "kind": "function",
+    "sig": "(platform: Platform): boolean"
+   }
+  },
+  {
+   "id": "@wren/starling-core#creatorFrom",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/tiktok"
+    ],
+    "file": "packages/starling/core/src/tiktok.ts",
+    "kind": "function",
+    "sig": "(answer: unknown): TikTokCreator"
+   }
+  },
+  {
+   "id": "@wren/starling-core#fakeContentChannel",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core"
+    ],
+    "file": "packages/starling/core/src/index.ts",
+    "kind": "function",
+    "sig": "(platform: Platform, o: { now?: () => Date; urlOf?: (id: string) => string } = {}): ContentChannel & { posts: Array<Published & { post: Post }>; updates: Array<{ id: string; patch: PostPatch }>; privateReplies: Array<{ commentId: string; text: string }>; count(id: string, m: Partial<Omit<Metrics, \"id\" | \"asOf\" | \"fetchedWith\">>): void; receive(c: Omit<CommentRow, \"repliedWith\">): void; happen(a: ActivityRow): void; follow(followers: number): void; followOut(f: FollowingRow): void; commentOut(c: OwnCommentRow): void; measure(id: string, i: Omit<Insights, \"asOf\">): void; measureAccount(a: Omit<AccountInsights, \"asOf\">): void; report(r: Omit<ReportDays, \"asOf\">): void; }"
+   }
+  },
+  {
+   "id": "@wren/starling-core#fieldViews",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/shapes"
+    ],
+    "file": "packages/starling/core/src/shapes.ts",
+    "kind": "function",
+    "sig": "(platform: Platform, extra: Readonly<Record<string, unknown>>, title: string | null | undefined): FieldView[]"
+   }
+  },
+  {
+   "id": "@wren/starling-core#fieldsOf",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/shapes"
+    ],
+    "file": "packages/starling/core/src/shapes.ts",
+    "kind": "function",
+    "sig": "(platform: P, extra: unknown): FieldsOf<P>"
+   }
+  },
+  {
+   "id": "@wren/starling-core#gapStateOf",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core"
+    ],
+    "file": "packages/starling/core/src/insights.ts",
+    "kind": "function",
+    "sig": "(err: unknown): GapState | null"
+   }
+  },
+  {
+   "id": "@wren/starling-core#holdAt",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core"
+    ],
+    "file": "packages/starling/core/src/insights.ts",
+    "kind": "function",
+    "sig": "(curve: ReadonlyArray<{ ratio: number; watch: number }>, at: number): number | null"
+   }
+  },
+  {
+   "id": "@wren/starling-core#holds",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core"
+    ],
+    "file": "packages/starling/core/src/proof.ts",
+    "kind": "function",
+    "sig": "(page: string, text: string): boolean"
+   }
+  },
+  {
+   "id": "@wren/starling-core#hookOf",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core"
+    ],
+    "file": "packages/starling/core/src/index.ts",
+    "kind": "function",
+    "sig": "(text: string): string"
+   }
+  },
+  {
+   "id": "@wren/starling-core#idsIn",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core"
+    ],
+    "file": "packages/starling/core/src/proof.ts",
+    "kind": "function",
+    "sig": "(tree: RedditListing | undefined): { ids: Set<string>; partial: boolean }"
+   }
+  },
+  {
+   "id": "@wren/starling-core#isCarousel",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/slides"
+    ],
+    "file": "packages/starling/core/src/slides.ts",
+    "kind": "function",
+    "sig": "(d: { platform: string; extra?: Readonly<Record<string, unknown>> | null; }): boolean"
+   }
+  },
+  {
+   "id": "@wren/starling-core#isStoredMedia",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core"
+    ],
+    "file": "packages/starling/core/src/index.ts",
+    "kind": "function",
+    "sig": "(source: string): boolean"
+   }
+  },
+  {
+   "id": "@wren/starling-core#isThread",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/thread"
+    ],
+    "file": "packages/starling/core/src/thread.ts",
+    "kind": "function",
+    "sig": "(d: { platform: string; extra?: Readonly<Record<string, unknown>> | null; }): boolean"
+   }
+  },
+  {
+   "id": "@wren/starling-core#isUrl",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core"
+    ],
+    "file": "packages/starling/core/src/index.ts",
+    "kind": "function",
+    "sig": "(source: string): boolean"
+   }
+  },
+  {
+   "id": "@wren/starling-core#journaledHost",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/service"
+    ],
+    "file": "packages/starling/core/src/service.ts",
+    "kind": "function",
+    "sig": "(ctx: restate.Context, host: MediaHost): MediaHost"
+   }
+  },
+  {
+   "id": "@wren/starling-core#kindOf",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/shapes"
+    ],
+    "file": "packages/starling/core/src/shapes.ts",
+    "kind": "function",
+    "sig": "(extra: Readonly<Record<string, unknown>> | null | undefined): string"
+   }
+  },
+  {
+   "id": "@wren/starling-core#knownGaps",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core"
+    ],
+    "file": "packages/starling/core/src/insights.ts",
+    "kind": "function",
+    "sig": "(state: GapState, why: string, metrics: readonly string[]): InsightGap[]"
+   }
+  },
+  {
+   "id": "@wren/starling-core#languageName",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/shapes"
+    ],
+    "file": "packages/starling/core/src/shapes.ts",
+    "kind": "function",
+    "sig": "(code: string): string"
+   }
+  },
+  {
+   "id": "@wren/starling-core#linkedinVerdict",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core"
+    ],
+    "file": "packages/starling/core/src/proof.ts",
+    "kind": "function",
+    "sig": "(loaded: boolean, own: boolean | null): { state: ProofState; note: string }"
+   }
+  },
+  {
+   "id": "@wren/starling-core#makeContent",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/service"
+    ],
+    "file": "packages/starling/core/src/service.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(channelsFor: ChannelsFor, clients?: ContentClients): restate.ServiceDefinition<\"Content\", { platforms: (ctx: restate.Context) => Promise<Platform[]>; publish: (ctx: restate.Context, req: { platform: Platform; post: Post; } & ForClient & AsAccount & Keyed) => Promise<Published | Delivery<Published>>; list: (ctx: restate.Context, req: { platform: Platfo…"
+   }
+  },
+  {
+   "id": "@wren/starling-core#mediaFileOf",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core"
+    ],
+    "file": "packages/starling/core/src/index.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(source: string, host: MediaHost | undefined, platform: string): Promise<string>"
+   }
+  },
+  {
+   "id": "@wren/starling-core#mediaUnfit",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/shapes"
+    ],
+    "file": "packages/starling/core/src/shapes.ts",
+    "kind": "function",
+    "sig": "(platform: Platform, extra: Readonly<Record<string, unknown>> | null | undefined, media: Pick<Media, \"kind\"> | null | undefined): string | null"
+   }
+  },
+  {
+   "id": "@wren/starling-core#missingFields",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/shapes"
+    ],
+    "file": "packages/starling/core/src/shapes.ts",
+    "kind": "function",
+    "sig": "(platform: Platform, extra: Readonly<Record<string, unknown>>, title: string | null | undefined): string[]"
+   }
+  },
+  {
+   "id": "@wren/starling-core#modNoteIn",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core"
+    ],
+    "file": "packages/starling/core/src/proof.ts",
+    "kind": "function",
+    "sig": "(tree: RedditListing | undefined, ref: string): string | null"
+   }
+  },
+  {
+   "id": "@wren/starling-core#numberOf",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core"
+    ],
+    "file": "packages/starling/core/src/insights.ts",
+    "kind": "function",
+    "sig": "(metric: string, v: unknown, key?: string): InsightValue[]"
+   }
+  },
+  {
+   "id": "@wren/starling-core#pageFollowing",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core"
+    ],
+    "file": "packages/starling/core/src/index.ts",
+    "kind": "function",
+    "sig": "(sites: SiteClient, site: string, path: string, profile: (handle: string) => string): Promise<FollowingRow[]>"
+   }
+  },
+  {
+   "id": "@wren/starling-core#pageInboxOf",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/page-inbox"
+    ],
+    "file": "packages/starling/core/src/page-inbox.ts",
+    "kind": "function",
+    "sig": "(body: unknown, self: string): PageInbox"
+   }
+  },
+  {
+   "id": "@wren/starling-core#pageInboxQuery",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/page-inbox"
+    ],
+    "file": "packages/starling/core/src/page-inbox.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(platform: \"facebook\" | \"instagram\", limit = 25): { platform: string; fields: string; limit: number; }"
+   }
+  },
+  {
+   "id": "@wren/starling-core#pageOf",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core"
+    ],
+    "file": "packages/starling/core/src/index.ts",
+    "kind": "function",
+    "sig": "(rows: readonly T[], q: ListQuery = {}): T[]"
+   }
+  },
+  {
+   "id": "@wren/starling-core#patchFields",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/shapes"
+    ],
+    "file": "packages/starling/core/src/shapes.ts",
+    "kind": "function",
+    "sig": "(platform: Platform, current: Readonly<Record<string, unknown>>, patch: Readonly<Record<string, unknown>>): { extra: Record<string, unknown>; title?: string | null; changed: Record<string, [unknown, unknown]>; }"
+   }
+  },
+  {
+   "id": "@wren/starling-core#previewOf",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core"
+    ],
+    "file": "packages/starling/core/src/index.ts",
+    "kind": "function",
+    "sig": "(text: string, max = 120): string"
+   }
+  },
+  {
+   "id": "@wren/starling-core#publicUrlOf",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core"
+    ],
+    "file": "packages/starling/core/src/index.ts",
+    "inferred": true,
+    "kind": "function",
+    "sig": "(source: string, host: MediaHost | undefined, platform: string): Promise<string>"
+   }
+  },
+  {
+   "id": "@wren/starling-core#readGroup",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core"
+    ],
+    "file": "packages/starling/core/src/insights.ts",
+    "kind": "function",
+    "sig": "(metrics: readonly string[], work: () => Promise<InsightValue[]>, into: { values: InsightValue[]; gaps: InsightGap[] }): Promise<boolean>"
+   }
+  },
+  {
+   "id": "@wren/starling-core#readable",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core"
+    ],
+    "file": "packages/starling/core/src/proof.ts",
+    "kind": "function",
+    "sig": "(t: RedditThing | null | undefined): boolean"
+   }
+  },
+  {
+   "id": "@wren/starling-core#redditPermalink",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core"
+    ],
+    "file": "packages/starling/core/src/proof.ts",
+    "kind": "function",
+    "sig": "(t: ProofTarget, thing?: RedditThing | null): string | null"
+   }
+  },
+  {
+   "id": "@wren/starling-core#redditVerdict",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core"
+    ],
+    "file": "packages/starling/core/src/proof.ts",
+    "kind": "function",
+    "sig": "(r: RedditReads): { state: ProofState; note: string | null }"
+   }
+  },
+  {
+   "id": "@wren/starling-core#siteProof",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core"
+    ],
+    "file": "packages/starling/core/src/proof.ts",
+    "kind": "function",
+    "sig": "(deps: ProofDeps): CommentProof"
+   }
+  },
+  {
+   "id": "@wren/starling-core#slidesFromText",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/slides"
+    ],
+    "file": "packages/starling/core/src/slides.ts",
+    "kind": "function",
+    "sig": "(text: string): Slide[]"
+   }
+  },
+  {
+   "id": "@wren/starling-core#slidesHtml",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/slides"
+    ],
+    "file": "packages/starling/core/src/slides.ts",
+    "kind": "function",
+    "sig": "(slides: readonly Slide[], o: { only?: number; by?: string } = {}): string"
+   }
+  },
+  {
+   "id": "@wren/starling-core#slidesKey",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/slides"
+    ],
+    "file": "packages/starling/core/src/slides.ts",
+    "kind": "function",
+    "sig": "(slides: readonly Slide[]): string"
+   }
+  },
+  {
+   "id": "@wren/starling-core#slidesText",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/slides"
+    ],
+    "file": "packages/starling/core/src/slides.ts",
+    "kind": "function",
+    "sig": "(slides: readonly Slide[]): string"
+   }
+  },
+  {
+   "id": "@wren/starling-core#slidesUnfit",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/slides"
+    ],
+    "file": "packages/starling/core/src/slides.ts",
+    "kind": "function",
+    "sig": "(slides: readonly Slide[]): string | null"
+   }
+  },
+  {
+   "id": "@wren/starling-core#tagsLength",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/shapes"
+    ],
+    "file": "packages/starling/core/src/shapes.ts",
+    "kind": "function",
+    "sig": "(tags: readonly string[]): number"
+   }
+  },
+  {
+   "id": "@wren/starling-core#threadPosts",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/thread"
+    ],
+    "file": "packages/starling/core/src/thread.ts",
+    "kind": "function",
+    "sig": "(text: string): string[]"
+   }
+  },
+  {
+   "id": "@wren/starling-core#threadText",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/thread"
+    ],
+    "file": "packages/starling/core/src/thread.ts",
+    "kind": "function",
+    "sig": "(posts: readonly string[]): string"
+   }
+  },
+  {
+   "id": "@wren/starling-core#threadUnfit",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/thread"
+    ],
+    "file": "packages/starling/core/src/thread.ts",
+    "kind": "function",
+    "sig": "(posts: readonly string[], link?: string | null): string | null"
+   }
+  },
+  {
+   "id": "@wren/starling-core#tiktokBroken",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/tiktok"
+    ],
+    "file": "packages/starling/core/src/tiktok.ts",
+    "kind": "function",
+    "sig": "(f: TikTokChoices): string | null"
+   }
+  },
+  {
+   "id": "@wren/starling-core#tiktokDeclaration",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/tiktok"
+    ],
+    "file": "packages/starling/core/src/tiktok.ts",
+    "kind": "function",
+    "sig": "(f: TikTokChoices): { text: string; links: { label: string; url: string }[]; }"
+   }
+  },
+  {
+   "id": "@wren/starling-core#tiktokHold",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/tiktok"
+    ],
+    "file": "packages/starling/core/src/tiktok.ts",
+    "kind": "function",
+    "sig": "(f: TikTokChoices, c: TikTokCreator, videoSec?: number | null): string | null"
+   }
+  },
+  {
+   "id": "@wren/starling-core#tiktokLabel",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/tiktok"
+    ],
+    "file": "packages/starling/core/src/tiktok.ts",
+    "kind": "function",
+    "sig": "(f: TikTokChoices): string | null"
+   }
+  },
+  {
+   "id": "@wren/starling-core#tiktokMissing",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/tiktok"
+    ],
+    "file": "packages/starling/core/src/tiktok.ts",
+    "kind": "function",
+    "sig": "(f: TikTokChoices): string[]"
+   }
+  },
+  {
+   "id": "@wren/starling-core#withHook",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core"
+    ],
+    "file": "packages/starling/core/src/index.ts",
+    "kind": "function",
+    "sig": "(text: string, hook: string): string"
+   }
+  },
+  {
+   "id": "@wren/starling-core#withLink",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/thread"
+    ],
+    "file": "packages/starling/core/src/thread.ts",
+    "kind": "function",
+    "sig": "(posts: readonly string[], link: string | null | undefined): string[]"
+   }
+  },
+  {
+   "id": "@wren/starling-core#wordsOf",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core"
+    ],
+    "file": "packages/starling/core/src/proof.ts",
+    "kind": "function",
+    "sig": "(text: string, n = 60): string"
+   }
+  },
+  {
+   "id": "@wren/starling-core#xLength",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/thread"
+    ],
+    "file": "packages/starling/core/src/thread.ts",
+    "kind": "function",
+    "sig": "(text: string): number"
+   }
+  },
+  {
+   "id": "@wren/starling-core#xPostMax",
+   "role": "export",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "entries": [
+     "@wren/starling-core/thread"
+    ],
+    "file": "packages/starling/core/src/thread.ts",
+    "kind": "function",
+    "sig": "(s: XSubscription): number"
+   }
+  }
+ ],
+ "edges": []
+}

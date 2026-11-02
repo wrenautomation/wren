@@ -2518,7 +2518,7 @@
     "file": "packages/notes/src/console-pages.ts",
     "inferred": true,
     "kind": "function",
-    "sig": "(n: Note): { id: string; name: string; title: string; kind: \"note\" | \"dump\" | \"task\"; owner: string; createdBy: string; via: \"person\" | \"agent\"; general: \"private\" | \"workspace\"; generalRole: \"comment\" | \"view\" | \"edit\"; train: boolean; archived: boolean; parentId: string | null; createdAt: string; updatedAt: …"
+    "sig": "(n: Note): { id: string; name: string; title: string; kind: \"note\" | \"dump\" | \"task\"; owner: string; createdBy: string; via: \"person\" | \"agent\"; general: \"private\" | \"workspace\"; generalRole: \"comment\" | \"edit\" | \"view\"; train: boolean; archived: boolean; parentId: string | null; createdAt: string; updatedAt: …"
    }
   },
   {

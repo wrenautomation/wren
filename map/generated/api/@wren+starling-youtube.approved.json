@@ -1,0 +1,106 @@
+{
+ "layer": "api",
+ "nodes": [
+  {
+   "id": "@wren/starling-youtube#ANALYTICS_PATH",
+   "role": "export",
+   "parent": "@wren/starling-youtube",
+   "group": "@wren/starling-youtube",
+   "attrs": {
+    "entries": [
+     "@wren/starling-youtube"
+    ],
+    "file": "packages/starling/channels/youtube/src/content.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"/v2/reports\""
+   }
+  },
+  {
+   "id": "@wren/starling-youtube#REACH_REPORT",
+   "role": "export",
+   "parent": "@wren/starling-youtube",
+   "group": "@wren/starling-youtube",
+   "attrs": {
+    "entries": [
+     "@wren/starling-youtube"
+    ],
+    "file": "packages/starling/channels/youtube/src/content.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"channel_reach_basic_a1\""
+   }
+  },
+  {
+   "id": "@wren/starling-youtube#isoSeconds",
+   "role": "export",
+   "parent": "@wren/starling-youtube",
+   "group": "@wren/starling-youtube",
+   "attrs": {
+    "entries": [
+     "@wren/starling-youtube"
+    ],
+    "file": "packages/starling/channels/youtube/src/content.ts",
+    "kind": "function",
+    "sig": "(d: string | undefined): number | null"
+   }
+  },
+  {
+   "id": "@wren/starling-youtube#reachRows",
+   "role": "export",
+   "parent": "@wren/starling-youtube",
+   "group": "@wren/starling-youtube",
+   "attrs": {
+    "entries": [
+     "@wren/starling-youtube"
+    ],
+    "file": "packages/starling/channels/youtube/src/content.ts",
+    "kind": "function",
+    "sig": "(csv: ReadonlyArray<Record<string, string>>): Array<{ id: string; day: string; impressions: number; clicks: number; rated: number }>"
+   }
+  },
+  {
+   "id": "@wren/starling-youtube#reportRows",
+   "role": "export",
+   "parent": "@wren/starling-youtube",
+   "group": "@wren/starling-youtube",
+   "attrs": {
+    "entries": [
+     "@wren/starling-youtube"
+    ],
+    "file": "packages/starling/channels/youtube/src/content.ts",
+    "kind": "function",
+    "sig": "(r: Report): Array<Record<string, unknown>>"
+   }
+  },
+  {
+   "id": "@wren/starling-youtube#sharesOf",
+   "role": "export",
+   "parent": "@wren/starling-youtube",
+   "group": "@wren/starling-youtube",
+   "attrs": {
+    "entries": [
+     "@wren/starling-youtube"
+    ],
+    "file": "packages/starling/channels/youtube/src/content.ts",
+    "kind": "function",
+    "sig": "(metric: string, rows: ReadonlyArray<Record<string, unknown>>, keyOf: (r: Record<string, unknown>) => string | null, col: string): InsightValue[]"
+   }
+  },
+  {
+   "id": "@wren/starling-youtube#youtubeContent",
+   "role": "export",
+   "parent": "@wren/starling-youtube",
+   "group": "@wren/starling-youtube",
+   "attrs": {
+    "entries": [
+     "@wren/starling-youtube"
+    ],
+    "file": "packages/starling/channels/youtube/src/content.ts",
+    "kind": "function",
+    "sig": "(sites: SiteClient, o: YouTubeContentOptions = {}): ContentChannel"
+   }
+  }
+ ],
+ "edges": []
+}

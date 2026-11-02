@@ -1,6 +1,6 @@
 # @wren/core: routes
 
-Services: 15.
+Services: 14.
 
 ## AccountsConsole (service via `portalService`)
 
@@ -98,7 +98,7 @@ File: packages/core/src/console/console-portal.ts
 - **saveView** `KeepRequest` → `import("../saved-views.js").SavedViewLine` (plain): writes public.saved_views; reads public.client_members, public.clients, public.grants, public.operators, public.role_grants, public.roles
 - **savedViews** `KeepRequest` → `import("../saved-views.js").SavedViewLine[]` (plain): reads public.client_members, public.clients, public.grants, public.operators, public.role_grants, public.roles, public.saved_views, public.viewer_prefs
 - **setLook** `SetLookRequest` → `{ client: string; look: unknown; }` (plain): writes public.clients; reads public.client_members, public.roles
-- **setLoop** `SetLoopRequest` → `{ running: boolean; service: string; key: string; lastAt: string | null; failures: number; error: string | null; nextAt: string | null; delayMs: number | null; timeouts: import("@wren/channel-email/restate").TimedOut[]; }` (plain)
+- **setLoop** `SetLoopRequest` → `{ running: boolean; service: string; key: string; lastAt: string | null; failures: number; error: string | null; nextAt: string | null; delayMs: number | null; timeouts: import("@wren/starling-email/restate").TimedOut[]; }` (plain)
 - **setPref** `KeepRequest` → `{ key: string; }` (plain): writes public.viewer_prefs; reads public.client_members, public.clients, public.grants, public.operators, public.role_grants, public.roles
 - **snippetAdd** `PortalRequest & SnippetInput` → `import("../library.js").SnippetLine` (plain): writes public.snippets
 - **snippetRemove** `PortalRequest & { ids?: unknown }` → `{ done: number[]; }` (plain): writes public.snippets
@@ -139,30 +139,6 @@ File: packages/core/src/console/console-portal.ts
 - **workflowTest** `WorkflowTestRequest` → `import("../dry.js").DryResult & { entered?: import("../executor.js").ExecutorEvent; }` (plain): reads public.client_members, public.clients, public.events, public.hooks, public.roles, public.workflow_saves
 - **workflowsMade** `PortalRequest` → `import("../executor.js").MadeWorkflow[]` (plain): reads public.client_members, public.clients, public.roles, public.workflow_saves
 
-## Content (service)
-
-File: packages/core/src/content/restate.ts
-
-- **accountInsights** `{ platform: Platform } & ForClient` → `AccountInsights | null` (serviceHandler)
-- **activity** `{ platform: Platform; q?: ActivityQuery | null } & ForClient` → `ActivityRow[] | null` (serviceHandler)
-- **arm** `{ platform: Platform; commentId: string; postId?: string | null; text: string; } & ForClient` → `{ armed: boolean }` (serviceHandler)
-- **audience** `{ platform: Platform } & ForClient` → `Audience | null` (serviceHandler)
-- **commentCounts** `{ platform: Platform; ids: string[] } & ForClient` → `Record<string, number> | null` (serviceHandler)
-- **comments** `{ platform: Platform; id: string; q?: ListQuery } & ForClient` → `CommentRow[]` (serviceHandler)
-- **following** `{ platform: Platform } & ForClient` → `FollowingRow[] | null` (serviceHandler)
-- **insights** `{ platform: Platform; id: string; published?: string | null; kind?: string | null; media?: "image" | "video" | null; read?: unknown; } & ForClient` → `Insights | null` (serviceHandler)
-- **list** `{ platform: Platform; q?: ListQuery } & ForClient` → `import("./index.js").PublishedRow[]` (serviceHandler)
-- **metrics** `{ platform: Platform; id: string } & ForClient` → `Metrics` (serviceHandler)
-- **metricsMany** `{ platform: Platform; posts: { id: string; kind?: string | null }[] } & ForClient` → `Metrics[] | null` (serviceHandler)
-- **ownComments** `{ platform: Platform } & ForClient` → `OwnCommentRow[] | null` (serviceHandler)
-- **platforms** `void` → `Platform[]` (serviceHandler)
-- **privateReply** `{ platform: Platform; commentId: string; text: string } & ForClient & Keyed` → `{ ref: string | null } | Delivery<{ ref: string | null }>` (serviceHandler)
-- **publish** `{ platform: Platform; post: Post } & ForClient & AsAccount & Keyed` → `Published | Delivery<Published>` (serviceHandler)
-- **reply** `{ platform: Platform; commentId: string; postId?: string | null; text: string; } & ForClient & AsAccount & Keyed` → `void | Delivery<void>` (serviceHandler)
-- **reportDays** `{ platform: Platform; after?: string | null } & ForClient` → `ReportDays | null` (serviceHandler)
-- **reviews** `{ platform: Platform; q?: ActivityQuery | null } & ForClient` → `CommentRow[] | null` (serviceHandler)
-- **update** `{ platform: Platform; id: string; patch: PostPatch } & ForClient` → `void` (serviceHandler)
-
 ## Executor (service)
 
 File: packages/core/src/executor.ts
@@ -200,7 +176,7 @@ File: packages/core/src/people-console.ts
 - **broadcastMonth** `PortalRequest & { from?: string; to?: string }` → `{ broadcasts: { id: number; name: string; channel: import("./broadcasts-schema.js").BroadcastChannel; state: import("./broadcasts-schema.js").BroadcastState; at: string; }[]; }` (serviceHandler): reads public.broadcast_records, public.client_members, public.clients, public.grants, public.operators, public.role_grants, public.roles
 - **broadcastPreview** `BroadcastSaveRequest` → `{ subject: string | null; body: string; people: number; yes: number; }` (serviceHandler): reads public.client_members, public.clients, public.consents, public.grants, public.operators, public.profile_keys, public.profiles, public.role_grants, public.roles, public.segment_members, public.topics
 - **broadcastRestore** `BroadcastIdsRequest` → `{ done: number[]; }` (serviceHandler): writes public.broadcast_recipients, public.broadcasts; reads public.client_members, public.clients, public.grants, public.operators, public.profiles, public.role_grants, public.roles, public.segments, public.topics
-- **broadcastSave** `BroadcastSaveRequest` → `{ broadcast: { name: string; id: number; channel: "email" | "sms"; createdAt: Date; state: "draft" | "sending" | "sent" | "scheduled" | "waiting" | "declined" | "canceled"; zone: string; updatedAt: Date; subject: string | null; body: string; startedAt: Date | null; finishedAt: Date | null; by: string; note: string | null; topicId: number; segmentId: number; sendAt: Date | null; local: boolean; askedBy: string | null; askedAt: Date | null; decidedBy: string | null; decidedAt: Date | null; testedTo: string | null; testedAt: Date | null; }; }` (serviceHandler): writes public.broadcasts; reads public.client_members, public.clients, public.grants, public.operators, public.role_grants, public.roles, public.segments, public.topics
+- **broadcastSave** `BroadcastSaveRequest` → `{ broadcast: { name: string; id: number; channel: "email" | "sms"; createdAt: Date; state: "draft" | "sending" | "sent" | "scheduled" | "waiting" | "declined" | "canceled"; zone: string; updatedAt: Date; subject: string | null; body: string; startedAt: Date | null; finishedAt: Date | null; by: string; note: string | null; segmentId: number; topicId: number; sendAt: Date | null; local: boolean; askedBy: string | null; askedAt: Date | null; decidedBy: string | null; decidedAt: Date | null; testedTo: string | null; testedAt: Date | null; }; }` (serviceHandler): writes public.broadcasts; reads public.client_members, public.clients, public.grants, public.operators, public.role_grants, public.roles, public.segments, public.topics
 - **broadcastTest** `BroadcastTestRequest` → `{ sent: string; }` (serviceHandler): writes public.broadcasts, public.sms_messages; reads public.client_members, public.clients, public.grants, public.operators, public.role_grants, public.roles, public.segments, public.sms_contacts, public.topics
 - **channelPeople** `PortalRequest & StatsQuery & { key?: string; step?: string }` → `{ people: import("./channel-stats.js").StepPerson[]; }` (serviceHandler): reads pipeline.instances, public.client_members, public.clients, public.consents, public.grants, public.operators, public.profile_keys, public.profile_steps, public.profile_timeline, public.profile_traits, public.profiles, public.role_grants, public.roles, public.segment_members, public.segments, public.sent_records, public.sms_contacts
 - **channelStats** `PortalRequest & StatsQuery` → `import("./channel-stats.js").ChannelStats` (serviceHandler): reads pipeline.instances, public.client_members, public.clients, public.consents, public.content_drafts, public.content_metrics, public.grants, public.link_days, public.operators, public.profile_keys, public.profile_steps, public.profile_timeline, public.profile_traits, public.profiles, public.role_grants, public.roles, public.segment_members, public.segments, public.sent_records, public.sms_contacts

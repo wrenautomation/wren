@@ -28,7 +28,7 @@
      "@simplewebauthn/browser@13.3.0",
      "@tailwindcss/vite@4.3.3",
      "@vitejs/plugin-react@6.1.1",
-     "@wrenautomation/autobrowse@0.5.0",
+     "@wrenautomation/autobrowse@0.8.4",
      "esbuild@0.28.2",
      "react-dom@19.3.0",
      "react@19.3.0",
@@ -135,11 +135,6 @@
   },
   {
    "from": "@wren/auth-app",
-   "to": "@wren/channel-email",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/auth-app",
    "to": "@wren/config",
    "kind": "imports"
   },
@@ -151,6 +146,11 @@
   {
    "from": "@wren/auth-app",
    "to": "@wren/db",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/auth-app",
+   "to": "@wren/starling-email",
    "kind": "imports"
   },
   {
@@ -185,11 +185,6 @@
   },
   {
    "from": "@wren/auth-app/lambda/index.ts",
-   "to": "@wren/channel-email/src/send/gmail.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/auth-app/lambda/index.ts",
    "to": "@wren/config/src/ssm.ts",
    "kind": "imports"
   },
@@ -206,6 +201,11 @@
   {
    "from": "@wren/auth-app/lambda/index.ts",
    "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/auth-app/lambda/index.ts",
+   "to": "@wren/starling-email/src/send/gmail.ts",
    "kind": "imports"
   },
   {

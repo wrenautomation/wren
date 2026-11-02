@@ -222,6 +222,15 @@
    }
   },
   {
+   "id": "@wren/pipeline/src/metro-campaigns.ts",
+   "role": "file",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "description": "Campaigns on the metro map: a campaign is a group with a `campaign` field"
+   }
+  },
+  {
    "id": "@wren/pipeline/src/metro-diff.ts",
    "role": "file",
    "parent": "@wren/pipeline",
@@ -1266,6 +1275,27 @@
    }
   },
   {
+   "from": "@wren/pipeline/src/metro-campaigns.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/metro-campaigns.ts",
+   "to": "@wren/pipeline/src/metro.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/pipeline/src/metro-campaigns.ts",
+   "to": "@wren/pipeline/src/model.ts",
+   "kind": "imports"
+  },
+  {
    "from": "@wren/pipeline/src/metro-diff.ts",
    "to": "@wren/pipeline/src/diff.ts",
    "kind": "imports"
@@ -1379,6 +1409,11 @@
    "attrs": {
     "type": true
    }
+  },
+  {
+   "from": "@wren/pipeline/src/metro.ts",
+   "to": "@wren/pipeline/src/metro-campaigns.ts",
+   "kind": "imports"
   },
   {
    "from": "@wren/pipeline/src/metro.ts",

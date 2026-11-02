@@ -48,7 +48,7 @@ Exports: 235. Files: 25.
 
 ## packages/notes/src/console-pages.ts
 
-- **noteOut** (function) `(n: Note): { id: string; name: string; title: string; kind: "note" | "dump" | "task"; owner: string; createdBy: string; via: "person" | "agent"; general: "private" | "workspace"; generalRole: "comment" | "view" | "edit"; train: boolean; archived: boolean; parentId: string | null; createdAt: string; updatedAt: …`
+- **noteOut** (function) `(n: Note): { id: string; name: string; title: string; kind: "note" | "dump" | "task"; owner: string; createdBy: string; via: "person" | "agent"; general: "private" | "workspace"; generalRole: "comment" | "edit" | "view"; train: boolean; archived: boolean; parentId: string | null; createdAt: string; updatedAt: …`
 
 ## packages/notes/src/console-routes.ts
 

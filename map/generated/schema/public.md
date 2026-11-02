@@ -2700,7 +2700,7 @@ Indexes:
 - `platform varchar(16) null`
 - `post text null`
 - `sent_at timestamp with time zone null`
-- `state varchar(16) null`
+- `state varchar null`
 - `url text null`
 - `why text null`
 
@@ -4559,6 +4559,7 @@ Indexes:
 ## public.reach_posts (table)
 
 - `account varchar(80)`
+- `act_error text null`
 - `author text`
 - `author_url text null`
 - `comment text null`
@@ -4568,11 +4569,13 @@ Indexes:
 - `created_at timestamp with time zone = now()`
 - `draft text null`
 - `fit smallint null`
+- `follow_fails smallint = 0`
 - `followed_at timestamp with time zone null`
 - `found_by varchar(200)`
 - `handle varchar(120) null`
 - `headline text null`
 - `id integer = nextval('reach_posts_id_seq'::regclass)`
+- `like_fails smallint = 0`
 - `liked_at timestamp with time zone null`
 - `platform varchar(12) = 'linkedin'::character varying`
 - `posted_at timestamp with time zone null`
@@ -5295,6 +5298,7 @@ Indexes:
 - `tries smallint = 0`
 - `updated_at timestamp with time zone`
 - `url text null`
+- `via varchar(12) null`
 - `why text null`
 - `words text`
 

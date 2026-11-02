@@ -1,0 +1,186 @@
+{
+ "layer": "imports",
+ "nodes": [
+  {
+   "id": "@wren/starling-reddit",
+   "role": "package",
+   "parent": "repo:wren",
+   "group": "@wren/starling-reddit",
+   "attrs": {
+    "dir": "packages/starling/channels/reddit/"
+   }
+  },
+  {
+   "id": "@wren/starling-reddit/src/api.ts",
+   "role": "file",
+   "parent": "@wren/starling-reddit",
+   "group": "@wren/starling-reddit",
+   "attrs": {
+    "description": "Reddit's own API as a `SiteClient`, straight from wren: no autobrowse on the path"
+   }
+  },
+  {
+   "id": "@wren/starling-reddit/src/content.ts",
+   "role": "file",
+   "parent": "@wren/starling-reddit",
+   "group": "@wren/starling-reddit",
+   "attrs": {
+    "description": "Reddit as a `ContentChannel`, over autobrowse's `reddit` site in Reddit's own API shape (oauth.reddit.com)"
+   }
+  },
+  {
+   "id": "@wren/starling-reddit/src/index.ts",
+   "role": "file",
+   "parent": "@wren/starling-reddit",
+   "group": "@wren/starling-reddit"
+  },
+  {
+   "id": "@wren/starling-reddit/src/outreach.ts",
+   "role": "file",
+   "parent": "@wren/starling-reddit",
+   "group": "@wren/starling-reddit",
+   "attrs": {
+    "description": "Reddit as an `OutreachChannel`, over autobrowse's `reddit` site (the Data API's shapes, answered by the signed-in page on the Mac's desk)"
+   }
+  },
+  {
+   "id": "@wren/starling-reddit/src/thread.ts",
+   "role": "file",
+   "parent": "@wren/starling-reddit",
+   "group": "@wren/starling-reddit",
+   "attrs": {
+    "description": "A Reddit post and its comments as one conversation: `/comments/{article}` read to any depth, flattened oldest first, with each comment's parent"
+   }
+  },
+  {
+   "id": "@wren/starling-reddit/src/warmup.ts",
+   "role": "file",
+   "parent": "@wren/starling-reddit",
+   "group": "@wren/starling-reddit",
+   "attrs": {
+    "description": "The Reddit warmup protocol: what a young account may do today, from its age and karma"
+   }
+  }
+ ],
+ "edges": [
+  {
+   "from": "@wren/starling-reddit",
+   "to": "@wren/core",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/starling-reddit",
+   "to": "@wren/starling-core",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/starling-reddit/src/api.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/starling-reddit/src/api.ts",
+   "to": "@wren/core/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/starling-reddit/src/api.ts",
+   "to": "@wren/starling-reddit/src/content.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/starling-reddit/src/content.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/starling-reddit/src/content.ts",
+   "to": "@wren/core/src/objects/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/starling-reddit/src/content.ts",
+   "to": "@wren/starling-core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/starling-reddit/src/content.ts",
+   "to": "@wren/starling-core/src/shapes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/starling-reddit/src/content.ts",
+   "to": "@wren/starling-reddit/src/thread.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/starling-reddit/src/index.ts",
+   "to": "@wren/starling-reddit/src/api.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/starling-reddit/src/index.ts",
+   "to": "@wren/starling-reddit/src/content.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/starling-reddit/src/index.ts",
+   "to": "@wren/starling-reddit/src/outreach.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/starling-reddit/src/index.ts",
+   "to": "@wren/starling-reddit/src/thread.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/starling-reddit/src/index.ts",
+   "to": "@wren/starling-reddit/src/warmup.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/starling-reddit/src/outreach.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/starling-reddit/src/outreach.ts",
+   "to": "@wren/core/src/outreach/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/starling-reddit/src/outreach.ts",
+   "to": "@wren/starling-reddit/src/content.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/starling-reddit/src/outreach.ts",
+   "to": "@wren/starling-reddit/src/thread.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/starling-reddit/src/thread.ts",
+   "to": "@wren/core/src/outreach/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/starling-reddit/src/thread.ts",
+   "to": "@wren/starling-reddit/src/content.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/starling-reddit/src/warmup.ts",
+   "to": "@wren/core/src/outreach/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  }
+ ]
+}

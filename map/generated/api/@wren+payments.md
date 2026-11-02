@@ -60,7 +60,7 @@ Exports: 101. Files: 11.
 - **stripeKeyOf** (function) `(d: Pick<PaymentsDeps, "main" | "keys">, client: string, why: string): Promise<string>`
 - **stripeStep** (function) `(ctx: restate.Context, name: string, retry: StripeRetry, fn: () => Promise<T>): Promise<T | { error: string }>`
 - **takeWebhook** (function) `(d: Pick<PaymentsDeps, "main" | "open" | "keys">, req: { client: string; raw: string; signature?: string | null }, now: Date): Promise<HookAnswer & { link: string | null }>`
-- **tellChanges** (function) `(ctx: restate.Context, d: PaymentsDeps, id: string): Promise<("paid" | "failed" | "refunded")[]>`
+- **tellChanges** (function) `(ctx: restate.Context, d: PaymentsDeps, id: string): Promise<("failed" | "paid" | "refunded")[]>`
 - **webhookUrl** (function) `(portal: string, client: string): string`
 
 ## packages/payments/src/setups.ts

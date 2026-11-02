@@ -4,7 +4,6 @@ Role: package. Files: 57.
 
 ## Uses
 
-- @wren/channel-email
 - @wren/connectors
 - @wren/core
 - @wren/db
@@ -12,11 +11,12 @@ Role: package. Files: 57.
 - @wren/llm
 - @wren/offers
 - @wren/research
+- @wren/starling-email
 - @wren/video
 
 ## Outside packages
 
-@restatedev/restate-sdk@1.17.1, @wrenautomation/weaver@0.8.2, drizzle-orm@0.45.2, node:crypto, node:fs, node:path, zod@4.6.5
+@restatedev/restate-sdk@1.17.1, @wrenautomation/read@0.29.0, drizzle-orm@0.45.2, node:crypto, node:fs, node:path, zod@4.6.5
 
 ## Folders
 

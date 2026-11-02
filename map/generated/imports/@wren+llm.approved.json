@@ -16,7 +16,7 @@
      "zod"
     ],
     "versions": [
-     "@wrenautomation/models@0.8.2",
+     "@wrenautomation/models@0.29.0",
      "vitest@5.0.1",
      "zod@4.6.5"
     ]
@@ -61,7 +61,7 @@
    "parent": "@wren/llm",
    "group": "@wren/llm",
    "attrs": {
-    "description": "Gemini's own API through the LLM gateway, as the `fetch` of a Gemini model (falcon's `geminiReader`): the gateway holds the keys and rotates them, so the caller passes any one placeholder key"
+    "description": "Gemini's own API through the LLM gateway, as the `fetch` of a Gemini model (`@wrenautomation/read/video`'s `geminiReader`): the gateway holds the keys and rotates them, so the caller passes any one placeholder key"
    }
   },
   {

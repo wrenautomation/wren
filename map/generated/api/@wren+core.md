@@ -1,6 +1,6 @@
 # @wren/core: interface
 
-Exports: 2340. Files: 224.
+Exports: 2218. Files: 217.
 
 ## packages/core/src/access-records.ts
 
@@ -76,8 +76,8 @@ Exports: 2340. Files: 224.
 - **NowView** (type) `type NowView = Awaited<ReturnType<ReturnType<typeof accountsApi>["now"]>>;`
 - **UsageView** (type) `type UsageView = Awaited<ReturnType<ReturnType<typeof accountsApi>["usage"]>>;`
 - **VendorsView** (type) `type VendorsView = Awaited<ReturnType<ReturnType<typeof accountsApi>["vendors"]>>;`
-- **accountsApi** (function) `(deps: AccountsDeps): { accounts(req: PortalRequest): Promise<{ owner: { id: string | null; name: string; }; team: boolean; mayAct: boolean; agent: boolean; accounts: { facts: { fact: string; label: string; state: "waiting" | "lost" | "ok"; why: string | null; checkedAt: string | null; okAt: string | null; }[]; runs: { s…`
-- **makeAccountsConsole** (function) `(deps: AccountsDeps): restate.ServiceDefinition<"AccountsConsole", { accounts: (_: restate.Context, req: PortalRequest) => Promise<{ owner: { id: string | null; name: string; }; team: boolean; mayAct: boolean; agent: boolean; accounts: { facts: { fact: string; label: string; state: "waiting" | "lost" | "ok"; why: string …`
+- **accountsApi** (function) `(deps: AccountsDeps): { accounts(req: PortalRequest): Promise<{ owner: { id: string | null; name: string; }; team: boolean; mayAct: boolean; agent: boolean; accounts: { facts: { fact: string; label: string; state: "waiting" | "ok" | "lost"; why: string | null; checkedAt: string | null; okAt: string | null; }[]; runs: { s…`
+- **makeAccountsConsole** (function) `(deps: AccountsDeps): restate.ServiceDefinition<"AccountsConsole", { accounts: (_: restate.Context, req: PortalRequest) => Promise<{ owner: { id: string | null; name: string; }; team: boolean; mayAct: boolean; agent: boolean; accounts: { facts: { fact: string; label: string; state: "waiting" | "ok" | "lost"; why: string …`
 
 ## packages/core/src/ask.ts
 
@@ -180,14 +180,14 @@ Exports: 2340. Files: 224.
 - **PERSONAL_DAILY** (const) `400`
 - **TEXT_BATCH** (const) `200`
 - **TEXT_MOST** (const) `459`
-- **askBroadcast** (function) `(db: Queryable, id: number, by: string, now: Date): Promise<{ name: string; id: number; startedAt: Date | null; finishedAt: Date | null; state: "sent" | "draft" | "sending" | "waiting" | "declined" | "scheduled" | "canceled"; channel: "email" | "sms"; by: string; createdAt: Date; updatedAt: Date; subject: string | null; body: string; note: string | n…`
+- **askBroadcast** (function) `(db: Queryable, id: number, by: string, now: Date): Promise<{ name: string; id: number; state: "sent" | "draft" | "sending" | "waiting" | "declined" | "scheduled" | "canceled"; createdAt: Date; updatedAt: Date; subject: string | null; body: string; startedAt: Date | null; finishedAt: Date | null; note: string | null; by: string; channel: "email" | "s…`
 - **broadcastById** (function) `(db: Queryable, id: number): Promise<Broadcast | null>`
 - **broadcastContext** (function) `(db: Queryable): Promise<{ segments: { id: number; name: string; size: number; }[]; topics: { id: number; name: string; publicName: string; channel: "email" | "sms"; }[]; fields: ("name" | "first_name")[]; textMost: number; }>`
 - **broadcastLine** (function) `(w: Awaited<ReturnType<typeof waitingBroadcasts>>[number]): string`
 - **broadcastMonth** (function) `(db: Queryable, from: Date, to: Date): Promise<{ id: number; name: string; channel: BroadcastChannel; state: BroadcastState; at: string; }[]>`
 - **broadcastResults** (function) `(db: Queryable, id: number): Promise<BroadcastResults>`
 - **broadcastUses** (function) `(db: Queryable): Promise<Map<number, SegmentUse[]>>`
-- **cancelBroadcast** (function) `(db: Queryable, id: number, by: string, now: Date): Promise<{ name: string; id: number; startedAt: Date | null; finishedAt: Date | null; state: "sent" | "draft" | "sending" | "waiting" | "declined" | "scheduled" | "canceled"; channel: "email" | "sms"; by: string; createdAt: Date; updatedAt: Date; subject: string | null; body: string; note: string | n…`
+- **cancelBroadcast** (function) `(db: Queryable, id: number, by: string, now: Date): Promise<{ name: string; id: number; state: "sent" | "draft" | "sending" | "waiting" | "declined" | "scheduled" | "canceled"; createdAt: Date; updatedAt: Date; subject: string | null; body: string; startedAt: Date | null; finishedAt: Date | null; note: string | null; by: string; channel: "email" | "s…`
 - **checkWords** (function) `(channel: BroadcastChannel, subject: string | null, body: string): { subject: string | null; body: string }`
 - **decideBroadcast** (function) `(db: Queryable, id: number, yes: boolean, by: string, now: Date, note: string | null = null, expect: string | null = null): Promise<{ broadcast: Broadcast; startAt: Date | null }>`
 - **dueFor** (function) `(b: Pick<Broadcast, "sendAt" | "local" | "zone">, zone: string | null, now: Date): Date`
@@ -215,12 +215,12 @@ Exports: 2340. Files: 224.
 
 ## packages/core/src/cache.ts
 
-- **Cache** (interface) `interface Cache { readonly name: "memory" | "valkey"; get(key: string): Promise<string | null>; set(key: string, value: string, ttlMs: number): Promise<void>; del(...keys: string[]): Promise<void>; }`
+- **Cache** (interface) `interface Cache { readonly name: "memory" | "redis"; get(key: string): Promise<string | null>; set(key: string, value: string, ttlMs: number): Promise<void>; del(...keys: string[]): Promise<void>; }`
 - **cacheFrom** (function) `(url: string | undefined): Cache`
 - **invalidate** (function) `(cache: Cache, ...keys: string[]): Promise<void>`
 - **memoryCache** (function) `(now: () => number = Date.now, max = MEMORY_MAX): Cache`
 - **readThrough** (function) `(cache: Cache, key: string, ttlMs: number, load: () => Promise<T>): Promise<T>`
-- **valkeyCache** (function) `(url: string, client: RespClient = respClient(url)): Cache`
+- **redisCache** (function) `(url: string, client: RespClient = respClient(url)): Cache`
 
 ## packages/core/src/calendar.ts
 
@@ -313,6 +313,7 @@ Exports: 2340. Files: 224.
 - **listClients** (function) `(main: Db): Promise<Client[]>`
 - **listMembers** (function) `(main: Queryable, clientId: string): Promise<ClientMember[]>`
 - **listOperators** (function) `(main: Db): Promise<string[]>`
+- **loopClients** (function) `(main: Db): Promise<string[]>`
 - **mayHaveAccount** (function) `(main: Db, email: string): Promise<boolean>`
 - **normalEmail** (function) `(email: string): string`
 - **removeMember** (function) `(main: Queryable, clientId: string, email: string): Promise<boolean>`
@@ -479,18 +480,19 @@ Exports: 2340. Files: 224.
 ## packages/core/src/content/autobrowse.ts
 
 - **CapHolds** (type) `type CapHolds = Record<string, number>;`
-- **SiteCallError** (class) `readonly site: string;; readonly status: number;; journaled; constructor(site: string, method: string, path: string, status: number, message: string)`
+- **LOGIN_HOLD_MS** (const) `number`
+- **SiteCallError** (class) `readonly site: string;; readonly status: number;; readonly code: string | null;; journaled; constructor(site: string, method: string, path: string, status: number, message: string, code: string | null = null)`
 - **SiteClient** (interface) `interface SiteClient { call<T = unknown>( site: string, method: SiteMethod, path: string, input?: Record<string, unknown>, account?: string, ): Promise<T>; via(site: string, method: SiteMethod, path: string): Promise<FetchedWith | "none">; }`
 - **SiteMethod** (type) `type SiteMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";`
 - **SiteStatus** (interface) `interface SiteStatus { routes: Array<{ method: string; path: string; via: "api" | "browser" | "none" }>; }`
 - **asAccount** (function) `(sites: SiteClient, account: string | null | undefined): SiteClient`
 - **autobrowseSites** (function) `(o: { url: string; token?: string | null; fetch?: FetchLike; caller?: string; }): SiteClient`
 - **capHeld** (function) `(holds: CapHolds, key: string, now: number): boolean`
-- **capWaitMs** (function) `(err: unknown): number | null`
+- **capWaitMs** (function) `(err: unknown, now = Date.now()): number | null`
 - **holdCap** (function) `(holds: CapHolds, key: string, err: unknown, now: number): boolean`
 - **liveHolds** (function) `(holds: CapHolds, now: number): CapHolds`
 - **matches** (function) `(pattern: string, path: string): boolean`
-- **pageFollowing** (function) `(sites: SiteClient, site: string, path: string, profile: (handle: string) => string): Promise<FollowingRow[]>`
+- **untilUtcDay** (function) `(now: number): number`
 - **viaOf** (function) `(status: SiteStatus, method: string, path: string): FetchedWith | "none"`
 
 ## packages/core/src/content/box.ts
@@ -514,82 +516,13 @@ Exports: 2340. Files: 224.
 
 ## packages/core/src/content/index.ts
 
-- **ACTIVITY_KINDS** (const) `readonly ["follow", "subscribe", "mention", "reaction", "notification"]`
-- **ActivityKind** (type) `type ActivityKind = (typeof ACTIVITY_KINDS)[number];`
-- **ActivityQuery** (interface) `interface ActivityQuery { since?: string; limit?: number; }`
-- **ActivityRow** (interface) `interface ActivityRow { id: string; kind: ActivityKind; actor: string | null; actorUrl: string | null; text: string; url: string | null; at: string | null; raw: unknown; }`
-- **Audience** (interface) `interface Audience { followers: number; asOf: string; raw: unknown; }`
-- **CONTENT_LIST_LIMIT** (const) `100`
-- **CommentRow** (interface) `interface CommentRow { id: string; postId: string; author: string; authorName?: string; text: string; at: string; repliedWith?: string; parentId?: string; url?: string; mine?: boolean; stars?: number; raw?: unknown; }`
-- **ContentChannel** (interface) `interface ContentChannel { readonly platform: Platform; publish(post: Post): Promise<Published>; list(q?: ListQuery): Promise<PublishedRow[]>; metrics(id: string): Promise<Metrics>; metricsMany?(posts: { id: string; kind?: string | null }[]): Promise<Metrics[]>; commentCounts?(ids: string[]): Promise<Record<string, number>>; comments(id: string, q?: ListQuery): Promise<CommentRow[]>; reply?(commentId: string, text: string, on?: { postId?: string | null }): Promise<void>; privateReply?(commentId: string, text: string): Promise<{ ref: string | null }>; reviews?(q?: ActivityQuery): Promise<CommentRow[]>; activity?(q?: ActivityQuery): Promise<ActivityRow[]>; audience?(): Promise<Audience>; following?(): Promise<FollowingRow[]>; ownComments?(): Promise<OwnCommentRow[]>; insights?(q: InsightsQuery): Promise<Insights>; accountInsights?(): Promise<AccountInsights>; reportDays?(q: { after?: string | null }): Promise<ReportDays>; update?(id: string, patch: PostPatch): Promise<void>; }`
 - **FetchedWith** (type) `type FetchedWith = "api" | "browser";`
-- **FollowingRow** (interface) `interface FollowingRow { handle: string; name: string | null; url: string | null; at: string | null; }`
-- **ListQuery** (interface) `interface ListQuery { limit?: number; before?: string; }`
-- **Media** (interface) `interface Media { kind: "image" | "video"; source: string; title?: string; }`
-- **MediaHost** (interface) `interface MediaHost { host(source: string): Promise<string>; }`
-- **Metrics** (interface) `interface Metrics { id: string; views: number; reactions: number; comments: number; shares: number; follows?: number | null; read?: unknown; asOf: string; fetchedWith: FetchedWith; }`
-- **OwnCommentRow** (interface) `interface OwnCommentRow { id: string; url: string; at: string; text: string; postId: string; reply: boolean; to: { handle: string; name: string | null } | null; }`
 - **PLATFORMS** (const) `readonly Platform[]`
 - **Platform** (type) `type Platform = | "linkedin" | "reddit" | "youtube" | "x" | "instagram" | "threads" | "facebook" | "tiktok" | "google_business";`
-- **Post** (interface) `interface Post { text: string; media?: Media; scheduledFor?: string; extra?: Record<string, unknown>; }`
-- **PostPatch** (interface) `interface PostPatch { title?: string; thumbnail?: string; hook?: string; }`
-- **Published** (interface) `interface Published { id: string; url: string; publishedAt: string; fetchedWith: FetchedWith; notes?: string[]; }`
-- **PublishedRow** (interface) `interface PublishedRow extends Published { preview: string; text?: string; title?: string; }`
-- **fakeContentChannel** (function) `(platform: Platform, o: { now?: () => Date; urlOf?: (id: string) => string } = {}): ContentChannel & { posts: Array<Published & { post: Post }>; updates: Array<{ id: string; patch: PostPatch }>; privateReplies: Array<{ commentId: string; text: string }>; count(id: string, m: Partial<Omit<Metrics, "id" | "asOf" | "fetchedWith">>): void; receive(c: Omit<CommentRow, "repliedWith">): void; happen(a: ActivityRow): void; follow(followers: number): void; followOut(f: FollowingRow): void; commentOut(c: OwnCommentRow): void; measure(id: string, i: Omit<Insights, "asOf">): void; measureAccount(a: Omit<AccountInsights, "asOf">): void; report(r: Omit<ReportDays, "asOf">): void; }`
-- **hookOf** (function) `(text: string): string`
-- **isStoredMedia** (function) `(source: string): boolean`
-- **isUrl** (function) `(source: string): boolean`
-- **mediaFileOf** (function) `(source: string, host: MediaHost | undefined, platform: string): Promise<string>`
-- **pageOf** (function) `(rows: readonly T[], q: ListQuery = {}): T[]`
-- **previewOf** (function) `(text: string, max = 120): string`
-- **publicUrlOf** (function) `(source: string, host: MediaHost | undefined, platform: string): Promise<string>`
-- **withHook** (function) `(text: string, hook: string): string`
 
 ## packages/core/src/content/ingress.ts
 
 - **ingressSites** (function) `(ingress: { url: string; headers?: Record<string, string> }, o: IngressSitesOptions): SiteClient`
-
-## packages/core/src/content/insights.ts
-
-- **AccountInsights** (interface) `interface AccountInsights { days: Array<{ day: string; values: InsightValue[] }>; gaps: InsightGap[]; asOf: string; }`
-- **GAP_STATES** (const) `readonly ["needs_scope", "needs_william", "not_built", "no_api", "error", "waiting"]`
-- **GapState** (type) `type GapState = (typeof GAP_STATES)[number];`
-- **InsightGap** (interface) `interface InsightGap { metric: string; state: GapState; why: string; }`
-- **InsightValue** (interface) `interface InsightValue { metric: string; key?: string; value: number; }`
-- **Insights** (interface) `interface Insights { values: InsightValue[]; gaps: InsightGap[]; asOf: string; fetchedWith?: FetchedWith; }`
-- **InsightsQuery** (interface) `interface InsightsQuery { id: string; published?: string | null; kind?: string | null; media?: "image" | "video" | null; read?: unknown; }`
-- **METRICS** (const) `{ readonly views: "views"; readonly reach: "reach"; readonly impressions: "impressions"; readonly ctr: "ctr"; readonly impressionsDay: "impressions_day"; readonly ctrDay: "ctr_day"; readonly likes: "likes"; readonly comments: "comments"; readonly shares: "shares"; readonly saves: "saves"; readonly i…`
-- **MetricName** (type) `type MetricName = (typeof METRICS)[keyof typeof METRICS];`
-- **ReportDays** (interface) `interface ReportDays { rows: Array<{ id: string; day: string; values: InsightValue[] }>; gaps: InsightGap[]; cursor: string | null; asOf: string; }`
-- **browserRead** (function) `(metrics: readonly string[], q: Pick<InsightsQuery, "published">, now: Date, work: () => Promise<InsightValue[]>, into: { values: InsightValue[]; gaps: InsightGap[] }): Promise<boolean>`
-- **browserReadDue** (function) `(published: string | null | undefined, now: Date): boolean`
-- **gapStateOf** (function) `(err: unknown): GapState | null`
-- **holdAt** (function) `(curve: ReadonlyArray<{ ratio: number; watch: number }>, at: number): number | null`
-- **knownGaps** (function) `(state: GapState, why: string, metrics: readonly string[]): InsightGap[]`
-- **numberOf** (function) `(metric: string, v: unknown, key?: string): InsightValue[]`
-- **readGroup** (function) `(metrics: readonly string[], work: () => Promise<InsightValue[]>, into: { values: InsightValue[]; gaps: InsightGap[] }): Promise<boolean>`
-
-## packages/core/src/content/page-inbox.ts
-
-- **pageInboxOf** (function) `(body: unknown, self: string): PageInbox`
-- **pageInboxQuery** (function) `(platform: "facebook" | "instagram", limit = 25): { platform: string; fields: string; limit: number; }`
-
-## packages/core/src/content/proof.ts
-
-- **KeepShot** (type) `type KeepShot = (jpeg: Uint8Array) => Promise<string>;`
-- **PROOF_STATES** (const) `readonly ["live", "hidden", "missing", "pending"]`
-- **Proof** (interface) `interface Proof { state: ProofState; checkedAt: string; url: string | null; shot: string | null; note: string | null; }`
-- **ProofTarget** (interface) `interface ProofTarget { platform: string; ref: string | null; parent: string | null; url: string | null; text?: string | null; account?: string | null; post?: string | null; peers?: string[]; }`
-- **RedditReads** (interface) `interface RedditReads { open: RedditThing | null; inThread: boolean | null; own?: RedditThing | null; }`
-- **holds** (function) `(page: string, text: string): boolean`
-- **idsIn** (function) `(tree: RedditListing | undefined): { ids: Set<string>; partial: boolean }`
-- **linkedinVerdict** (function) `(loaded: boolean, own: boolean | null): { state: ProofState; note: string }`
-- **modNoteIn** (function) `(tree: RedditListing | undefined, ref: string): string | null`
-- **readable** (function) `(t: RedditThing | null | undefined): boolean`
-- **redditPermalink** (function) `(t: ProofTarget, thing?: RedditThing | null): string | null`
-- **redditVerdict** (function) `(r: RedditReads): { state: ProofState; note: string | null }`
-- **siteProof** (function) `(deps: ProofDeps): CommentProof`
-- **wordsOf** (function) `(text: string, n = 60): string`
 
 ## packages/core/src/content/renewal.ts
 
@@ -602,21 +535,15 @@ Exports: 2340. Files: 224.
 ## packages/core/src/content/restate.ts
 
 - **ArmedStop** (class) `constructor()`
-- **Channels** (type) `type Channels = Partial<Record<Platform, ContentChannel>>;`
-- **ChannelsFor** (type) `type ChannelsFor = ( ctx: restate.Context, o?: { arm?: boolean; account?: string | null }, ) => Channels;`
-- **Content** (type) `type Content = ReturnType<typeof makeContent>;`
-- **ContentClients** (interface) `interface ContentClients { channels: (ctx: restate.Context, client: string, part: ContentPart) => Promise<Channels>; sends: (client: string) => Promise<boolean>; }`
 - **DESK** (const) `{ readonly name: "desk"; }`
-- **MANY_POSTS** (const) `100`
-- **SENDS_OFF** (const) `"Sends off. An admin turns them on."`
+- **SEND_GRACE_MS** (const) `number`
 - **SITES** (const) `{ readonly name: "sites"; }`
 - **SitesHost** (interface) `interface SitesHost { service: { name: string }; wake?: Wake | undefined; arm?: boolean; dayZone?: string; }`
 - **SitesService** (type) `type SitesService = { status: (ctx: restate.Context, req: { site: string }) => Promise<SiteStatus>; call: ( ctx: restate.Context, req: { site: string; method: SiteMethod; path: string; input?: Record<string, unknown>; account?: string; caller?: string; sendKey?: string; until?: string; }, ) => Promise<unknown>; verdict: (ctx: restate.Context, req: { sendKey: string }) => Promise<SendVerdict>; setup: ( ctx: restate.Context, req: { site: string; step: string }, ) => Promise<{ made: readonly string[] }>; arm: ( ctx: restate.Context, req: { site: string; method: SiteMethod; path: string; input?: Record<string, unknown>; account?: string; caller?: string; }, ) => Promise<unknown>; };`
 - **Wake** (type) `type Wake = () => Promise<"started" | "running">;`
 - **isRefusal** (function) `(err: unknown): err is SiteCallError`
-- **journaledHost** (function) `(ctx: restate.Context, host: MediaHost): MediaHost`
 - **journaledSites** (function) `(ctx: restate.Context, sites: SiteClient, journal: SendJournal): SiteClient`
-- **makeContent** (function) `(channelsFor: ChannelsFor, clients?: ContentClients): restate.ServiceDefinition<"Content", { platforms: (ctx: restate.Context) => Promise<Platform[]>; publish: (ctx: restate.Context, req: { platform: Platform; post: Post; } & ForClient & AsAccount & Keyed) => Promise<Published | Delivery<Published>>; list: (ctx: restate.Context, req: { platform: Platfo…`
+- **keyedWaitEnds** (function) `(at: Date, zone = SCHEDULE_ZONE): Date`
 - **restateSites** (function) `(ctx: restate.Context, o: { caller: string; limitMs?: number } & Partial<SitesHost>): SiteClient`
 - **siteCallErrorFrom** (function) `(err: unknown, site: string, method: string, path: string): Error`
 
@@ -625,79 +552,9 @@ Exports: 2340. Files: 224.
 - **routeKind** (function) `(site: string, method: SiteMethod, path: string): RouteKind`
 - **routeTable** (function) `(): readonly Readonly<Row>[]`
 
-## packages/core/src/content/shapes.ts
-
-- **FieldInput** (type) `type FieldInput = | "line" | "long" | "pick" | "switch" | "list" | "image" | "files" | "captions" | "number" | "slides";`
-- **FieldView** (interface) `interface FieldView extends FieldUi { key: string; value: unknown; }`
-- **FieldsOf** (type) `type FieldsOf<P extends Platform> = z.output<(typeof SHAPES)[P]["schema"]>;`
-- **SHAPES** (const) `{ readonly youtube: Shape<{ kind: { zod: z.ZodOptional<z.ZodEnum<{ video: "video"; short: "short"; community: "community"; }>>; ui: { label: string; input: FieldInput; status: FieldStatus; max?: number; maxTotal?: number; options: readonly { value: string; label: string; }[]; required?: boolean; def…`
-- **Shape** (interface) `interface Shape<F extends Fields = Fields> extends ShapeRules { schema: SchemaOf<F>; fields: readonly (FieldUi & { key: string })[]; }`
-- **ShapeError** (class) `override name`
-- **YOUTUBE_PRIVACY** (const) `readonly ["private", "unlisted", "public"]`
-- **coerceField** (function) `(platform: Platform, key: string, raw: string): unknown`
-- **consented** (function) `(platform: Platform): boolean`
-- **fieldViews** (function) `(platform: Platform, extra: Readonly<Record<string, unknown>>, title: string | null | undefined): FieldView[]`
-- **fieldsOf** (function) `(platform: P, extra: unknown): FieldsOf<P>`
-- **kindOf** (function) `(extra: Readonly<Record<string, unknown>> | null | undefined): string`
-- **languageName** (function) `(code: string): string`
-- **mediaUnfit** (function) `(platform: Platform, extra: Readonly<Record<string, unknown>> | null | undefined, media: Pick<Media, "kind"> | null | undefined): string | null`
-- **missingFields** (function) `(platform: Platform, extra: Readonly<Record<string, unknown>>, title: string | null | undefined): string[]`
-- **patchFields** (function) `(platform: Platform, current: Readonly<Record<string, unknown>>, patch: Readonly<Record<string, unknown>>): { extra: Record<string, unknown>; title?: string | null; changed: Record<string, [unknown, unknown]>; }`
-- **tagsLength** (function) `(tags: readonly string[]): number`
-
-## packages/core/src/content/slides.ts
-
-- **SLIDES_CSS** (const) `string`
-- **SLIDES_MAX** (const) `10`
-- **SLIDES_MIN** (const) `5`
-- **SLIDE_LINES_MAX** (const) `4`
-- **SLIDE_LINE_MAX** (const) `110`
-- **SLIDE_PX** (const) `1080`
-- **SLIDE_TITLE_MAX** (const) `70`
-- **Slide** (interface) `interface Slide { title: string; lines: string[]; }`
-- **carouselFiles** (function) `(d: { extra?: Readonly<Record<string, unknown>> | null; }): CarouselFiles`
-- **carouselUnfit** (function) `(d: { platform: string; extra?: Readonly<Record<string, unknown>> | null; }): string | null`
-- **cleanSlides** (function) `(v: unknown): Slide[]`
-- **isCarousel** (function) `(d: { platform: string; extra?: Readonly<Record<string, unknown>> | null; }): boolean`
-- **slidesFromText** (function) `(text: string): Slide[]`
-- **slidesHtml** (function) `(slides: readonly Slide[], o: { only?: number; by?: string } = {}): string`
-- **slidesKey** (function) `(slides: readonly Slide[]): string`
-- **slidesText** (function) `(slides: readonly Slide[]): string`
-- **slidesUnfit** (function) `(slides: readonly Slide[]): string | null`
-
-## packages/core/src/content/thread.ts
-
-- **THREAD_BREAK** (const) `"\n\n---\n\n"`
-- **THREAD_MAX** (const) `7`
-- **THREAD_MIN** (const) `3`
-- **WREN_X_SUBSCRIPTION** (const) `XSubscription`
-- **X_POST_MAX** (const) `280`
-- **isThread** (function) `(d: { platform: string; extra?: Readonly<Record<string, unknown>> | null; }): boolean`
-- **threadPosts** (function) `(text: string): string[]`
-- **threadText** (function) `(posts: readonly string[]): string`
-- **threadUnfit** (function) `(posts: readonly string[], link?: string | null): string | null`
-- **withLink** (function) `(posts: readonly string[], link: string | null | undefined): string[]`
-- **xLength** (function) `(text: string): number`
-- **xPostMax** (function) `(s: XSubscription): number`
-
-## packages/core/src/content/tiktok.ts
-
-- **TIKTOK_BC_URL** (const) `"https://www.tiktok.com/legal/page/global/bc-policy/en"`
-- **TIKTOK_COPY** (const) `{ readonly disclose: "Disclose post content"; readonly discloseHint: "Indicate whether this content promotes yourself, a brand, product or service."; readonly yourBrand: "Your brand"; readonly yourBrandHint: "You are promoting yourself or your own business. This content will be classified as Brand O…`
-- **TIKTOK_MUSIC_URL** (const) `"https://www.tiktok.com/legal/page/global/music-usage-confirmation/en"`
-- **TIKTOK_PRIVACY** (const) `readonly ["PUBLIC_TO_EVERYONE", "MUTUAL_FOLLOW_FRIENDS", "FOLLOWER_OF_CREATOR", "SELF_ONLY"]`
-- **TIKTOK_PRIVACY_LABELS** (const) `Record<TikTokPrivacy, string>`
-- **TikTokCreator** (interface) `interface TikTokCreator { nickname: string; username: string | null; avatarUrl: string | null; privacyOptions: TikTokPrivacy[]; commentOff: boolean; duetOff: boolean; stitchOff: boolean; maxVideoSec: number | null; canPost: boolean; why: string | null; }`
-- **TikTokPrivacy** (type) `type TikTokPrivacy = (typeof TIKTOK_PRIVACY)[number];`
-- **creatorFrom** (function) `(answer: unknown): TikTokCreator`
-- **tiktokBroken** (function) `(f: TikTokChoices): string | null`
-- **tiktokDeclaration** (function) `(f: TikTokChoices): { text: string; links: { label: string; url: string }[]; }`
-- **tiktokHold** (function) `(f: TikTokChoices, c: TikTokCreator, videoSec?: number | null): string | null`
-- **tiktokLabel** (function) `(f: TikTokChoices): string | null`
-- **tiktokMissing** (function) `(f: TikTokChoices): string[]`
-
 ## packages/core/src/custom-fields.ts
 
+- **FieldInput** (interface) `interface FieldInput { id?: string; record: string; label?: string | null; key?: string; kind?: string; options?: readonly { key?: string; label: string }[]; archived?: boolean; }`
 - **businessFactLines** (function) `(main: Queryable, owner: string | null): Promise<string[]>`
 - **businessFacts** (function) `(main: Queryable, owner: string | null): Promise<CustomValue[]>`
 - **customFacts** (function) `(main: Queryable, owner: string | null, subject?: string | null, rows: Queryable = main): Promise<Record<string, string>>`
@@ -708,7 +565,6 @@ Exports: 2340. Files: 224.
 - **saveCustomField** (function) `(db: Queryable, owner: string | null, input: FieldInput, by: string): Promise<CustomField>`
 - **setFieldStep** (function) `(main: Queryable, open: (client: string) => Queryable): Step`
 - **withCustomFields** (function) `(types: readonly RecordType[], db: Queryable): Promise<RecordType[]>`
-- **FieldInput** (interface) `interface FieldInput { id?: string; record: string; label?: string | null; key?: string; kind?: string; options?: readonly { key?: string; label: string }[]; archived?: boolean; }`
 - **keyOf** (function) `(label: string): string`
 
 ## packages/core/src/custom-schema.ts
@@ -778,7 +634,7 @@ Exports: 2340. Files: 224.
 ## packages/core/src/decide/calls.ts
 
 - **keepSql** (function) `(kind: DecisionKind, label: ReturnType<typeof sql>): import("drizzle-orm").SQL<unknown>`
-- **newestCall** (function) `(db: Queryable, kind: DecisionKind, subject: string): Promise<{ id: number; kind: "document" | "finding" | "comment_quality" | "lead_fit"; subject: string; label: string; keep: boolean; source: string; by: string | null; decisionId: number | null; agreed: boolean | null; override: boolean; ref: string | null; comment: string | null; at: Date; } | null>`
+- **newestCall** (function) `(db: Queryable, kind: DecisionKind, subject: string): Promise<{ id: number; kind: "document" | "comment_quality" | "lead_fit" | "finding"; subject: string; label: string; keep: boolean; source: string; by: string | null; decisionId: number | null; agreed: boolean | null; override: boolean; ref: string | null; comment: string | null; at: Date; } | null>`
 - **recordCall** (function) `(db: Queryable, c: CallInput): Promise<void>`
 
 ## packages/core/src/decide/comments.ts
@@ -1450,8 +1306,8 @@ Exports: 2340. Files: 224.
 
 ## packages/core/src/marketing-console-routes.ts
 
-- **MARKETING_CONSOLE_APPS** (const) `{ readonly "*": null; readonly approveDraft: "marketing"; readonly rejectDraft: "marketing"; readonly redraft: "marketing"; readonly draftFields: "marketing"; readonly draftAttach: "marketing"; readonly draftFunnel: "marketing"; readonly draftSlides: "marketing"; readonly promote: "marketing"; reado…`
-- **MARKETING_CONSOLE_ROUTES** (const) `{ readonly recordsTypes: "read"; readonly recordsList: "read"; readonly recordsGet: "read"; readonly recordsExport: "read"; readonly recordsStats: "read"; readonly approveDraft: "act"; readonly rejectDraft: "act"; readonly redraft: "act"; readonly draftFields: "act"; readonly draftAttach: "act"; rea…`
+- **MARKETING_CONSOLE_APPS** (const) `{ readonly "*": null; readonly approveDraft: "marketing"; readonly rejectDraft: "marketing"; readonly redraft: "marketing"; readonly draftFields: "marketing"; readonly draftUpload: "marketing"; readonly draftAttach: "marketing"; readonly draftFunnel: "marketing"; readonly draftSlides: "marketing"; r…`
+- **MARKETING_CONSOLE_ROUTES** (const) `{ readonly recordsTypes: "read"; readonly recordsList: "read"; readonly recordsGet: "read"; readonly recordsExport: "read"; readonly recordsStats: "read"; readonly approveDraft: "act"; readonly rejectDraft: "act"; readonly redraft: "act"; readonly draftFields: "act"; readonly draftUpload: "act"; rea…`
 - **MARKETING_CONSOLE_WRITES** (const) `readonly MarketingConsoleRoute[]`
 - **POST_NOW** (const) `"post_now"`
 
@@ -1480,7 +1336,7 @@ Exports: 2340. Files: 224.
 - **preferencesOf** (function) `(db: Queryable, channel: MarketingChannel, address: string): Promise<{ address: string; everything: boolean; frequency: "weekly" | "as_sent" | "monthly"; pausedUntil: Date | null; topics: { name: string; publicName: string; line: string; cadence: string; on: boolean; }[]; }>`
 - **readLink** (function) `(key: string, token: string): LinkFor | null`
 - **recordMarketingSend** (function) `(db: Queryable, input: { consentId: number; by: string; evidence?: Evidence; now?: Date; person?: string; campaign?: string | null; capped?: boolean; messageId?: string | null; }): Promise<void>`
-- **saveTopic** (function) `(db: Queryable, t: { name: string; channel: MarketingChannel; publicName: string; line: string; cadence: string; public: boolean; }): Promise<{ name: string; id: number; channel: "email" | "sms"; keyword: string | null; createdAt: Date; publicName: string; line: string; cadence: string; public: boolean; }>`
+- **saveTopic** (function) `(db: Queryable, t: { name: string; channel: MarketingChannel; publicName: string; line: string; cadence: string; public: boolean; }): Promise<{ name: string; id: number; createdAt: Date; channel: "email" | "sms"; publicName: string; line: string; cadence: string; public: boolean; keyword: string | null; }>`
 - **setFrequency** (function) `(db: Queryable, input: { channel: MarketingChannel; address: string; frequency: Frequency; by: string }): Promise<number>`
 - **signLink** (function) `(key: string, to: LinkFor): string`
 - **signupSig** (function) `(shared: string, topic: string, address: string): string`
@@ -2050,12 +1906,13 @@ Exports: 2340. Files: 224.
 - **Limits** (type) `type Limits = { [K in keyof typeof LIMITS]: number };`
 - **TimedOut** (interface) `interface TimedOut { call: string; unit: string | null; ms: number; held?: boolean; }`
 - **UnitLimits** (interface) `interface UnitLimits { stage: string; skip(unit: string, group?: string): boolean; within<T>(unit: string, p: Waitable<T>, o: UnitWithinOpts): Promise<T>; guard<T>(unit: string, fn: () => Promise<T>, group?: string): Promise<T>; }`
+- **UnitLimitsOpts** (interface) `interface UnitLimitsOpts { oneHost?: boolean; }`
 - **answers** (function) `(ctx: restate.Context, p: Waitable<unknown>, call: string): Promise<boolean>`
 - **limitStage** (function) `(service: string, key: string): string`
 - **limitedRun** (function) `(ctx: restate.Context, name: string, fn: (signal: AbortSignal) => Promise<T>, o: LimitedRunOpts): Promise<T>`
 - **limitsWith** (function) `(over?: Partial<Limits>): Limits`
 - **timeoutsOf** (function) `(ctx: object): TimedOut[]`
-- **unitLimits** (function) `(ctx: restate.ObjectContext, db: Queryable, service: string): Promise<UnitLimits>`
+- **unitLimits** (function) `(ctx: restate.ObjectContext, db: Queryable, service: string, o: UnitLimitsOpts = {}): Promise<UnitLimits>`
 - **within** (function) `(ctx: restate.Context, p: Waitable<T>, o: WithinOpts): Promise<T>`
 
 ## packages/core/src/restate/loop.ts
@@ -2074,7 +1931,7 @@ Exports: 2340. Files: 224.
 - **notifyErrorEdges** (function) `(ctx: restate.ObjectContext, notifier: Notifier, stage: string, previous: PassOutcome<S> | null, outcome: PassOutcome<S>): Promise<void>`
 - **pausedPass** (function) `(ctx: restate.ObjectContext, now: Date, why: string, delayMs: number): Promise<PassOutcome<S>>`
 - **retryDelayMs** (function) `(failures: number, capMs: number): number`
-- **runPass** (function) `(ctx: restate.ObjectContext, db: Db, now: Date, spec: PassSpec<S>): Promise<PassOutcome<S>>`
+- **runPass** (function) `(ctx: restate.ObjectContext, db: Db, spec: PassSpec<S>): Promise<PassOutcome<S>>`
 - **setLastPass** (function) `(ctx: restate.ObjectContext, outcome: L): Promise<void>`
 - **stoppedPass** (function) `(ctx: restate.ObjectContext, now: Date, why: string): Promise<PassOutcome<S>>`
 - **writeLoop** (function) `(ctx: restate.ObjectContext, patch: Partial<LoopState<L>>): Promise<LoopState<L>>`
@@ -2617,7 +2474,7 @@ Exports: 2340. Files: 224.
 - **WORDS_MAX** (const) `60000`
 - **pointsOf** (function) `(tpl: Template, rows: readonly { picks: unknown; sends: number; replies: number }[]): VariantPoint[]`
 - **sampleOf** (function) `(kind: TemplateKind, name: string, source: string): { sample: { subject: string | null; body: string; }; problem: null; } | { sample: null; problem: string; }`
-- **templateDetail** (function) `(db: Queryable, id: string): Promise<{ kind: "email" | "sms" | "post" | "dm" | "prompt"; system: string; name: string; folder: string; status: import("./templates.js").TemplateStatus; followsDefault: boolean; newestDefault: number | null; editable: boolean; live: { sample: { subject: string | null; body: string; }; problem: nul…`
+- **templateDetail** (function) `(db: Queryable, id: string): Promise<{ kind: "email" | "sms" | "dm" | "post" | "prompt"; system: string; name: string; folder: string; status: import("./templates.js").TemplateStatus; followsDefault: boolean; newestDefault: number | null; editable: boolean; live: { sample: { subject: string | null; body: string; }; problem: nul…`
 
 ## packages/core/src/template-install.ts
 
@@ -2756,7 +2613,7 @@ Exports: 2340. Files: 224.
 - **makeTouchFeed** (function) `(d: TouchFeedDeps): restate.VirtualObjectDefinition<string, Record<never, never> & Record<never, (ctx: restate.ObjectContext) => Promise<import("./restate/loop.js").PassOutcome<TouchFeedStats>>> & { sync: (ctx: restate.ObjectContext) => Promise<import("./restate/loop.js").PassOutcome<TouchFeedStats>>; start: (ctx: rest…`
 - **nextCursor** (function) `(cursor: number | undefined, read: readonly number[], newest: number): number`
 - **touchFired** (function) `(client: string | null, t: TouchRow): Fired`
-- **touchPass** (function) `(db: Queryable, cursor: number | undefined, now: Date): Promise<{ ids: number[]; next: number } | null>`
+- **touchPass** (function) `(db: Queryable, cursor: number | undefined, now: Date): Promise<{ ids: number[]; next: number; settling: boolean } | null>`
 - **touchRows** (function) `(db: Queryable, ids: readonly number[]): Promise<TouchRow[]>`
 
 ## packages/core/src/touch-link.ts
@@ -2805,7 +2662,7 @@ Exports: 2340. Files: 224.
 - **touchesContext** (function) `(rows: readonly TouchLine[], now: Date, max = 6): string`
 - **touchesFor** (function) `(db: Queryable, who: { personId?: number | null; leadId?: number | null; handleIds?: readonly number[] }, limit = 50): Promise<TouchLine[]>`
 - **touchesForPeople** (function) `(db: Queryable, personIds: readonly number[], each = 10): Promise<Map<number, TouchLine[]>>`
-- **answerOf** (function) `(t: Pick<TouchLine, "direction" | "kind" | "at" | "response">, now: Date): "replied" | "ignored" | "accepted" | "liked" | null`
+- **answerOf** (function) `(t: Pick<TouchLine, "direction" | "kind" | "at" | "response">, now: Date): "replied" | "accepted" | "liked" | "ignored" | null`
 
 ## packages/core/src/train.ts
 
@@ -2945,6 +2802,7 @@ Exports: 2340. Files: 224.
 - **DISABLE_AFTER_MS** (const) `number`
 - **DeliveryView** (interface) `interface DeliveryView { id: string; subscription: string; event: string; eventId: string; state: DeliveryState; attempts: number; status: number | null; latencyMs: number | null; response: string | null; error: string | null; at: string; lastAt: string | null; nextAt: string | null; }`
 - **PostOptions** (interface) `interface PostOptions { resolve?: Resolve; timeoutMs?: number; maxBytes?: number; }`
+- **Published** (interface) `interface Published { client: string | null; event: WebhookEvent; id: string; subject: string; data: Record<string, unknown>; }`
 - **SubscriptionInput** (const) `z.ZodObject<{ name: z.ZodString; url: z.ZodString; events: z.ZodArray<z.ZodString>; }, z.core.$strip>`
 - **SubscriptionView** (interface) `interface SubscriptionView { id: string; name: string; url: string; events: string[]; active: boolean; by: string; at: string; rotatedAt: string | null; prevUntil: string | null; failingSince: string | null; disabledAt: string | null; disabledWhy: string | null; }`
 - **TOLERANCE_S** (const) `300`
@@ -2973,7 +2831,6 @@ Exports: 2340. Files: 224.
 - **verifyWebhook** (function) `(secret: string, headers: Readonly<Record<string, string | undefined>>, body: string, nowS = Math.floor(Date.now() / 1000)): boolean`
 - **webhookStep** (function) `(o: PostOptions = {}): Step`
 - **webhooksPublish** (function) `(ctx: restate.Context, p: { client: string | null; event: WebhookEvent; subject: string; data: Record<string, unknown> }): void`
-- **Published** (interface) `interface Published { client: string | null; event: WebhookEvent; id: string; subject: string; data: Record<string, unknown>; }`
 - **SNIPPET** (const) `1000`
 - **delivered** (function) `(a: Pick<Answer, "status">): boolean`
 - **deliveryOf** (function) `(db: Queryable, client: string | null, id: string): Promise<{ payload: unknown; tries: { n: number; status: number | null; latencyMs: number; response: string | null; error: string | null; at: string; }[]; id: string; subscription: string; event: string; eventId: string; state: DeliveryState; attempts: number; status: number | null; latencyMs: number…`

@@ -4,16 +4,16 @@ Role: package. Files: 16.
 
 ## Uses
 
-- @wren/channel-email
 - @wren/channel-sms
 - @wren/core
 - @wren/db
 - @wren/offers
 - @wren/research
+- @wren/starling-email
 
 ## Outside packages
 
-@wrenautomation/weaver@0.8.2, fflate@0.8.3, node:crypto, node:fs, node:path, node:zlib, saxes@6.0.0
+@wrenautomation/read@0.29.0, fflate@0.8.3, node:crypto, node:fs, node:path, node:zlib, saxes@6.0.0
 
 ## Folders
 

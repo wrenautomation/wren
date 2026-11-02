@@ -2035,7 +2035,7 @@
     "file": "packages/learn/src/drive.ts",
     "inferred": true,
     "kind": "function",
-    "sig": "(db: Queryable, client: string, p: { name: string; parentId?: number | null; by?: string | null }): Promise<{ name: string; id: number; parentId: number | null; client: string; by: string | null; createdAt: Date; }>"
+    "sig": "(db: Queryable, client: string, p: { name: string; parentId?: number | null; by?: string | null }): Promise<{ name: string; id: number; createdAt: Date; client: string; by: string | null; parentId: number | null; }>"
    }
   },
   {
@@ -2139,7 +2139,7 @@
     "file": "packages/learn/src/sops.ts",
     "inferred": true,
     "kind": "function",
-    "sig": "(db: Db, p: { client: string; itemId: number; sop: string; by: string | null }): Promise<{ error: string | null; title: string | null; file: string | null; id: number; state: \"added\" | \"asked\" | \"failed\"; text: string | null; client: string | null; by: string | null; sop: string; askedAt: Date; itemId: number | null; noteId: string | null; points: Date | null; doneAt: Date | nul…"
+    "sig": "(db: Db, p: { client: string; itemId: number; sop: string; by: string | null }): Promise<{ id: number; state: \"failed\" | \"added\" | \"asked\"; client: string | null; title: string | null; by: string | null; error: string | null; file: string | null; text: string | null; sop: string; askedAt: Date; itemId: number | null; noteId: string | null; points: Date | null; doneAt: Date | nul…"
    }
   },
   {
@@ -2254,7 +2254,7 @@
     "file": "packages/learn/src/breakdown.ts",
     "inferred": true,
     "kind": "const",
-    "sig": "z.ZodObject<{ hook_style: z.ZodEnum<{ other: \"other\"; news: \"news\"; question: \"question\"; story: \"story\"; contrarian: \"contrarian\"; \"demo-first\": \"demo-first\"; \"result-first\": \"result-first\"; \"identity-call\": \"identity-call\"; \"list-tease\": \"list-tease\"; warning: \"warning\"; \"how-to\": \"how-to\"; \"patte…"
+    "sig": "z.ZodObject<{ hook_style: z.ZodEnum<{ other: \"other\"; question: \"question\"; story: \"story\"; news: \"news\"; contrarian: \"contrarian\"; \"demo-first\": \"demo-first\"; \"result-first\": \"result-first\"; \"identity-call\": \"identity-call\"; \"list-tease\": \"list-tease\"; warning: \"warning\"; \"how-to\": \"how-to\"; \"patte…"
    }
   },
   {
@@ -2285,7 +2285,7 @@
     "file": "packages/learn/src/drive.ts",
     "inferred": true,
     "kind": "function",
-    "sig": "(db: Queryable, client: string, b: Browse): Promise<{ place: string; sort: \"title\" | \"length\" | \"source\" | \"score\" | \"newest\"; items: (Card & { pick: LearnPick | null; })[]; more: boolean; total: number; types: Partial<Record<ItemType, number>>; sources: { n: number; id: number; name: string; kind: \"reddit\" | \"youtube\" | \"x\" | \"tiktok\" | \"ins…"
+    "sig": "(db: Queryable, client: string, b: Browse): Promise<{ place: string; sort: \"length\" | \"title\" | \"source\" | \"score\" | \"newest\"; items: (Card & { pick: LearnPick | null; })[]; more: boolean; total: number; types: Partial<Record<ItemType, number>>; sources: { n: number; id: number; name: string; kind: \"reddit\" | \"youtube\" | \"x\" | \"tiktok\" | \"ins…"
    }
   },
   {
@@ -2958,7 +2958,7 @@
     "file": "packages/learn/src/items.ts",
     "inferred": true,
     "kind": "function",
-    "sig": "(db: Queryable, client: string, id: number): Promise<{ source: string | null; sops: { id: number; itemId: number | null; noteId: string | null; client: string | null; title: string | null; text: string | null; sop: string; state: \"added\" | \"asked\" | \"failed\"; file: string | null; points: Date | null; error: string | null; by: string | null; as…"
+    "sig": "(db: Queryable, client: string, id: number): Promise<{ source: string | null; sops: { id: number; itemId: number | null; noteId: string | null; client: string | null; title: string | null; text: string | null; sop: string; state: \"failed\" | \"added\" | \"asked\"; file: string | null; points: Date | null; error: string | null; by: string | null; as…"
    }
   },
   {
@@ -3620,7 +3620,7 @@
     "file": "packages/learn/src/breakdown.ts",
     "inferred": true,
     "kind": "const",
-    "sig": "z.ZodObject<{ format: z.ZodNullable<z.ZodEnum<{ text: \"text\"; video: \"video\"; doc: \"doc\"; carousel: \"carousel\"; image: \"image\"; }>>; chars: z.ZodNumber; lines: z.ZodNumber; first_line_chars: z.ZodNumber; link: z.ZodNullable<z.ZodEnum<{ comment: \"comment\"; none: \"none\"; body: \"body\"; }>>; hashtags: z…"
+    "sig": "z.ZodObject<{ format: z.ZodNullable<z.ZodEnum<{ text: \"text\"; video: \"video\"; doc: \"doc\"; carousel: \"carousel\"; image: \"image\"; }>>; chars: z.ZodNumber; lines: z.ZodNumber; first_line_chars: z.ZodNumber; link: z.ZodNullable<z.ZodEnum<{ comment: \"comment\"; body: \"body\"; none: \"none\"; }>>; hashtags: z…"
    }
   },
   {

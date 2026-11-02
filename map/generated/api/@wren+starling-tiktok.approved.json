@@ -1,0 +1,34 @@
+{
+ "layer": "api",
+ "nodes": [
+  {
+   "id": "@wren/starling-tiktok#tiktokContent",
+   "role": "export",
+   "parent": "@wren/starling-tiktok",
+   "group": "@wren/starling-tiktok",
+   "attrs": {
+    "entries": [
+     "@wren/starling-tiktok"
+    ],
+    "file": "packages/starling/channels/tiktok/src/content.ts",
+    "kind": "function",
+    "sig": "(sites: SiteClient, o: TikTokContentOptions = {}): ContentChannel"
+   }
+  },
+  {
+   "id": "@wren/starling-tiktok#tiktokCreator",
+   "role": "export",
+   "parent": "@wren/starling-tiktok",
+   "group": "@wren/starling-tiktok",
+   "attrs": {
+    "entries": [
+     "@wren/starling-tiktok"
+    ],
+    "file": "packages/starling/channels/tiktok/src/content.ts",
+    "kind": "function",
+    "sig": "(sites: SiteClient): Promise<TikTokCreator>"
+   }
+  }
+ ],
+ "edges": []
+}

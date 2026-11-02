@@ -9,7 +9,7 @@
    "attrs": {
     "dir": "packages/niches/",
     "npm": [
-     "@wrenautomation/weaver",
+     "@wrenautomation/read",
      "fflate",
      "node:crypto",
      "node:fs",
@@ -18,7 +18,7 @@
      "saxes"
     ],
     "versions": [
-     "@wrenautomation/weaver@0.8.2",
+     "@wrenautomation/read@0.29.0",
      "fflate@0.8.3",
      "saxes@6.0.0"
     ]
@@ -169,11 +169,6 @@
  "edges": [
   {
    "from": "@wren/niches",
-   "to": "@wren/channel-email",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/niches",
    "to": "@wren/channel-sms",
    "kind": "imports"
   },
@@ -198,8 +193,8 @@
    "kind": "imports"
   },
   {
-   "from": "@wren/niches/src/agencies.ts",
-   "to": "@wren/channel-email/src/index.ts",
+   "from": "@wren/niches",
+   "to": "@wren/starling-email",
    "kind": "imports"
   },
   {
@@ -225,6 +220,11 @@
   {
    "from": "@wren/niches/src/agencies.ts",
    "to": "@wren/niches/src/niche.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/niches/src/agencies.ts",
+   "to": "@wren/starling-email/src/index.ts",
    "kind": "imports"
   },
   {
@@ -280,11 +280,6 @@
   },
   {
    "from": "@wren/niches/src/index.ts",
-   "to": "@wren/channel-email/src/index.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/niches/src/index.ts",
    "to": "@wren/channel-sms/src/index.ts",
    "kind": "imports"
   },
@@ -330,8 +325,8 @@
    }
   },
   {
-   "from": "@wren/niches/src/niche.ts",
-   "to": "@wren/channel-email/src/index.ts",
+   "from": "@wren/niches/src/index.ts",
+   "to": "@wren/starling-email/src/index.ts",
    "kind": "imports"
   },
   {
@@ -361,8 +356,8 @@
    }
   },
   {
-   "from": "@wren/niches/src/recruiting.ts",
-   "to": "@wren/channel-email/src/index.ts",
+   "from": "@wren/niches/src/niche.ts",
+   "to": "@wren/starling-email/src/index.ts",
    "kind": "imports"
   },
   {
@@ -376,6 +371,11 @@
    "kind": "imports"
   },
   {
+   "from": "@wren/niches/src/recruiting.ts",
+   "to": "@wren/starling-email/src/index.ts",
+   "kind": "imports"
+  },
+  {
    "from": "@wren/niches/src/recruiting/sources.ts",
    "to": "@wren/core/src/index.ts",
    "kind": "imports"
@@ -383,11 +383,6 @@
   {
    "from": "@wren/niches/src/recruiting/sources.ts",
    "to": "@wren/research/src/fetch/index.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/niches/src/sec-ria.ts",
-   "to": "@wren/channel-email/src/index.ts",
    "kind": "imports"
   },
   {
@@ -413,6 +408,11 @@
   {
    "from": "@wren/niches/src/sec-ria.ts",
    "to": "@wren/niches/src/sec-ria/roster.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/niches/src/sec-ria.ts",
+   "to": "@wren/starling-email/src/index.ts",
    "kind": "imports"
   },
   {

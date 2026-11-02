@@ -62,9 +62,9 @@ Rules:
 
 Attribution comes before control. Numbers per campaign show what to change before loops depend on campaigns.
 
-## Open
+## Caps
 
-1. Caps: a campaign cap sits under the platform cap. Does a campaign also get a share of the platform cap, or first come, first served? I recommend first come, first served until two campaigns fight for one account.
+Two levels. The global cap per account and platform guards against a bot flag; no act passes it. A campaign cap is a second, smaller limit inside it. Campaigns take from the global cap first come, first served. When campaigns compete for many accounts, phase 3 sets how they split.
 
 ## Decision log
 
@@ -78,3 +78,4 @@ Attribution comes before control. Numbers per campaign show what to change befor
   - The act in a cap key is a free slug (`linkedin.comment`). Acts per platform are not one closed list yet; phase 3 checks them against the loop that spends them.
   - A CTA station may sit in a group below the campaign, never above it.
   - The default campaign is computed by `campaignsOf`, never stored.
+- 2026-11-02: caps have two levels, global and per campaign; they do not conflict. First come, first served under the global cap for now. William: "doesn't matter how we do it as long as we just avoid getting bot flagged". The global caps hold in every phase.

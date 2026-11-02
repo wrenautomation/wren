@@ -6,7 +6,7 @@
    "role": "system",
    "group": "engine",
    "attrs": {
-    "description": "The research engine (models, raven, falcon, weaver) and the map engine (orrery), one npm package each.",
+    "description": "birdwatch, the research engine, on two primitives (models, read); and the map engine (orrery). One npm package each.",
     "kind": "repo",
     "title": "engine"
    }
@@ -25,14 +25,24 @@
    }
   },
   {
+   "from": "route:AutoReply/arrived",
+   "to": "system:engine",
+   "kind": "uses",
+   "attrs": {
+    "here": [],
+    "title": [
+     "npm `@wrenautomation/models`"
+    ]
+   }
+  },
+  {
    "from": "route:CrmRun/run",
    "to": "system:engine",
    "kind": "uses",
    "attrs": {
     "here": [],
     "title": [
-     "npm `@wrenautomation/falcon`",
-     "npm `@wrenautomation/weaver`"
+     "npm `@wrenautomation/read`"
     ]
    }
   },
@@ -43,8 +53,7 @@
    "attrs": {
     "here": [],
     "title": [
-     "npm `@wrenautomation/falcon`",
-     "npm `@wrenautomation/weaver`"
+     "npm `@wrenautomation/read`"
     ]
    }
   },
@@ -55,8 +64,7 @@
    "attrs": {
     "here": [],
     "title": [
-     "npm `@wrenautomation/falcon`",
-     "npm `@wrenautomation/weaver`"
+     "npm `@wrenautomation/read`"
     ]
    }
   },
@@ -67,8 +75,7 @@
    "attrs": {
     "here": [],
     "title": [
-     "npm `@wrenautomation/falcon`",
-     "npm `@wrenautomation/weaver`"
+     "npm `@wrenautomation/read`"
     ]
    }
   },
@@ -79,7 +86,7 @@
    "attrs": {
     "here": [],
     "title": [
-     "npm `@wrenautomation/falcon`"
+     "npm `@wrenautomation/read`"
     ]
    }
   },
@@ -90,8 +97,7 @@
    "attrs": {
     "here": [],
     "title": [
-     "npm `@wrenautomation/falcon`",
-     "npm `@wrenautomation/weaver`"
+     "npm `@wrenautomation/read`"
     ]
    }
   },
@@ -102,7 +108,7 @@
    "attrs": {
     "here": [],
     "title": [
-     "npm `@wrenautomation/falcon`"
+     "npm `@wrenautomation/read`"
     ]
    }
   },
@@ -113,7 +119,29 @@
    "attrs": {
     "here": [],
     "title": [
-     "npm `@wrenautomation/weaver`"
+     "npm `@wrenautomation/read`"
+    ]
+   }
+  },
+  {
+   "from": "route:InboxDesk/suggest",
+   "to": "system:engine",
+   "kind": "uses",
+   "attrs": {
+    "here": [],
+    "title": [
+     "npm `@wrenautomation/models`"
+    ]
+   }
+  },
+  {
+   "from": "route:MarketingConsole/inboxSuggest",
+   "to": "system:engine",
+   "kind": "uses",
+   "attrs": {
+    "here": [],
+    "title": [
+     "npm `@wrenautomation/models`"
     ]
    }
   }

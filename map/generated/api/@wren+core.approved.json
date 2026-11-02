@@ -119,22 +119,6 @@
    }
   },
   {
-   "id": "@wren/core#ACTIVITY_KINDS",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core",
-     "@wren/core/content"
-    ],
-    "file": "packages/core/src/content/index.ts",
-    "inferred": true,
-    "kind": "const",
-    "sig": "readonly [\"follow\", \"subscribe\", \"mention\", \"reaction\", \"notification\"]"
-   }
-  },
-  {
    "id": "@wren/core#ADMIN_ONLY_AT_WREN",
    "role": "export",
    "parent": "@wren/core",
@@ -341,21 +325,6 @@
    }
   },
   {
-   "id": "@wren/core#AccountInsights",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core",
-     "@wren/core/content"
-    ],
-    "file": "packages/core/src/content/insights.ts",
-    "kind": "interface",
-    "sig": "interface AccountInsights { days: Array<{ day: string; values: InsightValue[] }>; gaps: InsightGap[]; asOf: string; }"
-   }
-  },
-  {
    "id": "@wren/core#AccountOption",
    "role": "export",
    "parent": "@wren/core",
@@ -454,21 +423,6 @@
    }
   },
   {
-   "id": "@wren/core#ActivityKind",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core",
-     "@wren/core/content"
-    ],
-    "file": "packages/core/src/content/index.ts",
-    "kind": "type",
-    "sig": "type ActivityKind = (typeof ACTIVITY_KINDS)[number];"
-   }
-  },
-  {
    "id": "@wren/core#ActivityLine",
    "role": "export",
    "parent": "@wren/core",
@@ -480,36 +434,6 @@
     "file": "packages/core/src/records-serve.ts",
     "kind": "interface",
     "sig": "interface ActivityLine { at: string; kind: string | null; what: string; link?: string | null; context?: string | null; }"
-   }
-  },
-  {
-   "id": "@wren/core#ActivityQuery",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core",
-     "@wren/core/content"
-    ],
-    "file": "packages/core/src/content/index.ts",
-    "kind": "interface",
-    "sig": "interface ActivityQuery { since?: string; limit?: number; }"
-   }
-  },
-  {
-   "id": "@wren/core#ActivityRow",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core",
-     "@wren/core/content"
-    ],
-    "file": "packages/core/src/content/index.ts",
-    "kind": "interface",
-    "sig": "interface ActivityRow { id: string; kind: ActivityKind; actor: string | null; actorUrl: string | null; text: string; url: string | null; at: string | null; raw: unknown; }"
    }
   },
   {
@@ -861,21 +785,6 @@
     "file": "packages/core/src/channel-stats.ts",
     "kind": "type",
     "sig": "type Attribution = (typeof ATTRIBUTIONS)[number];"
-   }
-  },
-  {
-   "id": "@wren/core#Audience",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core",
-     "@wren/core/content"
-    ],
-    "file": "packages/core/src/content/index.ts",
-    "kind": "interface",
-    "sig": "interface Audience { followers: number; asOf: string; raw: unknown; }"
    }
   },
   {
@@ -1744,22 +1653,6 @@
    }
   },
   {
-   "id": "@wren/core#CONTENT_LIST_LIMIT",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core",
-     "@wren/core/content"
-    ],
-    "file": "packages/core/src/content/index.ts",
-    "inferred": true,
-    "kind": "const",
-    "sig": "100"
-   }
-  },
-  {
    "id": "@wren/core#COOL_MS",
    "role": "export",
    "parent": "@wren/core",
@@ -1845,7 +1738,7 @@
     ],
     "file": "packages/core/src/cache.ts",
     "kind": "interface",
-    "sig": "interface Cache { readonly name: \"memory\" | \"valkey\"; get(key: string): Promise<string | null>; set(key: string, value: string, ttlMs: number): Promise<void>; del(...keys: string[]): Promise<void>; }"
+    "sig": "interface Cache { readonly name: \"memory\" | \"redis\"; get(key: string): Promise<string | null>; set(key: string, value: string, ttlMs: number): Promise<void>; del(...keys: string[]): Promise<void>; }"
    }
   },
   {
@@ -2063,34 +1956,6 @@
    }
   },
   {
-   "id": "@wren/core#Channels",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/restate"
-    ],
-    "file": "packages/core/src/content/restate.ts",
-    "kind": "type",
-    "sig": "type Channels = Partial<Record<Platform, ContentChannel>>;"
-   }
-  },
-  {
-   "id": "@wren/core#ChannelsFor",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/restate"
-    ],
-    "file": "packages/core/src/content/restate.ts",
-    "kind": "type",
-    "sig": "type ChannelsFor = ( ctx: restate.Context, o?: { arm?: boolean; account?: string | null }, ) => Channels;"
-   }
-  },
-  {
    "id": "@wren/core#Check",
    "role": "export",
    "parent": "@wren/core",
@@ -2272,21 +2137,6 @@
     "file": "packages/core/src/outreach/index.ts",
     "kind": "interface",
     "sig": "interface CommentIn { ref: string; post: string; parent: string; kind: string; channel?: \"reach\" | \"content\"; place: string | null; postTitle: string | null; handle: string; text: string; url: string; at: string; raw: Record<string, unknown>; }"
-   }
-  },
-  {
-   "id": "@wren/core#CommentRow",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core",
-     "@wren/core/content"
-    ],
-    "file": "packages/core/src/content/index.ts",
-    "kind": "interface",
-    "sig": "interface CommentRow { id: string; postId: string; author: string; authorName?: string; text: string; at: string; repliedWith?: string; parentId?: string; url?: string; mine?: boolean; stars?: number; raw?: unknown; }"
    }
   },
   {
@@ -2506,49 +2356,6 @@
     "file": "packages/core/src/notify.ts",
     "kind": "class",
     "sig": "readonly name; constructor(private readonly write: (line: string) => void = console.log); notify(title: string, body = \"\", level: NotifyLevel = \"info\"): Promise<boolean>"
-   }
-  },
-  {
-   "id": "@wren/core#Content",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/restate"
-    ],
-    "file": "packages/core/src/content/restate.ts",
-    "kind": "type",
-    "sig": "type Content = ReturnType<typeof makeContent>;"
-   }
-  },
-  {
-   "id": "@wren/core#ContentChannel",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core",
-     "@wren/core/content"
-    ],
-    "file": "packages/core/src/content/index.ts",
-    "kind": "interface",
-    "sig": "interface ContentChannel { readonly platform: Platform; publish(post: Post): Promise<Published>; list(q?: ListQuery): Promise<PublishedRow[]>; metrics(id: string): Promise<Metrics>; metricsMany?(posts: { id: string; kind?: string | null }[]): Promise<Metrics[]>; commentCounts?(ids: string[]): Promise<Record<string, number>>; comments(id: string, q?: ListQuery): Promise<CommentRow[]>; reply?(commentId: string, text: string, on?: { postId?: string | null }): Promise<void>; privateReply?(commentId: string, text: string): Promise<{ ref: string | null }>; reviews?(q?: ActivityQuery): Promise<CommentRow[]>; activity?(q?: ActivityQuery): Promise<ActivityRow[]>; audience?(): Promise<Audience>; following?(): Promise<FollowingRow[]>; ownComments?(): Promise<OwnCommentRow[]>; insights?(q: InsightsQuery): Promise<Insights>; accountInsights?(): Promise<AccountInsights>; reportDays?(q: { after?: string | null }): Promise<ReportDays>; update?(id: string, patch: PostPatch): Promise<void>; }"
-   }
-  },
-  {
-   "id": "@wren/core#ContentClients",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/restate"
-    ],
-    "file": "packages/core/src/content/restate.ts",
-    "kind": "interface",
-    "sig": "interface ContentClients { channels: (ctx: restate.Context, client: string, part: ContentPart) => Promise<Channels>; sends: (client: string) => Promise<boolean>; }"
    }
   },
   {
@@ -4465,11 +4272,11 @@
    "group": "@wren/core",
    "attrs": {
     "entries": [
-     "@wren/core/content/shapes"
+     "@wren/core/custom-fields"
     ],
-    "file": "packages/core/src/content/shapes.ts",
-    "kind": "type",
-    "sig": "type FieldInput = | \"line\" | \"long\" | \"pick\" | \"switch\" | \"list\" | \"image\" | \"files\" | \"captions\" | \"number\" | \"slides\";"
+    "file": "packages/core/src/custom-fields.ts",
+    "kind": "interface",
+    "sig": "interface FieldInput { id?: string; record: string; label?: string | null; key?: string; kind?: string; options?: readonly { key?: string; label: string }[]; archived?: boolean; }"
    }
   },
   {
@@ -4501,20 +4308,6 @@
    }
   },
   {
-   "id": "@wren/core#FieldView",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/shapes"
-    ],
-    "file": "packages/core/src/content/shapes.ts",
-    "kind": "interface",
-    "sig": "interface FieldView extends FieldUi { key: string; value: unknown; }"
-   }
-  },
-  {
    "id": "@wren/core#Fields",
    "role": "export",
    "parent": "@wren/core",
@@ -4527,20 +4320,6 @@
     "file": "packages/core/src/ingest/schema.ts",
     "kind": "type",
     "sig": "type Fields = Partial<Record<CanonicalField, string>>;"
-   }
-  },
-  {
-   "id": "@wren/core#FieldsOf",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/shapes"
-    ],
-    "file": "packages/core/src/content/shapes.ts",
-    "kind": "type",
-    "sig": "type FieldsOf<P extends Platform> = z.output<(typeof SHAPES)[P][\"schema\"]>;"
    }
   },
   {
@@ -4729,21 +4508,6 @@
    }
   },
   {
-   "id": "@wren/core#FollowingRow",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core",
-     "@wren/core/content"
-    ],
-    "file": "packages/core/src/content/index.ts",
-    "kind": "interface",
-    "sig": "interface FollowingRow { handle: string; name: string | null; url: string | null; at: string | null; }"
-   }
-  },
-  {
    "id": "@wren/core#Form",
    "role": "export",
    "parent": "@wren/core",
@@ -4829,22 +4593,6 @@
    }
   },
   {
-   "id": "@wren/core#GAP_STATES",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core",
-     "@wren/core/content"
-    ],
-    "file": "packages/core/src/content/insights.ts",
-    "inferred": true,
-    "kind": "const",
-    "sig": "readonly [\"needs_scope\", \"needs_william\", \"not_built\", \"no_api\", \"error\", \"waiting\"]"
-   }
-  },
-  {
    "id": "@wren/core#GATE_AT",
    "role": "export",
    "parent": "@wren/core",
@@ -4857,21 +4605,6 @@
     "inferred": true,
     "kind": "const",
     "sig": "{ readonly rate: 0.95; readonly calls: 200; }"
-   }
-  },
-  {
-   "id": "@wren/core#GapState",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core",
-     "@wren/core/content"
-    ],
-    "file": "packages/core/src/content/insights.ts",
-    "kind": "type",
-    "sig": "type GapState = (typeof GAP_STATES)[number];"
    }
   },
   {
@@ -5441,66 +5174,6 @@
    }
   },
   {
-   "id": "@wren/core#InsightGap",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core",
-     "@wren/core/content"
-    ],
-    "file": "packages/core/src/content/insights.ts",
-    "kind": "interface",
-    "sig": "interface InsightGap { metric: string; state: GapState; why: string; }"
-   }
-  },
-  {
-   "id": "@wren/core#InsightValue",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core",
-     "@wren/core/content"
-    ],
-    "file": "packages/core/src/content/insights.ts",
-    "kind": "interface",
-    "sig": "interface InsightValue { metric: string; key?: string; value: number; }"
-   }
-  },
-  {
-   "id": "@wren/core#Insights",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core",
-     "@wren/core/content"
-    ],
-    "file": "packages/core/src/content/insights.ts",
-    "kind": "interface",
-    "sig": "interface Insights { values: InsightValue[]; gaps: InsightGap[]; asOf: string; fetchedWith?: FetchedWith; }"
-   }
-  },
-  {
-   "id": "@wren/core#InsightsQuery",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core",
-     "@wren/core/content"
-    ],
-    "file": "packages/core/src/content/insights.ts",
-    "kind": "interface",
-    "sig": "interface InsightsQuery { id: string; published?: string | null; kind?: string | null; media?: \"image\" | \"video\" | null; read?: unknown; }"
-   }
-  },
-  {
    "id": "@wren/core#InstallApplied",
    "role": "export",
    "parent": "@wren/core",
@@ -5807,21 +5480,6 @@
    }
   },
   {
-   "id": "@wren/core#KeepShot",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core",
-     "@wren/core/content"
-    ],
-    "file": "packages/core/src/content/proof.ts",
-    "kind": "type",
-    "sig": "type KeepShot = (jpeg: Uint8Array) => Promise<string>;"
-   }
-  },
-  {
    "id": "@wren/core#Key",
    "role": "export",
    "parent": "@wren/core",
@@ -6050,6 +5708,22 @@
     "file": "packages/core/src/logic.ts",
     "kind": "const",
     "sig": "readonly LogicPart[]"
+   }
+  },
+  {
+   "id": "@wren/core#LOGIN_HOLD_MS",
+   "role": "export",
+   "parent": "@wren/core",
+   "group": "@wren/core",
+   "attrs": {
+    "entries": [
+     "@wren/core",
+     "@wren/core/content"
+    ],
+    "file": "packages/core/src/content/autobrowse.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "number"
    }
   },
   {
@@ -6410,21 +6084,6 @@
    }
   },
   {
-   "id": "@wren/core#ListQuery",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core",
-     "@wren/core/content"
-    ],
-    "file": "packages/core/src/content/index.ts",
-    "kind": "interface",
-    "sig": "interface ListQuery { limit?: number; before?: string; }"
-   }
-  },
-  {
    "id": "@wren/core#LiveTemplate",
    "role": "export",
    "parent": "@wren/core",
@@ -6581,21 +6240,6 @@
    }
   },
   {
-   "id": "@wren/core#MANY_POSTS",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/restate"
-    ],
-    "file": "packages/core/src/content/restate.ts",
-    "inferred": true,
-    "kind": "const",
-    "sig": "100"
-   }
-  },
-  {
    "id": "@wren/core#MARKETING_CHANNELS",
    "role": "export",
    "parent": "@wren/core",
@@ -6623,7 +6267,7 @@
     "file": "packages/core/src/marketing-console-routes.ts",
     "inferred": true,
     "kind": "const",
-    "sig": "{ readonly \"*\": null; readonly approveDraft: \"marketing\"; readonly rejectDraft: \"marketing\"; readonly redraft: \"marketing\"; readonly draftFields: \"marketing\"; readonly draftAttach: \"marketing\"; readonly draftFunnel: \"marketing\"; readonly draftSlides: \"marketing\"; readonly promote: \"marketing\"; reado…"
+    "sig": "{ readonly \"*\": null; readonly approveDraft: \"marketing\"; readonly rejectDraft: \"marketing\"; readonly redraft: \"marketing\"; readonly draftFields: \"marketing\"; readonly draftUpload: \"marketing\"; readonly draftAttach: \"marketing\"; readonly draftFunnel: \"marketing\"; readonly draftSlides: \"marketing\"; r…"
    }
   },
   {
@@ -6638,7 +6282,7 @@
     "file": "packages/core/src/marketing-console-routes.ts",
     "inferred": true,
     "kind": "const",
-    "sig": "{ readonly recordsTypes: \"read\"; readonly recordsList: \"read\"; readonly recordsGet: \"read\"; readonly recordsExport: \"read\"; readonly recordsStats: \"read\"; readonly approveDraft: \"act\"; readonly rejectDraft: \"act\"; readonly redraft: \"act\"; readonly draftFields: \"act\"; readonly draftAttach: \"act\"; rea…"
+    "sig": "{ readonly recordsTypes: \"read\"; readonly recordsList: \"read\"; readonly recordsGet: \"read\"; readonly recordsExport: \"read\"; readonly recordsStats: \"read\"; readonly approveDraft: \"act\"; readonly rejectDraft: \"act\"; readonly redraft: \"act\"; readonly draftFields: \"act\"; readonly draftUpload: \"act\"; rea…"
    }
   },
   {
@@ -6787,22 +6431,6 @@
     "inferred": true,
     "kind": "const",
     "sig": "{ readonly sent: readonly [\"sent\", \"delivered\", \"opened\", \"clicked\", \"replied\"]; readonly delivered: readonly [\"delivered\", \"opened\", \"clicked\", \"replied\"]; readonly opened: readonly [\"opened\", \"clicked\", \"replied\"]; readonly clicked: readonly [\"clicked\", \"replied\"]; readonly replied: readonly [\"rep…"
-   }
-  },
-  {
-   "id": "@wren/core#METRICS",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core",
-     "@wren/core/content"
-    ],
-    "file": "packages/core/src/content/insights.ts",
-    "inferred": true,
-    "kind": "const",
-    "sig": "{ readonly views: \"views\"; readonly reach: \"reach\"; readonly impressions: \"impressions\"; readonly ctr: \"ctr\"; readonly impressionsDay: \"impressions_day\"; readonly ctrDay: \"ctr_day\"; readonly likes: \"likes\"; readonly comments: \"comments\"; readonly shares: \"shares\"; readonly saves: \"saves\"; readonly i…"
    }
   },
   {
@@ -7019,36 +6647,6 @@
    }
   },
   {
-   "id": "@wren/core#Media",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core",
-     "@wren/core/content"
-    ],
-    "file": "packages/core/src/content/index.ts",
-    "kind": "interface",
-    "sig": "interface Media { kind: \"image\" | \"video\"; source: string; title?: string; }"
-   }
-  },
-  {
-   "id": "@wren/core#MediaHost",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core",
-     "@wren/core/content"
-    ],
-    "file": "packages/core/src/content/index.ts",
-    "kind": "interface",
-    "sig": "interface MediaHost { host(source: string): Promise<string>; }"
-   }
-  },
-  {
    "id": "@wren/core#MeetingOutcome",
    "role": "export",
    "parent": "@wren/core",
@@ -7117,36 +6715,6 @@
     "file": "packages/core/src/segments.ts",
     "kind": "type",
     "sig": "type MessageState = keyof typeof MESSAGE_STATES;"
-   }
-  },
-  {
-   "id": "@wren/core#MetricName",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core",
-     "@wren/core/content"
-    ],
-    "file": "packages/core/src/content/insights.ts",
-    "kind": "type",
-    "sig": "type MetricName = (typeof METRICS)[keyof typeof METRICS];"
-   }
-  },
-  {
-   "id": "@wren/core#Metrics",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core",
-     "@wren/core/content"
-    ],
-    "file": "packages/core/src/content/index.ts",
-    "kind": "interface",
-    "sig": "interface Metrics { id: string; views: number; reactions: number; comments: number; shares: number; follows?: number | null; read?: unknown; asOf: string; fetchedWith: FetchedWith; }"
    }
   },
   {
@@ -7627,21 +7195,6 @@
    }
   },
   {
-   "id": "@wren/core#OwnCommentRow",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core",
-     "@wren/core/content"
-    ],
-    "file": "packages/core/src/content/index.ts",
-    "kind": "interface",
-    "sig": "interface OwnCommentRow { id: string; url: string; at: string; text: string; postId: string; reply: boolean; to: { handle: string; name: string | null } | null; }"
-   }
-  },
-  {
    "id": "@wren/core#PASS_DAYS",
    "role": "export",
    "parent": "@wren/core",
@@ -8026,22 +7579,6 @@
     "inferred": true,
     "kind": "const",
     "sig": "readonly [\"lead_import\", \"people_import\", \"enrollment\", \"sms_contact\", \"consent\", \"social_handle\", \"crm\", \"site_form\", \"site_chat\", \"booking\", \"call_booking\", \"payment\"]"
-   }
-  },
-  {
-   "id": "@wren/core#PROOF_STATES",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core",
-     "@wren/core/content"
-    ],
-    "file": "packages/core/src/content/proof.ts",
-    "inferred": true,
-    "kind": "const",
-    "sig": "readonly [\"live\", \"hidden\", \"missing\", \"pending\"]"
    }
   },
   {
@@ -8509,21 +8046,6 @@
    }
   },
   {
-   "id": "@wren/core#Post",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core",
-     "@wren/core/content"
-    ],
-    "file": "packages/core/src/content/index.ts",
-    "kind": "interface",
-    "sig": "interface Post { text: string; media?: Media; scheduledFor?: string; extra?: Record<string, unknown>; }"
-   }
-  },
-  {
    "id": "@wren/core#PostOptions",
    "role": "export",
    "parent": "@wren/core",
@@ -8535,21 +8057,6 @@
     "file": "packages/core/src/webhooks.ts",
     "kind": "interface",
     "sig": "interface PostOptions { resolve?: Resolve; timeoutMs?: number; maxBytes?: number; }"
-   }
-  },
-  {
-   "id": "@wren/core#PostPatch",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core",
-     "@wren/core/content"
-    ],
-    "file": "packages/core/src/content/index.ts",
-    "kind": "interface",
-    "sig": "interface PostPatch { title?: string; thumbnail?: string; hook?: string; }"
    }
   },
   {
@@ -8708,36 +8215,6 @@
    }
   },
   {
-   "id": "@wren/core#Proof",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core",
-     "@wren/core/content"
-    ],
-    "file": "packages/core/src/content/proof.ts",
-    "kind": "interface",
-    "sig": "interface Proof { state: ProofState; checkedAt: string; url: string | null; shot: string | null; note: string | null; }"
-   }
-  },
-  {
-   "id": "@wren/core#ProofTarget",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core",
-     "@wren/core/content"
-    ],
-    "file": "packages/core/src/content/proof.ts",
-    "kind": "interface",
-    "sig": "interface ProofTarget { platform: string; ref: string | null; parent: string | null; url: string | null; text?: string | null; account?: string | null; post?: string | null; peers?: string[]; }"
-   }
-  },
-  {
    "id": "@wren/core#Proposal",
    "role": "export",
    "parent": "@wren/core",
@@ -8772,27 +8249,11 @@
    "group": "@wren/core",
    "attrs": {
     "entries": [
-     "@wren/core",
-     "@wren/core/content"
+     "@wren/core/webhooks"
     ],
-    "file": "packages/core/src/content/index.ts",
+    "file": "packages/core/src/webhooks.ts",
     "kind": "interface",
-    "sig": "interface Published { id: string; url: string; publishedAt: string; fetchedWith: FetchedWith; notes?: string[]; }"
-   }
-  },
-  {
-   "id": "@wren/core#PublishedRow",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core",
-     "@wren/core/content"
-    ],
-    "file": "packages/core/src/content/index.ts",
-    "kind": "interface",
-    "sig": "interface PublishedRow extends Published { preview: string; text?: string; title?: string; }"
+    "sig": "interface Published { client: string | null; event: WebhookEvent; id: string; subject: string; data: Record<string, unknown>; }"
    }
   },
   {
@@ -9397,21 +8858,6 @@
    }
   },
   {
-   "id": "@wren/core#RedditReads",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core",
-     "@wren/core/content"
-    ],
-    "file": "packages/core/src/content/proof.ts",
-    "kind": "interface",
-    "sig": "interface RedditReads { open: RedditThing | null; inThread: boolean | null; own?: RedditThing | null; }"
-   }
-  },
-  {
    "id": "@wren/core#RefusalStatus",
    "role": "export",
    "parent": "@wren/core",
@@ -9567,21 +9013,6 @@
     "file": "packages/core/src/mailbox.ts",
     "kind": "interface",
     "sig": "interface ReplyTo { messageId: string; threadId: string; to: string; subject: string; }"
-   }
-  },
-  {
-   "id": "@wren/core#ReportDays",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core",
-     "@wren/core/content"
-    ],
-    "file": "packages/core/src/content/insights.ts",
-    "kind": "interface",
-    "sig": "interface ReportDays { rows: Array<{ id: string; day: string; values: InsightValue[] }>; gaps: InsightGap[]; cursor: string | null; asOf: string; }"
    }
   },
   {
@@ -10004,21 +9435,6 @@
    }
   },
   {
-   "id": "@wren/core#SENDS_OFF",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/restate"
-    ],
-    "file": "packages/core/src/content/restate.ts",
-    "inferred": true,
-    "kind": "const",
-    "sig": "\"Sends off. An admin turns them on.\""
-   }
-  },
-  {
    "id": "@wren/core#SEND_CHANNELS",
    "role": "export",
    "parent": "@wren/core",
@@ -10032,6 +9448,21 @@
     "inferred": true,
     "kind": "const",
     "sig": "readonly [\"email\", \"sms\", \"dm\"]"
+   }
+  },
+  {
+   "id": "@wren/core#SEND_GRACE_MS",
+   "role": "export",
+   "parent": "@wren/core",
+   "group": "@wren/core",
+   "attrs": {
+    "entries": [
+     "@wren/core/content/restate"
+    ],
+    "file": "packages/core/src/content/restate.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "number"
    }
   },
   {
@@ -10140,21 +9571,6 @@
    }
   },
   {
-   "id": "@wren/core#SHAPES",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/shapes"
-    ],
-    "file": "packages/core/src/content/shapes.ts",
-    "inferred": true,
-    "kind": "const",
-    "sig": "{ readonly youtube: Shape<{ kind: { zod: z.ZodOptional<z.ZodEnum<{ video: \"video\"; short: \"short\"; community: \"community\"; }>>; ui: { label: string; input: FieldInput; status: FieldStatus; max?: number; maxTotal?: number; options: readonly { value: string; label: string; }[]; required?: boolean; def…"
-   }
-  },
-  {
    "id": "@wren/core#SHOWCASE_LOOKS",
    "role": "export",
    "parent": "@wren/core",
@@ -10211,111 +9627,6 @@
     "inferred": true,
     "kind": "const",
     "sig": "readonly [\"email\", \"sms\", \"ads\", \"content\", \"search\", \"reach\", \"other\", \"direct\"]"
-   }
-  },
-  {
-   "id": "@wren/core#SLIDES_CSS",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/slides"
-    ],
-    "file": "packages/core/src/content/slides.ts",
-    "inferred": true,
-    "kind": "const",
-    "sig": "string"
-   }
-  },
-  {
-   "id": "@wren/core#SLIDES_MAX",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/slides"
-    ],
-    "file": "packages/core/src/content/slides.ts",
-    "inferred": true,
-    "kind": "const",
-    "sig": "10"
-   }
-  },
-  {
-   "id": "@wren/core#SLIDES_MIN",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/slides"
-    ],
-    "file": "packages/core/src/content/slides.ts",
-    "inferred": true,
-    "kind": "const",
-    "sig": "5"
-   }
-  },
-  {
-   "id": "@wren/core#SLIDE_LINES_MAX",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/slides"
-    ],
-    "file": "packages/core/src/content/slides.ts",
-    "inferred": true,
-    "kind": "const",
-    "sig": "4"
-   }
-  },
-  {
-   "id": "@wren/core#SLIDE_LINE_MAX",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/slides"
-    ],
-    "file": "packages/core/src/content/slides.ts",
-    "inferred": true,
-    "kind": "const",
-    "sig": "110"
-   }
-  },
-  {
-   "id": "@wren/core#SLIDE_PX",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/slides"
-    ],
-    "file": "packages/core/src/content/slides.ts",
-    "inferred": true,
-    "kind": "const",
-    "sig": "1080"
-   }
-  },
-  {
-   "id": "@wren/core#SLIDE_TITLE_MAX",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/slides"
-    ],
-    "file": "packages/core/src/content/slides.ts",
-    "inferred": true,
-    "kind": "const",
-    "sig": "70"
    }
   },
   {
@@ -11167,34 +10478,6 @@
    }
   },
   {
-   "id": "@wren/core#Shape",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/shapes"
-    ],
-    "file": "packages/core/src/content/shapes.ts",
-    "kind": "interface",
-    "sig": "interface Shape<F extends Fields = Fields> extends ShapeRules { schema: SchemaOf<F>; fields: readonly (FieldUi & { key: string })[]; }"
-   }
-  },
-  {
-   "id": "@wren/core#ShapeError",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/shapes"
-    ],
-    "file": "packages/core/src/content/shapes.ts",
-    "kind": "class",
-    "sig": "override name"
-   }
-  },
-  {
    "id": "@wren/core#Sighting",
    "role": "export",
    "parent": "@wren/core",
@@ -11235,7 +10518,7 @@
     ],
     "file": "packages/core/src/content/autobrowse.ts",
     "kind": "class",
-    "sig": "readonly site: string;; readonly status: number;; journaled; constructor(site: string, method: string, path: string, status: number, message: string)"
+    "sig": "readonly site: string;; readonly status: number;; readonly code: string | null;; journaled; constructor(site: string, method: string, path: string, status: number, message: string, code: string | null = null)"
    }
   },
   {
@@ -11323,20 +10606,6 @@
     "file": "packages/core/src/content/restate.ts",
     "kind": "type",
     "sig": "type SitesService = { status: (ctx: restate.Context, req: { site: string }) => Promise<SiteStatus>; call: ( ctx: restate.Context, req: { site: string; method: SiteMethod; path: string; input?: Record<string, unknown>; account?: string; caller?: string; sendKey?: string; until?: string; }, ) => Promise<unknown>; verdict: (ctx: restate.Context, req: { sendKey: string }) => Promise<SendVerdict>; setup: ( ctx: restate.Context, req: { site: string; step: string }, ) => Promise<{ made: readonly string[] }>; arm: ( ctx: restate.Context, req: { site: string; method: SiteMethod; path: string; input?: Record<string, unknown>; account?: string; caller?: string; }, ) => Promise<unknown>; };"
-   }
-  },
-  {
-   "id": "@wren/core#Slide",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/slides"
-    ],
-    "file": "packages/core/src/content/slides.ts",
-    "kind": "interface",
-    "sig": "interface Slide { title: string; lines: string[]; }"
    }
   },
   {
@@ -12006,125 +11275,6 @@
    }
   },
   {
-   "id": "@wren/core#THREAD_BREAK",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/thread"
-    ],
-    "file": "packages/core/src/content/thread.ts",
-    "inferred": true,
-    "kind": "const",
-    "sig": "\"\\n\\n---\\n\\n\""
-   }
-  },
-  {
-   "id": "@wren/core#THREAD_MAX",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/thread"
-    ],
-    "file": "packages/core/src/content/thread.ts",
-    "inferred": true,
-    "kind": "const",
-    "sig": "7"
-   }
-  },
-  {
-   "id": "@wren/core#THREAD_MIN",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/thread"
-    ],
-    "file": "packages/core/src/content/thread.ts",
-    "inferred": true,
-    "kind": "const",
-    "sig": "3"
-   }
-  },
-  {
-   "id": "@wren/core#TIKTOK_BC_URL",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/tiktok"
-    ],
-    "file": "packages/core/src/content/tiktok.ts",
-    "inferred": true,
-    "kind": "const",
-    "sig": "\"https://www.tiktok.com/legal/page/global/bc-policy/en\""
-   }
-  },
-  {
-   "id": "@wren/core#TIKTOK_COPY",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/tiktok"
-    ],
-    "file": "packages/core/src/content/tiktok.ts",
-    "inferred": true,
-    "kind": "const",
-    "sig": "{ readonly disclose: \"Disclose post content\"; readonly discloseHint: \"Indicate whether this content promotes yourself, a brand, product or service.\"; readonly yourBrand: \"Your brand\"; readonly yourBrandHint: \"You are promoting yourself or your own business. This content will be classified as Brand O…"
-   }
-  },
-  {
-   "id": "@wren/core#TIKTOK_MUSIC_URL",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/tiktok"
-    ],
-    "file": "packages/core/src/content/tiktok.ts",
-    "inferred": true,
-    "kind": "const",
-    "sig": "\"https://www.tiktok.com/legal/page/global/music-usage-confirmation/en\""
-   }
-  },
-  {
-   "id": "@wren/core#TIKTOK_PRIVACY",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/tiktok"
-    ],
-    "file": "packages/core/src/content/tiktok.ts",
-    "inferred": true,
-    "kind": "const",
-    "sig": "readonly [\"PUBLIC_TO_EVERYONE\", \"MUTUAL_FOLLOW_FRIENDS\", \"FOLLOWER_OF_CREATOR\", \"SELF_ONLY\"]"
-   }
-  },
-  {
-   "id": "@wren/core#TIKTOK_PRIVACY_LABELS",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/tiktok"
-    ],
-    "file": "packages/core/src/content/tiktok.ts",
-    "kind": "const",
-    "sig": "Record<TikTokPrivacy, string>"
-   }
-  },
-  {
    "id": "@wren/core#TIMELINE_KINDS",
    "role": "export",
    "parent": "@wren/core",
@@ -12691,34 +11841,6 @@
    }
   },
   {
-   "id": "@wren/core#TikTokCreator",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/tiktok"
-    ],
-    "file": "packages/core/src/content/tiktok.ts",
-    "kind": "interface",
-    "sig": "interface TikTokCreator { nickname: string; username: string | null; avatarUrl: string | null; privacyOptions: TikTokPrivacy[]; commentOff: boolean; duetOff: boolean; stitchOff: boolean; maxVideoSec: number | null; canPost: boolean; why: string | null; }"
-   }
-  },
-  {
-   "id": "@wren/core#TikTokPrivacy",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/tiktok"
-    ],
-    "file": "packages/core/src/content/tiktok.ts",
-    "kind": "type",
-    "sig": "type TikTokPrivacy = (typeof TIKTOK_PRIVACY)[number];"
-   }
-  },
-  {
    "id": "@wren/core#TimedOut",
    "role": "export",
    "parent": "@wren/core",
@@ -13088,6 +12210,20 @@
     "file": "packages/core/src/restate/limits.ts",
     "kind": "interface",
     "sig": "interface UnitLimits { stage: string; skip(unit: string, group?: string): boolean; within<T>(unit: string, p: Waitable<T>, o: UnitWithinOpts): Promise<T>; guard<T>(unit: string, fn: () => Promise<T>, group?: string): Promise<T>; }"
+   }
+  },
+  {
+   "id": "@wren/core#UnitLimitsOpts",
+   "role": "export",
+   "parent": "@wren/core",
+   "group": "@wren/core",
+   "attrs": {
+    "entries": [
+     "@wren/core/restate"
+    ],
+    "file": "packages/core/src/restate/limits.ts",
+    "kind": "interface",
+    "sig": "interface UnitLimitsOpts { oneHost?: boolean; }"
    }
   },
   {
@@ -13748,20 +12884,6 @@
    }
   },
   {
-   "id": "@wren/core#WREN_X_SUBSCRIPTION",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/thread"
-    ],
-    "file": "packages/core/src/content/thread.ts",
-    "kind": "const",
-    "sig": "XSubscription"
-   }
-  },
-  {
    "id": "@wren/core#Wake",
    "role": "export",
    "parent": "@wren/core",
@@ -14047,36 +13169,6 @@
    }
   },
   {
-   "id": "@wren/core#X_POST_MAX",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/thread"
-    ],
-    "file": "packages/core/src/content/thread.ts",
-    "inferred": true,
-    "kind": "const",
-    "sig": "280"
-   }
-  },
-  {
-   "id": "@wren/core#YOUTUBE_PRIVACY",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/shapes"
-    ],
-    "file": "packages/core/src/content/shapes.ts",
-    "inferred": true,
-    "kind": "const",
-    "sig": "readonly [\"private\", \"unlisted\", \"public\"]"
-   }
-  },
-  {
    "id": "@wren/core#abandonProfileResearch",
    "role": "export",
    "parent": "@wren/core",
@@ -14274,7 +13366,7 @@
     "file": "packages/core/src/accounts-console.ts",
     "inferred": true,
     "kind": "function",
-    "sig": "(deps: AccountsDeps): { accounts(req: PortalRequest): Promise<{ owner: { id: string | null; name: string; }; team: boolean; mayAct: boolean; agent: boolean; accounts: { facts: { fact: string; label: string; state: \"waiting\" | \"lost\" | \"ok\"; why: string | null; checkedAt: string | null; okAt: string | null; }[]; runs: { s…"
+    "sig": "(deps: AccountsDeps): { accounts(req: PortalRequest): Promise<{ owner: { id: string | null; name: string; }; team: boolean; mayAct: boolean; agent: boolean; accounts: { facts: { fact: string; label: string; state: \"waiting\" | \"ok\" | \"lost\"; why: string | null; checkedAt: string | null; okAt: string | null; }[]; runs: { s…"
    }
   },
   {
@@ -14941,7 +14033,7 @@
     "file": "packages/core/src/broadcasts.ts",
     "inferred": true,
     "kind": "function",
-    "sig": "(db: Queryable, id: number, by: string, now: Date): Promise<{ name: string; id: number; startedAt: Date | null; finishedAt: Date | null; state: \"sent\" | \"draft\" | \"sending\" | \"waiting\" | \"declined\" | \"scheduled\" | \"canceled\"; channel: \"email\" | \"sms\"; by: string; createdAt: Date; updatedAt: Date; subject: string | null; body: string; note: string | n…"
+    "sig": "(db: Queryable, id: number, by: string, now: Date): Promise<{ name: string; id: number; state: \"sent\" | \"draft\" | \"sending\" | \"waiting\" | \"declined\" | \"scheduled\" | \"canceled\"; createdAt: Date; updatedAt: Date; subject: string | null; body: string; startedAt: Date | null; finishedAt: Date | null; note: string | null; by: string; channel: \"email\" | \"s…"
    }
   },
   {
@@ -15417,36 +14509,6 @@
    }
   },
   {
-   "id": "@wren/core#browserRead",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core",
-     "@wren/core/content"
-    ],
-    "file": "packages/core/src/content/insights.ts",
-    "kind": "function",
-    "sig": "(metrics: readonly string[], q: Pick<InsightsQuery, \"published\">, now: Date, work: () => Promise<InsightValue[]>, into: { values: InsightValue[]; gaps: InsightGap[] }): Promise<boolean>"
-   }
-  },
-  {
-   "id": "@wren/core#browserReadDue",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core",
-     "@wren/core/content"
-    ],
-    "file": "packages/core/src/content/insights.ts",
-    "kind": "function",
-    "sig": "(published: string | null | undefined, now: Date): boolean"
-   }
-  },
-  {
    "id": "@wren/core#bucketOf",
    "role": "export",
    "parent": "@wren/core",
@@ -15672,7 +14734,7 @@
     "file": "packages/core/src/broadcasts.ts",
     "inferred": true,
     "kind": "function",
-    "sig": "(db: Queryable, id: number, by: string, now: Date): Promise<{ name: string; id: number; startedAt: Date | null; finishedAt: Date | null; state: \"sent\" | \"draft\" | \"sending\" | \"waiting\" | \"declined\" | \"scheduled\" | \"canceled\"; channel: \"email\" | \"sms\"; by: string; createdAt: Date; updatedAt: Date; subject: string | null; body: string; note: string | n…"
+    "sig": "(db: Queryable, id: number, by: string, now: Date): Promise<{ name: string; id: number; state: \"sent\" | \"draft\" | \"sending\" | \"waiting\" | \"declined\" | \"scheduled\" | \"canceled\"; createdAt: Date; updatedAt: Date; subject: string | null; body: string; startedAt: Date | null; finishedAt: Date | null; note: string | null; by: string; channel: \"email\" | \"s…"
    }
   },
   {
@@ -15787,35 +14849,7 @@
     ],
     "file": "packages/core/src/content/autobrowse.ts",
     "kind": "function",
-    "sig": "(err: unknown): number | null"
-   }
-  },
-  {
-   "id": "@wren/core#carouselFiles",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/slides"
-    ],
-    "file": "packages/core/src/content/slides.ts",
-    "kind": "function",
-    "sig": "(d: { extra?: Readonly<Record<string, unknown>> | null; }): CarouselFiles"
-   }
-  },
-  {
-   "id": "@wren/core#carouselUnfit",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/slides"
-    ],
-    "file": "packages/core/src/content/slides.ts",
-    "kind": "function",
-    "sig": "(d: { platform: string; extra?: Readonly<Record<string, unknown>> | null; }): string | null"
+    "sig": "(err: unknown, now = Date.now()): number | null"
    }
   },
   {
@@ -16182,20 +15216,6 @@
    }
   },
   {
-   "id": "@wren/core#cleanSlides",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/slides"
-    ],
-    "file": "packages/core/src/content/slides.ts",
-    "kind": "function",
-    "sig": "(v: unknown): Slide[]"
-   }
-  },
-  {
    "id": "@wren/core#clearMode",
    "role": "export",
    "parent": "@wren/core",
@@ -16527,20 +15547,6 @@
    }
   },
   {
-   "id": "@wren/core#coerceField",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/shapes"
-    ],
-    "file": "packages/core/src/content/shapes.ts",
-    "kind": "function",
-    "sig": "(platform: Platform, key: string, raw: string): unknown"
-   }
-  },
-  {
    "id": "@wren/core#coldOpenerRefusal",
    "role": "export",
    "parent": "@wren/core",
@@ -16686,20 +15692,6 @@
    }
   },
   {
-   "id": "@wren/core#consented",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/shapes"
-    ],
-    "file": "packages/core/src/content/shapes.ts",
-    "kind": "function",
-    "sig": "(platform: Platform): boolean"
-   }
-  },
-  {
    "id": "@wren/core#consents",
    "role": "export",
    "parent": "@wren/core",
@@ -16841,20 +15833,6 @@
     "file": "packages/core/src/access.ts",
     "kind": "function",
     "sig": "(scope: Scope, at: Target): boolean"
-   }
-  },
-  {
-   "id": "@wren/core#creatorFrom",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/tiktok"
-    ],
-    "file": "packages/core/src/content/tiktok.ts",
-    "kind": "function",
-    "sig": "(answer: unknown): TikTokCreator"
    }
   },
   {
@@ -18838,21 +17816,6 @@
    }
   },
   {
-   "id": "@wren/core#fakeContentChannel",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core",
-     "@wren/core/content"
-    ],
-    "file": "packages/core/src/content/index.ts",
-    "kind": "function",
-    "sig": "(platform: Platform, o: { now?: () => Date; urlOf?: (id: string) => string } = {}): ContentChannel & { posts: Array<Published & { post: Post }>; updates: Array<{ id: string; patch: PostPatch }>; privateReplies: Array<{ commentId: string; text: string }>; count(id: string, m: Partial<Omit<Metrics, \"id\" | \"asOf\" | \"fetchedWith\">>): void; receive(c: Omit<CommentRow, \"repliedWith\">): void; happen(a: ActivityRow): void; follow(followers: number): void; followOut(f: FollowingRow): void; commentOut(c: OwnCommentRow): void; measure(id: string, i: Omit<Insights, \"asOf\">): void; measureAccount(a: Omit<AccountInsights, \"asOf\">): void; report(r: Omit<ReportDays, \"asOf\">): void; }"
-   }
-  },
-  {
    "id": "@wren/core#fakeOutreachChannel",
    "role": "export",
    "parent": "@wren/core",
@@ -18962,34 +17925,6 @@
     "file": "packages/core/src/custom-fields.ts",
     "kind": "function",
     "sig": "(f: Pick<CustomField, \"key\" | \"label\" | \"kind\" | \"options\">): Field"
-   }
-  },
-  {
-   "id": "@wren/core#fieldViews",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/shapes"
-    ],
-    "file": "packages/core/src/content/shapes.ts",
-    "kind": "function",
-    "sig": "(platform: Platform, extra: Readonly<Record<string, unknown>>, title: string | null | undefined): FieldView[]"
-   }
-  },
-  {
-   "id": "@wren/core#fieldsOf",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/shapes"
-    ],
-    "file": "packages/core/src/content/shapes.ts",
-    "kind": "function",
-    "sig": "(platform: P, extra: unknown): FieldsOf<P>"
    }
   },
   {
@@ -19437,21 +18372,6 @@
    }
   },
   {
-   "id": "@wren/core#gapStateOf",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core",
-     "@wren/core/content"
-    ],
-    "file": "packages/core/src/content/insights.ts",
-    "kind": "function",
-    "sig": "(err: unknown): GapState | null"
-   }
-  },
-  {
    "id": "@wren/core#gate",
    "role": "export",
    "parent": "@wren/core",
@@ -19846,21 +18766,6 @@
    }
   },
   {
-   "id": "@wren/core#holdAt",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core",
-     "@wren/core/content"
-    ],
-    "file": "packages/core/src/content/insights.ts",
-    "kind": "function",
-    "sig": "(curve: ReadonlyArray<{ ratio: number; watch: number }>, at: number): number | null"
-   }
-  },
-  {
    "id": "@wren/core#holdCap",
    "role": "export",
    "parent": "@wren/core",
@@ -19905,21 +18810,6 @@
    }
   },
   {
-   "id": "@wren/core#holds",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core",
-     "@wren/core/content"
-    ],
-    "file": "packages/core/src/content/proof.ts",
-    "kind": "function",
-    "sig": "(page: string, text: string): boolean"
-   }
-  },
-  {
    "id": "@wren/core#holdsOn",
    "role": "export",
    "parent": "@wren/core",
@@ -19945,21 +18835,6 @@
     "file": "packages/core/src/executor.ts",
     "kind": "function",
     "sig": "(h: Pick<typeof hooks.$inferSelect, \"workflow\" | \"input\" | \"subject\">, flows: ReadonlyMap<string, Workflow>, payload: unknown): { from: string; event: ExecutorEvent } | { status: number; error: string }"
-   }
-  },
-  {
-   "id": "@wren/core#hookOf",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core",
-     "@wren/core/content"
-    ],
-    "file": "packages/core/src/content/index.ts",
-    "kind": "function",
-    "sig": "(text: string): string"
    }
   },
   {
@@ -20018,21 +18893,6 @@
     "file": "packages/core/src/facts.ts",
     "kind": "function",
     "sig": "(swear = true): string"
-   }
-  },
-  {
-   "id": "@wren/core#idsIn",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core",
-     "@wren/core/content"
-    ],
-    "file": "packages/core/src/content/proof.ts",
-    "kind": "function",
-    "sig": "(tree: RedditListing | undefined): { ids: Set<string>; partial: boolean }"
    }
   },
   {
@@ -20335,20 +19195,6 @@
     "file": "packages/core/src/access.ts",
     "kind": "function",
     "sig": "(role: string): role is TeamRole | MemberRole"
-   }
-  },
-  {
-   "id": "@wren/core#isCarousel",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/slides"
-    ],
-    "file": "packages/core/src/content/slides.ts",
-    "kind": "function",
-    "sig": "(d: { platform: string; extra?: Readonly<Record<string, unknown>> | null; }): boolean"
    }
   },
   {
@@ -20670,35 +19516,6 @@
    }
   },
   {
-   "id": "@wren/core#isStoredMedia",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core",
-     "@wren/core/content"
-    ],
-    "file": "packages/core/src/content/index.ts",
-    "kind": "function",
-    "sig": "(source: string): boolean"
-   }
-  },
-  {
-   "id": "@wren/core#isThread",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/thread"
-    ],
-    "file": "packages/core/src/content/thread.ts",
-    "kind": "function",
-    "sig": "(d: { platform: string; extra?: Readonly<Record<string, unknown>> | null; }): boolean"
-   }
-  },
-  {
    "id": "@wren/core#isUnset",
    "role": "export",
    "parent": "@wren/core",
@@ -20724,21 +19541,6 @@
     "file": "packages/core/src/logic.ts",
     "kind": "function",
     "sig": "(v: unknown): v is Until"
-   }
-  },
-  {
-   "id": "@wren/core#isUrl",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core",
-     "@wren/core/content"
-    ],
-    "file": "packages/core/src/content/index.ts",
-    "kind": "function",
-    "sig": "(source: string): boolean"
    }
   },
   {
@@ -20899,20 +19701,6 @@
     "file": "packages/core/src/dead-letters.ts",
     "kind": "function",
     "sig": "(admin: RestateAdmin, id: string): Promise<{ index: number; type: string; name: string; failure: string | null }[]>"
-   }
-  },
-  {
-   "id": "@wren/core#journaledHost",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/restate"
-    ],
-    "file": "packages/core/src/content/restate.ts",
-    "kind": "function",
-    "sig": "(ctx: restate.Context, host: MediaHost): MediaHost"
    }
   },
   {
@@ -21186,6 +19974,20 @@
    }
   },
   {
+   "id": "@wren/core#keyedWaitEnds",
+   "role": "export",
+   "parent": "@wren/core",
+   "group": "@wren/core",
+   "attrs": {
+    "entries": [
+     "@wren/core/content/restate"
+    ],
+    "file": "packages/core/src/content/restate.ts",
+    "kind": "function",
+    "sig": "(at: Date, zone = SCHEDULE_ZONE): Date"
+   }
+  },
+  {
    "id": "@wren/core#keysOf",
    "role": "export",
    "parent": "@wren/core",
@@ -21243,35 +20045,6 @@
    }
   },
   {
-   "id": "@wren/core#kindOf",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/shapes"
-    ],
-    "file": "packages/core/src/content/shapes.ts",
-    "kind": "function",
-    "sig": "(extra: Readonly<Record<string, unknown>> | null | undefined): string"
-   }
-  },
-  {
-   "id": "@wren/core#knownGaps",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core",
-     "@wren/core/content"
-    ],
-    "file": "packages/core/src/content/insights.ts",
-    "kind": "function",
-    "sig": "(state: GapState, why: string, metrics: readonly string[]): InsightGap[]"
-   }
-  },
-  {
    "id": "@wren/core#knownIn",
    "role": "export",
    "parent": "@wren/core",
@@ -21325,20 +20098,6 @@
     "file": "packages/core/src/installs.ts",
     "kind": "function",
     "sig": "(c: Component, client: Pick<Client, \"products\" | \"accounts\">): string[]"
-   }
-  },
-  {
-   "id": "@wren/core#languageName",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/shapes"
-    ],
-    "file": "packages/core/src/content/shapes.ts",
-    "kind": "function",
-    "sig": "(code: string): string"
    }
   },
   {
@@ -21842,21 +20601,6 @@
    }
   },
   {
-   "id": "@wren/core#linkedinVerdict",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core",
-     "@wren/core/content"
-    ],
-    "file": "packages/core/src/content/proof.ts",
-    "kind": "function",
-    "sig": "(loaded: boolean, own: boolean | null): { state: ProofState; note: string }"
-   }
-  },
-  {
    "id": "@wren/core#listClients",
    "role": "export",
    "parent": "@wren/core",
@@ -22239,6 +20983,20 @@
    }
   },
   {
+   "id": "@wren/core#loopClients",
+   "role": "export",
+   "parent": "@wren/core",
+   "group": "@wren/core",
+   "attrs": {
+    "entries": [
+     "@wren/core/clients"
+    ],
+    "file": "packages/core/src/clients/index.ts",
+    "kind": "function",
+    "sig": "(main: Db): Promise<string[]>"
+   }
+  },
+  {
    "id": "@wren/core#loopHealth",
    "role": "export",
    "parent": "@wren/core",
@@ -22406,7 +21164,7 @@
     "file": "packages/core/src/accounts-console.ts",
     "inferred": true,
     "kind": "function",
-    "sig": "(deps: AccountsDeps): restate.ServiceDefinition<\"AccountsConsole\", { accounts: (_: restate.Context, req: PortalRequest) => Promise<{ owner: { id: string | null; name: string; }; team: boolean; mayAct: boolean; agent: boolean; accounts: { facts: { fact: string; label: string; state: \"waiting\" | \"lost\" | \"ok\"; why: string …"
+    "sig": "(deps: AccountsDeps): restate.ServiceDefinition<\"AccountsConsole\", { accounts: (_: restate.Context, req: PortalRequest) => Promise<{ owner: { id: string | null; name: string; }; team: boolean; mayAct: boolean; agent: boolean; accounts: { facts: { fact: string; label: string; state: \"waiting\" | \"ok\" | \"lost\"; why: string …"
    }
   },
   {
@@ -22467,21 +21225,6 @@
     "inferred": true,
     "kind": "function",
     "sig": "(deps: Parameters<typeof consoleApi>[0]): restate.ServiceDefinition<\"ConsolePortal\", { view: (_: restate.Context, req: ViewRequest) => Promise<import(\"./console-api.js\").ViewAnswer>; loops: (_: restate.Context, req: PortalRequest) => Promise<import(\"./loops.js\").LoopRow[]>; agents: (_: restate.Context, req: PortalRequest) => Promise<import(…"
-   }
-  },
-  {
-   "id": "@wren/core#makeContent",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/restate"
-    ],
-    "file": "packages/core/src/content/restate.ts",
-    "inferred": true,
-    "kind": "function",
-    "sig": "(channelsFor: ChannelsFor, clients?: ContentClients): restate.ServiceDefinition<\"Content\", { platforms: (ctx: restate.Context) => Promise<Platform[]>; publish: (ctx: restate.Context, req: { platform: Platform; post: Post; } & ForClient & AsAccount & Keyed) => Promise<Published | Delivery<Published>>; list: (ctx: restate.Context, req: { platform: Platfo…"
    }
   },
   {
@@ -23115,36 +21858,6 @@
    }
   },
   {
-   "id": "@wren/core#mediaFileOf",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core",
-     "@wren/core/content"
-    ],
-    "file": "packages/core/src/content/index.ts",
-    "inferred": true,
-    "kind": "function",
-    "sig": "(source: string, host: MediaHost | undefined, platform: string): Promise<string>"
-   }
-  },
-  {
-   "id": "@wren/core#mediaUnfit",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/shapes"
-    ],
-    "file": "packages/core/src/content/shapes.ts",
-    "kind": "function",
-    "sig": "(platform: Platform, extra: Readonly<Record<string, unknown>> | null | undefined, media: Pick<Media, \"kind\"> | null | undefined): string | null"
-   }
-  },
-  {
    "id": "@wren/core#memoryCache",
    "role": "export",
    "parent": "@wren/core",
@@ -23341,35 +22054,6 @@
     "file": "packages/core/src/ingest/schema.ts",
     "kind": "function",
     "sig": "(raw: RawRow): string | null"
-   }
-  },
-  {
-   "id": "@wren/core#missingFields",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/shapes"
-    ],
-    "file": "packages/core/src/content/shapes.ts",
-    "kind": "function",
-    "sig": "(platform: Platform, extra: Readonly<Record<string, unknown>>, title: string | null | undefined): string[]"
-   }
-  },
-  {
-   "id": "@wren/core#modNoteIn",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core",
-     "@wren/core/content"
-    ],
-    "file": "packages/core/src/content/proof.ts",
-    "kind": "function",
-    "sig": "(tree: RedditListing | undefined, ref: string): string | null"
    }
   },
   {
@@ -23785,7 +22469,7 @@
     "file": "packages/core/src/decide/calls.ts",
     "inferred": true,
     "kind": "function",
-    "sig": "(db: Queryable, kind: DecisionKind, subject: string): Promise<{ id: number; kind: \"document\" | \"finding\" | \"comment_quality\" | \"lead_fit\"; subject: string; label: string; keep: boolean; source: string; by: string | null; decisionId: number | null; agreed: boolean | null; override: boolean; ref: string | null; comment: string | null; at: Date; } | null>"
+    "sig": "(db: Queryable, kind: DecisionKind, subject: string): Promise<{ id: number; kind: \"document\" | \"comment_quality\" | \"lead_fit\" | \"finding\"; subject: string; label: string; keep: boolean; source: string; by: string | null; decisionId: number | null; agreed: boolean | null; override: boolean; ref: string | null; comment: string | null; at: Date; } | null>"
    }
   },
   {
@@ -24190,21 +22874,6 @@
    }
   },
   {
-   "id": "@wren/core#numberOf",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core",
-     "@wren/core/content"
-    ],
-    "file": "packages/core/src/content/insights.ts",
-    "kind": "function",
-    "sig": "(metric: string, v: unknown, key?: string): InsightValue[]"
-   }
-  },
-  {
    "id": "@wren/core#numbersIn",
    "role": "export",
    "parent": "@wren/core",
@@ -24531,65 +23200,6 @@
     "file": "packages/core/src/vendors.ts",
     "kind": "function",
     "sig": "(main: Queryable, client: string, vendor: string, now: Date = new Date()): Promise<{ room: number; nextInMs: number } | null>"
-   }
-  },
-  {
-   "id": "@wren/core#pageFollowing",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core",
-     "@wren/core/content"
-    ],
-    "file": "packages/core/src/content/autobrowse.ts",
-    "kind": "function",
-    "sig": "(sites: SiteClient, site: string, path: string, profile: (handle: string) => string): Promise<FollowingRow[]>"
-   }
-  },
-  {
-   "id": "@wren/core#pageInboxOf",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/page-inbox"
-    ],
-    "file": "packages/core/src/content/page-inbox.ts",
-    "kind": "function",
-    "sig": "(body: unknown, self: string): PageInbox"
-   }
-  },
-  {
-   "id": "@wren/core#pageInboxQuery",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/page-inbox"
-    ],
-    "file": "packages/core/src/content/page-inbox.ts",
-    "inferred": true,
-    "kind": "function",
-    "sig": "(platform: \"facebook\" | \"instagram\", limit = 25): { platform: string; fields: string; limit: number; }"
-   }
-  },
-  {
-   "id": "@wren/core#pageOf",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core",
-     "@wren/core/content"
-    ],
-    "file": "packages/core/src/content/index.ts",
-    "kind": "function",
-    "sig": "(rows: readonly T[], q: ListQuery = {}): T[]"
    }
   },
   {
@@ -24931,20 +23541,6 @@
     "file": "packages/core/src/follow.ts",
     "kind": "function",
     "sig": "(e: ExecutorEvent, note: FollowNote): Outs"
-   }
-  },
-  {
-   "id": "@wren/core#patchFields",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/shapes"
-    ],
-    "file": "packages/core/src/content/shapes.ts",
-    "kind": "function",
-    "sig": "(platform: Platform, current: Readonly<Record<string, unknown>>, patch: Readonly<Record<string, unknown>>): { extra: Record<string, unknown>; title?: string | null; changed: Record<string, [unknown, unknown]>; }"
    }
   },
   {
@@ -25698,21 +24294,6 @@
    }
   },
   {
-   "id": "@wren/core#previewOf",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core",
-     "@wren/core/content"
-    ],
-    "file": "packages/core/src/content/index.ts",
-    "kind": "function",
-    "sig": "(text: string, max = 120): string"
-   }
-  },
-  {
    "id": "@wren/core#previewRule",
    "role": "export",
    "parent": "@wren/core",
@@ -26212,22 +24793,6 @@
    }
   },
   {
-   "id": "@wren/core#publicUrlOf",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core",
-     "@wren/core/content"
-    ],
-    "file": "packages/core/src/content/index.ts",
-    "inferred": true,
-    "kind": "function",
-    "sig": "(source: string, host: MediaHost | undefined, platform: string): Promise<string>"
-   }
-  },
-  {
    "id": "@wren/core#publish",
    "role": "export",
    "parent": "@wren/core",
@@ -26427,21 +24992,6 @@
    }
   },
   {
-   "id": "@wren/core#readGroup",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core",
-     "@wren/core/content"
-    ],
-    "file": "packages/core/src/content/insights.ts",
-    "kind": "function",
-    "sig": "(metrics: readonly string[], work: () => Promise<InsightValue[]>, into: { values: InsightValue[]; gaps: InsightGap[] }): Promise<boolean>"
-   }
-  },
-  {
    "id": "@wren/core#readLink",
    "role": "export",
    "parent": "@wren/core",
@@ -26523,21 +25073,6 @@
     "file": "packages/core/src/cache.ts",
     "kind": "function",
     "sig": "(cache: Cache, key: string, ttlMs: number, load: () => Promise<T>): Promise<T>"
-   }
-  },
-  {
-   "id": "@wren/core#readable",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core",
-     "@wren/core/content"
-    ],
-    "file": "packages/core/src/content/proof.ts",
-    "kind": "function",
-    "sig": "(t: RedditThing | null | undefined): boolean"
    }
   },
   {
@@ -26809,21 +25344,6 @@
    }
   },
   {
-   "id": "@wren/core#redditPermalink",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core",
-     "@wren/core/content"
-    ],
-    "file": "packages/core/src/content/proof.ts",
-    "kind": "function",
-    "sig": "(t: ProofTarget, thing?: RedditThing | null): string | null"
-   }
-  },
-  {
    "id": "@wren/core#redditPostRef",
    "role": "export",
    "parent": "@wren/core",
@@ -26838,18 +25358,17 @@
    }
   },
   {
-   "id": "@wren/core#redditVerdict",
+   "id": "@wren/core#redisCache",
    "role": "export",
    "parent": "@wren/core",
    "group": "@wren/core",
    "attrs": {
     "entries": [
-     "@wren/core",
-     "@wren/core/content"
+     "@wren/core/cache"
     ],
-    "file": "packages/core/src/content/proof.ts",
+    "file": "packages/core/src/cache.ts",
     "kind": "function",
-    "sig": "(r: RedditReads): { state: ProofState; note: string | null }"
+    "sig": "(url: string, client: RespClient = respClient(url)): Cache"
    }
   },
   {
@@ -27985,7 +26504,7 @@
     ],
     "file": "packages/core/src/restate/loop.ts",
     "kind": "function",
-    "sig": "(ctx: restate.ObjectContext, db: Db, now: Date, spec: PassSpec<S>): Promise<PassOutcome<S>>"
+    "sig": "(ctx: restate.ObjectContext, db: Db, spec: PassSpec<S>): Promise<PassOutcome<S>>"
    }
   },
   {
@@ -28230,7 +26749,7 @@
     "file": "packages/core/src/marketing.ts",
     "inferred": true,
     "kind": "function",
-    "sig": "(db: Queryable, t: { name: string; channel: MarketingChannel; publicName: string; line: string; cadence: string; public: boolean; }): Promise<{ name: string; id: number; channel: \"email\" | \"sms\"; keyword: string | null; createdAt: Date; publicName: string; line: string; cadence: string; public: boolean; }>"
+    "sig": "(db: Queryable, t: { name: string; channel: MarketingChannel; publicName: string; line: string; cadence: string; public: boolean; }): Promise<{ name: string; id: number; createdAt: Date; channel: \"email\" | \"sms\"; publicName: string; line: string; cadence: string; public: boolean; keyword: string | null; }>"
    }
   },
   {
@@ -29617,21 +28136,6 @@
    }
   },
   {
-   "id": "@wren/core#siteProof",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core",
-     "@wren/core/content"
-    ],
-    "file": "packages/core/src/content/proof.ts",
-    "kind": "function",
-    "sig": "(deps: ProofDeps): CommentProof"
-   }
-  },
-  {
    "id": "@wren/core#sitesHost",
    "role": "export",
    "parent": "@wren/core",
@@ -29657,76 +28161,6 @@
     "file": "packages/core/src/people-map.ts",
     "kind": "function",
     "sig": "(n: number | null | undefined): PersonaSize"
-   }
-  },
-  {
-   "id": "@wren/core#slidesFromText",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/slides"
-    ],
-    "file": "packages/core/src/content/slides.ts",
-    "kind": "function",
-    "sig": "(text: string): Slide[]"
-   }
-  },
-  {
-   "id": "@wren/core#slidesHtml",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/slides"
-    ],
-    "file": "packages/core/src/content/slides.ts",
-    "kind": "function",
-    "sig": "(slides: readonly Slide[], o: { only?: number; by?: string } = {}): string"
-   }
-  },
-  {
-   "id": "@wren/core#slidesKey",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/slides"
-    ],
-    "file": "packages/core/src/content/slides.ts",
-    "kind": "function",
-    "sig": "(slides: readonly Slide[]): string"
-   }
-  },
-  {
-   "id": "@wren/core#slidesText",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/slides"
-    ],
-    "file": "packages/core/src/content/slides.ts",
-    "kind": "function",
-    "sig": "(slides: readonly Slide[]): string"
-   }
-  },
-  {
-   "id": "@wren/core#slidesUnfit",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/slides"
-    ],
-    "file": "packages/core/src/content/slides.ts",
-    "kind": "function",
-    "sig": "(slides: readonly Slide[]): string | null"
    }
   },
   {
@@ -30463,20 +28897,6 @@
    }
   },
   {
-   "id": "@wren/core#tagsLength",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/shapes"
-    ],
-    "file": "packages/core/src/content/shapes.ts",
-    "kind": "function",
-    "sig": "(tags: readonly string[]): number"
-   }
-  },
-  {
    "id": "@wren/core#tagsOf",
    "role": "export",
    "parent": "@wren/core",
@@ -30615,7 +29035,7 @@
     "file": "packages/core/src/template-edits.ts",
     "inferred": true,
     "kind": "function",
-    "sig": "(db: Queryable, id: string): Promise<{ kind: \"email\" | \"sms\" | \"post\" | \"dm\" | \"prompt\"; system: string; name: string; folder: string; status: import(\"./templates.js\").TemplateStatus; followsDefault: boolean; newestDefault: number | null; editable: boolean; live: { sample: { subject: string | null; body: string; }; problem: nul…"
+    "sig": "(db: Queryable, id: string): Promise<{ kind: \"email\" | \"sms\" | \"dm\" | \"post\" | \"prompt\"; system: string; name: string; folder: string; status: import(\"./templates.js\").TemplateStatus; followsDefault: boolean; newestDefault: number | null; editable: boolean; live: { sample: { subject: string | null; body: string; }; problem: nul…"
    }
   },
   {
@@ -30850,48 +29270,6 @@
    }
   },
   {
-   "id": "@wren/core#threadPosts",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/thread"
-    ],
-    "file": "packages/core/src/content/thread.ts",
-    "kind": "function",
-    "sig": "(text: string): string[]"
-   }
-  },
-  {
-   "id": "@wren/core#threadText",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/thread"
-    ],
-    "file": "packages/core/src/content/thread.ts",
-    "kind": "function",
-    "sig": "(posts: readonly string[]): string"
-   }
-  },
-  {
-   "id": "@wren/core#threadUnfit",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/thread"
-    ],
-    "file": "packages/core/src/content/thread.ts",
-    "kind": "function",
-    "sig": "(posts: readonly string[], link?: string | null): string | null"
-   }
-  },
-  {
    "id": "@wren/core#throwawayRing",
    "role": "export",
    "parent": "@wren/core",
@@ -30918,76 +29296,6 @@
     "file": "packages/core/src/slots/tree.ts",
     "kind": "function",
     "sig": "(input: string): string"
-   }
-  },
-  {
-   "id": "@wren/core#tiktokBroken",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/tiktok"
-    ],
-    "file": "packages/core/src/content/tiktok.ts",
-    "kind": "function",
-    "sig": "(f: TikTokChoices): string | null"
-   }
-  },
-  {
-   "id": "@wren/core#tiktokDeclaration",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/tiktok"
-    ],
-    "file": "packages/core/src/content/tiktok.ts",
-    "kind": "function",
-    "sig": "(f: TikTokChoices): { text: string; links: { label: string; url: string }[]; }"
-   }
-  },
-  {
-   "id": "@wren/core#tiktokHold",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/tiktok"
-    ],
-    "file": "packages/core/src/content/tiktok.ts",
-    "kind": "function",
-    "sig": "(f: TikTokChoices, c: TikTokCreator, videoSec?: number | null): string | null"
-   }
-  },
-  {
-   "id": "@wren/core#tiktokLabel",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/tiktok"
-    ],
-    "file": "packages/core/src/content/tiktok.ts",
-    "kind": "function",
-    "sig": "(f: TikTokChoices): string | null"
-   }
-  },
-  {
-   "id": "@wren/core#tiktokMissing",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/tiktok"
-    ],
-    "file": "packages/core/src/content/tiktok.ts",
-    "kind": "function",
-    "sig": "(f: TikTokChoices): string[]"
    }
   },
   {
@@ -31230,7 +29538,7 @@
     ],
     "file": "packages/core/src/touch-feed.ts",
     "kind": "function",
-    "sig": "(db: Queryable, cursor: number | undefined, now: Date): Promise<{ ids: number[]; next: number } | null>"
+    "sig": "(db: Queryable, cursor: number | undefined, now: Date): Promise<{ ids: number[]; next: number; settling: boolean } | null>"
    }
   },
   {
@@ -31545,7 +29853,7 @@
     ],
     "file": "packages/core/src/restate/limits.ts",
     "kind": "function",
-    "sig": "(ctx: restate.ObjectContext, db: Queryable, service: string): Promise<UnitLimits>"
+    "sig": "(ctx: restate.ObjectContext, db: Queryable, service: string, o: UnitLimitsOpts = {}): Promise<UnitLimits>"
    }
   },
   {
@@ -31688,6 +29996,21 @@
     "file": "packages/core/src/logic.ts",
     "kind": "function",
     "sig": "(until: string | null | undefined): string | null"
+   }
+  },
+  {
+   "id": "@wren/core#untilUtcDay",
+   "role": "export",
+   "parent": "@wren/core",
+   "group": "@wren/core",
+   "attrs": {
+    "entries": [
+     "@wren/core",
+     "@wren/core/content"
+    ],
+    "file": "packages/core/src/content/autobrowse.ts",
+    "kind": "function",
+    "sig": "(now: number): number"
    }
   },
   {
@@ -31845,20 +30168,6 @@
     "file": "packages/core/src/ingest/schema.ts",
     "kind": "function",
     "sig": "(row: Omit<LeadRow, \"kind\">): LeadRow | RowError"
-   }
-  },
-  {
-   "id": "@wren/core#valkeyCache",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/cache"
-    ],
-    "file": "packages/core/src/cache.ts",
-    "kind": "function",
-    "sig": "(url: string, client: RespClient = respClient(url)): Cache"
    }
   },
   {
@@ -32568,35 +30877,6 @@
    }
   },
   {
-   "id": "@wren/core#withHook",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core",
-     "@wren/core/content"
-    ],
-    "file": "packages/core/src/content/index.ts",
-    "kind": "function",
-    "sig": "(text: string, hook: string): string"
-   }
-  },
-  {
-   "id": "@wren/core#withLink",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/thread"
-    ],
-    "file": "packages/core/src/content/thread.ts",
-    "kind": "function",
-    "sig": "(posts: readonly string[], link: string | null | undefined): string[]"
-   }
-  },
-  {
    "id": "@wren/core#withSendKey",
    "role": "export",
    "parent": "@wren/core",
@@ -32645,12 +30925,11 @@
    "group": "@wren/core",
    "attrs": {
     "entries": [
-     "@wren/core",
-     "@wren/core/content"
+     "@wren/core/models/labels"
     ],
-    "file": "packages/core/src/content/proof.ts",
+    "file": "packages/core/src/model-labels.ts",
     "kind": "function",
-    "sig": "(text: string, n = 60): string"
+    "sig": "(words: Words, s: string): string"
    }
   },
   {
@@ -32885,34 +31164,6 @@
    }
   },
   {
-   "id": "@wren/core#xLength",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/thread"
-    ],
-    "file": "packages/core/src/content/thread.ts",
-    "kind": "function",
-    "sig": "(text: string): number"
-   }
-  },
-  {
-   "id": "@wren/core#xPostMax",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/content/thread"
-    ],
-    "file": "packages/core/src/content/thread.ts",
-    "kind": "function",
-    "sig": "(s: XSubscription): number"
-   }
-  },
-  {
    "id": "@wren/core#zonedInstant",
    "role": "export",
    "parent": "@wren/core",
@@ -33024,20 +31275,6 @@
     "file": "packages/core/src/components.ts",
     "kind": "type",
     "sig": "type Channel = keyof typeof CHANNELS;"
-   }
-  },
-  {
-   "id": "@wren/core/custom-fields#FieldInput",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/custom-fields"
-    ],
-    "file": "packages/core/src/custom-fields.ts",
-    "kind": "interface",
-    "sig": "interface FieldInput { id?: string; record: string; label?: string | null; key?: string; kind?: string; options?: readonly { key?: string; label: string }[]; archived?: boolean; }"
    }
   },
   {
@@ -33165,20 +31402,6 @@
     "file": "packages/core/src/marketing.ts",
     "kind": "type",
     "sig": "type Verdict = | { send: true; consent: Consent } | { send: false; why: \"suppressed\" | \"no consent\" | \"pending\" | \"withdrawn\" | \"paused\" | \"capped\"; consent?: Consent; };"
-   }
-  },
-  {
-   "id": "@wren/core/models/labels#wordsOf",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/models/labels"
-    ],
-    "file": "packages/core/src/model-labels.ts",
-    "kind": "function",
-    "sig": "(words: Words, s: string): string"
    }
   },
   {
@@ -33591,7 +31814,7 @@
     "file": "packages/core/src/touches.ts",
     "inferred": true,
     "kind": "function",
-    "sig": "(t: Pick<TouchLine, \"direction\" | \"kind\" | \"at\" | \"response\">, now: Date): \"replied\" | \"ignored\" | \"accepted\" | \"liked\" | null"
+    "sig": "(t: Pick<TouchLine, \"direction\" | \"kind\" | \"at\" | \"response\">, now: Date): \"replied\" | \"accepted\" | \"liked\" | \"ignored\" | null"
    }
   },
   {
@@ -33606,20 +31829,6 @@
     "file": "packages/core/src/webhook-events.ts",
     "kind": "function",
     "sig": "(text: unknown): { keep: Record<string, string>; problems: string[] }"
-   }
-  },
-  {
-   "id": "@wren/core/webhooks#Published",
-   "role": "export",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "entries": [
-     "@wren/core/webhooks"
-    ],
-    "file": "packages/core/src/webhooks.ts",
-    "kind": "interface",
-    "sig": "interface Published { client: string | null; event: WebhookEvent; id: string; subject: string; data: Record<string, unknown>; }"
    }
   },
   {

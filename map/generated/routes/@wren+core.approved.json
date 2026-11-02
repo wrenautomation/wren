@@ -1086,7 +1086,7 @@
    "group": "@wren/core",
    "attrs": {
     "input": "SetLoopRequest",
-    "output": "{ running: boolean; service: string; key: string; lastAt: string | null; failures: number; error: string | null; nextAt: string | null; delayMs: number | null; timeouts: import(\"@wren/channel-email/restate\").TimedOut[]; }",
+    "output": "{ running: boolean; service: string; key: string; lastAt: string | null; failures: number; error: string | null; nextAt: string | null; delayMs: number | null; timeouts: import(\"@wren/starling-email/restate\").TimedOut[]; }",
     "wrap": "plain"
    }
   },
@@ -1660,239 +1660,6 @@
    }
   },
   {
-   "id": "route:Content/accountInsights",
-   "role": "route",
-   "parent": "service:Content",
-   "group": "@wren/core",
-   "attrs": {
-    "input": "{ platform: Platform } & ForClient",
-    "output": "AccountInsights | null",
-    "wrap": "serviceHandler"
-   }
-  },
-  {
-   "id": "route:Content/activity",
-   "role": "route",
-   "parent": "service:Content",
-   "group": "@wren/core",
-   "attrs": {
-    "input": "{ platform: Platform; q?: ActivityQuery | null } & ForClient",
-    "output": "ActivityRow[] | null",
-    "wrap": "serviceHandler"
-   }
-  },
-  {
-   "id": "route:Content/arm",
-   "role": "route",
-   "parent": "service:Content",
-   "group": "@wren/core",
-   "attrs": {
-    "input": "{ platform: Platform; commentId: string; postId?: string | null; text: string; } & ForClient",
-    "output": "{ armed: boolean }",
-    "wrap": "serviceHandler"
-   }
-  },
-  {
-   "id": "route:Content/audience",
-   "role": "route",
-   "parent": "service:Content",
-   "group": "@wren/core",
-   "attrs": {
-    "input": "{ platform: Platform } & ForClient",
-    "output": "Audience | null",
-    "wrap": "serviceHandler"
-   }
-  },
-  {
-   "id": "route:Content/commentCounts",
-   "role": "route",
-   "parent": "service:Content",
-   "group": "@wren/core",
-   "attrs": {
-    "input": "{ platform: Platform; ids: string[] } & ForClient",
-    "output": "Record<string, number> | null",
-    "wrap": "serviceHandler"
-   }
-  },
-  {
-   "id": "route:Content/comments",
-   "role": "route",
-   "parent": "service:Content",
-   "group": "@wren/core",
-   "attrs": {
-    "input": "{ platform: Platform; id: string; q?: ListQuery } & ForClient",
-    "output": "CommentRow[]",
-    "wrap": "serviceHandler"
-   }
-  },
-  {
-   "id": "route:Content/following",
-   "role": "route",
-   "parent": "service:Content",
-   "group": "@wren/core",
-   "attrs": {
-    "input": "{ platform: Platform } & ForClient",
-    "output": "FollowingRow[] | null",
-    "wrap": "serviceHandler"
-   }
-  },
-  {
-   "id": "route:Content/insights",
-   "role": "route",
-   "parent": "service:Content",
-   "group": "@wren/core",
-   "attrs": {
-    "input": "{ platform: Platform; id: string; published?: string | null; kind?: string | null; media?: \"image\" | \"video\" | null; read?: unknown; } & ForClient",
-    "output": "Insights | null",
-    "wrap": "serviceHandler"
-   }
-  },
-  {
-   "id": "route:Content/list",
-   "role": "route",
-   "parent": "service:Content",
-   "group": "@wren/core",
-   "attrs": {
-    "input": "{ platform: Platform; q?: ListQuery } & ForClient",
-    "output": "import(\"./index.js\").PublishedRow[]",
-    "wrap": "serviceHandler"
-   }
-  },
-  {
-   "id": "route:Content/metrics",
-   "role": "route",
-   "parent": "service:Content",
-   "group": "@wren/core",
-   "attrs": {
-    "input": "{ platform: Platform; id: string } & ForClient",
-    "output": "Metrics",
-    "wrap": "serviceHandler"
-   }
-  },
-  {
-   "id": "route:Content/metricsMany",
-   "role": "route",
-   "parent": "service:Content",
-   "group": "@wren/core",
-   "attrs": {
-    "input": "{ platform: Platform; posts: { id: string; kind?: string | null }[] } & ForClient",
-    "output": "Metrics[] | null",
-    "wrap": "serviceHandler"
-   }
-  },
-  {
-   "id": "route:Content/ownComments",
-   "role": "route",
-   "parent": "service:Content",
-   "group": "@wren/core",
-   "attrs": {
-    "input": "{ platform: Platform } & ForClient",
-    "output": "OwnCommentRow[] | null",
-    "wrap": "serviceHandler"
-   }
-  },
-  {
-   "id": "route:Content/platforms",
-   "role": "route",
-   "parent": "service:Content",
-   "group": "@wren/core",
-   "attrs": {
-    "input": "void",
-    "output": "Platform[]",
-    "wrap": "serviceHandler"
-   }
-  },
-  {
-   "id": "route:Content/privateReply",
-   "role": "route",
-   "parent": "service:Content",
-   "group": "@wren/core",
-   "attrs": {
-    "input": "{ platform: Platform; commentId: string; text: string } & ForClient & Keyed",
-    "output": "{ ref: string | null } | Delivery<{ ref: string | null }>",
-    "reaches": [
-     "deliveryOf",
-     "withSendKey"
-    ],
-    "tags": [
-     "effect:sends"
-    ],
-    "wrap": "serviceHandler"
-   }
-  },
-  {
-   "id": "route:Content/publish",
-   "role": "route",
-   "parent": "service:Content",
-   "group": "@wren/core",
-   "attrs": {
-    "input": "{ platform: Platform; post: Post } & ForClient & AsAccount & Keyed",
-    "output": "Published | Delivery<Published>",
-    "reaches": [
-     "deliveryOf",
-     "withSendKey"
-    ],
-    "tags": [
-     "effect:posts"
-    ],
-    "wrap": "serviceHandler"
-   }
-  },
-  {
-   "id": "route:Content/reply",
-   "role": "route",
-   "parent": "service:Content",
-   "group": "@wren/core",
-   "attrs": {
-    "input": "{ platform: Platform; commentId: string; postId?: string | null; text: string; } & ForClient & AsAccount & Keyed",
-    "output": "void | Delivery<void>",
-    "reaches": [
-     "deliveryOf",
-     "withSendKey"
-    ],
-    "tags": [
-     "effect:posts"
-    ],
-    "wrap": "serviceHandler"
-   }
-  },
-  {
-   "id": "route:Content/reportDays",
-   "role": "route",
-   "parent": "service:Content",
-   "group": "@wren/core",
-   "attrs": {
-    "input": "{ platform: Platform; after?: string | null } & ForClient",
-    "output": "ReportDays | null",
-    "wrap": "serviceHandler"
-   }
-  },
-  {
-   "id": "route:Content/reviews",
-   "role": "route",
-   "parent": "service:Content",
-   "group": "@wren/core",
-   "attrs": {
-    "input": "{ platform: Platform; q?: ActivityQuery | null } & ForClient",
-    "output": "CommentRow[] | null",
-    "wrap": "serviceHandler"
-   }
-  },
-  {
-   "id": "route:Content/update",
-   "role": "route",
-   "parent": "service:Content",
-   "group": "@wren/core",
-   "attrs": {
-    "input": "{ platform: Platform; id: string; patch: PostPatch } & ForClient",
-    "output": "void",
-    "tags": [
-     "effect:posts"
-    ],
-    "wrap": "serviceHandler"
-   }
-  },
-  {
    "id": "route:Executor/door",
    "role": "route",
    "parent": "service:Executor",
@@ -2238,7 +2005,7 @@
      "open"
     ],
     "input": "BroadcastSaveRequest",
-    "output": "{ broadcast: { name: string; id: number; channel: \"email\" | \"sms\"; createdAt: Date; state: \"draft\" | \"sending\" | \"sent\" | \"scheduled\" | \"waiting\" | \"declined\" | \"canceled\"; zone: string; updatedAt: Date; subject: string | null; body: string; startedAt: Date | null; finishedAt: Date | null; by: string; note: string | null; topicId: number; segmentId: number; sendAt: Date | null; local: boolean; askedBy: string | null; askedAt: Date | null; decidedBy: string | null; decidedAt: Date | null; testedTo: string | null; testedAt: Date | null; }; }",
+    "output": "{ broadcast: { name: string; id: number; channel: \"email\" | \"sms\"; createdAt: Date; state: \"draft\" | \"sending\" | \"sent\" | \"scheduled\" | \"waiting\" | \"declined\" | \"canceled\"; zone: string; updatedAt: Date; subject: string | null; body: string; startedAt: Date | null; finishedAt: Date | null; by: string; note: string | null; segmentId: number; topicId: number; sendAt: Date | null; local: boolean; askedBy: string | null; askedAt: Date | null; decidedBy: string | null; decidedAt: Date | null; testedTo: string | null; testedAt: Date | null; }; }",
     "wrap": "serviceHandler"
    }
   },
@@ -2996,17 +2763,6 @@
     "file": "packages/core/src/console/console-portal.ts",
     "kind": "service",
     "via": "portalService"
-   }
-  },
-  {
-   "id": "service:Content",
-   "role": "service",
-   "parent": "@wren/core",
-   "group": "@wren/core",
-   "attrs": {
-    "factory": "makeContent",
-    "file": "packages/core/src/content/restate.ts",
-    "kind": "service"
    }
   },
   {

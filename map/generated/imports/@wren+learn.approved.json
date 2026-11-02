@@ -10,8 +10,7 @@
     "dir": "packages/learn/",
     "npm": [
      "@restatedev/restate-sdk",
-     "@wrenautomation/falcon",
-     "@wrenautomation/weaver",
+     "@wrenautomation/read",
      "drizzle-orm",
      "node:fs",
      "node:path",
@@ -19,8 +18,7 @@
     ],
     "versions": [
      "@restatedev/restate-sdk@1.17.1",
-     "@wrenautomation/falcon@0.8.2",
-     "@wrenautomation/weaver@0.8.2",
+     "@wrenautomation/read@0.29.0",
      "drizzle-orm@0.45.2",
      "zod@4.6.5"
     ]

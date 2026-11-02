@@ -10,7 +10,7 @@
     "dir": "packages/reactivation/",
     "npm": [
      "@restatedev/restate-sdk",
-     "@wrenautomation/weaver",
+     "@wrenautomation/read",
      "drizzle-orm",
      "node:crypto",
      "node:fs",
@@ -19,7 +19,7 @@
     ],
     "versions": [
      "@restatedev/restate-sdk@1.17.1",
-     "@wrenautomation/weaver@0.8.2",
+     "@wrenautomation/read@0.29.0",
      "drizzle-orm@0.45.2",
      "zod@4.6.5"
     ]
@@ -527,11 +527,6 @@
  "edges": [
   {
    "from": "@wren/reactivation",
-   "to": "@wren/channel-email",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/reactivation",
    "to": "@wren/connectors",
    "kind": "imports"
   },
@@ -567,16 +562,13 @@
   },
   {
    "from": "@wren/reactivation",
-   "to": "@wren/video",
+   "to": "@wren/starling-email",
    "kind": "imports"
   },
   {
-   "from": "@wren/reactivation/src/approve.ts",
-   "to": "@wren/channel-email/src/index.ts",
-   "kind": "imports",
-   "attrs": {
-    "type": true
-   }
+   "from": "@wren/reactivation",
+   "to": "@wren/video",
+   "kind": "imports"
   },
   {
    "from": "@wren/reactivation/src/approve.ts",
@@ -587,6 +579,14 @@
    "from": "@wren/reactivation/src/approve.ts",
    "to": "@wren/reactivation/src/compose.ts",
    "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/approve.ts",
+   "to": "@wren/starling-email/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
   },
   {
    "from": "@wren/reactivation/src/brief.ts",
@@ -629,11 +629,6 @@
   {
    "from": "@wren/reactivation/src/components.ts",
    "to": "@wren/reactivation/src/settings.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/reactivation/src/compose.ts",
-   "to": "@wren/channel-email/src/index.ts",
    "kind": "imports"
   },
   {
@@ -703,6 +698,11 @@
    "attrs": {
     "type": true
    }
+  },
+  {
+   "from": "@wren/reactivation/src/compose.ts",
+   "to": "@wren/starling-email/src/index.ts",
+   "kind": "imports"
   },
   {
    "from": "@wren/reactivation/src/crm-run.ts",
@@ -805,11 +805,6 @@
   },
   {
    "from": "@wren/reactivation/src/crm/import.ts",
-   "to": "@wren/channel-email/src/schema.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/reactivation/src/crm/import.ts",
    "to": "@wren/core/src/index.ts",
    "kind": "imports"
   },
@@ -842,6 +837,11 @@
   {
    "from": "@wren/reactivation/src/crm/import.ts",
    "to": "@wren/reactivation/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/crm/import.ts",
+   "to": "@wren/starling-email/src/schema.ts",
    "kind": "imports"
   },
   {
@@ -922,11 +922,6 @@
   },
   {
    "from": "@wren/reactivation/src/crm/verify.ts",
-   "to": "@wren/channel-email/src/index.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/reactivation/src/crm/verify.ts",
    "to": "@wren/core/src/checks.ts",
    "kind": "imports"
   },
@@ -941,6 +936,11 @@
   {
    "from": "@wren/reactivation/src/crm/verify.ts",
    "to": "@wren/reactivation/src/score.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/crm/verify.ts",
+   "to": "@wren/starling-email/src/index.ts",
    "kind": "imports"
   },
   {
@@ -1147,14 +1147,6 @@
   },
   {
    "from": "@wren/reactivation/src/forward.ts",
-   "to": "@wren/channel-email/src/index.ts",
-   "kind": "imports",
-   "attrs": {
-    "type": true
-   }
-  },
-  {
-   "from": "@wren/reactivation/src/forward.ts",
    "to": "@wren/db/src/index.ts",
    "kind": "imports"
   },
@@ -1179,6 +1171,14 @@
   {
    "from": "@wren/reactivation/src/forward.ts",
    "to": "@wren/reactivation/src/settings.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/forward.ts",
+   "to": "@wren/starling-email/src/index.ts",
    "kind": "imports",
    "attrs": {
     "type": true
@@ -1359,11 +1359,6 @@
   },
   {
    "from": "@wren/reactivation/src/lookup.ts",
-   "to": "@wren/channel-email/src/index.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/reactivation/src/lookup.ts",
    "to": "@wren/core/src/checks.ts",
    "kind": "imports"
   },
@@ -1422,20 +1417,9 @@
    "kind": "imports"
   },
   {
-   "from": "@wren/reactivation/src/loop.ts",
-   "to": "@wren/channel-email/src/index.ts",
-   "kind": "imports",
-   "attrs": {
-    "type": true
-   }
-  },
-  {
-   "from": "@wren/reactivation/src/loop.ts",
-   "to": "@wren/channel-email/src/restate/index.ts",
-   "kind": "imports",
-   "attrs": {
-    "type": true
-   }
+   "from": "@wren/reactivation/src/lookup.ts",
+   "to": "@wren/starling-email/src/index.ts",
+   "kind": "imports"
   },
   {
    "from": "@wren/reactivation/src/loop.ts",
@@ -1520,9 +1504,20 @@
    }
   },
   {
-   "from": "@wren/reactivation/src/movers.ts",
-   "to": "@wren/channel-email/src/index.ts",
-   "kind": "imports"
+   "from": "@wren/reactivation/src/loop.ts",
+   "to": "@wren/starling-email/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/loop.ts",
+   "to": "@wren/starling-email/src/restate/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
   },
   {
    "from": "@wren/reactivation/src/movers.ts",
@@ -1550,6 +1545,11 @@
   {
    "from": "@wren/reactivation/src/movers.ts",
    "to": "@wren/research/src/discovery/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/movers.ts",
+   "to": "@wren/starling-email/src/index.ts",
    "kind": "imports"
   },
   {
@@ -2125,14 +2125,6 @@
   },
   {
    "from": "@wren/reactivation/src/run.ts",
-   "to": "@wren/channel-email/src/index.ts",
-   "kind": "imports",
-   "attrs": {
-    "type": true
-   }
-  },
-  {
-   "from": "@wren/reactivation/src/run.ts",
    "to": "@wren/core/src/content/index.ts",
    "kind": "imports",
    "attrs": {
@@ -2242,9 +2234,12 @@
    "kind": "imports"
   },
   {
-   "from": "@wren/reactivation/src/schema.ts",
-   "to": "@wren/channel-email/src/schema.ts",
-   "kind": "imports"
+   "from": "@wren/reactivation/src/run.ts",
+   "to": "@wren/starling-email/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
   },
   {
    "from": "@wren/reactivation/src/schema.ts",
@@ -2259,6 +2254,11 @@
   {
    "from": "@wren/reactivation/src/schema.ts",
    "to": "@wren/research/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/schema.ts",
+   "to": "@wren/starling-email/src/schema.ts",
    "kind": "imports"
   },
   {
@@ -2278,19 +2278,6 @@
    "from": "@wren/reactivation/src/score.ts",
    "to": "@wren/reactivation/src/schema.ts",
    "kind": "imports"
-  },
-  {
-   "from": "@wren/reactivation/src/sending.ts",
-   "to": "@wren/channel-email/src/index.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/reactivation/src/sending.ts",
-   "to": "@wren/channel-email/src/restate/index.ts",
-   "kind": "imports",
-   "attrs": {
-    "type": true
-   }
   },
   {
    "from": "@wren/reactivation/src/sending.ts",
@@ -2316,13 +2303,21 @@
    "kind": "imports"
   },
   {
-   "from": "@wren/reactivation/src/settings.ts",
-   "to": "@wren/channel-email/src/sequences-settings.ts",
+   "from": "@wren/reactivation/src/sending.ts",
+   "to": "@wren/starling-email/src/index.ts",
    "kind": "imports"
   },
   {
-   "from": "@wren/reactivation/src/signals.ts",
-   "to": "@wren/channel-email/src/index.ts",
+   "from": "@wren/reactivation/src/sending.ts",
+   "to": "@wren/starling-email/src/restate/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/reactivation/src/settings.ts",
+   "to": "@wren/starling-email/src/sequences-settings.ts",
    "kind": "imports"
   },
   {
@@ -2364,6 +2359,11 @@
   {
    "from": "@wren/reactivation/src/signals.ts",
    "to": "@wren/research/src/pacing.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/reactivation/src/signals.ts",
+   "to": "@wren/starling-email/src/index.ts",
    "kind": "imports"
   },
   {

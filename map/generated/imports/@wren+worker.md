@@ -6,18 +6,9 @@ Role: package. Files: 40.
 
 - @wren/books
 - @wren/calendar
-- @wren/channel-email
-- @wren/channel-linkedin
-- @wren/channel-meta
-- @wren/channel-reddit
-- @wren/channel-search
 - @wren/channel-sms
-- @wren/channel-tiktok
-- @wren/channel-x
-- @wren/channel-youtube
 - @wren/config
 - @wren/connectors
-- @wren/content
 - @wren/core
 - @wren/db
 - @wren/delivery
@@ -27,18 +18,28 @@ Role: package. Files: 40.
 - @wren/niches
 - @wren/notes
 - @wren/offers
-- @wren/outreach
 - @wren/payments
 - @wren/pipeline
 - @wren/reactivation
 - @wren/research
 - @wren/sites
+- @wren/starling-core
+- @wren/starling-email
+- @wren/starling-inbound
+- @wren/starling-linkedin
+- @wren/starling-meta
+- @wren/starling-outbound
+- @wren/starling-reddit
+- @wren/starling-search
+- @wren/starling-tiktok
+- @wren/starling-x
+- @wren/starling-youtube
 - @wren/voice
 - @wren/watch
 
 ## Outside packages
 
-@restatedev/restate-sdk-tunnel@1.17.1, @restatedev/restate-sdk@1.17.1, @wrenautomation/autobrowse@0.5.0, @wrenautomation/falcon@0.8.2, @wrenautomation/weaver@0.8.2, drizzle-orm@0.45.2, esbuild@0.28.2, node:child_process, node:fs, node:http2, node:path, node:url, pino@10.3.1
+@restatedev/restate-sdk-tunnel@1.17.1, @restatedev/restate-sdk@1.17.1, @wrenautomation/autobrowse@0.8.4, @wrenautomation/read@0.29.0, drizzle-orm@0.45.2, esbuild@0.28.2, node:child_process, node:fs, node:http2, node:path, node:url, pino@10.3.1
 
 ## Folders
 

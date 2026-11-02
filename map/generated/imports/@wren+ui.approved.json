@@ -66,8 +66,8 @@
      "@tanstack/react-virtual@3.14.13",
      "@vitejs/plugin-react@6.1.1",
      "@vitest/browser-playwright@5.0.1",
-     "@wrenautomation/autobrowse@0.7.0",
-     "@wrenautomation/orrery@0.24.1",
+     "@wrenautomation/autobrowse@0.8.4",
+     "@wrenautomation/orrery@0.28.0",
      "@xyflow/react@12.12.0",
      "agentation@3.1.2",
      "class-variance-authority@0.7.1",
@@ -1091,7 +1091,7 @@
    "parent": "@wren/ui",
    "group": "@wren/ui",
    "attrs": {
-    "description": "The glide between two states of a map (a depth step, a node opened or folded)"
+    "description": "Metro's marks for orrery's glide (port of `render` in the artifact's `mountZoom`): a station, a fold tab, a person pill glide; the lines fade in under them; the hub keeps its width"
    }
   },
   {
@@ -1215,15 +1215,6 @@
    "group": "@wren/ui",
    "attrs": {
     "description": "`MetroSkeleton`: what the map shows while it loads"
-   }
-  },
-  {
-   "id": "@wren/ui/src/metro/tree.ts",
-   "role": "file",
-   "parent": "@wren/ui",
-   "group": "@wren/ui",
-   "attrs": {
-    "description": "The fold tree"
    }
   },
   {
@@ -4108,11 +4099,6 @@
   },
   {
    "from": "@wren/ui/src/metro/fold.ts",
-   "to": "@wren/ui/src/metro/tree.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/ui/src/metro/fold.ts",
    "to": "@wren/ui/src/metro/types.ts",
    "kind": "imports"
   },
@@ -4133,14 +4119,6 @@
    "from": "@wren/ui/src/metro/geometry.ts",
    "to": "@wren/ui/src/metro/types.ts",
    "kind": "imports"
-  },
-  {
-   "from": "@wren/ui/src/metro/glide.ts",
-   "to": "@wren/ui/src/metro/types.ts",
-   "kind": "imports",
-   "attrs": {
-    "type": true
-   }
   },
   {
    "from": "@wren/ui/src/metro/index.ts",
@@ -4190,11 +4168,6 @@
   {
    "from": "@wren/ui/src/metro/index.ts",
    "to": "@wren/ui/src/metro/skeleton.tsx",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/ui/src/metro/index.ts",
-   "to": "@wren/ui/src/metro/tree.ts",
    "kind": "imports"
   },
   {
@@ -4347,11 +4320,6 @@
   {
    "from": "@wren/ui/src/metro/map.tsx",
    "to": "@wren/ui/src/metro/skeleton.tsx",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/ui/src/metro/map.tsx",
-   "to": "@wren/ui/src/metro/tree.ts",
    "kind": "imports"
   },
   {

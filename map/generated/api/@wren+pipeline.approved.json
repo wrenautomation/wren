@@ -160,6 +160,20 @@
    }
   },
   {
+   "id": "@wren/pipeline#Audience",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro-campaigns"
+    ],
+    "file": "packages/pipeline/src/metro-campaigns.ts",
+    "kind": "interface",
+    "sig": "interface Audience { segment?: string; lines?: string[]; }"
+   }
+  },
+  {
    "id": "@wren/pipeline#BlameAnswer",
    "role": "export",
    "parent": "@wren/pipeline",
@@ -230,6 +244,50 @@
    }
   },
   {
+   "id": "@wren/pipeline#CAMPAIGN_CHANNELS",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro-campaigns"
+    ],
+    "file": "packages/pipeline/src/metro-campaigns.ts",
+    "kind": "const",
+    "sig": "readonly string[]"
+   }
+  },
+  {
+   "id": "@wren/pipeline#CAMPAIGN_STATUSES",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro-campaigns"
+    ],
+    "file": "packages/pipeline/src/metro-campaigns.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"live\", \"paused\", \"ended\"]"
+   }
+  },
+  {
+   "id": "@wren/pipeline#CAP_MAX",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro-campaigns"
+    ],
+    "file": "packages/pipeline/src/metro-campaigns.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "10000"
+   }
+  },
+  {
    "id": "@wren/pipeline#COLLECT_STEP",
    "role": "export",
    "parent": "@wren/pipeline",
@@ -272,6 +330,63 @@
     "inferred": true,
     "kind": "const",
     "sig": "\"Convert first: wren shape convert.\""
+   }
+  },
+  {
+   "id": "@wren/pipeline#CTA_ACTIONS",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro-campaigns"
+    ],
+    "file": "packages/pipeline/src/metro-campaigns.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "readonly [\"cta\", \"form\", \"visit\", \"book\"]"
+   }
+  },
+  {
+   "id": "@wren/pipeline#Campaign",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro-campaigns"
+    ],
+    "file": "packages/pipeline/src/metro-campaigns.ts",
+    "kind": "interface",
+    "sig": "interface Campaign { id: string; label: string; parent?: string; offer?: string; audience?: Audience; ctas: Cta[]; accounts: Record<string, string>; caps: Record<string, number>; from?: string; until?: string; status: CampaignStatus; stations: string[]; own: CampaignFields; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#CampaignFields",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro-campaigns"
+    ],
+    "file": "packages/pipeline/src/metro-campaigns.ts",
+    "kind": "interface",
+    "sig": "interface CampaignFields { offer?: string; audience?: Audience; ctas?: Cta[]; accounts?: Record<string, string>; caps?: Record<string, number>; from?: string; until?: string; status?: CampaignStatus; }"
+   }
+  },
+  {
+   "id": "@wren/pipeline#CampaignStatus",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro-campaigns"
+    ],
+    "file": "packages/pipeline/src/metro-campaigns.ts",
+    "kind": "type",
+    "sig": "type CampaignStatus = (typeof CAMPAIGN_STATUSES)[number];"
    }
   },
   {
@@ -387,6 +502,20 @@
    }
   },
   {
+   "id": "@wren/pipeline#Cta",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro-campaigns"
+    ],
+    "file": "packages/pipeline/src/metro-campaigns.ts",
+    "kind": "interface",
+    "sig": "interface Cta { label: string; station: string; }"
+   }
+  },
+  {
    "id": "@wren/pipeline#DEAL_RECORD",
    "role": "export",
    "parent": "@wren/pipeline",
@@ -414,6 +543,21 @@
     "inferred": true,
     "kind": "const",
     "sig": "readonly [\"open\", \"won\", \"lost\", \"ended\"]"
+   }
+  },
+  {
+   "id": "@wren/pipeline#DEFAULT_CAMPAIGN",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro-campaigns"
+    ],
+    "file": "packages/pipeline/src/metro-campaigns.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "\"default\""
    }
   },
   {
@@ -883,6 +1027,21 @@
     "file": "packages/pipeline/src/schema.ts",
     "kind": "type",
     "sig": "type FunnelVersion = typeof funnelVersions.$inferSelect;"
+   }
+  },
+  {
+   "id": "@wren/pipeline#GROUP_ID",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/model"
+    ],
+    "file": "packages/pipeline/src/model.ts",
+    "inferred": true,
+    "kind": "const",
+    "sig": "RegExp"
    }
   },
   {
@@ -1386,7 +1545,7 @@
     ],
     "file": "packages/pipeline/src/metro.ts",
     "kind": "interface",
-    "sig": "interface MetroGroup { id: string; label: string; line?: string; stations: string[]; parent?: string; attach?: Attach[]; }"
+    "sig": "interface MetroGroup { id: string; label: string; line?: string; stations: string[]; parent?: string; campaign?: CampaignFields; attach?: Attach[]; }"
    }
   },
   {
@@ -2833,6 +2992,34 @@
    }
   },
   {
+   "id": "@wren/pipeline#campaignOfStation",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro-campaigns"
+    ],
+    "file": "packages/pipeline/src/metro-campaigns.ts",
+    "kind": "function",
+    "sig": "(body: MetroBody, station: string): string"
+   }
+  },
+  {
+   "id": "@wren/pipeline#campaignsOf",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro-campaigns"
+    ],
+    "file": "packages/pipeline/src/metro-campaigns.ts",
+    "kind": "function",
+    "sig": "(body: MetroBody): Campaign[]"
+   }
+  },
+  {
    "id": "@wren/pipeline#canonicalJson",
    "role": "export",
    "parent": "@wren/pipeline",
@@ -2929,6 +3116,20 @@
     "file": "packages/pipeline/src/diff.ts",
     "kind": "function",
     "sig": "(d: ShapeDiff): ShapeChange[]"
+   }
+  },
+  {
+   "id": "@wren/pipeline#checkCampaigns",
+   "role": "export",
+   "parent": "@wren/pipeline",
+   "group": "@wren/pipeline",
+   "attrs": {
+    "entries": [
+     "@wren/pipeline/metro-campaigns"
+    ],
+    "file": "packages/pipeline/src/metro-campaigns.ts",
+    "kind": "function",
+    "sig": "(groups: readonly MetroGroup[], lineBy: ReadonlyMap<string, MetroLine>, stationBy: ReadonlyMap<string, MetroStation>, ctx: ShapeCheckContext, errors: string[]): void"
    }
   },
   {
@@ -3069,7 +3270,7 @@
     "file": "packages/pipeline/src/records.ts",
     "inferred": true,
     "kind": "function",
-    "sig": "(db: Queryable, o: { id?: string } = {}): Promise<{ id: string; journey: string; name: string; profile: number; node: string | null; entry: string; offer: string; offer_version: number; plan: string | null; terms_number: number | null; status: \"open\" | \"won\" | \"ended\" | \"lost\"; collected: number; scheduled: number | null; currency: string; …"
+    "sig": "(db: Queryable, o: { id?: string } = {}): Promise<{ id: string; journey: string; name: string; profile: number; node: string | null; entry: string; offer: string; offer_version: number; plan: string | null; terms_number: number | null; status: \"ended\" | \"open\" | \"won\" | \"lost\"; collected: number; scheduled: number | null; currency: string; …"
    }
   },
   {
@@ -3212,7 +3413,7 @@
     "file": "packages/pipeline/src/records.ts",
     "inferred": true,
     "kind": "function",
-    "sig": "(db: Queryable): Promise<{ id: string; name: string; state: \"proposed\" | \"dropped\" | \"applied\" | \"draft\"; base: number; note: string; created_by: string; created_at: Date; updated_at: Date; applied_version: number | null; decided_by: string | null; decided_at: Date | null; drop_reason: string | null; }[]>"
+    "sig": "(db: Queryable): Promise<{ id: string; name: string; state: \"draft\" | \"dropped\" | \"proposed\" | \"applied\"; base: number; note: string; created_by: string; created_at: Date; updated_at: Date; applied_version: number | null; decided_by: string | null; decided_at: Date | null; drop_reason: string | null; }[]>"
    }
   },
   {
@@ -3383,7 +3584,7 @@
     "file": "packages/pipeline/src/edit.ts",
     "inferred": true,
     "kind": "function",
-    "sig": "(db: Queryable, o: { change: (body: ShapeBody) => ShapeBody; note: string; by: string; triggers: ReadonlySet<string>; moves?: Moves; }): Promise<{ number: number; run: ShapeBody; createdAt: Date; body: StoredBody; draft: string | null; note: string; createdBy: string; parent: number | null; depths: Record<string, number>; }>"
+    "sig": "(db: Queryable, o: { change: (body: ShapeBody) => ShapeBody; note: string; by: string; triggers: ReadonlySet<string>; moves?: Moves; }): Promise<{ number: number; createdAt: Date; run: ShapeBody; parent: number | null; body: StoredBody; draft: string | null; note: string; createdBy: string; depths: Record<string, number>; }>"
    }
   },
   {
@@ -3455,7 +3656,7 @@
     "file": "packages/pipeline/src/records.ts",
     "inferred": true,
     "kind": "function",
-    "sig": "(db: Queryable): Promise<{ id: string; name: string; via: \"ads\" | \"group\" | \"manual\" | \"referral\" | \"outbound\" | \"found\" | \"organic\" | \"sourced\"; channel: string | null; campaign: string | null; parked: string | null; open_journeys: number; journeys: number; last_arrival: Date | null; }[]>"
+    "sig": "(db: Queryable): Promise<{ id: string; name: string; via: \"ads\" | \"group\" | \"manual\" | \"found\" | \"outbound\" | \"referral\" | \"organic\" | \"sourced\"; channel: string | null; campaign: string | null; parked: string | null; open_journeys: number; journeys: number; last_arrival: Date | null; }[]>"
    }
   },
   {
@@ -3909,7 +4110,7 @@
     "file": "packages/pipeline/src/records.ts",
     "inferred": true,
     "kind": "function",
-    "sig": "(db: Queryable, o: { id?: string; now?: Date } = {}): Promise<{ id: string; name: string; profile: number; email: string; version: number; node: string; node_name: string; trail: string; status: \"open\" | \"dropped\" | \"done\"; flag: string | null; ghost: string | null; entry: string; owner: string | null; days_at_node: number; reason: string | null; opene…"
+    "sig": "(db: Queryable, o: { id?: string; now?: Date } = {}): Promise<{ id: string; name: string; profile: number; email: string; version: number; node: string; node_name: string; trail: string; status: \"dropped\" | \"open\" | \"done\"; flag: string | null; ghost: string | null; entry: string; owner: string | null; days_at_node: number; reason: string | null; opene…"
    }
   },
   {
@@ -4037,7 +4238,7 @@
     "file": "packages/pipeline/src/restate.ts",
     "inferred": true,
     "kind": "function",
-    "sig": "(deps: JourneysDeps): restate.ServiceDefinition<\"Journeys\", { open: (ctx: restate.Context, req: OpenRequest) => Promise<{ journey: string; node: string; }>; move: (ctx: restate.Context, req: MoveRequest) => Promise<{ journey: string; from: string; to: string; status: \"open\" | \"dropped\" | \"done\"; }>; drop: (ctx: restate.C…"
+    "sig": "(deps: JourneysDeps): restate.ServiceDefinition<\"Journeys\", { open: (ctx: restate.Context, req: OpenRequest) => Promise<{ journey: string; node: string; }>; move: (ctx: restate.Context, req: MoveRequest) => Promise<{ journey: string; from: string; to: string; status: \"dropped\" | \"open\" | \"done\"; }>; drop: (ctx: restate.C…"
    }
   },
   {
@@ -4379,7 +4580,7 @@
     "file": "packages/pipeline/src/records.ts",
     "inferred": true,
     "kind": "function",
-    "sig": "(db: Queryable, o: { now?: Date } = {}): Promise<{ id: string; name: string; status: \"retired\" | \"paused\" | \"draft\" | \"live\"; version: number; audience: string; promise: string; live_plans: number; open_journeys: number; hash: string; synced_at: Date; synced_by: string; why: string; }[]>"
+    "sig": "(db: Queryable, o: { now?: Date } = {}): Promise<{ id: string; name: string; status: \"paused\" | \"draft\" | \"retired\" | \"live\"; version: number; audience: string; promise: string; live_plans: number; open_journeys: number; hash: string; synced_at: Date; synced_by: string; why: string; }[]>"
    }
   },
   {

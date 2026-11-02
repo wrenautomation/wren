@@ -14,8 +14,8 @@ Wren Automation: campaigns, channels and client products.
 - **listmonk** (container): Newsletter lists and campaigns; posts each message to Restate.
 - **pgbouncer** (container): Pools the worker's Postgres connections on 6432.
 - **postgres** (container): The main database.
+- **redis** (container): The shared cache; holds the Restate admin reads for 5 minutes.
 - **restate** (container): The box's own Restate server, for the pool chain.
-- **valkey** (container): The shared cache; holds the Restate admin reads for 5 minutes.
 - **caddy** (public.ecr.aws/docker/library/caddy:2-alpine): TLS for each name; holds the only public ports
 - **prober** (public.ecr.aws/docker/library/node:22-alpine): SMTP prober: checks an address over port 25, which AWS keeps closed
 - **searxng** (docker.io/searxng/searxng:2026.10.27-ef7bae9dd): SearXNG metasearch for the research engine (box 1 only)
@@ -53,17 +53,7 @@ Wren Automation: campaigns, channels and client products.
 
 - route:ConsolePortal/customFields calls wren.s3:files: `WREN_FILES_BUCKET`
   - in `apps/worker/src/services/platform.ts`
-- route:ConsolePortal/recordsAsk calls wren.s3:files: `WREN_FILES_BUCKET`
-  - in `apps/worker/src/services/platform.ts`
-- route:ConsolePortal/recordsCounts calls wren.s3:files: `WREN_FILES_BUCKET`
-  - in `apps/worker/src/services/platform.ts`
 - route:ConsolePortal/recordsExport calls wren.s3:files: `WREN_FILES_BUCKET`
-  - in `apps/worker/src/services/platform.ts`
-- route:ConsolePortal/recordsGet calls wren.s3:files: `WREN_FILES_BUCKET`
-  - in `apps/worker/src/services/platform.ts`
-- route:ConsolePortal/recordsList calls wren.s3:files: `WREN_FILES_BUCKET`
-  - in `apps/worker/src/services/platform.ts`
-- route:ConsolePortal/recordsStats calls wren.s3:files: `WREN_FILES_BUCKET`
   - in `apps/worker/src/services/platform.ts`
 - route:DeliveryPortal/file calls wren.s3:files: `WREN_FILES_BUCKET`
   - in `apps/worker/src/services/clients.ts`
@@ -74,43 +64,43 @@ Wren Automation: campaigns, channels and client products.
 - route:NotesConsole/upload calls wren.s3:files: `WREN_FILES_BUCKET`
   - in `apps/worker/src/services/apps.ts`
 - wren uses autobrowse: npm `@wrenautomation/autobrowse`
-  - in `apps/auth/package.json`, `apps/cli/package.json`, `apps/worker/package.json`, `packages/calendar/package.json`, `packages/channel-email/package.json`, `packages/channel-search/package.json`, `packages/connectors/package.json`, `packages/content/package.json`
-- wren uses engine: npm `@wrenautomation/falcon`, npm `@wrenautomation/models`, npm `@wrenautomation/orrery`, npm `@wrenautomation/weaver`
-  - in `apps/cli/package.json`, `apps/worker/package.json`, `packages/books/package.json`, `packages/channel-email/package.json`, `packages/core/package.json`, `packages/learn/package.json`, `packages/llm/package.json`, `packages/niches/package.json`, `packages/reactivation/package.json`, `packages/research/package.json`, `packages/studio/package.json`, `packages/ui/package.json`, `packages/voice/package.json`
+  - in `apps/auth/package.json`, `apps/cli/package.json`, `apps/worker/package.json`, `packages/calendar/package.json`, `packages/connectors/package.json`, `packages/starling/channels/email/package.json`, `packages/starling/inbound/package.json`, `packages/starling/search/package.json`
+- wren uses engine: npm `@wrenautomation/models`, npm `@wrenautomation/orrery`, npm `@wrenautomation/read`
+  - in `apps/cli/package.json`, `apps/worker/package.json`, `packages/books/package.json`, `packages/core/package.json`, `packages/learn/package.json`, `packages/llm/package.json`, `packages/niches/package.json`, `packages/reactivation/package.json`, `packages/research/package.json`, `packages/starling/channels/email/package.json`, `packages/starling/studio/package.json`, `packages/ui/package.json`, `packages/voice/package.json`
 - wren uses mailifier: npm `mailifier`
-  - in `packages/channel-email/package.json`
+  - in `packages/starling/channels/email/package.json`
 - wren.cdn:videos uses wren.s3:videos: `aws_s3_bucket.videos`
   - in `deploy/terraform/videos.tf`
 - wren.container:worker calls restate: `WREN_RESTATE_ADMIN_URL`
   - in `apps/worker/src/services/content.ts`, `apps/worker/src/services/platform.ts`, `packages/core/src/dead-letters.ts`
 - wren.container:worker calls wren.container:browser: `WREN_CDP_URL`
-  - in `apps/worker/src/services/content.ts`, `apps/worker/src/services/deps.ts`, `packages/content/src/slide-paint.ts`, `packages/research/src/enrichment/remote-browser.ts`
+  - in `apps/worker/src/services/content.ts`, `apps/worker/src/services/deps.ts`, `packages/research/src/enrichment/remote-browser.ts`, `packages/starling/inbound/src/slide-paint.ts`
 - wren.container:worker calls wren.container:documenso-app: `WREN_DOCUMENSO_URL`
   - in `apps/worker/src/services/apps.ts`, `packages/documents/src/components.ts`, `packages/documents/src/service.ts`
 - wren.container:worker calls wren.container:listmonk: `WREN_LISTMONK_URL`
-  - in `apps/worker/src/services/email.ts`, `packages/channel-email/src/components.ts`, `packages/channel-email/src/restate/listmonk.ts`
+  - in `apps/worker/src/services/email.ts`, `packages/starling/channels/email/src/components.ts`, `packages/starling/channels/email/src/restate/listmonk.ts`
 - wren.container:worker calls wren.container:pgbouncer: `WREN_DATABASE_POOL_PORT`
   - in `apps/worker/src/services/deps.ts`
 - wren.container:worker calls wren.container:postgres: `WREN_DATABASE_URL`
   - in `apps/worker/src/box.ts`, `apps/worker/src/services/deps.ts`, `apps/worker/src/services/platform.ts`, `apps/worker/src/services/research.ts`, `apps/worker/src/wake.ts`, `packages/db/src/index.ts`, `packages/db/src/listen.ts`
-- wren.container:worker calls wren.container:valkey: `WREN_CACHE_URL`
+- wren.container:worker calls wren.container:redis: `WREN_CACHE_URL`
   - in `apps/worker/src/services/platform.ts`, `packages/core/src/cache.ts`
 - wren.container:worker calls wren.container:vps-prober: `WREN_SMTP_PROBE_URL`
-  - in `apps/worker/src/services/deps.ts`, `apps/worker/src/services/email.ts`, `packages/channel-email/src/restate/digest-scheduler.ts`, `packages/channel-email/src/verification/prober-health.ts`, `packages/channel-email/src/verification/verifier.ts`
+  - in `apps/worker/src/services/deps.ts`, `apps/worker/src/services/email.ts`, `packages/starling/channels/email/src/restate/digest-scheduler.ts`, `packages/starling/channels/email/src/verification/prober-health.ts`, `packages/starling/channels/email/src/verification/verifier.ts`
 - wren.container:worker calls wren.s3:files: `WREN_FILES_BUCKET`
   - in `apps/worker/src/services/apps.ts`, `apps/worker/src/services/clients.ts`, `apps/worker/src/services/deps.ts`, `apps/worker/src/services/platform.ts`
 - wren.container:worker calls wren.s3:media: `WREN_MEDIA_BUCKET`
-  - in `apps/worker/src/services/content-channels.ts`, `apps/worker/src/services/content.ts`, `apps/worker/src/services/deps.ts`, `apps/worker/src/services/reach.ts`, `apps/worker/src/services/watch.ts`, `packages/content/src/connect/own.ts`
+  - in `apps/worker/src/services/content-channels.ts`, `apps/worker/src/services/content.ts`, `apps/worker/src/services/deps.ts`, `apps/worker/src/services/reach.ts`, `apps/worker/src/services/watch.ts`, `packages/starling/inbound/src/connect/own.ts`
 - wren.container:worker calls wren.s3:pages: `WREN_PAGES_BUCKET`
   - in `apps/worker/src/services/research.ts`, `packages/research/src/restate/page-archive.ts`
 - wren.container:worker calls wren.worker:pixel: `WREN_PIXEL_BASE_URL`
-  - in `apps/worker/src/services/deps.ts`, `apps/worker/src/services/email.ts`, `packages/channel-email/src/restate/send-scheduler.ts`, `packages/channel-email/src/send/deliver.ts`, `packages/channel-email/src/send/tick.ts`, `packages/channel-email/src/sequences.ts`, `packages/reactivation/src/sending.ts`
+  - in `apps/worker/src/services/deps.ts`, `apps/worker/src/services/email.ts`, `packages/reactivation/src/sending.ts`, `packages/starling/channels/email/src/restate/send-scheduler.ts`, `packages/starling/channels/email/src/send/deliver.ts`, `packages/starling/channels/email/src/send/tick.ts`, `packages/starling/channels/email/src/sequences.ts`
 - wren.container:worker uses autobrowse: `@wrenautomation/autobrowse/google`, `@wrenautomation/autobrowse/mail`, `@wrenautomation/autobrowse/oauth`
-  - in `apps/worker/src/services/deps.ts`, `apps/worker/src/services/email.ts`, `apps/worker/src/services/research.ts`, `apps/worker/src/services/watch.ts`, `packages/calendar/src/google.ts`, `packages/channel-email/src/access/access.ts`, `packages/channel-email/src/access/setups.ts`, `packages/channel-email/src/inbox/postmaster.ts`, `packages/channel-email/src/inbox/sync.ts`, `packages/channel-email/src/restate/inbox-scheduler.ts`, `packages/channel-email/src/send/gmail.ts`, `packages/channel-email/src/send/mailboxes.ts`, `packages/channel-email/src/send/smtp.ts`, `packages/channel-search/src/console.ts`, `packages/channel-search/src/restate/watch.ts`, `packages/channel-search/src/site.ts`, `packages/connectors/src/connectors.ts`, `packages/content/src/connect/access.ts`, `packages/content/src/connect/oauth.ts`, `packages/content/src/connect/sites.ts`
-- wren.container:worker uses engine: `@wrenautomation/falcon/study`, `@wrenautomation/falcon/text`, `@wrenautomation/falcon/video`, `@wrenautomation/models/command`, `@wrenautomation/models/prices`, `@wrenautomation/models`, `@wrenautomation/weaver/fetch`, `@wrenautomation/weaver/video`
-  - in `apps/worker/src/services/deps.ts`, `apps/worker/src/services/executor.ts`, `apps/worker/src/services/reactivation.ts`, `apps/worker/src/services/research.ts`, `packages/books/src/capture.ts`, `packages/books/src/text.ts`, `packages/channel-email/src/inbox/inbound.ts`, `packages/core/src/model-prices.ts`, `packages/learn/src/breakdown.ts`, `packages/learn/src/creators.ts`, `packages/learn/src/film.ts`, `packages/learn/src/hunt.ts`, `packages/learn/src/read.ts`, `packages/llm/src/client.ts`, `packages/niches/src/agencies/profiles.ts`, `packages/niches/src/sec-ria/datasets.ts`, `packages/reactivation/src/demo/seed.ts`, `packages/reactivation/src/run.ts`, `packages/reactivation/src/signals.ts`, `packages/research/src/companies/boards.ts`, `packages/research/src/companies/customers.ts`, `packages/research/src/companies/events.ts`, `packages/research/src/companies/hiring.ts`, `packages/research/src/discovery/find.ts`, `packages/research/src/discovery/homepage.ts`, `packages/research/src/enrichment/crawler.ts`, `packages/research/src/enrichment/email-scan.ts`, `packages/research/src/enrichment/news-triggers.ts`, `packages/research/src/enrichment/opener.ts`, `packages/research/src/enrichment/render.ts`, `packages/research/src/enrichment/shared-pages.ts`, `packages/research/src/fetch/datasets.ts`, `packages/research/src/fetch/overture.ts`, `packages/research/src/fetch/ppp.ts`, `packages/research/src/fetch/sba.ts`, `packages/research/src/fetch/tier-memory.ts`, `packages/research/src/restate/discovery.ts`, `packages/research/src/restate/enrichment-context.ts`, `packages/research/src/schema.ts`, `packages/research/src/signals/index.ts`, `packages/research/src/signals/site.ts`, `packages/research/src/sops/index.ts`
+  - in `apps/worker/src/services/deps.ts`, `apps/worker/src/services/email.ts`, `apps/worker/src/services/research.ts`, `apps/worker/src/services/watch.ts`, `packages/calendar/src/google.ts`, `packages/connectors/src/connectors.ts`, `packages/starling/channels/email/src/access/access.ts`, `packages/starling/channels/email/src/access/setups.ts`, `packages/starling/channels/email/src/inbox/postmaster.ts`, `packages/starling/channels/email/src/inbox/sync.ts`, `packages/starling/channels/email/src/restate/inbox-scheduler.ts`, `packages/starling/channels/email/src/send/gmail.ts`, `packages/starling/channels/email/src/send/mailboxes.ts`, `packages/starling/channels/email/src/send/smtp.ts`, `packages/starling/inbound/src/connect/access.ts`, `packages/starling/inbound/src/connect/oauth.ts`, `packages/starling/inbound/src/connect/sites.ts`, `packages/starling/search/src/console.ts`, `packages/starling/search/src/restate/watch.ts`, `packages/starling/search/src/site.ts`
+- wren.container:worker uses engine: `@wrenautomation/models/command`, `@wrenautomation/models/prices`, `@wrenautomation/models`, `@wrenautomation/read/fetch`, `@wrenautomation/read/study`, `@wrenautomation/read/text`, `@wrenautomation/read/video`
+  - in `apps/worker/src/services/deps.ts`, `apps/worker/src/services/executor.ts`, `apps/worker/src/services/reactivation.ts`, `apps/worker/src/services/research.ts`, `packages/books/src/capture.ts`, `packages/books/src/text.ts`, `packages/core/src/model-prices.ts`, `packages/learn/src/breakdown.ts`, `packages/learn/src/creators.ts`, `packages/learn/src/film.ts`, `packages/learn/src/hunt.ts`, `packages/learn/src/read.ts`, `packages/llm/src/client.ts`, `packages/niches/src/agencies/profiles.ts`, `packages/niches/src/sec-ria/datasets.ts`, `packages/reactivation/src/demo/seed.ts`, `packages/reactivation/src/run.ts`, `packages/reactivation/src/signals.ts`, `packages/research/src/companies/boards.ts`, `packages/research/src/companies/customers.ts`, `packages/research/src/companies/events.ts`, `packages/research/src/companies/hiring.ts`, `packages/research/src/discovery/find.ts`, `packages/research/src/discovery/homepage.ts`, `packages/research/src/enrichment/crawler.ts`, `packages/research/src/enrichment/email-scan.ts`, `packages/research/src/enrichment/news-triggers.ts`, `packages/research/src/enrichment/opener.ts`, `packages/research/src/enrichment/render.ts`, `packages/research/src/enrichment/shared-pages.ts`, `packages/research/src/fetch/datasets.ts`, `packages/research/src/fetch/overture.ts`, `packages/research/src/fetch/ppp.ts`, `packages/research/src/fetch/sba.ts`, `packages/research/src/fetch/tier-memory.ts`, `packages/research/src/restate/discovery.ts`, `packages/research/src/restate/enrichment-context.ts`, `packages/research/src/schema.ts`, `packages/research/src/signals/index.ts`, `packages/research/src/signals/site.ts`, `packages/research/src/sops/index.ts`, `packages/starling/channels/email/src/inbox/inbound.ts`
 - wren.container:worker uses mailifier: `mailifier`
-  - in `packages/channel-email/src/verification/mailifier.ts`
+  - in `packages/starling/channels/email/src/verification/mailifier.ts`
 - wren.container:worker uses restate: `@restatedev/restate-sdk-clients`
   - in `packages/core/src/content/ingress.ts`
 - wren.container:worker uses ssm: `@aws-sdk/client-ssm`
@@ -122,7 +112,7 @@ Wren Automation: campaigns, channels and client products.
 - wren.lambda:auth calls wren.container:postgres: `WREN_DATABASE_URL`
   - in `apps/auth/lambda/index.ts`, `packages/db/src/index.ts`, `packages/db/src/listen.ts`
 - wren.lambda:auth uses autobrowse: `@wrenautomation/autobrowse/google`
-  - in `apps/auth/lambda/index.ts`, `packages/channel-email/src/send/gmail.ts`
+  - in `apps/auth/lambda/index.ts`, `packages/starling/channels/email/src/send/gmail.ts`
 - wren.lambda:auth uses ssm: `@aws-sdk/client-ssm`
   - in `packages/config/src/ssm.ts`
 - wren.lambda:turbo_cache uses wren.s3:turbo_cache: `aws_s3_bucket.turbo_cache`
@@ -130,33 +120,33 @@ Wren Automation: campaigns, channels and client products.
 - wren.lambda:worker calls restate: `WREN_RESTATE_ADMIN_URL`
   - in `apps/worker/src/services/content.ts`, `apps/worker/src/services/platform.ts`, `packages/core/src/dead-letters.ts`
 - wren.lambda:worker calls wren.container:browser: `WREN_CDP_URL`
-  - in `apps/worker/src/services/content.ts`, `apps/worker/src/services/deps.ts`, `packages/content/src/slide-paint.ts`, `packages/research/src/enrichment/remote-browser.ts`
+  - in `apps/worker/src/services/content.ts`, `apps/worker/src/services/deps.ts`, `packages/research/src/enrichment/remote-browser.ts`, `packages/starling/inbound/src/slide-paint.ts`
 - wren.lambda:worker calls wren.container:documenso-app: `WREN_DOCUMENSO_URL`
   - in `apps/worker/src/services/apps.ts`, `packages/documents/src/components.ts`, `packages/documents/src/service.ts`
 - wren.lambda:worker calls wren.container:listmonk: `WREN_LISTMONK_URL`
-  - in `apps/worker/src/services/email.ts`, `packages/channel-email/src/components.ts`, `packages/channel-email/src/restate/listmonk.ts`
+  - in `apps/worker/src/services/email.ts`, `packages/starling/channels/email/src/components.ts`, `packages/starling/channels/email/src/restate/listmonk.ts`
 - wren.lambda:worker calls wren.container:pgbouncer: `WREN_DATABASE_POOL_PORT`
   - in `apps/worker/src/services/deps.ts`
 - wren.lambda:worker calls wren.container:postgres: `WREN_DATABASE_URL`
   - in `apps/worker/src/services/deps.ts`, `apps/worker/src/services/platform.ts`, `apps/worker/src/services/research.ts`, `packages/db/src/index.ts`, `packages/db/src/listen.ts`
-- wren.lambda:worker calls wren.container:valkey: `WREN_CACHE_URL`
+- wren.lambda:worker calls wren.container:redis: `WREN_CACHE_URL`
   - in `apps/worker/src/services/platform.ts`, `packages/core/src/cache.ts`
 - wren.lambda:worker calls wren.container:vps-prober: `WREN_SMTP_PROBE_URL`
-  - in `apps/worker/src/services/deps.ts`, `apps/worker/src/services/email.ts`, `packages/channel-email/src/restate/digest-scheduler.ts`, `packages/channel-email/src/verification/prober-health.ts`, `packages/channel-email/src/verification/verifier.ts`
+  - in `apps/worker/src/services/deps.ts`, `apps/worker/src/services/email.ts`, `packages/starling/channels/email/src/restate/digest-scheduler.ts`, `packages/starling/channels/email/src/verification/prober-health.ts`, `packages/starling/channels/email/src/verification/verifier.ts`
 - wren.lambda:worker calls wren.s3:files: `WREN_FILES_BUCKET`
   - in `apps/worker/src/services/apps.ts`, `apps/worker/src/services/clients.ts`, `apps/worker/src/services/deps.ts`, `apps/worker/src/services/platform.ts`
 - wren.lambda:worker calls wren.s3:media: `WREN_MEDIA_BUCKET`
-  - in `apps/worker/src/services/content-channels.ts`, `apps/worker/src/services/content.ts`, `apps/worker/src/services/deps.ts`, `apps/worker/src/services/reach.ts`, `apps/worker/src/services/watch.ts`, `packages/content/src/connect/own.ts`
+  - in `apps/worker/src/services/content-channels.ts`, `apps/worker/src/services/content.ts`, `apps/worker/src/services/deps.ts`, `apps/worker/src/services/reach.ts`, `apps/worker/src/services/watch.ts`, `packages/starling/inbound/src/connect/own.ts`
 - wren.lambda:worker calls wren.s3:pages: `WREN_PAGES_BUCKET`
   - in `apps/worker/src/services/research.ts`, `packages/research/src/restate/page-archive.ts`
 - wren.lambda:worker calls wren.worker:pixel: `WREN_PIXEL_BASE_URL`
-  - in `apps/worker/src/services/deps.ts`, `apps/worker/src/services/email.ts`, `packages/channel-email/src/restate/send-scheduler.ts`, `packages/channel-email/src/send/deliver.ts`, `packages/channel-email/src/send/tick.ts`, `packages/channel-email/src/sequences.ts`, `packages/reactivation/src/sending.ts`
+  - in `apps/worker/src/services/deps.ts`, `apps/worker/src/services/email.ts`, `packages/reactivation/src/sending.ts`, `packages/starling/channels/email/src/restate/send-scheduler.ts`, `packages/starling/channels/email/src/send/deliver.ts`, `packages/starling/channels/email/src/send/tick.ts`, `packages/starling/channels/email/src/sequences.ts`
 - wren.lambda:worker uses autobrowse: `@wrenautomation/autobrowse/google`, `@wrenautomation/autobrowse/mail`, `@wrenautomation/autobrowse/oauth`
-  - in `apps/worker/src/services/deps.ts`, `apps/worker/src/services/email.ts`, `apps/worker/src/services/research.ts`, `apps/worker/src/services/watch.ts`, `packages/calendar/src/google.ts`, `packages/channel-email/src/access/access.ts`, `packages/channel-email/src/access/setups.ts`, `packages/channel-email/src/inbox/postmaster.ts`, `packages/channel-email/src/inbox/sync.ts`, `packages/channel-email/src/restate/inbox-scheduler.ts`, `packages/channel-email/src/send/gmail.ts`, `packages/channel-email/src/send/mailboxes.ts`, `packages/channel-email/src/send/smtp.ts`, `packages/channel-search/src/console.ts`, `packages/channel-search/src/restate/watch.ts`, `packages/channel-search/src/site.ts`, `packages/connectors/src/connectors.ts`, `packages/content/src/connect/access.ts`, `packages/content/src/connect/oauth.ts`, `packages/content/src/connect/sites.ts`
-- wren.lambda:worker uses engine: `@wrenautomation/falcon/study`, `@wrenautomation/falcon/text`, `@wrenautomation/falcon/video`, `@wrenautomation/models/command`, `@wrenautomation/models/prices`, `@wrenautomation/models`, `@wrenautomation/weaver/fetch`, `@wrenautomation/weaver/video`
-  - in `apps/worker/src/services/deps.ts`, `apps/worker/src/services/executor.ts`, `apps/worker/src/services/reactivation.ts`, `apps/worker/src/services/research.ts`, `packages/books/src/capture.ts`, `packages/books/src/text.ts`, `packages/channel-email/src/inbox/inbound.ts`, `packages/core/src/model-prices.ts`, `packages/learn/src/breakdown.ts`, `packages/learn/src/creators.ts`, `packages/learn/src/film.ts`, `packages/learn/src/hunt.ts`, `packages/learn/src/read.ts`, `packages/llm/src/client.ts`, `packages/niches/src/agencies/profiles.ts`, `packages/niches/src/sec-ria/datasets.ts`, `packages/reactivation/src/demo/seed.ts`, `packages/reactivation/src/run.ts`, `packages/reactivation/src/signals.ts`, `packages/research/src/companies/boards.ts`, `packages/research/src/companies/customers.ts`, `packages/research/src/companies/events.ts`, `packages/research/src/companies/hiring.ts`, `packages/research/src/discovery/find.ts`, `packages/research/src/discovery/homepage.ts`, `packages/research/src/enrichment/crawler.ts`, `packages/research/src/enrichment/email-scan.ts`, `packages/research/src/enrichment/news-triggers.ts`, `packages/research/src/enrichment/opener.ts`, `packages/research/src/enrichment/render.ts`, `packages/research/src/enrichment/shared-pages.ts`, `packages/research/src/fetch/datasets.ts`, `packages/research/src/fetch/overture.ts`, `packages/research/src/fetch/ppp.ts`, `packages/research/src/fetch/sba.ts`, `packages/research/src/fetch/tier-memory.ts`, `packages/research/src/restate/discovery.ts`, `packages/research/src/restate/enrichment-context.ts`, `packages/research/src/schema.ts`, `packages/research/src/signals/index.ts`, `packages/research/src/signals/site.ts`, `packages/research/src/sops/index.ts`
+  - in `apps/worker/src/services/deps.ts`, `apps/worker/src/services/email.ts`, `apps/worker/src/services/research.ts`, `apps/worker/src/services/watch.ts`, `packages/calendar/src/google.ts`, `packages/connectors/src/connectors.ts`, `packages/starling/channels/email/src/access/access.ts`, `packages/starling/channels/email/src/access/setups.ts`, `packages/starling/channels/email/src/inbox/postmaster.ts`, `packages/starling/channels/email/src/inbox/sync.ts`, `packages/starling/channels/email/src/restate/inbox-scheduler.ts`, `packages/starling/channels/email/src/send/gmail.ts`, `packages/starling/channels/email/src/send/mailboxes.ts`, `packages/starling/channels/email/src/send/smtp.ts`, `packages/starling/inbound/src/connect/access.ts`, `packages/starling/inbound/src/connect/oauth.ts`, `packages/starling/inbound/src/connect/sites.ts`, `packages/starling/search/src/console.ts`, `packages/starling/search/src/restate/watch.ts`, `packages/starling/search/src/site.ts`
+- wren.lambda:worker uses engine: `@wrenautomation/models/command`, `@wrenautomation/models/prices`, `@wrenautomation/models`, `@wrenautomation/read/fetch`, `@wrenautomation/read/study`, `@wrenautomation/read/text`, `@wrenautomation/read/video`
+  - in `apps/worker/src/services/deps.ts`, `apps/worker/src/services/executor.ts`, `apps/worker/src/services/reactivation.ts`, `apps/worker/src/services/research.ts`, `packages/books/src/capture.ts`, `packages/books/src/text.ts`, `packages/core/src/model-prices.ts`, `packages/learn/src/breakdown.ts`, `packages/learn/src/creators.ts`, `packages/learn/src/film.ts`, `packages/learn/src/hunt.ts`, `packages/learn/src/read.ts`, `packages/llm/src/client.ts`, `packages/niches/src/agencies/profiles.ts`, `packages/niches/src/sec-ria/datasets.ts`, `packages/reactivation/src/demo/seed.ts`, `packages/reactivation/src/run.ts`, `packages/reactivation/src/signals.ts`, `packages/research/src/companies/boards.ts`, `packages/research/src/companies/customers.ts`, `packages/research/src/companies/events.ts`, `packages/research/src/companies/hiring.ts`, `packages/research/src/discovery/find.ts`, `packages/research/src/discovery/homepage.ts`, `packages/research/src/enrichment/crawler.ts`, `packages/research/src/enrichment/email-scan.ts`, `packages/research/src/enrichment/news-triggers.ts`, `packages/research/src/enrichment/opener.ts`, `packages/research/src/enrichment/render.ts`, `packages/research/src/enrichment/shared-pages.ts`, `packages/research/src/fetch/datasets.ts`, `packages/research/src/fetch/overture.ts`, `packages/research/src/fetch/ppp.ts`, `packages/research/src/fetch/sba.ts`, `packages/research/src/fetch/tier-memory.ts`, `packages/research/src/restate/discovery.ts`, `packages/research/src/restate/enrichment-context.ts`, `packages/research/src/schema.ts`, `packages/research/src/signals/index.ts`, `packages/research/src/signals/site.ts`, `packages/research/src/sops/index.ts`, `packages/starling/channels/email/src/inbox/inbound.ts`
 - wren.lambda:worker uses mailifier: `mailifier`
-  - in `packages/channel-email/src/verification/mailifier.ts`
+  - in `packages/starling/channels/email/src/verification/mailifier.ts`
 - wren.lambda:worker uses restate: `@restatedev/restate-sdk-clients`
   - in `packages/core/src/content/ingress.ts`
 - wren.lambda:worker uses ssm: `@aws-sdk/client-ssm`
@@ -170,13 +160,13 @@ Wren Automation: campaigns, channels and client products.
 - wren.process:voice calls wren.container:postgres: `WREN_DATABASE_URL`
   - in `packages/db/src/index.ts`, `packages/db/src/listen.ts`, `packages/voice/src/box/main.ts`
 - wren.process:voice calls wren.worker:pixel: `WREN_PIXEL_BASE_URL`
-  - in `packages/channel-email/src/send/deliver.ts`
+  - in `packages/starling/channels/email/src/send/deliver.ts`
 - wren.process:voice uses autobrowse: `@wrenautomation/autobrowse/google`, `@wrenautomation/autobrowse/mail`
-  - in `packages/calendar/src/google.ts`, `packages/channel-email/src/inbox/postmaster.ts`, `packages/channel-email/src/inbox/sync.ts`
-- wren.process:voice uses engine: `@wrenautomation/falcon/study`, `@wrenautomation/falcon/text`, `@wrenautomation/models/command`, `@wrenautomation/models`, `@wrenautomation/weaver/fetch`
-  - in `packages/channel-email/src/inbox/inbound.ts`, `packages/llm/src/client.ts`, `packages/research/src/schema.ts`
+  - in `packages/calendar/src/google.ts`, `packages/starling/channels/email/src/inbox/postmaster.ts`, `packages/starling/channels/email/src/inbox/sync.ts`
+- wren.process:voice uses engine: `@wrenautomation/models/command`, `@wrenautomation/models`, `@wrenautomation/read/fetch`, `@wrenautomation/read/study`, `@wrenautomation/read/text`
+  - in `packages/llm/src/client.ts`, `packages/research/src/schema.ts`, `packages/starling/channels/email/src/inbox/inbound.ts`
 - wren.process:voice uses mailifier: `mailifier`
-  - in `packages/channel-email/src/verification/mailifier.ts`
+  - in `packages/starling/channels/email/src/verification/mailifier.ts`
 - wren.process:voice uses ssm: `@aws-sdk/client-ssm`
   - in `packages/config/src/ssm.ts`
 - wren.worker:auth calls wren.lambda:auth: `LAMBDA_URL`

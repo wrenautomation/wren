@@ -1,6 +1,6 @@
 # @wren/pipeline
 
-Role: package. Files: 51.
+Role: package. Files: 52.
 
 ## Uses
 
@@ -41,6 +41,7 @@ flowchart LR
   nlines_ts["lines.ts"]
   nmap_read_ts["map-read.ts"]
   nmetro_blame_ts["metro-blame.ts"]
+  nmetro_campaigns_ts["metro-campaigns.ts"]
   nmetro_diff_ts["metro-diff.ts"]
   nmetro_edit_ts["metro-edit.ts"]
   nmetro_file_ts["metro-file.ts"]
@@ -162,6 +163,8 @@ flowchart LR
   nmetro_blame_ts -.-> nhistory_ts
   nmetro_blame_ts --> nmetro_diff_ts
   nmetro_blame_ts -.-> nmetro_ts
+  nmetro_campaigns_ts -.-> nmetro_ts
+  nmetro_campaigns_ts --> nmodel_ts
   nmetro_diff_ts --> ndiff_ts
   nmetro_diff_ts -.-> nmetro_ts
   nmetro_edit_ts --> ndiff_ts
@@ -182,6 +185,7 @@ flowchart LR
   nmetro_ops_ts --> nrefused_ts
   nmetro_ops_ts --> nstored_ts
   nmetro_parts_ts -.-> nmetro_ts
+  nmetro_ts --> nmetro_campaigns_ts
   nmetro_ts --> nmodel_ts
   nmirror_ts --> nschema_ts
   nmirror_ts --> nshape_file_ts
@@ -298,6 +302,7 @@ flowchart LR
 - lines.ts
 - map-read.ts
 - metro-blame.ts
+- metro-campaigns.ts
 - metro-diff.ts
 - metro-edit.ts
 - metro-file.ts

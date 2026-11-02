@@ -162,6 +162,21 @@
    }
   },
   {
+   "id": "system:wren.container:redis",
+   "role": "part",
+   "parent": "system:wren.host:pg",
+   "group": "wren",
+   "attrs": {
+    "code": [
+     "deploy/scripts/box-redis.sh"
+    ],
+    "description": "The shared cache; holds the Restate admin reads for 5 minutes.",
+    "kind": "container",
+    "technology": "container",
+    "title": "redis"
+   }
+  },
+  {
    "id": "system:wren.container:restate",
    "role": "part",
    "parent": "system:wren.host:pg",
@@ -174,21 +189,6 @@
     "kind": "container",
     "technology": "container",
     "title": "restate"
-   }
-  },
-  {
-   "id": "system:wren.container:valkey",
-   "role": "part",
-   "parent": "system:wren.host:pg",
-   "group": "wren",
-   "attrs": {
-    "code": [
-     "deploy/scripts/box-valkey.sh"
-    ],
-    "description": "The shared cache; holds the Restate admin reads for 5 minutes.",
-    "kind": "container",
-    "technology": "container",
-    "title": "valkey"
    }
   },
   {
@@ -693,72 +693,7 @@
    }
   },
   {
-   "from": "route:ConsolePortal/recordsAsk",
-   "to": "system:wren.s3:files",
-   "kind": "calls",
-   "attrs": {
-    "here": [
-     "apps/worker/src/services/platform.ts"
-    ],
-    "title": [
-     "`WREN_FILES_BUCKET`"
-    ]
-   }
-  },
-  {
-   "from": "route:ConsolePortal/recordsCounts",
-   "to": "system:wren.s3:files",
-   "kind": "calls",
-   "attrs": {
-    "here": [
-     "apps/worker/src/services/platform.ts"
-    ],
-    "title": [
-     "`WREN_FILES_BUCKET`"
-    ]
-   }
-  },
-  {
    "from": "route:ConsolePortal/recordsExport",
-   "to": "system:wren.s3:files",
-   "kind": "calls",
-   "attrs": {
-    "here": [
-     "apps/worker/src/services/platform.ts"
-    ],
-    "title": [
-     "`WREN_FILES_BUCKET`"
-    ]
-   }
-  },
-  {
-   "from": "route:ConsolePortal/recordsGet",
-   "to": "system:wren.s3:files",
-   "kind": "calls",
-   "attrs": {
-    "here": [
-     "apps/worker/src/services/platform.ts"
-    ],
-    "title": [
-     "`WREN_FILES_BUCKET`"
-    ]
-   }
-  },
-  {
-   "from": "route:ConsolePortal/recordsList",
-   "to": "system:wren.s3:files",
-   "kind": "calls",
-   "attrs": {
-    "here": [
-     "apps/worker/src/services/platform.ts"
-    ],
-    "title": [
-     "`WREN_FILES_BUCKET`"
-    ]
-   }
-  },
-  {
-   "from": "route:ConsolePortal/recordsStats",
    "to": "system:wren.s3:files",
    "kind": "calls",
    "attrs": {
@@ -832,10 +767,10 @@
      "apps/cli/package.json",
      "apps/worker/package.json",
      "packages/calendar/package.json",
-     "packages/channel-email/package.json",
-     "packages/channel-search/package.json",
      "packages/connectors/package.json",
-     "packages/content/package.json"
+     "packages/starling/channels/email/package.json",
+     "packages/starling/inbound/package.json",
+     "packages/starling/search/package.json"
     ],
     "title": [
      "npm `@wrenautomation/autobrowse`"
@@ -851,22 +786,21 @@
      "apps/cli/package.json",
      "apps/worker/package.json",
      "packages/books/package.json",
-     "packages/channel-email/package.json",
      "packages/core/package.json",
      "packages/learn/package.json",
      "packages/llm/package.json",
      "packages/niches/package.json",
      "packages/reactivation/package.json",
      "packages/research/package.json",
-     "packages/studio/package.json",
+     "packages/starling/channels/email/package.json",
+     "packages/starling/studio/package.json",
      "packages/ui/package.json",
      "packages/voice/package.json"
     ],
     "title": [
-     "npm `@wrenautomation/falcon`",
      "npm `@wrenautomation/models`",
      "npm `@wrenautomation/orrery`",
-     "npm `@wrenautomation/weaver`"
+     "npm `@wrenautomation/read`"
     ]
    }
   },
@@ -876,7 +810,7 @@
    "kind": "uses",
    "attrs": {
     "here": [
-     "packages/channel-email/package.json"
+     "packages/starling/channels/email/package.json"
     ],
     "title": [
      "npm `mailifier`"
@@ -919,8 +853,8 @@
     "here": [
      "apps/worker/src/services/content.ts",
      "apps/worker/src/services/deps.ts",
-     "packages/content/src/slide-paint.ts",
-     "packages/research/src/enrichment/remote-browser.ts"
+     "packages/research/src/enrichment/remote-browser.ts",
+     "packages/starling/inbound/src/slide-paint.ts"
     ],
     "title": [
      "`WREN_CDP_URL`"
@@ -949,8 +883,8 @@
    "attrs": {
     "here": [
      "apps/worker/src/services/email.ts",
-     "packages/channel-email/src/components.ts",
-     "packages/channel-email/src/restate/listmonk.ts"
+     "packages/starling/channels/email/src/components.ts",
+     "packages/starling/channels/email/src/restate/listmonk.ts"
     ],
     "title": [
      "`WREN_LISTMONK_URL`"
@@ -991,7 +925,7 @@
   },
   {
    "from": "system:wren.container:worker",
-   "to": "system:wren.container:valkey",
+   "to": "system:wren.container:redis",
    "kind": "calls",
    "attrs": {
     "here": [
@@ -1011,9 +945,9 @@
     "here": [
      "apps/worker/src/services/deps.ts",
      "apps/worker/src/services/email.ts",
-     "packages/channel-email/src/restate/digest-scheduler.ts",
-     "packages/channel-email/src/verification/prober-health.ts",
-     "packages/channel-email/src/verification/verifier.ts"
+     "packages/starling/channels/email/src/restate/digest-scheduler.ts",
+     "packages/starling/channels/email/src/verification/prober-health.ts",
+     "packages/starling/channels/email/src/verification/verifier.ts"
     ],
     "title": [
      "`WREN_SMTP_PROBE_URL`"
@@ -1047,7 +981,7 @@
      "apps/worker/src/services/deps.ts",
      "apps/worker/src/services/reach.ts",
      "apps/worker/src/services/watch.ts",
-     "packages/content/src/connect/own.ts"
+     "packages/starling/inbound/src/connect/own.ts"
     ],
     "title": [
      "`WREN_MEDIA_BUCKET`"
@@ -1076,11 +1010,11 @@
     "here": [
      "apps/worker/src/services/deps.ts",
      "apps/worker/src/services/email.ts",
-     "packages/channel-email/src/restate/send-scheduler.ts",
-     "packages/channel-email/src/send/deliver.ts",
-     "packages/channel-email/src/send/tick.ts",
-     "packages/channel-email/src/sequences.ts",
-     "packages/reactivation/src/sending.ts"
+     "packages/reactivation/src/sending.ts",
+     "packages/starling/channels/email/src/restate/send-scheduler.ts",
+     "packages/starling/channels/email/src/send/deliver.ts",
+     "packages/starling/channels/email/src/send/tick.ts",
+     "packages/starling/channels/email/src/sequences.ts"
     ],
     "title": [
      "`WREN_PIXEL_BASE_URL`"
@@ -1098,21 +1032,21 @@
      "apps/worker/src/services/research.ts",
      "apps/worker/src/services/watch.ts",
      "packages/calendar/src/google.ts",
-     "packages/channel-email/src/access/access.ts",
-     "packages/channel-email/src/access/setups.ts",
-     "packages/channel-email/src/inbox/postmaster.ts",
-     "packages/channel-email/src/inbox/sync.ts",
-     "packages/channel-email/src/restate/inbox-scheduler.ts",
-     "packages/channel-email/src/send/gmail.ts",
-     "packages/channel-email/src/send/mailboxes.ts",
-     "packages/channel-email/src/send/smtp.ts",
-     "packages/channel-search/src/console.ts",
-     "packages/channel-search/src/restate/watch.ts",
-     "packages/channel-search/src/site.ts",
      "packages/connectors/src/connectors.ts",
-     "packages/content/src/connect/access.ts",
-     "packages/content/src/connect/oauth.ts",
-     "packages/content/src/connect/sites.ts"
+     "packages/starling/channels/email/src/access/access.ts",
+     "packages/starling/channels/email/src/access/setups.ts",
+     "packages/starling/channels/email/src/inbox/postmaster.ts",
+     "packages/starling/channels/email/src/inbox/sync.ts",
+     "packages/starling/channels/email/src/restate/inbox-scheduler.ts",
+     "packages/starling/channels/email/src/send/gmail.ts",
+     "packages/starling/channels/email/src/send/mailboxes.ts",
+     "packages/starling/channels/email/src/send/smtp.ts",
+     "packages/starling/inbound/src/connect/access.ts",
+     "packages/starling/inbound/src/connect/oauth.ts",
+     "packages/starling/inbound/src/connect/sites.ts",
+     "packages/starling/search/src/console.ts",
+     "packages/starling/search/src/restate/watch.ts",
+     "packages/starling/search/src/site.ts"
     ],
     "title": [
      "`@wrenautomation/autobrowse/google`",
@@ -1133,7 +1067,6 @@
      "apps/worker/src/services/research.ts",
      "packages/books/src/capture.ts",
      "packages/books/src/text.ts",
-     "packages/channel-email/src/inbox/inbound.ts",
      "packages/core/src/model-prices.ts",
      "packages/learn/src/breakdown.ts",
      "packages/learn/src/creators.ts",
@@ -1168,17 +1101,17 @@
      "packages/research/src/schema.ts",
      "packages/research/src/signals/index.ts",
      "packages/research/src/signals/site.ts",
-     "packages/research/src/sops/index.ts"
+     "packages/research/src/sops/index.ts",
+     "packages/starling/channels/email/src/inbox/inbound.ts"
     ],
     "title": [
-     "`@wrenautomation/falcon/study`",
-     "`@wrenautomation/falcon/text`",
-     "`@wrenautomation/falcon/video`",
      "`@wrenautomation/models/command`",
      "`@wrenautomation/models/prices`",
      "`@wrenautomation/models`",
-     "`@wrenautomation/weaver/fetch`",
-     "`@wrenautomation/weaver/video`"
+     "`@wrenautomation/read/fetch`",
+     "`@wrenautomation/read/study`",
+     "`@wrenautomation/read/text`",
+     "`@wrenautomation/read/video`"
     ]
    }
   },
@@ -1188,7 +1121,7 @@
    "kind": "uses",
    "attrs": {
     "here": [
-     "packages/channel-email/src/verification/mailifier.ts"
+     "packages/starling/channels/email/src/verification/mailifier.ts"
     ],
     "title": [
      "`mailifier`"
@@ -1269,7 +1202,7 @@
    "attrs": {
     "here": [
      "apps/auth/lambda/index.ts",
-     "packages/channel-email/src/send/gmail.ts"
+     "packages/starling/channels/email/src/send/gmail.ts"
     ],
     "title": [
      "`@wrenautomation/autobrowse/google`"
@@ -1325,8 +1258,8 @@
     "here": [
      "apps/worker/src/services/content.ts",
      "apps/worker/src/services/deps.ts",
-     "packages/content/src/slide-paint.ts",
-     "packages/research/src/enrichment/remote-browser.ts"
+     "packages/research/src/enrichment/remote-browser.ts",
+     "packages/starling/inbound/src/slide-paint.ts"
     ],
     "title": [
      "`WREN_CDP_URL`"
@@ -1355,8 +1288,8 @@
    "attrs": {
     "here": [
      "apps/worker/src/services/email.ts",
-     "packages/channel-email/src/components.ts",
-     "packages/channel-email/src/restate/listmonk.ts"
+     "packages/starling/channels/email/src/components.ts",
+     "packages/starling/channels/email/src/restate/listmonk.ts"
     ],
     "title": [
      "`WREN_LISTMONK_URL`"
@@ -1395,7 +1328,7 @@
   },
   {
    "from": "system:wren.lambda:worker",
-   "to": "system:wren.container:valkey",
+   "to": "system:wren.container:redis",
    "kind": "calls",
    "attrs": {
     "here": [
@@ -1415,9 +1348,9 @@
     "here": [
      "apps/worker/src/services/deps.ts",
      "apps/worker/src/services/email.ts",
-     "packages/channel-email/src/restate/digest-scheduler.ts",
-     "packages/channel-email/src/verification/prober-health.ts",
-     "packages/channel-email/src/verification/verifier.ts"
+     "packages/starling/channels/email/src/restate/digest-scheduler.ts",
+     "packages/starling/channels/email/src/verification/prober-health.ts",
+     "packages/starling/channels/email/src/verification/verifier.ts"
     ],
     "title": [
      "`WREN_SMTP_PROBE_URL`"
@@ -1451,7 +1384,7 @@
      "apps/worker/src/services/deps.ts",
      "apps/worker/src/services/reach.ts",
      "apps/worker/src/services/watch.ts",
-     "packages/content/src/connect/own.ts"
+     "packages/starling/inbound/src/connect/own.ts"
     ],
     "title": [
      "`WREN_MEDIA_BUCKET`"
@@ -1480,11 +1413,11 @@
     "here": [
      "apps/worker/src/services/deps.ts",
      "apps/worker/src/services/email.ts",
-     "packages/channel-email/src/restate/send-scheduler.ts",
-     "packages/channel-email/src/send/deliver.ts",
-     "packages/channel-email/src/send/tick.ts",
-     "packages/channel-email/src/sequences.ts",
-     "packages/reactivation/src/sending.ts"
+     "packages/reactivation/src/sending.ts",
+     "packages/starling/channels/email/src/restate/send-scheduler.ts",
+     "packages/starling/channels/email/src/send/deliver.ts",
+     "packages/starling/channels/email/src/send/tick.ts",
+     "packages/starling/channels/email/src/sequences.ts"
     ],
     "title": [
      "`WREN_PIXEL_BASE_URL`"
@@ -1502,21 +1435,21 @@
      "apps/worker/src/services/research.ts",
      "apps/worker/src/services/watch.ts",
      "packages/calendar/src/google.ts",
-     "packages/channel-email/src/access/access.ts",
-     "packages/channel-email/src/access/setups.ts",
-     "packages/channel-email/src/inbox/postmaster.ts",
-     "packages/channel-email/src/inbox/sync.ts",
-     "packages/channel-email/src/restate/inbox-scheduler.ts",
-     "packages/channel-email/src/send/gmail.ts",
-     "packages/channel-email/src/send/mailboxes.ts",
-     "packages/channel-email/src/send/smtp.ts",
-     "packages/channel-search/src/console.ts",
-     "packages/channel-search/src/restate/watch.ts",
-     "packages/channel-search/src/site.ts",
      "packages/connectors/src/connectors.ts",
-     "packages/content/src/connect/access.ts",
-     "packages/content/src/connect/oauth.ts",
-     "packages/content/src/connect/sites.ts"
+     "packages/starling/channels/email/src/access/access.ts",
+     "packages/starling/channels/email/src/access/setups.ts",
+     "packages/starling/channels/email/src/inbox/postmaster.ts",
+     "packages/starling/channels/email/src/inbox/sync.ts",
+     "packages/starling/channels/email/src/restate/inbox-scheduler.ts",
+     "packages/starling/channels/email/src/send/gmail.ts",
+     "packages/starling/channels/email/src/send/mailboxes.ts",
+     "packages/starling/channels/email/src/send/smtp.ts",
+     "packages/starling/inbound/src/connect/access.ts",
+     "packages/starling/inbound/src/connect/oauth.ts",
+     "packages/starling/inbound/src/connect/sites.ts",
+     "packages/starling/search/src/console.ts",
+     "packages/starling/search/src/restate/watch.ts",
+     "packages/starling/search/src/site.ts"
     ],
     "title": [
      "`@wrenautomation/autobrowse/google`",
@@ -1537,7 +1470,6 @@
      "apps/worker/src/services/research.ts",
      "packages/books/src/capture.ts",
      "packages/books/src/text.ts",
-     "packages/channel-email/src/inbox/inbound.ts",
      "packages/core/src/model-prices.ts",
      "packages/learn/src/breakdown.ts",
      "packages/learn/src/creators.ts",
@@ -1572,17 +1504,17 @@
      "packages/research/src/schema.ts",
      "packages/research/src/signals/index.ts",
      "packages/research/src/signals/site.ts",
-     "packages/research/src/sops/index.ts"
+     "packages/research/src/sops/index.ts",
+     "packages/starling/channels/email/src/inbox/inbound.ts"
     ],
     "title": [
-     "`@wrenautomation/falcon/study`",
-     "`@wrenautomation/falcon/text`",
-     "`@wrenautomation/falcon/video`",
      "`@wrenautomation/models/command`",
      "`@wrenautomation/models/prices`",
      "`@wrenautomation/models`",
-     "`@wrenautomation/weaver/fetch`",
-     "`@wrenautomation/weaver/video`"
+     "`@wrenautomation/read/fetch`",
+     "`@wrenautomation/read/study`",
+     "`@wrenautomation/read/text`",
+     "`@wrenautomation/read/video`"
     ]
    }
   },
@@ -1592,7 +1524,7 @@
    "kind": "uses",
    "attrs": {
     "here": [
-     "packages/channel-email/src/verification/mailifier.ts"
+     "packages/starling/channels/email/src/verification/mailifier.ts"
     ],
     "title": [
      "`mailifier`"
@@ -1685,7 +1617,7 @@
    "kind": "calls",
    "attrs": {
     "here": [
-     "packages/channel-email/src/send/deliver.ts"
+     "packages/starling/channels/email/src/send/deliver.ts"
     ],
     "title": [
      "`WREN_PIXEL_BASE_URL`"
@@ -1699,8 +1631,8 @@
    "attrs": {
     "here": [
      "packages/calendar/src/google.ts",
-     "packages/channel-email/src/inbox/postmaster.ts",
-     "packages/channel-email/src/inbox/sync.ts"
+     "packages/starling/channels/email/src/inbox/postmaster.ts",
+     "packages/starling/channels/email/src/inbox/sync.ts"
     ],
     "title": [
      "`@wrenautomation/autobrowse/google`",
@@ -1714,16 +1646,16 @@
    "kind": "uses",
    "attrs": {
     "here": [
-     "packages/channel-email/src/inbox/inbound.ts",
      "packages/llm/src/client.ts",
-     "packages/research/src/schema.ts"
+     "packages/research/src/schema.ts",
+     "packages/starling/channels/email/src/inbox/inbound.ts"
     ],
     "title": [
-     "`@wrenautomation/falcon/study`",
-     "`@wrenautomation/falcon/text`",
      "`@wrenautomation/models/command`",
      "`@wrenautomation/models`",
-     "`@wrenautomation/weaver/fetch`"
+     "`@wrenautomation/read/fetch`",
+     "`@wrenautomation/read/study`",
+     "`@wrenautomation/read/text`"
     ]
    }
   },
@@ -1733,7 +1665,7 @@
    "kind": "uses",
    "attrs": {
     "here": [
-     "packages/channel-email/src/verification/mailifier.ts"
+     "packages/starling/channels/email/src/verification/mailifier.ts"
     ],
     "title": [
      "`mailifier`"

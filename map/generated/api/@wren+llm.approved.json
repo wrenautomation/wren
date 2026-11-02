@@ -53,7 +53,7 @@
     "entries": [
      "@wren/llm"
     ],
-    "file": "node_modules/.pnpm/@wrenautomation+models@0.8.2/node_modules/@wrenautomation/models/dist/types.d.ts",
+    "file": "node_modules/.pnpm/@wrenautomation+models@0.29.0/node_modules/@wrenautomation/models/dist/types.d.ts",
     "kind": "type",
     "sig": "type Effort = \"low\" | \"medium\" | \"high\" | \"xhigh\" | \"max\";"
    }
@@ -81,7 +81,7 @@
     "entries": [
      "@wren/llm"
     ],
-    "file": "node_modules/.pnpm/@wrenautomation+models@0.8.2/node_modules/@wrenautomation/models/dist/keys.d.ts",
+    "file": "node_modules/.pnpm/@wrenautomation+models@0.29.0/node_modules/@wrenautomation/models/dist/keys.d.ts",
     "kind": "type",
     "sig": "type EnvMap = Readonly<Record<string, string | undefined>>;"
    }
@@ -391,7 +391,7 @@
     "entries": [
      "@wren/llm"
     ],
-    "file": "node_modules/.pnpm/@wrenautomation+models@0.8.2/node_modules/@wrenautomation/models/dist/keys.d.ts",
+    "file": "node_modules/.pnpm/@wrenautomation+models@0.29.0/node_modules/@wrenautomation/models/dist/keys.d.ts",
     "kind": "function",
     "sig": "(env: EnvMap, vendor: string): string[]"
    }

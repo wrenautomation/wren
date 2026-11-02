@@ -1,0 +1,79 @@
+{
+ "layer": "imports",
+ "nodes": [
+  {
+   "id": "@wren/starling-youtube",
+   "role": "package",
+   "parent": "repo:wren",
+   "group": "@wren/starling-youtube",
+   "attrs": {
+    "dir": "packages/starling/channels/youtube/",
+    "npm": [
+     "vitest"
+    ],
+    "versions": [
+     "vitest@5.0.1"
+    ]
+   }
+  },
+  {
+   "id": "@wren/starling-youtube/src/content.ts",
+   "role": "file",
+   "parent": "@wren/starling-youtube",
+   "group": "@wren/starling-youtube",
+   "attrs": {
+    "description": "YouTube as a `ContentChannel`, over autobrowse's site API in the Data API v3's shape"
+   }
+  },
+  {
+   "id": "@wren/starling-youtube/src/index.ts",
+   "role": "file",
+   "parent": "@wren/starling-youtube",
+   "group": "@wren/starling-youtube"
+  },
+  {
+   "id": "@wren/starling-youtube/vitest.config.ts",
+   "role": "file",
+   "parent": "@wren/starling-youtube",
+   "group": "@wren/starling-youtube"
+  }
+ ],
+ "edges": [
+  {
+   "from": "@wren/starling-youtube",
+   "to": "@wren/core",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/starling-youtube",
+   "to": "@wren/starling-core",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/starling-youtube/src/content.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/starling-youtube/src/content.ts",
+   "to": "@wren/starling-core/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/starling-youtube/src/content.ts",
+   "to": "@wren/starling-core/src/shapes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/starling-youtube/src/index.ts",
+   "to": "@wren/starling-youtube/src/content.ts",
+   "kind": "imports"
+  }
+ ]
+}

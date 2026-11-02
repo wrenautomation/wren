@@ -1,0 +1,250 @@
+{
+ "layer": "routes",
+ "nodes": [
+  {
+   "id": "route:Content/accountInsights",
+   "role": "route",
+   "parent": "service:Content",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "input": "{ platform: Platform } & ForClient",
+    "output": "AccountInsights | null",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Content/activity",
+   "role": "route",
+   "parent": "service:Content",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "input": "{ platform: Platform; q?: ActivityQuery | null } & ForClient",
+    "output": "ActivityRow[] | null",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Content/arm",
+   "role": "route",
+   "parent": "service:Content",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "input": "{ platform: Platform; commentId: string; postId?: string | null; text: string; } & ForClient",
+    "output": "{ armed: boolean }",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Content/audience",
+   "role": "route",
+   "parent": "service:Content",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "input": "{ platform: Platform } & ForClient",
+    "output": "Audience | null",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Content/commentCounts",
+   "role": "route",
+   "parent": "service:Content",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "input": "{ platform: Platform; ids: string[] } & ForClient",
+    "output": "Record<string, number> | null",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Content/comments",
+   "role": "route",
+   "parent": "service:Content",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "input": "{ platform: Platform; id: string; q?: ListQuery } & ForClient",
+    "output": "CommentRow[]",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Content/following",
+   "role": "route",
+   "parent": "service:Content",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "input": "{ platform: Platform } & ForClient",
+    "output": "FollowingRow[] | null",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Content/insights",
+   "role": "route",
+   "parent": "service:Content",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "input": "{ platform: Platform; id: string; published?: string | null; kind?: string | null; media?: \"image\" | \"video\" | null; read?: unknown; } & ForClient",
+    "output": "Insights | null",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Content/list",
+   "role": "route",
+   "parent": "service:Content",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "input": "{ platform: Platform; q?: ListQuery } & ForClient",
+    "output": "import(\"./index.js\").PublishedRow[]",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Content/metrics",
+   "role": "route",
+   "parent": "service:Content",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "input": "{ platform: Platform; id: string } & ForClient",
+    "output": "Metrics",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Content/metricsMany",
+   "role": "route",
+   "parent": "service:Content",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "input": "{ platform: Platform; posts: { id: string; kind?: string | null }[] } & ForClient",
+    "output": "Metrics[] | null",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Content/ownComments",
+   "role": "route",
+   "parent": "service:Content",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "input": "{ platform: Platform } & ForClient",
+    "output": "OwnCommentRow[] | null",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Content/platforms",
+   "role": "route",
+   "parent": "service:Content",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "input": "void",
+    "output": "Platform[]",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Content/privateReply",
+   "role": "route",
+   "parent": "service:Content",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "input": "{ platform: Platform; commentId: string; text: string } & ForClient & Keyed",
+    "output": "{ ref: string | null } | Delivery<{ ref: string | null }>",
+    "reaches": [
+     "deliveryOf",
+     "withSendKey"
+    ],
+    "tags": [
+     "effect:sends"
+    ],
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Content/publish",
+   "role": "route",
+   "parent": "service:Content",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "input": "{ platform: Platform; post: Post } & ForClient & AsAccount & Keyed",
+    "output": "Published | Delivery<Published>",
+    "reaches": [
+     "deliveryOf",
+     "withSendKey"
+    ],
+    "tags": [
+     "effect:posts"
+    ],
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Content/reply",
+   "role": "route",
+   "parent": "service:Content",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "input": "{ platform: Platform; commentId: string; postId?: string | null; text: string; } & ForClient & AsAccount & Keyed",
+    "output": "void | Delivery<void>",
+    "reaches": [
+     "deliveryOf",
+     "withSendKey"
+    ],
+    "tags": [
+     "effect:posts"
+    ],
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Content/reportDays",
+   "role": "route",
+   "parent": "service:Content",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "input": "{ platform: Platform; after?: string | null } & ForClient",
+    "output": "ReportDays | null",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Content/reviews",
+   "role": "route",
+   "parent": "service:Content",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "input": "{ platform: Platform; q?: ActivityQuery | null } & ForClient",
+    "output": "CommentRow[] | null",
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "route:Content/update",
+   "role": "route",
+   "parent": "service:Content",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "input": "{ platform: Platform; id: string; patch: PostPatch } & ForClient",
+    "output": "void",
+    "tags": [
+     "effect:posts"
+    ],
+    "wrap": "serviceHandler"
+   }
+  },
+  {
+   "id": "service:Content",
+   "role": "service",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "factory": "makeContent",
+    "file": "packages/starling/core/src/service.ts",
+    "kind": "service"
+   }
+  }
+ ],
+ "edges": []
+}

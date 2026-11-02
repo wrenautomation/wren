@@ -7,11 +7,9 @@ Role: package. Files: 423.
 - @wren/auth
 - @wren/books
 - @wren/calendar
-- @wren/channel-email
 - @wren/channel-sms
 - @wren/config
 - @wren/connectors
-- @wren/content
 - @wren/core
 - @wren/db
 - @wren/delivery
@@ -20,12 +18,15 @@ Role: package. Files: 423.
 - @wren/llm
 - @wren/notes
 - @wren/offers
-- @wren/outreach
 - @wren/payments
 - @wren/pipeline
 - @wren/reactivation
 - @wren/sites
-- @wren/studio
+- @wren/starling-core
+- @wren/starling-email
+- @wren/starling-inbound
+- @wren/starling-outbound
+- @wren/starling-studio
 - @wren/ui
 - @wren/voice
 - @wren/watch
@@ -33,7 +34,7 @@ Role: package. Files: 423.
 
 ## Outside packages
 
-node:assert, node:crypto, node:fs, node:http, node:module, node:os, node:path, node:url, node:zlib, virtual:record-types
+@cloudflare/vite-plugin@1.61.0, @huggingface/transformers@4.3.1, @storybook/react-vite@10.6.2, @tailwindcss/vite@4.3.3, @tanstack/react-router@1.170.41, @tiptap/core@3.31.4, @tiptap/extension-collaboration-caret@3.31.4, @tiptap/extension-collaboration@3.31.4, @tiptap/extension-image@3.31.4, @tiptap/extension-list@3.31.4, @tiptap/extension-mention@3.31.4, @tiptap/extension-table@3.31.4, @tiptap/extensions@3.31.4, @tiptap/pm@3.31.4, @tiptap/react@3.31.4, @tiptap/starter-kit@3.31.4, @tiptap/suggestion@3.31.4, @tiptap/y-tiptap@3.0.9, @vitejs/plugin-react@6.1.1, axe-core@4.10.3, code-inspector-plugin@2.0.9, happy-dom@20.14.5, mammoth@1.13.0, msw-storybook-addon@3.0.3, msw@2.15.0, node:assert, node:crypto, node:fs, node:http, node:module, node:os, node:path, node:url, node:zlib, phonemizer@1.2.1, playwright-core@1.63.0, react-dom@19.3.0, react@19.3.0, rrweb-player@2.1.7, storybook@10.6.2, virtual:record-types, vite@8.3.0, ws@8.21.0, y-indexeddb@9.0.12, y-protocols@1.0.7, yjs@13.6.33, zod@4.6.5
 
 ## Folders
 

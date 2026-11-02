@@ -15,7 +15,7 @@ Exports: 27. Files: 5.
 - **NICHE_NAMES** (const) `ReadonlySet<string>`
 - **NICHE_PLATFORM_DOMAINS** (const) `ReadonlySet<string>`
 - **PERSON_SOURCE_FORMATS** (const) `ReadonlyMap<string, PersonSourceFormat>`
-- **SEQUENCES_BY_NICHE** (const) `Map<string, ReadonlyMap<string, import("@wren/channel-email").Sequence>>`
+- **SEQUENCES_BY_NICHE** (const) `Map<string, ReadonlyMap<string, import("@wren/starling-email").Sequence>>`
 - **SMS_SEQUENCES** (const) `ReadonlyMap<string, SmsSequence>`
 - **adLibraryFor** (function) `(niche: string): { keywords: readonly string[]; platforms: ReadonlySet<string>; screen: import("@wren/core").CompanyScreen | null; }`
 - **crawlHintsFor** (function) `(niche: string | null): ReadonlySet<string>`

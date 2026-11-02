@@ -139,7 +139,7 @@
     "file": "packages/niches/src/index.ts",
     "inferred": true,
     "kind": "const",
-    "sig": "Map<string, ReadonlyMap<string, import(\"@wren/channel-email\").Sequence>>"
+    "sig": "Map<string, ReadonlyMap<string, import(\"@wren/starling-email\").Sequence>>"
    }
   },
   {

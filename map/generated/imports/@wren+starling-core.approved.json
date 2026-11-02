@@ -1,0 +1,208 @@
+{
+ "layer": "imports",
+ "nodes": [
+  {
+   "id": "@wren/starling-core",
+   "role": "package",
+   "parent": "repo:wren",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "dir": "packages/starling/core/",
+    "npm": [
+     "@restatedev/restate-sdk",
+     "zod"
+    ],
+    "versions": [
+     "@restatedev/restate-sdk@1.17.1",
+     "zod@4.6.5"
+    ]
+   }
+  },
+  {
+   "id": "@wren/starling-core/src/index.ts",
+   "role": "file",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "description": "The content channel port: what publishing organic content to a platform looks like from this repo, whichever way the adapter does it (the platform's API, or an autobrowse flow where the API is gated or absent)"
+   }
+  },
+  {
+   "id": "@wren/starling-core/src/insights.ts",
+   "role": "file",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "description": "A post's and an account's deeper numbers: whatever the platform's token can read, as long rows (`metric`, `key`, `value`), plus a gap per number it can't, with the platform's own words"
+   }
+  },
+  {
+   "id": "@wren/starling-core/src/page-inbox.ts",
+   "role": "file",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "description": "A Facebook Page's inbox (Messenger, or its Instagram), as autobrowse `meta GET /{pageId}/conversations` reads it with the Page's own token"
+   }
+  },
+  {
+   "id": "@wren/starling-core/src/proof.ts",
+   "role": "file",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "description": "Comment proof: is a comment we sent there for a stranger? `CommentProof.check` answers with a `Proof`: live, hidden (only its author sees it), missing (gone) or pending (no reader yet, or none answered)"
+   }
+  },
+  {
+   "id": "@wren/starling-core/src/service.ts",
+   "role": "file",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "description": "The content channels as one Restate service, `Content`: publish and the reads, keyed by platform"
+   }
+  },
+  {
+   "id": "@wren/starling-core/src/shapes.ts",
+   "role": "file",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "description": "Post shapes: every field a platform's post takes past its text and file, one zod schema per platform"
+   }
+  },
+  {
+   "id": "@wren/starling-core/src/slides.ts",
+   "role": "file",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "description": "A carousel's slide set: 5 to 10 slides, a title and a few short lines each"
+   }
+  },
+  {
+   "id": "@wren/starling-core/src/thread.ts",
+   "role": "file",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "description": "An X thread in one draft: the posts live in the draft's text, split by a line holding only `---`, so the draft box, Ask Claude, history and undo work on it like any post"
+   }
+  },
+  {
+   "id": "@wren/starling-core/src/tiktok.ts",
+   "role": "file",
+   "parent": "@wren/starling-core",
+   "group": "@wren/starling-core",
+   "attrs": {
+    "description": "TikTok's Direct Post rules (developers.tiktok.com/doc/content-sharing-guidelines), in one place for the post's shape, the portal's form, the approve check and the adapter: the creator as `creator_info/query` answers it, the words TikTok requires, and why a post can't go yet"
+   }
+  }
+ ],
+ "edges": [
+  {
+   "from": "@wren/starling-core",
+   "to": "@wren/core",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/starling-core/src/index.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/starling-core/src/index.ts",
+   "to": "@wren/starling-core/src/insights.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/starling-core/src/index.ts",
+   "to": "@wren/starling-core/src/proof.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/starling-core/src/insights.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/starling-core/src/proof.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/starling-core/src/service.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/starling-core/src/service.ts",
+   "to": "@wren/core/src/content/restate.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/starling-core/src/service.ts",
+   "to": "@wren/core/src/metered.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/starling-core/src/service.ts",
+   "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/starling-core/src/service.ts",
+   "to": "@wren/core/src/send-verdict.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/starling-core/src/service.ts",
+   "to": "@wren/starling-core/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/starling-core/src/service.ts",
+   "to": "@wren/starling-core/src/shapes.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/starling-core/src/shapes.ts",
+   "to": "@wren/core/src/content/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/starling-core/src/shapes.ts",
+   "to": "@wren/starling-core/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/starling-core/src/shapes.ts",
+   "to": "@wren/starling-core/src/slides.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/starling-core/src/shapes.ts",
+   "to": "@wren/starling-core/src/tiktok.ts",
+   "kind": "imports"
+  }
+ ]
+}

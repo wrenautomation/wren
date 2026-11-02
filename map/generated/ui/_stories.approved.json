@@ -141,7 +141,6 @@
      "packages/ui/src/metro/map.tsx",
      "packages/ui/src/metro/place.ts",
      "packages/ui/src/metro/samples.ts",
-     "packages/ui/src/metro/tree.ts",
      "packages/ui/src/table.tsx"
     ],
     "title": "Metro"
@@ -315,6 +314,18 @@
      "apps/portal/web/src/player/index.ts"
     ],
     "title": "Revamp/Player"
+   }
+  },
+  {
+   "id": "story:pages-research",
+   "role": "story",
+   "group": "_stories",
+   "attrs": {
+    "file": "apps/portal/web/src/pages-research.stories.tsx",
+    "shows": [
+     "apps/portal/web/src/modules/research/serve.ts"
+    ],
+    "title": "Revamp/Research"
    }
   },
   {

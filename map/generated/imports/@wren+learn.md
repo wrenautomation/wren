@@ -12,7 +12,7 @@ Role: package. Files: 29.
 
 ## Outside packages
 
-@restatedev/restate-sdk@1.17.1, @wrenautomation/falcon@0.8.2, @wrenautomation/weaver@0.8.2, drizzle-orm@0.45.2, node:fs, node:path, zod@4.6.5
+@restatedev/restate-sdk@1.17.1, @wrenautomation/read@0.29.0, drizzle-orm@0.45.2, node:fs, node:path, zod@4.6.5
 
 ## Folders
 

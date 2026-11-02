@@ -1,0 +1,337 @@
+# @wren/starling-outbound
+
+Role: package. Files: 75.
+
+## Uses
+
+- @wren/config (types only)
+- @wren/core
+- @wren/db
+- @wren/llm
+- @wren/research
+- @wren/starling-core
+- @wren/starling-linkedin
+- @wren/starling-reddit
+
+## Outside packages
+
+@restatedev/restate-sdk@1.17.1, drizzle-orm@0.45.2, node:crypto, zod@4.6.5
+
+## Folders
+
+Dotted: types only.
+
+```mermaid
+flowchart LR
+  naccounts_ts["accounts.ts"]
+  nclients_ts["clients.ts"]
+  ncomments_ts["comments.ts"]
+  ncomponents_ts["components.ts"]
+  ncontacts_ts["contacts.ts"]
+  ncreator_search_ts["creator-search.ts"]
+  ndecide_ts["decide.ts"]
+  ndiscovery_["discovery/ (5)"]
+  ndraft_accounts_ts["draft-accounts.ts"]
+  ndraft_llm_ts["draft-llm.ts"]
+  ndraft_models_ts["draft-models.ts"]
+  ndrafts_ts["drafts.ts"]
+  nenroll_ts["enroll.ts"]
+  nexamples_ts["examples.ts"]
+  nfollow_ups_ts["follow-ups.ts"]
+  nfollow_ts["follow.ts"]
+  nfrom_people_ts["from-people.ts"]
+  nindex_ts["index.ts"]
+  nintercept_ts["intercept.ts"]
+  ninvite_notes_ts["invite-notes.ts"]
+  ninvites_ts["invites.ts"]
+  nlimits_ts["limits.ts"]
+  npacing_ts["pacing.ts"]
+  npain_ts["pain.ts"]
+  npasses_ts["passes.ts"]
+  npolicy_ts["policy.ts"]
+  nproofs_ts["proofs.ts"]
+  nreach_posts_["reach-posts/ (7)"]
+  nrecords_ts["records.ts"]
+  nrefusal_ts["refusal.ts"]
+  nreplies_ts["replies.ts"]
+  nreply_drafts_ts["reply-drafts.ts"]
+  nrestate_["restate/ (21)"]
+  nscheduled_ts["scheduled.ts"]
+  nschema_ts["schema.ts"]
+  nsend_attempts_ts["send-attempts.ts"]
+  nsend_kinds_ts["send-kinds.ts"]
+  nsequences_ts["sequences.ts"]
+  nsettings_ts["settings.ts"]
+  nsettle_send_ts["settle-send.ts"]
+  nstore_ts["store.ts"]
+  nthreads_ts["threads.ts"]
+  ntick_ts["tick.ts"]
+  ntouches_ts["touches.ts"]
+  nvitest_config_ts["vitest.config.ts"]
+  naccounts_ts --> npolicy_ts
+  naccounts_ts --> nrefusal_ts
+  naccounts_ts --> nschema_ts
+  nclients_ts --> naccounts_ts
+  nclients_ts --> nschema_ts
+  ncomments_ts --> ncontacts_ts
+  ncomments_ts --> ndiscovery_
+  ncomments_ts --> ndraft_accounts_ts
+  ncomments_ts --> ndraft_llm_ts
+  ncomments_ts --> nexamples_ts
+  ncomments_ts --> npasses_ts
+  ncomments_ts --> nrefusal_ts
+  ncomments_ts --> nschema_ts
+  ncomments_ts --> ntick_ts
+  ncomments_ts --> ntouches_ts
+  ncomponents_ts --> ndiscovery_
+  ncomponents_ts --> nfollow_ups_ts
+  ncomponents_ts --> ninvites_ts
+  ncomponents_ts --> nreach_posts_
+  ncontacts_ts --> nrefusal_ts
+  ncontacts_ts --> nschema_ts
+  ncontacts_ts --> nsequences_ts
+  ncreator_search_ts --> ndiscovery_
+  ndiscovery_ --> nschema_ts
+  ndiscovery_ --> nrefusal_ts
+  ndiscovery_ --> ndraft_accounts_ts
+  ndiscovery_ --> ndraft_llm_ts
+  ndiscovery_ --> nexamples_ts
+  ndiscovery_ --> npacing_ts
+  ndiscovery_ --> npasses_ts
+  ndiscovery_ --> ntouches_ts
+  ndraft_accounts_ts --> naccounts_ts
+  ndraft_accounts_ts --> ndiscovery_
+  ndraft_accounts_ts --> nrefusal_ts
+  ndraft_accounts_ts --> nschema_ts
+  ndrafts_ts --> ncontacts_ts
+  ndrafts_ts --> ndiscovery_
+  ndrafts_ts --> ndraft_accounts_ts
+  ndrafts_ts --> ndraft_llm_ts
+  ndrafts_ts --> ninvites_ts
+  ndrafts_ts --> nrefusal_ts
+  ndrafts_ts --> nschema_ts
+  ndrafts_ts --> ntick_ts
+  nenroll_ts --> naccounts_ts
+  nenroll_ts --> ncontacts_ts
+  nenroll_ts --> nrefusal_ts
+  nenroll_ts --> nschema_ts
+  nenroll_ts --> nsequences_ts
+  nenroll_ts --> nstore_ts
+  nexamples_ts --> nschema_ts
+  nfollow_ups_ts --> ncomments_ts
+  nfollow_ups_ts --> nrefusal_ts
+  nfollow_ups_ts --> nschema_ts
+  nfollow_ups_ts --> ntouches_ts
+  nfollow_ts --> ncontacts_ts
+  nfollow_ts --> nschema_ts
+  nfollow_ts --> nsequences_ts
+  nfollow_ts --> nstore_ts
+  nfollow_ts --> ntick_ts
+  nfrom_people_ts --> naccounts_ts
+  nfrom_people_ts --> ncomments_ts
+  nfrom_people_ts --> ncontacts_ts
+  nfrom_people_ts --> npasses_ts
+  nfrom_people_ts --> nrefusal_ts
+  nfrom_people_ts --> nschema_ts
+  nfrom_people_ts --> ntouches_ts
+  nindex_ts --> naccounts_ts
+  nindex_ts --> nclients_ts
+  nindex_ts --> ncomments_ts
+  nindex_ts --> ncontacts_ts
+  nindex_ts --> ndiscovery_
+  nindex_ts --> ndraft_accounts_ts
+  nindex_ts --> ndraft_llm_ts
+  nindex_ts --> ndraft_models_ts
+  nindex_ts --> ndrafts_ts
+  nindex_ts --> nenroll_ts
+  nindex_ts --> nexamples_ts
+  nindex_ts --> nfollow_ups_ts
+  nindex_ts --> nfollow_ts
+  nindex_ts --> ninvites_ts
+  nindex_ts --> npasses_ts
+  nindex_ts --> npolicy_ts
+  nindex_ts --> nproofs_ts
+  nindex_ts --> nreach_posts_
+  nindex_ts --> nrefusal_ts
+  nindex_ts --> nreplies_ts
+  nindex_ts --> nreply_drafts_ts
+  nindex_ts --> nschema_ts
+  nindex_ts --> nsend_attempts_ts
+  nindex_ts --> nsend_kinds_ts
+  nindex_ts --> nsequences_ts
+  nindex_ts --> nsettings_ts
+  nindex_ts --> nsettle_send_ts
+  nindex_ts --> nstore_ts
+  nindex_ts --> nthreads_ts
+  nindex_ts --> ntick_ts
+  nintercept_ts --> ndiscovery_
+  nintercept_ts --> nreach_posts_
+  nintercept_ts --> nrefusal_ts
+  nintercept_ts --> nschema_ts
+  ninvite_notes_ts --> ndraft_llm_ts
+  ninvite_notes_ts --> ndrafts_ts
+  ninvite_notes_ts --> nrefusal_ts
+  ninvite_notes_ts --> nschema_ts
+  ninvite_notes_ts --> ntick_ts
+  ninvites_ts --> naccounts_ts
+  ninvites_ts --> ncontacts_ts
+  ninvites_ts --> nenroll_ts
+  ninvites_ts --> npolicy_ts
+  ninvites_ts --> nschema_ts
+  ninvites_ts --> nsend_attempts_ts
+  ninvites_ts -.-> nsequences_ts
+  ninvites_ts -.-> ntick_ts
+  ninvites_ts --> ntouches_ts
+  nlimits_ts -.-> nschema_ts
+  npain_ts --> npasses_ts
+  npain_ts --> nreach_posts_
+  npain_ts --> nschema_ts
+  npasses_ts --> ncomments_ts
+  npasses_ts --> ndiscovery_
+  npasses_ts --> nreach_posts_
+  npasses_ts --> nschema_ts
+  npolicy_ts -.-> nschema_ts
+  nproofs_ts --> ndiscovery_
+  nproofs_ts --> nschema_ts
+  nreach_posts_ --> nrefusal_ts
+  nreach_posts_ --> nschema_ts
+  nreach_posts_ --> ntouches_ts
+  nreach_posts_ --> ndraft_llm_ts
+  nreach_posts_ --> nexamples_ts
+  nreach_posts_ --> npasses_ts
+  nrecords_ts --> naccounts_ts
+  nrecords_ts --> ndiscovery_
+  nrecords_ts --> ndraft_accounts_ts
+  nrecords_ts --> nfollow_ups_ts
+  nrecords_ts --> nfrom_people_ts
+  nrecords_ts --> ninvites_ts
+  nrecords_ts --> npolicy_ts
+  nrecords_ts --> nschema_ts
+  nrecords_ts --> nsequences_ts
+  nrecords_ts --> nstore_ts
+  nrecords_ts --> nthreads_ts
+  nrecords_ts --> ntick_ts
+  nreplies_ts --> ncontacts_ts
+  nreplies_ts --> nschema_ts
+  nreplies_ts --> ntouches_ts
+  nreply_drafts_ts --> nschema_ts
+  nrestate_ --> nclients_ts
+  nrestate_ --> ndrafts_ts
+  nrestate_ -.-> npolicy_ts
+  nrestate_ --> nschema_ts
+  nrestate_ --> nsequences_ts
+  nrestate_ --> naccounts_ts
+  nrestate_ --> ncomments_ts
+  nrestate_ --> ndraft_accounts_ts
+  nrestate_ --> nfollow_ups_ts
+  nrestate_ --> nsend_kinds_ts
+  nrestate_ --> ncontacts_ts
+  nrestate_ --> nenroll_ts
+  nrestate_ --> nrefusal_ts
+  nrestate_ --> nstore_ts
+  nrestate_ --> ninvites_ts
+  nrestate_ --> ninvite_notes_ts
+  nrestate_ --> nfrom_people_ts
+  nrestate_ --> nreach_posts_
+  nrestate_ --> npasses_ts
+  nrestate_ --> nscheduled_ts
+  nrestate_ --> nfollow_ts
+  nrestate_ --> nsettle_send_ts
+  nrestate_ --> ndraft_models_ts
+  nrestate_ --> nthreads_ts
+  nrestate_ --> ndiscovery_
+  nrestate_ --> nsend_attempts_ts
+  nrestate_ --> ncreator_search_ts
+  nrestate_ --> nintercept_ts
+  nrestate_ --> nproofs_ts
+  nrestate_ --> ntick_ts
+  nrestate_ --> nlimits_ts
+  nrestate_ --> nreplies_ts
+  nscheduled_ts --> ndiscovery_
+  nscheduled_ts --> npacing_ts
+  nscheduled_ts -.-> nreach_posts_
+  nscheduled_ts --> nschema_ts
+  nscheduled_ts --> nsend_attempts_ts
+  nsend_attempts_ts --> nrefusal_ts
+  nsend_attempts_ts --> nschema_ts
+  nsend_kinds_ts --> ncomments_ts
+  nsend_kinds_ts --> ndiscovery_
+  nsend_kinds_ts --> nreach_posts_
+  nsend_kinds_ts --> nrefusal_ts
+  nsend_kinds_ts --> nschema_ts
+  nsend_kinds_ts --> nsend_attempts_ts
+  nsequences_ts -.-> nschema_ts
+  nsettings_ts --> npolicy_ts
+  nsettle_send_ts --> ncomments_ts
+  nsettle_send_ts --> ncontacts_ts
+  nsettle_send_ts --> ndiscovery_
+  nsettle_send_ts --> nreach_posts_
+  nsettle_send_ts --> nrefusal_ts
+  nsettle_send_ts --> nschema_ts
+  nsettle_send_ts --> nsend_attempts_ts
+  nsettle_send_ts --> nsend_kinds_ts
+  nsettle_send_ts --> ntick_ts
+  nstore_ts --> nrefusal_ts
+  nstore_ts --> nsequences_ts
+  nthreads_ts --> ncontacts_ts
+  nthreads_ts --> nschema_ts
+  ntick_ts --> naccounts_ts
+  ntick_ts --> ncontacts_ts
+  ntick_ts --> npolicy_ts
+  ntick_ts --> nrefusal_ts
+  ntick_ts --> nschema_ts
+  ntick_ts --> nsend_attempts_ts
+  ntick_ts --> nsequences_ts
+  ntick_ts --> nstore_ts
+  ntick_ts --> ntouches_ts
+  ntouches_ts --> ndraft_accounts_ts
+  ntouches_ts --> nschema_ts
+```
+
+## Files
+
+- accounts.ts
+- clients.ts
+- comments.ts
+- components.ts
+- contacts.ts
+- creator-search.ts
+- decide.ts
+- discovery/: src/discovery/people.ts, src/discovery/places.ts, src/discovery/reads.ts, src/discovery/requirements.ts, src/discovery/threads.ts
+- draft-accounts.ts
+- draft-llm.ts
+- draft-models.ts
+- drafts.ts
+- enroll.ts
+- examples.ts
+- follow-ups.ts
+- follow.ts
+- from-people.ts
+- index.ts
+- intercept.ts
+- invite-notes.ts
+- invites.ts
+- limits.ts
+- pacing.ts
+- pain.ts
+- passes.ts
+- policy.ts
+- proofs.ts
+- reach-posts/: src/reach-posts/acts.ts, src/reach-posts/draft.ts, src/reach-posts/pass.ts, src/reach-posts/rank.ts, src/reach-posts/read.ts, src/reach-posts/settings.ts, src/reach-posts/topics.ts
+- records.ts
+- refusal.ts
+- replies.ts
+- reply-drafts.ts
+- restate/: src/restate/deps.ts, src/restate/desk-accounts.ts, src/restate/desk-comments.ts, src/restate/desk-contacts.ts, src/restate/desk-context.ts, src/restate/desk-invites.ts, src/restate/desk-people.ts, src/restate/desk-posts.ts, src/restate/desk-schedule.ts, src/restate/desk-settle.ts, src/restate/desk-stats.ts, src/restate/desk-threads.ts, src/restate/desk.ts, src/restate/discovery.ts, src/restate/index.ts, src/restate/maybe-sent.ts, src/restate/paste.ts, src/restate/proofs.ts, src/restate/schedule.ts, src/restate/sender.ts, src/restate/watch.ts
+- scheduled.ts
+- schema.ts
+- send-attempts.ts
+- send-kinds.ts
+- sequences.ts
+- settings.ts
+- settle-send.ts
+- store.ts
+- threads.ts
+- tick.ts
+- touches.ts
+- vitest.config.ts

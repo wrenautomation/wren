@@ -13,8 +13,7 @@
      "@restatedev/restate-sdk",
      "@restatedev/restate-sdk-tunnel",
      "@wrenautomation/autobrowse",
-     "@wrenautomation/falcon",
-     "@wrenautomation/weaver",
+     "@wrenautomation/read",
      "drizzle-orm",
      "esbuild",
      "node:child_process",
@@ -27,9 +26,8 @@
     "versions": [
      "@restatedev/restate-sdk-tunnel@1.17.1",
      "@restatedev/restate-sdk@1.17.1",
-     "@wrenautomation/autobrowse@0.5.0",
-     "@wrenautomation/falcon@0.8.2",
-     "@wrenautomation/weaver@0.8.2",
+     "@wrenautomation/autobrowse@0.8.4",
+     "@wrenautomation/read@0.29.0",
      "drizzle-orm@0.45.2",
      "esbuild@0.28.2",
      "pino@10.3.1"
@@ -410,47 +408,7 @@
   },
   {
    "from": "@wren/worker",
-   "to": "@wren/channel-email",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker",
-   "to": "@wren/channel-linkedin",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker",
-   "to": "@wren/channel-meta",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker",
-   "to": "@wren/channel-reddit",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker",
-   "to": "@wren/channel-search",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker",
    "to": "@wren/channel-sms",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker",
-   "to": "@wren/channel-tiktok",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker",
-   "to": "@wren/channel-x",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker",
-   "to": "@wren/channel-youtube",
    "kind": "imports"
   },
   {
@@ -461,11 +419,6 @@
   {
    "from": "@wren/worker",
    "to": "@wren/connectors",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker",
-   "to": "@wren/content",
    "kind": "imports"
   },
   {
@@ -515,11 +468,6 @@
   },
   {
    "from": "@wren/worker",
-   "to": "@wren/outreach",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker",
    "to": "@wren/payments",
    "kind": "imports"
   },
@@ -541,6 +489,61 @@
   {
    "from": "@wren/worker",
    "to": "@wren/sites",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker",
+   "to": "@wren/starling-core",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker",
+   "to": "@wren/starling-email",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker",
+   "to": "@wren/starling-inbound",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker",
+   "to": "@wren/starling-linkedin",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker",
+   "to": "@wren/starling-meta",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker",
+   "to": "@wren/starling-outbound",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker",
+   "to": "@wren/starling-reddit",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker",
+   "to": "@wren/starling-search",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker",
+   "to": "@wren/starling-tiktok",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker",
+   "to": "@wren/starling-x",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker",
+   "to": "@wren/starling-youtube",
    "kind": "imports"
   },
   {
@@ -605,27 +608,7 @@
   },
   {
    "from": "@wren/worker/src/components.ts",
-   "to": "@wren/channel-email/src/components.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/components.ts",
-   "to": "@wren/channel-meta/src/components.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/components.ts",
-   "to": "@wren/channel-search/src/components.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/components.ts",
    "to": "@wren/channel-sms/src/components.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/components.ts",
-   "to": "@wren/content/src/components.ts",
    "kind": "imports"
   },
   {
@@ -663,11 +646,6 @@
   },
   {
    "from": "@wren/worker/src/components.ts",
-   "to": "@wren/outreach/src/components.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/components.ts",
    "to": "@wren/payments/src/components.ts",
    "kind": "imports"
   },
@@ -693,6 +671,31 @@
   },
   {
    "from": "@wren/worker/src/components.ts",
+   "to": "@wren/starling-email/src/components.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/components.ts",
+   "to": "@wren/starling-inbound/src/components.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/components.ts",
+   "to": "@wren/starling-meta/src/components.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/components.ts",
+   "to": "@wren/starling-outbound/src/components.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/components.ts",
+   "to": "@wren/starling-search/src/components.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/components.ts",
    "to": "@wren/voice/src/components.ts",
    "kind": "imports"
   },
@@ -714,21 +717,6 @@
   {
    "from": "@wren/worker/src/console-records.ts",
    "to": "@wren/calendar/src/records.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/console-records.ts",
-   "to": "@wren/channel-email/src/records.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/console-records.ts",
-   "to": "@wren/channel-search/src/records.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/console-records.ts",
-   "to": "@wren/content/src/records.ts",
    "kind": "imports"
   },
   {
@@ -812,6 +800,21 @@
   {
    "from": "@wren/worker/src/console-records.ts",
    "to": "@wren/sites/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/console-records.ts",
+   "to": "@wren/starling-email/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/console-records.ts",
+   "to": "@wren/starling-inbound/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/console-records.ts",
+   "to": "@wren/starling-search/src/records.ts",
    "kind": "imports"
   },
   {
@@ -951,22 +954,7 @@
   },
   {
    "from": "@wren/worker/src/marketing.ts",
-   "to": "@wren/channel-meta/src/records.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/marketing.ts",
-   "to": "@wren/channel-search/src/records.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/marketing.ts",
    "to": "@wren/channel-sms/src/records.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/marketing.ts",
-   "to": "@wren/content/src/records.ts",
    "kind": "imports"
   },
   {
@@ -981,12 +969,27 @@
   },
   {
    "from": "@wren/worker/src/marketing.ts",
-   "to": "@wren/outreach/src/index.ts",
+   "to": "@wren/starling-inbound/src/records.ts",
    "kind": "imports"
   },
   {
    "from": "@wren/worker/src/marketing.ts",
-   "to": "@wren/outreach/src/records.ts",
+   "to": "@wren/starling-meta/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/marketing.ts",
+   "to": "@wren/starling-outbound/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/marketing.ts",
+   "to": "@wren/starling-outbound/src/records.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/marketing.ts",
+   "to": "@wren/starling-search/src/records.ts",
    "kind": "imports"
   },
   {
@@ -1017,12 +1020,12 @@
   },
   {
    "from": "@wren/worker/src/pain-feed.ts",
-   "to": "@wren/outreach/src/pain.ts",
+   "to": "@wren/pipeline/src/sourced.ts",
    "kind": "imports"
   },
   {
    "from": "@wren/worker/src/pain-feed.ts",
-   "to": "@wren/pipeline/src/sourced.ts",
+   "to": "@wren/starling-outbound/src/pain.ts",
    "kind": "imports"
   },
   {
@@ -1088,21 +1091,13 @@
   },
   {
    "from": "@wren/worker/src/record-edits.ts",
-   "to": "@wren/outreach/src/index.ts",
+   "to": "@wren/starling-outbound/src/index.ts",
    "kind": "imports"
   },
   {
    "from": "@wren/worker/src/record-edits.ts",
-   "to": "@wren/outreach/src/records.ts",
+   "to": "@wren/starling-outbound/src/records.ts",
    "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/record-types.ts",
-   "to": "@wren/channel-email/src/send/policy.ts",
-   "kind": "imports",
-   "attrs": {
-    "type": true
-   }
   },
   {
    "from": "@wren/worker/src/record-types.ts",
@@ -1161,6 +1156,14 @@
    "from": "@wren/worker/src/record-types.ts",
    "to": "@wren/reactivation/src/portal/records.ts",
    "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/record-types.ts",
+   "to": "@wren/starling-email/src/send/policy.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
   },
   {
    "from": "@wren/worker/src/record-types.ts",
@@ -1293,21 +1296,6 @@
   },
   {
    "from": "@wren/worker/src/services/accounts.ts",
-   "to": "@wren/channel-email/src/access/access.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/services/accounts.ts",
-   "to": "@wren/channel-email/src/access/console.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/services/accounts.ts",
-   "to": "@wren/channel-email/src/restate/index.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/services/accounts.ts",
    "to": "@wren/channel-sms/src/index.ts",
    "kind": "imports"
   },
@@ -1319,16 +1307,6 @@
   {
    "from": "@wren/worker/src/services/accounts.ts",
    "to": "@wren/connectors/src/index.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/services/accounts.ts",
-   "to": "@wren/content/src/connect/index.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/services/accounts.ts",
-   "to": "@wren/content/src/restate/index.ts",
    "kind": "imports"
   },
   {
@@ -1373,12 +1351,37 @@
   },
   {
    "from": "@wren/worker/src/services/accounts.ts",
-   "to": "@wren/outreach/src/limits.ts",
+   "to": "@wren/reactivation/src/index.ts",
    "kind": "imports"
   },
   {
    "from": "@wren/worker/src/services/accounts.ts",
-   "to": "@wren/reactivation/src/index.ts",
+   "to": "@wren/starling-email/src/access/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/services/accounts.ts",
+   "to": "@wren/starling-email/src/access/console.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/services/accounts.ts",
+   "to": "@wren/starling-email/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/services/accounts.ts",
+   "to": "@wren/starling-inbound/src/connect/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/services/accounts.ts",
+   "to": "@wren/starling-inbound/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/services/accounts.ts",
+   "to": "@wren/starling-outbound/src/limits.ts",
    "kind": "imports"
   },
   {
@@ -1530,16 +1533,6 @@
   },
   {
    "from": "@wren/worker/src/services/clients.ts",
-   "to": "@wren/channel-email/src/calls/index.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/services/clients.ts",
-   "to": "@wren/channel-email/src/index.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/services/clients.ts",
    "to": "@wren/core/src/ask.ts",
    "kind": "imports"
   },
@@ -1595,6 +1588,16 @@
   },
   {
    "from": "@wren/worker/src/services/clients.ts",
+   "to": "@wren/starling-email/src/calls/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/services/clients.ts",
+   "to": "@wren/starling-email/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/services/clients.ts",
    "to": "@wren/worker/src/services/deps.ts",
    "kind": "imports",
    "attrs": {
@@ -1608,59 +1611,11 @@
   },
   {
    "from": "@wren/worker/src/services/content-channels.ts",
-   "to": "@wren/channel-linkedin/src/index.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/services/content-channels.ts",
-   "to": "@wren/channel-meta/src/index.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/services/content-channels.ts",
-   "to": "@wren/channel-meta/src/restate.ts",
-   "kind": "imports",
-   "attrs": {
-    "type": true
-   }
-  },
-  {
-   "from": "@wren/worker/src/services/content-channels.ts",
-   "to": "@wren/channel-reddit/src/index.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/services/content-channels.ts",
-   "to": "@wren/channel-tiktok/src/index.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/services/content-channels.ts",
-   "to": "@wren/channel-x/src/index.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/services/content-channels.ts",
-   "to": "@wren/channel-youtube/src/index.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/services/content-channels.ts",
    "to": "@wren/config/src/index.ts",
    "kind": "imports",
    "attrs": {
     "type": true
    }
-  },
-  {
-   "from": "@wren/worker/src/services/content-channels.ts",
-   "to": "@wren/content/src/connect/index.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/services/content-channels.ts",
-   "to": "@wren/content/src/index.ts",
-   "kind": "imports"
   },
   {
    "from": "@wren/worker/src/services/content-channels.ts",
@@ -1709,38 +1664,61 @@
    }
   },
   {
-   "from": "@wren/worker/src/services/content.ts",
-   "to": "@wren/channel-email/src/access/access.ts",
+   "from": "@wren/worker/src/services/content-channels.ts",
+   "to": "@wren/starling-core/src/service.ts",
    "kind": "imports"
   },
   {
-   "from": "@wren/worker/src/services/content.ts",
-   "to": "@wren/channel-meta/src/restate.ts",
+   "from": "@wren/worker/src/services/content-channels.ts",
+   "to": "@wren/starling-inbound/src/connect/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/services/content-channels.ts",
+   "to": "@wren/starling-inbound/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/services/content-channels.ts",
+   "to": "@wren/starling-linkedin/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/services/content-channels.ts",
+   "to": "@wren/starling-meta/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/services/content-channels.ts",
+   "to": "@wren/starling-meta/src/restate.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/worker/src/services/content-channels.ts",
+   "to": "@wren/starling-reddit/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/services/content-channels.ts",
+   "to": "@wren/starling-tiktok/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/services/content-channels.ts",
+   "to": "@wren/starling-x/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/services/content-channels.ts",
+   "to": "@wren/starling-youtube/src/index.ts",
    "kind": "imports"
   },
   {
    "from": "@wren/worker/src/services/content.ts",
    "to": "@wren/channel-sms/src/index.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/services/content.ts",
-   "to": "@wren/channel-tiktok/src/index.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/services/content.ts",
-   "to": "@wren/content/src/connect/index.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/services/content.ts",
-   "to": "@wren/content/src/index.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/services/content.ts",
-   "to": "@wren/content/src/restate/index.ts",
    "kind": "imports"
   },
   {
@@ -1780,7 +1758,42 @@
   },
   {
    "from": "@wren/worker/src/services/content.ts",
-   "to": "@wren/outreach/src/restate/index.ts",
+   "to": "@wren/starling-core/src/service.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/services/content.ts",
+   "to": "@wren/starling-email/src/access/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/services/content.ts",
+   "to": "@wren/starling-inbound/src/connect/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/services/content.ts",
+   "to": "@wren/starling-inbound/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/services/content.ts",
+   "to": "@wren/starling-inbound/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/services/content.ts",
+   "to": "@wren/starling-meta/src/restate.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/services/content.ts",
+   "to": "@wren/starling-outbound/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/services/content.ts",
+   "to": "@wren/starling-tiktok/src/index.ts",
    "kind": "imports"
   },
   {
@@ -1808,75 +1821,12 @@
   },
   {
    "from": "@wren/worker/src/services/deps.ts",
-   "to": "@wren/channel-email/src/access/access.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/services/deps.ts",
-   "to": "@wren/channel-email/src/access/setups.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/services/deps.ts",
-   "to": "@wren/channel-email/src/calls/index.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/services/deps.ts",
-   "to": "@wren/channel-email/src/index.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/services/deps.ts",
-   "to": "@wren/channel-email/src/restate/index.ts",
-   "kind": "imports",
-   "attrs": {
-    "type": true
-   }
-  },
-  {
-   "from": "@wren/worker/src/services/deps.ts",
-   "to": "@wren/channel-meta/src/index.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/services/deps.ts",
-   "to": "@wren/channel-search/src/index.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/services/deps.ts",
    "to": "@wren/channel-sms/src/index.ts",
    "kind": "imports"
   },
   {
    "from": "@wren/worker/src/services/deps.ts",
    "to": "@wren/config/src/index.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/services/deps.ts",
-   "to": "@wren/content/src/connect/index.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/services/deps.ts",
-   "to": "@wren/content/src/index.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/services/deps.ts",
-   "to": "@wren/content/src/our-posts.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/services/deps.ts",
-   "to": "@wren/content/src/restate/index.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/services/deps.ts",
-   "to": "@wren/content/src/schema.ts",
    "kind": "imports"
   },
   {
@@ -2024,11 +1974,6 @@
   },
   {
    "from": "@wren/worker/src/services/deps.ts",
-   "to": "@wren/outreach/src/index.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/services/deps.ts",
    "to": "@wren/payments/src/setups.ts",
    "kind": "imports"
   },
@@ -2039,22 +1984,75 @@
   },
   {
    "from": "@wren/worker/src/services/deps.ts",
+   "to": "@wren/starling-email/src/access/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/services/deps.ts",
+   "to": "@wren/starling-email/src/access/setups.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/services/deps.ts",
+   "to": "@wren/starling-email/src/calls/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/services/deps.ts",
+   "to": "@wren/starling-email/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/services/deps.ts",
+   "to": "@wren/starling-email/src/restate/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/worker/src/services/deps.ts",
+   "to": "@wren/starling-inbound/src/connect/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/services/deps.ts",
+   "to": "@wren/starling-inbound/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/services/deps.ts",
+   "to": "@wren/starling-inbound/src/our-posts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/services/deps.ts",
+   "to": "@wren/starling-inbound/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/services/deps.ts",
+   "to": "@wren/starling-inbound/src/schema.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/services/deps.ts",
+   "to": "@wren/starling-meta/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/services/deps.ts",
+   "to": "@wren/starling-outbound/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/services/deps.ts",
+   "to": "@wren/starling-search/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/services/deps.ts",
    "to": "@wren/worker/src/components.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/services/email.ts",
-   "to": "@wren/channel-email/src/index.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/services/email.ts",
-   "to": "@wren/channel-email/src/listmonk/index.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/services/email.ts",
-   "to": "@wren/channel-email/src/restate/index.ts",
    "kind": "imports"
   },
   {
@@ -2097,6 +2095,21 @@
   },
   {
    "from": "@wren/worker/src/services/email.ts",
+   "to": "@wren/starling-email/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/services/email.ts",
+   "to": "@wren/starling-email/src/listmonk/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/services/email.ts",
+   "to": "@wren/starling-email/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/services/email.ts",
    "to": "@wren/worker/src/services/deps.ts",
    "kind": "imports"
   },
@@ -2108,26 +2121,6 @@
   {
    "from": "@wren/worker/src/services/executor.ts",
    "to": "@wren/books/src/restate.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/services/executor.ts",
-   "to": "@wren/channel-email/src/access/access.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/services/executor.ts",
-   "to": "@wren/channel-email/src/calls/index.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/services/executor.ts",
-   "to": "@wren/channel-email/src/components.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/services/executor.ts",
-   "to": "@wren/channel-email/src/index.ts",
    "kind": "imports"
   },
   {
@@ -2148,16 +2141,6 @@
   {
    "from": "@wren/worker/src/services/executor.ts",
    "to": "@wren/config/src/index.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/services/executor.ts",
-   "to": "@wren/content/src/inbox/index.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/services/executor.ts",
-   "to": "@wren/content/src/index.ts",
    "kind": "imports"
   },
   {
@@ -2253,11 +2236,6 @@
   },
   {
    "from": "@wren/worker/src/services/executor.ts",
-   "to": "@wren/outreach/src/index.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/services/executor.ts",
    "to": "@wren/pipeline/src/collect.ts",
    "kind": "imports"
   },
@@ -2274,6 +2252,41 @@
   {
    "from": "@wren/worker/src/services/executor.ts",
    "to": "@wren/research/src/sops/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/services/executor.ts",
+   "to": "@wren/starling-email/src/access/access.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/services/executor.ts",
+   "to": "@wren/starling-email/src/calls/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/services/executor.ts",
+   "to": "@wren/starling-email/src/components.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/services/executor.ts",
+   "to": "@wren/starling-email/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/services/executor.ts",
+   "to": "@wren/starling-inbound/src/inbox/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/services/executor.ts",
+   "to": "@wren/starling-inbound/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/services/executor.ts",
+   "to": "@wren/starling-outbound/src/index.ts",
    "kind": "imports"
   },
   {
@@ -2309,11 +2322,6 @@
   {
    "from": "@wren/worker/src/services/executor.ts",
    "to": "@wren/worker/src/workflows.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/services/people.ts",
-   "to": "@wren/channel-email/src/calls/index.ts",
    "kind": "imports"
   },
   {
@@ -2378,6 +2386,11 @@
   },
   {
    "from": "@wren/worker/src/services/people.ts",
+   "to": "@wren/starling-email/src/calls/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/services/people.ts",
    "to": "@wren/worker/src/components.ts",
    "kind": "imports"
   },
@@ -2412,16 +2425,6 @@
   {
    "from": "@wren/worker/src/services/platform.ts",
    "to": "@wren/books/src/index.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/services/platform.ts",
-   "to": "@wren/channel-email/src/calls/index.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/services/platform.ts",
-   "to": "@wren/channel-email/src/views.ts",
    "kind": "imports"
   },
   {
@@ -2506,12 +2509,22 @@
   },
   {
    "from": "@wren/worker/src/services/platform.ts",
-   "to": "@wren/outreach/src/decide.ts",
+   "to": "@wren/starling-email/src/calls/index.ts",
    "kind": "imports"
   },
   {
    "from": "@wren/worker/src/services/platform.ts",
-   "to": "@wren/outreach/src/index.ts",
+   "to": "@wren/starling-email/src/views.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/services/platform.ts",
+   "to": "@wren/starling-outbound/src/decide.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/services/platform.ts",
+   "to": "@wren/starling-outbound/src/index.ts",
    "kind": "imports"
   },
   {
@@ -2544,16 +2557,6 @@
   },
   {
    "from": "@wren/worker/src/services/reach.ts",
-   "to": "@wren/content/src/index.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/services/reach.ts",
-   "to": "@wren/content/src/our-posts.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/services/reach.ts",
    "to": "@wren/core/src/clients/index.ts",
    "kind": "imports"
   },
@@ -2564,22 +2567,27 @@
   },
   {
    "from": "@wren/worker/src/services/reach.ts",
-   "to": "@wren/outreach/src/index.ts",
+   "to": "@wren/starling-inbound/src/index.ts",
    "kind": "imports"
   },
   {
    "from": "@wren/worker/src/services/reach.ts",
-   "to": "@wren/outreach/src/restate/index.ts",
+   "to": "@wren/starling-inbound/src/our-posts.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/services/reach.ts",
+   "to": "@wren/starling-outbound/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/services/reach.ts",
+   "to": "@wren/starling-outbound/src/restate/index.ts",
    "kind": "imports"
   },
   {
    "from": "@wren/worker/src/services/reach.ts",
    "to": "@wren/worker/src/services/deps.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/services/reactivation.ts",
-   "to": "@wren/channel-email/src/index.ts",
    "kind": "imports"
   },
   {
@@ -2614,17 +2622,12 @@
   },
   {
    "from": "@wren/worker/src/services/reactivation.ts",
+   "to": "@wren/starling-email/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/services/reactivation.ts",
    "to": "@wren/worker/src/services/deps.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/services/research.ts",
-   "to": "@wren/channel-email/src/index.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/services/research.ts",
-   "to": "@wren/channel-email/src/restate/index.ts",
    "kind": "imports"
   },
   {
@@ -2684,17 +2687,17 @@
   },
   {
    "from": "@wren/worker/src/services/research.ts",
+   "to": "@wren/starling-email/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/services/research.ts",
+   "to": "@wren/starling-email/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/services/research.ts",
    "to": "@wren/worker/src/services/deps.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/services/search.ts",
-   "to": "@wren/channel-search/src/index.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/services/search.ts",
-   "to": "@wren/channel-search/src/restate/index.ts",
    "kind": "imports"
   },
   {
@@ -2705,6 +2708,16 @@
   {
    "from": "@wren/worker/src/services/search.ts",
    "to": "@wren/core/src/restate/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/services/search.ts",
+   "to": "@wren/starling-search/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/services/search.ts",
+   "to": "@wren/starling-search/src/restate/index.ts",
    "kind": "imports"
   },
   {
@@ -2728,11 +2741,6 @@
   {
    "from": "@wren/worker/src/services/watch.ts",
    "to": "@wren/config/src/index.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/services/watch.ts",
-   "to": "@wren/content/src/index.ts",
    "kind": "imports"
   },
   {
@@ -2762,6 +2770,11 @@
   },
   {
    "from": "@wren/worker/src/services/watch.ts",
+   "to": "@wren/starling-inbound/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/services/watch.ts",
    "to": "@wren/watch/src/restate.ts",
    "kind": "imports"
   },
@@ -2772,22 +2785,7 @@
   },
   {
    "from": "@wren/worker/src/setups.ts",
-   "to": "@wren/channel-email/src/access/setups.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/setups.ts",
-   "to": "@wren/channel-email/src/index.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/setups.ts",
    "to": "@wren/channel-sms/src/index.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/setups.ts",
-   "to": "@wren/content/src/connect/index.ts",
    "kind": "imports"
   },
   {
@@ -2806,6 +2804,21 @@
   {
    "from": "@wren/worker/src/setups.ts",
    "to": "@wren/payments/src/setups.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/setups.ts",
+   "to": "@wren/starling-email/src/access/setups.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/setups.ts",
+   "to": "@wren/starling-email/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/setups.ts",
+   "to": "@wren/starling-inbound/src/connect/index.ts",
    "kind": "imports"
   },
   {
@@ -2843,22 +2856,17 @@
   },
   {
    "from": "@wren/worker/src/wake.ts",
+   "to": "@wren/core/src/touch-feed.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/wake.ts",
    "to": "@wren/db/src/index.ts",
    "kind": "imports"
   },
   {
    "from": "@wren/worker/src/workflows.ts",
-   "to": "@wren/channel-email/src/index.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/workflows.ts",
    "to": "@wren/channel-sms/src/index.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/workflows.ts",
-   "to": "@wren/content/src/components.ts",
    "kind": "imports"
   },
   {
@@ -2893,22 +2901,32 @@
   },
   {
    "from": "@wren/worker/src/workflows.ts",
-   "to": "@wren/outreach/src/components.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/workflows.ts",
-   "to": "@wren/outreach/src/index.ts",
-   "kind": "imports"
-  },
-  {
-   "from": "@wren/worker/src/workflows.ts",
    "to": "@wren/pipeline/src/collect.ts",
    "kind": "imports"
   },
   {
    "from": "@wren/worker/src/workflows.ts",
    "to": "@wren/research/src/components.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/workflows.ts",
+   "to": "@wren/starling-email/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/workflows.ts",
+   "to": "@wren/starling-inbound/src/components.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/workflows.ts",
+   "to": "@wren/starling-outbound/src/components.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/workflows.ts",
+   "to": "@wren/starling-outbound/src/index.ts",
    "kind": "imports"
   },
   {

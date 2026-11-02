@@ -1,15 +1,18 @@
 # engine: system
 
-The research engine (models, raven, falcon, weaver) and the map engine (orrery), one npm package each.
+birdwatch, the research engine, on two primitives (models, read); and the map engine (orrery). One npm package each.
 
 ## Links
 
 - route:AccountsConsole/vendors uses engine: npm `@wrenautomation/models`
-- route:CrmRun/run uses engine: npm `@wrenautomation/falcon`, npm `@wrenautomation/weaver`
-- route:Discovery/discover uses engine: npm `@wrenautomation/falcon`, npm `@wrenautomation/weaver`
-- route:Discovery/verify uses engine: npm `@wrenautomation/falcon`, npm `@wrenautomation/weaver`
-- route:Enrichment/crawl uses engine: npm `@wrenautomation/falcon`, npm `@wrenautomation/weaver`
-- route:Enrichment/opener uses engine: npm `@wrenautomation/falcon`
-- route:Enrichment/render uses engine: npm `@wrenautomation/falcon`, npm `@wrenautomation/weaver`
-- route:Enrichment/scan uses engine: npm `@wrenautomation/falcon`
-- route:Enrichment/triggers uses engine: npm `@wrenautomation/weaver`
+- route:AutoReply/arrived uses engine: npm `@wrenautomation/models`
+- route:CrmRun/run uses engine: npm `@wrenautomation/read`
+- route:Discovery/discover uses engine: npm `@wrenautomation/read`
+- route:Discovery/verify uses engine: npm `@wrenautomation/read`
+- route:Enrichment/crawl uses engine: npm `@wrenautomation/read`
+- route:Enrichment/opener uses engine: npm `@wrenautomation/read`
+- route:Enrichment/render uses engine: npm `@wrenautomation/read`
+- route:Enrichment/scan uses engine: npm `@wrenautomation/read`
+- route:Enrichment/triggers uses engine: npm `@wrenautomation/read`
+- route:InboxDesk/suggest uses engine: npm `@wrenautomation/models`
+- route:MarketingConsole/inboxSuggest uses engine: npm `@wrenautomation/models`
