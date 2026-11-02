@@ -1,0 +1,19 @@
+# One global bucket for every caller: /search leaves at 12 a minute (each fans out to every
+# engine, so no engine sees this IP more than once in 5 s). Over the rate a request waits in
+# line (burst 12, at most 60 s); past the line, 429.
+limit_req_zone $pace zone=search:1m rate=12r/m;
+map $host $pace {
+  default all;
+}
+server {
+  listen 8080;
+  location /search {
+    limit_req zone=search burst=12;
+    limit_req_status 429;
+    proxy_pass http://searxng:8080;
+    proxy_read_timeout 30s;
+  }
+  location / {
+    proxy_pass http://searxng:8080;
+  }
+}

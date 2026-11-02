@@ -407,6 +407,13 @@ The research engine's free web search is a SearXNG on box 1 (`deploy/vps/`, prof
 file at the org root holds `SEARXNG_URL` and `SEARXNG_TOKEN`; birdwatch's `searxng` source sends
 the bearer when the token is set. Box 2 runs the prober alone (`SEARCH_HOST=` empty).
 
+Pace: nginx (`pacer`, `deploy/vps/search.nginx`) sits between Caddy and SearXNG. One bucket
+for every caller: 12 searches a minute, a burst of 12 waits in line, past that 429. SearXNG
+pauses an engine after a block (`suspended_times` in `searxng.yml`: 15 min rate limit, 2 h
+CAPTCHA). From this IP (2026-11-02) Bing, Yahoo, PrivacyWall and Mwmbl answer; Brave,
+DuckDuckGo and Qwant block; Google, Mojeek and Startpage stay off. Google comes from the
+desk's browser (birdwatch `google`), Reddit from the desk's `reddit-public`.
+
 ```sh
 deploy/scripts/deploy-vps.sh                                      # box 1: prober + search
 PROBE_HOST=probe2.wrenautomation.com deploy/scripts/deploy-vps.sh  # box 2: prober alone

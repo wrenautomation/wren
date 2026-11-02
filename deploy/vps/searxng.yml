@@ -1,12 +1,43 @@
 # SearXNG for the research engine (birdwatch's `searxng` source: GET /search?q=&format=json).
 # Everything else is SearXNG's default; the secret, base URL, limiter and image proxy
-# come from the environment (compose.yml).
-use_default_settings: true
+# come from the environment (compose.yml). Pace: search.nginx, in front.
+use_default_settings:
+  engines:
+    # web engines only: one query fans out to each, so a wide set rides out one engine's block
+    keep_only: [bing, brave, duckduckgo, mwmbl, privacywall, qwant, yahoo, yep]
 server:
   bind_address: "0.0.0.0"
   port: 8080
 search:
   formats: [html, json]
   safe_search: 0
+  # backoff per engine after a block (defaults: 1 h rate limit, 1 day CAPTCHA)
+  suspended_times:
+    SearxEngineAccessDenied: 7200
+    SearxEngineCaptcha: 7200
+    SearxEngineTooManyRequests: 900
+    cf_SearxEngineCaptcha: 7200
+    cf_SearxEngineAccessDenied: 7200
+    recaptcha_SearxEngineCaptcha: 7200
+  ban_time_on_fail: 10
+  max_ban_time_on_fail: 300
+outgoing:
+  request_timeout: 5.0
+  max_request_timeout: 10.0
+engines:
+  # off by default upstream; google, mojeek and startpage stay off (block this IP or need a
+  # proof-of-work CAPTCHA): Google comes through the desk's browser instead
+  - name: bing
+    disabled: false
+  - name: mwmbl
+    disabled: false
+  - name: privacywall
+    disabled: false
+  - name: qwant
+    disabled: false
+  - name: yahoo
+    disabled: false
+  - name: yep
+    disabled: false
 ui:
   static_use_hash: true

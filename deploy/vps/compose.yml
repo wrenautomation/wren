@@ -44,6 +44,15 @@ services:
       GRANIAN_BLOCKING_THREADS: "4"
     volumes:
       - ./searxng.yml:/etc/searxng/settings.yml:ro
+  # The pace in front of SearXNG (search.nginx): one queue for every caller.
+  pacer:
+    image: public.ecr.aws/docker/library/nginx:1.29-alpine
+    profiles: [search]
+    restart: unless-stopped
+    mem_limit: 32m
+    volumes:
+      - ./search.nginx:/etc/nginx/conf.d/default.conf:ro
+    depends_on: [searxng]
   # TLS for each name; holds the only public ports.
   caddy:
     image: public.ecr.aws/docker/library/caddy:2-alpine

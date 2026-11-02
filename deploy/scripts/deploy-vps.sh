@@ -25,7 +25,7 @@ ssm /wren/prod/probe_ssh_key > "$KEY"
 SSH=(ssh -i "$KEY" -o StrictHostKeyChecking=accept-new "root@$HOST")
 "${SSH[@]}" "mkdir -p $DIR/sites && rm -f $DIR/sites/*.caddy"
 scp -q -i "$KEY" "$BUNDLE" "root@$HOST:$DIR/prober.mjs"
-scp -q -i "$KEY" deploy/vps/compose.yml deploy/vps/Caddyfile deploy/vps/searxng.yml "root@$HOST:$DIR/"
+scp -q -i "$KEY" deploy/vps/compose.yml deploy/vps/Caddyfile deploy/vps/searxng.yml deploy/vps/search.nginx "root@$HOST:$DIR/"
 ENV="PROBE_TOKEN=$(ssm /wren/prod/probe_token)\nPROBE_HOST=$HOST\n"
 PROFILE=""
 if [ -n "$SEARCH" ]; then
