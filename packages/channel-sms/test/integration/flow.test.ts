@@ -473,9 +473,9 @@ describe("enroll → send → receipts → reply", () => {
         limit: 10,
         now: OPEN,
       });
-    expect(await run(spring)).toMatchObject({ enrolled: 1, notTextable: 0 });
+    expect(await run(spring)).toMatchObject({ enrolled: 1, notTextable: 0, campaignRoom: 1 });
     // The cap counts the fleet day: a second run enrolls no one.
-    expect(await run(spring)).toMatchObject({ considered: 0, enrolled: 0 });
+    expect(await run(spring)).toMatchObject({ considered: 0, enrolled: 0, campaignRoom: 0 });
     // Nobody's segment: the landline's contact has no person, so sits out too.
     const away = {
       ...spring,

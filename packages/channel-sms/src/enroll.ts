@@ -60,6 +60,8 @@ export interface EnrollStats {
   leadBusy: number;
   /** Some contact had no active pool number in its country: left `new`. */
   noNumber: boolean;
+  /** A campaign run: what its `sms.opener` cap and the limit left at the start. 0 = cap spent today. */
+  campaignRoom?: number;
   lookupErrors: string[];
 }
 
@@ -125,6 +127,7 @@ export async function enroll(db: Db, opts: EnrollOptions): Promise<EnrollStats> 
         await enrolledToday(db, campaign.id, opts.now),
       )
     : opts.limit;
+  if (campaign) stats.campaignRoom = limit;
   if (limit <= 0) return stats;
   const where = [eq(smsContacts.state, "new"), inArray(smsContacts.basis, [...opts.policy.bases])];
   if (opts.niche) where.push(eq(smsContacts.niche, opts.niche));

@@ -1,7 +1,7 @@
 ---
 type: process
 status: verified
-verified: 2026-09-28 @ 28823cd
+verified: 2026-11-02 @ 53d93458 + WA-999 (enroll --campaign)
 consumes: ["[[research/document]]", "[[sms/sms-contact]]", "[[sms/sms-number]]", "[[sms/sms-provider]]", "[[leads/suppression]]"]
 produces: ["[[sms/sms-contact]]", "[[sms/sms-message]]", "[[sms/sms-event]]", "[[leads/suppression]]", "[[sms/sms-number]]"]
 ---
@@ -21,7 +21,7 @@ Texting a stranger twice is worse than missing one, so intent-before-act and ide
 ## Steps
 
 1. Lift (`packages/channel-sms/src/lift.ts:77`); add by hand (`contacts.ts:12`).
-2. Enroll (`enroll.ts:69`; step 1 at `:172`).
+2. Enroll (`enroll.ts:102`; step 1 at `:244`). With `--campaign`, only the live campaign's segment, under its `sms.opener` cap, stamped on the contact ([[platform/campaign]]).
 3. Tick (`deliver.ts:170`; reconcile `:63`; policy `policy.ts`; pool `pool.ts:90`).
 4. Events (`events.ts:230`; rules `:53`; signature `webhook.ts`; door `apps/phone/src/worker.ts`).
 5. Site applicants and call reminders (`form.ts`, `reminders.ts`; bookings `bookings.ts`).

@@ -75,7 +75,7 @@ beforeAll(async () => {
     services: [
       makeSmsSender(deps),
       makeSmsEvents(deps),
-      makeSmsDesk(deps),
+      makeSmsDesk(deps, async () => [{ id: "spring", accounts: {}, caps: { "sms.opener": 1 } }]),
       makeSmsWatch(deps),
       makeExecutor({
         main: pg.db,
@@ -133,9 +133,14 @@ describe("sms on restate", () => {
     await company(pg.db, "Acme", { html: '<a href="tel:+12125550187">x</a>' });
     await lift(pg.db, { heldNiches: [] });
     const desk = ingress().serviceClient<SmsDeskService>({ name: "SmsDesk" });
-    expect(await desk.enroll({ sequence: "recruiting-sms", limit: 5 })).toMatchObject({
-      enrolled: 1,
-    });
+    await expect(
+      desk.enroll({ sequence: "recruiting-sms", limit: 5, campaign: "ghost" }),
+    ).rejects.toThrow(/no live campaign ghost \(live: spring\)/);
+    expect(
+      await desk.enroll({ sequence: "recruiting-sms", limit: 5, campaign: "spring" }),
+    ).toMatchObject({ enrolled: 1, campaignRoom: 1 });
+    const [stamped] = await pg.db.select().from(smsContacts);
+    expect(stamped?.campaign).toBe("spring");
     await expect(desk.enroll({ sequence: "nope", limit: 1 })).rejects.toThrow(/no sms sequence/);
     const sender = ingress().objectClient<SmsSender>({ name: "SmsSender" }, SENDER_KEY);
     const pass = (await sender.sync()) as PassOutcome<TickStats>;
