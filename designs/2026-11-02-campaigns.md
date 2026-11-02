@@ -66,6 +66,22 @@ Numbers come before control. The journey numbers show what to change before loop
 
 Two levels. The global cap per account and platform guards against a bot flag; no act passes it. A campaign cap is a second, smaller limit inside it. Campaigns take from the global cap first come, first served. When campaigns compete for many accounts, phase 3 sets how they split.
 
+## Phase 3: how a loop learns its campaign (proposed, needs William)
+
+Today each loop runs one pass on global settings: the content planner, the reach passes (follows, comments, invites, DMs), cold email enrollment, SMS. Global caps sit in several places: `limits` rows (`outbound/src/limits.ts`, ramped), the reach policy (`policy.ts`), and autobrowse's own caps on the Mac.
+
+| | How | For | Against |
+|---|---|---|---|
+| **A. One pass walks the campaigns (recommended)** | Each pass reads the live campaigns, in body order, the default last. Per campaign: its audience, accounts and caps. Every act stamps the campaign it ran for | First come, first served is body order, the same every pass. The global count is read once per pass. The default campaign is today's pass, unchanged. One Restate key per loop, as today | A slow campaign delays the ones after it in the same pass |
+| B. One loop per campaign | A Restate key per campaign id | Campaigns run apart, in parallel | The global cap becomes a shared counter across keys: a race on every act, the bot-flag guard at risk |
+| C. A campaign is a filter on today's pass | The pass picks targets as today, then gives each to the first campaign whose audience takes it | Least change | The content planner cannot plan per campaign: a filter has no cadence or CTA |
+
+Ranked by: the global cap holds (the bot-flag guard), then numbers per campaign stay true, then least new runtime.
+
+The cap check is one function for every loop: what is left = the smaller of the global cap left and the campaign cap left. The global count reads every act on the account and platform; the campaign count reads the acts stamped with that campaign. The global caps stay where they are. A campaign cap never raises one.
+
+Build order: the `campaign` column and its writer go in together, loop by loop, fewest writers first: cold email enroll, then reach passes, then the content planner, then SMS.
+
 ## Decision log
 
 - 2026-11-02: a campaign is a group on the metro map, option A (William: "i agree that a campaign is a group in orrery"). A row alone (B) was my first pick; William was "not sure about just having a versioned row".
