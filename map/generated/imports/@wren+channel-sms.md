@@ -9,6 +9,7 @@ Role: package. Files: 46.
 - @wren/db
 - @wren/llm
 - @wren/research
+- @wren/starling-core
 
 ## Outside packages
 

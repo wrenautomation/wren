@@ -1,6 +1,6 @@
 # @wren/channel-sms: interface
 
-Exports: 338. Files: 42.
+Exports: 339. Files: 42.
 
 ## packages/channel-sms/src/bookings.ts
 
@@ -71,7 +71,7 @@ Exports: 338. Files: 42.
 
 ## packages/channel-sms/src/enroll.ts
 
-- **EnrollOptions** (interface) `interface EnrollOptions { sequence: SmsSequence; policy: SmsPolicy; provider: SmsProvider; senderName: string; niche?: string | null; heldNiches: readonly string[]; contactIds?: readonly number[]; bookingLink?: string | null; limit: number; now: Date; runId?: string | null; }`
+- **EnrollOptions** (interface) `interface EnrollOptions { sequence: SmsSequence; policy: SmsPolicy; provider: SmsProvider; senderName: string; niche?: string | null; heldNiches: readonly string[]; contactIds?: readonly number[]; bookingLink?: string | null; campaign?: LoopCampaign | null; limit: number; now: Date; runId?: string | null; }`
 - **EnrollStats** (interface) `interface EnrollStats { considered: number; enrolled: number; lookedUp: number; notTextable: number; suppressed: number; companyBusy: number; leadBusy: number; noNumber: boolean; lookupErrors: string[]; }`
 - **enroll** (function) `(db: Db, opts: EnrollOptions): Promise<EnrollStats>`
 
@@ -180,6 +180,7 @@ Exports: 338. Files: 42.
 
 - **SyncStats** (interface) `interface SyncStats { seen: number; added: string[]; retired: string[]; overCap: string[]; notUsOrCa: string[]; }`
 - **cannotReach** (function) `(number: Pick<SmsNumber, "e164" | "country" | "registeredAt">, to: string): string | null`
+- **fleetDayStart** (function) `(at: Date): Date`
 - **numberByE164** (function) `(db: Queryable, e164: string): Promise<SmsNumber | null>`
 - **numberReady** (function) `(n: NumberToday, now: Date, policy: SmsPolicy): boolean`
 - **pauseNumber** (function) `(db: Queryable, e164: string, reason: string, now: Date): Promise<boolean>`
@@ -273,7 +274,7 @@ Exports: 338. Files: 42.
 - **SmsWatchObject** (type) `type SmsWatchObject = ReturnType<typeof makeSmsWatch>;`
 - **WATCH_KEY** (const) `"daily"`
 - **WatchStats** (interface) `interface WatchStats { registration: RegistrationStats; forms: FormStats | null; formsAfter: AfterStats | null; formsError?: string; reminders: ReminderStats | null; remindersError?: string; classify: ClassifyStats | null; health: Pick<HealthReport, "paused" | "warnings" | "balanceUsd" | "fleet">; summarized: string | null; }`
-- **makeSmsDesk** (function) `(deps: SmsDeps): restate.ServiceDefinition<"SmsDesk", { threads: (ctx: restate.Context, req?: { filter?: ThreadFilter; limit?: number; offset?: number; } & ForClient) => Promise<ThreadSummary[]>; thread: (ctx: restate.Context, req: { contactId: number; } & ForClient) => Promise<Thread | null>; markRead: (ctx: restat…`
+- **makeSmsDesk** (function) `(deps: SmsDeps, liveCampaigns?: (db: Db, now: Date) => Promise<readonly LoopCampaign[]>): restate.ServiceDefinition<"SmsDesk", { threads: (ctx: restate.Context, req?: { filter?: ThreadFilter; limit?: number; offset?: number; } & ForClient) => Promise<ThreadSummary[]>; thread: (ctx: restate.Context, req: { contactId: number; } & ForClient) => Promise<Thread | null>; markRead: (ctx: restat…`
 - **makeSmsEvents** (function) `(deps: Pick< SmsDeps, "db" | "provider" | "notifier" | "pusher" | "clock" | "campaignId" | "clientDb" > & { fire?: FireTriggers; calls?: CallHooks; keys?: KeyStore | null; }): restate.ServiceDefinition<"SmsEvents", { signer: (ctx: restate.Context, req: { number?: string | null; client?: string | null; }) => Promise<Signer>; ingest: (ctx: restate.Context, body: unknown) => Promise<{ duplicate: boolean; outcome: string; }>; ingestFor: (ctx: restate.Context, req: { client: s…`
 - **makeSmsSender** (function) `(wren: SmsDeps): restate.VirtualObjectDefinition<string, Record<never, never> & Record<never, (ctx: restate.ObjectContext) => Promise<PassOutcome<TickStats>>> & { sync: (ctx: restate.ObjectContext) => Promise<PassOutcome<TickStats>>; start: (ctx: restate.ObjectContext, settings?: Record<string, unknown> | null) => P…`
 - **makeSmsWatch** (function) `(wren: SmsDeps): restate.VirtualObjectDefinition<string, Record<never, never> & Record<never, (ctx: restate.ObjectContext) => Promise<PassOutcome<WatchStats>>> & { sync: (ctx: restate.ObjectContext) => Promise<PassOutcome<WatchStats>>; start: (ctx: restate.ObjectContext, settings?: Record<string, unknown> | null) =>…`

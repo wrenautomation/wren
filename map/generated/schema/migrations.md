@@ -1,6 +1,6 @@
 # Migrations
 
-Files: 356.
+Files: 357.
 
 - 0000_initial_tables.sql
 - 0001_email_channel_tables.sql
@@ -358,3 +358,4 @@ Files: 356.
 - 0354_enrollment_campaign.sql
 - 0355_reach_campaign.sql
 - 0356_content_idea_campaign.sql
+- 0357_sms_contact_campaign.sql

@@ -458,6 +458,11 @@
    "kind": "imports"
   },
   {
+   "from": "@wren/channel-sms",
+   "to": "@wren/starling-core",
+   "kind": "imports"
+  },
+  {
    "from": "@wren/channel-sms/src/classify.ts",
    "to": "@wren/channel-sms/src/deliver.ts",
    "kind": "imports"
@@ -690,6 +695,11 @@
   },
   {
    "from": "@wren/channel-sms/src/enroll.ts",
+   "to": "@wren/core/src/segments.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/enroll.ts",
    "to": "@wren/core/src/slots/index.ts",
    "kind": "imports",
    "attrs": {
@@ -699,6 +709,11 @@
   {
    "from": "@wren/channel-sms/src/enroll.ts",
    "to": "@wren/db/src/index.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/channel-sms/src/enroll.ts",
+   "to": "@wren/starling-core/src/campaigns.ts",
    "kind": "imports"
   },
   {
@@ -1957,6 +1972,14 @@
   {
    "from": "@wren/channel-sms/src/restate/index.ts",
    "to": "@wren/llm/src/index.ts",
+   "kind": "imports",
+   "attrs": {
+    "type": true
+   }
+  },
+  {
+   "from": "@wren/channel-sms/src/restate/index.ts",
+   "to": "@wren/starling-core/src/campaigns.ts",
    "kind": "imports",
    "attrs": {
     "type": true

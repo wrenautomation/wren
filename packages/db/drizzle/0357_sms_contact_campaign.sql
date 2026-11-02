@@ -1,0 +1,1 @@
+ALTER TABLE "sms_contacts" ADD COLUMN "campaign" varchar(64);

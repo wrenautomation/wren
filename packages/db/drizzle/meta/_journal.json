@@ -2493,6 +2493,13 @@
       "when": 1793649921680,
       "tag": "0356_content_idea_campaign",
       "breakpoints": true
+    },
+    {
+      "idx": 357,
+      "version": "7",
+      "when": 1793651428904,
+      "tag": "0357_sms_contact_campaign",
+      "breakpoints": true
     }
   ]
 }

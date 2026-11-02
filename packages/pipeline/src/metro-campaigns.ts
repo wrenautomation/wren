@@ -51,6 +51,8 @@ const REACH_ACTS: Readonly<Record<string, readonly string[]>> = {
   youtube: ["comment"],
   tiktok: ["comment"],
   threads: ["comment"],
+  // Contacts enrolled a fleet day (`wren sms enroll --campaign`).
+  sms: ["opener"],
 };
 // Posts holding a slot tomorrow (`ContentPlanner`), on every content platform.
 const CAMPAIGN_ACTS: Readonly<Record<string, readonly string[]>> = {

@@ -136,6 +136,7 @@ describe("campaign rules", () => {
         "email.send": 5,
         "linkedin.follow": 1,
         "reddit.post": 1,
+        "sms.send": 1,
       },
       from: "2026-13-01",
       until: "soon",
@@ -149,6 +150,7 @@ describe("campaign rules", () => {
       'Campaign "spring" caps email.opener at 10001. Use a whole number from 0 to 10000.',
       'Campaign "spring" caps email.send. email acts: opener.',
       'Campaign "spring" caps linkedin.follow. linkedin acts: invite, comment, post.',
+      'Campaign "spring" caps sms.send. sms acts: opener.',
       'Campaign "spring" has from "2026-13-01". Use a date, YYYY-MM-DD.',
       'Campaign "spring" has until "soon". Use a date, YYYY-MM-DD.',
     ]);

@@ -44,6 +44,7 @@ import {
 import { cadenceId } from "@wren/core/workflows";
 import type { Db } from "@wren/db";
 import type { LlmClient } from "@wren/llm";
+import type { LoopCampaign } from "@wren/starling-core/campaigns";
 import { z } from "zod";
 import type { Bookings } from "../bookings.js";
 import { type ClassifyStats, classifyReplies, labelReply } from "../classify.js";
@@ -457,12 +458,17 @@ const LIFT = z
 const ENROLL = z.looseObject({
   sequence: z.string(),
   niche: NICHE,
+  campaign: z.string().max(64).nullish().describe("A live metro campaign id; unset = the default"),
   limit: z.number().describe("Contacts to enroll"),
   client: CLIENT_ID,
 });
 type ForClient = { client?: string | null };
 
-export function makeSmsDesk(deps: SmsDeps) {
+export function makeSmsDesk(
+  deps: SmsDeps,
+  /** The live metro campaigns of a database (`@wren/pipeline`, above this layer). Absent, `campaign` refuses. */
+  liveCampaigns?: (db: Db, now: Date) => Promise<readonly LoopCampaign[]>,
+) {
   const terminal = async <T>(fn: () => Promise<T>): Promise<T> => {
     try {
       return await fn();
@@ -822,7 +828,12 @@ export function makeSmsDesk(deps: SmsDeps) {
         { input: ENROLL, effect: "sends" },
         async (
           ctx: restate.Context,
-          req: { sequence: string; niche?: string; limit: number } & ForClient,
+          req: {
+            sequence: string;
+            niche?: string;
+            campaign?: string | null;
+            limit: number;
+          } & ForClient,
         ): Promise<EnrollStats> => {
           const d = await deskDeps(ctx, deps, req.client);
           const sequence = d.sequences.get(req.sequence);
@@ -831,6 +842,23 @@ export function makeSmsDesk(deps: SmsDeps) {
               `no sms sequence ${req.sequence} (have: ${[...d.sequences.keys()].join(", ")})`,
             );
           const now = await nowOf(ctx);
+          const campaign = req.campaign
+            ? await ctx.run("campaign", async () => {
+                if (!liveCampaigns) throw new restate.TerminalError("campaigns are not wired");
+                const live = await liveCampaigns(d.db, now);
+                const c = live.find((x) => x.id === req.campaign);
+                if (!c)
+                  throw new restate.TerminalError(
+                    `no live campaign ${req.campaign} (live: ${live.map((x) => x.id).join(", ") || "none"})`,
+                  );
+                return {
+                  id: c.id,
+                  accounts: c.accounts,
+                  caps: c.caps,
+                  ...(c.audience ? { audience: c.audience } : {}),
+                };
+              })
+            : null;
           return ctx.run("enroll", async () => {
             const { stats } = await terminal(() =>
               recordedRun(
@@ -845,6 +873,7 @@ export function makeSmsDesk(deps: SmsDeps) {
                     bookingLink: d.bookingLink ?? null,
                     niche: req.niche ?? null,
                     heldNiches: d.heldNiches,
+                    campaign,
                     limit: req.limit,
                     now,
                     runId: run.id,

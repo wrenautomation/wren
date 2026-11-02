@@ -56,7 +56,7 @@ Rules:
    - The default campaign is computed, not stored: id `default`, every station outside a campaign group, status `live`, fields unset (a loop reads its settings as today). No shape needs a new version, and a group may not take the id `default`.
    - `LineEntry.campaign` stays text: the `utm_campaign` word an ads or `/go/` source matches. It moves to group ids with `/go/` links in phase 3, and the Meta spend join when ads start.
 2. **Numbers from the journeys.** `wren campaigns numbers [--window]`: per campaign, people in, converted (reached a CTA station), open now, deals (`campaign-numbers.ts`). A journey is in a campaign when it arrived at a station of it, on the version it was on then. A parent counts its children.
-3. **Loops take a campaign, and stamp it.** A `campaign` column at the level each loop enrolls or queues, null for the default: email `enrollments`, `reach_contacts`, `reach_posts`, `content_ideas`, `sms_messages`. Messages, invites, DMs, likes, follows and touches inherit it through their parent row. Each loop writes it as it learns the campaign: the content planner plans per campaign (platforms, cadence, CTA), reach passes pick from the campaign's audience with its accounts and caps, cold email enrolls into a campaign, newsletters run as a campaign's lap. `/go/` links carry the group id. Acts and cost join the numbers.
+3. **Loops take a campaign, and stamp it.** A `campaign` column at the level each loop enrolls or queues, null for the default: email `enrollments`, `reach_contacts`, `reach_posts`, `content_ideas`, `sms_contacts`. Messages, invites, DMs, likes, follows and touches inherit it through their parent row. Each loop writes it as it learns the campaign: the content planner plans per campaign (platforms, cadence, CTA), reach passes pick from the campaign's audience with its accounts and caps, cold email enrolls into a campaign, newsletters run as a campaign's lap. `/go/` links carry the group id. Acts and cost join the numbers.
 4. **Logic in the runtime.** The executor runs `split` (fan-out), `join` (all, any, n of m) and `race` (first event wins, the other branches stop). A campaign on many channels needs race: a reply on one channel stops the rest.
 5. **The map.** A campaign circle shows its fields and numbers. It is edited in the portal and in the metro file.
 
@@ -140,3 +140,16 @@ Build order: the `campaign` column and its writer go in together, loop by loop, 
   - `--campaign` on `wren content add` and `wren write` checks the id against the newest shape. The desk's API takes it as given.
   - Deferred: the CTA in the prompt and `pointsTo` from the campaign's CTA ladder; the offer in the prompt.
   - `/go/` links stay `/go/<channel>/<stage>/<draft8>` (`inbound/src/funnel.ts`). The draft joins its idea, and the idea its campaign, so a click finds its campaign without a new path. `LineEntry.campaign` stays a `utm_campaign` word until ads start.
+- 2026-11-02, phase 3 SMS (WA-999). No cold SMS pass runs: `enroll` has 3 callers, the form follow-up and speed to lead (named applicants) and the operator's `wren sms enroll`. `SmsWatch` enrolls no one. So "each pass walks the campaigns" has no pass here.
+
+  | | How | For | Against |
+  |---|---|---|---|
+  | **A. `--campaign` on the manual enroll (chosen)** | `wren sms enroll --campaign <id>`. The handler finds the live campaign and enrolls only its segment's people, under `sms.opener` | Fits how SMS runs today. One writer | The operator names the campaign; nothing sweeps |
+  | B. The enroll sweeps the live campaigns, default last | The `limit` is split across campaigns with `accounts.sms` | The same as the other loops | `accounts.sms` has no meaning: SMS has one number pool and one profile, not per-campaign senders |
+  | C. A cold pass in `SmsWatch` | A new pass sweeps as `ComposeScheduler` does | Campaigns run themselves | Turns a manual channel automatic. Cold SMS has never sent in prod. Spend is William's call |
+
+  Ranked by: no new sends without William's yes, then one writer, then the same shape as the other loops. A sweep comes with a cold pass, if one is built.
+  - The stamp is `sms_contacts.campaign`, written in the same update that enrolls. A contact enrolls once (`new` to `enrolled`, never back), so this is the enrollment level. Messages inherit through `contact_id`. Form and speed enrollments stay the default.
+  - Segment: people only (`personInSegment` on `person_id`), as cold email. A contact with no person sits out.
+  - Cap `sms.opener`: the campaign's contacts enrolled in this fleet day (Eastern, as the pool's caps), inside the `limit` (`capLeft`). The pool's send caps still pace delivery.
+  - `accounts.sms` is not read. Deferred: the offer (an SMS sequence has none) and a sticky number per campaign.

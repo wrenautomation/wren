@@ -7,7 +7,8 @@
 import { activeSuppressionOf, addSuppression } from "@wren/core";
 import { operators } from "@wren/core/clients";
 import { mayMarket } from "@wren/core/marketing";
-import { consentEvents, topics } from "@wren/core/schema";
+import { consentEvents, people, topics } from "@wren/core/schema";
+import { segmentOf } from "@wren/core/testing";
 import { listen } from "@wren/db";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
@@ -434,6 +435,66 @@ describe("enroll → send → receipts → reply", () => {
     expect(m).toMatchObject({ step: 1, state: "queued" });
     expect(m?.body).toBe("hi there, William here. saw Acme Studio. reply STOP to opt out");
     expect(m?.templateVersion).toMatch(/^[0-9a-f]{12}$/);
+  });
+
+  it("a campaign enrolls its segment's people under its cap, stamped; the default takes the rest", async () => {
+    // Acme's and Beta's numbers belong to people; both sit in spring's segment.
+    const ids: number[] = [];
+    for (const e164 of ["+12125550187", "+12125550142"]) {
+      const c = await contact(e164);
+      const [p] = await db()
+        .insert(people)
+        .values({
+          companyId: c?.companyId as number,
+          fullName: `P ${e164.slice(-3)}`,
+          isCompliance: false,
+          origin: "manual",
+          originRef: "test",
+          raw: {},
+        })
+        .returning({ id: people.id });
+      ids.push(p?.id as number);
+      await db().update(smsContacts).set({ personId: p?.id }).where(eq(smsContacts.e164, e164));
+    }
+    const spring = {
+      id: "spring",
+      audience: { segment: String(await segmentOf(db(), ids, "spring")) },
+      accounts: {},
+      caps: { "sms.opener": 1 },
+    };
+    const run = (campaign: typeof spring | null) =>
+      enroll(db(), {
+        sequence: SEQ,
+        policy: POLICY,
+        provider,
+        senderName: "William",
+        heldNiches: [],
+        campaign,
+        limit: 10,
+        now: OPEN,
+      });
+    expect(await run(spring)).toMatchObject({ enrolled: 1, notTextable: 0 });
+    // The cap counts the fleet day: a second run enrolls no one.
+    expect(await run(spring)).toMatchObject({ considered: 0, enrolled: 0 });
+    // Nobody's segment: the landline's contact has no person, so sits out too.
+    const away = {
+      ...spring,
+      id: "away",
+      audience: { segment: String(await segmentOf(db(), [], "away")) },
+    };
+    expect(await run(away)).toMatchObject({ considered: 0, enrolled: 0 });
+    expect(await run(null)).toMatchObject({ enrolled: 1, notTextable: 1 });
+    const rows = await db()
+      .select({ e164: smsContacts.e164, campaign: smsContacts.campaign, state: smsContacts.state })
+      .from(smsContacts)
+      .orderBy(asc(smsContacts.id));
+    expect(
+      rows
+        .filter((r) => r.state === "enrolled")
+        .map((r) => r.campaign)
+        .sort(),
+    ).toEqual([null, "spring"]);
+    expect(rows.find((r) => r.state === "unreachable")?.campaign).toBeNull();
   });
 
   it("sends inside the window only, queues step 2, applies receipts, stops on reply", async () => {

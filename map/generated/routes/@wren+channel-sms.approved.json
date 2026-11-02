@@ -213,7 +213,7 @@
      "senderName",
      "sequences"
     ],
-    "input": "{ sequence: string; niche?: string; limit: number } & ForClient",
+    "input": "{ sequence: string; niche?: string; campaign?: string | null; limit: number; } & ForClient",
     "npm": [
      "libphonenumber-js"
     ],
@@ -1372,6 +1372,11 @@
   },
   {
    "from": "route:SmsDesk/enroll",
+   "to": "table:public.segment_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/enroll",
    "to": "table:public.site_form_defs",
    "kind": "reads"
   },
@@ -1538,6 +1543,11 @@
   {
    "from": "route:SmsDesk/forms",
    "to": "table:public.profile_site_reads",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsDesk/forms",
+   "to": "table:public.segment_members",
    "kind": "reads"
   },
   {
@@ -2787,6 +2797,11 @@
   },
   {
    "from": "route:SmsForms/applied",
+   "to": "table:public.segment_members",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/applied",
    "to": "table:public.site_form_defs",
    "kind": "reads"
   },
@@ -3093,6 +3108,11 @@
   {
    "from": "route:SmsForms/first",
    "to": "table:public.runs",
+   "kind": "reads"
+  },
+  {
+   "from": "route:SmsForms/first",
+   "to": "table:public.segment_members",
    "kind": "reads"
   },
   {

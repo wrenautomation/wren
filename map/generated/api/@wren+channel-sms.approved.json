@@ -617,7 +617,7 @@
     ],
     "file": "packages/channel-sms/src/enroll.ts",
     "kind": "interface",
-    "sig": "interface EnrollOptions { sequence: SmsSequence; policy: SmsPolicy; provider: SmsProvider; senderName: string; niche?: string | null; heldNiches: readonly string[]; contactIds?: readonly number[]; bookingLink?: string | null; limit: number; now: Date; runId?: string | null; }"
+    "sig": "interface EnrollOptions { sequence: SmsSequence; policy: SmsPolicy; provider: SmsProvider; senderName: string; niche?: string | null; heldNiches: readonly string[]; contactIds?: readonly number[]; bookingLink?: string | null; campaign?: LoopCampaign | null; limit: number; now: Date; runId?: string | null; }"
    }
   },
   {
@@ -3145,6 +3145,20 @@
    }
   },
   {
+   "id": "@wren/channel-sms#fleetDayStart",
+   "role": "export",
+   "parent": "@wren/channel-sms",
+   "group": "@wren/channel-sms",
+   "attrs": {
+    "entries": [
+     "@wren/channel-sms"
+    ],
+    "file": "packages/channel-sms/src/pool.ts",
+    "kind": "function",
+    "sig": "(at: Date): Date"
+   }
+  },
+  {
    "id": "@wren/channel-sms#followUpForms",
    "role": "export",
    "parent": "@wren/channel-sms",
@@ -3498,7 +3512,7 @@
     "file": "packages/channel-sms/src/restate/index.ts",
     "inferred": true,
     "kind": "function",
-    "sig": "(deps: SmsDeps): restate.ServiceDefinition<\"SmsDesk\", { threads: (ctx: restate.Context, req?: { filter?: ThreadFilter; limit?: number; offset?: number; } & ForClient) => Promise<ThreadSummary[]>; thread: (ctx: restate.Context, req: { contactId: number; } & ForClient) => Promise<Thread | null>; markRead: (ctx: restat…"
+    "sig": "(deps: SmsDeps, liveCampaigns?: (db: Db, now: Date) => Promise<readonly LoopCampaign[]>): restate.ServiceDefinition<\"SmsDesk\", { threads: (ctx: restate.Context, req?: { filter?: ThreadFilter; limit?: number; offset?: number; } & ForClient) => Promise<ThreadSummary[]>; thread: (ctx: restate.Context, req: { contactId: number; } & ForClient) => Promise<Thread | null>; markRead: (ctx: restat…"
    }
   },
   {

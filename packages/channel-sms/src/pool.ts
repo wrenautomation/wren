@@ -26,7 +26,7 @@ import {
 const ATTEMPTED = ["sending", "sent", "delivered", "failed", "unknown"] as const;
 
 /** The instant the fleet day containing `at` began. */
-function fleetDayStart(at: Date): Date {
+export function fleetDayStart(at: Date): Date {
   const [y, m, d] = fleetDay(at).split("-").map(Number) as [number, number, number];
   return zonedInstant(FLEET_ZONE, y, m, d);
 }

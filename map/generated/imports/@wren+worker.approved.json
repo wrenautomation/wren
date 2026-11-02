@@ -2747,6 +2747,11 @@
   },
   {
    "from": "@wren/worker/src/services/sms.ts",
+   "to": "@wren/pipeline/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/services/sms.ts",
    "to": "@wren/worker/src/services/deps.ts",
    "kind": "imports",
    "attrs": {

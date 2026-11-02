@@ -25,6 +25,7 @@
     "@wren/db": "workspace:*",
     "@wren/llm": "workspace:*",
     "@wren/research": "workspace:*",
+    "@wren/starling-core": "workspace:*",
     "drizzle-orm": "0.45.2",
     "libphonenumber-js": "1.13.14",
     "web-push": "3.6.7",

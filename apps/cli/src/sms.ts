@@ -230,7 +230,8 @@ export function registerSms(program: Command, withDb: WithDb, settings: Settings
     .requiredOption("--sequence <name>", `one of: ${[...SMS_SEQUENCES.keys()].join(", ")}`)
     .requiredOption("--limit <n>", "contacts to enroll")
     .option("--niche <niche>")
-    .action(async (o: { sequence: string; limit: string; niche?: string }) => {
+    .option("--campaign <id>", "a live campaign: its segment only, under its sms.opener cap")
+    .action(async (o: { sequence: string; limit: string; niche?: string; campaign?: string }) => {
       const limit = Number(o.limit);
       if (!(limit > 0)) throw new Error("--limit must be > 0");
       json(
@@ -238,6 +239,7 @@ export function registerSms(program: Command, withDb: WithDb, settings: Settings
           sequence: o.sequence,
           limit,
           ...(o.niche ? { niche: o.niche } : {}),
+          ...(o.campaign ? { campaign: o.campaign } : {}),
           ...scope(),
         }),
       );

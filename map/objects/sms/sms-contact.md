@@ -3,7 +3,7 @@ type: object
 cluster: sms
 universe: live
 status: verified
-verified: 2026-09-28 @ 28823cd
+verified: 2026-11-02 @ 76c56cbd + WA-999 phase 3 SMS (campaign)
 entity: packages/channel-sms/src/schema.ts:149
 ---
 
@@ -17,7 +17,7 @@ Consent basis is a column, not a comment: `published` (the business put the numb
 
 ## Shape
 
-- `e164`, `company_id`, `person_id`, `source_document_id`, `source_url`, `source_kind` (`tel_link`/`page_text`/`manual`/`inbound`/`form`/`hook`), `source_ref` (the site application id, or the speed run's id for `hook`), `name`, `email` (form applicants), `zone` (the lead's own time zone, from the form or the number's country), `booking_link` (a form applicant's own `/book/<offer>?application=<id>`, `{booking_link}` in their texts; migration 0273), `basis`, `basis_detail`, `line_type`, `carrier`, `lookup`, `imessage` (reachable on iMessage, from Linq's check at lookup; null on Telnyx; migration 0232), `number_id`, `state` (`CONTACT_STATES`, `:52`), `state_reason`, `niche`, `sequence`, `enrolled_at`, `ended_at`, `read_at`, `paid_cents` and `paid_at` (text-to-pay, [[platform/pay-link]], migration 0183) (`schema.ts:152`–`182`)
+- `e164`, `company_id`, `person_id`, `source_document_id`, `source_url`, `source_kind` (`tel_link`/`page_text`/`manual`/`inbound`/`form`/`hook`), `source_ref` (the site application id, or the speed run's id for `hook`), `name`, `email` (form applicants), `zone` (the lead's own time zone, from the form or the number's country), `booking_link` (a form applicant's own `/book/<offer>?application=<id>`, `{booking_link}` in their texts; migration 0273), `basis`, `basis_detail`, `line_type`, `carrier`, `lookup`, `imessage` (reachable on iMessage, from Linq's check at lookup; null on Telnyx; migration 0232), `number_id`, `state` (`CONTACT_STATES`, `:52`), `state_reason`, `niche`, `sequence`, `campaign` (the metro campaign it enrolled under, null = the default; written by a `--campaign` enroll, migration 0357; [[platform/campaign]]), `enrolled_at`, `ended_at`, `read_at`, `paid_cents` and `paid_at` (text-to-pay, [[platform/pay-link]], migration 0183) (`schema.ts:152`–`182`)
 - one enrolled row per number (`uq_sms_contacts_enrolled_e164`, `:189`); one row per site application (`uq_sms_contacts_source_ref`, `:187`)
 
 Citations: `packages/channel-sms/src/schema.ts:149`
@@ -31,7 +31,7 @@ Citations: `packages/channel-sms/src/schema.ts:149`
 
 ## If you change this
 
-- **Hits:** `lift.ts:40`, `contacts.ts:27`, `enroll.ts:69`, `events.ts:144`, `threads.ts`, `SmsDesk`, the phone app (`apps/phone`), `wren sms *`
+- **Hits:** `lift.ts:40`, `contacts.ts:27`, `enroll.ts:69`, `events.ts:144`, `threads.ts`, `SmsDesk` (`enroll --campaign`), campaign numbers (phase 4), the phone app (`apps/phone`), `wren sms *`
 - **Does not hit:** email enrollments; `leads`
 
 ## Surfaces

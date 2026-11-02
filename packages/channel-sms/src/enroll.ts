@@ -9,16 +9,19 @@
  * today (left `new`, the reason in `state_reason`; `@wren/core/leads`). Nothing here sends. A sequence with any
  * step still empty (template-store.ts) enrolls no one. A form applicant is
  * enrolled only by name, by the form follow-up (form.ts) or speed to lead (speed.ts), never by
- * a cold run.
+ * a cold run. A campaign run (designs/2026-11-02-campaigns.md, phase 3 SMS) takes only its segment's
+ * people, under its `sms.opener` cap, and stamps `sms_contacts.campaign`.
  */
 import { activeSuppressionsOf } from "@wren/core";
 import { leadRefusal } from "@wren/core/leads";
+import { personInSegment } from "@wren/core/segments";
 import type { Template } from "@wren/core/slots";
 import { atomic, type Db } from "@wren/db";
-import { and, asc, eq, inArray, isNull, notInArray, or, sql } from "drizzle-orm";
+import { capLeft, type LoopCampaign } from "@wren/starling-core/campaigns";
+import { and, asc, count, eq, gte, inArray, isNull, notInArray, or, sql } from "drizzle-orm";
 import { countryOf } from "./phone.js";
 import { ASKED, type SmsPolicy } from "./policy.js";
-import { pickNumber, pickSender } from "./pool.js";
+import { fleetDayStart, pickNumber, pickSender } from "./pool.js";
 import type { SmsProvider } from "./provider.js";
 import { SmsRefusal } from "./refusal.js";
 import { type LineType, type SmsContact, smsContacts, smsMessages } from "./schema.js";
@@ -39,6 +42,8 @@ export interface EnrollOptions {
   contactIds?: readonly number[];
   /** `{booking_link}` in the copy; null = none set. */
   bookingLink?: string | null;
+  /** A live metro campaign; unset = the default. */
+  campaign?: LoopCampaign | null;
   limit: number;
   now: Date;
   runId?: string | null;
@@ -81,6 +86,17 @@ async function end(db: Db, c: SmsContact, state: SmsContact["state"], reason: st
     .where(eq(smsContacts.id, c.id));
 }
 
+/** Contacts a campaign enrolled this fleet day: what `sms.opener` counts. */
+async function enrolledToday(db: Db, campaign: string, now: Date): Promise<number> {
+  const [row] = await db
+    .select({ n: count() })
+    .from(smsContacts)
+    .where(
+      and(eq(smsContacts.campaign, campaign), gte(smsContacts.enrolledAt, fleetDayStart(now))),
+    );
+  return row?.n ?? 0;
+}
+
 export async function enroll(db: Db, opts: EnrollOptions): Promise<EnrollStats> {
   const stats: EnrollStats = {
     considered: 0,
@@ -101,8 +117,20 @@ export async function enroll(db: Db, opts: EnrollOptions): Promise<EnrollStats> 
       `fill ${empty.join(", ")} first (phone app → Templates, or wren sms templates set)`,
     );
   const opener = bodies.get(keys[0] as string) as Template;
+  const campaign = opts.campaign ?? null;
+  const limit = campaign
+    ? capLeft(
+        opts.limit,
+        campaign.caps["sms.opener"],
+        await enrolledToday(db, campaign.id, opts.now),
+      )
+    : opts.limit;
+  if (limit <= 0) return stats;
   const where = [eq(smsContacts.state, "new"), inArray(smsContacts.basis, [...opts.policy.bases])];
   if (opts.niche) where.push(eq(smsContacts.niche, opts.niche));
+  const segment = campaign?.audience?.segment;
+  if (segment !== undefined)
+    where.push(personInSegment(sql`${smsContacts.personId}`, Number(segment)));
   if (opts.contactIds) where.push(inArray(smsContacts.id, [...opts.contactIds]));
   else where.push(notInArray(smsContacts.sourceKind, [...ASKED]));
   if (opts.heldNiches.length > 0) {
@@ -117,14 +145,14 @@ export async function enroll(db: Db, opts: EnrollOptions): Promise<EnrollStats> 
     .from(smsContacts)
     .where(and(...where))
     .orderBy(asc(smsContacts.id))
-    .limit(opts.limit * 4);
+    .limit(limit * 4);
   const suppressed = await activeSuppressionsOf(
     db,
     "phone",
     candidates.map((c) => c.e164),
   );
   for (const c of candidates) {
-    if (stats.enrolled >= opts.limit) break;
+    if (stats.enrolled >= limit) break;
     stats.considered += 1;
     if (suppressed(c.e164)) {
       await end(db, c, "opted_out", "phone suppressed", opts.now);
@@ -200,6 +228,7 @@ export async function enroll(db: Db, opts: EnrollOptions): Promise<EnrollStats> 
             stateReason: null,
             numberId: number.id,
             sequence: opts.sequence.name,
+            campaign: campaign?.id ?? null,
             enrolledAt: opts.now,
           })
           .where(and(eq(smsContacts.id, c.id), eq(smsContacts.state, "new")))

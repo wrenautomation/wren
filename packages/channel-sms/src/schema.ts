@@ -237,6 +237,8 @@ export const smsContacts = pgTable(
     stateReason: text("state_reason"),
     niche: varchar("niche", { length: 32 }),
     sequence: varchar("sequence", { length: 64 }),
+    /** The metro campaign it enrolled under (designs/2026-11-02-campaigns.md); null = the default. Its texts inherit it. */
+    campaign: varchar("campaign", { length: 64 }),
     enrolledAt: timestamp("enrolled_at", { withTimezone: true }),
     endedAt: timestamp("ended_at", { withTimezone: true }),
     /** Last time the operator opened this thread; inbound after it is unread. */

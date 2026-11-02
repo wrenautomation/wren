@@ -5953,6 +5953,7 @@ Indexes:
 - `basis varchar(16)`
 - `basis_detail text null`
 - `booking_link text null`
+- `campaign varchar(64) null`
 - `carrier varchar(128) null`
 - `company_id integer null`
 - `created_at timestamp with time zone = now()`

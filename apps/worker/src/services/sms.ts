@@ -11,6 +11,7 @@ import {
   makeSmsSender,
   makeSmsWatch,
 } from "@wren/channel-sms/restate";
+import { liveCampaignsOf } from "@wren/pipeline/store";
 import type { AnyService, Deps } from "./deps.js";
 
 /** The sms domain's services, in the order they were served from `services.ts`. */
@@ -26,7 +27,7 @@ export function smsServices(deps: Deps): AnyService[] {
       keys,
     }),
     makeReviews({ main: db, clientDb }),
-    makeSmsDesk(clientTexts),
+    makeSmsDesk(clientTexts, liveCampaignsOf),
     makeSmsWatch(clientTexts),
     // The lander's push: each site application stepped at once (form.ts).
     makeSmsForms(sms),
