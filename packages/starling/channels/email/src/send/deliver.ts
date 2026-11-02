@@ -38,6 +38,7 @@ import {
   gte,
   inArray,
   isNotNull,
+  isNull,
   lt,
   max,
   ne,
@@ -1098,5 +1099,51 @@ export async function stopCompany(
       shared: opts.shared ?? null,
     });
   }
+  return rows.length;
+}
+
+/**
+ * A race won in a metro campaign: the person's active enrollments in it stop
+ * (designs/2026-11-02-campaigns.md). Matched by address or people id; null is
+ * the default campaign. Returns enrollments stopped.
+ */
+export async function stopCampaignEnrollments(
+  db: Queryable,
+  opts: {
+    campaign: string | null;
+    emails: readonly string[];
+    persons: readonly number[];
+    reason: StopReason;
+    detail: string;
+    now: Date;
+  },
+): Promise<number> {
+  const who = [
+    ...(opts.emails.length
+      ? [
+          inArray(
+            sql`lower(${enrollments.toEmail})`,
+            opts.emails.map((e) => e.toLowerCase()),
+          ),
+        ]
+      : []),
+    ...(opts.persons.length ? [inArray(enrollments.personId, [...opts.persons])] : []),
+  ];
+  if (!who.length) return 0;
+  const rows = await db
+    .select()
+    .from(enrollments)
+    .where(
+      and(
+        eq(enrollments.state, "active"),
+        opts.campaign === null
+          ? isNull(enrollments.campaign)
+          : eq(enrollments.campaign, opts.campaign),
+        or(...who),
+      ),
+    )
+    .orderBy(asc(enrollments.id));
+  for (const enrollment of rows)
+    await recordStop(db, enrollment, opts.reason, { detail: opts.detail, now: opts.now });
   return rows.length;
 }

@@ -9,12 +9,13 @@ import { createHash } from "node:crypto";
 import type { ExecutorEvent, Step } from "@wren/core/executor";
 import { profileRollups } from "@wren/core/people-map-schema";
 import { profileEvents } from "@wren/core/profiles-schema";
-import { atomic, type Db } from "@wren/db";
+import { atomic, type Db, type Queryable } from "@wren/db";
 import { desc, eq } from "drizzle-orm";
 import { attributionOf, withAdCampaign } from "./attribution.js";
 import {
   type Branch,
   branchesOf,
+  campaignAt,
   forceBranches,
   frontOf,
   MAIN,
@@ -134,6 +135,16 @@ interface JourneyStepDeps {
   now?(): Date;
   /** Runs a node's `research` on arrival. Unset: the level is carried and nothing runs. */
   researcher?: Researcher;
+  /** A race won by a cause: the person's acts in its campaign stop, in the move's transaction. */
+  stopCampaign?(tx: Queryable, s: CampaignStop): Promise<void>;
+}
+
+/** What a won race stops: one person's acts in one campaign (null: the default). */
+export interface CampaignStop {
+  profile: number;
+  campaign: string | null;
+  gate: string;
+  cause: { kind: string; ref: string };
 }
 
 /** `profile_events.source_id` is 64 characters: a journey and a node fit as a hash. */
@@ -396,6 +407,15 @@ export function journeySteps(d: JourneyStepDeps): Record<string, Step> {
         if (m) {
           ({ branch, from, skipped, closed, won } = m);
           next = m.branches;
+          // One stop per campaign: two races on one path may share it.
+          const stops = new Map(won.map((w) => [campaignAt(body, w.gate), w.gate]));
+          for (const [campaign, gate] of stops)
+            await d.stopCampaign?.(tx, {
+              profile,
+              campaign,
+              gate,
+              cause: { kind: cause.kind, ref: cause.ref },
+            });
           crossings = m.edges.flatMap((id) => {
             const x = body.edges.find((y) => y.id === id);
             return x ? [{ edge: x.id, from: x.from, to: x.to, at: stamp, ...tagOf(branch) }] : [];

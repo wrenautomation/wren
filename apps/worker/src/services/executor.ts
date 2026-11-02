@@ -64,6 +64,7 @@ import { CALL_NOW, callNowStep } from "@wren/voice/node";
 import { clientTriageStep, triageStep, mail as watchMail } from "@wren/watch";
 import { geminiReader } from "@wrenautomation/read/video";
 import { eq } from "drizzle-orm";
+import { stopCampaign } from "../campaign-stop.js";
 import { COMPONENTS } from "../components.js";
 import { journeyResearcher } from "../journey-research.js";
 import { SETUPS } from "../setups.js";
@@ -167,6 +168,8 @@ export function executorServices(deps: Deps): AnyService[] {
             ingress: ingressOf(settings),
             model: llm.provider === "gateway" ? llm : null,
           }),
+          // A race won: the person's acts in its campaign stop on every channel.
+          stopCampaign,
         }),
         // Payments folded into the deal they name (`pipeline.money`).
         ...collectSteps({ db: (client) => (client ? clientDb(client) : db) }),

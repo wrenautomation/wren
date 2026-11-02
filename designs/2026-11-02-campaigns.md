@@ -173,7 +173,7 @@ Build order: the `campaign` column and its writer go in together, loop by loop, 
     - Split: a cause at a station past a split opens that track's branch. The other tracks stay open to the next cause.
     - Join: an arrival marks its branch. When the rule (all, any, n of m) is met, the branches close and the journey moves to the join.
     - Race: the first branch to arrive wins. The wait arm is a timed hold on the executor (`due` + `Executor/release`), set on arrival at the race. The release moves the journey down the wait arm if nothing won first.
-    - A race won by an event stops the campaign's other acts for that person. It fires `journey.raced` with the campaign. Each loop stops the person's rows stamped with it: the email enrollment, the reach contact, the SMS contact. This is "a reply on one channel stops the rest".
+    - A race won by an event stops the campaign's other acts for that person. The move calls `stopCampaign` (see the phase 4 rules). Each loop stops the person's rows stamped with it: the email enrollment, the reach contact, the SMS contact. This is "a reply on one channel stops the rest".
   - A race `cond` is free text today, and no event matches it. Recommended: a cond must be an until word (`reply`, `booking`, `answer`, `cancelled`, `logic.ts` `UNTILS`); `checkMetro` refuses others.
   - `condition` and `ab` stay refused by `lowerable`. `graphOf` of a body with no logic station stays the same, node for node (Restate replays `shape.v<n>` in that order).
 - 2026-11-02, phase 4 decision (WA-999). William: "not sure about branches, your call ... as long as you cleanly map your solution to common realistic business cases". Chosen: A, branches on the one row. A race arm is won by the trigger of the station it leads to, not by fixed words.
@@ -198,6 +198,12 @@ Build order: the `campaign` column and its writer go in together, loop by loop, 
     - Any cause that pulls through a cond arm wins it, also one at a station past the arm's own.
     - A station with a track into a logic station has no other track out, but a back track. No track runs logic to logic. No logic on a content line.
     - A race won by an event calls `stopCampaign(person, campaign)`. The worker wires it to each loop: it ends the person's email enrollment, reach contact and SMS contact stamped with that campaign (null for the default). A race in the default campaign stops the default rows too: a person who replied or paid gets no more cold acts.
+    - Built (slice 5): `stopCampaign` runs in the move's transaction, so a retried step never loses it. The worker (`apps/worker/src/campaign-stop.ts`) finds the person by profile keys (email, phone, `handle:<platform>`, `person`) and calls one stop per channel:
+      - Email: `stopCampaignEnrollments` stops active enrollments. Reason by the winning cause: a reply is `reply`, a booking is `booked`, else `manual`. No new stop reason, so no migration.
+      - Reach: `stopCampaignContacts` sets live contacts to `finished` with the why. Queued or proposed connect, sequence and follow-up DMs skip, also for a contact whose sequence already finished. An operator's own message stays.
+      - SMS: `stopCampaignTexts` sets new and enrolled contacts to `finished`, not `stopped`: `stopped` would also block answers, reminders and review asks. Queued sequence and follow-up texts skip.
+    - Only a cause that crosses a cond arm wins. A forced hand move (with a reason) wins nothing, so it stops nothing: the operator chose the station, not the race. A hand move with no reason to the arm's station wins it, with reason `manual`.
+    - Built (slice 4): arrival at the station before a race emits on `armed` with subject `race:<journey>:<gate>`. The cause is `clock`. A clock that finds its branch moved on, or the journey closed, does nothing.
     - A publish carries each branch whose node is in the new version. A branch on a node or gate the new version lacks refuses the publish, as a missing node does today.
     - `now` in the numbers counts the front only. A person with branches in two campaigns shows as now in one. Accepted until a reader needs both.
     - Gates never show as arrivals: `skipped` and stage events leave them out.

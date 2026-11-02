@@ -15,7 +15,7 @@ import { shapeWorkflowsOf } from "../../src/journeys.js";
 import type { ShapeBody, ShapeEdge, ShapeNode } from "../../src/model.js";
 import { type Emit, moveEmit, openEmit, rebuildJourney } from "../../src/moves.js";
 import { instances } from "../../src/schema.js";
-import { journeySteps } from "../../src/steps.js";
+import { type CampaignStop, journeySteps } from "../../src/steps.js";
 import { Refused } from "../../src/store.js";
 import { seedGraph } from "../fixtures.js";
 
@@ -68,8 +68,12 @@ const body = (): ShapeBody => ({
     edge("r", "replied", { cond: "a reply" }),
     edge("r", "nudge", { wait: "3 days" }),
   ],
+  // The follow-up runs in its own campaign: a won race stops that campaign's acts.
+  campaigns: { sent: "follow", r: "follow", replied: "follow", nudge: "follow" },
 });
 
+/** Campaign stops the move step asked for. */
+const stops: CampaignStop[] = [];
 /** Arrivals a wire holds, with their wait: the race clocks set. */
 const held: Array<{ id: string; ms: number }> = [];
 
@@ -79,7 +83,12 @@ async function walker(): Promise<Walk> {
   return {
     flows: new Map(flows.map((f) => [f.id, f])),
     parts: new Map(),
-    steps: journeySteps({ db: () => pg.db }),
+    steps: journeySteps({
+      db: () => pg.db,
+      stopCampaign: async (_tx, s) => {
+        stops.push(s);
+      },
+    }),
     store: pgExecutorStore(pg.db),
     client: null,
     by: randomUUID(),
@@ -145,8 +154,17 @@ describe("a journey with branches", () => {
     // The race: the wait arm is the clock's alone; a reply by hand wins the cond arm.
     await move(id, "sent");
     expect(await refused(moveEmit(pg.db, { journey: id, to: "nudge", by: OP }))).toHaveLength(1);
+    expect(stops).toEqual([]);
     await move(id, "replied");
     expect(await row(id)).toMatchObject({ node: "replied", status: "done" });
+    expect(stops).toEqual([
+      {
+        profile: r.id,
+        campaign: "follow",
+        gate: "r",
+        cause: expect.objectContaining({ kind: "manual" }),
+      },
+    ]);
     const [last] = await pg.db
       .select({ data: events.data })
       .from(events)
@@ -187,7 +205,9 @@ describe("a race clock", () => {
 
   it("takes the wait arm when no reply came", async () => {
     const { id, clock } = await toSent("b@example.test");
+    const before = stops.length;
     await ring(clock);
+    expect(stops).toHaveLength(before);
     expect(await row(id)).toMatchObject({ node: "nudge", status: "done" });
     expect((await row(id))?.trail.at(-1)).toMatchObject({ edge: "r_to_nudge", to: "nudge" });
     const [stage] = await pg.db
@@ -208,10 +228,13 @@ describe("a race clock", () => {
 
   it("does nothing after a hand move took the wait arm first", async () => {
     const { id, clock } = await toSent("d@example.test");
+    const before = stops.length;
     await play(await moveEmit(pg.db, { journey: id, to: "nudge", by: OP, reason: "called them" }));
     const moved = await row(id);
     expect(moved).toMatchObject({ node: "nudge", status: "done" });
     await ring(clock);
     expect((await row(id))?.trail).toEqual(moved?.trail);
+    // A hand move with a reason forces past the race: it wins nothing, so nothing stops.
+    expect(stops).toHaveLength(before);
   });
 });

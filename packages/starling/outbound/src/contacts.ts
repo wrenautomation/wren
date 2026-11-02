@@ -13,9 +13,15 @@ import {
   type Prospect,
 } from "@wren/core/outreach";
 import type { Queryable } from "@wren/db";
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import { ReachRefusal } from "./refusal.js";
-import { type ContactState, type Platform, type ReachContact, reachContacts } from "./schema.js";
+import {
+  type ContactState,
+  type Platform,
+  type ReachContact,
+  reachContacts,
+  reachMessages,
+} from "./schema.js";
 import { firstName, type RenderFields } from "./sequences.js";
 
 export interface AddStats {
@@ -162,6 +168,63 @@ export async function setContactState(
       ...((o.ended ?? !["new", "enrolled", "connected"].includes(state)) ? { endedAt: o.now } : {}),
     })
     .where(eq(reachContacts.id, id));
+}
+
+/** Contact states the loops still send to. */
+const LIVE: ContactState[] = ["new", "enrolled", "connected"];
+
+/**
+ * A race won in a metro campaign: the person's live contacts in it finish, and their queued or
+ * proposed sends skip (designs/2026-11-02-campaigns.md). An operator's own message stays. Null is
+ * the default campaign. Returns contacts ended.
+ */
+export async function stopCampaignContacts(
+  db: Queryable,
+  o: {
+    campaign: string | null;
+    handles: ReadonlyArray<{ platform: string; handle: string }>;
+    persons: readonly number[];
+    why: string;
+    now: Date;
+  },
+): Promise<number> {
+  const who = [
+    ...o.handles.map((h) =>
+      and(eq(reachContacts.platform, h.platform as Platform), eq(reachContacts.handle, h.handle)),
+    ),
+    ...(o.persons.length ? [inArray(reachContacts.personId, [...o.persons])] : []),
+  ];
+  if (!who.length) return 0;
+  const mine = await db
+    .select({ id: reachContacts.id })
+    .from(reachContacts)
+    .where(
+      and(
+        o.campaign === null
+          ? isNull(reachContacts.campaign)
+          : eq(reachContacts.campaign, o.campaign),
+        or(...who),
+      ),
+    );
+  const ids = mine.map((r) => r.id);
+  if (!ids.length) return 0;
+  // A finished sequence may still hold a queued follow-up: every matched contact's sends skip.
+  await db
+    .update(reachMessages)
+    .set({ state: "skipped", stateReason: o.why })
+    .where(
+      and(
+        inArray(reachMessages.contactId, ids),
+        inArray(reachMessages.state, ["queued", "proposed"]),
+        inArray(reachMessages.kind, ["connect", "sequence", "follow_up"]),
+      ),
+    );
+  const ended = await db
+    .update(reachContacts)
+    .set({ state: "finished", stateReason: o.why, endedAt: o.now })
+    .where(and(inArray(reachContacts.id, ids), inArray(reachContacts.state, LIVE)))
+    .returning({ id: reachContacts.id });
+  return ended.length;
 }
 
 export async function contactsById(

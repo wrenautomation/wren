@@ -27,7 +27,7 @@ import {
   tagLinks,
 } from "@wren/core/message-settings";
 import type { Db, Queryable } from "@wren/db";
-import { and, asc, desc, eq, gt, gte, inArray, lt, lte, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, gte, inArray, isNull, lt, lte, or, sql } from "drizzle-orm";
 import { ASKED, inWindow, policyFor, type SmsPolicy } from "./policy.js";
 import { cannotReach, numberReady, poolToday, wrongCountry } from "./pool.js";
 import type { SmsProvider } from "./provider.js";
@@ -159,6 +159,55 @@ export async function endContact(
     .set({ state, stateReason: reason, endedAt: now })
     .where(eq(smsContacts.id, contactId));
   await skipQueued(db, contactId, `contact ${state}: ${reason}`);
+}
+
+/**
+ * A race won in a metro campaign: the person's contacts in it finish, and their queued sequence
+ * and follow-up texts skip (designs/2026-11-02-campaigns.md). Not `stopped`: answers, reminders
+ * and review asks still go. Null is the default campaign. Returns contacts ended.
+ */
+export async function stopCampaignTexts(
+  db: Queryable,
+  o: {
+    campaign: string | null;
+    phones: readonly string[];
+    persons: readonly number[];
+    why: string;
+    now: Date;
+  },
+): Promise<number> {
+  const who = [
+    ...(o.phones.length ? [inArray(smsContacts.e164, [...o.phones])] : []),
+    ...(o.persons.length ? [inArray(smsContacts.personId, [...o.persons])] : []),
+  ];
+  if (!who.length) return 0;
+  const mine = await db
+    .select({ id: smsContacts.id })
+    .from(smsContacts)
+    .where(
+      and(
+        o.campaign === null ? isNull(smsContacts.campaign) : eq(smsContacts.campaign, o.campaign),
+        or(...who),
+      ),
+    );
+  const ids = mine.map((r) => r.id);
+  if (!ids.length) return 0;
+  await db
+    .update(smsMessages)
+    .set({ state: "skipped", detail: o.why })
+    .where(
+      and(
+        inArray(smsMessages.contactId, ids),
+        eq(smsMessages.state, "queued"),
+        inArray(smsMessages.kind, ["sequence", "follow_up"]),
+      ),
+    );
+  const ended = await db
+    .update(smsContacts)
+    .set({ state: "finished", stateReason: o.why, endedAt: o.now })
+    .where(and(inArray(smsContacts.id, ids), inArray(smsContacts.state, ["new", "enrolled"])))
+    .returning({ id: smsContacts.id });
+  return ended.length;
 }
 
 /** Contacts a speed run follows: a door lead (`hook`), a site applicant (`form`). */
