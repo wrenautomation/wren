@@ -210,7 +210,7 @@ describe("viewScene", () => {
   it("says a group's note before its steps", async () => {
     const view = {
       ...ZOOM_VIEW,
-      groups: ZOOM_VIEW.groups?.map((g) => (g.id === "rd" ? { ...g, note: "paused" } : g)),
+      groups: (ZOOM_VIEW.groups ?? []).map((g) => (g.id === "rd" ? { ...g, note: "paused" } : g)),
     };
     const rd = (await viewScene(view, NONE)).st.find((s) => s.id === "rd");
     expect(rd && "s" in rd ? rd.s : undefined).toMatch(/^paused · \d+ steps/);
