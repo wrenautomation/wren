@@ -4,7 +4,7 @@
  * by hand is named as won, and a rebuild from the events gives the same row. Synthetic data only.
  */
 import { randomUUID } from "node:crypto";
-import { type Fired, pgExecutorStore, type Walk, walk } from "@wren/core/executor";
+import { type Fired, pgExecutorStore, resume, type Walk, walk } from "@wren/core/executor";
 import { resolveProfile } from "@wren/core/profiles";
 import { events } from "@wren/core/schema";
 import type { Workflow } from "@wren/core/workflows";
@@ -70,10 +70,13 @@ const body = (): ShapeBody => ({
   ],
 });
 
-async function play(e: Emit) {
+/** Arrivals a wire holds, with their wait: the race clocks set. */
+const held: Array<{ id: string; ms: number }> = [];
+
+async function walker(): Promise<Walk> {
   const fired: Fired[] = [];
   const flows: Workflow[] = await shapeWorkflowsOf(pg.db, "wren");
-  const w: Walk = {
+  return {
     flows: new Map(flows.map((f) => [f.id, f])),
     parts: new Map(),
     steps: journeySteps({ db: () => pg.db }),
@@ -81,11 +84,19 @@ async function play(e: Emit) {
     client: null,
     by: randomUUID(),
     run: (_name, fn) => fn(),
-    later: () => {},
+    later: (id, ms) => held.push({ id, ms }),
     rule: async () => true,
     fire: (req) => fired.push(req),
   };
-  await walk(w, e.workflow, e.from, e.events);
+}
+
+async function play(e: Emit) {
+  await walk(await walker(), e.workflow, e.from, e.events);
+}
+
+/** The clock's wait runs out now. */
+async function ring(id: string) {
+  await resume(await walker(), id);
 }
 
 const row = async (id: string) =>
@@ -151,5 +162,56 @@ describe("a journey with branches", () => {
     expect(stages.map((s) => s.node)).not.toContain("s_f");
 
     expect(await rebuildJourney(pg.db, id)).toMatchObject({ changed: false });
+  });
+});
+
+describe("a race clock", () => {
+  /** A new person, moved by hand through onboarding to `sent`: the clock is set. */
+  async function toSent(email: string) {
+    const r = await resolveProfile(pg.db, [{ kind: "email", value: email }], "test", {
+      name: "Bo",
+    });
+    if (!r) throw new Error("no profile");
+    await play(await openEmit(pg.db, { person: email, by: OP }));
+    const [j] = await pg.db.select().from(instances).where(eq(instances.profileId, r.id));
+    const id = j?.id as string;
+    for (const to of ["paid", "signed", "intake", "kickoff"]) await move(id, to);
+    const before = held.length;
+    await move(id, "sent");
+    expect(held.length).toBe(before + 1);
+    const clock = held.at(-1);
+    if (!clock) throw new Error("no clock");
+    expect(clock.ms).toBe(3 * 24 * 3_600_000);
+    return { id, clock: clock.id };
+  }
+
+  it("takes the wait arm when no reply came", async () => {
+    const { id, clock } = await toSent("b@example.test");
+    await ring(clock);
+    expect(await row(id)).toMatchObject({ node: "nudge", status: "done" });
+    expect((await row(id))?.trail.at(-1)).toMatchObject({ edge: "r_to_nudge", to: "nudge" });
+    const [stage] = await pg.db
+      .select({ data: events.data })
+      .from(events)
+      .where(and(eq(events.subject, `journey:${id}`), eq(events.node, "s_nudge")));
+    expect(stage?.data).toMatchObject({ cause: { kind: "clock", ref: "r" } });
+    expect(stage?.data).not.toHaveProperty("won");
+    expect(await rebuildJourney(pg.db, id)).toMatchObject({ changed: false });
+  });
+
+  it("does nothing once a reply won the race", async () => {
+    const { id, clock } = await toSent("c@example.test");
+    await move(id, "replied");
+    await ring(clock);
+    expect(await row(id)).toMatchObject({ node: "replied", status: "done" });
+  });
+
+  it("does nothing after a hand move took the wait arm first", async () => {
+    const { id, clock } = await toSent("d@example.test");
+    await play(await moveEmit(pg.db, { journey: id, to: "nudge", by: OP, reason: "called them" }));
+    const moved = await row(id);
+    expect(moved).toMatchObject({ node: "nudge", status: "done" });
+    await ring(clock);
+    expect((await row(id))?.trail).toEqual(moved?.trail);
   });
 });

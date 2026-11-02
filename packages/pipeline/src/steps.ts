@@ -20,6 +20,7 @@ import {
   MAIN,
   moveBranches,
   opensBranch,
+  racesAfter,
   storedOf,
 } from "./branches.js";
 import {
@@ -47,7 +48,7 @@ import { signDeal } from "./moves.js";
 import { icpOf, type Researcher, requestResearch } from "./research.js";
 import { type Instance, instances, offerVersions, pipelineDeals } from "./schema.js";
 import { liveTerms } from "./store.js";
-import { JOURNEY_PORT, MOVE_STEP, parseShapeFlow, STAGE_STEP } from "./workflow.js";
+import { ARMED_PORT, JOURNEY_PORT, MOVE_STEP, parseShapeFlow, STAGE_STEP } from "./workflow.js";
 
 const CAUSE_KINDS = [
   "touch",
@@ -66,6 +67,8 @@ const CAUSE_KINDS = [
   "manual",
   "import",
   "version",
+  // A race's wait ran out: its clock took the wait arm.
+  "clock",
 ] as const;
 type CauseKind = (typeof CAUSE_KINDS)[number];
 
@@ -367,6 +370,7 @@ export function journeySteps(d: JourneyStepDeps): Record<string, Step> {
           edges: [edge.id],
           skipped: [] as string[],
           loop: { journey: old.id, node: old.node, edge: edge.id },
+          armed: MAIN,
         };
       }
       // A race clock moves only the journey that set it, and never opens one.
@@ -376,7 +380,8 @@ export function journeySteps(d: JourneyStepDeps): Record<string, Step> {
         if (j.version !== flow.version || j.node === null) return null;
         const bs = branchesOf(j.branches, j.node);
         const here = bs.find((b) => b.node === to && !b.pin);
-        if (here) return again(j, here.key);
+        // A replayed cause finds its move made; a clock never replays.
+        if (here) return race ? null : again(j, here.key);
         // Never twice at one node: a trail that holds `to` means the move goes back.
         if (j.trail.some((c) => c.to === to)) return null;
         const front = frontOf(bs, j.node)?.key ?? MAIN;
@@ -426,6 +431,7 @@ export function journeySteps(d: JourneyStepDeps): Record<string, Step> {
           edges: crossings.flatMap((c) => (c.edge ? [c.edge] : [])),
           skipped,
           fork: logic ? { branch, branches: storedOf(next), closed, won } : null,
+          armed: branch,
         };
       }
       // Only the newest version opens journeys, and only from a cause a source into `to` takes.
@@ -482,10 +488,29 @@ export function journeySteps(d: JourneyStepDeps): Record<string, Step> {
         from: null,
         edges: edge ? [edge.id] : [],
         skipped: [] as string[],
+        armed: MAIN,
       };
     });
     if (!done) return [];
+    // Arrived before a race: set its clock. The wire holds it for the wait arm's wait.
+    const armed = "armed" in done ? done.armed : undefined;
+    const clocks = armed === undefined ? [] : racesAfter(body, to);
     return [
+      ...clocks.map((g) => ({
+        port: ARMED_PORT,
+        event: {
+          subject: `race:${done.journey}:${g.id}`,
+          kind: "journey" as const,
+          data: {
+            journey: done.journey,
+            profile,
+            version: flow.version,
+            race: { journey: done.journey, gate: g.id, branch: armed },
+            // No `at`: the cause is when the clock runs out, not when it was set.
+            cause: { kind: "clock", ref: g.id },
+          },
+        },
+      })),
       {
         port: "moved",
         event: {
