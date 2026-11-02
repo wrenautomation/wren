@@ -98,6 +98,22 @@ describe("campaignNumbers", () => {
     expect(r.spring?.people).toBe(1);
   });
 
+  it("counts acts by stamp, a child's in its parent; no stamp is the default", () => {
+    const r = rowsOf({
+      acts: [
+        { campaign: "late", act: "email.opener", n: 2 },
+        { campaign: "spring", act: "email.opener", n: 1 },
+        { campaign: "spring", act: "linkedin.invite", n: 4 },
+        { campaign: null, act: "email.opener", n: 7 },
+        { campaign: "autumn", act: "x.comment", n: 3 },
+      ],
+    });
+    expect(r.late?.acts).toEqual({ "email.opener": 2 });
+    expect(r.spring?.acts).toEqual({ "email.opener": 3, "linkedin.invite": 4 });
+    expect(r.default?.acts).toEqual({ "email.opener": 7 });
+    expect(r.autumn).toMatchObject({ gone: true, people: 0, acts: { "x.comment": 3 } });
+  });
+
   it("puts every arrival on a graph version in the default", () => {
     const r = rowsOf({ newest: null, bodies: new Map(), arrivals: [at("a", "book")] });
     expect(Object.keys(r)).toEqual(["default"]);

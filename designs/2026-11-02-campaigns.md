@@ -153,3 +153,7 @@ Build order: the `campaign` column and its writer go in together, loop by loop, 
   - Segment: people only (`personInSegment` on `person_id`), as cold email. A contact with no person sits out.
   - Cap `sms.opener`: the campaign's contacts enrolled in this fleet day (Eastern, as the pool's caps), inside the `limit` (`capLeft`). The pool's send caps still pace delivery.
   - `accounts.sms` is not read. Deferred: the offer (an SMS sequence has none) and a sticky number per campaign.
+- 2026-11-02, phase 3 numbers (WA-999). The stamps are in, so acts join `wren campaigns numbers`.
+  - Acts use the cap words (`<channel>.<act>`), so a cap and its spend read side by side. Each counts a done act in the window, by its own time: `email.opener` (step 1 sent), `linkedin.invite` (the connect sent), `<platform>.comment` (`commented_at`), `<platform>.post` (`published_at`, through the idea), `sms.opener` (step 1 sent). A parent counts its children's acts.
+  - Follow-ups, DMs, likes and follows inherit a stamp but have no cap word. They wait until a reader needs them.
+  - Cost waits. Only a text has a cost per act (`sms_messages.cost_usd`). Inboxes, seats and models are paid per account or per month, so a campaign's share is a split rule. That rule is William's call.

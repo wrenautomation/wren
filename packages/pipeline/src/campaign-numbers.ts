@@ -4,11 +4,11 @@
  * Campaign ids never change across versions, so arrivals on old versions add up.
  *
  * A campaign counts its own stations and those of the campaigns below it. One person in two
- * campaigns counts in both. Acts and cost wait on the act stamp (phase 3): no act knows its
- * station yet.
+ * campaigns counts in both. Acts are read off each loop's stamp (phase 3), keyed by the cap words.
+ * Cost waits: a split rule for per-account spend is William's call.
  */
 import type { Queryable } from "@wren/db";
-import { and, eq, gte, inArray, lte, sql } from "drizzle-orm";
+import { and, eq, gte, inArray, lte, type SQL, sql } from "drizzle-orm";
 import { isMetro } from "./metro.js";
 import { type CampaignStatus, campaignsOf, DEFAULT_CAMPAIGN } from "./metro-campaigns.js";
 import { type NumberWindow, rangeOf } from "./numbers.js";
@@ -40,6 +40,15 @@ export interface CampaignNumber {
   now: number;
   /** Deals signed in the window on journeys that were ever in it. */
   deals: number;
+  /** Acts done in the window, by cap word (`email.opener`, `linkedin.invite`, …). */
+  acts: Record<string, number>;
+}
+
+/** Done acts of one campaign (null = the default) and one cap word. */
+export interface ActCount {
+  campaign: string | null;
+  act: string;
+  n: number;
 }
 
 /** Per version: each station's campaigns, nearest first, and each campaign's CTA stations. */
@@ -75,6 +84,8 @@ interface CampaignInputs {
   open: readonly { version: number; node: string }[];
   /** Deals signed in the window, by journey. */
   deals: readonly { journey: string }[];
+  /** Acts done in the window, by their stamp. */
+  acts?: readonly ActCount[];
   /** The window, as `rangeOf` gives it. */
   from?: string;
   to?: string;
@@ -116,6 +127,21 @@ export function campaignNumbers(x: CampaignInputs): CampaignNumber[] {
   for (const d of x.deals)
     for (const [c, js] of ever) if (js.has(d.journey)) deals.set(c, (deals.get(c) ?? 0) + 1);
 
+  // A stamp's chain: the campaign and those above it in the newest shape.
+  const above = new Map<string, string | undefined>();
+  if (x.newest && isMetro(x.newest))
+    for (const c of campaignsOf(x.newest)) above.set(c.id, c.parent);
+  const acts = new Map<string, Record<string, number>>();
+  for (const a of x.acts ?? []) {
+    const chain = [a.campaign ?? DEFAULT_CAMPAIGN];
+    for (let p = above.get(chain[0] as string); p && !chain.includes(p); p = above.get(p))
+      chain.push(p);
+    for (const c of chain) {
+      const m = acts.get(c) ?? {};
+      acts.set(c, { ...m, [a.act]: (m[a.act] ?? 0) + a.n });
+    }
+  }
+
   const row = (campaign: string, label: string, status: CampaignStatus, gone: boolean) => ({
     campaign,
     label,
@@ -125,6 +151,7 @@ export function campaignNumbers(x: CampaignInputs): CampaignNumber[] {
     converted: converted.get(campaign)?.size ?? 0,
     now: now.get(campaign) ?? 0,
     deals: deals.get(campaign) ?? 0,
+    acts: acts.get(campaign) ?? {},
   });
   // A graph has no groups: the default only.
   const current =
@@ -134,7 +161,7 @@ export function campaignNumbers(x: CampaignInputs): CampaignNumber[] {
   const seen = new Set(current.map((c) => c.id));
   return [
     ...current.map((c) => row(c.id, c.label, c.status, false)),
-    ...[...ever.keys()]
+    ...[...new Set([...ever.keys(), ...acts.keys()])]
       .filter((c) => !seen.has(c))
       .sort()
       .map((c) => row(c, c, "ended", true)),
@@ -153,13 +180,42 @@ async function arrivalsOf(db: Queryable): Promise<Arrival[]> {
   return rows.map((r) => ({ ...r, version: Number(r.version) }));
 }
 
+/**
+ * Done acts in a window, by stamp and cap word. Each act counts at its own time: an opener or an
+ * invite when sent, a comment when made, a post when published.
+ */
+async function actsOf(db: Queryable, r: { from?: string; to?: string }): Promise<ActCount[]> {
+  const inWindow = (col: SQL) =>
+    sql`${col} is not null${r.from ? sql` and (${col} at time zone 'UTC')::date >= ${r.from}::date` : sql``}${r.to ? sql` and (${col} at time zone 'UTC')::date <= ${r.to}::date` : sql``}`;
+  const rows = (await db.execute(sql`
+    select e.campaign, 'email.opener' act, count(*)::int n
+      from messages m join enrollments e on e.id = m.enrollment_id
+      where m.step = 1 and ${inWindow(sql`m.sent_at`)} group by 1, 2
+    union all
+    select c.campaign, c.platform || '.invite', count(*)::int
+      from reach_messages m join reach_contacts c on c.id = m.contact_id
+      where m.kind = 'connect' and m.direction = 'out' and ${inWindow(sql`m.sent_at`)} group by 1, 2
+    union all
+    select campaign, platform || '.comment', count(*)::int
+      from reach_posts where ${inWindow(sql`commented_at`)} group by 1, 2
+    union all
+    select i.campaign, d.platform || '.post', count(*)::int
+      from content_drafts d join content_ideas i on i.id = d.idea_id
+      where d.status = 'published' and ${inWindow(sql`d.published_at`)} group by 1, 2
+    union all
+    select c.campaign, 'sms.opener', count(*)::int
+      from sms_messages m join sms_contacts c on c.id = m.contact_id
+      where m.kind = 'sequence' and m.step = 1 and ${inWindow(sql`m.sent_at`)} group by 1, 2`)) as unknown as ActCount[];
+  return rows.map((a) => ({ ...a, n: Number(a.n) }));
+}
+
 /** The numbers per campaign of the newest shape, in a window (left out: all). */
 export async function campaignNumbersOf(
   db: Queryable,
   f: { window?: NumberWindow; from?: string; to?: string; now?: Date } = {},
 ): Promise<CampaignNumber[]> {
   const r = rangeOf(f);
-  const [arrivals, open, deals, [newest]] = await Promise.all([
+  const [arrivals, open, deals, [newest], acts] = await Promise.all([
     arrivalsOf(db),
     db
       .select({ version: instances.version, node: instances.node })
@@ -181,6 +237,7 @@ export async function campaignNumbersOf(
       .from(shapeVersions)
       .orderBy(sql`${shapeVersions.number} desc`)
       .limit(1),
+    actsOf(db, r),
   ]);
   const wanted = [...new Set([...arrivals, ...open].map((a) => a.version))];
   const bodies = new Map<number, StoredBody>();
@@ -196,6 +253,7 @@ export async function campaignNumbersOf(
     arrivals,
     open,
     deals,
+    acts,
     ...r,
   });
 }

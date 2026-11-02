@@ -64,6 +64,9 @@ export function campaignNumberLine(n: CampaignNumber): string {
     `${n.converted} converted`,
     `${n.now} now`,
     `${n.deals} deal${n.deals === 1 ? "" : "s"}`,
+    ...Object.entries(n.acts)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([act, k]) => `${k} ${act}`),
   ].join("  ");
 }
 

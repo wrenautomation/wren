@@ -55,12 +55,24 @@ describe("campaign lines", () => {
   });
 
   it("writes one numbers row a campaign", () => {
-    const n = { campaign: "spring", label: "Spring", people: 4, converted: 1, now: 2, deals: 1 };
+    const n = {
+      campaign: "spring",
+      label: "Spring",
+      people: 4,
+      converted: 1,
+      now: 2,
+      deals: 1,
+      acts: {},
+    };
     expect(campaignNumberLine({ ...n, status: "live", gone: false })).toBe(
       "spring  live  4 in  1 converted  2 now  1 deal",
     );
     expect(campaignNumberLine({ ...n, status: "ended", gone: true, deals: 0 })).toBe(
       "spring  gone  4 in  1 converted  2 now  0 deals",
+    );
+    const acts = { "sms.opener": 1, "email.opener": 3 };
+    expect(campaignNumberLine({ ...n, status: "live", gone: false, acts })).toBe(
+      "spring  live  4 in  1 converted  2 now  1 deal  3 email.opener  1 sms.opener",
     );
   });
 
