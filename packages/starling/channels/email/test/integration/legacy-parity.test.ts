@@ -79,6 +79,8 @@ const ADDED = {
     "documents.fetch_steps",
     // 2026-10-22 headcount, stored: the people map read it out of raw per person.
     "companies.headcount",
+    // 2026-11-02 campaigns: the campaign an enrollment runs for, null = default.
+    "enrollments.campaign",
   ]),
   constraints: new Set([
     "uq_messages_link_code",
