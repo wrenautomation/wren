@@ -304,7 +304,7 @@ describe("a carry to a new version", () => {
 
   it("leaves a journey before a race the new version adds: carry sets no clock", async () => {
     const plain = body();
-    plain.gates = plain.gates?.filter((g) => g.id !== "r");
+    plain.gates = (plain.gates ?? []).filter((g) => g.id !== "r");
     plain.edges = [
       ...plain.edges.filter((e) => e.from !== "r" && e.to !== "r"),
       edge("sent", "replied"),
