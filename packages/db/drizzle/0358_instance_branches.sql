@@ -1,0 +1,1 @@
+ALTER TABLE "pipeline"."instances" ADD COLUMN "branches" jsonb DEFAULT '[]'::jsonb NOT NULL;

@@ -14,6 +14,7 @@ import { UUID } from "@wren/core/ids";
 import { events } from "@wren/core/schema";
 import { atomic, type Queryable } from "@wren/db";
 import { and, asc, eq, sql } from "drizzle-orm";
+import { type Branch, branchesOf, frontOf, MAIN, moveBranches, opensBranch } from "./branches.js";
 import { entryNodes, liveSources, sourceEdge } from "./entry.js";
 import { instanceSubject, ownerOf, personOf, versionOf } from "./journeys.js";
 import { type Crossing, flowEdgesFrom, nodeOf, pathOf } from "./model.js";
@@ -141,7 +142,9 @@ export async function moveEmit(
         .map((n) => n.id)
         .join(", ")}.`,
     ]);
-  if (j.node === p.to) throw new Refused([`It is already at ${to.name}.`]);
+  const bs = branchesOf(j.branches, j.node);
+  if (bs.some((b) => b.node === p.to && !b.pin))
+    throw new Refused([`It is already at ${to.name}.`]);
   const path = pathOf(v.body, j.node, p.to);
   const loop =
     path?.length === 1
@@ -184,7 +187,10 @@ export async function moveEmit(
     };
   }
   if (j.status !== "open") throw new Refused([`Journey is ${j.status}.`]);
-  if (!path && !reason)
+  // The step's own rule: a branch's legal path (gates hold), else a new campaign's branch.
+  const front = frontOf(bs, j.node)?.key ?? MAIN;
+  const moves = !!moveBranches(v.body, bs, p.to, { front }) || opensBranch(v.body, bs, p.to);
+  if (!moves && !reason)
     throw new Refused([`No path from ${j.node} to ${p.to}. Give a reason to force the move.`]);
   return {
     journey: j,
@@ -197,7 +203,7 @@ export async function moveEmit(
         data: {
           journey: j.id,
           profile: j.profileId,
-          ...(!path && reason ? { forced: { reason } } : {}),
+          ...(!moves && reason ? { forced: { reason } } : {}),
           cause: manual(p.by, at),
         },
       },
@@ -245,7 +251,10 @@ export async function assignJourney(
   return { journey: id, owner };
 }
 
-type RebuiltFields = Pick<Instance, "version" | "node" | "status" | "dropReason" | "trail">;
+type RebuiltFields = Pick<
+  Instance,
+  "version" | "node" | "status" | "dropReason" | "trail" | "branches"
+>;
 export interface Rebuilt {
   before: RebuiltFields;
   after: RebuiltFields;
@@ -274,6 +283,7 @@ export async function rebuildJourney(db: Queryable, id: string): Promise<Rebuilt
     let version = j.version;
     let node: string | null = null;
     let trail: Crossing[] = [];
+    let branches: Branch[] = [];
     let status: Instance["status"] = "open";
     let reason: string | null = null;
     let movedAt: Date | null = null;
@@ -307,13 +317,23 @@ export async function rebuildJourney(db: Queryable, id: string): Promise<Rebuilt
       }
       const edges = Array.isArray(data.edges) ? data.edges.map(String) : [];
       const crossed = edges.flatMap((e) => body?.edges.find((x) => x.id === e) ?? []);
+      // A move on a shape with logic names its branch and the branches after it.
+      const branch = typeof data.branch === "string" && data.branch !== MAIN ? data.branch : null;
+      const tag = branch ? { branch } : {};
+      if (Array.isArray(data.branches)) branches = data.branches as Branch[];
       if (crossed.length > 0) {
         trail.push(
-          ...crossed.map((e) => ({ edge: e.id, from: e.from, to: e.to, at: r.at.toISOString() })),
+          ...crossed.map((e) => ({
+            edge: e.id,
+            from: e.from,
+            to: e.to,
+            at: r.at.toISOString(),
+            ...tag,
+          })),
         );
       } else {
         const from = typeof data.from === "string" ? data.from : null;
-        trail.push({ edge: null, from, to: node, at: r.at.toISOString() });
+        trail.push({ edge: null, from, to: node, at: r.at.toISOString(), ...tag });
       }
     }
     if (node === null) throw new Refused([`No arrivals for journey ${id}.`]);
@@ -331,13 +351,14 @@ export async function rebuildJourney(db: Queryable, id: string): Promise<Rebuilt
     }
     if (status === "open") {
       const body = (await versionOf(tx, version ?? 0))?.body;
-      if (body && flowEdgesFrom(body, node).length === 0) {
+      const end = (id: string) => !!body && flowEdgesFrom(body, id).length === 0;
+      if (end(node) && branches.every((b) => end(b.node))) {
         status = "done";
         closedAt = movedAt;
       }
     }
     const before = pick(j);
-    const after = { version, node, status, dropReason: reason, trail };
+    const after = { version, node, status, dropReason: reason, trail, branches };
     // Times differ by the milliseconds between a step and its event: compare the path only.
     const path = (x: RebuiltFields) => ({
       ...x,
@@ -359,6 +380,7 @@ const pick = (j: Instance): RebuiltFields => ({
   status: j.status,
   dropReason: j.dropReason,
   trail: j.trail,
+  branches: j.branches,
 });
 
 /**

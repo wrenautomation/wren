@@ -13,6 +13,16 @@ import { atomic, type Db } from "@wren/db";
 import { desc, eq } from "drizzle-orm";
 import { attributionOf, withAdCampaign } from "./attribution.js";
 import {
+  type Branch,
+  branchesOf,
+  forceBranches,
+  frontOf,
+  MAIN,
+  moveBranches,
+  opensBranch,
+  storedOf,
+} from "./branches.js";
+import {
   type CauseFacts,
   entryOf,
   foundBy,
@@ -166,9 +176,10 @@ const unnamed = (f: CauseFacts): CauseFacts => {
  * A repeat of a move that crashed before it was kept: say it again from the instance's last
  * crossings (they share one time). The stage node refuses a second arrival.
  */
-function again(j: Instance) {
-  const last = j.trail.at(-1);
-  const same = j.trail.filter((c) => c.at === last?.at);
+function again(j: Instance, branch = MAIN) {
+  const mine = j.trail.filter((c) => (c.branch ?? MAIN) === branch);
+  const last = mine.at(-1);
+  const same = mine.filter((c) => c.at === last?.at);
   return {
     journey: j.id,
     from: same[0]?.from ?? null,
@@ -176,6 +187,9 @@ function again(j: Instance) {
     skipped: same.slice(0, -1).map((c) => c.to),
   };
 }
+
+/** A crossing's branch; the first branch's crossings carry none. */
+const tagOf = (branch: string) => (branch === MAIN ? {} : { branch });
 
 /** The two steps, to register by name in the executor's `steps`. */
 export function journeySteps(d: JourneyStepDeps): Record<string, Step> {
@@ -302,6 +316,16 @@ export function journeySteps(d: JourneyStepDeps): Record<string, Step> {
       ? { journey: textOf(e.data.loop.journey), edge: textOf(e.data.loop.edge) }
       : null;
 
+    const race = isRecord(e.data.race)
+      ? {
+          journey: textOf(e.data.race.journey),
+          gate: textOf(e.data.race.gate) ?? "",
+          branch: textOf(e.data.race.branch) ?? MAIN,
+        }
+      : null;
+    // Branch fields ride the event only where the shape has logic: no other journey changes.
+    const logic = !!(body.gates?.length || body.campaigns);
+
     const done = await atomic(db, async (tx) => {
       const j = await openJourney(tx, profile);
       if (loop) {
@@ -345,37 +369,64 @@ export function journeySteps(d: JourneyStepDeps): Record<string, Step> {
           loop: { journey: old.id, node: old.node, edge: edge.id },
         };
       }
+      // A race clock moves only the journey that set it, and never opens one.
+      if (race && j?.id !== race.journey) return null;
       if (j) {
         // Another version owns this journey: its own node moves it.
         if (j.version !== flow.version || j.node === null) return null;
-        if (j.node === to) return again(j);
+        const bs = branchesOf(j.branches, j.node);
+        const here = bs.find((b) => b.node === to && !b.pin);
+        if (here) return again(j, here.key);
         // Never twice at one node: a trail that holds `to` means the move goes back.
         if (j.trail.some((c) => c.to === to)) return null;
-        const path = pathOf(body, j.node, to, { loops: false });
+        const front = frontOf(bs, j.node)?.key ?? MAIN;
+        const m = moveBranches(body, bs, to, { front, ...(race ? { clock: race } : {}) });
+        let branch = front;
+        let from: string = j.node;
+        let next: Branch[];
         let crossings: Crossing[];
-        let edges: string[];
-        let skipped: string[];
-        if (path) {
-          crossings = edgesOf(body, path).map((x) => ({
-            edge: x.id,
-            from: x.from,
-            to: x.to,
-            at: stamp,
-          }));
-          edges = path;
-          skipped = passedThrough(body, path);
+        let skipped: string[] = [];
+        let closed: string[] = [];
+        let won: Array<{ gate: string; arm: string }> = [];
+        if (m) {
+          ({ branch, from, skipped, closed, won } = m);
+          next = m.branches;
+          crossings = m.edges.flatMap((id) => {
+            const x = body.edges.find((y) => y.id === id);
+            return x ? [{ edge: x.id, from: x.from, to: x.to, at: stamp, ...tagOf(branch) }] : [];
+          });
+        } else if (race) {
+          return null;
         } else if (forced) {
-          crossings = [{ edge: null, from: j.node, to, at: stamp }];
-          edges = [];
-          skipped = [];
+          ({ branches: next, closed } = forceBranches(body, bs, to, front));
+          crossings = [{ edge: null, from: j.node, to, at: stamp, ...tagOf(front) }];
+        } else if (opensBranch(body, bs, to) && opensAt(body, to, port === JOURNEY_PORT, facts)) {
+          // A second campaign: its own branch, from the source that takes the cause.
+          const src = entryOf(body, facts, null, to);
+          const edge = src ? sourceEdge(body, src.id, to) : undefined;
+          branch = to;
+          from = src?.id ?? MANUAL;
+          next = [...bs, { key: to, node: to }];
+          crossings = [{ edge: edge?.id ?? null, from: src?.id ?? null, to, at: stamp, branch }];
         } else {
           return null;
         }
         await tx
           .update(instances)
-          .set({ node: to, trail: [...j.trail, ...crossings], movedAt: now() })
+          .set({
+            node: to,
+            trail: [...j.trail, ...crossings],
+            branches: storedOf(next),
+            movedAt: now(),
+          })
           .where(eq(instances.id, j.id));
-        return { journey: j.id, from: j.node, edges, skipped };
+        return {
+          journey: j.id,
+          from,
+          edges: crossings.flatMap((c) => (c.edge ? [c.edge] : [])),
+          skipped,
+          fork: logic ? { branch, branches: storedOf(next), closed, won } : null,
+        };
       }
       // Only the newest version opens journeys, and only from a cause a source into `to` takes.
       if (flow.version !== loaded.newest) return null;
@@ -452,6 +503,14 @@ export function journeySteps(d: JourneyStepDeps): Record<string, Step> {
               ? { forced: { reason: forced } }
               : {}),
             ...("loop" in done && done.loop ? { loop: done.loop } : {}),
+            ...("fork" in done && done.fork
+              ? {
+                  branch: done.fork.branch,
+                  branches: done.fork.branches,
+                  ...(done.fork.closed.length ? { closed: done.fork.closed } : {}),
+                  ...(done.fork.won.length ? { won: done.fork.won } : {}),
+                }
+              : {}),
             cause,
           },
         },
@@ -495,8 +554,13 @@ export function journeySteps(d: JourneyStepDeps): Record<string, Step> {
         })
         .onConflictDoNothing();
       if (dropped || !node) return "none" as const;
-      // A node with no way on ends the journey; it never reopens.
-      if (isEnd(body, key)) {
+      // A node with no way on ends the journey once every branch is at one; it never reopens.
+      const rest = Array.isArray(e.data.branches) ? e.data.branches : [];
+      const ends = rest.every((b) => {
+        const at = isRecord(b) ? textOf(b.node) : undefined;
+        return at !== undefined && isEnd(body, at);
+      });
+      if (isEnd(body, key) && ends) {
         await tx
           .update(instances)
           .set({ status: "done", closedAt: now() })

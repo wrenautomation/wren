@@ -35,6 +35,7 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
+import type { Branch } from "./branches.js";
 import type { Moves } from "./carry.js";
 import { DRAFT_STATES } from "./history.js";
 import { type Crossing, type ShapeBody, SUBJECT_KINDS } from "./model.js";
@@ -284,6 +285,8 @@ export const instances = pipeline.table(
     node: varchar("node", { length: 40 }).notNull(),
     /** Each edge it crossed, in order. Rebuilt from the events like the rest of the row. */
     trail: jsonb("trail").$type<Crossing[]>().notNull().default(sql`'[]'::jsonb`),
+    /** Where it stands past a split (`branches.ts`); none is one branch at `node`. */
+    branches: jsonb("branches").$type<Branch[]>().notNull().default(sql`'[]'::jsonb`),
     status: varchar("status", { length: 7, enum: JOURNEY_STATUSES }).notNull().default("open"),
     dropReason: text("drop_reason"),
     /** The source node id that opened it (`manual` when none claims it). */

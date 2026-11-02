@@ -27,7 +27,7 @@ import { and, desc, eq, lte, sql } from "drizzle-orm";
 import type { DraftDetail, DraftState, VersionLine } from "./history.js";
 import type { Fit } from "./icp.js";
 import { placesOf } from "./metro.js";
-import type { ShapeBody } from "./model.js";
+import { gateOf, type ShapeBody } from "./model.js";
 import { isRowId, subjectOf } from "./moves.js";
 import { type NumberRow, numberRows } from "./numbers.js";
 import { scheduleOf } from "./schedule.js";
@@ -596,7 +596,11 @@ export async function journeyRows(db: Queryable, o: { id?: string; now?: Date } 
       version: j.version,
       node,
       node_name: nameOf(body ?? undefined, node),
-      trail: j.trail.map((c) => nameOf(body ?? undefined, c.to)).join(" > "),
+      // Gates are not arrivals.
+      trail: j.trail
+        .filter((c) => !body || !gateOf(body, c.to))
+        .map((c) => nameOf(body ?? undefined, c.to))
+        .join(" > "),
       status: j.status,
       flag: j.status === "open" && days >= idle ? "stale" : null,
       ghost: ghost ? "ghost" : null,
