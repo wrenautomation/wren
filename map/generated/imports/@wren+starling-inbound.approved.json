@@ -4688,6 +4688,11 @@
   },
   {
    "from": "@wren/starling-inbound/src/restate/planner.ts",
+   "to": "@wren/starling-core/src/campaigns.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/starling-inbound/src/restate/planner.ts",
    "to": "@wren/starling-inbound/src/clients.ts",
    "kind": "imports"
   },
@@ -4719,6 +4724,11 @@
   {
    "from": "@wren/starling-inbound/src/restate/planner.ts",
    "to": "@wren/starling-inbound/src/slots.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/starling-inbound/src/restate/planner.ts",
+   "to": "@wren/starling-outbound/src/index.ts",
    "kind": "imports"
   },
   {

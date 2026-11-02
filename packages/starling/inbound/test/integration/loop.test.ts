@@ -23,6 +23,7 @@ import {
 } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
 import type { Post, Published } from "@wren/starling-core";
+import type { LoopCampaign } from "@wren/starling-core/campaigns";
 import { sendAttempt } from "@wren/starling-outbound";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -30,6 +31,7 @@ import { chapterIdea } from "../../src/ideas/chapters.js";
 import {
   addIdea,
   approveDrafts,
+  campaignSlots,
   collectStatus,
   contentDrafts,
   contentIdeas,
@@ -73,6 +75,8 @@ const hang = new Set<Platform>();
 const hung: string[] = [];
 const views = new Map<string, number>();
 const notes: string[] = [];
+/** The planner's live campaigns (`liveCampaigns`); none unless a test sets them. */
+let campaigns: LoopCampaign[] = [];
 let calls = 0;
 let reportPlatforms: Platform[] = [];
 let reportReads = 0;
@@ -438,6 +442,7 @@ beforeAll(async () => {
         zone: "UTC",
         notifier,
         draftWaitMs: 1_500,
+        liveCampaigns: async () => campaigns,
       }),
     ],
     alwaysReplay: true,
@@ -458,7 +463,9 @@ beforeEach(async () => {
     "unit_holds",
     "send_attempts",
     "draft_events",
+    "draft_accounts",
   ]);
+  campaigns = [];
   fates.clear();
   verify = "unknown";
   pausedCall = null;
@@ -1575,6 +1582,51 @@ describe("daily drafts (ContentPlanner with draft on)", () => {
     ]);
     expect(prompts.at(-1)).toContain('"how do you pick leads?"');
     expect(prompts.at(-1)).not.toContain("quiet_fox");
+  });
+
+  it("fills a campaign's slots from its own ideas first, as its account, under its cap", async () => {
+    await pg.db.execute(sql`insert into reach_accounts (platform, account, started_on)
+      values ('linkedin', 'li@test', current_date)`);
+    const plain = await addIdea(pg.db, "an older plain idea", "cli");
+    const first = await addIdea(pg.db, "spring one", "cli", null, null, { campaign: "spring" });
+    const second = await addIdea(pg.db, "spring two", "cli", null, null, { campaign: "spring" });
+    const away = await addIdea(pg.db, "not live", "cli", null, null, { campaign: "away" });
+    campaigns = [
+      { id: "spring", accounts: { linkedin: "li@test" }, caps: { "linkedin.post": 1 } },
+      // No LinkedIn account: it sits out.
+      { id: "late", accounts: { x: "x@test" }, caps: {} },
+    ];
+    await addIdea(pg.db, "late one", "cli", null, null, { campaign: "late" });
+    const three = [
+      { hour: 8, minute: 30 },
+      { hour: 12, minute: 0 },
+      { hour: 16, minute: 0 },
+    ];
+    await planner().start({ platforms: ["linkedin"], draft: true, slots: { linkedin: three } });
+    await planner().stop();
+    const last = (await planner().status()).last as PassOutcome<PlannerStats> | null;
+    expect(last?.stats?.drafted.map((d) => [d.slot, d.campaign ?? null])).toEqual([
+      [at(8, 30), "spring"],
+      [at(12, 0), null],
+    ]);
+    const rows = await listDrafts(pg.db, { status: "draft" });
+    const bySlot = new Map(rows.map((r) => [slotOf(r), r]));
+    expect(bySlot.get(at(8, 30))?.ideaId).toBe(first.id);
+    expect(bySlot.get(at(12, 0))?.ideaId).toBe(plain.id);
+    // Its draft posts as its account; the default's has no pick.
+    const picks = await pg.db.execute(sql`select item, account, by from draft_accounts`);
+    expect([...picks]).toEqual([
+      { item: `draft:${bySlot.get(at(8, 30))?.id}`, account: "li@test", by: "ContentPlanner" },
+    ]);
+    // Over its cap, a not-live campaign and one off the platform: their ideas wait, the slot too.
+    const open = await pg.db
+      .select({ id: contentIdeas.id })
+      .from(contentIdeas)
+      .where(eq(contentIdeas.status, "open"));
+    expect(open.map((r) => r.id)).toEqual(expect.arrayContaining([second.id, away.id]));
+    expect(await campaignSlots(pg.db, tomorrowOf(new Date(), "UTC"))).toEqual({
+      spring: { linkedin: 1 },
+    });
   });
 
   it("with approve on, each draft is approved into the slot it holds", async () => {

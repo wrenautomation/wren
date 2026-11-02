@@ -1775,6 +1775,11 @@
    "id": "migration:0355_reach_campaign.sql",
    "role": "migration",
    "group": "migrations"
+  },
+  {
+   "id": "migration:0356_content_idea_campaign.sql",
+   "role": "migration",
+   "group": "migrations"
   }
  ],
  "edges": []

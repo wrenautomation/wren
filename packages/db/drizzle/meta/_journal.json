@@ -2486,6 +2486,13 @@
       "when": 1793648420616,
       "tag": "0355_reach_campaign",
       "breakpoints": true
+    },
+    {
+      "idx": 356,
+      "version": "7",
+      "when": 1793649921680,
+      "tag": "0356_content_idea_campaign",
+      "breakpoints": true
     }
   ]
 }

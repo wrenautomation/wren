@@ -1,7 +1,7 @@
 ---
 type: process
 status: verified
-verified: 2026-10-07 @ HEAD
+verified: 2026-10-07 @ HEAD + 2026-11-02 WA-999 (campaign sweeps)
 consumes: ["[[content/idea]]", "[[content/comment]]", "[[content/platform]]", "[[content/media]]", "[[content/playbook]]", "[[platform/llm-client]]"]
 produces: ["[[content/draft]]", "[[content/content-metric]]", "[[content/idea]]"]
 ---
@@ -25,7 +25,7 @@ Approving is publishing, so it stays a person's call; the loops only move approv
 3. Review (`review.ts:70`, `:165`, `:170`); slots (`slots.ts`).
 4. Publish (`restate/scheduler.ts`; `queue.ts:37`; `packages/starling/core/src/service.ts`; adapters `packages/starling/channels/*/src/content.ts`).
 5. Metrics and plan (`metrics.ts:50`, `:97`; `restate/metrics.ts`; `plan.ts`; `restate/planner.ts`).
-6. Daily drafts: open slots (`plan.ts:96`), next idea (`plan.ts:135`; `ideas/questions.ts`, `ideas/chapters.ts`), fill (`restate/planner.ts:148`). A draft waits at most `DRAFT_WAIT_MS` (15 min); past it the desk's call runs on (`keep`) and the pass drafts no more, since the desk's one lock is that call's. Three in a row and the idea is held (`unit_holds`, stage `loop.content-planner/<key>`) and passed over. Settings: `platforms`, `draft`, `slots` (`slotsOf`, `slots.ts:45`: a slot with a bad hour, minute or weekday is dropped). The plan's `waiting` counts only drafts holding a slot inside the day (`plan.ts:42`): older unapproved drafts wait in To approve and never block tomorrow. Approve without a slot takes the planner's slots, not the defaults (`ContentDesk.approve` reads `ContentPlanner/default` status; the CLI the same through ingress); a client's desk keeps the defaults.
+6. Daily drafts: open slots (`plan.ts:96`), next idea (`plan.ts:135`; `ideas/questions.ts`, `ideas/chapters.ts`), fill (`restate/planner.ts:148`). A draft waits at most `DRAFT_WAIT_MS` (15 min); past it the desk's call runs on (`keep`) and the pass drafts no more, since the desk's one lock is that call's. Three in a row and the idea is held (`unit_holds`, stage `loop.content-planner/<key>`) and passed over. Settings: `platforms`, `draft`, `slots` (`slotsOf`, `slots.ts:45`: a slot with a bad hour, minute or weekday is dropped). The plan's `waiting` counts only drafts holding a slot inside the day (`plan.ts:42`): older unapproved drafts wait in To approve and never block tomorrow. Campaigns: the pass walks the live campaigns in body order (`liveCampaigns` dep, the worker's `liveCampaignsOf`), then the default. A campaign drafts only its own ideas, on platforms where it names an account, under its `<platform>.post` cap (`campaignSlots` + `capLeft`); its drafts get its account as their `draft_accounts` pick (Wren only; a client posts as its own login). Approve without a slot takes the planner's slots, not the defaults (`ContentDesk.approve` reads `ContentPlanner/default` status; the CLI the same through ingress); a client's desk keeps the defaults.
 
 ## If you change this
 

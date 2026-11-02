@@ -40,6 +40,11 @@ const ADD = z.looseObject({
   draft: z.boolean().nullish().describe("Off keeps the idea undrafted"),
   platforms: PLATFORMS_FIELD,
   source: z.enum(IDEA_SOURCES).nullish().describe("Who wrote it; cli unless said"),
+  campaign: z
+    .string()
+    .max(64)
+    .nullish()
+    .describe("A metro campaign id: only its planner sweep drafts the idea"),
 });
 
 const WRITE = z.looseObject({
@@ -62,6 +67,11 @@ const WRITE = z.looseObject({
     .describe("What it's about, video:<id>: the post hangs under that video in Pieces"),
   line: z.string().max(64).nullish().describe("The offer line it serves: a line id in the shape"),
   angle: z.enum(IDEA_ANGLES).nullish().describe("How it argues"),
+  campaign: z
+    .string()
+    .max(64)
+    .nullish()
+    .describe("A metro campaign id: only its planner sweep drafts the idea"),
   media: z
     .object({
       kind: z.enum(["image", "video"]),
@@ -100,11 +110,14 @@ export function draftingHandlers(desk: ContentDeskContext) {
           platforms?: Platform[];
           /** Who wrote it: the person (`cli`, default), the API, or `AdsWatch` (`ads`). */
           source?: IdeaSource;
+          campaign?: string | null;
         },
       ): Promise<{ idea: ContentIdea; drafts: DraftReport | null }> => {
         const { db } = await scopeOf(ctx);
         const idea = await ctx.run("insert idea", () =>
-          addIdea(db, req.text, req.source ?? "cli", req.media ?? null),
+          addIdea(db, req.text, req.source ?? "cli", req.media ?? null, null, {
+            campaign: req.campaign ?? null,
+          }),
         );
         if (req.draft === false) return { idea, drafts: null };
         const drafts = await draft(ctx, {
@@ -199,12 +212,17 @@ export function draftingHandlers(desk: ContentDeskContext) {
           media?: Media | null;
           line?: string | null;
           angle?: IdeaAngle | null;
+          campaign?: string | null;
           viewer?: unknown;
         },
       ) => {
         const s = await scopeOf(ctx);
         const by = byOf(req);
-        const mark = { line: req.line ?? null, angle: req.angle ?? null };
+        const mark = {
+          line: req.line ?? null,
+          angle: req.angle ?? null,
+          campaign: req.campaign ?? null,
+        };
         // A thread is one post whose parts the `---` lines split.
         const posts = req.thread ? [req.text.trim()].filter(Boolean) : splitPosts(req.text);
         if (posts.length === 0)

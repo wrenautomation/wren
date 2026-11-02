@@ -15,6 +15,10 @@
  * is that call's. The next pass starts past it. An idea that times out three passes in a row is
  * held (`unit_holds`, stage `loop.content-planner/<key>`), and the next idea goes first.
  *
+ * Campaigns (designs/2026-11-02-campaigns.md, phase 3): the pass fills slots per live campaign in
+ * body order, then the default. A campaign takes only its own ideas, on the platforms it names an
+ * account for, under its `<platform>.post` cap; its drafts post as that account.
+ *
  * `ContentPlanner/<client>/daily`: the same for a client with Content plan installed, on its own
  * logins' platforms, into its own database, drafted by `ContentDesk/<client>/desk` as the client.
  * Its block (`content.planner`) is the settings; its ideas are its own and its readers'
@@ -36,9 +40,12 @@ import {
 } from "@wren/core/restate";
 import { wallClock, zonedInstant } from "@wren/core/time";
 import type { Db } from "@wren/db";
+import { capLeft, type LoopCampaign } from "@wren/starling-core/campaigns";
+import { pickAccount, ReachRefusal } from "@wren/starling-outbound";
 import { eq } from "drizzle-orm";
 import { clientContent, clientPlan } from "../clients.js";
 import {
+  campaignSlots,
   type DayPlan,
   formatPlan,
   nextIdea,
@@ -56,7 +63,7 @@ import { type ContentDesk, DESK_KEY, DESK_UNIT } from "./desk.js";
 export const PLANNER_KEY = "default";
 export const DEFAULT_PLAN_PLATFORMS: readonly Platform[] = ["linkedin", "reddit"];
 const DEFAULT_HOUR = 17;
-/** Ideas tried per pass: a run of ideas that all fail to draft stops here. */
+/** Ideas tried per sweep (a campaign, or the default): a run that all fail to draft stops here. */
 const MAX_IDEAS = 6;
 /** The longest a pass waits on one idea's drafts: a model call per platform, a minute or two each. */
 const DRAFT_WAIT_MS = 15 * 60_000;
@@ -74,6 +81,8 @@ interface ContentPlannerDeps {
   slots?: Partial<Record<Platform, Slot[]>>;
   /** How long a pass waits on one idea's drafts (default `DRAFT_WAIT_MS`); tests shorten it. */
   draftWaitMs?: number;
+  /** The live metro campaigns of a database (`liveCampaignsOf`); absent, the default alone. */
+  liveCampaigns?: (db: Db, now: Date) => Promise<readonly LoopCampaign[]>;
 }
 
 export interface PlannerSettings {
@@ -92,6 +101,8 @@ export interface Drafted {
   /** ISO instant of the slot it holds. */
   slot: string;
   source: string;
+  /** The metro campaign it was drafted for; absent = the default. */
+  campaign?: string;
 }
 
 export type PlannerStats = DayPlan & { drafted: Drafted[]; skipped: string[] };
@@ -162,7 +173,7 @@ export function makeContentPlanner(deps: ContentPlannerDeps) {
           [
             ...drafted.map(
               (d) =>
-                `drafted ${d.platform} for ${clock(new Date(d.slot))} from ${d.source.replace("_", " ")}: ${d.draftId}`,
+                `drafted ${d.platform} for ${clock(new Date(d.slot))} from ${d.source.replace("_", " ")}${d.campaign ? ` (${d.campaign})` : ""}: ${d.draftId}`,
             ),
             ...skipped.map((s) => `skipped ${s}`),
             ...formatPlan(plan),
@@ -187,71 +198,127 @@ export function makeContentPlanner(deps: ContentPlannerDeps) {
           Object.entries(o).map(([p, at]) => [p, at.map((d) => d.toISOString())]),
         ) as Partial<Record<Platform, string[]>>;
       });
-      const short = () => platforms.filter((p) => (open[p]?.length ?? 0) > 0);
+      const live = deps.liveCampaigns
+        ? await ctx.run(
+            "campaigns",
+            async () =>
+              // Only what the pass reads crosses the journal.
+              (await deps.liveCampaigns?.(db, now))?.map(({ id, accounts, caps }) => ({
+                id,
+                accounts,
+                caps,
+              })) ?? [],
+          )
+        : [];
+      const used = live.length ? await ctx.run("campaign slots", () => campaignSlots(db, day)) : {};
+      const sweeps = [...live, null];
       const tried: string[] = [];
       const limits = await unitLimits(ctx, deps.db, "ContentPlanner");
       const desk = ctx.objectClient<ContentDesk>(
         { name: "ContentDesk" },
         client ? clientKey(client, DESK_UNIT) : DESK_KEY,
       );
-      let tries = 0;
-      for (let i = 0; tries < MAX_IDEAS && short().length > 0; i++) {
-        const next = await ctx.run(`idea ${i}`, () =>
-          nextIdea(db, {
-            now,
-            exclude: tried,
-            ...(client ? { client: true } : {}),
-          }),
-        );
-        if (!next.idea) break;
-        const idea = next.idea;
-        tried.push(idea.id);
-        const unit = `idea ${idea.id}`;
-        // Held after timing out pass after pass: the next idea instead, not counted as a try.
-        if (limits.skip(unit)) continue;
-        tries++;
-        let report: Awaited<ReturnType<typeof desk.draft>>;
-        try {
-          report = await limits.within(
-            unit,
-            desk.draft({ ideaId: idea.id, platforms: short() }),
-            // A draft past its wait still lands as a row: left running, never asked twice.
-            { ms: deps.draftWaitMs ?? DRAFT_WAIT_MS, call: "ContentDesk/draft", keep: true },
+      let i = 0;
+      for (const c of sweeps) {
+        // Slots this sweep may still take: a campaign only where it names an account, under its cap.
+        const room = (p: Platform): number => {
+          const free = open[p]?.length ?? 0;
+          if (!c) return free;
+          return c.accounts[p] ? capLeft(free, c.caps[`${p}.post`], used[c.id]?.[p] ?? 0) : 0;
+        };
+        const short = () => platforms.filter((p) => room(p) > 0);
+        let tries = 0;
+        while (tries < MAX_IDEAS && short().length > 0) {
+          const next = await ctx.run(`idea ${i++}`, () =>
+            nextIdea(db, {
+              now,
+              exclude: tried,
+              ...(client ? { client: true } : {}),
+              ...(c ? { campaign: c.id } : {}),
+            }),
           );
-        } catch (err) {
-          // Still running on the desk's lock: the next idea would wait behind it.
-          if (err instanceof CallTimeout) {
-            skipped.push(`drafting ${idea.source} ${idea.id}: ${err.message}`);
-            break;
+          if (!next.idea) break;
+          const idea = next.idea;
+          tried.push(idea.id);
+          const unit = `idea ${idea.id}`;
+          // Held after timing out pass after pass: the next idea instead, not counted as a try.
+          if (limits.skip(unit)) continue;
+          tries++;
+          let report: Awaited<ReturnType<typeof desk.draft>>;
+          try {
+            report = await limits.within(
+              unit,
+              desk.draft({ ideaId: idea.id, platforms: short() }),
+              // A draft past its wait still lands as a row: left running, never asked twice.
+              { ms: deps.draftWaitMs ?? DRAFT_WAIT_MS, call: "ContentDesk/draft", keep: true },
+            );
+          } catch (err) {
+            // Still running on the desk's lock: the next idea would wait behind it.
+            if (err instanceof CallTimeout) {
+              skipped.push(`drafting ${idea.source} ${idea.id}: ${err.message}`);
+              return;
+            }
+            // The desk said no for good (a client's About, its model gate): said, and no more ideas.
+            if (!(err instanceof restate.TerminalError)) throw err;
+            skipped.push(`drafting: ${err.message}`);
+            return;
           }
-          // The desk said no for good (a client's About, its model gate): said, and no more ideas.
-          if (!(err instanceof restate.TerminalError)) throw err;
-          skipped.push(`drafting: ${err.message}`);
-          break;
-        }
-        for (const r of report.results) {
-          const slot = open[r.platform]?.[0];
-          if (!r.ok || !slot) {
-            if (!r.ok) skipped.push(`${r.platform} (${idea.source}): ${r.reason}`);
-            continue;
+          for (const r of report.results) {
+            const slot = open[r.platform]?.[0];
+            if (!r.ok || !slot) {
+              if (!r.ok) skipped.push(`${r.platform} (${idea.source}): ${r.reason}`);
+              continue;
+            }
+            open[r.platform]?.shift();
+            await ctx.run(`hold ${r.draft.id}`, () =>
+              db
+                .update(contentDrafts)
+                .set({ scheduledFor: new Date(slot) })
+                .where(eq(contentDrafts.id, r.draft.id))
+                .then(() => undefined),
+            );
+            drafted.push({
+              platform: r.platform,
+              draftId: r.draft.id,
+              slot,
+              source: idea.source,
+              ...(c ? { campaign: c.id } : {}),
+            });
+            if (c) {
+              used[c.id] = { ...used[c.id], [r.platform]: (used[c.id]?.[r.platform] ?? 0) + 1 };
+              // A client's drafts post as its own login: no pick.
+              const account = c.accounts[r.platform];
+              const unpicked =
+                client || !account
+                  ? null
+                  : await ctx.run(`account ${r.draft.id}`, () =>
+                      pickAccount(db, {
+                        item: `draft:${r.draft.id}`,
+                        account,
+                        by: "ContentPlanner",
+                      }).then(
+                        () => null,
+                        (err: unknown) => {
+                          if (err instanceof ReachRefusal) return err.message;
+                          throw err;
+                        },
+                      ),
+                    );
+              if (unpicked) skipped.push(`account for ${r.platform} ${r.draft.id}: ${unpicked}`);
+            }
+            if (!settings.approve) continue;
+            const refused = await ctx.run(`approve ${r.draft.id}`, () =>
+              approveDrafts(db, [r.draft.id], {
+                now,
+                at: new Date(slot),
+                by: "ContentPlanner",
+              }).then(
+                () => null,
+                (err: unknown) => (err instanceof Error ? err.message : String(err)),
+              ),
+            );
+            if (refused) skipped.push(`approving ${r.platform} ${r.draft.id}: ${refused}`);
           }
-          open[r.platform]?.shift();
-          await ctx.run(`hold ${r.draft.id}`, () =>
-            db
-              .update(contentDrafts)
-              .set({ scheduledFor: new Date(slot) })
-              .where(eq(contentDrafts.id, r.draft.id))
-              .then(() => undefined),
-          );
-          drafted.push({ platform: r.platform, draftId: r.draft.id, slot, source: idea.source });
-          if (!settings.approve) continue;
-          const refused = await ctx.run(`approve ${r.draft.id}`, () =>
-            approveDrafts(db, [r.draft.id], { now, at: new Date(slot), by: "ContentPlanner" }).then(
-              () => null,
-              (err: unknown) => (err instanceof Error ? err.message : String(err)),
-            ),
-          );
-          if (refused) skipped.push(`approving ${r.platform} ${r.draft.id}: ${refused}`);
         }
       }
     }

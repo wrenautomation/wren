@@ -19,7 +19,7 @@ import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
 import { fakeContentChannel } from "@wren/starling-core";
 import { type Channels, makeContent, SENDS_OFF } from "@wren/starling-core/service";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { clientContent, clientPlan } from "../../src/clients.js";
 import { addIdea, contentDrafts, contentMetrics } from "../../src/index.js";
@@ -61,6 +61,8 @@ let env: RestateTestEnvironment;
 let kappa: Db;
 let lambda: Db;
 const executor = executorRecorder();
+/** The databases the planner read campaigns from, each through its shape table. */
+const campaignReads: string[] = [];
 const open = (id: string) => cachedDb(clientDatabaseUrl(pg.url, `wren_client_${id}`));
 const products = (about?: string) => ({
   "content.posting": {},
@@ -117,7 +119,20 @@ beforeAll(async () => {
         clients: { clientDb: open, llm: clientLlm },
       }),
       // Every day has slots: the default LinkedIn and Reddit slots skip weekends, so a Friday run planned none.
-      makeContentPlanner({ db: pg.db, zone: "UTC", clientDb: open, slots: EVERY_DAY }),
+      makeContentPlanner({
+        db: pg.db,
+        zone: "UTC",
+        clientDb: open,
+        slots: EVERY_DAY,
+        // A client's campaigns are its own shape's: the pipeline schema is granted in its database.
+        liveCampaigns: async (db) => {
+          const [r] = await db.execute(
+            sql`select current_database() db, (select count(*) from pipeline.shape_versions) n`,
+          );
+          campaignReads.push(String(r?.db));
+          return [];
+        },
+      }),
       makeContentScheduler({ db: pg.db, idleMs: 60_000, clientDb: open }),
       makeContentMetrics({ db: pg.db, clientDb: open }),
       socialPushed,
@@ -181,6 +196,7 @@ describe("the planner per client", () => {
     const out = await plan("kappa");
     expect(out.stopped).toBeUndefined();
     expect(out.stats?.drafted.map((d) => d.platform)).toEqual(["linkedin"]);
+    expect(campaignReads).toEqual(["wren_client_kappa"]);
     // Drafts wait in its To approve; Wren's database has none.
     expect(await drafts(kappa)).toEqual([expect.objectContaining({ status: "draft" })]);
     expect(await pg.db.select().from(contentDrafts)).toEqual([]);

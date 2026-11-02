@@ -9,7 +9,7 @@ import { type CampaignNumber, campaignNumbersOf } from "@wren/pipeline/campaign-
 import { isMetro } from "@wren/pipeline/metro";
 import { type Campaign, campaignsOf } from "@wren/pipeline/metro-campaigns";
 import type { NumberWindow } from "@wren/pipeline/numbers";
-import { shapeVersionsOf } from "@wren/pipeline/store";
+import { newestShape, shapeVersionsOf } from "@wren/pipeline/store";
 import type { Command } from "commander";
 import { numberArg, windowArg } from "./pipeline.js";
 
@@ -65,6 +65,17 @@ export function campaignNumberLine(n: CampaignNumber): string {
     `${n.now} now`,
     `${n.deals} deal${n.deals === 1 ? "" : "s"}`,
   ].join("  ");
+}
+
+/** `id` when it is a campaign of the newest shape; else why not. The default is no tag. */
+export async function campaignArg(db: Db, id: string): Promise<string> {
+  const body = (await newestShape(db))?.body;
+  const ids = isMetro(body) ? campaignsOf(body).map((c) => c.id) : [];
+  if (id === "default" || !ids.includes(id))
+    throw new Error(
+      `no campaign "${id}" on the newest shape${ids.length > 1 ? `; campaigns: ${ids.slice(1).join(", ")}` : ""}`,
+    );
+  return id;
 }
 
 export function registerCampaigns(program: Command, withDb: WithDb): void {

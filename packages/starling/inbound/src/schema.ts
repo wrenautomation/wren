@@ -83,6 +83,8 @@ export const contentIdeas = pgTable(
     line: varchar("line", { length: 64 }),
     /** How it argues (`IDEA_ANGLES`). Null = none named. */
     angle: varchar("angle", { length: 16, enum: IDEA_ANGLES }),
+    /** The metro campaign it is written for (a group id); its drafts inherit it. Null = the default. */
+    campaign: varchar("campaign", { length: 64 }),
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_content_ideas" }),

@@ -40,7 +40,7 @@ export const CAMPAIGN_CHANNELS: readonly string[] = [
  * The acts a loop spends, per channel. A channel listed here refuses other acts; a channel not
  * listed takes any slug until its loop reads campaigns (designs/2026-11-02-campaigns.md, phase 3).
  */
-const CAMPAIGN_ACTS: Readonly<Record<string, readonly string[]>> = {
+const REACH_ACTS: Readonly<Record<string, readonly string[]>> = {
   // Cold email: openers queued a day (`ComposeScheduler`).
   email: ["opener"],
   // Invites proposed a day (`topUp`); comments queued in 24h (`postsPass`). Follows and DMs inherit.
@@ -51,6 +51,13 @@ const CAMPAIGN_ACTS: Readonly<Record<string, readonly string[]>> = {
   youtube: ["comment"],
   tiktok: ["comment"],
   threads: ["comment"],
+};
+// Posts holding a slot tomorrow (`ContentPlanner`), on every content platform.
+const CAMPAIGN_ACTS: Readonly<Record<string, readonly string[]>> = {
+  ...REACH_ACTS,
+  ...Object.fromEntries(
+    Object.keys(SITE_PLATFORMS).map((p) => [p, [...(REACH_ACTS[p] ?? []), "post"]]),
+  ),
 };
 
 /** The widest a day cap goes. */

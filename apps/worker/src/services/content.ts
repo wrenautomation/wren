@@ -12,6 +12,7 @@ import { pausedUnder } from "@wren/core/dead-letters";
 import { wrenFacts } from "@wren/core/facts";
 import { githubRepo } from "@wren/core/github";
 import { LIMITS } from "@wren/core/restate";
+import { liveCampaignsOf } from "@wren/pipeline/store";
 import { makeContent } from "@wren/starling-core/service";
 import { isGoogleMailbox } from "@wren/starling-email/access/access";
 import { slidePainter } from "@wren/starling-inbound";
@@ -168,7 +169,13 @@ export function contentServices(deps: Deps): AnyService[] {
     }),
     makeContentMetrics({ db, clientDb, ...contentNotify }),
     // Tomorrow's slots vs scheduled drafts, said once a day; off until `wren content planner start`.
-    makeContentPlanner({ db, clientDb, zone: settings.sendTimezone, ...contentNotify }),
+    makeContentPlanner({
+      db,
+      clientDb,
+      zone: settings.sendTimezone,
+      liveCampaigns: liveCampaignsOf,
+      ...contentNotify,
+    }),
     // Comments, activity and followers on our own accounts. Reads only; off until `wren social start`.
     makeSocialWatch({
       db,

@@ -1758,6 +1758,11 @@
   },
   {
    "from": "@wren/worker/src/services/content.ts",
+   "to": "@wren/pipeline/src/store.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/worker/src/services/content.ts",
    "to": "@wren/starling-core/src/service.ts",
    "kind": "imports"
   },

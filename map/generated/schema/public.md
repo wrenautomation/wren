@@ -1502,6 +1502,7 @@ Indexes:
 ## public.content_ideas (table)
 
 - `angle varchar(16) null`
+- `campaign varchar(64) null`
 - `created_at timestamp with time zone = now()`
 - `id uuid = gen_random_uuid()`
 - `line varchar(64) null`

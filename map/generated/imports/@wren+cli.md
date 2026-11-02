@@ -113,6 +113,7 @@ flowchart LR
   ncampaigns_ts --> npipeline_ts
   nclients_ts --> nargs_ts
   nclients_ts --> nproducts_ts
+  ncontent_ts --> ncampaigns_ts
   ncrm_ts --> nsites_ts
   ndrafts_ts --> ncontent_ts
   nemail_ts --> nanswers_ts
@@ -194,6 +195,7 @@ flowchart LR
   nstudy_ts --> nsites_ts
   ntemplates_ts --> ntemplate_prune_ts
   nvideo_ts --> nstudio_ts
+  nwrite_ts --> ncampaigns_ts
   nwrite_ts --> ncontent_ts
 ```
 

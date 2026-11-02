@@ -13,7 +13,7 @@ File: packages/delivery/src/billing/console.ts
 
 File: packages/delivery/src/service.ts
 
-- **access** `Req<"access">` → `{ id: number; status: "open" | "declined" | "granted" | "revoked"; }` (plain): writes delivery.access_requests; reads delivery.engagements, public.client_members, public.clients, public.grants, public.operators, public.role_grants, public.roles
+- **access** `Req<"access">` → `{ id: number; status: "open" | "granted" | "declined" | "revoked"; }` (plain): writes delivery.access_requests; reads delivery.engagements, public.client_members, public.clients, public.grants, public.operators, public.role_grants, public.roles
 - **account** `Req<"account">` → `AccountView` (plain): reads delivery.engagements, delivery.invoices, public.client_members, public.clients, public.grants, public.operators, public.role_grants, public.roles
 - **addDomain** `PortalRequest & { hostname: string }` → `import("./domains.js").DomainView` (plain): writes public.client_domains; reads public.client_members, public.clients, public.roles
   - outside: npm tldts
@@ -22,7 +22,7 @@ File: packages/delivery/src/service.ts
 - **board** `Req<"board">` → `BoardRow[]` (plain): reads books.usage_lines, delivery.access_requests, delivery.agreements, delivery.asks, delivery.comments, delivery.deliverables, delivery.engagements, delivery.invoices, delivery.member_mail, delivery.milestones, delivery.pulses, delivery.results, delivery.updates, pipeline.terms_versions, public.client_members, public.clients, public.roles
 - **comment** `Req<"comment">` → `{ id: number; }` (plain): writes delivery.comments; reads delivery.deliverables, delivery.engagements, delivery.milestones, delivery.updates, public.client_members, public.clients, public.grants, public.operators, public.role_grants, public.roles
 - **contract** `Req<"contract">` → `ContractView` (plain): reads delivery.agreements, delivery.engagements, pipeline.terms_versions, public.client_members, public.clients, public.roles
-- **decide** `Req<"decide">` → `{ id: number; status: "approved" | "changes" | "waiting"; }` (plain): writes delivery.deliverables; reads delivery.engagements, delivery.milestones, public.client_members, public.clients, public.grants, public.operators, public.role_grants, public.roles
+- **decide** `Req<"decide">` → `{ id: number; status: "waiting" | "approved" | "changes"; }` (plain): writes delivery.deliverables; reads delivery.engagements, delivery.milestones, public.client_members, public.clients, public.grants, public.operators, public.role_grants, public.roles
 - **deliver** `Req<"deliver">` → `{ id: number; version: number; }` (plain): writes delivery.comments, delivery.deliverables; reads delivery.engagements, delivery.milestones, delivery.updates, public.client_members, public.clients, public.grants, public.operators, public.role_grants, public.roles
 - **domains** `PortalRequest` → `{ domains: import("./domains.js").DomainView[]; target: string; ready: boolean; canManage: boolean; }` (plain): writes public.client_domains; reads public.client_members, public.clients, public.roles
 - **done** `Req<"done">` → `{ step: string; doneOn: string | null; }` (plain): writes delivery.milestones; reads delivery.engagements, public.client_members, public.clients, public.grants, public.operators, public.role_grants, public.roles
@@ -33,7 +33,7 @@ File: packages/delivery/src/service.ts
 - **invite** `Req<"invite">` → `{ email: string; role: string; }` (plain): writes auth.session, public.client_members; reads auth.user, public.clients, public.grants, public.operators, public.role_grants, public.roles
 - **invoicePdf** `Req<"invoicePdf">` → `{ name: string; base64: string; }` (plain): reads delivery.engagements, delivery.invoices, public.client_members, public.clients, public.grants, public.operators, public.role_grants, public.roles
   - outside: npm pdf-lib
-- **mail** `Req<"mail">` → `{ level: "off" | "all" | "digest"; }` (plain): writes delivery.member_mail; reads public.client_members, public.clients, public.grants, public.operators, public.role_grants, public.roles
+- **mail** `Req<"mail">` → `{ level: "all" | "digest" | "off"; }` (plain): writes delivery.member_mail; reads public.client_members, public.clients, public.grants, public.operators, public.role_grants, public.roles
 - **me** `Req<"me">` → `Me` (plain): writes public.client_members; reads public.clients, public.flags, public.grants, public.role_grants, public.roles
 - **messagingChange** `Parameters<typeof rules.messagingChange>[0]` → `{ done: string[]; skipped: string[]; }` (plain): writes public.mail_bounce_reads, public.message_settings; reads public.client_members, public.clients, public.roles
 - **messagingLinksOff** `Parameters<typeof rules.messagingLinksOff>[0]` → `{ done: string[]; skipped: string[]; }` (plain): writes public.mail_bounce_reads, public.message_settings; reads public.client_members, public.clients, public.roles

@@ -1,0 +1,1 @@
+ALTER TABLE "content_ideas" ADD COLUMN "campaign" varchar(64);

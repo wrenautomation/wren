@@ -4,10 +4,12 @@ import { desc, eq } from "drizzle-orm";
 import { type ContentIdea, contentIdeas, type IdeaSource, type IdeaStatus } from "./schema.js";
 import type { IdeaAngle } from "./write.js";
 
-/** His notes on an idea from Studio: the offer line it serves and how it argues. */
+/** His notes on an idea from Studio: the offer line it serves, how it argues, its campaign. */
 export interface IdeaMark {
   line?: string | null;
   angle?: IdeaAngle | null;
+  /** A metro campaign id; only that campaign's planner sweep drafts it. */
+  campaign?: string | null;
 }
 
 /**
@@ -33,6 +35,7 @@ export async function addIdea(
       ref,
       line: mark.line ?? null,
       angle: mark.angle ?? null,
+      campaign: mark.campaign ?? null,
     })
     .returning();
   if (!row) throw new Error("insert returned no row");

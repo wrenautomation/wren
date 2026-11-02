@@ -71,6 +71,7 @@ import {
   SCHEDULER_KEY,
 } from "@wren/starling-inbound/restate";
 import type { Command } from "commander";
+import { campaignArg } from "./campaigns.js";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
 
@@ -205,19 +206,30 @@ export function registerContent(program: Command, withDb: WithDb, settings: Sett
     .option("--title <text>", "the media's title (YouTube's default)")
     .option("--platforms <list>", "comma-separated subset")
     .option("--no-draft", "store the idea only")
+    .option("--campaign <id>", "a campaign of the shape: only its planner sweep drafts it")
     .action(
       async (
         file: string | undefined,
-        o: { media?: string; kind?: string; title?: string; platforms?: string; draft: boolean },
+        o: {
+          media?: string;
+          kind?: string;
+          title?: string;
+          platforms?: string;
+          draft: boolean;
+          campaign?: string;
+        },
       ) => {
         const text = await readText(file);
         if (text.trim() === "") throw new Error("empty idea");
         const platforms = platformsOf(o.platforms);
+        const { campaign } = o;
+        if (campaign) await withDb((db) => campaignArg(db, campaign));
         const out = await desk().add({
           text,
           media: await mediaOf(o, settings.mediaBucket),
           draft: o.draft,
           ...(platforms ? { platforms } : {}),
+          ...(campaign ? { campaign } : {}),
         });
         console.log(`idea ${out.idea.id}`);
         if (out.drafts) printReport(out.drafts);
@@ -233,7 +245,7 @@ export function registerContent(program: Command, withDb: WithDb, settings: Sett
       const rows = await withDb((db) => listIdeas(db, status));
       for (const r of rows)
         console.log(
-          `${r.id}  ${when(r.createdAt)}  ${r.source.padEnd(3)}  ${r.media ? r.media.kind.padEnd(5) : "     "}  ${line(r.text)}`,
+          `${r.id}  ${when(r.createdAt)}  ${r.source.padEnd(3)}  ${r.media ? r.media.kind.padEnd(5) : "     "}  ${r.campaign ? `[${r.campaign}] ` : ""}${line(r.text)}`,
         );
     });
 

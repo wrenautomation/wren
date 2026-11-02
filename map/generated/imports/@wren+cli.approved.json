@@ -1095,6 +1095,11 @@
   },
   {
    "from": "@wren/cli/src/content.ts",
+   "to": "@wren/cli/src/campaigns.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/content.ts",
    "to": "@wren/config/src/index.ts",
    "kind": "imports"
   },
@@ -3230,6 +3235,11 @@
   {
    "from": "@wren/cli/src/workflows.ts",
    "to": "@wren/worker/src/workflows.ts",
+   "kind": "imports"
+  },
+  {
+   "from": "@wren/cli/src/write.ts",
+   "to": "@wren/cli/src/campaigns.ts",
    "kind": "imports"
   },
   {

@@ -7,7 +7,7 @@
 import type { Platform } from "@wren/core/content";
 import { wallClock, zonedInstant } from "@wren/core/time";
 import type { Queryable } from "@wren/db";
-import { and, asc, count, eq, gte, inArray, lt, notInArray } from "drizzle-orm";
+import { and, asc, count, eq, gte, inArray, isNull, lt, notInArray } from "drizzle-orm";
 import { chapterIdea } from "./ideas/chapters.js";
 import { questionIdea } from "./ideas/questions.js";
 import { type ContentIdea, contentDrafts, contentIdeas } from "./schema.js";
@@ -92,6 +92,31 @@ export function freeSlots(instants: readonly Date[], taken: readonly Date[]): Da
     .slice(0, Math.max(instants.length - taken.length, 0));
 }
 
+/** The statuses that hold a slot: a waiting draft, an approved one, one out. */
+const HOLDING = ["draft", "approved", "publishing", "published"] as const;
+
+/** Per campaign, per platform, the day's slots its drafts hold (through their idea). */
+export async function campaignSlots(
+  db: Queryable,
+  day: { from: Date; to: Date },
+): Promise<Record<string, Partial<Record<Platform, number>>>> {
+  const rows = await db
+    .select({ campaign: contentIdeas.campaign, platform: contentDrafts.platform, n: count() })
+    .from(contentDrafts)
+    .innerJoin(contentIdeas, eq(contentIdeas.id, contentDrafts.ideaId))
+    .where(
+      and(
+        inArray(contentDrafts.status, [...HOLDING]),
+        gte(contentDrafts.scheduledFor, day.from),
+        lt(contentDrafts.scheduledFor, day.to),
+      ),
+    )
+    .groupBy(contentIdeas.campaign, contentDrafts.platform);
+  const out: Record<string, Partial<Record<Platform, number>>> = {};
+  for (const r of rows) if (r.campaign) out[r.campaign] = { ...out[r.campaign], [r.platform]: r.n };
+  return out;
+}
+
 /** Per platform, the day's slots a draft (waiting, approved or out) does not hold yet. */
 export async function openSlots(
   db: Queryable,
@@ -108,7 +133,7 @@ export async function openSlots(
       .where(
         and(
           eq(contentDrafts.platform, platform),
-          inArray(contentDrafts.status, ["draft", "approved", "publishing", "published"]),
+          inArray(contentDrafts.status, [...HOLDING]),
           gte(contentDrafts.scheduledFor, day.from),
           lt(contentDrafts.scheduledFor, day.to),
         ),
@@ -129,7 +154,8 @@ interface NextIdea {
  * The next idea to draft, in order: the oldest undrafted idea, then a reader's question, then a
  * chapter of a video that is up (Wren only). No build log: commit-by-commit updates gave readers
  * little (William, 2026-10-14). `exclude` holds ideas already tried this pass, so one that fails
- * to draft is not picked again.
+ * to draft is not picked again. A campaign takes only its own open ideas; the default (no
+ * campaign) takes the untagged ones, then questions and chapters.
  */
 export async function nextIdea(
   db: Queryable,
@@ -138,6 +164,8 @@ export async function nextIdea(
     exclude?: readonly string[];
     /** A client's planner: chapters are of Wren's own videos, so it skips them. */
     client?: boolean;
+    /** A metro campaign id; unset = the default. */
+    campaign?: string | null;
   },
 ): Promise<NextIdea> {
   const pick = ({ id, source, text }: ContentIdea) => ({ id, source, text });
@@ -148,12 +176,14 @@ export async function nextIdea(
     .where(
       and(
         eq(contentIdeas.status, "open"),
+        o.campaign ? eq(contentIdeas.campaign, o.campaign) : isNull(contentIdeas.campaign),
         exclude.length > 0 ? notInArray(contentIdeas.id, [...exclude]) : undefined,
       ),
     )
     .orderBy(asc(contentIdeas.createdAt))
     .limit(1);
   if (open) return { idea: pick(open) };
+  if (o.campaign) return { idea: null };
   const q = (await questionIdea(db, o.now)) ?? (o.client ? null : await chapterIdea(db));
   return { idea: q ? pick(q) : null };
 }

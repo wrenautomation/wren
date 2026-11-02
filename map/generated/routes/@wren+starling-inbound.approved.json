@@ -73,7 +73,7 @@
      "site"
     ],
     "input": "void",
-    "output": "{ on: boolean; site: string; posts: { date: string; description: string; title: string; createdAt: Date; updatedAt: Date; body: string; draft: boolean; updatedBy: string | null; publishedAt: Date | null; slug: string; emailedAt: Date | null; commitSha: string | null; fromRef: string | null; }[]; }",
+    "output": "{ on: boolean; site: string; posts: { date: string; description: string; title: string; draft: boolean; publishedAt: Date | null; createdAt: Date; updatedBy: string | null; updatedAt: Date; body: string; slug: string; emailedAt: Date | null; commitSha: string | null; fromRef: string | null; }[]; }",
     "wrap": "sharedHandler"
    }
   },
@@ -90,7 +90,7 @@
      "zone"
     ],
     "input": "{ slug?: string; title: string; description: string; body: string; publish: boolean; from?: string | null; viewer?: unknown; }",
-    "output": "{ post: { date: string; description: string; title: string; createdAt: Date; updatedAt: Date; body: string; draft: boolean; updatedBy: string | null; publishedAt: Date | null; slug: string; emailedAt: Date | null; commitSha: string | null; fromRef: string | null; }; url: string; }",
+    "output": "{ post: { date: string; description: string; title: string; draft: boolean; publishedAt: Date | null; createdAt: Date; updatedBy: string | null; updatedAt: Date; body: string; slug: string; emailedAt: Date | null; commitSha: string | null; fromRef: string | null; }; url: string; }",
     "tags": [
      "effect:posts"
     ],
@@ -158,7 +158,7 @@
      "media",
      "platforms"
     ],
-    "input": "{ text: string; media?: Media | null; draft?: boolean; platforms?: Platform[]; source?: IdeaSource; }",
+    "input": "{ text: string; media?: Media | null; draft?: boolean; platforms?: Platform[]; source?: IdeaSource; campaign?: string | null; }",
     "output": "{ idea: ContentIdea; drafts: DraftReport | null }",
     "wrap": "exclusiveHandler"
    }
@@ -576,7 +576,7 @@
      "media",
      "platforms"
     ],
-    "input": "{ text: string; title?: string | null; platforms: Platform[]; adapt?: boolean | null; thread?: boolean | null; go?: WriteGo | null; from?: string | null; media?: Media | null; line?: string | null; angle?: IdeaAngle | null; viewer?: unknown; }",
+    "input": "{ text: string; title?: string | null; platforms: Platform[]; adapt?: boolean | null; thread?: boolean | null; go?: WriteGo | null; from?: string | null; media?: Media | null; line?: string | null; angle?: IdeaAngle | null; campaign?: string | null; viewer?: unknown; }",
     "output": "{ posts: { ideaId: string; results: WriteResult[]; }[]; }",
     "wrap": "exclusiveHandler"
    }
@@ -1247,7 +1247,7 @@
      "@aws-sdk/client-s3",
      "@smithy/core"
     ],
-    "output": "{ started: boolean; platforms: (\"linkedin\" | \"instagram\" | \"x\" | \"reddit\")[]; }",
+    "output": "{ started: boolean; platforms: (\"instagram\" | \"linkedin\" | \"x\" | \"reddit\")[]; }",
     "wrap": "serviceHandler"
    }
   },
@@ -1420,7 +1420,7 @@
      "zone"
     ],
     "input": "PortalRequest",
-    "output": "{ mail: boolean; zone: string; reports: { sends: { id: number; from: string; to: string; closed: boolean; lines: import(\"../client-reports/tiles.js\").ReportLine[]; sentTo: string[]; why: string | null; by: string | null; at: string; }[]; id: number; name: string; tiles: (\"calls\" | \"views\" | \"bookings\" | \"paid\" | \"forms\" | \"spend\" | \"visits\" | \"post_visits\" | \"ad_impressions\" | \"search_impressions\")[]; every: \"month\" | \"week\"; zone: string; recipients: string[]; on: boolean; nextAt: string | null; by: string; updatedAt: string; }[]; members: { email: string; role: string; }[]; }",
+    "output": "{ mail: boolean; zone: string; reports: { sends: { id: number; from: string; to: string; closed: boolean; lines: import(\"../client-reports/tiles.js\").ReportLine[]; sentTo: string[]; why: string | null; by: string | null; at: string; }[]; id: number; name: string; tiles: (\"views\" | \"calls\" | \"post_visits\" | \"ad_impressions\" | \"search_impressions\" | \"visits\" | \"forms\" | \"bookings\" | \"paid\" | \"spend\")[]; every: \"week\" | \"month\"; zone: string; recipients: string[]; on: boolean; nextAt: string | null; by: string; updatedAt: string; }[]; members: { email: string; role: string; }[]; }",
     "wrap": "serviceHandler"
    }
   },

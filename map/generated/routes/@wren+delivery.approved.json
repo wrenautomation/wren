@@ -46,7 +46,7 @@
      "main"
     ],
     "input": "Req<\"access\">",
-    "output": "{ id: number; status: \"open\" | \"declined\" | \"granted\" | \"revoked\"; }",
+    "output": "{ id: number; status: \"open\" | \"granted\" | \"declined\" | \"revoked\"; }",
     "wrap": "plain"
    }
   },
@@ -174,7 +174,7 @@
      "main"
     ],
     "input": "Req<\"decide\">",
-    "output": "{ id: number; status: \"approved\" | \"changes\" | \"waiting\"; }",
+    "output": "{ id: number; status: \"waiting\" | \"approved\" | \"changes\"; }",
     "wrap": "plain"
    }
   },
@@ -333,7 +333,7 @@
      "main"
     ],
     "input": "Req<\"mail\">",
-    "output": "{ level: \"off\" | \"all\" | \"digest\"; }",
+    "output": "{ level: \"all\" | \"digest\" | \"off\"; }",
     "wrap": "plain"
    }
   },

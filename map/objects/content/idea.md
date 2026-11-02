@@ -3,7 +3,7 @@ type: object
 cluster: content
 universe: live
 status: verified
-verified: 2026-10-06 @ f25d7ac
+verified: 2026-10-06 @ f25d7ac + 2026-11-02 WA-999 (campaign)
 entity: packages/starling/inbound/src/schema.ts:43
 ---
 
@@ -18,6 +18,8 @@ Nothing is ever drafted from nothing: blank text is refused (`ideas.ts:7`). `sou
 ## Shape
 
 - `text`, `media`, `source`, `status` (open | drafted | archived), `ref` (`schema.ts:43`–`53`)
+- `line`, `angle`: his Studio mark (`IdeaMark`, `ideas.ts`)
+- `campaign`: the metro campaign it is written for ([[platform/campaign]]), null = the default. Its drafts inherit it through `idea_id`, so a redraft keeps it. Only that campaign's planner sweep drafts it (`nextIdea`); the default never does. Set by `--campaign` on `wren content add` and `wren write` (checked against the newest shape), or the desk's `add`/`write` input (taken as given). Migration 0356
 
 Citations: `packages/starling/inbound/src/schema.ts:43`, `packages/starling/inbound/src/ideas.ts:7`, `packages/starling/inbound/src/plan.ts:128`
 
@@ -30,7 +32,7 @@ Citations: `packages/starling/inbound/src/schema.ts:43`, `packages/starling/inbo
 
 ## If you change this
 
-- **Hits:** `ideas.ts`, `ideas/`, `draft.ts`, `ContentDesk.add/draft`, `wren content add`, `nextIdea` and the planner's "ideas to draft" count (`plan.ts`)
+- **Hits:** `ideas.ts`, `ideas/`, `draft.ts`, `ContentDesk.add/draft`, `wren content add`, `nextIdea`, `campaignSlots` and the planner's "ideas to draft" count (`plan.ts`)
 - **Does not hit:** published drafts
 
 ## Surfaces
