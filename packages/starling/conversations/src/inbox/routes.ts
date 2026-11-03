@@ -6,8 +6,7 @@
  * isn't connected says "Needs setup" and points at Account → Mail.
  */
 import type { Queryable } from "@wren/db";
-import { eq, sql } from "drizzle-orm";
-import { socialConnections } from "../connect/schema.js";
+import { sql } from "drizzle-orm";
 import type { InboxChannel } from "../schema.js";
 import type { ReplyOption } from "./conversation.js";
 
@@ -158,10 +157,10 @@ export async function clientRoutes(main: Queryable, client: string): Promise<Rou
   return { accounts, mailboxes };
 }
 
-/** A client's connected accounts, live or broken. */
+/** A client's connected accounts, live or broken (inbound's `social_connections`). */
 export async function clientAccounts(main: Queryable, client: string): Promise<AccountState[]> {
-  return main
-    .select({ platform: socialConnections.platform, state: socialConnections.state })
-    .from(socialConnections)
-    .where(eq(socialConnections.client, client));
+  const rows = (await main.execute(
+    sql`select platform, state from social_connections where client = ${client}`,
+  )) as unknown as AccountState[];
+  return rows.map((r) => ({ platform: String(r.platform), state: String(r.state) }));
 }

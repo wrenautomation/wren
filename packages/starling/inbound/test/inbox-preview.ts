@@ -8,9 +8,8 @@
  */
 import { createDb, migrate } from "@wren/db";
 import { addInboxNote } from "@wren/notes/inbox";
+import { askReply, setThread } from "@wren/starling-conversations/inbox";
 import { sql } from "drizzle-orm";
-import { askReply } from "../src/inbox/send.js";
-import { setThread } from "../src/inbox/threads.js";
 import { INBOX_TABLES, seedInbox } from "./inbox-seed.js";
 
 const url = process.env.WREN_DATABASE_URL ?? "";

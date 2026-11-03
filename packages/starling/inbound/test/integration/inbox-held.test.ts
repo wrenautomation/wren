@@ -11,12 +11,12 @@ import { ingressOf } from "@wren/config";
 import { serveRecords } from "@wren/core/records/serve";
 import { startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
+import { askFollowEmail, conversationOf } from "@wren/starling-conversations/inbox";
+import { makeInboxDesk } from "@wren/starling-conversations/restate";
+import { inboxReplies } from "@wren/starling-conversations/schema";
+import { draftDm, markAnswered } from "@wren/starling-outbound";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { conversationOf } from "../../src/inbox/conversation.js";
-import { askFollowEmail } from "../../src/inbox/index.js";
-import { makeInboxDesk } from "../../src/restate/inbox-desk.js";
-import { inboxReplies } from "../../src/schema.js";
 import { approvalRecord, askedReplyRecord } from "../../src/social/records.js";
 import { INBOX_TABLES, type InboxSeed, seedInbox } from "../inbox-seed.js";
 
@@ -62,7 +62,10 @@ let s: InboxSeed;
 beforeAll(async () => {
   pg = await startTestPostgres();
   env = await startTestRestate({
-    services: [makeInboxDesk({ db: pg.db, senderName: "Will" }), disposition],
+    services: [
+      makeInboxDesk({ db: pg.db, draftDm, markAnswered, senderName: "Will" }),
+      disposition,
+    ],
     alwaysReplay: true,
   });
 });

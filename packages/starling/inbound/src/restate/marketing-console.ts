@@ -44,6 +44,17 @@ import {
 } from "@wren/core/records/serve";
 import { clientKey, PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { type Db, snapshot } from "@wren/db";
+import type { ReplyOption } from "@wren/starling-conversations/inbox";
+import { clientRoutes, withRoutes } from "@wren/starling-conversations/inbox";
+import type { InboxDesk } from "@wren/starling-conversations/restate";
+import {
+  AUTO_REPLY_MODES,
+  type AutoReplyMode,
+  INBOX_CHANNELS,
+  INBOX_STATUSES,
+  type InboxChannel,
+  type InboxStatus,
+} from "@wren/starling-conversations/schema";
 import type { TikTokCreator } from "@wren/starling-core/tiktok";
 import { SETTLE_OUTCOMES, type SettleOutcome } from "@wren/starling-outbound";
 import { z } from "zod";
@@ -56,8 +67,6 @@ import {
   saveReport,
 } from "../client-reports/store.js";
 import { REPORT_EVERY, REPORT_TILE_IDS } from "../client-reports/tiles.js";
-import type { ReplyOption } from "../inbox/conversation.js";
-import { clientRoutes, withRoutes } from "../inbox/routes.js";
 import {
   PROMO_PIECES,
   PROMO_PLATFORMS,
@@ -65,17 +74,8 @@ import {
   type PromoPlatform,
   promotable,
 } from "../promo.js";
-import {
-  AUTO_REPLY_MODES,
-  type AutoReplyMode,
-  INBOX_CHANNELS,
-  INBOX_STATUSES,
-  type InboxChannel,
-  type InboxStatus,
-} from "../schema.js";
 import type { ShapeView } from "../shape-view.js";
 import { type ContentDesk, clientDrafting, DESK_UNIT, type FunnelRequest } from "./desk.js";
-import type { InboxDesk } from "./inbox-desk.js";
 import { startReport } from "./reports.js";
 import type { SocialInbox } from "./social-inbox.js";
 

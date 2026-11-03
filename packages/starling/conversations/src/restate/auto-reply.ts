@@ -24,7 +24,7 @@ import {
   threadOfReply,
 } from "../inbox/auto.js";
 import { askReply } from "../inbox/send.js";
-import { suggestReply } from "../inbox/suggest.js";
+import { type DraftDm, suggestReply } from "../inbox/suggest.js";
 
 interface AutoReplyDeps {
   db: Db;
@@ -35,6 +35,8 @@ interface AutoReplyDeps {
   /** Whether a client's mailbox is a Google one; absent, every one counts. */
   googleMailbox?: (client: string, address: string) => Promise<boolean>;
   keys?: KeyStore | null;
+  /** Outbound's DM drafter, for a DM thread. */
+  draftDm: DraftDm;
   /** Who signs Wren's own: his name. */
   senderName: string;
   facts?: () => Promise<readonly string[]>;
@@ -139,6 +141,7 @@ export function makeAutoReply(deps: AutoReplyDeps) {
                         },
                       }
                     : {}),
+                  draftDm: deps.draftDm,
                   sender,
                   ...(client
                     ? { facts: () => businessFactLines(deps.db, client) }

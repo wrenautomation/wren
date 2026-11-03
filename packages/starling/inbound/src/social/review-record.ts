@@ -6,9 +6,9 @@
 
 import { date, defineRecord, link, name, number, prose, status } from "@wren/core/records";
 import type { Queryable } from "@wren/db";
+import { conversationOf } from "@wren/starling-conversations/inbox";
 import { PLATFORM_LABELS } from "@wren/starling-outbound/records";
 import { sql } from "drizzle-orm";
-import { conversationOf } from "../inbox/conversation.js";
 
 /** ponytail: rows, not a view: a business has hundreds of reviews, not thousands. */
 const REVIEW_ROWS = 1000;

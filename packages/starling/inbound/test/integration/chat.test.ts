@@ -3,7 +3,6 @@
  * back its key; the Inbox shows it waiting; our reply reaches the bubble's next read and answers it.
  */
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   CHAT_PER_HOUR,
   CHAT_THREADS_PER_IP,
@@ -11,8 +10,9 @@ import {
   readChat,
   replyChat,
   say,
-} from "../../src/chat/store.js";
-import { optionsOf, partyOf, timelineOf } from "../../src/inbox/conversation.js";
+} from "@wren/starling-conversations/chat";
+import { optionsOf, partyOf, timelineOf } from "@wren/starling-conversations/inbox";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { inboxRecord } from "../../src/social/records.js";
 
 let pg: TestPostgres;

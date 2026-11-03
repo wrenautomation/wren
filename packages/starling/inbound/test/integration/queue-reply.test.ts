@@ -3,8 +3,6 @@
  * back once, droppable while it waits.
  */
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
-import { eq } from "drizzle-orm";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   askReply,
   campaignOfAsker,
@@ -15,8 +13,10 @@ import {
   releaseReply,
   settleReply,
   waitingReplies,
-} from "../../src/inbox/send.js";
-import { inboxReplies } from "../../src/schema.js";
+} from "@wren/starling-conversations/inbox";
+import { inboxReplies } from "@wren/starling-conversations/schema";
+import { eq } from "drizzle-orm";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 let pg: TestPostgres;
 beforeAll(async () => {

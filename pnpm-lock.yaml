@@ -564,6 +564,9 @@ importers:
       '@wren/sites':
         specifier: workspace:*
         version: link:../../packages/sites
+      '@wren/starling-conversations':
+        specifier: workspace:*
+        version: link:../../packages/starling/conversations
       '@wren/starling-core':
         specifier: workspace:*
         version: link:../../packages/starling/core
@@ -1654,6 +1657,9 @@ importers:
 
   packages/starling/conversations:
     dependencies:
+      '@restatedev/restate-sdk':
+        specifier: 1.17.1
+        version: 1.17.1
       '@wren/core':
         specifier: workspace:*
         version: link:../../core
@@ -1663,6 +1669,18 @@ importers:
       '@wren/llm':
         specifier: workspace:*
         version: link:../../llm
+      '@wren/notes':
+        specifier: workspace:*
+        version: link:../../notes
+      '@wren/research':
+        specifier: workspace:*
+        version: link:../../research
+      '@wren/sites':
+        specifier: workspace:*
+        version: link:../../sites
+      '@wren/starling-core':
+        specifier: workspace:*
+        version: link:../core
       '@wren/starling-email':
         specifier: workspace:*
         version: link:../channels/email
@@ -1743,6 +1761,9 @@ importers:
       '@wren/sites':
         specifier: workspace:*
         version: link:../../sites
+      '@wren/starling-conversations':
+        specifier: workspace:*
+        version: link:../conversations
       '@wren/starling-core':
         specifier: workspace:*
         version: link:../core

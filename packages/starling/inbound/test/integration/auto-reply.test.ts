@@ -3,12 +3,19 @@
  * heard reply maps to, and when a draft on arrival skips. Synthetic threads (`../inbox-seed.ts`).
  */
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
+import {
+  askReply,
+  autoModes,
+  draftable,
+  optionsOf,
+  partyOf,
+  reviewHow,
+  reviewOf,
+  setAutoMode,
+  threadOfReply,
+} from "@wren/starling-conversations/inbox";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { autoModes, draftable, setAutoMode, threadOfReply } from "../../src/inbox/auto.js";
-import { optionsOf, partyOf } from "../../src/inbox/conversation.js";
-import { reviewHow, reviewOf } from "../../src/inbox/review.js";
-import { askReply } from "../../src/inbox/send.js";
 import { type MapsRead, mapsRows } from "../../src/social/maps-reviews.js";
 import { reviewRecord } from "../../src/social/review-record.js";
 import { ringLowReviews } from "../../src/social/review-ring.js";

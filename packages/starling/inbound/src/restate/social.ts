@@ -52,6 +52,7 @@ import {
 } from "@wren/core/restate";
 import { wallClock } from "@wren/core/time";
 import type { Db } from "@wren/db";
+import { autoReplyReviews } from "@wren/starling-conversations/restate";
 import type {
   ActivityQuery,
   ActivityRow,
@@ -93,7 +94,6 @@ import {
   recentPosts,
 } from "../social/store.js";
 import { keepFollowing, keepOwnComments } from "../touches.js";
-import { autoReplyReviews } from "./auto-reply.js";
 import { catchKeywordDms } from "./keyword-dm.js";
 import { nextRunAt } from "./planner.js";
 import type { Pushed, SocialPushed } from "./social-push.js";

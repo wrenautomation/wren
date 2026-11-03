@@ -5,16 +5,25 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./email": "./src/email/index.ts"
+    "./chat": "./src/chat/index.ts",
+    "./email": "./src/email/index.ts",
+    "./inbox": "./src/inbox/index.ts",
+    "./restate": "./src/restate/index.ts",
+    "./schema": "./src/schema.ts"
   },
   "scripts": {
     "test:unit": "vitest run src",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@restatedev/restate-sdk": "1.17.1",
     "@wren/core": "workspace:*",
     "@wren/db": "workspace:*",
     "@wren/llm": "workspace:*",
+    "@wren/notes": "workspace:*",
+    "@wren/research": "workspace:*",
+    "@wren/sites": "workspace:*",
+    "@wren/starling-core": "workspace:*",
     "@wren/starling-email": "workspace:*",
     "@wrenautomation/autobrowse": "0.8.4",
     "drizzle-orm": "0.45.2",

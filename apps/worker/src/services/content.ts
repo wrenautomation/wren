@@ -13,21 +13,19 @@ import { githubRepo } from "@wren/core/github";
 import { LIMITS } from "@wren/core/restate";
 import { placeIdOf } from "@wren/delivery/sms";
 import { liveCampaignsOf } from "@wren/pipeline/store";
+import { makeAutoReply, makeChat, makeInboxDesk } from "@wren/starling-conversations/restate";
 import { makeContent } from "@wren/starling-core/service";
 import { isGoogleMailbox } from "@wren/starling-email/access/access";
 import { slidePainter } from "@wren/starling-inbound";
 import { liveConnections, loginOf } from "@wren/starling-inbound/connect";
 import {
-  makeAutoReply,
   makeBlog,
-  makeChat,
   makeClientReport,
   makeContentDesk,
   makeContentMetrics,
   makeContentPlanner,
   makeContentScheduler,
   makeDraftAsk,
-  makeInboxDesk,
   makeKeywordDm,
   makeMarketingConsole,
   makePieces,
@@ -38,6 +36,7 @@ import {
   socialPushed,
 } from "@wren/starling-inbound/restate";
 import { makeAds, makeAdsWatch } from "@wren/starling-meta/restate";
+import { draftDm, markAnswered } from "@wren/starling-outbound";
 import { wakeWatch } from "@wren/starling-outbound/restate";
 import { tiktokCreator } from "@wren/starling-tiktok";
 import { clientMarketing } from "../marketing.js";
@@ -212,6 +211,8 @@ export function contentServices(deps: Deps): AnyService[] {
       google: googleLlm,
       googleMailbox: (client, address) => isGoogleMailbox(db, client, address),
       keys,
+      draftDm,
+      markAnswered,
       senderName: settings.smsSenderName,
       facts: () => wrenFacts(db),
       mentionMail: notesDeps.mail ?? null,
@@ -226,6 +227,7 @@ export function contentServices(deps: Deps): AnyService[] {
       google: googleLlm,
       googleMailbox: (client, address) => isGoogleMailbox(db, client, address),
       keys,
+      draftDm,
       senderName: settings.smsSenderName,
       facts: () => wrenFacts(db),
     }),

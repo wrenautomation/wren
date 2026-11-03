@@ -24,7 +24,15 @@ import { touches } from "@wren/core/touches-schema";
 import { cachedDb, clientDatabaseUrl, type Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
-import { parkUnsure, reachContacts, reachMessages, sendAttempt } from "@wren/starling-outbound";
+import { makeInboxDesk } from "@wren/starling-conversations/restate";
+import {
+  draftDm,
+  markAnswered,
+  parkUnsure,
+  reachContacts,
+  reachMessages,
+  sendAttempt,
+} from "@wren/starling-outbound";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { clientContent } from "../../src/clients.js";
@@ -35,7 +43,6 @@ import { socialConnections } from "../../src/connect/schema.js";
 import { socialChecks } from "../../src/connect/setups.js";
 import { socialSites } from "../../src/connect/sites.js";
 import { CONTENT_RECORDS } from "../../src/records.js";
-import { makeInboxDesk } from "../../src/restate/inbox-desk.js";
 import {
   type MarketingConsoleService,
   makeMarketingConsole,
@@ -181,6 +188,8 @@ beforeAll(async () => {
         db: pg.db,
         clientDb: open,
         llm: new FakeLlm({ respond: () => '{"draft": "Thanks."}' }),
+        draftDm,
+        markAnswered,
         senderName: "Will",
       }),
       makeMarketingConsole({

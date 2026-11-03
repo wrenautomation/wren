@@ -33,6 +33,7 @@ export default defineConfig({
     "../starling/channels/email/src/views.ts",
     "../starling/channels/email/src/record-views.ts",
     "../starling/inbound/src/schema.ts",
+    "../starling/conversations/src/schema.ts",
     "../starling/inbound/src/connect/schema.ts",
     "../starling/inbound/src/connect/reviews-schema.ts",
     "../starling/inbound/src/client-reports/schema.ts",

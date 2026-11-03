@@ -34,6 +34,15 @@ import { docApprovalId, waitingDocs } from "@wren/documents/store";
 import { money, payApprovalId, waitingPayLinks } from "@wren/payments/store";
 import { pageApprovalId, retireApprovalId } from "@wren/sites/console";
 import { waitingPages, waitingRetires } from "@wren/sites/store";
+import {
+  conversationOf,
+  queuedReplies,
+  statusOf,
+  threadStates,
+  typed,
+  waitingReplies,
+} from "@wren/starling-conversations/inbox";
+import type { InboxReply, InboxThread } from "@wren/starling-conversations/schema";
 import { isUrl } from "@wren/starling-core";
 import { TIKTOK_COPY } from "@wren/starling-core/tiktok";
 import {
@@ -54,10 +63,7 @@ import { threadRecord as textThreadRecord } from "@wren/starling-sms/records";
 import { and, eq, sql } from "drizzle-orm";
 import { waitingSwaps } from "../analytics/variants.js";
 import { DRAFT_CALLS } from "../draft-calls.js";
-import { conversationOf } from "../inbox/conversation.js";
-import { queuedReplies, waitingReplies } from "../inbox/send.js";
-import { statusOf, threadStates, typed } from "../inbox/threads.js";
-import { contentDrafts, type InboxReply, type InboxThread } from "../schema.js";
+import { contentDrafts } from "../schema.js";
 import { shapeView } from "../shape-view.js";
 import { mixedThumbs } from "../thumbs.js";
 import type { VideoSigner } from "../video.js";

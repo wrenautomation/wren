@@ -70,6 +70,7 @@ import {
   browserRenderer,
   cdpRenderer,
 } from "@wren/research";
+import { autoReplyFire } from "@wren/starling-conversations/restate";
 import {
   activeSenders,
   ConsoleTransport,
@@ -101,7 +102,6 @@ import {
 } from "@wren/starling-inbound/connect";
 import { ourPosts } from "@wren/starling-inbound/our-posts";
 import {
-  autoReplyFire,
   type ContentDesk,
   clientDrafting,
   DESK_KEY,

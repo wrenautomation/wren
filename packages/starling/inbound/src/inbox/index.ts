@@ -1,8 +1,2 @@
-/** Reply from the Inbox, with notes and assignees (designs/2026-10-07-inbox-reply.md). */
-export * from "./conversation.js";
-export * from "./mail-reply.js";
+/** Marketing bounce reads; the Inbox protocol is in @wren/starling-conversations/inbox. */
 export * from "./marketing-bounces.js";
-export * from "./routes.js";
-export * from "./send.js";
-export * from "./suggest.js";
-export * from "./threads.js";

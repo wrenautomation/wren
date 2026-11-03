@@ -17,7 +17,6 @@ import type { Db } from "@wren/db";
 import { type LlmClient, llmForKey } from "@wren/llm";
 import { addInboxNote, teamEmails } from "@wren/notes/inbox";
 import { mailMentions, type SendMention } from "@wren/notes/mention-mail";
-import { markAnswered } from "@wren/starling-outbound";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { ChatRefusal, replyChat } from "../chat/store.js";
@@ -44,7 +43,7 @@ import {
   settleReply,
   waitingReply,
 } from "../inbox/send.js";
-import { suggestReply } from "../inbox/suggest.js";
+import { type DraftDm, suggestReply } from "../inbox/suggest.js";
 import { setThread } from "../inbox/threads.js";
 import {
   AUTO_REPLY_MODES,
@@ -81,6 +80,10 @@ interface InboxDeskDeps {
   googleMailbox?: (client: string, address: string) => Promise<boolean>;
   /** Clients' own keys: a client on its own model key drafts on it. */
   keys?: KeyStore | null;
+  /** Outbound's DM drafter, for a DM suggestion. */
+  draftDm: DraftDm;
+  /** Outbound's `markAnswered`: a review answered off Maps. */
+  markAnswered: MarkAnswered;
   /** Who signs a suggestion: his name. */
   senderName: string;
   /** What is true about him, for a suggestion's claims (`wrenFacts`). */
@@ -90,6 +93,13 @@ interface InboxDeskDeps {
   /** Mail for a teammate `@`ed in a note, with the portal's origin; absent, the app only. */
   mentionMail?: { send: SendMention; portal: string } | null;
 }
+
+/** Outbound's `markAnswered`, wired by the worker: conversations sits below outbound. */
+export type MarkAnswered = (
+  db: Db,
+  id: number,
+  r: { body: string; ref: string | null; now: Date; by?: string },
+) => Promise<unknown>;
 
 type Fn<I, O> = (ctx: unknown, req: I) => Promise<O>;
 type ReachDesk = {
@@ -133,6 +143,7 @@ function restateChannels(
   client: string | null,
   viewer: Viewer,
   db: Db,
+  markAnswered: MarkAnswered,
 ): ReplySender {
   const reach = () => ctx.serviceClient<ReachDesk>({ name: "ReachDesk" });
   const social = () => ctx.serviceClient<SocialInboxDesk>({ name: "SocialInbox" });
@@ -261,7 +272,7 @@ export function makeInboxDesk(deps: InboxDeskDeps) {
   const channels = (ctx: restate.Context, client: string | null, viewer: Viewer) =>
     deps.channels
       ? deps.channels(ctx, client, viewer)
-      : restateChannels(ctx, client, viewer, dbOf(client));
+      : restateChannels(ctx, client, viewer, dbOf(client), deps.markAnswered);
   /** Who they are, and the client's sends and approver: what the gate reads. */
   const gateOf = (req: Req, option: ReplyOption) =>
     terminal(async () => {
@@ -595,6 +606,7 @@ export function makeInboxDesk(deps: InboxDeskDeps) {
                         },
                       }
                     : {}),
+                  draftDm: deps.draftDm,
                   sender,
                   ...(client
                     ? { facts: () => businessFactLines(deps.db, client) }

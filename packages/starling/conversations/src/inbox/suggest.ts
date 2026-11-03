@@ -10,7 +10,6 @@ import { touchesContext, touchesFor } from "@wren/core/touches";
 import type { Queryable } from "@wren/db";
 import { completeAndParse, type LlmClient } from "@wren/llm";
 import { dossiers, dossierText } from "@wren/research/dossier";
-import { draftDm } from "@wren/starling-outbound";
 import { sql } from "drizzle-orm";
 import { z } from "zod";
 import type { InboxChannel } from "../schema.js";
@@ -37,8 +36,18 @@ const GOOGLE_PLATFORMS = new Set(["youtube", "google_business"]);
 const GOOGLE_HELD =
   "This thread holds Google data (YouTube, Business Profile or Gmail), and it goes only to a model that doesn't train on it. None is set (WREN_GOOGLE_LLM).";
 
+/** Outbound's DM drafter (`draftDm`), wired by the worker: conversations sits below outbound. */
+export type DraftDm = (
+  db: Queryable,
+  llm: LlmClient,
+  contactId: number,
+  o: { sender: string; facts?: readonly string[]; now: Date },
+) => Promise<string | null>;
+
 interface SuggestDeps {
   llm: LlmClient;
+  /** A DM thread drafts on outbound's drafter. */
+  draftDm: DraftDm;
   /**
    * A client's thread, through Wren's apps: Google user data in it (YouTube comments, Business
    * Profile reviews, a Google mailbox's mail) goes only to `llm`, a model that doesn't train on
@@ -78,7 +87,7 @@ export async function suggestReply(
 ): Promise<string | null> {
   const facts = deps.facts ? await deps.facts() : [];
   if (o.channel === "dm")
-    return draftDm(db, deps.llm, Number(o.target), { sender: deps.sender, facts, now: o.now });
+    return deps.draftDm(db, deps.llm, Number(o.target), { sender: deps.sender, facts, now: o.now });
   const p = await partyOf(db, o.thread);
   if (!p) throw new Error("that thread is gone");
   const [entries, touches, dossier, review] = await Promise.all([

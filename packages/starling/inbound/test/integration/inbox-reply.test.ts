@@ -12,16 +12,17 @@ import { startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
 import { mentionRecord } from "@wren/notes/records";
-import { sql } from "drizzle-orm";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   askFollowEmail,
   conversationOf,
   pickOption,
   type ReplySender,
   setThread,
-} from "../../src/inbox/index.js";
-import { makeInboxDesk } from "../../src/restate/inbox-desk.js";
+} from "@wren/starling-conversations/inbox";
+import { makeInboxDesk } from "@wren/starling-conversations/restate";
+import { draftDm, markAnswered } from "@wren/starling-outbound";
+import { sql } from "drizzle-orm";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { approvalRecord, inboxRecord } from "../../src/social/records.js";
 import { INBOX_TABLES, type InboxSeed, seedInbox } from "../inbox-seed.js";
 
@@ -59,7 +60,16 @@ let s: InboxSeed;
 beforeAll(async () => {
   pg = await startTestPostgres();
   env = await startTestRestate({
-    services: [makeInboxDesk({ db: pg.db, llm, senderName: "Will", channels: fake })],
+    services: [
+      makeInboxDesk({
+        db: pg.db,
+        llm,
+        draftDm,
+        markAnswered,
+        senderName: "Will",
+        channels: fake,
+      }),
+    ],
     alwaysReplay: true,
   });
 });

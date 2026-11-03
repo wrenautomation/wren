@@ -18,12 +18,12 @@ import { cachedDb, clientDatabaseUrl, type Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
 import { inboxMentionsOf } from "@wren/notes/inbox";
+import { conversationOf, type ReplySender } from "@wren/starling-conversations/inbox";
+import { type MailReply, makeInboxDesk, makeMailReply } from "@wren/starling-conversations/restate";
+import { draftDm, markAnswered } from "@wren/starling-outbound";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { conversationOf, type ReplySender } from "../../src/inbox/index.js";
 import { CONTENT_RECORDS } from "../../src/records.js";
-import { makeInboxDesk } from "../../src/restate/inbox-desk.js";
-import { type MailReply, makeMailReply } from "../../src/restate/mail-reply.js";
 import {
   type MarketingConsoleService,
   makeMarketingConsole,
@@ -109,6 +109,8 @@ const deskDeps: Parameters<typeof makeInboxDesk>[0] = {
   llm,
   google: googleLlm,
   googleMailbox,
+  draftDm,
+  markAnswered,
   senderName: "Will",
   channels: fake,
 };

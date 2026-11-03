@@ -21,6 +21,7 @@ import { makeSetupAgent } from "@wren/core/setup-agent";
 import { makeSetupWatch } from "@wren/core/setup-watch";
 import { findPlace, PLACE_FINDER } from "@wren/delivery/sms";
 import { crmLanding } from "@wren/reactivation";
+import { makeMailReply } from "@wren/starling-conversations/restate";
 import { sweepGrants } from "@wren/starling-email/access/access";
 import { makeMailAccess, makeMailCallback } from "@wren/starling-email/access/console";
 import {
@@ -28,11 +29,7 @@ import {
   makeSocialCallback,
   ownSwitchesOf,
 } from "@wren/starling-inbound/connect";
-import {
-  makeBounceScheduler,
-  makeMailReply,
-  makeSocialInbox,
-} from "@wren/starling-inbound/restate";
+import { makeBounceScheduler, makeSocialInbox } from "@wren/starling-inbound/restate";
 import { WREN_LIMITS } from "@wren/starling-outbound/limits";
 import { makeMailReader } from "@wren/watch/clients";
 import { SETUPS } from "../setups.js";
