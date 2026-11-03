@@ -15,31 +15,15 @@ import { clientSendScope } from "@wren/reactivation";
 import {
   Broadcast,
   campaignPolicy,
-  clientReplies,
   mailDomainTargets,
   proberHosts,
   senderDomain,
-  senderFleet,
-  sequencesSendScope,
-  sharedFor,
 } from "@wren/starling-email";
 import {
-  DISPOSITION_KEY,
-  inboxPush,
   makeCallBookings,
   makeClicksScheduler,
-  makeComposeScheduler,
-  makeDigestScheduler,
-  makeDisposition,
-  makeEmailConsole,
-  makeInboxScheduler,
   makeOpensScheduler,
-  makePlacementScheduler,
   makePostmasterScheduler,
-  makeQueueRefresh,
-  makeReportScheduler,
-  makeSendScheduler,
-  type SendScope,
 } from "@wren/starling-email/restate";
 import { type Listmonk, listmonk } from "@wren/starling-inbound/listmonk";
 import {
@@ -50,6 +34,24 @@ import {
   makeNewsletter,
   syncTopicByName,
 } from "@wren/starling-inbound/restate";
+import {
+  clientReplies,
+  DISPOSITION_KEY,
+  inboxPush,
+  makeComposeScheduler,
+  makeDigestScheduler,
+  makeDisposition,
+  makeEmailConsole,
+  makeInboxScheduler,
+  makePlacementScheduler,
+  makeQueueRefresh,
+  makeReportScheduler,
+  makeSendScheduler,
+  type SendScope,
+  senderFleet,
+  sequencesSendScope,
+  sharedFor,
+} from "@wren/starling-outbound/email";
 import { gmailPushTopic } from "@wrenautomation/autobrowse/google";
 import { ImapReader, type InboxReader, RoutedReader } from "@wrenautomation/autobrowse/mail";
 import { type AnyService, type Deps, googleKey } from "./deps.js";

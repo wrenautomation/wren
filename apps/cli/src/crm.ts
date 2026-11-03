@@ -47,7 +47,7 @@ import {
 } from "@wren/reactivation";
 import { type CrmRunObject, MAX_LIMIT, type Reactivation } from "@wren/reactivation/restate";
 import { defaultLocalChecker, makeVerifier } from "@wren/starling-email";
-import type { InboxScheduler, SendScheduler } from "@wren/starling-email/restate";
+import type { InboxScheduler, SendScheduler } from "@wren/starling-outbound/email";
 import { PoliteFetcher, userAgent } from "@wrenautomation/read/fetch";
 import type { Command } from "commander";
 import { ingressSites } from "./sites.js";

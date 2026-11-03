@@ -33,7 +33,7 @@ import {
   dailyOpenerCapacity,
   makePoolScheduler,
   makeResolution,
-} from "@wren/starling-email/restate";
+} from "@wren/starling-outbound/email";
 import { serviceAccountToken } from "@wrenautomation/autobrowse/google";
 import { PoliteFetcher } from "@wrenautomation/read/fetch";
 import {

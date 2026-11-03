@@ -20,10 +20,10 @@ The whole sequence renders before anything can send; a missing fact refuses the 
 
 ## Steps
 
-1. Fill `companies.timezone` (`packages/starling/channels/email/src/restate/compose-scheduler.ts:116`; `send/lead-timezone.ts:110`).
+1. Fill `companies.timezone` (`packages/starling/outbound/src/email/restate/compose-scheduler.ts:116`; `send/lead-timezone.ts:110`).
 2. Capacity and shortfall (`compose-scheduler.ts:116`, `:87`).
 3. Campaigns first (`campaignSweeps`, `compose-scheduler.ts`): each live metro campaign whose `accounts.email` is a niche sender, in body order, from that inbox, on the plan rules that pitch its offer, the people in its segment, under `capLeft` of its `email.opener` cap; then the default, all senders and rules ([[platform/campaign]]). Each enrollment carries its campaign (null = default).
-4. `compose()` per plan rule and audience (`packages/starling/channels/email/src/outreach/compose.ts:417`): person pass, then role-inbox pass. The person pass takes companies best-ranked first (`bestReachableFirst`: the best `role_rank` among people with an address), so a limited day reaches owners before untitled registry contacts. The audience gate is `audienceGate` (`packages/starling/channels/email/src/recontact.ts:123`); a person whose newest lookup finding is `job_change` or `left` at confidence 0.8 or more is skipped and the firm falls to its next person (`compose.ts:151`); addresses that ended wrong_person, referral, bounced or opted_out are skipped (`compose.ts:503`, `:553`); so is a lead whose [[research/lead-check]] says wrong person (mailbox fits a colleague, or moved on; `outreach/provenance.ts:217`).
+4. `compose()` per plan rule and audience (`packages/starling/outbound/src/email/outreach/compose.ts:417`): person pass, then role-inbox pass. The person pass takes companies best-ranked first (`bestReachableFirst`: the best `role_rank` among people with an address), so a limited day reaches owners before untitled registry contacts. The audience gate is `audienceGate` (`packages/starling/channels/email/src/recontact.ts:123`); a person whose newest lookup finding is `job_change` or `left` at confidence 0.8 or more is skipped and the firm falls to its next person (`compose.ts:151`); addresses that ended wrong_person, referral, bounced or opted_out are skipped (`compose.ts:503`, `:553`); so is a lead whose [[research/lead-check]] says wrong person (mailbox fits a colleague, or moved on; `outreach/provenance.ts:217`).
 5. Facts from `factsFor` (`outreach/facts.ts:125`); render (`outreach/templates.ts`); provenance (`outreach/provenance.ts:66`).
 6. Insert enrollment and messages, store the template version (`compose.ts:689`, `:767`, `:836`, `:841`).
 
@@ -42,4 +42,4 @@ The whole sequence renders before anything can send; a missing fact refuses the 
 ## See
 
 - Objects: [[email/enrollment]], [[email/template]]
-- Source: `packages/starling/channels/email/src/restate/compose-scheduler.ts`
+- Source: `packages/starling/outbound/src/email/restate/compose-scheduler.ts`

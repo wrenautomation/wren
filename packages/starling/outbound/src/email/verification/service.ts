@@ -1,0 +1,251 @@
+/**
+ * The verification funnel over the DB: stage-1 local checks, then the configured
+ * EmailVerifier, writing verifications and advancing lead status.
+ *
+ * Selection: leads with status=imported and (unless reverify) no verification rows
+ * yet. With recheckOlderThan set, verified leads whose newest verification (ANY
+ * result: spend control, not a freshness verdict) is older than that are selected too.
+ * With retryRiskyOlderThan set, imported leads whose newest verdict is `risky` are
+ * tried again once its backoff ends (a greylist or an unreachable prober is not a
+ * verdict on the address): that age or the reason's own wait, growing with each risky
+ * verdict in a row, and 90 days after the 4th (`riskyBackoff`). With recheckReturning set, the proven addresses (verified,
+ * or a newest valid/catch_all verdict) of companies that may come back for another
+ * sequence (src/recontact.ts) are re-checked once their newest check is older than
+ * that: a lead that rested 90 days is past the send horizon. `niche` narrows to leads
+ * of that niche's companies.
+ *
+ * Status moves with the verdict: an authoritative VALID -> verified, a definitive
+ * failure (local checks, or an authoritative INVALID) -> undeliverable. A
+ * non-authoritative verdict still gets its row but never moves status. risky /
+ * catch_all leave status untouched.
+ *
+ * A provider error aborts the remaining run but keeps everything already verified.
+ * A failure in the LOCAL stage costs that one lead (local_errors) and the run continues.
+ */
+import { companies, type Lead, type LeadStatus, leads, transitionLead } from "@wren/core";
+import type { Queryable } from "@wren/db";
+import { audienceGate, eachConcurrently, type RecontactPolicy } from "@wren/starling-email";
+import {
+  contactCandidates,
+  type VerificationResult,
+  verifications,
+} from "@wren/starling-email/schema";
+import type { LocalCheckerLike } from "@wren/starling-email/verification/local";
+import { defaultLocalChecker } from "@wren/starling-email/verification/mailifier";
+import {
+  riskyBackoff,
+  SERVER_HOLD_REASONS,
+  waitingDomains,
+} from "@wren/starling-email/verification/retry";
+import type { EmailVerifier } from "@wren/starling-email/verification/verifier";
+import { latestVerifications } from "@wren/starling-email/views";
+import { and, asc, eq, lt, notExists, or, type SQL, sql } from "drizzle-orm";
+import { settledBy } from "../resolution/listed.js";
+
+/**
+ * Correlated subquery: a lead's newest checked_at among result=VALID rows, or NULL.
+ * The campaign-gate predicate: pair with status=verified and a horizon comparison.
+ * Deliberately distinct from the recheck selection, which maxes over ANY result.
+ */
+export const latestValidCheckedAt = () =>
+  sql<Date | null>`(select max(${verifications.checkedAt}) from ${verifications} where ${verifications.leadId} = ${leads.id} and ${verifications.result} = 'valid')`;
+
+interface VerificationOptions {
+  /** Test seam: a stage-1 checker with a fake resolver. */
+  checker?: LocalCheckerLike;
+  importId?: number;
+  limit?: number;
+  reverify?: boolean;
+  /** Milliseconds; verified leads whose newest verification is older are re-bought. */
+  recheckOlderThanMs?: number;
+  /** Milliseconds; imported leads whose newest verdict is `risky` and older are tried again. The base wait for reasons without their own; it grows with the address's run of risky verdicts (`riskyBackoff`). */
+  retryRiskyOlderThanMs?: number;
+  /** Proven addresses of companies that may come back, re-checked once older than this. */
+  recheckReturning?: { policy: RecontactPolicy; olderThanMs: number };
+  /** Only leads held by this niche's companies. */
+  niche?: string;
+  /** Leads checked at once (default 1). A paid verifier stays at 1. */
+  concurrency?: number;
+}
+
+export interface VerificationStats {
+  selected: number;
+  local_invalid: number;
+  local_errors: number;
+  valid: number;
+  invalid: number;
+  risky: number;
+  catch_all: number;
+  /** Skipped: its server blocked or greylisted another address earlier in this run. */
+  held: number;
+  flags: Record<string, number>;
+  aborted: string | null;
+}
+
+export async function runVerification(
+  db: Queryable,
+  verifier: EmailVerifier,
+  opts: VerificationOptions = {},
+): Promise<VerificationStats> {
+  const checker = opts.checker ?? defaultLocalChecker();
+  const unchecked = opts.reverify
+    ? eq(leads.status, "imported")
+    : and(
+        eq(leads.status, "imported"),
+        notExists(
+          db.select({ one: sql`1` }).from(verifications).where(eq(verifications.leadId, leads.id)),
+        ),
+      );
+  const eligible = [unchecked];
+  // The newest verdict on the lead's address (`latest_verifications`), one indexed lookup.
+  const newest = (col: SQL) =>
+    sql`(select ${col} from ${latestVerifications} where ${latestVerifications.email} = lower(${leads.email}))`;
+  // Age is measured on that verdict, on the DB clock.
+  const lastChecked = newest(sql`${latestVerifications.checkedAt}`);
+  if (opts.recheckOlderThanMs !== undefined) {
+    eligible.push(
+      and(
+        eq(leads.status, "verified"),
+        lt(lastChecked, sql`now() - make_interval(secs => ${opts.recheckOlderThanMs / 1000})`),
+      ),
+    );
+  }
+  if (opts.retryRiskyOlderThanMs !== undefined) {
+    // The newest verdict is risky and its backoff (by reason and run length) is over.
+    const wait = riskyBackoff(
+      { email: sql`lv.email`, checkedAt: sql`lv.checked_at`, raw: sql`lv.raw` },
+      sql`make_interval(secs => ${opts.retryRiskyOlderThanMs / 1000})`,
+    );
+    eligible.push(
+      and(
+        eq(leads.status, "imported"),
+        sql`exists (select 1 from ${latestVerifications} lv where lv.email = lower(${leads.email})
+          and lv.result = 'risky' and lv.checked_at < now() - ${wait})`,
+      ),
+    );
+  }
+  if (opts.recheckReturning !== undefined) {
+    const { policy, olderThanMs } = opts.recheckReturning;
+    const newestResult = newest(sql`${latestVerifications.result}`);
+    eligible.push(
+      and(
+        or(
+          eq(leads.status, "verified"),
+          and(eq(leads.status, "imported"), sql`${newestResult} in ('valid', 'catch_all')`),
+        ),
+        lt(lastChecked, sql`now() - make_interval(secs => ${olderThanMs / 1000})`),
+        audienceGate(sql`${leads.companyId}`, "returning", policy),
+      ),
+    );
+  }
+  const narrowing = [
+    or(...eligible),
+    sql`not exists (select 1 from ${companies} where ${companies.id} = ${leads.companyId} and ${companies.declineReason} is not null)`,
+  ];
+  // A server that blocked or greylisted any address is not asked about another until its wait ends.
+  narrowing.push(sql`split_part(${leads.email}, '@', 2) not in ${waitingDomains()}`);
+  if (opts.importId !== undefined) narrowing.push(eq(leads.importId, opts.importId));
+  if (opts.niche !== undefined) {
+    narrowing.push(
+      sql`exists (select 1 from ${companies} where ${companies.id} = ${leads.companyId} and ${companies.niche} = ${opts.niche})`,
+    );
+  }
+  const where = and(...narrowing);
+  const q = db.select().from(leads).where(where).orderBy(asc(leads.id));
+  const selected: Lead[] = opts.limit === undefined ? await q : await q.limit(opts.limit);
+
+  const stats: VerificationStats = {
+    selected: selected.length,
+    local_invalid: 0,
+    local_errors: 0,
+    valid: 0,
+    invalid: 0,
+    risky: 0,
+    catch_all: 0,
+    held: 0,
+    flags: {},
+    aborted: null,
+  };
+  // Domains whose server turned us away during this run: the rest of their leads wait.
+  const holding = new Set<string>();
+  const setStatus = async (lead: Lead, next: LeadStatus) => {
+    const status = transitionLead(lead.status, next);
+    await db.update(leads).set({ status }).where(eq(leads.id, lead.id));
+    lead.status = status;
+    // The verdict on the address settles a listed contact's candidate holding this lead.
+    const settled = settledBy(status);
+    if (settled)
+      await db
+        .update(contactCandidates)
+        .set({ state: settled })
+        .where(
+          and(eq(contactCandidates.leadId, lead.id), eq(contactCandidates.state, "candidate")),
+        );
+  };
+
+  const checkOne = async (lead: Lead): Promise<void> => {
+    let local: Awaited<ReturnType<LocalCheckerLike["check"]>>;
+    try {
+      local = await checker.check(lead.email);
+    } catch {
+      // A local-stage bug can only be wrong about this one lead: skip it, keep the paid verdicts.
+      stats.local_errors += 1;
+      return;
+    }
+    for (const flag of local.flags) stats.flags[flag] = (stats.flags[flag] ?? 0) + 1;
+
+    if (!local.passed) {
+      await db.insert(verifications).values({
+        leadId: lead.id,
+        email: lead.email, // the address actually checked: a later correction must not re-attribute this row
+        verifier: "local",
+        result: "invalid",
+        raw: {
+          failure: local.failure,
+          flags: [...local.flags],
+          mx_hosts: [...local.mxHosts],
+          mx_path: local.mxPath,
+        },
+      });
+      stats.local_invalid += 1;
+      // Local-check INVALID is authoritative regardless of the configured verifier.
+      await setStatus(lead, "undeliverable");
+      return;
+    }
+
+    const domain = lead.email.split("@")[1] ?? "";
+    if (holding.has(domain)) {
+      stats.held += 1;
+      return;
+    }
+    let verdict: Awaited<ReturnType<EmailVerifier["verify"]>>;
+    try {
+      verdict = await verifier.verify(lead.email);
+    } catch (err) {
+      // Provider/API failure: keep partial progress.
+      stats.aborted ??= `${err instanceof Error ? err.name : "Error"}: ${err instanceof Error ? err.message : String(err)}`;
+      return;
+    }
+    const raw: Record<string, unknown> = { ...verdict.raw, authoritative: verifier.authoritative };
+    if (local.flags.length) raw.local_flags = [...local.flags];
+    raw.mx_hosts = [...local.mxHosts];
+    raw.mx_path = local.mxPath;
+    await db.insert(verifications).values({
+      leadId: lead.id,
+      email: lead.email,
+      verifier: verifier.name,
+      result: verdict.result,
+      raw,
+    });
+    stats[verdict.result as VerificationResult] += 1;
+    if (verdict.result === "risky" && SERVER_HOLD_REASONS.has(String(verdict.raw.reason)))
+      holding.add(domain);
+    // A non-authoritative verdict gets its row for history and stats but never mints a status change.
+    if (verifier.authoritative) {
+      if (verdict.result === "valid") await setStatus(lead, "verified");
+      else if (verdict.result === "invalid") await setStatus(lead, "undeliverable");
+    }
+  };
+  await eachConcurrently(selected, opts.concurrency ?? 1, checkOne, () => stats.aborted !== null);
+  return stats;
+}

@@ -30,7 +30,7 @@ Citations: `packages/starling/channels/email/src/schema.ts:664`, `packages/starl
 
 ## If you change this
 
-- **Hits:** compose's `sendable` skips a lead whose `mailbox_fits_name` or `works_there` fails (`packages/starling/channels/email/src/outreach/provenance.ts:217`); the profiles stage's recheck ([[processes/pool-feed]]); `lead_sheet`
+- **Hits:** compose's `sendable` skips a lead whose `mailbox_fits_name` or `works_there` fails (`packages/starling/outbound/src/email/outreach/provenance.ts:217`); the profiles stage's recheck ([[processes/pool-feed]]); `lead_sheet`
 - **Does not hit:** `leads.status`; verification
 
 ## Surfaces

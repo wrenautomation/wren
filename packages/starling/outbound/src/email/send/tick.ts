@@ -1,0 +1,118 @@
+/**
+ * One send tick — kill switches, reconcile, the paced walk — as a function, so
+ * the scheduler and any operator command cannot drift.
+ */
+
+import type { Calendar } from "@wren/core/calendar";
+import type { Db } from "@wren/db";
+import type { SharedSuppressions } from "@wren/starling-email";
+import { evaluateKillSwitches, type KillSwitches } from "@wren/starling-email";
+import type { SenderPause } from "@wren/starling-email/schema";
+import type { Ramp, SendPolicy } from "@wren/starling-email/send/policy";
+import type { Rng } from "@wren/starling-email/send/rng";
+import type { Sender } from "@wren/starling-email/send/roster";
+import type { Transport } from "@wren/starling-email/send/transport";
+import { executorTouches, type Touch } from "../follow.js";
+import { nextSendAt, type RampMap, type SendStats, sendDue } from "./deliver.js";
+
+/** Who may send, who is measured, and what name each sends under. */
+export interface Fleet {
+  /** What may send: active roster addresses only. */
+  readonly senders: readonly string[];
+  /**
+   * What the kill switches measure: EVERY roster address, suspended included.
+   * Reputation is a property of the domain, and a suspended inbox's past sends
+   * and bounces are still part of that domain's trailing numbers.
+   */
+  readonly domainFleet: readonly string[];
+  /** The display name each inbox sends under; none means the bare address. */
+  readonly fromNames: Readonly<Record<string, string | null>>;
+  /** The rich form of each inbox's sign-off; the plain form is already in the body. */
+  readonly signatureHtml: Readonly<Record<string, string>>;
+  /** Each niche's page on the site ("/recruiting/lead-reactivation"), filled into the sign-off's `{page}` slot. */
+  readonly pages: Readonly<Record<string, string>>;
+  /** Inboxes on their own ramp; the rest ride the fleet's. */
+  readonly ramps?: RampMap;
+}
+
+/** The roster's two lists (all, active) as a Fleet. */
+export function rosterFleet(
+  rosterAll: readonly Sender[],
+  active: readonly Sender[],
+  pages: Readonly<Record<string, string>> = {},
+): Fleet {
+  const signatureHtml: Record<string, string> = {};
+  const ramps: Record<string, Ramp> = {};
+  for (const s of active) if (s.signature) signatureHtml[s.address] = s.signature.html;
+  for (const s of active) if (s.ramp) ramps[s.address] = s.ramp;
+  return {
+    senders: active.map((s) => s.address),
+    domainFleet: rosterAll.map((s) => s.address),
+    fromNames: Object.fromEntries(active.map((s) => [s.address, s.displayName])),
+    signatureHtml,
+    pages: { ...pages },
+    ramps,
+  };
+}
+
+export interface TickOptions {
+  policy: SendPolicy;
+  transport: Transport;
+  now: Date;
+  runId: string | null;
+  fleet: Fleet;
+  /** The pixel host, from settings: one global setting, not a roster fact. */
+  pixelBaseUrl?: string | null;
+  /** Where `{call.times}` finds open times. */
+  calendar?: Calendar | null;
+  limit?: number | null;
+  reconcileFirst?: boolean;
+  rng?: Rng;
+  killSwitches?: KillSwitches;
+  /** A client's database: main's suppressions gate too (`SendDueOptions.shared`). */
+  shared?: SharedSuppressions | null;
+}
+
+export interface TickResult {
+  stats: SendStats;
+  newPauses: SenderPause[];
+  /** When the gap next lets one of these inboxes send; null if none has sent. */
+  nextSendAt: Date | null;
+  /** What this tick's sends leave on the executor, for the caller to emit. */
+  touches: Touch[];
+}
+
+/**
+ * Kill switches — a domain over the line is paused so the walk below reads it
+ * — then one paced walk of the outbox (reconcile first).
+ */
+export async function sendTick(db: Db, opts: TickOptions): Promise<TickResult> {
+  const killSwitches = opts.killSwitches ?? evaluateKillSwitches;
+  const newPauses = await killSwitches(db, {
+    policy: opts.policy,
+    now: opts.now,
+    senders: opts.fleet.domainFleet,
+    runId: opts.runId,
+  });
+  const sent: [number, number][] = [];
+  const stats = await sendDue(db, {
+    transport: opts.transport,
+    policy: opts.policy,
+    now: opts.now,
+    ...(opts.rng ? { rng: opts.rng } : {}),
+    limit: opts.limit ?? null,
+    runId: opts.runId,
+    fromNames: opts.fleet.fromNames,
+    signatureHtml: opts.fleet.signatureHtml,
+    pages: opts.fleet.pages,
+    pixelBaseUrl: opts.pixelBaseUrl ?? null,
+    calendar: opts.calendar ?? null,
+    senders: opts.fleet.senders,
+    ramps: opts.fleet.ramps ?? null,
+    reconcileFirst: opts.reconcileFirst ?? true,
+    shared: opts.shared ?? null,
+    onSent: (enrollmentId, step) => sent.push([enrollmentId, step]),
+  });
+  const nextAt = await nextSendAt(db, opts.policy, opts.fleet.senders, opts.now, opts.fleet.ramps);
+  return { stats, newPauses, nextSendAt: nextAt, touches: await executorTouches(db, sent) };
+}

@@ -76,14 +76,12 @@ import {
   InstantlyTransport,
   loadMailboxes,
   loadRoster,
-  makeFiller,
   makeNotifier,
   makeVerifier,
   type Notifier,
   type PostmasterClient,
   plainMailer,
   RoutedTransport,
-  rosterFleet,
   SendPolicy,
   SmtpTransport,
   type Transport,
@@ -91,7 +89,6 @@ import {
 import { mailAccess, mailAppsFrom } from "@wren/starling-email/access/access";
 import { mailChecks } from "@wren/starling-email/access/setups";
 import { briefSettingsOf, CALL_BRIEF, landerVisits } from "@wren/starling-email/calls";
-import type { Campaign } from "@wren/starling-email/restate";
 import { commentGuide, DEFAULT_VOICE, dmGuide, s3MediaHost } from "@wren/starling-inbound";
 import {
   liveFrom,
@@ -119,6 +116,8 @@ import {
   policyFrom as reachPolicyFrom,
   savedArms,
 } from "@wren/starling-outbound";
+import type { Campaign } from "@wren/starling-outbound/email";
+import { makeFiller, rosterFleet } from "@wren/starling-outbound/email";
 import { searchConsoleChecks, searchConsoleClient } from "@wren/starling-search";
 import {
   answerChecks,

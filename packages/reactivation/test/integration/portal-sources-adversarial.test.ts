@@ -8,7 +8,7 @@
 
 import { addMember, clients } from "@wren/core/clients";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
-import { signed } from "@wren/starling-email";
+import { signed } from "@wren/starling-outbound/email";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { briefLines, MARKS } from "../../src/brief.js";

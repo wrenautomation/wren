@@ -4,7 +4,7 @@
  * numbered lines) and whyOf (provenance back into the portal's why). Tests
  * that expose a bug assert the correct behavior and are marked "Bug".
  */
-import { signed } from "@wren/starling-email";
+import { signed } from "@wren/starling-outbound/email";
 import { describe, expect, it } from "vitest";
 import { briefLines, gateBrief } from "./brief.js";
 import { type Answer, readBody } from "./compose.js";

@@ -22,7 +22,7 @@ Postmaster says nothing below its volume threshold, so warmup is blind without s
 - plain notes: `PLAIN_NOTES`, one per day (`plainNote`, `restate/placement-scheduler.ts:79`)
 - seeds: `WREN_PLACEMENT_SEEDS` (`packages/config/src/index.ts:111`); empty = the loop sends nothing
 
-Citations: `packages/starling/channels/email/src/schema.ts:918`, `packages/starling/channels/email/src/restate/placement-scheduler.ts:308`, `packages/starling/channels/email/src/inbox/placement.ts:205`
+Citations: `packages/starling/channels/email/src/schema.ts:918`, `packages/starling/outbound/src/email/restate/placement-scheduler.ts:308`, `packages/starling/channels/email/src/inbox/placement.ts:205`
 
 ## Connected to
 
@@ -45,4 +45,4 @@ Citations: `packages/starling/channels/email/src/schema.ts:918`, `packages/starl
 
 ## See
 
-- Source: `packages/starling/channels/email/src/restate/placement-scheduler.ts`
+- Source: `packages/starling/outbound/src/email/restate/placement-scheduler.ts`

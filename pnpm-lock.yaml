@@ -1244,6 +1244,9 @@ importers:
       '@wren/starling-email':
         specifier: workspace:*
         version: link:../starling/channels/email
+      '@wren/starling-outbound':
+        specifier: workspace:*
+        version: link:../starling/outbound
       '@wren/video':
         specifier: workspace:*
         version: link:../video
@@ -1761,15 +1764,27 @@ importers:
       '@wren/starling-core':
         specifier: workspace:*
         version: link:../core
+      '@wren/starling-email':
+        specifier: workspace:*
+        version: link:../channels/email
       '@wren/starling-linkedin':
         specifier: workspace:*
         version: link:../channels/linkedin
       '@wren/starling-reddit':
         specifier: workspace:*
         version: link:../channels/reddit
+      '@wrenautomation/autobrowse':
+        specifier: 0.8.4
+        version: 0.8.4(@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.1))
+      '@wrenautomation/read':
+        specifier: 0.29.0
+        version: 0.29.0
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
+      mailifier:
+        specifier: 0.3.9
+        version: 0.3.9
       zod:
         specifier: 4.6.5
         version: 4.6.5

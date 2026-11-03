@@ -18,7 +18,7 @@ import {
   NO_SCOPE,
   oneScope,
   type SendScheduler,
-} from "@wren/starling-email/restate";
+} from "@wren/starling-outbound/email";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { clientSendScope } from "../../src/sending.js";

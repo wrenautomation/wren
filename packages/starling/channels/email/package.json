@@ -15,11 +15,13 @@
     "./records": "./src/records.ts",
     "./console-routes": "./src/console-routes.ts",
     "./outreach": "./src/outreach/index.ts",
+    "./outreach/*": "./src/outreach/*.ts",
     "./restate": "./src/restate/index.ts",
     "./send": "./src/send/index.ts",
     "./send/*": "./src/send/*.ts",
     "./inbox": "./src/inbox/index.ts",
     "./spam": "./src/spam/index.ts",
+    "./verification/*": "./src/verification/*.ts",
     "./access/*": "./src/access/*.ts"
   },
   "scripts": {

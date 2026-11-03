@@ -26,8 +26,9 @@ import {
 import { loadLlmEnv, makeLlm } from "@wren/llm";
 import { mirrorShapes, WREN_WORKSPACE } from "@wren/pipeline/mirror";
 import type { JourneysService } from "@wren/pipeline/restate";
-import { ConsoleTransport, runWeeklyReport } from "@wren/starling-email";
+import { ConsoleTransport } from "@wren/starling-email";
 import { collectStatus, formatStatusLines, weekSlipped } from "@wren/starling-inbound";
+import { runWeeklyReport } from "@wren/starling-outbound/email";
 import { Command } from "commander";
 import { sql } from "drizzle-orm";
 import { registerAccounts } from "./accounts.js";

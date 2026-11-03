@@ -34,7 +34,7 @@ import {
 import type { Db } from "@wren/db";
 import type { LlmClient } from "@wren/llm";
 import type { Transport } from "@wren/starling-email";
-import type { InboxScheduler, SendScheduler } from "@wren/starling-email/restate";
+import type { InboxScheduler, SendScheduler } from "@wren/starling-outbound/email";
 import { type FeedStats, feedDelivery } from "./delivery.js";
 import { type ForwardStats, forwardHandoffs } from "./forward.js";
 import { readVisits, type VisitStats } from "./keep.js";

@@ -36,7 +36,7 @@ Citations: `packages/core/src/schema.ts:157`
 
 ## If you change this
 
-- **Hits:** `packages/core/src/views.ts` and every niche facts view; both importers (`packages/core/src/ingest/importer.ts:235`, `packages/core/src/people/importer.ts:136`); discovery (`packages/research/src/discovery/service.ts:247`, `:388`); the send walk's per-company clock (`packages/starling/channels/email/src/send/deliver.ts:377`); `Niche.companyLocation` (`packages/niches/src/niche.ts:26`)
+- **Hits:** `packages/core/src/views.ts` and every niche facts view; both importers (`packages/core/src/ingest/importer.ts:235`, `packages/core/src/people/importer.ts:136`); discovery (`packages/research/src/discovery/service.ts:247`, `:388`); the send walk's per-company clock (`packages/starling/outbound/src/email/send/deliver.ts:377`); `Niche.companyLocation` (`packages/niches/src/niche.ts:26`)
 - **Firsts:** a new table that marks a pipeline stage needs its own trigger (0226); `TRUNCATE` of a child table skips the triggers, so test fixtures that truncate it must truncate `companies` too; `loadtest/scenarios/portal-reads.js` measures the firm reads
 - **Does not hit:** stored `messages` (facts are pinned at compose, never re-read); `.email` templates
 

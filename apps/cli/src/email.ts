@@ -53,13 +53,12 @@ import {
   RoutedTransport,
   replyByArmStep,
   resume,
-  runListedContacts,
   SmtpTransport,
   senderDays,
   siteExport,
-  variantOutcomes,
 } from "@wren/starling-email";
-import type { QueueRefresh } from "@wren/starling-email/restate";
+import type { QueueRefresh } from "@wren/starling-outbound/email";
+import { runListedContacts, variantOutcomes } from "@wren/starling-outbound/email";
 import { CalcomBookings } from "@wren/starling-sms";
 import { expandHome } from "@wrenautomation/autobrowse/google";
 import type { Command } from "commander";

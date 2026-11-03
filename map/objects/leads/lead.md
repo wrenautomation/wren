@@ -13,7 +13,7 @@ One email address we might send to, with a status. Table `leads`. Not a company:
 
 ## Why this shape
 
-Status is the funnel: `imported → verified | undeliverable`, and `suppressed` (`LEAD_STATUSES`, `packages/core/src/schema.ts:34`; transitions `packages/core/src/state.ts:43`). Only an authoritative verdict moves it (`packages/starling/channels/email/src/verification/service.ts:233`), so compose can trust `verified` without re-checking.
+Status is the funnel: `imported → verified | undeliverable`, and `suppressed` (`LEAD_STATUSES`, `packages/core/src/schema.ts:34`; transitions `packages/core/src/state.ts:43`). Only an authoritative verdict moves it (`packages/starling/outbound/src/email/verification/service.ts:233`), so compose can trust `verified` without re-checking.
 
 ## Shape
 
@@ -34,7 +34,7 @@ Citations: `packages/core/src/schema.ts:219`
 
 ## If you change this
 
-- **Hits:** the lead importer (`packages/core/src/ingest/importer.ts:402`); verification (`packages/starling/channels/email/src/verification/service.ts:162`); resolution's promotion (`packages/starling/channels/email/src/resolution/service.ts:729`); `LEAD_TRANSITIONS` (`packages/core/src/state.ts:43`); `verification_yield` view (`packages/starling/channels/email/src/views.ts:103`); `lead_sheet` view, one row per lead with person and firm columns, `checks` and `verified` (`packages/starling/channels/email/src/views.ts:357`)
+- **Hits:** the lead importer (`packages/core/src/ingest/importer.ts:402`); verification (`packages/starling/outbound/src/email/verification/service.ts:162`); resolution's promotion (`packages/starling/outbound/src/email/resolution/service.ts:729`); `LEAD_TRANSITIONS` (`packages/core/src/state.ts:43`); `verification_yield` view (`packages/starling/channels/email/src/views.ts:103`); `lead_sheet` view, one row per lead with person and firm columns, `checks` and `verified` (`packages/starling/channels/email/src/views.ts:357`)
 - **Does not hit:** `enrollments` (they carry their own `to_email`); SMS
 
 ## Surfaces

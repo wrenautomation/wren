@@ -25,10 +25,9 @@ import {
   type ApprovalSource,
   activeSuppressions,
   enrollments,
-  isUniqueViolation,
   messages,
-  signed,
 } from "@wren/starling-email";
+import { isUniqueViolation, signed } from "@wren/starling-outbound/email";
 import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { briefLines, MARKS, madeUp } from "./brief.js";

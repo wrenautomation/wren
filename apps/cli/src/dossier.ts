@@ -15,7 +15,7 @@ import {
   nicheCompanyIds,
   withFacts,
 } from "@wren/research/dossier";
-import { emailFacts } from "@wren/starling-email";
+import { emailFacts } from "@wren/starling-outbound/email";
 import type { Command } from "commander";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;

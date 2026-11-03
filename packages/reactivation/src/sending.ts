@@ -7,8 +7,9 @@
 import { type Client, findClient } from "@wren/core/clients";
 import { clientOfKey } from "@wren/core/restate";
 import type { Db } from "@wren/db";
-import { type SendPolicy, senderFleet, sendPolicyFor, sharedFor } from "@wren/starling-email";
-import type { SendScope } from "@wren/starling-email/restate";
+import type { SendPolicy } from "@wren/starling-email";
+import type { SendScope } from "@wren/starling-outbound/email";
+import { senderFleet, sendPolicyFor, sharedFor } from "@wren/starling-outbound/email";
 import { type ReactivationSettings, reactivationSettingsOf } from "./settings.js";
 
 // Moved to channel-email with email sequences (O2); the same rules serve both.

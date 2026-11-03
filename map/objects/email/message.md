@@ -13,11 +13,11 @@ One rendered email of one enrollment step, with its exact text and where its add
 
 ## Why this shape
 
-Text is pinned at compose, so what a reviewer approves is the bytes that go out. `state` is a strict machine (`MESSAGE_TRANSITIONS`, `packages/starling/channels/email/src/state.ts:6`): there is no `approved → sent` edge, `approved → draft` is the portal's undo (it locks first, so a send in flight wins), every send commits `sending` with our own `message_id` first, and `unknown` can only be moved by reconcile. `provenance` pins template@version, every variant pick, and the address record (`packages/starling/channels/email/src/outreach/provenance.ts:31`).
+Text is pinned at compose, so what a reviewer approves is the bytes that go out. `state` is a strict machine (`MESSAGE_TRANSITIONS`, `packages/starling/channels/email/src/state.ts:6`): there is no `approved → sent` edge, `approved → draft` is the portal's undo (it locks first, so a send in flight wins), every send commits `sending` with our own `message_id` first, and `unknown` can only be moved by reconcile. `provenance` pins template@version, every variant pick, and the address record (`packages/starling/outbound/src/email/outreach/provenance.ts:31`).
 
 ## Shape
 
-- `enrollment_id`, `step`, `template`, `template_version`, `to_email`, `subject`, `body`, `provenance`, `state`, `message_id`, `gmail_id`, `thread_id`, `attempted_at`, `transport`, `run_id`, `sent_run_id`, `review_reason`, `edited_at`, `open_token`, `approved_by` (operator | auto), `link_code` (the `?r=` on the sign-off link; `wren email clicks` reads it back from the lander, `packages/starling/channels/email/src/inbox/clicks.ts`), `held` (a follow-up waiting for its cadence's `email.touch` on the executor; the tick counts it `waiting_touch`), `released_at` (when the touch let it go; `packages/starling/channels/email/src/follow.ts`) (`packages/starling/channels/email/src/schema.ts:239`–`261`)
+- `enrollment_id`, `step`, `template`, `template_version`, `to_email`, `subject`, `body`, `provenance`, `state`, `message_id`, `gmail_id`, `thread_id`, `attempted_at`, `transport`, `run_id`, `sent_run_id`, `review_reason`, `edited_at`, `open_token`, `approved_by` (operator | auto), `link_code` (the `?r=` on the sign-off link; `wren email clicks` reads it back from the lander, `packages/starling/channels/email/src/inbox/clicks.ts`), `held` (a follow-up waiting for its cadence's `email.touch` on the executor; the tick counts it `waiting_touch`), `released_at` (when the touch let it go; `packages/starling/outbound/src/email/follow.ts`) (`packages/starling/channels/email/src/schema.ts:239`–`261`)
 
 Citations: `packages/starling/channels/email/src/schema.ts:236`, `packages/starling/channels/email/src/state.ts:6`
 
@@ -45,4 +45,4 @@ Citations: `packages/starling/channels/email/src/schema.ts:236`, `packages/starl
 
 ## See
 
-- Source: `packages/starling/channels/email/src/send/deliver.ts`
+- Source: `packages/starling/outbound/src/email/send/deliver.ts`

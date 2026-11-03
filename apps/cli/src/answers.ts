@@ -9,8 +9,7 @@ import * as clients from "@restatedev/restate-sdk-clients";
 import { ingressOf, type Settings } from "@wren/config";
 import { clientKey } from "@wren/core/restate";
 import type { Db } from "@wren/db";
-import { openInvites } from "@wren/starling-email";
-import { DISPOSITION_KEY, type Disposition } from "@wren/starling-email/restate";
+import { DISPOSITION_KEY, type Disposition, openInvites } from "@wren/starling-outbound/email";
 import type { Command } from "commander";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;

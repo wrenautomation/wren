@@ -15,9 +15,7 @@ import { applyPattern, PATTERNS } from "@wren/core";
 import type { Queryable } from "@wren/db";
 import { findHomepage, type HomepageFetcher, type Resolves } from "@wren/research/discovery";
 import {
-  COMMON_GUESS_RANKS,
   contactCandidates,
-  domainKnowledge,
   type EmailVerifier,
   type LocalCheckerLike,
   SERVER_HOLD_REASONS,
@@ -25,6 +23,7 @@ import {
   verifications,
   waitingDomains,
 } from "@wren/starling-email";
+import { COMMON_GUESS_RANKS, domainKnowledge } from "@wren/starling-outbound/email";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { type MoverOutcome, moverAddresses } from "./schema.js";
 import { LATEST_CRM_ROW, whereFinding } from "./score.js";

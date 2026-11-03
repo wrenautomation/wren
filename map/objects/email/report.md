@@ -41,4 +41,4 @@ Citations: `packages/starling/channels/email/src/schema.ts:476`
 
 ## See
 
-- Source: `packages/starling/channels/email/src/report/weekly.ts`
+- Source: `packages/starling/outbound/src/email/report/weekly.ts`

@@ -34,13 +34,13 @@ import { collectSteps } from "@wren/pipeline/collect";
 import { shapeWorkflowsOf, soundShapes } from "@wren/pipeline/journeys";
 import { journeySteps } from "@wren/pipeline/steps";
 import { youtubeByUrl } from "@wren/research/sops";
-import { emailTouchStep } from "@wren/starling-email";
 import { isGoogleMailbox } from "@wren/starling-email/access/access";
 import { briefStep, CALL_BRIEF } from "@wren/starling-email/calls";
 import { EMAIL_TOUCH } from "@wren/starling-email/components";
 import { commentGuide } from "@wren/starling-inbound";
 import { askFollowEmail } from "@wren/starling-inbound/inbox";
 import { touchStep as reachTouchStep, sortStep } from "@wren/starling-outbound";
+import { emailTouchStep } from "@wren/starling-outbound/email";
 import {
   clientSms,
   firstTextStep,

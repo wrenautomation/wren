@@ -10,30 +10,32 @@ import { join } from "node:path";
 import type { Db } from "@wren/db";
 import { nicheFor } from "@wren/niches";
 import {
-  approveMessages,
-  describeAddress,
-  editableText,
-  editMessage,
   enrollments,
   enumerateRenders,
   labelEvent,
-  listDrafts,
-  liveEmails,
   messages,
-  parseEditable,
   placeholderFacts,
   REJECT_REASONS,
   REPLY_DISPOSITIONS,
   type RejectReason,
   type ReplyDisposition,
   recordOperatorReply,
-  rejectMessages,
   STOP_REASONS,
   type StopReason,
-  stopByHand,
   threadEvents,
   variantCounts,
 } from "@wren/starling-email";
+import {
+  approveMessages,
+  describeAddress,
+  editableText,
+  editMessage,
+  listDrafts,
+  liveEmails,
+  parseEditable,
+  rejectMessages,
+  stopByHand,
+} from "@wren/starling-outbound/email";
 import type { Command } from "commander";
 import { eq } from "drizzle-orm";
 

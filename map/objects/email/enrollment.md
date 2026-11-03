@@ -13,7 +13,7 @@ One company in one email sequence, from one sender, with every step drafted up f
 
 ## Why this shape
 
-Compose writes the whole sequence before anything can send (`packages/starling/channels/email/src/outreach/compose.ts:15`), and three partial unique indexes make "one active enrollment per company / person / address" a database fact, not a check (`packages/starling/channels/email/src/schema.ts:200`–`208`). Across channels, `@wren/core/leads` adds two checks: compose skips a lead a text or DM sequence holds (`skipped_lead_busy`), and the send gate holds an opener while the firm had a text or DM first touch in the last day (`first_touch_waiting`, `packages/core/src/leads.ts`). `sequence_snapshot` pins the cadence so a later edit of the niche never changes a running thread. `offer` names what was pitched (`:181`). `contact_round` counts the company's cold sequences (1 = first contact, 2+ = recycled, `:192`); view `contact_outcomes` says how each one ended and when it was last touched, which is what lead recycling rests on (`packages/starling/channels/email/src/views.ts:225`; `packages/starling/channels/email/src/recontact.ts:123`).
+Compose writes the whole sequence before anything can send (`packages/starling/outbound/src/email/outreach/compose.ts:15`), and three partial unique indexes make "one active enrollment per company / person / address" a database fact, not a check (`packages/starling/channels/email/src/schema.ts:200`–`208`). Across channels, `@wren/core/leads` adds two checks: compose skips a lead a text or DM sequence holds (`skipped_lead_busy`), and the send gate holds an opener while the firm had a text or DM first touch in the last day (`first_touch_waiting`, `packages/core/src/leads.ts`). `sequence_snapshot` pins the cadence so a later edit of the niche never changes a running thread. `offer` names what was pitched (`:181`). `contact_round` counts the company's cold sequences (1 = first contact, 2+ = recycled, `:192`); view `contact_outcomes` says how each one ended and when it was last touched, which is what lead recycling rests on (`packages/starling/channels/email/src/views.ts:225`; `packages/starling/channels/email/src/recontact.ts:123`).
 
 ## Shape
 
@@ -46,4 +46,4 @@ Citations: `packages/starling/channels/email/src/schema.ts:172`
 
 ## See
 
-- Source: `packages/starling/channels/email/src/outreach/compose.ts`
+- Source: `packages/starling/outbound/src/email/outreach/compose.ts`

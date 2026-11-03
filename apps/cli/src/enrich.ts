@@ -41,7 +41,7 @@ import {
   signalSettings,
 } from "@wren/research/signals";
 import { recheckLeads, recheckNiche } from "@wren/starling-email";
-import { nextToEnroll } from "@wren/starling-email/outreach";
+import { nextToEnroll } from "@wren/starling-outbound/email";
 import { PoliteFetcher, userAgent } from "@wrenautomation/read/fetch";
 import type { Command } from "commander";
 import { ingressSites } from "./sites.js";

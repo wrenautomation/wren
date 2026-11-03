@@ -15,18 +15,15 @@ import {
   domainProblems,
   domainStandings,
   fillCallTimes,
-  liveEmails,
   loadMailboxes,
   loadRoster,
   mailDomainTargets,
-  mintMessageId,
   placementSummary,
   placementTrouble,
   placementVerdicts,
-  sentenceReady,
-  signed,
 } from "@wren/starling-email";
 import { coveringRenders, SPAM_LIMIT, type SpamScore, startSpamd } from "@wren/starling-email/spam";
+import { liveEmails, mintMessageId, sentenceReady, signed } from "@wren/starling-outbound/email";
 import type { Command } from "commander";
 import { sql } from "drizzle-orm";
 

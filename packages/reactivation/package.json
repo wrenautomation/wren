@@ -19,7 +19,6 @@
   },
   "dependencies": {
     "@restatedev/restate-sdk": "1.17.1",
-    "@wren/starling-email": "workspace:*",
     "@wren/connectors": "workspace:*",
     "@wren/core": "workspace:*",
     "@wren/db": "workspace:*",
@@ -27,6 +26,8 @@
     "@wren/llm": "workspace:*",
     "@wren/offers": "workspace:*",
     "@wren/research": "workspace:*",
+    "@wren/starling-email": "workspace:*",
+    "@wren/starling-outbound": "workspace:*",
     "@wren/video": "workspace:*",
     "@wrenautomation/read": "0.29.0",
     "drizzle-orm": "0.45.2",

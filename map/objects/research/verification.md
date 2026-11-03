@@ -44,4 +44,4 @@ Citations: `packages/starling/channels/email/src/schema.ts:120`
 
 ## See
 
-- Source: `packages/starling/channels/email/src/verification/service.ts`
+- Source: `packages/starling/outbound/src/email/verification/service.ts`
