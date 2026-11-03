@@ -1200,3 +1200,13 @@ and `sources` stay as pre-plan reads only. What stays behind a command is what i
 0.30.11: the first live brief listed the run's own openers (hn, fetcher, ladder) as unused,
 a read that would send the agent adding them to a plan. The brief now carries `opens` (the
 openers let in beside the allow-list) and `sourcesUnused` names only what the run has not.
+
+0.30.12, same day: LinkedIn live for birdwatch as linkedin@wren (`BIRDWATCH_ACCOUNTS` in
+`~/.config/birdwatch/config.json`; caps on that account: `posts` 80 a day, its pre-flag value,
+`activity` 10, William's yes). The first live search showed two things. A held request through
+the Restate ingress dies at five minutes (undici waits that long for headers) while the flow
+runs on, so the ingress client now sends the call and polls the invocation's output every 5 s,
+up to ten minutes: Restate's retries land the answer whichever try finishes. And the desk's
+stream to Restate is cut past about two minutes (RT0010 "stream closed because of a broken
+pipe"), each retry a fresh flow and a spent cap unit: LinkedIn pages read 20 posts (143 s live;
+50 took 196 s) until the desk holds a long stream (task filed for autobrowse).
