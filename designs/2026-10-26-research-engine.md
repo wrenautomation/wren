@@ -1128,3 +1128,34 @@ Rules:
 - Gap: `birdwatch serve` is read-only, so a person cannot add a source from the UI.
 
 The first test is one playbook for one local service niche, built from birdwatch runs on 0.30.0.
+
+### 11-03: searchers that answer, engine 0.30.6 to 0.30.8
+
+The runs session's web searches came back empty. Four causes, all fixed:
+- SearXNG's engines on the VPS refused (Brave and Google CSE rate-limited, DuckDuckGo a
+  CAPTCHA) and the search reported "ok, 0 hits". Now an answer with no results and refused
+  engines is a failed search, naming the engines (0.30.6).
+- Exa has no Reddit index: it skips a reddit.com-pinned query. Reddit itself searches those,
+  signed out through the desk's `reddit-public` (0.30.6). `Source.pinnedOnly` keeps a capped
+  site searcher off the open web's queries.
+- The Mac's birdwatch config pointed Restate at localhost; it now names the real ingress.
+- The VPS: nginx `pacer` in front of SearXNG, one bucket for every caller (12 searches a
+  minute, a burst of 12 waits up to 60 s, then 429), and SearXNG's own per-engine pause after
+  a block (15 min on a rate limit, 2 h on a CAPTCHA). Engines from this IP: Bing, Yahoo,
+  PrivacyWall and Mwmbl answer; Brave, DuckDuckGo and Qwant block; Google, Mojeek and
+  Startpage stay off (IP denied, or a proof-of-work CAPTCHA). Google comes through the desk's
+  browser. A CAPTCHA solver does not fit: SearXNG's engines are plain HTTP from the box, and
+  the CAPTCHAs are rate limits in disguise (wren 7804eaf).
+
+Perplexity Search joins as a metered searcher (0.30.8): Perplexity's own index, `fast` at
+$1 per 1K requests (Exa `auto` is $7, and our 63 Exa searches averaged $0.0063). Key ring,
+site filter, list price on the spend since the answer carries no cost. On the web, channel
+and person plans. Exa stays for what only it does: semantic search, findSimilar, people.
+
+Decision, no query batching: Perplexity bills up to five queries in one request as one, a 5x
+saving at scale. Tested 11-03 with two unrelated queries: one flat `results` list, no query
+field, and `max_results` shared across the queries (5 hits to one, 1 to the other). Birdwatch
+records which query found each hit; triage, the gap record and the cross-run patterns read it.
+A merged list would credit every hit to five queries and starve the weak ones. The saving is
+$0.0008 a query, under the model calls of the same run. Exa has no batch endpoint. Revisit
+only if Perplexity returns results per query.
