@@ -8,10 +8,10 @@ import { findClient } from "@wren/core/clients";
 import { SiteCallError, type SiteClient } from "@wren/core/content";
 import { defineSetup, type SetupCheck } from "@wren/core/setup";
 import type { Db } from "@wren/db";
+import type { Registration } from "@wren/starling-sms";
+import { TEXTS, textsSettingsSchema } from "@wren/starling-sms";
+import { smsCalls } from "@wren/starling-sms/schema";
 import { eq, max } from "drizzle-orm";
-import { TEXTS, textsSettingsSchema } from "./clients.js";
-import type { Registration } from "./provider.js";
-import { smsCalls } from "./schema.js";
 
 const TEXTING_SETUP = defineSetup({
   id: "setup.texting",

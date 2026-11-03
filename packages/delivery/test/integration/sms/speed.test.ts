@@ -13,17 +13,26 @@ import { events } from "@wren/core/schema";
 import { startTestRestate } from "@wren/core/testing";
 import { defineWorkflow } from "@wren/core/workflows";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
+import {
+  FakeBookings,
+  FakeProvider,
+  SPEED,
+  SPEED_SEQUENCES,
+  tick,
+  touch,
+} from "@wren/starling-sms";
+import { SMS_COMPONENTS } from "@wren/starling-sms/components";
+import { SMS_RECORDS } from "@wren/starling-sms/records";
+import { smsContacts, smsMessages, speedRuns } from "@wren/starling-sms/schema";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { FakeBookings } from "../../src/bookings.js";
-import { SMS_COMPONENTS } from "../../src/components.js";
-import { tick } from "../../src/deliver.js";
-import { touch } from "../../src/follow.js";
-import { FakeProvider } from "../../src/provider.js";
-import { SMS_RECORDS } from "../../src/records.js";
-import { smsContacts, smsMessages, speedRuns } from "../../src/schema.js";
-import { firstText, firstTextStep, SPEED, SPEED_SEQUENCES } from "../../src/speed.js";
-import { fillTemplates, numbers, POLICY, TABLES } from "./fixtures.js";
+import {
+  fillTemplates,
+  numbers,
+  POLICY,
+  TABLES,
+} from "../../../../starling/channels/sms/test/integration/fixtures.js";
+import { firstText, firstTextStep } from "../../../src/sms/speed.js";
 
 let pg: TestPostgres;
 let env: RestateTestEnvironment;

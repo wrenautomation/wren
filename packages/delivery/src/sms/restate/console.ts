@@ -33,16 +33,15 @@ import {
 } from "@wren/core/records/serve";
 import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { atomic, type Db, setAuditActor, snapshot } from "@wren/db";
+import { TEXTS, toPhoneE164 } from "@wren/starling-sms";
+import { SMS_CONSOLE_APPS, SMS_CONSOLE_ROUTES } from "@wren/starling-sms/console-routes";
+import { SMS_RECORDS } from "@wren/starling-sms/records";
+import type { SmsDeskService } from "@wren/starling-sms/restate";
+import { CALL_OUTCOMES, type CallOutcome, speedRuns } from "@wren/starling-sms/schema";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
-import { TEXTS } from "../clients.js";
-import { SMS_CONSOLE_APPS, SMS_CONSOLE_ROUTES } from "../console-routes.js";
-import { toPhoneE164 } from "../phone.js";
-import { SMS_RECORDS } from "../records.js";
 import { cleanEmail, handSubject } from "../reviews.js";
-import { CALL_OUTCOMES, type CallOutcome, speedRuns } from "../schema.js";
 import { REVIEWS_FLOW } from "./answers.js";
-import type { SmsDeskService } from "./index.js";
 
 interface SmsConsoleDeps {
   /** Main: the client registry. */

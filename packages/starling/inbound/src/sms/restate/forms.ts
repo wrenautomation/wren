@@ -12,14 +12,16 @@
  */
 import * as restate from "@restatedev/restate-sdk";
 import { serviceHandler } from "@wren/core/restate";
+import type { FormPasses, SmsDeps } from "@wren/starling-sms/restate";
+import { FORM_WORKFLOW, speedRuns } from "@wren/starling-sms/schema";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import {
   FIRST_TEXT_AFTER_MS,
-  FORM_WORKFLOW,
   type FormApplication,
   type FormOptions,
   type FormOutcome,
+  followUpForms,
   formStep,
   formSubject,
   readApplication,
@@ -29,12 +31,12 @@ import {
   type AfterOptions,
   EMAIL_AFTER_MS,
   type EmailOutcome,
+  formAfter,
   formEmail,
   NOTICE_AFTER_MS,
   noTextNotice,
+  type SendMail,
 } from "../form-after.js";
-import { speedRuns } from "../schema.js";
-import type { SmsDeps } from "./index.js";
 
 export const FORMS_SERVICE = { name: "SmsForms" } as const;
 /** A step that couldn't tell (a lookup, the booking check, a mail send) tries again this soon. */
@@ -42,9 +44,29 @@ const AGAIN_MS = 5 * 60 * 1000;
 /** Then the pass takes over. */
 const MAX_TRIES = 6;
 
+/** What only form texts read, beside the adapter's deps. */
+export interface FormSetup {
+  /** The lander's export, read for form opt-ins. Null = no form follow-up. */
+  site?: SiteSource | null;
+  /** Countries a site applicant's phone may be in (`WREN_SMS_FORM_COUNTRIES`); unset = US, CA. */
+  formCountries?: readonly string[];
+  /** The email after an applicant's first text, from `WREN_FORM_MAIL_FROM`. Null = none. */
+  formMail?: SendMail | null;
+}
+export type FormDeps = SmsDeps & FormSetup;
+
+/** The adapter's form hook (`SmsDeps.forms`): SmsWatch's pass and `SmsDesk/forms` run it. */
+export function formPasses(f: FormSetup & { site: SiteSource }): FormPasses {
+  return {
+    follow: (d, now, runId) =>
+      followUpForms(d.db, formOptionsOf({ ...d, ...f }, f.site, now, runId)),
+    after: (d, now) => formAfter(d.db, afterOptionsOf({ ...d, ...f }, now)),
+  };
+}
+
 /** The form step's options from the worker's deps. */
 export function formOptionsOf(
-  deps: SmsDeps,
+  deps: FormDeps,
   site: SiteSource,
   now: Date,
   runId: string | null,
@@ -64,7 +86,7 @@ export function formOptionsOf(
 }
 
 /** What runs after the text: the email and the notice. */
-export function afterOptionsOf(deps: SmsDeps, now: Date): AfterOptions {
+export function afterOptionsOf(deps: FormDeps, now: Date): AfterOptions {
   return {
     send: deps.formMail ?? null,
     bookings: deps.bookings ?? null,
@@ -109,7 +131,7 @@ const APPLICATION = z.looseObject({
   page: z.string(),
 });
 
-export function makeSmsForms(deps: SmsDeps) {
+export function makeSmsForms(deps: FormDeps) {
   const nowOf = async (ctx: restate.Context) =>
     deps.clock ? deps.clock() : new Date(await ctx.date.now());
   const self = (ctx: restate.Context) => ctx.serviceSendClient<FormsApi>(FORMS_SERVICE);

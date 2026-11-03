@@ -19,28 +19,33 @@ import { renderKind } from "@wren/core/slots";
 import type { TemplateRef } from "@wren/core/templates";
 import { liveOrDefault } from "@wren/core/templates/defaults";
 import type { Db, Queryable } from "@wren/db";
-import { and, desc, eq, gte, inArray, isNull, lte, ne, notInArray, or } from "drizzle-orm";
-import type { Bookings } from "./bookings.js";
+import type { Bookings } from "@wren/starling-sms";
 import {
-  FIRST_TEXT_AFTER_MS,
-  FORM_WORKFLOW,
-  formBookingLink,
-  readApplication,
-  SEEDED,
-  type SiteSource,
-} from "./form.js";
-import { countryOf, phoneCountry } from "./phone.js";
-import { inWindow, nextOpen, policyFor, type SmsPolicy } from "./policy.js";
-import type { SendMail } from "./reviews.js";
+  countryOf,
+  inWindow,
+  nextOpen,
+  phoneCountry,
+  policyFor,
+  type SmsPolicy,
+} from "@wren/starling-sms";
 import {
   type FirstTouch,
+  FORM_WORKFLOW,
   type SmsContact,
   type SpeedRun,
   smsContacts,
   smsMessages,
   speedRuns,
-} from "./schema.js";
-import { firstName } from "./templates.js";
+} from "@wren/starling-sms/schema";
+import { firstName } from "@wren/starling-sms/templates";
+import { and, desc, eq, gte, inArray, isNull, lte, ne, notInArray, or } from "drizzle-orm";
+import {
+  FIRST_TEXT_AFTER_MS,
+  formBookingLink,
+  readApplication,
+  SEEDED,
+  type SiteSource,
+} from "./form.js";
 
 /** The email waits this long after the text, so it reads as a follow-on, not a duplicate. */
 export const EMAIL_AFTER_MS = 5 * 60 * 1000;
@@ -68,6 +73,14 @@ const NO_TEXT: readonly FirstTouch[] = ["no_consent", "no_phone", "refused"];
 function emailOnlyByCountry(run: Pick<SpeedRun, "firstTouch" | "phone">): boolean {
   return run.firstTouch === "no_phone" && !!run.phone && phoneCountry(run.phone) !== null;
 }
+
+/** One email out: delivery's review mail has the same shape. */
+export type SendMail = (m: {
+  to: string;
+  subject: string;
+  text: string;
+  headers?: readonly (readonly [string, string])[];
+}) => Promise<void>;
 
 export interface AfterOptions {
   /** Plain mail from William's address (the worker's `plainMailer`). Null = no email goes. */

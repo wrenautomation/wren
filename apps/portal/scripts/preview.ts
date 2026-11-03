@@ -64,6 +64,7 @@ import { HEALTH_CONSOLE_APPS, HEALTH_CONSOLE_ROUTES } from "@wren/delivery/healt
 import { messagingApi } from "@wren/delivery/messaging";
 import { DELIVERY_ROUTES, deliveryApi } from "@wren/delivery/restate";
 import { DELIVERY_APPS } from "@wren/delivery/routes";
+import { smsConsoleApi } from "@wren/delivery/sms";
 import { webhooksApi } from "@wren/delivery/webhooks";
 import { documentsConsoleApi } from "@wren/documents/console";
 import { DOCUMENTS_CONSOLE_APPS, DOCUMENTS_CONSOLE_ROUTES } from "@wren/documents/console-routes";
@@ -103,7 +104,6 @@ import {
 import { pieceRows, piecesOf } from "@wren/starling-inbound/pieces";
 import { pickAccount } from "@wren/starling-outbound";
 import { SMS_CONSOLE_APPS, SMS_CONSOLE_ROUTES } from "@wren/starling-sms/console-routes";
-import { smsConsoleApi } from "@wren/starling-sms/restate";
 import { proposeChange } from "@wren/starling-studio/change";
 import { setEdit, setLine, setWords } from "@wren/starling-studio/edit";
 import { withFallback } from "@wren/starling-studio/stress";

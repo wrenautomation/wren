@@ -10,6 +10,7 @@ import { findClient } from "@wren/core/clients";
 import { executorEmit, liveFor } from "@wren/core/executor";
 import { serviceHandler } from "@wren/core/restate";
 import type { Db } from "@wren/db";
+import type { CallHooks } from "@wren/starling-sms/restate";
 import { z } from "zod";
 import { callReplied, missedCallEvent, runOfCall } from "../missed.js";
 import { clickReview, saveFeedback, stopReview } from "../reviews.js";
@@ -17,14 +18,6 @@ import { clickReview, saveFeedback, stopReview } from "../reviews.js";
 export const MISSED_FLOW = "missed_call.steps";
 export const REVIEWS_FLOW = "reviews.steps";
 const SPEED_FLOW = "speed_to_lead.steps";
-
-/** What SmsEvents does after a call event or a reply, beside the reply trigger. */
-export interface CallHooks {
-  /** A call nobody picked up: into the client's missed-call workflow, if it's live. */
-  missed(ctx: restate.Context, client: string | null, callId: number): void;
-  /** A reply: a texted-back caller's call marked replied, and on to speed to lead if live. */
-  replied(ctx: restate.Context, client: string | null, contactId: number): Promise<void>;
-}
 
 /** Wren's own calls enter nothing: the templates install per client. */
 export function callHooks(d: { main: Db; clientDb(id: string): Db }): CallHooks {

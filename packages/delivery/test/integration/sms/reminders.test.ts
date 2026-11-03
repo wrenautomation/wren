@@ -5,14 +5,11 @@
  */
 import { addSuppression } from "@wren/core";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
+import { type Booking, FakeBookings, FakeProvider, tick } from "@wren/starling-sms";
+import { smsContacts, smsMessages } from "@wren/starling-sms/schema";
+import { DAY_BEFORE, HOUR_BEFORE } from "@wren/starling-sms/templates";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { type Booking, FakeBookings } from "../../src/bookings.js";
-import { tick } from "../../src/deliver.js";
-import { FakeProvider } from "../../src/provider.js";
-import { remindBookings } from "../../src/reminders.js";
-import { smsContacts, smsMessages } from "../../src/schema.js";
-import { DAY_BEFORE, HOUR_BEFORE } from "../../src/templates.js";
 import {
   emptyTemplates,
   fillTemplates,
@@ -21,7 +18,8 @@ import {
   POLICY,
   SEQUENCES,
   TABLES,
-} from "./fixtures.js";
+} from "../../../../starling/channels/sms/test/integration/fixtures.js";
+import { remindBookings } from "../../../src/sms/reminders.js";
 
 let pg: TestPostgres;
 let provider: FakeProvider;

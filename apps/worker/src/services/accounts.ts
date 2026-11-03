@@ -19,6 +19,7 @@ import { meteredSites } from "@wren/core/metered";
 import { dbSendJournal } from "@wren/core/send-journal";
 import { makeSetupAgent } from "@wren/core/setup-agent";
 import { makeSetupWatch } from "@wren/core/setup-watch";
+import { findPlace, PLACE_FINDER } from "@wren/delivery/sms";
 import { crmLanding } from "@wren/reactivation";
 import { sweepGrants } from "@wren/starling-email/access/access";
 import { makeMailAccess, makeMailCallback } from "@wren/starling-email/access/console";
@@ -33,7 +34,6 @@ import {
   makeSocialInbox,
 } from "@wren/starling-inbound/restate";
 import { WREN_LIMITS } from "@wren/starling-outbound/limits";
-import { findPlace, PLACE_FINDER } from "@wren/starling-sms";
 import { makeMailReader } from "@wren/watch/clients";
 import { SETUPS } from "../setups.js";
 import type { AnyService, Deps } from "./deps.js";

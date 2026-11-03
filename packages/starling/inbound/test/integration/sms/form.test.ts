@@ -6,33 +6,20 @@
  * notice when no text went, naming why. Synthetic people and a fake carrier; nothing leaves.
  */
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
+import {
+  type Bookings,
+  enroll,
+  FakeBookings,
+  FakeProvider,
+  FORM_SEQUENCES,
+  smsStats,
+  tick,
+  touch,
+} from "@wren/starling-sms";
+import { smsContacts, smsMessages, speedRuns } from "@wren/starling-sms/schema";
+import { checkBody, sequenceSlots } from "@wren/starling-sms/templates";
 import { asc, eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { type Bookings, FakeBookings } from "../../src/bookings.js";
-import { tick } from "../../src/deliver.js";
-import { enroll } from "../../src/enroll.js";
-import { touch } from "../../src/follow.js";
-import {
-  FIRST_TEXT_AFTER_MS,
-  FORM_SEQUENCES,
-  type FormApplication,
-  type FormOptions,
-  followUpForms,
-  formStep,
-} from "../../src/form.js";
-import {
-  type AfterOptions,
-  EMAIL_AFTER_MS,
-  formAfter,
-  formEmail,
-  NOTICE_AFTER_MS,
-  noTextNotice,
-  whyNoText,
-} from "../../src/form-after.js";
-import { FakeProvider } from "../../src/provider.js";
-import { smsContacts, smsMessages, speedRuns } from "../../src/schema.js";
-import { smsStats } from "../../src/stats.js";
-import { checkBody, sequenceSlots } from "../../src/templates.js";
 import {
   emptyTemplates,
   fillCopy,
@@ -43,7 +30,23 @@ import {
   POLICY,
   SEQ,
   TABLES,
-} from "./fixtures.js";
+} from "../../../../channels/sms/test/integration/fixtures.js";
+import {
+  FIRST_TEXT_AFTER_MS,
+  type FormApplication,
+  type FormOptions,
+  followUpForms,
+  formStep,
+} from "../../../src/sms/form.js";
+import {
+  type AfterOptions,
+  EMAIL_AFTER_MS,
+  formAfter,
+  formEmail,
+  NOTICE_AFTER_MS,
+  noTextNotice,
+  whyNoText,
+} from "../../../src/sms/form-after.js";
 
 let pg: TestPostgres;
 let provider: FakeProvider;

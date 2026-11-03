@@ -3,8 +3,8 @@ import { setupWorkflow } from "@wren/core/setup";
 import type { AccountRow } from "@wren/core/setup-schema";
 import { checkWorkflows } from "@wren/core/workflows";
 import type { Db } from "@wren/db";
+import { FakeRegistration } from "@wren/starling-sms";
 import { describe, expect, it } from "vitest";
-import { FakeRegistration } from "./provider.js";
 import { findPlace, type PlaceFound, SMS_SETUPS, smsChecks } from "./setups.js";
 
 const wrens = (ref: string) => ({ id: 1, client: null, site: "number", ref }) as AccountRow;

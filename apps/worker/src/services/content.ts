@@ -11,6 +11,7 @@ import { pausedUnder } from "@wren/core/dead-letters";
 import { wrenFacts } from "@wren/core/facts";
 import { githubRepo } from "@wren/core/github";
 import { LIMITS } from "@wren/core/restate";
+import { placeIdOf } from "@wren/delivery/sms";
 import { liveCampaignsOf } from "@wren/pipeline/store";
 import { makeContent } from "@wren/starling-core/service";
 import { isGoogleMailbox } from "@wren/starling-email/access/access";
@@ -38,7 +39,6 @@ import {
 } from "@wren/starling-inbound/restate";
 import { makeAds, makeAdsWatch } from "@wren/starling-meta/restate";
 import { wakeWatch } from "@wren/starling-outbound/restate";
-import { placeIdOf } from "@wren/starling-sms";
 import { tiktokCreator } from "@wren/starling-tiktok";
 import { clientMarketing } from "../marketing.js";
 import { adsFor, contentClientsFor, contentFor } from "./content-channels.js";

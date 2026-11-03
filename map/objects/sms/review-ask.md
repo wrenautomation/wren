@@ -13,7 +13,7 @@ One customer asked for a Google review, by text or by email: the ask, the one re
 
 ## Why this shape
 
-One row per subject (`uq_review_asks_subject`), made before anything is sent, so a retry changes nothing and every refusal keeps its reason (`askReview`, `packages/starling/channels/sms/src/reviews.ts:193`). Every customer is asked; rating never decides. The token is stored plain: it can only count a click and open Google's public form.
+One row per subject (`uq_review_asks_subject`), made before anything is sent, so a retry changes nothing and every refusal keeps its reason (`askReview`, `packages/delivery/src/sms/reviews.ts:193`). Every customer is asked; rating never decides. The token is stored plain: it can only count a click and open Google's public form.
 
 ## Shape
 
@@ -25,7 +25,7 @@ One row per subject (`uq_review_asks_subject`), made before anything is sent, so
 - link `phone.wrenautomation.com/r/<client>/<token>` → `Reviews/click` (`clickReview`, `reviews.ts:325`) → 302 to Google's write-review form; `/feedback` → `Reviews/feedback` (`saveFeedback`, `reviews.ts:467`); `/stop` (an email's stop link, GET confirms, POST or one-click stops) → `Reviews/stop` (`stopReview`, `reviews.ts:480`), an `opt_out` email suppression in the client's database. `makeReviews` (`restate/answers.ts:88`)
 - record `sms.review` (`reviewRecord`, `records.ts:393`, with By and Email): views Asked, Opened, Feedback, All
 
-Citations: `packages/starling/channels/sms/src/schema.ts:624`, `packages/starling/channels/sms/src/reviews.ts:193`, `packages/starling/channels/sms/src/restate/answers.ts:88`, `packages/starling/channels/sms/src/restate/console.ts:211`, `packages/starling/channels/sms/src/records.ts:393`
+Citations: `packages/starling/channels/sms/src/schema.ts:624`, `packages/delivery/src/sms/reviews.ts:193`, `packages/delivery/src/sms/restate/answers.ts:88`, `packages/delivery/src/sms/restate/console.ts:211`, `packages/starling/channels/sms/src/records.ts:393`
 
 ## Connected to
 
@@ -48,5 +48,5 @@ Citations: `packages/starling/channels/sms/src/schema.ts:624`, `packages/starlin
 
 ## See
 
-- Source: `packages/starling/channels/sms/src/reviews.ts`
+- Source: `packages/delivery/src/sms/reviews.ts`
 - Design: `designs/2026-10-07-missed-call-and-reviews.md`

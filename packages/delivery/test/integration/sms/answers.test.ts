@@ -10,14 +10,24 @@ import { serveRecords } from "@wren/core/records/serve";
 import { workflowInstalls } from "@wren/core/schema";
 import { accountFacts, clientAccounts } from "@wren/core/setup-schema";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
+import { applyEvent, bookedRun, FakeProvider, type SmsEvent, tick } from "@wren/starling-sms";
+import { SMS_RECORDS } from "@wren/starling-sms/records";
+import {
+  reviewAsks,
+  smsCalls,
+  smsContacts,
+  smsMessages,
+  speedRuns,
+} from "@wren/starling-sms/schema";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { tick } from "../../src/deliver.js";
-import { applyEvent } from "../../src/events.js";
-import { bookedRun } from "../../src/follow.js";
-import { callReplied, runOfCall, type TextBackOptions, textBack } from "../../src/missed.js";
-import { FakeProvider, type SmsEvent } from "../../src/provider.js";
-import { SMS_RECORDS } from "../../src/records.js";
+import {
+  fillCopy,
+  numbers,
+  POLICY,
+  TABLES,
+} from "../../../../starling/channels/sms/test/integration/fixtures.js";
+import { callReplied, runOfCall, type TextBackOptions, textBack } from "../../../src/sms/missed.js";
 import {
   type AskOptions,
   askReview,
@@ -27,9 +37,7 @@ import {
   type SendMail,
   saveFeedback,
   stopReview,
-} from "../../src/reviews.js";
-import { reviewAsks, smsCalls, smsContacts, smsMessages, speedRuns } from "../../src/schema.js";
-import { fillCopy, numbers, POLICY, TABLES } from "./fixtures.js";
+} from "../../../src/sms/reviews.js";
 
 let pg: TestPostgres;
 const provider = new FakeProvider();

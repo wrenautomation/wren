@@ -15,37 +15,25 @@ import type { ExecutorEvent, Step } from "@wren/core/executor";
 import { linkPeople } from "@wren/core/leads";
 import { noteContacts } from "@wren/core/profiles-backfill";
 import type { Db } from "@wren/db";
+import type { SmsPolicy, SmsProvider } from "@wren/starling-sms";
+import {
+  countryOf,
+  enroll,
+  liveTexts,
+  SmsRefusal,
+  SPEED,
+  SPEED_SEQUENCE,
+  toPhoneE164,
+} from "@wren/starling-sms";
+import {
+  type FirstTouch,
+  FORM_WORKFLOW,
+  type SpeedRun,
+  smsContacts,
+  speedRuns,
+} from "@wren/starling-sms/schema";
+import { stepKey } from "@wren/starling-sms/templates";
 import { and, eq } from "drizzle-orm";
-import { SPEED } from "./components.js";
-import { enroll } from "./enroll.js";
-import { FORM_WORKFLOW } from "./form.js";
-import { countryOf, toPhoneE164 } from "./phone.js";
-import type { SmsPolicy } from "./policy.js";
-import type { SmsProvider } from "./provider.js";
-import { SmsRefusal } from "./refusal.js";
-import { type FirstTouch, type SpeedRun, smsContacts, speedRuns } from "./schema.js";
-import { liveTexts } from "./template-store.js";
-import { checkSequence, type SmsSequence, stepKey } from "./templates.js";
-
-export { SPEED };
-
-/** The first text, then day 1, 3 and 7 after it. Empty until the client's words are in. */
-const SPEED_SEQUENCE: SmsSequence = checkSequence({
-  name: SPEED,
-  label: "Speed to lead",
-  steps: [
-    { step: 1, afterDays: 0 },
-    { step: 2, afterDays: 1 },
-    { step: 3, afterDays: 2 },
-    { step: 4, afterDays: 4 },
-  ],
-  firstGoes: "Within a minute of the form, in texting hours on their clock",
-  fields: ["first_name", "sender", "booking_link"],
-  namesSender: true,
-});
-
-/** Core sequences, registered next to every niche's (niches/src/index.ts). */
-export const SPEED_SEQUENCES: readonly SmsSequence[] = [SPEED_SEQUENCE];
 
 /** What a client's (or Wren's) first text runs on. */
 interface SpeedTexts {

@@ -19,15 +19,31 @@
 import { activeSuppressionOf } from "@wren/core";
 import { canonicalZone, wallClock } from "@wren/core/time";
 import type { Queryable } from "@wren/db";
+import type { Booking, Bookings } from "@wren/starling-sms";
+import {
+  cannotReach,
+  countryOf,
+  daysBetween,
+  FLEET_ZONE,
+  fieldsFor,
+  inWindow,
+  LATEST_MINUTE,
+  liveTexts,
+  monthlyRoomAt,
+  pickNumber,
+  REMINDER_FRESH_MS,
+  type SmsPolicy,
+} from "@wren/starling-sms";
+import type { RemindPass } from "@wren/starling-sms/restate";
+import {
+  type SmsContact,
+  type SmsNumber,
+  smsContacts,
+  smsMessages,
+  smsNumbers,
+} from "@wren/starling-sms/schema";
+import { DAY_BEFORE, firstName, HOUR_BEFORE, render, textSeed } from "@wren/starling-sms/templates";
 import { and, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
-import type { Booking, Bookings } from "./bookings.js";
-import { monthlyRoomAt, REMINDER_FRESH_MS } from "./deliver.js";
-import { countryOf } from "./phone.js";
-import { daysBetween, FLEET_ZONE, inWindow, LATEST_MINUTE, type SmsPolicy } from "./policy.js";
-import { cannotReach, pickNumber } from "./pool.js";
-import { type SmsContact, type SmsNumber, smsContacts, smsMessages, smsNumbers } from "./schema.js";
-import { fieldsFor, liveTexts } from "./template-store.js";
-import { DAY_BEFORE, firstName, HOUR_BEFORE, render, textSeed } from "./templates.js";
 
 /** Past tomorrow on any clock. */
 const LOOK_AHEAD_MS = 48 * 3_600_000;
@@ -258,3 +274,7 @@ export async function remindBookings(db: Queryable, opts: ReminderOptions): Prom
   }
   return stats;
 }
+
+/** The adapter's reminder hook (`SmsDeps.remind`): SmsWatch's pass and `SmsDesk/reminders` run it. */
+export const remindPass: RemindPass = (d, bookings, now, runId) =>
+  remindBookings(d.db, { bookings, policy: d.policy, senderName: d.senderName, now, runId });

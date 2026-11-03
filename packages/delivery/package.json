@@ -20,7 +20,8 @@
     "./billing": "./src/billing/index.ts",
     "./billing/console": "./src/billing/console.ts",
     "./billing/console-routes": "./src/billing/console-routes.ts",
-    "./billing/records": "./src/billing/records.ts"
+    "./billing/records": "./src/billing/records.ts",
+    "./sms": "./src/sms/index.ts"
   },
   "scripts": {
     "test:unit": "vitest run src",
@@ -32,15 +33,19 @@
     "@aws-sdk/s3-request-presigner": "3.1136.0",
     "@restatedev/restate-sdk": "1.17.1",
     "@wren/books": "workspace:*",
+    "@wren/config": "workspace:*",
     "@wren/core": "workspace:*",
     "@wren/db": "workspace:*",
     "@wren/documents": "workspace:*",
     "@wren/offers": "workspace:*",
     "@wren/pipeline": "workspace:*",
+    "@wren/starling-sms": "workspace:*",
     "drizzle-orm": "0.45.2",
     "zod": "4.6.5"
   },
   "devDependencies": {
+    "@restatedev/restate-sdk-clients": "1.17.1",
+    "@restatedev/restate-sdk-testcontainers": "1.17.1",
     "@testcontainers/postgresql": "12.1.0",
     "typescript": "5.9.3",
     "vitest": "5.0.1"

@@ -46,6 +46,7 @@ import { vendorKeys } from "@wren/core/vendor-keys";
 import { meterTokens } from "@wren/core/vendors";
 import { cachedDb, clientDatabaseName, clientDatabaseUrl, createDb, type Db } from "@wren/db";
 import { s3Files } from "@wren/delivery/files";
+import { answerChecks, remindPass, smsChecks } from "@wren/delivery/sms";
 import { askNoteSop } from "@wren/learn";
 import {
   type LlmClient,
@@ -108,6 +109,7 @@ import {
   type SocialPushed,
 } from "@wren/starling-inbound/restate";
 import { contentDrafts, contentPlaybooks } from "@wren/starling-inbound/schema";
+import { formPasses } from "@wren/starling-inbound/sms";
 import { metaChecks } from "@wren/starling-meta";
 import {
   ArmedLlm,
@@ -120,7 +122,6 @@ import type { Campaign } from "@wren/starling-outbound/email";
 import { makeFiller, rosterFleet } from "@wren/starling-outbound/email";
 import { searchConsoleChecks, searchConsoleClient } from "@wren/starling-search";
 import {
-  answerChecks,
   CalcomBookings,
   type ClientSms,
   formCountriesFrom,
@@ -132,7 +133,6 @@ import {
   providerFrom,
   pusherFrom,
   SmsNotifier,
-  smsChecks,
   TelnyxProvider,
 } from "@wren/starling-sms";
 import {
@@ -630,6 +630,18 @@ export async function buildDeps(
           );
   // Learn's thumbnails and avatars, kept in the media bucket by the Monitor's pass.
   const mediaBucket = settings.mediaBucket;
+  // Site applicants: the lander's export, the countries their texts may go to, the email from William after.
+  const formSetup = {
+    site: settings.siteExportToken
+      ? { baseUrl: settings.siteBaseUrl, exportToken: settings.siteExportToken }
+      : null,
+    formCountries: formCountriesFrom(settings),
+    formMail: plainMailer(gmail, {
+      mailbox: settings.formMailFrom,
+      from: settings.formMailFrom,
+      name: settings.formMailName,
+    }),
+  };
   const sms = {
     db,
     provider: wrenSms,
@@ -641,16 +653,9 @@ export async function buildDeps(
     senderName: settings.smsSenderName,
     bookingLink: settings.smsBookingLink ?? null,
     heldNiches: settings.smsHeldNiches,
-    site: settings.siteExportToken
-      ? { baseUrl: settings.siteBaseUrl, exportToken: settings.siteExportToken }
-      : null,
-    // Site applicants: the countries their texts may go to, and the email from William after.
-    formCountries: formCountriesFrom(settings),
-    formMail: plainMailer(gmail, {
-      mailbox: settings.formMailFrom,
-      from: settings.formMailFrom,
-      name: settings.formMailName,
-    }),
+    ...formSetup,
+    forms: formSetup.site ? formPasses({ ...formSetup, site: formSetup.site }) : null,
+    remind: remindPass,
     // Calls on our calendar and, while it still takes them, cal.com.
     bookings: new AllBookings([
       new CalendarBookings(db),
@@ -709,7 +714,7 @@ export async function buildDeps(
       campaignId: plan.campaignId,
       senderName: plan.senderName ?? sms.senderName,
       bookingLink: plan.bookingLink,
-      site: null,
+      forms: null,
       bookings: bookingsOf(plan),
       pusher: null,
       ...(sms.notifier ? { notifier: namedFor(sms.notifier, plan.client.id) } : {}),

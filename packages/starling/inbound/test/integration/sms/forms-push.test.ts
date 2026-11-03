@@ -10,13 +10,20 @@ import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontain
 import { ingressOf } from "@wren/config";
 import { startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
+import { DEFAULT_HEALTH, FakeProvider, FORM_SEQUENCES } from "@wren/starling-sms";
+import { smsMessages, speedRuns } from "@wren/starling-sms/schema";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { FORM_SEQUENCES, type FormApplication } from "../../src/form.js";
-import { DEFAULT_HEALTH } from "../../src/health.js";
-import { FakeProvider } from "../../src/provider.js";
-import { makeSmsForms, type SmsFormsService } from "../../src/restate/forms.js";
-import { smsMessages, speedRuns } from "../../src/schema.js";
-import { fillCopy, fillTemplates, notes, numbers, OPEN, POLICY, TABLES } from "./fixtures.js";
+import {
+  fillCopy,
+  fillTemplates,
+  notes,
+  numbers,
+  OPEN,
+  POLICY,
+  TABLES,
+} from "../../../../channels/sms/test/integration/fixtures.js";
+import type { FormApplication } from "../../../src/sms/form.js";
+import { makeSmsForms, type SmsFormsService } from "../../../src/sms/restate/forms.js";
 
 let pg: TestPostgres;
 let env: RestateTestEnvironment;

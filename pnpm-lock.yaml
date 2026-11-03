@@ -899,6 +899,9 @@ importers:
       '@wren/books':
         specifier: workspace:*
         version: link:../books
+      '@wren/config':
+        specifier: workspace:*
+        version: link:../config
       '@wren/core':
         specifier: workspace:*
         version: link:../core
@@ -914,6 +917,9 @@ importers:
       '@wren/pipeline':
         specifier: workspace:*
         version: link:../pipeline
+      '@wren/starling-sms':
+        specifier: workspace:*
+        version: link:../starling/channels/sms
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
@@ -921,6 +927,12 @@ importers:
         specifier: 4.6.5
         version: 4.6.5
     devDependencies:
+      '@restatedev/restate-sdk-clients':
+        specifier: 1.17.1
+        version: 1.17.1
+      '@restatedev/restate-sdk-testcontainers':
+        specifier: 1.17.1
+        version: 1.17.1
       '@testcontainers/postgresql':
         specifier: 12.1.0
         version: 12.1.0
@@ -13110,7 +13122,7 @@ snapshots:
 
   '@types/set-cookie-parser@2.4.10':
     dependencies:
-      '@types/node': 26.6.4
+      '@types/node': 22.20.3
 
   '@types/ssh2-streams@0.1.13':
     dependencies:

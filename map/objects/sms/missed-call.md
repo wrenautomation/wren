@@ -18,12 +18,12 @@ One row per Telnyx call session (`uq_sms_calls_call_id`), filled as `call.initia
 ## Shape
 
 - `call_id`, `from_e164`, `to_e164`, `number_id` ([[sms/sms-number]]), `started_at`, `answered_at`, `bridged_at`, `ended_at`, `cause`, `result` (answered, missed, busy, voicemail), `known`, `contact_id` ([[sms/sms-contact]], set null), `text_back` (queued, would_send, skipped, refused), `text_back_at`, `text_back_detail`, `replied_at`, `booked_at` (`schema.ts:555`); migration 0178
-- the walk (`missed_call.steps`, `apps/worker/src/workflows.ts`): `in.calls` → `sms.text_back` (`textBack`, `packages/starling/channels/sms/src/missed.ts:106`). Entered by `callHooks` (`restate/answers.ts:29`) with `onlyLive`
+- the walk (`missed_call.steps`, `apps/worker/src/workflows.ts`): `in.calls` → `sms.text_back` (`textBack`, `packages/delivery/src/sms/missed.ts:106`). Entered by `callHooks` (`restate/answers.ts:29`) with `onlyLive`
 - rules: hidden or non-US numbers refused, opt-outs refused, once per caller per `hoursBetween` (24), a caller in a running thread skipped; copy `missed-call-new` or `missed-call-known`; sends 8:00 to 20:00 caller-local (`ASKED_WINDOW`, `policy.ts`)
 - a reply: `callReplied` (`missed.ts:209`) sets `replied_at`; with speed to lead live, `runOfCall` (`missed.ts:240`) opens a [[sms/speed-run]] (subject `call:<id>`) at `text.texted`
 - record `sms.call` (`missedCallRecord`, `records.ts:269`): views Missed, Texted back, Replied, Booked, All; `load` gives each step
 
-Citations: `packages/starling/channels/sms/src/schema.ts:555`, `packages/starling/channels/sms/src/events.ts:325`, `packages/starling/channels/sms/src/missed.ts:106`, `packages/starling/channels/sms/src/restate/answers.ts:29`, `packages/starling/channels/sms/src/records.ts:269`
+Citations: `packages/starling/channels/sms/src/schema.ts:555`, `packages/starling/channels/sms/src/events.ts:325`, `packages/delivery/src/sms/missed.ts:106`, `packages/delivery/src/sms/restate/answers.ts:29`, `packages/starling/channels/sms/src/records.ts:269`
 
 ## Connected to
 
@@ -46,5 +46,5 @@ Citations: `packages/starling/channels/sms/src/schema.ts:555`, `packages/starlin
 
 ## See
 
-- Source: `packages/starling/channels/sms/src/missed.ts`
+- Source: `packages/delivery/src/sms/missed.ts`
 - Design: `designs/2026-10-07-missed-call-and-reviews.md`

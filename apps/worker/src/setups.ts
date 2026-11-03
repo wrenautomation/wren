@@ -6,11 +6,11 @@
 
 import type { Setup } from "@wren/core/setup";
 import { CORE_SETUPS } from "@wren/core/setups";
+import { SMS_SETUPS } from "@wren/delivery/sms";
 import { PAYMENTS_SETUPS } from "@wren/payments/setups";
 import { EMAIL_SETUPS } from "@wren/starling-email";
 import { MAIL_SETUPS } from "@wren/starling-email/access/setups";
 import { SOCIAL_SETUPS } from "@wren/starling-inbound/connect";
-import { SMS_SETUPS } from "@wren/starling-sms";
 
 export const SETUPS: readonly Setup[] = [
   ...SMS_SETUPS,

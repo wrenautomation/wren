@@ -54,8 +54,6 @@ import { queueManual, type TickStats, tick } from "../deliver.js";
 import { type EnrollStats, enroll } from "../enroll.js";
 import { applyEvent } from "../events.js";
 import { textLead } from "../follow.js";
-import { type FormStats, followUpForms, type SiteSource } from "../form.js";
-import { type AfterStats, formAfter } from "../form-after.js";
 import { checkHealth, type HealthPolicy, type HealthReport } from "../health.js";
 import { type LiftStats, liftPhones } from "../lift.js";
 import { formatPhone } from "../phone.js";
@@ -71,8 +69,6 @@ import {
 } from "../push.js";
 import { SmsRefusal } from "../refusal.js";
 import { type RegistrationStats, watchRegistration } from "../registration.js";
-import { type ReminderStats, remindBookings } from "../reminders.js";
-import type { SendMail } from "../reviews.js";
 import { CONTACT_BASES, type ContactBasis, DISPOSITIONS, type Disposition } from "../schema.js";
 import { type Signer, telnyxSigner } from "../signer.js";
 import { type SmsStats, smsStats } from "../stats.js";
@@ -92,8 +88,6 @@ import {
   type ThreadFilter,
   type ThreadSummary,
 } from "../threads.js";
-import type { CallHooks } from "./answers.js";
-import { afterOptionsOf, formOptionsOf } from "./forms.js";
 
 export const SENDER_KEY = "fleet";
 export const WATCH_KEY = "daily";
@@ -121,6 +115,31 @@ export function senderDelayMs(s: TickStats, gapSeconds: number, now: Date): numb
 const RETRY_MS = 15 * 60 * 1000;
 const WATCH_EVERY_MS = 30 * 60 * 1000;
 
+/**
+ * Product passes the adapter's loops run (designs/2026-11-02-starling.md, batch 6): bodies live in
+ * inbound and delivery, the worker wires them. Stats are the pass's own, kept as it returns them.
+ */
+export interface FormPasses {
+  /** The form follow-up: each new application's first text. */
+  follow(deps: SmsDeps, now: Date, runId: string): Promise<object>;
+  /** The emails and notices a push left behind. */
+  after(deps: SmsDeps, now: Date): Promise<object>;
+}
+export type RemindPass = (
+  deps: SmsDeps,
+  bookings: Bookings,
+  now: Date,
+  runId: string,
+) => Promise<object>;
+
+/** What SmsEvents does after a call event or a reply, beside the reply trigger (delivery's `callHooks`). */
+export interface CallHooks {
+  /** A call nobody picked up: into the client's missed-call workflow, if it's live. */
+  missed(ctx: restate.Context, client: string | null, callId: number): void;
+  /** A reply: a texted-back caller's call marked replied, and on to speed to lead if live. */
+  replied(ctx: restate.Context, client: string | null, contactId: number): Promise<void>;
+}
+
 export interface SmsDeps {
   db: Db;
   provider: SmsProvider;
@@ -135,12 +154,10 @@ export interface SmsDeps {
   /** `{booking_link}` in the copy: the client's texts setting, or `WREN_SMS_BOOKING_LINK`. */
   bookingLink?: string | null;
   heldNiches: readonly string[];
-  /** The lander's export, read for form opt-ins. Null = no form follow-up. */
-  site?: SiteSource | null;
-  /** Countries a site applicant's phone may be in (`WREN_SMS_FORM_COUNTRIES`); unset = US, CA. */
-  formCountries?: readonly string[];
-  /** The email after an applicant's first text, from `WREN_FORM_MAIL_FROM`. Null = none. */
-  formMail?: SendMail | null;
+  /** Wren's site applicants' passes (inbound's `formPasses`). Null = no form follow-up. */
+  forms?: FormPasses | null;
+  /** The booking reminder pass (delivery's `remindPass`). Null = no reminders. */
+  remind?: RemindPass | null;
   /** Asked before a form applicant's first text, and listed for reminders. Null = neither. */
   bookings?: Bookings | null;
   notifier?: Notifier;
@@ -252,7 +269,7 @@ export function makeSmsEvents(
   > & {
     /** Each lead's reply to the executor's Reply triggers (`executorFire`). Unset, none fire. */
     fire?: FireTriggers;
-    /** Missed calls and texted-back callers' replies (answers.ts). Unset, calls are rows only. */
+    /** Missed calls and texted-back callers' replies (delivery's `callHooks`). Unset, calls are rows only. */
     calls?: CallHooks;
     /** Clients' saved keys: a client on its own Telnyx account signs with its public key. */
     keys?: KeyStore | null;
@@ -776,15 +793,15 @@ export function makeSmsDesk(
       /** The form follow-up now (SmsWatch runs it every 30 minutes). */
       forms: serviceHandler(
         { input: NO_INPUT, effect: "sends" },
-        async (ctx: restate.Context): Promise<FormStats> => {
-          const site = deps.site;
-          if (!site)
+        async (ctx: restate.Context): Promise<object> => {
+          const forms = deps.forms;
+          if (!forms)
             throw new restate.TerminalError("no form follow-up: WREN_SITE_EXPORT_TOKEN is unset");
           const now = await nowOf(ctx);
           return ctx.run("forms", async () => {
             const { stats } = await terminal(() =>
               recordedRun(deps.db, { command: "sms forms", argv: {} }, (run) =>
-                followUpForms(deps.db, formOptionsOf(deps, site, now, run.id)),
+                forms.follow(deps, now, run.id),
               ),
             );
             return stats;
@@ -794,9 +811,11 @@ export function makeSmsDesk(
       /** The reminder pass now (SmsWatch runs it every 30 minutes). */
       reminders: serviceHandler(
         { input: CLIENT, effect: "sends" },
-        async (ctx: restate.Context, req?: { client?: string | null }): Promise<ReminderStats> => {
+        async (ctx: restate.Context, req?: { client?: string | null }): Promise<object> => {
           const d = await deskDeps(ctx, deps, req?.client);
           const bookings = d.bookings;
+          const remind = d.remind;
+          if (!remind) throw new restate.TerminalError("no reminders: not wired on this worker");
           if (!bookings)
             throw new restate.TerminalError(
               req?.client
@@ -807,13 +826,7 @@ export function makeSmsDesk(
           return ctx.run("reminders", async () => {
             const { stats } = await terminal(() =>
               recordedRun(d.db, { command: "sms reminders", argv: {} }, (run) =>
-                remindBookings(d.db, {
-                  bookings,
-                  policy: d.policy,
-                  senderName: d.senderName,
-                  now,
-                  runId: run.id,
-                }),
+                remind(d, bookings, now, run.id),
               ),
             );
             return stats;
@@ -891,12 +904,12 @@ export function makeSmsDesk(
 export interface WatchStats {
   registration: RegistrationStats;
   /** Null = no site to read, or `formsError` says why the read failed. */
-  forms: FormStats | null;
+  forms: object | null;
   /** The emails and notices after first texts; null with no site. */
-  formsAfter: AfterStats | null;
+  formsAfter: object | null;
   formsError?: string;
   /** Null = no cal.com key, or `remindersError` says why the pass failed. */
-  reminders: ReminderStats | null;
+  reminders: object | null;
   remindersError?: string;
   classify: ClassifyStats | null;
   health: Pick<HealthReport, "paused" | "warnings" | "balanceUsd" | "fleet">;
@@ -919,33 +932,27 @@ export function makeSmsWatch(wren: SmsDeps) {
         const registration = await watchRegistration(deps.db, deps.provider, deps.campaignId, now);
         await noticeRegistered(deps.notifier, registration);
         // A site outage costs this pass its form follow-up, not its health checks.
-        let forms: FormStats | null = null;
-        let formsAfter: AfterStats | null = null;
+        let forms: object | null = null;
+        let formsAfter: object | null = null;
         let formsError: string | undefined;
-        if (deps.site) {
+        if (deps.forms) {
           try {
-            forms = await followUpForms(deps.db, formOptionsOf(deps, deps.site, now, runId));
+            forms = await deps.forms.follow(deps, now, runId);
           } catch (err) {
             formsError = err instanceof Error ? err.message : String(err);
           }
-          // The emails and notices a push left behind (form-after.ts).
+          // The emails and notices a push left behind (inbound's form-after.ts).
           try {
-            formsAfter = await formAfter(deps.db, afterOptionsOf(deps, now));
+            formsAfter = await deps.forms.after(deps, now);
           } catch (err) {
             formsError = `${formsError ? `${formsError}; ` : ""}${err instanceof Error ? err.message : String(err)}`;
           }
         }
-        let reminders: ReminderStats | null = null;
+        let reminders: object | null = null;
         let remindersError: string | undefined;
-        if (deps.bookings) {
+        if (deps.bookings && deps.remind) {
           try {
-            reminders = await remindBookings(deps.db, {
-              bookings: deps.bookings,
-              policy: deps.policy,
-              senderName: deps.senderName,
-              now,
-              runId,
-            });
+            reminders = await deps.remind(deps, deps.bookings, now, runId);
           } catch (err) {
             remindersError = err instanceof Error ? err.message : String(err);
           }
@@ -1030,13 +1037,4 @@ export function makeSmsWatch(wren: SmsDeps) {
 export type SmsSender = ReturnType<typeof makeSmsSender>;
 export type SmsEventsService = ReturnType<typeof makeSmsEvents>;
 export type SmsDeskService = ReturnType<typeof makeSmsDesk>;
-export {
-  type CallHooks,
-  callHooks,
-  MISSED_FLOW,
-  makeReviews,
-  REVIEWS_FLOW,
-} from "./answers.js";
-export { makeSmsConsole, type SmsConsoleService, smsConsoleApi } from "./console.js";
-export { FORMS_SERVICE, makeSmsForms, type SmsFormsService } from "./forms.js";
 export type SmsWatchObject = ReturnType<typeof makeSmsWatch>;

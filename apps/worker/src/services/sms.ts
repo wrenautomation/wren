@@ -2,14 +2,12 @@
  * Cold SMS: the sender, events, reviews, desk, watch, site forms and console.
  */
 
+import { callHooks, makeReviews, makeSmsConsole } from "@wren/delivery/sms";
 import { liveCampaignsOf } from "@wren/pipeline/store";
+import { makeSmsForms } from "@wren/starling-inbound/sms";
 import {
-  callHooks,
-  makeReviews,
-  makeSmsConsole,
   makeSmsDesk,
   makeSmsEvents,
-  makeSmsForms,
   makeSmsSender,
   makeSmsWatch,
 } from "@wren/starling-sms/restate";

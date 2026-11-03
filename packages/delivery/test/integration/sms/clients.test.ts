@@ -13,29 +13,36 @@ import type { PassOutcome } from "@wren/core/restate";
 import { startTestRestate } from "@wren/core/testing";
 import { cachedDb, clientDatabaseUrl, type Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
-import { eq } from "drizzle-orm";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { FakeBookings } from "../../src/bookings.js";
-import { clientSms } from "../../src/clients.js";
-import { DEFAULT_HEALTH } from "../../src/health.js";
-import { FakeProvider } from "../../src/provider.js";
 import {
   makeSmsConsole,
+  remindPass,
+  type SmsConsoleService,
+  smsConsoleApi,
+} from "@wren/delivery/sms";
+import { clientSms, DEFAULT_HEALTH, FakeBookings, FakeProvider } from "@wren/starling-sms";
+import {
   makeSmsDesk,
   makeSmsEvents,
   makeSmsSender,
   makeSmsWatch,
-  type SmsConsoleService,
   type SmsDeps,
   type SmsDeskService,
   type SmsEventsService,
   type SmsWatchObject,
-  smsConsoleApi,
   type WatchStats,
-} from "../../src/restate/index.js";
-import { smsContacts, smsEvents, smsMessages, speedRuns } from "../../src/schema.js";
-import { DAY_BEFORE } from "../../src/templates.js";
-import { fillTemplates, liveKeys, numbers, OPEN, POLICY, SEQUENCES } from "./fixtures.js";
+} from "@wren/starling-sms/restate";
+import { smsContacts, smsEvents, smsMessages, speedRuns } from "@wren/starling-sms/schema";
+import { DAY_BEFORE } from "@wren/starling-sms/templates";
+import { eq } from "drizzle-orm";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import {
+  fillTemplates,
+  liveKeys,
+  numbers,
+  OPEN,
+  POLICY,
+  SEQUENCES,
+} from "../../../../starling/channels/sms/test/integration/fixtures.js";
 
 let pg: TestPostgres;
 let env: RestateTestEnvironment;
@@ -77,6 +84,7 @@ beforeAll(async () => {
     senderName: "William",
     llm: null,
     clock: () => OPEN,
+    remind: remindPass,
     clientDb: open,
     forClient: (plan) => ({
       ...deps,

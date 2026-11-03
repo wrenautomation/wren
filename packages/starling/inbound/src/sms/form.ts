@@ -25,23 +25,31 @@
 import { linkPeople } from "@wren/core/leads";
 import { noteContacts } from "@wren/core/profiles-backfill";
 import type { Db, Queryable } from "@wren/db";
-import { and, eq, sql } from "drizzle-orm";
-import type { Bookings } from "./bookings.js";
-import { enroll } from "./enroll.js";
-import { bookedRun } from "./follow.js";
-import { phoneCountry, toPhoneE164, zoneOfPhone } from "./phone.js";
-import { nextOpen, policyFor, type SmsPolicy } from "./policy.js";
-import type { SmsProvider } from "./provider.js";
+import type { Bookings, SmsProvider } from "@wren/starling-sms";
+import {
+  bookedRun,
+  enroll,
+  FORM_FIT,
+  FORM_NOT_FIT,
+  liveTexts,
+  nextOpen,
+  phoneCountry,
+  policyFor,
+  type SmsPolicy,
+  toPhoneE164,
+  zoneOfPhone,
+} from "@wren/starling-sms";
 import {
   type FirstTouch,
+  FORM_WORKFLOW,
   PHONE_COUNTRIES,
   type SmsContact,
   type SpeedRun,
   smsContacts,
   speedRuns,
-} from "./schema.js";
-import { liveTexts } from "./template-store.js";
-import { type SmsSequence, stepTemplate } from "./templates.js";
+} from "@wren/starling-sms/schema";
+import { type SmsSequence, stepTemplate } from "@wren/starling-sms/templates";
+import { and, eq, sql } from "drizzle-orm";
 
 /** Long enough to book from the page they're on; short enough to be the first thing they hear. */
 export const FIRST_TEXT_AFTER_MS = 2 * 60 * 1000;
@@ -50,39 +58,7 @@ const FIRST_TEXT_WITHIN_MS = 4 * 86_400_000;
 const PAGE = 500;
 const MAX_PAGES = 20;
 
-/** The speed run's workflow for a site application. */
-export const FORM_WORKFLOW = "site.forms";
 export const formSubject = (id: number) => `site:applications:${id}`;
-
-const FIRST_GOES =
-  "Two minutes after they apply on the site with the texts box ticked, in texting hours on their clock; none if they booked a call by then";
-
-const FORM_FIT = "form-fit";
-const FORM_NOT_FIT = "form-not-fit";
-
-/** After the first text: the Follow-up's two texts, on day 1 and day 3. */
-const FOLLOW_STEPS = [
-  { step: 2, afterDays: 1, template: "follow-up#1" },
-  { step: 3, afterDays: 2, template: "follow-up#2" },
-] as const;
-
-/** Core sequences, registered next to every niche's (niches/src/index.ts). */
-export const FORM_SEQUENCES: readonly SmsSequence[] = [
-  {
-    name: FORM_FIT,
-    label: "Applicant who fits",
-    steps: [{ step: 1, afterDays: 0 }, ...FOLLOW_STEPS],
-    firstGoes: FIRST_GOES,
-    fields: ["first_name", "sender", "booking_link"],
-  },
-  {
-    name: FORM_NOT_FIT,
-    label: "Applicant who doesn't fit",
-    steps: [{ step: 1, afterDays: 0 }, ...FOLLOW_STEPS],
-    firstGoes: FIRST_GOES,
-    fields: ["first_name", "sender", "booking_link"],
-  },
-];
 
 /** The lander's export (`/api/export?table=applications`), bearer `WREN_SITE_EXPORT_TOKEN`. */
 export interface SiteSource {

@@ -20,6 +20,13 @@ import { gate } from "@wren/core/vendors";
 import { webhookStep, webhooksPublish } from "@wren/core/webhooks";
 import type { Db } from "@wren/db";
 import {
+  firstTextStep,
+  LINK_ORIGIN,
+  placeIdOf,
+  reviewStep,
+  textBackStep,
+} from "@wren/delivery/sms";
+import {
   clientAskedOnRead,
   judges as learnJudges,
   readStep as learnRead,
@@ -41,15 +48,7 @@ import { commentGuide } from "@wren/starling-inbound";
 import { askFollowEmail } from "@wren/starling-inbound/inbox";
 import { touchStep as reachTouchStep, sortStep } from "@wren/starling-outbound";
 import { emailTouchStep } from "@wren/starling-outbound/email";
-import {
-  clientSms,
-  firstTextStep,
-  LINK_ORIGIN,
-  placeIdOf,
-  reviewStep,
-  textBackStep,
-  touchStep,
-} from "@wren/starling-sms";
+import { clientSms, touchStep } from "@wren/starling-sms";
 import {
   MISSED_CALL,
   missedCallSettingsSchema,

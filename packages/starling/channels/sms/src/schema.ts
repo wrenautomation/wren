@@ -521,6 +521,9 @@ export type CallOutcome = DialOutcome;
  * first text and when it left, the call step, a booking. The follow-up's state is its text
  * contact's. `first_touch_at - lead_at` is the metric. One row per lead per workflow.
  */
+/** The speed run's workflow for a site application (inbound's form texts). */
+export const FORM_WORKFLOW = "site.forms";
+
 export const speedRuns = pgTable(
   "speed_runs",
   {
