@@ -1,3 +1,10 @@
+/**
+ * Outbound's own tables: where we look and what we did there. Reddit discovery (`reddit_people`,
+ * `reddit_places`, `reddit_threads`, `reddit_requirements`), others' posts we act on
+ * (`reach_posts`), the passes a reader made (`reach_passes`) and Reddit claim checks
+ * (`comment_proofs`). The accounts are acts' (`reach_accounts`); the turn stores (contacts,
+ * messages, comments) are conversations'.
+ */
 import { platformObjects } from "@wren/core/objects-schema";
 import { PASS_REASONS } from "@wren/core/pass-reasons";
 import { oneOf } from "@wren/db/columns";
