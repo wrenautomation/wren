@@ -6,8 +6,8 @@
  * `analytics` (`postAnalytics`).
  */
 
+import { PLATFORMS, type Platform } from "@wren/core/autobrowse";
 import { setWrenSettings } from "@wren/core/clients";
-import { PLATFORMS, type Platform } from "@wren/core/content";
 import {
   cued,
   date,

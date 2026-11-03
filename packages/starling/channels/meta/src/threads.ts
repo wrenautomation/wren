@@ -5,7 +5,7 @@
  * until Threads has fetched it. Replies under a post are its comments; a reply is a container
  * with `reply_to_id`. Links ride as a card (`link_attachment`) on a text post.
  */
-import type { FetchedWith, SiteClient } from "@wren/core/content";
+import type { FetchedWith, SiteClient } from "@wren/core/autobrowse";
 import {
   type AccountInsights,
   type CommentRow,

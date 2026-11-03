@@ -7,7 +7,7 @@
  * Core imports no channel package, so every platform's rule lives in this file. `RULES` is typed
  * by `Platform`, so a new platform will not compile until it has a rule.
  */
-import type { Platform } from "../content/index.js";
+import type { Platform } from "../autobrowse/index.js";
 import { OBJECT_KINDS, type ObjectKind } from "../objects-schema.js";
 
 /** A spelling no rule accepts. */

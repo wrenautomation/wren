@@ -5,9 +5,9 @@
  */
 
 import { ingressOf } from "@wren/config";
-import { sitesHost } from "@wren/core/content/box";
-import { ingressSites } from "@wren/core/content/ingress";
-import { DESK } from "@wren/core/content/restate";
+import { sitesHost } from "@wren/core/autobrowse/box";
+import { ingressSites } from "@wren/core/autobrowse/ingress";
+import { DESK } from "@wren/core/autobrowse/restate";
 import { meteredModel } from "@wren/core/metered";
 import { clientDatabaseName, clientDatabaseUrl, createDb } from "@wren/db";
 import { llmForKey } from "@wren/llm";

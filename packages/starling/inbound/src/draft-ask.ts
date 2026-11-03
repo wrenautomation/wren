@@ -10,7 +10,7 @@
 
 import { finishRun, openRun } from "@wren/core";
 import { type DraftCommand, draftEdits, draftTurns, editsFor } from "@wren/core/ask";
-import type { Platform } from "@wren/core/content";
+import type { Platform } from "@wren/core/autobrowse";
 import { recordDraft } from "@wren/core/draft-record";
 import { UUID } from "@wren/core/ids";
 import { staleRefusal } from "@wren/core/refusal";

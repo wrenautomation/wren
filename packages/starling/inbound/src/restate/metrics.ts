@@ -27,7 +27,7 @@
  * each would read it again (10-24: LinkedIn's new post page failed every read).
  */
 import * as restate from "@restatedev/restate-sdk";
-import { type CapHolds, capHeld, holdCap, liveHolds, type Platform } from "@wren/core/content";
+import { type CapHolds, capHeld, holdCap, liveHolds, type Platform } from "@wren/core/autobrowse";
 import type { Notifier } from "@wren/core/notify";
 import {
   clientOfKey,

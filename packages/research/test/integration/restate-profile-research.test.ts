@@ -7,7 +7,7 @@ import * as clients from "@restatedev/restate-sdk-clients";
 import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
 import { ingressOf } from "@wren/config";
 import { runs } from "@wren/core";
-import { SiteCallError, type SiteClient } from "@wren/core/content";
+import { SiteCallError, type SiteClient } from "@wren/core/autobrowse";
 import { decideFindings, queueProfileResearch } from "@wren/core/profile-findings";
 import { resolveProfile } from "@wren/core/profiles";
 import { profileFindings, profileLookups } from "@wren/core/profiles-schema";

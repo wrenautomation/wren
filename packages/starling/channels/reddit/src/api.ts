@@ -6,7 +6,7 @@
  * requires. Reads send a query, writes a form body (Reddit takes no JSON).
  */
 import type { FetchLike } from "@wren/core";
-import { SiteCallError, type SiteClient } from "@wren/core/content";
+import { SiteCallError, type SiteClient } from "@wren/core/autobrowse";
 import { REDDIT_SITE } from "./content.js";
 
 const REDDIT_API = "https://oauth.reddit.com";

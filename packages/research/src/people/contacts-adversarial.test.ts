@@ -4,7 +4,7 @@
  * claims a real person worked somewhere they didn't. Tests state what SHOULD
  * happen; a failing one is a bug.
  */
-import type { SiteClient } from "@wren/core/content";
+import type { SiteClient } from "@wren/core/autobrowse";
 import { describe, expect, it } from "vitest";
 import { findContacts, splitName } from "./contacts.js";
 

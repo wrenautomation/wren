@@ -5,8 +5,8 @@
  * InboxDesk's gate said yes, and each refused again here while the client's sends are off.
  */
 import * as restate from "@restatedev/restate-sdk";
+import type { SiteClient } from "@wren/core/autobrowse";
 import { findClient, sendsOn } from "@wren/core/clients";
-import type { SiteClient } from "@wren/core/content";
 import { noRawKeys } from "@wren/core/key-refs";
 import { clientKey, errorText, serviceHandler } from "@wren/core/restate";
 import { sendAcross } from "@wren/core/send-verdict";

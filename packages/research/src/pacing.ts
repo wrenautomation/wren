@@ -3,7 +3,7 @@
  * a long one is a daily cap (stop asking until then). People and company
  * research share one rule, so a cap means the same thing everywhere.
  */
-import { SiteCallError, type SiteClient } from "@wren/core/content";
+import { SiteCallError, type SiteClient } from "@wren/core/autobrowse";
 
 /**
  * A 429 asking for this long or less is pacing: wait and ask again. Longer is

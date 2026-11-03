@@ -4,7 +4,7 @@
  * write or a pace refusal goes wrong. Tests state what SHOULD happen.
  */
 import { people } from "@wren/core";
-import { SiteCallError, type SiteClient } from "@wren/core/content";
+import { SiteCallError, type SiteClient } from "@wren/core/autobrowse";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { documents, findings, personLookups } from "@wren/research/schema";
 import { eq, sql } from "drizzle-orm";

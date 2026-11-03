@@ -3,7 +3,7 @@
  * error ends a pass. A 402 (every Exa key spent) and a 429 stop it; neither is retried or paid.
  */
 import { IDENTITY_KEY } from "@wren/core";
-import { SiteCallError, type SiteClient } from "@wren/core/content";
+import { SiteCallError, type SiteClient } from "@wren/core/autobrowse";
 import type { Queryable } from "@wren/db";
 import { describe, expect, it } from "vitest";
 import {

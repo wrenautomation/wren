@@ -15,7 +15,7 @@ import {
   registrableDomain,
   runImport,
 } from "@wren/core";
-import { SiteCallError, type SiteClient } from "@wren/core/content";
+import { SiteCallError, type SiteClient } from "@wren/core/autobrowse";
 import { atomic, type Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
 import { type Bucket, bucketRoom, refusedBy, retryAfter } from "../pacing.js";

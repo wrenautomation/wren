@@ -4,7 +4,7 @@
  * The look is the Studio board's (artifact 5kYdr7PN, "Studio · this week" and "Studio on the
  * phone"): leaf cards raised on the canvas, a 5-wide grid on a desk, a row that scrolls on a phone.
  */
-import type { Platform } from "@wren/core/content";
+import type { Platform } from "@wren/core/autobrowse";
 import type { MetroLine } from "@wren/pipeline/metro";
 import { cx, Icon, LoadFailed, Loading } from "@wren/ui";
 import type { ApiError } from "../../api.js";

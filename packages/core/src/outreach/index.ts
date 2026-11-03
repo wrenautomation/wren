@@ -10,7 +10,7 @@
  * decides whether to make it (policy.ts in `@wren/starling-outbound`) and the worker's
  * own caps ledger refuses past them with a 429 either way.
  */
-import type { FetchedWith } from "../content/index.js";
+import type { FetchedWith } from "../autobrowse/index.js";
 
 type ReachPlatform = "reddit" | "linkedin";
 

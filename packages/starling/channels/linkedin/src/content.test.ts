@@ -1,4 +1,4 @@
-import { SiteCallError, type SiteClient } from "@wren/core/content";
+import { SiteCallError, type SiteClient } from "@wren/core/autobrowse";
 import { slidesKey } from "@wren/starling-core/slides";
 import { describe, expect, it } from "vitest";
 import { linkedinContent } from "./content.js";

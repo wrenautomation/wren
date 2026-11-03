@@ -1,5 +1,5 @@
 /** The LinkedIn activity collector: synthetic people, a fake SiteClient answering autobrowse's shape. */
-import { SiteCallError, type SiteClient } from "@wren/core/content";
+import { SiteCallError, type SiteClient } from "@wren/core/autobrowse";
 import { describe, expect, it } from "vitest";
 import { signalRefusal } from "../findings.js";
 import type { SignalDeps } from "./index.js";

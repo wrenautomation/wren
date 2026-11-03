@@ -12,7 +12,7 @@
  * frozen.
  */
 import { createHash } from "node:crypto";
-import type { SiteClient } from "@wren/core/content";
+import type { SiteClient } from "@wren/core/autobrowse";
 import { recordCall } from "@wren/core/decide";
 import { STUDY_SLUG } from "@wren/core/logic";
 import type { Queryable } from "@wren/db";

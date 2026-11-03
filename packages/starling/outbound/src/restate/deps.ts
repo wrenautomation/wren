@@ -4,8 +4,8 @@
  * (`channelsFor`), the wake to the watch, and a site's refusal that never retries.
  */
 import * as restate from "@restatedev/restate-sdk";
-import type { Platform as ContentPlatform, SiteClient } from "@wren/core/content";
-import { isRefusal } from "@wren/core/content/restate";
+import type { Platform as ContentPlatform, SiteClient } from "@wren/core/autobrowse";
+import { isRefusal } from "@wren/core/autobrowse/restate";
 import type { FireTriggers } from "@wren/core/executor";
 import type { KeyStore } from "@wren/core/keys";
 import { meteredModel, meteredSites } from "@wren/core/metered";

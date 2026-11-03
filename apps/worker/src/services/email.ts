@@ -4,9 +4,9 @@
  * report, and the Email console.
  */
 
+import { sitesHost } from "@wren/core/autobrowse/box";
+import { restateSites } from "@wren/core/autobrowse/restate";
 import type { Calendar } from "@wren/core/calendar";
-import { sitesHost } from "@wren/core/content/box";
-import { restateSites } from "@wren/core/content/restate";
 import { meteredModel } from "@wren/core/metered";
 import { clientKey, clientOfKey, LIMITS } from "@wren/core/restate";
 import { llmForKey } from "@wren/llm";

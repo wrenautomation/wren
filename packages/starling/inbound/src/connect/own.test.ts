@@ -2,7 +2,7 @@
 // plain words, and the Check against a stand-in autobrowse. Synthetic rows; no network, no DB.
 
 import { CONTENT_CHANNELS, ENV_KEYS } from "@wren/config";
-import type { Platform } from "@wren/core/content";
+import type { Platform } from "@wren/core/autobrowse";
 import type { Db } from "@wren/db";
 import { describe, expect, it } from "vitest";
 import type { SocialAccessApi } from "./access.js";

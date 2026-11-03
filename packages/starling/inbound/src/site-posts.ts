@@ -4,7 +4,7 @@
  * has is first matched by its words to a draft whose send was lost (`publishing`, `failed`, or
  * marked posted with no id): that draft is stamped. The rest become a `site` idea and its draft.
  */
-import type { Platform } from "@wren/core/content";
+import type { Platform } from "@wren/core/autobrowse";
 import { CanonError, canonRef } from "@wren/core/objects";
 import { atomic, type Queryable } from "@wren/db";
 import type { PublishedRow } from "@wren/starling-core";

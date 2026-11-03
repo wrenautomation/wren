@@ -1,5 +1,5 @@
 /** A vendor read that never ran: the gate said no, or the client's key isn't there. */
-import { SiteCallError } from "./content/autobrowse.js";
+import { SiteCallError } from "./autobrowse/autobrowse.js";
 
 /** The gate said no: nothing was read. `why` is the gate's words ("No daily share set"). */
 export class VendorStop extends SiteCallError {

@@ -4,7 +4,7 @@
  * daily credit; a cap parks the rest until it lifts. One search per company a month.
  */
 import { type Feed, NO_FEED } from "@wren/core";
-import type { SiteClient } from "@wren/core/content";
+import type { SiteClient } from "@wren/core/autobrowse";
 import type { Queryable } from "@wren/db";
 import { type EventsResult, recordCompanyEvents, searchEvents } from "@wren/research/companies";
 import { googleLeft } from "@wren/research/enrichment";

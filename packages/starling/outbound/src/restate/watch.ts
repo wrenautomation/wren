@@ -8,8 +8,8 @@
  * for threads waiting on William and accepted invites (drafts.ts), at most 30 a day.
  */
 import type * as restate from "@restatedev/restate-sdk";
+import { type CapHolds, capHeld, capWaitMs, holdCap, liveHolds } from "@wren/core/autobrowse";
 import { sendsOn } from "@wren/core/clients";
-import { type CapHolds, capHeld, capWaitMs, holdCap, liveHolds } from "@wren/core/content";
 import { executorEmit, replyFired } from "@wren/core/executor";
 import { isVendorStop } from "@wren/core/metered";
 import type { OutreachChannel } from "@wren/core/outreach";

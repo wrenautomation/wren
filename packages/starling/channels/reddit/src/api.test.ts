@@ -1,4 +1,4 @@
-import { SiteCallError } from "@wren/core/content";
+import { SiteCallError } from "@wren/core/autobrowse";
 import { describe, expect, it } from "vitest";
 import { REDDIT_TOKEN_URL, redditApi } from "./api.js";
 

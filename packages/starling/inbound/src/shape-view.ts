@@ -3,7 +3,7 @@
  * its fields with their UI, its words, and a short-lived link for each stored file (thumbnail,
  * cover, the video). Published, it is what went out, with what the platform refused after.
  */
-import type { Platform } from "@wren/core/content";
+import type { Platform } from "@wren/core/autobrowse";
 import { partFlags } from "@wren/core/grounded";
 import type { Queryable } from "@wren/db";
 import { type FieldView, fieldViews, kindOf, missingFields } from "@wren/starling-core/shapes";

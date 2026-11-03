@@ -3,8 +3,8 @@
  * client's ad account, and is a Page there that Wren may run ads for? Each is one free read of
  * the account through autobrowse's `meta` site; the Pages come by field expansion.
  */
-import type { SiteClient } from "@wren/core/content";
-import { isRefusal } from "@wren/core/content/restate";
+import type { SiteClient } from "@wren/core/autobrowse";
+import { isRefusal } from "@wren/core/autobrowse/restate";
 import type { SetupCheck } from "@wren/core/setup";
 import { type AdAccount, accountIdOf } from "./ads.js";
 

@@ -7,8 +7,8 @@
  * spend gate still asks the person for every ACTIVE write.
  */
 import * as restate from "@restatedev/restate-sdk";
+import type { SiteClient } from "@wren/core/autobrowse";
 import { settingsFor } from "@wren/core/clients";
-import type { SiteClient } from "@wren/core/content";
 import { NO_INPUT, serviceHandler } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import type { MediaHost } from "@wren/starling-core";

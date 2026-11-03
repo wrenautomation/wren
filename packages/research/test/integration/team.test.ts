@@ -5,7 +5,7 @@
  * marker row, a searched firm never picked again, an Exa cap parking it, and
  * the bucket counting only searches spent.
  */
-import { SiteCallError, type SiteClient } from "@wren/core/content";
+import { SiteCallError, type SiteClient } from "@wren/core/autobrowse";
 import { people } from "@wren/core/schema";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { eq } from "drizzle-orm";

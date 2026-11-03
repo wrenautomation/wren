@@ -6,7 +6,7 @@
  * answer is journaled; the token is read inside the step and never leaves this file.
  */
 import type { FetchLike } from "@wren/core";
-import { SiteCallError, type SiteClient } from "@wren/core/content";
+import { SiteCallError, type SiteClient } from "@wren/core/autobrowse";
 import { PortalRefusal } from "@wren/core/refusal";
 import {
   GBP_API,

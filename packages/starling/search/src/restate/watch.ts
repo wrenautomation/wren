@@ -19,8 +19,8 @@
 
 import * as restate from "@restatedev/restate-sdk";
 import { recordedRun } from "@wren/core";
+import { SiteCallError, type SiteClient } from "@wren/core/autobrowse";
 import { findClient } from "@wren/core/clients";
-import { SiteCallError, type SiteClient } from "@wren/core/content";
 import { writeFlagDays } from "@wren/core/experiment-store";
 import { type EdgePush, pushEdge } from "@wren/core/flag-store";
 import type { Notifier } from "@wren/core/notify";

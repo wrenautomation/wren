@@ -5,7 +5,7 @@
  * `CREATOR_EVERY_MS`. TikTok needs yt-dlp and a home IP, so the Mac's reader lists it
  * (`pullTikTok`, scribe's `flatPlaylist`). A creator's first read keeps what it had posted as seen, like a feed's.
  */
-import type { SiteClient } from "@wren/core/content";
+import type { SiteClient } from "@wren/core/autobrowse";
 import type { Db } from "@wren/db";
 import { pgSafe } from "@wren/db/columns";
 import { flatPlaylist } from "@wrenautomation/read/video";

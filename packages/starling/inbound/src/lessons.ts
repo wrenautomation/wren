@@ -6,7 +6,7 @@
  * only; the rows already exist (notes on redrafts, metrics snapshots). The
  * week's digest (`analytics/digest.ts`) adds what moved and what to make next.
  */
-import type { Platform } from "@wren/core/content";
+import type { Platform } from "@wren/core/autobrowse";
 import type { Queryable } from "@wren/db";
 import { and, desc, eq, isNotNull } from "drizzle-orm";
 import { latestDigest } from "./analytics/digest.js";

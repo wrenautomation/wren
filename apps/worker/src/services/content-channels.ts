@@ -4,10 +4,10 @@
  */
 
 import type { Settings } from "@wren/config";
+import { asAccount, type Platform, type SiteClient } from "@wren/core/autobrowse";
+import { sitesHost } from "@wren/core/autobrowse/box";
+import { DESK, journaledSites, restateSites } from "@wren/core/autobrowse/restate";
 import { findClient, sendsOn } from "@wren/core/clients";
-import { asAccount, type Platform, type SiteClient } from "@wren/core/content";
-import { sitesHost } from "@wren/core/content/box";
-import { DESK, journaledSites, restateSites } from "@wren/core/content/restate";
 import type { KeyStore } from "@wren/core/keys";
 import { meteredSites } from "@wren/core/metered";
 import { dbSendJournal } from "@wren/core/send-journal";

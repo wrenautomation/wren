@@ -12,7 +12,7 @@ import { homedir } from "node:os";
 import { basename, join, resolve } from "node:path";
 import type { Settings } from "@wren/config";
 import { WREN } from "@wren/core/access";
-import { PLATFORMS, type Platform } from "@wren/core/content";
+import { PLATFORMS, type Platform } from "@wren/core/autobrowse";
 import type { Db } from "@wren/db";
 import {
   breakdownItem,

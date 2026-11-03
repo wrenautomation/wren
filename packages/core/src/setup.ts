@@ -8,9 +8,9 @@
 import { atomic, type Db, type Queryable } from "@wren/db";
 import { pgSafe } from "@wren/db/columns";
 import { and, asc, eq, inArray, isNull, lte, ne, sql } from "drizzle-orm";
+import { DO_OWNER, type DoRequest } from "./autobrowse/do.js";
 import { clients, type SetupMode } from "./clients/schema.js";
 import { ACCOUNT_SITES, ACCOUNTS, type Component, type Port } from "./components.js";
-import { DO_OWNER, type DoRequest } from "./content/do.js";
 import type { DnsType, Resolver } from "./doh.js";
 import { type ExecutorEvent, type Step, waitMs } from "./executor.js";
 import type { Notifier } from "./notify.js";

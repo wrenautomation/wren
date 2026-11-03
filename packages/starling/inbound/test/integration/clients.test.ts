@@ -8,8 +8,8 @@
 import * as clients from "@restatedev/restate-sdk-clients";
 import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
 import { ingressOf } from "@wren/config";
+import type { Platform } from "@wren/core/autobrowse";
 import { addClient, findClient, sendsOn, updateClient } from "@wren/core/clients";
-import type { Platform } from "@wren/core/content";
 import type { PassOutcome } from "@wren/core/restate";
 import { executorRecorder, startTestRestate } from "@wren/core/testing";
 import { vendorUsage } from "@wren/core/vendor-schema";

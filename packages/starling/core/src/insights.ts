@@ -5,8 +5,8 @@
  * scope never costs the numbers that came back.
  */
 
-import type { FetchedWith } from "@wren/core/content";
-import { SiteCallError } from "@wren/core/content";
+import type { FetchedWith } from "@wren/core/autobrowse";
+import { SiteCallError } from "@wren/core/autobrowse";
 
 /**
  * Why a number is missing: a consent away, an application only William can make, not built,

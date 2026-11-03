@@ -5,7 +5,7 @@
  * parking the stage, a failed read stopping the run, and Google's daily share.
  */
 import { openRun } from "@wren/core";
-import { SiteCallError, type SiteClient } from "@wren/core/content";
+import { SiteCallError, type SiteClient } from "@wren/core/autobrowse";
 import { people } from "@wren/core/schema";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { sql } from "drizzle-orm";

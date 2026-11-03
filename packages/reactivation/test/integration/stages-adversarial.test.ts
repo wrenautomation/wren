@@ -4,7 +4,7 @@
  * happen per the doc comments; failing ones are marked BUG.
  */
 import { classifyRow } from "@wren/core";
-import { SiteCallError, type SiteClient } from "@wren/core/content";
+import { SiteCallError, type SiteClient } from "@wren/core/autobrowse";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
 import { FetchError, type Fetcher } from "@wrenautomation/read/fetch";

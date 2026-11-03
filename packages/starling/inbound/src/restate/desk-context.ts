@@ -2,8 +2,8 @@
 import * as restate from "@restatedev/restate-sdk";
 import { finishRun, openRun } from "@wren/core";
 import type { byOf } from "@wren/core/ask";
-import type { Platform } from "@wren/core/content";
-import { PLATFORMS } from "@wren/core/content";
+import type { Platform } from "@wren/core/autobrowse";
+import { PLATFORMS } from "@wren/core/autobrowse";
 import type { KeyStore } from "@wren/core/keys";
 import { isVendorStop, meteredModel } from "@wren/core/metered";
 import { PortalRefusal, terminalOf } from "@wren/core/portal";

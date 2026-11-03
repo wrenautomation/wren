@@ -3,7 +3,7 @@
  * is the worst outcome (Exa merges look-alike firms); a miss is fine. Tests
  * here state what SHOULD happen. A failing one is a bug, not a flaky test.
  */
-import { SiteCallError, type SiteClient } from "@wren/core/content";
+import { SiteCallError, type SiteClient } from "@wren/core/autobrowse";
 import { describe, expect, it } from "vitest";
 import { firmSite, lookUpCompany, type ProfileSubject } from "./profile.js";
 

@@ -7,9 +7,9 @@
  * Restate keeps retrying.
  */
 import { ingressOf, type Settings } from "@wren/config";
-import type { SiteClient } from "@wren/core/content";
-import { ingressSites as viaIngress } from "@wren/core/content/ingress";
-import { DESK, SITES } from "@wren/core/content/restate";
+import type { SiteClient } from "@wren/core/autobrowse";
+import { ingressSites as viaIngress } from "@wren/core/autobrowse/ingress";
+import { DESK, SITES } from "@wren/core/autobrowse/restate";
 
 export function ingressSites(
   settings: Settings,
@@ -23,7 +23,7 @@ export function ingressSites(
     service,
     ...(timeoutMs ? { timeoutMs } : {}),
     ...(id
-      ? { wake: () => import("@wren/core/content/box").then(({ ec2Wake }) => ec2Wake(id)()) }
+      ? { wake: () => import("@wren/core/autobrowse/box").then(({ ec2Wake }) => ec2Wake(id)()) }
       : {}),
   });
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { SiteCallError } from "./content/autobrowse.js";
-import { isRefusal } from "./content/restate.js";
+import { SiteCallError } from "./autobrowse/autobrowse.js";
+import { isRefusal } from "./autobrowse/restate.js";
 import { sendOnce } from "./maybe-sent.js";
 import {
   currentSendKey,

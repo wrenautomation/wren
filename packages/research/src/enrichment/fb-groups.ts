@@ -11,7 +11,7 @@
  * $0: a browser on the Mac.
  */
 import { extractDomain, isPlatformDomain, registrableDomain } from "@wren/core";
-import type { SiteClient } from "@wren/core/content";
+import type { SiteClient } from "@wren/core/autobrowse";
 import { resolveObject, resolveObjects } from "@wren/core/objects";
 import { atomic, type Queryable } from "@wren/db";
 import { pgSafe } from "@wren/db/columns";

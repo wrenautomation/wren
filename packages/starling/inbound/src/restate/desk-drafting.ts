@@ -2,8 +2,8 @@
 import * as restate from "@restatedev/restate-sdk";
 import { finishRun, openRun } from "@wren/core";
 import { byOf } from "@wren/core/ask";
-import type { Platform } from "@wren/core/content";
-import { PLATFORMS } from "@wren/core/content";
+import type { Platform } from "@wren/core/autobrowse";
+import { PLATFORMS } from "@wren/core/autobrowse";
 import { clientOfKey, exclusiveHandler, sharedHandler } from "@wren/core/restate";
 import type { Media } from "@wren/starling-core";
 import { z } from "zod";

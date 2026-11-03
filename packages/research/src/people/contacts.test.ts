@@ -1,5 +1,5 @@
 /** People who hire at a firm, from a people search's profiles. */
-import type { SiteClient } from "@wren/core/content";
+import type { SiteClient } from "@wren/core/autobrowse";
 import { describe, expect, it } from "vitest";
 import { findContacts, splitName } from "./contacts.js";
 

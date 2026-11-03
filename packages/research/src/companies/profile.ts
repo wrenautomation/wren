@@ -13,8 +13,8 @@
  * trail; `recordCompanyLookup` writes.
  */
 import { extractDomain, registrableDomain } from "@wren/core";
+import type { SiteClient } from "@wren/core/autobrowse";
 import { type Check, counted } from "@wren/core/checks";
-import type { SiteClient } from "@wren/core/content";
 import { companies } from "@wren/core/schema";
 import type { Queryable } from "@wren/db";
 import { eq, sql } from "drizzle-orm";

@@ -5,7 +5,7 @@
  * stays on the draft row beside the audit envelope.
  * Design: designs/2026-09-22-content-loop.md.
  */
-import { PLATFORMS, type Platform } from "@wren/core/content";
+import { PLATFORMS, type Platform } from "@wren/core/autobrowse";
 import { platformObjects } from "@wren/core/objects-schema";
 import { baseColumns, nonNegative, oneOf } from "@wren/db/columns";
 import type { SopScope } from "@wren/learn";
@@ -131,7 +131,7 @@ export const contentDrafts = pgTable(
     /** YouTube's title, TikTok's; null where the platform has none. */
     title: varchar("title", { length: 2000 }),
     media: jsonb("media").$type<Media>(),
-    /** The platform's post shape past text and file (`@wren/core/content/shapes`): checked on save and publish. */
+    /** The platform's post shape past text and file (`@wren/starling-core/shapes`): checked on save and publish. */
     extra: jsonb("extra").$type<Record<string, unknown>>().notNull().default({}),
     status: varchar("status", { length: 16, enum: DRAFT_STATUSES }).notNull().default("draft"),
     /** A person changed the text after the model wrote it. */

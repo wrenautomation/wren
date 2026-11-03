@@ -25,7 +25,7 @@
  * questions, never Wren's video chapters. Drafts wait in its To approve.
  */
 import * as restate from "@restatedev/restate-sdk";
-import { PLATFORMS, type Platform } from "@wren/core/content";
+import { PLATFORMS, type Platform } from "@wren/core/autobrowse";
 import type { Notifier } from "@wren/core/notify";
 import {
   CallTimeout,

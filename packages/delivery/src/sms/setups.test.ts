@@ -1,4 +1,4 @@
-import { SiteCallError, type SiteClient } from "@wren/core/content";
+import { SiteCallError, type SiteClient } from "@wren/core/autobrowse";
 import { setupWorkflow } from "@wren/core/setup";
 import type { AccountRow } from "@wren/core/setup-schema";
 import { checkWorkflows } from "@wren/core/workflows";

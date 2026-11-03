@@ -4,7 +4,7 @@
  * them (one every 6 to 9 seconds, 400 a day).
  */
 
-import { capWaitMs, type SiteClient } from "@wren/core/content";
+import { capWaitMs, type SiteClient } from "@wren/core/autobrowse";
 import type { Profile } from "@wren/core/outreach";
 import { type Listing, REDDIT_SITE, redditOutreach, type Thing } from "@wren/starling-reddit";
 

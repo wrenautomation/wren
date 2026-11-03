@@ -3,7 +3,7 @@
  * is one text with a line of `---` between posts. Where a platform needs a title (Reddit) and none
  * is given, the first line is the title and the rest the body. Pure: the composer previews with it.
  */
-import type { Platform } from "@wren/core/content";
+import type { Platform } from "@wren/core/autobrowse";
 import type { Media } from "@wren/starling-core";
 import { threadPosts, threadText, threadUnfit } from "@wren/starling-core/thread";
 import { PLATFORM_SPECS, unfitReason, wordsUnfit } from "./platforms.js";

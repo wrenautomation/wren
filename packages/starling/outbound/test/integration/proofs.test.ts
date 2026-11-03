@@ -8,7 +8,7 @@
 import * as clients from "@restatedev/restate-sdk-clients";
 import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
 import { ingressOf } from "@wren/config";
-import { SiteCallError, type SiteClient } from "@wren/core/content";
+import { SiteCallError, type SiteClient } from "@wren/core/autobrowse";
 import type { Notifier } from "@wren/core/notify";
 import { resolveObjects } from "@wren/core/objects";
 import { startTestRestate } from "@wren/core/testing";

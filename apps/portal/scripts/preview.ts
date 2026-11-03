@@ -32,10 +32,10 @@ import { CONNECTORS_APPS, CONNECTORS_ROUTES } from "@wren/connectors/console-rou
 import { type Need, type RouteApps, routeAt } from "@wren/core/access";
 import { accountsApi } from "@wren/core/accounts/console";
 import { ACCOUNTS_CONSOLE_APPS, ACCOUNTS_CONSOLE_ROUTES } from "@wren/core/accounts/console-routes";
+import type { SiteClient } from "@wren/core/autobrowse";
 import { clientUrl } from "@wren/core/clients";
 import { consoleApi } from "@wren/core/console";
 import { CONSOLE_APPS, CONSOLE_ROUTES } from "@wren/core/console-routes";
-import type { SiteClient } from "@wren/core/content";
 import { KEY_STAGE_PATH, REF_ROUTES, rawKeyAt } from "@wren/core/key-refs";
 import { intakeKey, pgKeyStore, throwawayRing } from "@wren/core/keys";
 import {

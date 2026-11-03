@@ -9,8 +9,8 @@
 import * as restate from "@restatedev/restate-sdk";
 import type { Db } from "@wren/db";
 import { z } from "zod";
-import { DoFailed, restateDo } from "./content/do.js";
-import type { Wake } from "./content/restate.js";
+import { DoFailed, restateDo } from "./autobrowse/do.js";
+import type { Wake } from "./autobrowse/restate.js";
 import { executorEmit } from "./executor.js";
 import { serviceHandler } from "./restate/form.js";
 import { type AgentAnswer, type AgentJob, accountRow, agentDone, type Setup } from "./setup.js";

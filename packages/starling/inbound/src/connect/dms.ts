@@ -6,7 +6,7 @@
  */
 
 import { keepSentEdit } from "@wren/core/ask";
-import type { SiteClient } from "@wren/core/content";
+import type { SiteClient } from "@wren/core/autobrowse";
 import { recordDraft } from "@wren/core/draft-record";
 import { recordTouch } from "@wren/core/touches";
 import type { Queryable } from "@wren/db";

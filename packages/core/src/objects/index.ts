@@ -9,7 +9,7 @@
 import { atomic, type Queryable, setAuditActor, type Tx } from "@wren/db";
 import { pgSafe } from "@wren/db/columns";
 import { and, asc, eq, sql } from "drizzle-orm";
-import type { Platform } from "../content/index.js";
+import type { Platform } from "../autobrowse/index.js";
 import {
   OBJECT_KINDS,
   type ObjectKind,

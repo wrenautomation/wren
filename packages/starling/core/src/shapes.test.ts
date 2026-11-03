@@ -1,4 +1,4 @@
-import { PLATFORMS } from "@wren/core/content";
+import { PLATFORMS } from "@wren/core/autobrowse";
 import { describe, expect, it } from "vitest";
 import {
   fieldsOf,

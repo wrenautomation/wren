@@ -6,7 +6,7 @@
  * Design: designs/2026-09-21-content-channels.md.
  */
 
-import type { FetchedWith, Platform, SiteClient } from "@wren/core/content";
+import type { FetchedWith, Platform, SiteClient } from "@wren/core/autobrowse";
 import type { AccountInsights, Insights, InsightsQuery, ReportDays } from "./insights.js";
 
 export * from "./insights.js";

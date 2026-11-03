@@ -9,7 +9,7 @@
  * Audience = `users/me` followers. A video post's insights also ask for its media's plays and
  * playback quartiles, which sends that one read to X's API (designs/2026-10-07-content-analytics.md).
  */
-import { type FetchedWith, SiteCallError, type SiteClient } from "@wren/core/content";
+import { type FetchedWith, SiteCallError, type SiteClient } from "@wren/core/autobrowse";
 import {
   type Audience,
   type CommentRow,

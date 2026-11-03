@@ -5,7 +5,7 @@
  * browser legs on the Mac's desk: Google bot-checks the box's IP. A keyword
  * is asked at most once a day per engine; the least recently asked go first.
  */
-import type { SiteClient } from "@wren/core/content";
+import type { SiteClient } from "@wren/core/autobrowse";
 import type { Db } from "@wren/db";
 import { and, eq, isNull, sql } from "drizzle-orm";
 import { addKeywords } from "./keywords.js";

@@ -9,7 +9,7 @@
  * One read is one autobrowse call, `meta GET /instagram/{username}` (Graph `business_discovery`
  * on Wren's Facebook Login token): $0, and autobrowse caps it at 300 a day.
  */
-import type { SiteClient } from "@wren/core/content";
+import type { SiteClient } from "@wren/core/autobrowse";
 import type { Queryable } from "@wren/db";
 import { type SQL, sql } from "drizzle-orm";
 import { type CompanyFindingDraft, keepFinding } from "../findings.js";

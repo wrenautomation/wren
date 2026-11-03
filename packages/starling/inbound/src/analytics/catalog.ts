@@ -4,7 +4,7 @@
  * The design doc's tables are this list; a test keeps its counts in step. A metric's state on a
  * page is the platform's last answer (`metric_sources`) when there is one, this list's when not.
  */
-import type { Platform } from "@wren/core/content";
+import type { Platform } from "@wren/core/autobrowse";
 import { type GapState, METRICS as M } from "@wren/starling-core";
 import type { FunnelStage } from "../schema.js";
 

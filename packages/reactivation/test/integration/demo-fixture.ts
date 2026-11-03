@@ -2,7 +2,7 @@
  * The demo seed on fakes: the agency's site names two customers and search
  * finds three people who hire there (Cara has moved on).
  */
-import type { SiteClient } from "@wren/core/content";
+import type { SiteClient } from "@wren/core/autobrowse";
 import { FakeLlm } from "@wren/llm";
 import type { Fetcher } from "@wrenautomation/read/fetch";
 

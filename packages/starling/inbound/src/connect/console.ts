@@ -6,8 +6,8 @@
  */
 import * as restate from "@restatedev/restate-sdk";
 import { WREN } from "@wren/core/access";
-import type { Platform, SiteClient } from "@wren/core/content";
-import type { SitesHost } from "@wren/core/content/restate";
+import type { Platform, SiteClient } from "@wren/core/autobrowse";
+import type { SitesHost } from "@wren/core/autobrowse/restate";
 import { executorEmit } from "@wren/core/executor";
 import { noRawKeys } from "@wren/core/key-refs";
 import {

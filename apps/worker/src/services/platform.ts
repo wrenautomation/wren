@@ -4,10 +4,10 @@
  */
 import { BOOKS_CONSOLE_VIEWS } from "@wren/books";
 import { makeAuditSealer } from "@wren/core/audit";
+import { sitesHost } from "@wren/core/autobrowse/box";
+import { makeTokenRenewal } from "@wren/core/autobrowse/renewal";
 import { cacheFrom } from "@wren/core/cache";
 import { makeConsolePortal, restateAdmin, restateAdminGet } from "@wren/core/console";
-import { sitesHost } from "@wren/core/content/box";
-import { makeTokenRenewal } from "@wren/core/content/renewal";
 import { makeDeadLetters, restateAdminPatch } from "@wren/core/dead-letters";
 import { backendsFromEnv, leadFitSource, makeDecide } from "@wren/core/decide";
 import { makeLoopWatch } from "@wren/core/loop-watch";

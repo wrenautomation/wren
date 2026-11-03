@@ -1,4 +1,4 @@
-export * from "./content/index.js";
+export * from "./autobrowse/index.js";
 export * from "./doh.js";
 export * from "./email-patterns.js";
 export * from "./emails.js";

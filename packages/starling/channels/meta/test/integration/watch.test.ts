@@ -9,7 +9,7 @@ import * as restate from "@restatedev/restate-sdk";
 import * as clients from "@restatedev/restate-sdk-clients";
 import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
 import { ingressOf } from "@wren/config";
-import type { SiteClient } from "@wren/core/content";
+import type { SiteClient } from "@wren/core/autobrowse";
 import { serveRecords } from "@wren/core/records/serve";
 import type { PassOutcome } from "@wren/core/restate";
 import { startTestRestate } from "@wren/core/testing";

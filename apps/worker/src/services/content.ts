@@ -4,9 +4,9 @@
  * the site chat.
  */
 import type { ObjectContext } from "@restatedev/restate-sdk";
+import { asAccount, type Platform } from "@wren/core/autobrowse";
+import { DESK, restateSites } from "@wren/core/autobrowse/restate";
 import { restateAdmin } from "@wren/core/console";
-import { asAccount, type Platform } from "@wren/core/content";
-import { DESK, restateSites } from "@wren/core/content/restate";
 import { pausedUnder } from "@wren/core/dead-letters";
 import { wrenFacts } from "@wren/core/facts";
 import { githubRepo } from "@wren/core/github";

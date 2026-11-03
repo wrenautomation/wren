@@ -8,7 +8,7 @@
  * inbox it couldn't read shows on the loop.
  */
 import type * as restate from "@restatedev/restate-sdk";
-import type { SiteClient } from "@wren/core/content";
+import type { SiteClient } from "@wren/core/autobrowse";
 import { executorEmit } from "@wren/core/executor";
 import type { Mailbox } from "@wren/core/mailbox";
 import type { Notifier } from "@wren/core/notify";

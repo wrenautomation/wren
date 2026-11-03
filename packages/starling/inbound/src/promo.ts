@@ -9,11 +9,11 @@
  * Instagram can't post words alone, so its promo rides on the video's vertical cut or first Short.
  *
  * Past the one post per platform, a promo takes two more pieces: an X thread (3 to 7 posts in one
- * draft, `@wren/core/content/thread`) and a carousel (one slide set as a LinkedIn PDF and an
+ * draft, `@wren/starling-core/thread`) and a carousel (one slide set as a LinkedIn PDF and an
  * Instagram carousel, `./carousel.ts`).
  */
 import { randomUUID } from "node:crypto";
-import type { Platform } from "@wren/core/content";
+import type { Platform } from "@wren/core/autobrowse";
 import { droppedWhy, guardParts, recordGuard } from "@wren/core/grounded";
 import type { Queryable } from "@wren/db";
 import { completeAndParse, type LlmClient } from "@wren/llm";

@@ -10,7 +10,7 @@
  * A model call on its own key goes straight to its provider; on Wren's, the gateway.
  */
 import type { Db } from "@wren/db";
-import { SiteCallError, type SiteClient, type SiteMethod } from "./content/autobrowse.js";
+import { SiteCallError, type SiteClient, type SiteMethod } from "./autobrowse/autobrowse.js";
 import type { FetchLike } from "./doh.js";
 import type { KeyStore } from "./keys.js";
 import { directCall, directRefusal, isExaRoute, unitsOfRead } from "./vendor-direct.js";

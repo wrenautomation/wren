@@ -17,7 +17,7 @@ export const SOCIAL_PLATFORMS = [
 ] as const;
 export type SocialPlatform = (typeof SOCIAL_PLATFORMS)[number];
 
-/** The content channels a connected account posts as: a subset of `@wren/core/content`'s. */
+/** The content channels a connected account posts as: a subset of `@wren/core/autobrowse`'s. */
 type SocialChannel =
   | "facebook"
   | "instagram"

@@ -7,7 +7,7 @@
  */
 
 import { type Feed, NO_FEED } from "@wren/core";
-import type { SiteClient } from "@wren/core/content";
+import type { SiteClient } from "@wren/core/autobrowse";
 import type { Queryable } from "@wren/db";
 import {
   type CompanySubject,

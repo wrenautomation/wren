@@ -7,8 +7,9 @@
  * accepts in one read of recent connections and withdraws invites still pending after
  * `withdrawAfterDays`. The sender is the settings' `account`; empty = nothing tops up.
  */
+
+import { capWaitMs } from "@wren/core/autobrowse";
 import { settingsFor } from "@wren/core/clients";
-import { capWaitMs } from "@wren/core/content";
 import type { Connection, OutreachChannel, Relationship } from "@wren/core/outreach";
 import { personInSegment } from "@wren/core/segments";
 import type { Queryable } from "@wren/db";

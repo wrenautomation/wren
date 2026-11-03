@@ -6,7 +6,7 @@
  *
  * The registry is `collectors.ts`; it re-exports this file, so a collector imports from here.
  */
-import type { SiteClient } from "@wren/core/content";
+import type { SiteClient } from "@wren/core/autobrowse";
 import type { Gate } from "@wren/core/vendors";
 import { atomic, type Queryable } from "@wren/db";
 import type { LlmClient } from "@wren/llm";

@@ -6,7 +6,7 @@
  *
  * `send` may hold journaled site calls, so `sendOnce` never wraps it in a step.
  */
-import { SiteCallError } from "./content/autobrowse.js";
+import { SiteCallError } from "./autobrowse/autobrowse.js";
 import {
   NotSent,
   type SendTrace,

@@ -15,8 +15,8 @@
  * the stage until it lifts; a failed Exa read stops the run.
  */
 
+import type { SiteClient } from "@wren/core/autobrowse";
 import { pausedSources } from "@wren/core/checks";
-import type { SiteClient } from "@wren/core/content";
 import type { Queryable } from "@wren/db";
 import { type SQL, sql } from "drizzle-orm";
 import {

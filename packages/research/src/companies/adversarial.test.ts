@@ -3,7 +3,7 @@
  * redirects, board API shapes and dates, the LinkedIn fallback. Each test says
  * what SHOULD happen per the doc comments; failing ones are marked BUG.
  */
-import { SiteCallError, type SiteClient } from "@wren/core/content";
+import { SiteCallError, type SiteClient } from "@wren/core/autobrowse";
 import { FetchError, type Fetcher, type FetchResponse } from "@wrenautomation/read/fetch";
 import { describe, expect, it } from "vitest";
 import { findBoards, readBoard } from "./boards.js";

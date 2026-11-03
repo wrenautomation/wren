@@ -10,7 +10,7 @@
  * search that fails is said in `tried` and passed; an account cap parks the person only when
  * search found nothing; a failed account read throws, which stops the pass.
  */
-import { SiteCallError } from "@wren/core/content";
+import { SiteCallError } from "@wren/core/autobrowse";
 import type { Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
 import { z } from "zod";

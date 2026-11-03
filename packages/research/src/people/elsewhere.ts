@@ -7,7 +7,7 @@
  * it. Confidence counts what matched: name, firm, handle. A name alone is a weak match.
  */
 
-import type { SiteClient } from "@wren/core/content";
+import type { SiteClient } from "@wren/core/autobrowse";
 import { normalizeHandle } from "@wren/core/touches";
 import { Capped, refusedBy, searchStopped } from "../pacing.js";
 import { type Firm, firmNames, mentionsFirm, plain, sameName } from "./names.js";

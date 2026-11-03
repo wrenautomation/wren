@@ -28,7 +28,7 @@
  * the row is `skipped`, counts toward no cap and no failure, and the contact is never invited
  * again (`noInvite`).
  */
-import { capWaitMs, SiteCallError } from "@wren/core/content";
+import { capWaitMs, SiteCallError } from "@wren/core/autobrowse";
 import { recordDraft } from "@wren/core/draft-record";
 import { sendOnce } from "@wren/core/maybe-sent";
 import {

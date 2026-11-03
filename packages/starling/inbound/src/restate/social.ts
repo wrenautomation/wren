@@ -33,8 +33,8 @@ import {
   PLATFORMS,
   type Platform,
   type SiteClient,
-} from "@wren/core/content";
-import { DESK } from "@wren/core/content/restate";
+} from "@wren/core/autobrowse";
+import { DESK } from "@wren/core/autobrowse/restate";
 import { executorEmit } from "@wren/core/executor";
 import { Broadcast, type Notifier } from "@wren/core/notify";
 import {

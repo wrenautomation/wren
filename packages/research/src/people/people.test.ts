@@ -1,4 +1,4 @@
-import { SiteCallError, type SiteClient } from "@wren/core/content";
+import { SiteCallError, type SiteClient } from "@wren/core/autobrowse";
 import { describe, expect, it } from "vitest";
 import { type LookupSubject, lookUpPerson } from "./lookup.js";
 import { domainLabel, isFirm, mentionsFirm, sameCompany, sameName } from "./names.js";

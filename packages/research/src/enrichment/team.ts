@@ -8,8 +8,9 @@
  * Which firms come first is the caller's call; this stage takes company ids in
  * that order and keeps the ones still due.
  */
+
+import type { SiteClient } from "@wren/core/autobrowse";
 import { counted } from "@wren/core/checks";
-import type { SiteClient } from "@wren/core/content";
 import { people } from "@wren/core/schema";
 import type { Queryable } from "@wren/db";
 import { eq, type SQL, sql } from "drizzle-orm";

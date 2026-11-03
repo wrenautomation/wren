@@ -19,7 +19,7 @@
  */
 import * as restate from "@restatedev/restate-sdk";
 import { byOf } from "@wren/core/ask";
-import { type CapHolds, capHeld, holdCap, liveHolds } from "@wren/core/content";
+import { type CapHolds, capHeld, holdCap, liveHolds } from "@wren/core/autobrowse";
 import { isVendorStop } from "@wren/core/metered";
 import type { OurPost } from "@wren/core/our-posts";
 import {

@@ -1,4 +1,4 @@
-import type { SiteClient } from "@wren/core/content";
+import type { SiteClient } from "@wren/core/autobrowse";
 import type { MediaHost } from "@wren/starling-core";
 import { describe, expect, it } from "vitest";
 import { instagramContent } from "./content.js";

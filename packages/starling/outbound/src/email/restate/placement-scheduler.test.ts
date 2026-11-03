@@ -1,4 +1,4 @@
-import type { SiteClient } from "@wren/core/content";
+import type { SiteClient } from "@wren/core/autobrowse";
 import { describe, expect, it } from "vitest";
 import { landedAt, landedFrom, PLAIN_NOTES, plainNote } from "./placement-scheduler.js";
 

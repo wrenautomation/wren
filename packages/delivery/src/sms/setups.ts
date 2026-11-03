@@ -4,8 +4,8 @@
  * number on that campaign. Carrier review takes days to weeks, so the approval step checks daily.
  */
 
+import { SiteCallError, type SiteClient } from "@wren/core/autobrowse";
 import { findClient } from "@wren/core/clients";
-import { SiteCallError, type SiteClient } from "@wren/core/content";
 import { defineSetup, type SetupCheck } from "@wren/core/setup";
 import type { Db } from "@wren/db";
 import type { Registration } from "@wren/starling-sms";

@@ -4,7 +4,7 @@
  * page opens, through the client's own `socialSites` (the same calls the TikTok channel's
  * audience and metrics make), two calls per account. A scope the token lacks is said, never asked.
  */
-import type { SiteClient } from "@wren/core/content";
+import type { SiteClient } from "@wren/core/autobrowse";
 import { loginOf } from "./access.js";
 import type { SocialConnectionRow } from "./schema.js";
 

@@ -5,7 +5,7 @@
  * per firm instead of one per person, so a hit brings most of the staff for
  * the price of one search.
  */
-import type { SiteClient } from "@wren/core/content";
+import type { SiteClient } from "@wren/core/autobrowse";
 import { paced, realSleep } from "../pacing.js";
 import { splitName } from "./contacts.js";
 import { bareCompanyName, type Firm, firmNames, isFirm } from "./names.js";

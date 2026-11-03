@@ -1,5 +1,5 @@
 /** The demand collector: synthetic posts, firms and people, a fake model, no network. */
-import { SiteCallError, type SiteClient } from "@wren/core/content";
+import { SiteCallError, type SiteClient } from "@wren/core/autobrowse";
 import { FakeLlm } from "@wren/llm";
 import { describe, expect, it } from "vitest";
 import { signalRefusal } from "../findings.js";

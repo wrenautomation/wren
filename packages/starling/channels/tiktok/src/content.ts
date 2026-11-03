@@ -4,12 +4,12 @@
  * page (`/web/videos/{id}/comments`, browser, 24 a day). Audience = `user/info` followers (scope
  * user.info.stats).
  *
- * Publish follows TikTok's Direct Post rules (`@wren/core/content/tiktok`): creator_info right
+ * Publish follows TikTok's Direct Post rules (`@wren/starling-core/tiktok`): creator_info right
  * before, refuse what the creator can't post, send the file by FILE_UPLOAD, then wait on its
  * status. A client's connected account (`direct`) takes a hosted URL; autobrowse (Wren's own)
  * reads the file itself. `postVia: "web"` falls back to TikTok Studio in the box's browser.
  */
-import type { FetchedWith, SiteClient } from "@wren/core/content";
+import type { FetchedWith, SiteClient } from "@wren/core/autobrowse";
 import {
   type Audience,
   type CommentRow,

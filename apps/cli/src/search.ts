@@ -12,7 +12,7 @@ import { join, relative, resolve } from "node:path";
 import * as clients from "@restatedev/restate-sdk-clients";
 import { ingressOf, type Settings } from "@wren/config";
 import { recordedRun } from "@wren/core";
-import { DESK } from "@wren/core/content/restate";
+import { DESK } from "@wren/core/autobrowse/restate";
 import type { Db } from "@wren/db";
 import { loadLlmEnv, makeLlm } from "@wren/llm";
 import {

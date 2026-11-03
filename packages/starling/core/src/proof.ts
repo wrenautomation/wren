@@ -8,7 +8,7 @@
  * `GET /comments/{article}`; LinkedIn `GET /rest/socialActions/{urn}/comments`). The shot is
  * autobrowse's `web GET /proof/shot`, signed out, kept by `keep`.
  */
-import { capWaitMs, type SiteClient } from "@wren/core/content";
+import { capWaitMs, type SiteClient } from "@wren/core/autobrowse";
 
 export const PROOF_STATES = ["live", "hidden", "missing", "pending"] as const;
 type ProofState = (typeof PROOF_STATES)[number];

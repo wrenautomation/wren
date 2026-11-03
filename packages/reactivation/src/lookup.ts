@@ -6,8 +6,8 @@
  */
 
 import { type Feed, NO_FEED } from "@wren/core";
+import type { SiteClient } from "@wren/core/autobrowse";
 import { hold, retryDue } from "@wren/core/checks";
-import type { SiteClient } from "@wren/core/content";
 import type { Queryable } from "@wren/db";
 import type { FindingKind } from "@wren/research";
 import { failedRead } from "@wren/research/pacing";

@@ -6,7 +6,7 @@
  * source. The key is the built one, so `crm run` and the pool write the
  * same finding.
  */
-import type { SiteClient } from "@wren/core/content";
+import type { SiteClient } from "@wren/core/autobrowse";
 import { z } from "zod";
 import { checkHiring } from "../companies/hiring.js";
 import { linkedinCompany } from "../companies/profile.js";

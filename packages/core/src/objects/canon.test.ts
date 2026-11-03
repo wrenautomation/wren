@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PLATFORMS } from "../content/index.js";
+import { PLATFORMS } from "../autobrowse/index.js";
 import {
   CANON_PLATFORMS,
   CanonError,

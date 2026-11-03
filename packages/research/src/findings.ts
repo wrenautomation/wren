@@ -5,7 +5,7 @@
  * write through here.
  */
 import { createHash } from "node:crypto";
-import type { SiteClient } from "@wren/core/content";
+import type { SiteClient } from "@wren/core/autobrowse";
 import type { Queryable } from "@wren/db";
 import { pgSafe } from "@wren/db/columns";
 import { and, eq, sql } from "drizzle-orm";

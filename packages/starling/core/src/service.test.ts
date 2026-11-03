@@ -1,6 +1,6 @@
 import * as restate from "@restatedev/restate-sdk";
-import { SiteCallError } from "@wren/core/content";
-import { ArmedStop, DESK, restateSites } from "@wren/core/content/restate";
+import { SiteCallError } from "@wren/core/autobrowse";
+import { ArmedStop, DESK, restateSites } from "@wren/core/autobrowse/restate";
 import { NotSent, SendUnknown, type SendVerdict, SentFound } from "@wren/core/send-verdict";
 import { describe, expect, it } from "vitest";
 import { fakeContentChannel, gapStateOf } from "./index.js";

@@ -3,8 +3,8 @@
  * consoles.
  */
 import { ingressOf } from "@wren/config";
-import { ingressSites } from "@wren/core/content/ingress";
-import { DESK } from "@wren/core/content/restate";
+import { ingressSites } from "@wren/core/autobrowse/ingress";
+import { DESK } from "@wren/core/autobrowse/restate";
 import { makeLearnPictures, type PictureStore } from "@wren/learn";
 import { makeLearnConsole } from "@wren/learn/console";
 import { gatewayEmbed } from "@wren/llm";

@@ -5,7 +5,7 @@
  * reads the file from its own disk, so nothing uploads without his click.
  */
 import { finishRun, openRun } from "@wren/core";
-import type { Platform } from "@wren/core/content";
+import type { Platform } from "@wren/core/autobrowse";
 import { recordDraft } from "@wren/core/draft-record";
 import { date, defineRecord, link, number, type State, status, text } from "@wren/core/records";
 import { renderKind, type Template } from "@wren/core/slots";

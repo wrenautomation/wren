@@ -9,8 +9,8 @@
  * site for words.
  */
 import * as restate from "@restatedev/restate-sdk";
-import { SiteCallError } from "@wren/core/content";
-import { DESK, restateSites } from "@wren/core/content/restate";
+import { SiteCallError } from "@wren/core/autobrowse";
+import { DESK, restateSites } from "@wren/core/autobrowse/restate";
 import { draftSteps } from "@wren/core/draft-record";
 import { resolveObjects } from "@wren/core/objects";
 import { fakeOutreachChannel } from "@wren/core/outreach";

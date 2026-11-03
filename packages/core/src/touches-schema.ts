@@ -22,7 +22,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { leads, people } from "./schema.js";
 
-/** The content platforms (`@wren/core/content` PLATFORMS), kept here so drizzle-kit reads no adapter code. */
+/** The content platforms (`@wren/core/autobrowse` PLATFORMS), kept here so drizzle-kit reads no adapter code. */
 export const TOUCH_PLATFORMS = [
   "linkedin",
   "reddit",

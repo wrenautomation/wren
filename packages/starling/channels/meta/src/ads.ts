@@ -6,7 +6,7 @@
  * campaigns, insights. Money is in USD minor units on the wire; here it is
  * dollars.
  */
-import type { SiteClient } from "@wren/core/content";
+import type { SiteClient } from "@wren/core/autobrowse";
 import { type MediaHost, publicUrlOf } from "@wren/starling-core";
 
 /**

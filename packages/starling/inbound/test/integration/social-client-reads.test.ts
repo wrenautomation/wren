@@ -8,8 +8,8 @@
 import * as clients from "@restatedev/restate-sdk-clients";
 import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
 import { ingressOf } from "@wren/config";
+import { asAccount, type Platform, type SiteClient } from "@wren/core/autobrowse";
 import { addClient, addMember, findClient, sendsOn, updateClient } from "@wren/core/clients";
-import { asAccount, type Platform, type SiteClient } from "@wren/core/content";
 import { pgKeyStore, throwawayRing } from "@wren/core/keys";
 import type { Viewer } from "@wren/core/portal";
 import type { PassOutcome } from "@wren/core/restate";

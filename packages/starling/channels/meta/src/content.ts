@@ -8,7 +8,7 @@
  * activity (media we're tagged in) and audience come from one read of the
  * IG user.
  */
-import type { FetchedWith, SiteClient } from "@wren/core/content";
+import type { FetchedWith, SiteClient } from "@wren/core/autobrowse";
 import {
   type AccountInsights,
   type ActivityQuery,

@@ -8,7 +8,7 @@
  * goes in as a Bullhorn export through the normal import, so everything after
  * is the product itself.
  */
-import type { SiteClient } from "@wren/core/content";
+import type { SiteClient } from "@wren/core/autobrowse";
 import type { Queryable } from "@wren/db";
 import type { LlmClient } from "@wren/llm";
 import { type CustomersResult, findCustomers } from "@wren/research/companies";

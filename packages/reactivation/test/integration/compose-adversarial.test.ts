@@ -6,7 +6,7 @@
  * behavior and are marked "Was a bug".
  */
 
-import type { SiteClient } from "@wren/core/content";
+import type { SiteClient } from "@wren/core/autobrowse";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { FakeLlm, LlmError } from "@wren/llm";
 import { FakeVerifier, type LocalCheckerLike } from "@wren/starling-email";

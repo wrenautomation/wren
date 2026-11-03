@@ -9,7 +9,7 @@
  */
 import * as restate from "@restatedev/restate-sdk";
 import { finishRun, openRun } from "@wren/core";
-import type { SiteClient } from "@wren/core/content";
+import type { SiteClient } from "@wren/core/autobrowse";
 import { exclusiveHandler } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import { z } from "zod";

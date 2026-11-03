@@ -2,7 +2,7 @@
  * What Write's Carousel and Story boxes share once the content is in: where it goes, the three
  * ways to send it, and what ContentDesk said back.
  */
-import type { Platform } from "@wren/core/content";
+import type { Platform } from "@wren/core/autobrowse";
 import { Button, PlatformMark } from "@wren/ui";
 import type { Dispatch, SetStateAction } from "react";
 import { ERROR, TOOLS } from "../work/bits.js";

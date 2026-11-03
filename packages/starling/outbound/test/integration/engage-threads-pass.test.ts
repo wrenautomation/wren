@@ -9,8 +9,8 @@
 import * as clients from "@restatedev/restate-sdk-clients";
 import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
 import { ingressOf } from "@wren/config";
-import type { SiteClient } from "@wren/core/content";
-import { journaledSites } from "@wren/core/content/restate";
+import type { SiteClient } from "@wren/core/autobrowse";
+import { journaledSites } from "@wren/core/autobrowse/restate";
 import { foldRows } from "@wren/core/records";
 import type { PassOutcome } from "@wren/core/restate";
 import { dbSendJournal } from "@wren/core/send-journal";

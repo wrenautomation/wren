@@ -4,7 +4,7 @@
  * above it; `accounts` and `caps` inherit key by key. Every station outside a campaign sits in the
  * default campaign, computed here and never stored. Pure: browser-safe (the portal draws it).
  */
-import type { Platform } from "@wren/core/content";
+import type { Platform } from "@wren/core/autobrowse";
 import type { MetroBody, MetroGroup, MetroLine, MetroStation } from "./metro.js";
 import { type Action, GROUP_ID, type ShapeCheckContext } from "./model.js";
 

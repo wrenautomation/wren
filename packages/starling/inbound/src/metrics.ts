@@ -5,7 +5,7 @@
  * a query. Learning from it (feeding winners back into ideas) is still a
  * person's job — see the design's "where to attack".
  */
-import type { Platform } from "@wren/core/content";
+import type { Platform } from "@wren/core/autobrowse";
 import type { Queryable } from "@wren/db";
 import type { Metrics } from "@wren/starling-core";
 import { and, desc, eq, gte, inArray, isNotNull, notExists, sql } from "drizzle-orm";

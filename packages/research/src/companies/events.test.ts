@@ -1,4 +1,4 @@
-import { SiteCallError, type SiteClient } from "@wren/core/content";
+import { SiteCallError, type SiteClient } from "@wren/core/autobrowse";
 import { FetchError, type Fetcher } from "@wrenautomation/read/fetch";
 import { describe, expect, it } from "vitest";
 import {

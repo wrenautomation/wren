@@ -3,7 +3,7 @@
  * one read keeps, how a missing account, a rate limit and an error each end. Synthetic data only.
  */
 import { imports, leads } from "@wren/core";
-import { SiteCallError, type SiteClient } from "@wren/core/content";
+import { SiteCallError, type SiteClient } from "@wren/core/autobrowse";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";

@@ -9,7 +9,7 @@ import * as restate from "@restatedev/restate-sdk";
 import * as clients from "@restatedev/restate-sdk-clients";
 import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
 import { ingressOf } from "@wren/config";
-import { SiteCallError } from "@wren/core/content";
+import { SiteCallError } from "@wren/core/autobrowse";
 import type { ExecutorEvent } from "@wren/core/executor";
 import type { Notifier } from "@wren/core/notify";
 import { resolveObjects } from "@wren/core/objects";

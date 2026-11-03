@@ -4,7 +4,7 @@
  * the lookup; Exa failing must stop the run. Tests here state what SHOULD
  * happen. A failing one is a bug, not a flaky test.
  */
-import { SiteCallError, type SiteClient } from "@wren/core/content";
+import { SiteCallError, type SiteClient } from "@wren/core/autobrowse";
 import { describe, expect, it } from "vitest";
 import { type LookupSubject, lookUpPerson } from "./lookup.js";
 

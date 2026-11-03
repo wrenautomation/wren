@@ -6,7 +6,7 @@
  */
 import { atomic, type Queryable } from "@wren/db";
 import { asc, eq, sql } from "drizzle-orm";
-import type { Platform } from "./content/index.js";
+import type { Platform } from "./autobrowse/index.js";
 import { isCommentCall, recordCommentCall } from "./decide/comments.js";
 import { resolveObjectOrNull } from "./objects/index.js";
 import type { ObjectKind } from "./objects-schema.js";

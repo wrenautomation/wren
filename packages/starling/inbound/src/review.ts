@@ -4,7 +4,7 @@
  * what goes out is always something a person approved as written.
  */
 import { createHash } from "node:crypto";
-import type { Platform } from "@wren/core/content";
+import type { Platform } from "@wren/core/autobrowse";
 import { type DraftVia, type RejectReason, recordDraft } from "@wren/core/draft-record";
 import { PortalRefusal } from "@wren/core/refusal";
 import type { Queryable } from "@wren/db";

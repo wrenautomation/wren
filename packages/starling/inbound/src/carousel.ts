@@ -4,7 +4,7 @@
  * (its words plus the slides as a PDF) and an Instagram carousel (a caption plus a square image
  * per slide). The set is the drafts' `slides` field, written to both at once (`saveSlides`);
  * `renderSlides` draws it with
- * `@wren/core/content/slides` and stores the images and the PDF. Publishing uploads them: the
+ * `@wren/starling-core/slides` and stores the images and the PDF. Publishing uploads them: the
  * LinkedIn adapter the PDF as a document, the Instagram one each image as a carousel child.
  */
 import { randomUUID } from "node:crypto";

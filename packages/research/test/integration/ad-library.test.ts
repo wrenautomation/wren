@@ -3,7 +3,7 @@
  * advertiser never links home; every ad is a sighting; a keyword read is not due for a week.
  */
 import { companies, people, sightings } from "@wren/core";
-import type { SiteClient } from "@wren/core/content";
+import type { SiteClient } from "@wren/core/autobrowse";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";

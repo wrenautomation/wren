@@ -1,4 +1,4 @@
-import type { SiteClient } from "@wren/core/content";
+import type { SiteClient } from "@wren/core/autobrowse";
 import { describe, expect, it } from "vitest";
 import { type AdRow, type AdSetRow, metaAds } from "./ads.js";
 import {

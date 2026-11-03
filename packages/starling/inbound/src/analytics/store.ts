@@ -4,7 +4,7 @@
  * second look the same day replaces that day's value, never an earlier day's. A platform's
  * report rows (YouTube's reach report) land on the report's own day instead.
  */
-import type { Platform } from "@wren/core/content";
+import type { Platform } from "@wren/core/autobrowse";
 import { canonRef } from "@wren/core/objects";
 import type { Queryable } from "@wren/db";
 import {

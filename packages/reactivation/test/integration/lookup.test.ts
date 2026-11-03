@@ -4,7 +4,7 @@
  */
 
 import { people } from "@wren/core";
-import { SiteCallError, type SiteClient } from "@wren/core/content";
+import { SiteCallError, type SiteClient } from "@wren/core/autobrowse";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { findings, personLookups } from "@wren/research/schema";
 import { FakeVerifier, type LocalCheckerLike } from "@wren/starling-email";

@@ -4,7 +4,7 @@
  * what `sharedPages` serves from the ladder's tiers.
  */
 import { companies } from "@wren/core";
-import { SiteCallError, type SiteClient } from "@wren/core/content";
+import { SiteCallError, type SiteClient } from "@wren/core/autobrowse";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import type { Fetcher, FetchResponse } from "@wrenautomation/read/fetch";
 import { eq } from "drizzle-orm";

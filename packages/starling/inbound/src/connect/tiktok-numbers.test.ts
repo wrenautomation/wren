@@ -1,5 +1,5 @@
 // A connected TikTok's numbers on Account → Social, against a fake SiteClient. Synthetic ids.
-import type { SiteClient } from "@wren/core/content";
+import type { SiteClient } from "@wren/core/autobrowse";
 import { describe, expect, it } from "vitest";
 import { TIKTOK_RECENT, tiktokNumbers, videoLine } from "./tiktok-numbers.js";
 

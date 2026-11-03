@@ -14,7 +14,7 @@
  * (`reach`), since the tab will say when something comes in.
  */
 import * as restate from "@restatedev/restate-sdk";
-import type { Platform } from "@wren/core/content";
+import type { Platform } from "@wren/core/autobrowse";
 import { clientKey, exclusiveHandler, NO_INPUT, serviceHandler } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import { and, eq, inArray, or, sql } from "drizzle-orm";

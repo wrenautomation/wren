@@ -11,7 +11,7 @@
  * page, no analytics page. A company page (`organization`) posts, reads its comments and answers
  * them as the page, on the Community Management API, and reads its follower count there.
  */
-import { type FetchedWith, SiteCallError, type SiteClient } from "@wren/core/content";
+import { type FetchedWith, SiteCallError, type SiteClient } from "@wren/core/autobrowse";
 import {
   type AccountInsights,
   type ActivityKind,

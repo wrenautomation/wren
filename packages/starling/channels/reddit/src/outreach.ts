@@ -12,7 +12,7 @@
  * marked read; DMs are replies, comment answers and post replies are comments. comment: an answer
  * under a comment or a post. Reddit has no connect step, so `relationship`/`connect` are absent.
  */
-import { SiteCallError } from "@wren/core/content";
+import { SiteCallError } from "@wren/core/autobrowse";
 import {
   type AccountHealth,
   type CommentIn,
@@ -129,7 +129,7 @@ const closed = (err: unknown) =>
   err instanceof SiteCallError && (err.status === 403 || /HTTP 403/.test(err.message));
 
 export function redditOutreach(
-  sites: import("@wren/core/content").SiteClient,
+  sites: import("@wren/core/autobrowse").SiteClient,
   o: RedditOutreachOptions,
 ): RedditOutreach {
   const now = o.now ?? (() => new Date());

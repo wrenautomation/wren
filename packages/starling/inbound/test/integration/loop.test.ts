@@ -10,7 +10,7 @@ import * as clients from "@restatedev/restate-sdk-clients";
 import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
 import { ingressOf } from "@wren/config";
 import { runs } from "@wren/core";
-import type { Platform } from "@wren/core/content";
+import type { Platform } from "@wren/core/autobrowse";
 import type { PassOutcome } from "@wren/core/restate";
 import type { Delivery } from "@wren/core/send-verdict";
 import { startTestRestate } from "@wren/core/testing";

@@ -4,7 +4,7 @@ import * as clients from "@restatedev/restate-sdk-clients";
 import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
 import { ingressOf, loadSettings } from "@wren/config";
 import { runs } from "@wren/core";
-import { SiteCallError, type SiteClient } from "@wren/core/content";
+import { SiteCallError, type SiteClient } from "@wren/core/autobrowse";
 import { startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";

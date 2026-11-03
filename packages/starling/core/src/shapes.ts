@@ -7,7 +7,7 @@
  * platform's API can't, said once.
  */
 
-import type { Platform } from "@wren/core/content";
+import type { Platform } from "@wren/core/autobrowse";
 import { z } from "zod";
 import type { Media } from "./index.js";
 import {
@@ -162,7 +162,7 @@ const dev = (label: string, input: FieldInput, hint: string, ui: Partial<FieldUi
 });
 
 /**
- * A carousel's slides (`@wren/core/content/slides`): set when the post is drafted and in its slide
+ * A carousel's slides (`@wren/starling-core/slides`): set when the post is drafted and in its slide
  * editor, which writes the LinkedIn and Instagram drafts of one set together; never a form field.
  */
 const slideSet = (kinds: readonly string[]) => ({

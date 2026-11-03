@@ -4,7 +4,7 @@
  * drafts back, redo throws a step away, his calls hold and redraw the drafts.
  * Fake sites and a fake model; no network, no sleeping.
  */
-import { SiteCallError, type SiteClient } from "@wren/core/content";
+import { SiteCallError, type SiteClient } from "@wren/core/autobrowse";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { FakeLlm, LlmError } from "@wren/llm";
 import { studyReport } from "@wrenautomation/read/study";

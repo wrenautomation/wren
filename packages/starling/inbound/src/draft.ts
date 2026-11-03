@@ -7,7 +7,7 @@
  * checks every draft against the idea (his words) and the facts: a made-up
  * claim or number is asked for once more, then the platform's row says why.
  */
-import type { Platform } from "@wren/core/content";
+import type { Platform } from "@wren/core/autobrowse";
 import { llmOf, recordDraft } from "@wren/core/draft-record";
 import { droppedWhy, guardDraft, recordGuard } from "@wren/core/grounded";
 import type { Queryable } from "@wren/db";

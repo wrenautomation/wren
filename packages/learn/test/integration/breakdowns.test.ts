@@ -7,7 +7,7 @@
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { SiteClient } from "@wren/core/content";
+import type { SiteClient } from "@wren/core/autobrowse";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
 import { documents, findings } from "@wren/research/schema";

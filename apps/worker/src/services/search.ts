@@ -2,7 +2,7 @@
  * Search: Search Console daily, the answer engines and edit proposals weekly.
  */
 
-import { DESK, restateSites } from "@wren/core/content/restate";
+import { DESK, restateSites } from "@wren/core/autobrowse/restate";
 import { LIMITS } from "@wren/core/restate";
 import { searchConsoleClient } from "@wren/starling-search";
 import { makeSearchWatch, makeSearchWeek } from "@wren/starling-search/restate";

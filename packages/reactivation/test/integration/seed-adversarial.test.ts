@@ -3,7 +3,7 @@
  * the agency's own staff in search, names the importer can't read, a second
  * agency. Tests state what SHOULD happen; a failing one is a bug.
  */
-import type { SiteClient } from "@wren/core/content";
+import type { SiteClient } from "@wren/core/autobrowse";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
 import type { Fetcher } from "@wrenautomation/read/fetch";

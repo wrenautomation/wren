@@ -1,4 +1,4 @@
-import type { SiteClient } from "@wren/core/content";
+import type { SiteClient } from "@wren/core/autobrowse";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { keepingAnswers } from "../../src/findings.js";

@@ -4,15 +4,15 @@
  * autobrowse's `sites` service on the same Restate, so it is journaled,
  * queues while the box is down, and a retry of `publish` never posts twice
  * (the worker runs a write once). No port on the box is ever reached from
- * here. The `sites` hop itself: `@wren/core/content/restate`.
+ * here. The `sites` hop itself: `@wren/core/autobrowse/restate`.
  *
  * A request with `client` runs on that client's own logins (`ContentClients.channels`), its reads
  * through its vendor gate. A post or a reply for a client also waits on its live flag: until an
  * admin turns its posting on, the service refuses it (designs/2026-10-07-per-client-runs.md).
  */
 import * as restate from "@restatedev/restate-sdk";
-import { PLATFORMS, type Platform, SiteCallError } from "@wren/core/content";
-import { ArmedStop, isRefusal } from "@wren/core/content/restate";
+import { PLATFORMS, type Platform, SiteCallError } from "@wren/core/autobrowse";
+import { ArmedStop, isRefusal } from "@wren/core/autobrowse/restate";
 import { isVendorStop } from "@wren/core/metered";
 import { NO_INPUT, serviceHandler } from "@wren/core/restate";
 import { type Delivery, deliveryOf, isSendOutcome, terminalOf } from "@wren/core/send-verdict";

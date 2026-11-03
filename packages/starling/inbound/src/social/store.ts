@@ -3,7 +3,7 @@
  * `comments` rows (`channel = content`), activity as `social_activity`, and one follower count per
  * platform per day in `social_days`. Every write is idempotent on the platform's id.
  */
-import type { Platform } from "@wren/core/content";
+import type { Platform } from "@wren/core/autobrowse";
 import { plural } from "@wren/core/notify";
 import { resolveComments } from "@wren/core/objects";
 import { atomic, type Queryable } from "@wren/db";

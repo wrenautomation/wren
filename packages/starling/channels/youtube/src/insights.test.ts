@@ -1,4 +1,4 @@
-import { SiteCallError, type SiteClient } from "@wren/core/content";
+import { SiteCallError, type SiteClient } from "@wren/core/autobrowse";
 import { holdAt } from "@wren/starling-core";
 import { describe, expect, it } from "vitest";
 import {

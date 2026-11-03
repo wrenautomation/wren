@@ -6,7 +6,7 @@
  * Pure over the database; the run itself is `restate/profile-research.ts`.
  */
 import { isFreemail, parseName } from "@wren/core";
-import { SiteCallError, type SiteClient } from "@wren/core/content";
+import { SiteCallError, type SiteClient } from "@wren/core/autobrowse";
 import {
   type ProfileFindingKind,
   profileFindings,

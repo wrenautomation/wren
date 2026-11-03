@@ -6,8 +6,8 @@
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import type { DoOutcome, DoRequest } from "../../src/autobrowse/do.js";
 import { clients } from "../../src/clients/schema.js";
-import type { DoOutcome, DoRequest } from "../../src/content/do.js";
 import { pgExecutorStore, resume, type Walk, walk } from "../../src/executor.js";
 import {
   AGENT_ON_IT,

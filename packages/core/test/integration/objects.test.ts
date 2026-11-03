@@ -2,7 +2,7 @@
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import type { Platform } from "../../src/content/index.js";
+import type { Platform } from "../../src/autobrowse/index.js";
 import {
   findObject,
   ITEM_HOMES,

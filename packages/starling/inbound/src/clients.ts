@@ -6,8 +6,8 @@
  * its posting on (`sendsOn`).
  */
 
+import type { Platform } from "@wren/core/autobrowse";
 import { type Client, findClient } from "@wren/core/clients";
-import type { Platform } from "@wren/core/content";
 import type { Queryable } from "@wren/db";
 import { listAccounts, loginsOf } from "@wren/starling-outbound";
 import { type ClientPlannerSettings, clientPlannerSchema } from "./components.js";

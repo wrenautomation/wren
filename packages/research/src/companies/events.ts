@@ -6,7 +6,7 @@
  * is asked only when the one before it couldn't answer. A rename alone is never an event, and a
  * hit with no date is never kept. Kinds are a parameter; the default is the 4 above.
  */
-import type { SiteClient } from "@wren/core/content";
+import type { SiteClient } from "@wren/core/autobrowse";
 import { FetchError, type Fetcher } from "@wrenautomation/read/fetch";
 import type { CompanyFindingDraft, DocumentDraft } from "../findings.js";
 import { Capped, paced, realSleep, refusedBy, searchStopped } from "../pacing.js";

@@ -4,7 +4,7 @@
  * take no comments; the Profile's reviews come in as comments on the location, and `reply`
  * answers one. Google gives no per-post numbers, so metrics are zeros and insights say why.
  */
-import type { SiteClient } from "@wren/core/content";
+import type { SiteClient } from "@wren/core/autobrowse";
 import {
   type ActivityQuery,
   type CommentRow,

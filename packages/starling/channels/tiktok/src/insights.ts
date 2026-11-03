@@ -6,7 +6,7 @@
  * `search_term`, like YouTube's). TikTok holds most fields until a video has 100 views: those are
  * `waiting`.
  */
-import type { SiteClient } from "@wren/core/content";
+import type { SiteClient } from "@wren/core/autobrowse";
 import {
   browserRead,
   holdAt,

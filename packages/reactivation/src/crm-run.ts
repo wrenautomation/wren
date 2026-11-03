@@ -11,8 +11,8 @@
  */
 import * as restate from "@restatedev/restate-sdk";
 import { recordedRun, runFeed } from "@wren/core";
+import type { SiteClient } from "@wren/core/autobrowse";
 import { type Client, findClient } from "@wren/core/clients";
-import type { SiteClient } from "@wren/core/content";
 import { errorText, exclusiveHandler } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import type { LlmClient } from "@wren/llm";

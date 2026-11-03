@@ -1,8 +1,8 @@
 /** The enrichment object's context, built once: the scope a unit runs in, the run journal, the browser pool and the model and key lookups every group shares. */
 import * as restate from "@restatedev/restate-sdk";
 import { type Company, type CompanyScreen, companies, finishRun, openRun } from "@wren/core";
+import type { SiteClient } from "@wren/core/autobrowse";
 import { findClient } from "@wren/core/clients";
-import type { SiteClient } from "@wren/core/content";
 import type { KeyStore } from "@wren/core/keys";
 import { clientOfKey } from "@wren/core/restate";
 import { vendorKeys } from "@wren/core/vendor-keys";

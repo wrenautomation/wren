@@ -11,8 +11,12 @@ import { ingressOf } from "@wren/config";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import {
+  makeTokenRenewal,
+  RENEWAL_COMMAND,
+  type RenewReport,
+} from "../../src/autobrowse/renewal.js";
 import { restateAdmin } from "../../src/console.js";
-import { makeTokenRenewal, RENEWAL_COMMAND, type RenewReport } from "../../src/content/renewal.js";
 import { runs } from "../../src/schema.js";
 import { startTestRestate } from "../../src/testing.js";
 

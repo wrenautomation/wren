@@ -39,8 +39,8 @@
  * word in To approve ends the look and cancels the call.
  */
 import * as restate from "@restatedev/restate-sdk";
+import { capWaitMs, type Platform } from "@wren/core/autobrowse";
 import { sendsOn } from "@wren/core/clients";
-import { capWaitMs, type Platform } from "@wren/core/content";
 import type { Notifier } from "@wren/core/notify";
 import {
   clientOfKey,

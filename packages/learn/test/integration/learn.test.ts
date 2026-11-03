@@ -9,7 +9,7 @@
 import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { SiteClient } from "@wren/core/content";
+import type { SiteClient } from "@wren/core/autobrowse";
 import { pgExecutorStore, type Walk, walk } from "@wren/core/executor";
 import type { Notifier } from "@wren/core/notify";
 import type { PortalRequest } from "@wren/core/portal";

@@ -1,6 +1,6 @@
 /** Posts in the person's own words, stored: an idea and a draft per platform (`./write.ts`). */
 import { randomBytes } from "node:crypto";
-import type { Platform } from "@wren/core/content";
+import type { Platform } from "@wren/core/autobrowse";
 import { recordDraft } from "@wren/core/draft-record";
 import type { Queryable } from "@wren/db";
 import type { Media } from "@wren/starling-core";

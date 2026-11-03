@@ -5,7 +5,7 @@
  * path → failures (429 hold, 4xx unreachable, crash mid-send) → stats.
  */
 
-import { SiteCallError } from "@wren/core/content";
+import { SiteCallError } from "@wren/core/autobrowse";
 import { fakeOutreachChannel } from "@wren/core/outreach";
 import { serveRecords } from "@wren/core/records/serve";
 import { NotSent } from "@wren/core/send-verdict";

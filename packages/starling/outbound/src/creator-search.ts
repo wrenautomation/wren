@@ -12,7 +12,7 @@
  *   business discovery.
  * - TikTok: accounts in Exa's results.
  */
-import { capWaitMs, type SiteClient } from "@wren/core/content";
+import { capWaitMs, type SiteClient } from "@wren/core/autobrowse";
 import { reader, signedOut } from "./discovery/reads.js";
 
 export const CREATOR_SITES = ["youtube", "reddit", "linkedin", "x", "instagram", "tiktok"] as const;

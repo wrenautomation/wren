@@ -19,6 +19,9 @@ import {
 } from "@wren/calendar";
 import { ingressOf, type Settings } from "@wren/config";
 import { resolve as dohResolve } from "@wren/core";
+import { sitesHost } from "@wren/core/autobrowse/box";
+import { ingressSites } from "@wren/core/autobrowse/ingress";
+import { DESK, restateSites, type SitesService } from "@wren/core/autobrowse/restate";
 import {
   type BroadcastMail,
   EMAIL_DAILY,
@@ -27,9 +30,6 @@ import {
 } from "@wren/core/broadcasts";
 import { CalcomCalendar } from "@wren/core/calendar";
 import { findClient, settingsFor } from "@wren/core/clients";
-import { sitesHost } from "@wren/core/content/box";
-import { ingressSites } from "@wren/core/content/ingress";
-import { DESK, restateSites, type SitesService } from "@wren/core/content/restate";
 import { executorFire, type FireTriggers } from "@wren/core/executor";
 import { wrenFacts } from "@wren/core/facts";
 import { siteEdge } from "@wren/core/flag-store";

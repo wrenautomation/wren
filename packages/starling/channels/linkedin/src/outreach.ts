@@ -15,7 +15,7 @@
  * replies: the unread conversations in the inbox (one row per thread; the
  * preview is the text we have).
  */
-import type { SiteClient } from "@wren/core/content";
+import type { SiteClient } from "@wren/core/autobrowse";
 import {
   type AccountHealth,
   type Connection,

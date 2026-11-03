@@ -14,7 +14,7 @@ import * as restate from "@restatedev/restate-sdk";
 import { atomic, type Db, type Queryable } from "@wren/db";
 import { and, eq, gte, notInArray, sql } from "drizzle-orm";
 import { z } from "zod";
-import { DESK, SITES, type SitesHost } from "./content/restate.js";
+import { DESK, SITES, type SitesHost } from "./autobrowse/restate.js";
 import { clientSecretEvents, clientSecrets, type VaultKeyState, vaultKeys } from "./keys-schema.js";
 import type { Notifier } from "./notify.js";
 import { exclusiveHandler } from "./restate/form.js";

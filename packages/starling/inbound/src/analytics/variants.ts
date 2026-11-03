@@ -6,7 +6,7 @@
  * over time: each variant's window reads the post's days (views, the reach report's impressions
  * and CTR). The swap's own day counts for neither window.
  */
-import type { Platform } from "@wren/core/content";
+import type { Platform } from "@wren/core/autobrowse";
 import type { Queryable } from "@wren/db";
 import { hookOf, type PostPatch } from "@wren/starling-core";
 import { and, asc, eq, sql } from "drizzle-orm";

@@ -4,7 +4,7 @@
  * reading them through the API. Each lands as a review row like the API's, marked `source: maps`:
  * its reply is copied and posted on Google by hand.
  */
-import type { SiteClient } from "@wren/core/content";
+import type { SiteClient } from "@wren/core/autobrowse";
 import type { CommentRow } from "@wren/starling-core";
 
 /** Read this often per client: Maps is a browser read on the desk. */

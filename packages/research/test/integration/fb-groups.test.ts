@@ -4,7 +4,7 @@
  * a post that names a firm (by link, author or name) becomes a finding on it.
  */
 import { companies, people } from "@wren/core";
-import { SiteCallError, type SiteClient } from "@wren/core/content";
+import { SiteCallError, type SiteClient } from "@wren/core/autobrowse";
 import { resolveObjects } from "@wren/core/objects";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { eq, sql } from "drizzle-orm";

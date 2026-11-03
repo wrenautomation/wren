@@ -5,7 +5,7 @@
  * never posts a second one.
  */
 import type * as restate from "@restatedev/restate-sdk";
-import type { Platform } from "@wren/core/content";
+import type { Platform } from "@wren/core/autobrowse";
 import { errorText, LIMITS, within } from "@wren/core/restate";
 import { type Delivery, isDelivery } from "@wren/core/send-verdict";
 import type { Db } from "@wren/db";

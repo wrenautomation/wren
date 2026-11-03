@@ -30,7 +30,7 @@
  * `store.ts` writes.
  */
 import { isFreemail } from "@wren/core";
-import type { SiteClient } from "@wren/core/content";
+import type { SiteClient } from "@wren/core/autobrowse";
 import type { DocumentDraft, FindingDraft } from "../findings.js";
 import { Capped, paced, realSleep, refusedBy, type Stopped, searchStopped } from "../pacing.js";
 import type { FindingKind, LookupState } from "../schema.js";

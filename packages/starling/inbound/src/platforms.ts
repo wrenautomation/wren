@@ -3,7 +3,7 @@
  * and the shape the model is told to write. `postOf` turns a reviewed draft
  * into the channel port's `Post`.
  */
-import type { Platform } from "@wren/core/content";
+import type { Platform } from "@wren/core/autobrowse";
 import type { Media, Post } from "@wren/starling-core";
 import { fieldsOf, ShapeError } from "@wren/starling-core/shapes";
 import { carouselUnfit, isCarousel } from "@wren/starling-core/slides";
@@ -146,7 +146,7 @@ export function unfitReason(spec: PlatformSpec, media: Media | null | undefined)
 
 /**
  * Why these words can't be the draft's text, or null: the platform's cap, or for an X thread
- * 3 to 7 posts of 280 each (`@wren/core/content/thread`).
+ * 3 to 7 posts of 280 each (`@wren/starling-core/thread`).
  */
 export function wordsUnfit(
   d: { platform: Platform; extra?: Readonly<Record<string, unknown>> | null },

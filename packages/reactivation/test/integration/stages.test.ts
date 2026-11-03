@@ -3,7 +3,7 @@
  * seeded directly: who each stage picks, what it writes, and when it is due
  * again. Canned pages, a fake search and a fake LLM; no network.
  */
-import type { SiteClient } from "@wren/core/content";
+import type { SiteClient } from "@wren/core/autobrowse";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { FakeLlm, LlmError } from "@wren/llm";
 import { recordCompanyCheck } from "@wren/research/companies";

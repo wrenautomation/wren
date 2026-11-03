@@ -1,4 +1,4 @@
-import { SiteCallError, type SiteClient } from "@wren/core/content";
+import { SiteCallError, type SiteClient } from "@wren/core/autobrowse";
 import type { AccountRow } from "@wren/core/setup-schema";
 import { describe, expect, it } from "vitest";
 import { metaChecks } from "./setups.js";

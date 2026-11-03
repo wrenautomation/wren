@@ -4,7 +4,7 @@
  * search words rest when they find nothing on target, and the model's new ones are checked.
  * Every post here is synthetic, shaped like the cases the model caught on prod.
  */
-import { SiteCallError, type SiteClient } from "@wren/core/content";
+import { SiteCallError, type SiteClient } from "@wren/core/autobrowse";
 import { FakeLlm } from "@wren/llm";
 import { describe, expect, it } from "vitest";
 import { ownCircle, postActs } from "./acts.js";

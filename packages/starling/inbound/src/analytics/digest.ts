@@ -4,7 +4,7 @@
  * what to make next, and cadence against the goals. Built in code from rows we hold, kept in
  * `content_digests`, shown on the Overview and read into the next drafts' prompts. Never sent.
  */
-import { PLATFORMS, type Platform } from "@wren/core/content";
+import { PLATFORMS, type Platform } from "@wren/core/autobrowse";
 import type { Queryable } from "@wren/db";
 import { desc, sql } from "drizzle-orm";
 import { contentDigests, type DigestLine, formatSql } from "../schema.js";

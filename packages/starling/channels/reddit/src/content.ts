@@ -7,7 +7,7 @@
  * post's top-level thread; reply = `POST /api/comment`; activity = the
  * username mentions in the inbox; audience = the profile's followers.
  */
-import { type FetchedWith, SiteCallError, type SiteClient } from "@wren/core/content";
+import { type FetchedWith, SiteCallError, type SiteClient } from "@wren/core/autobrowse";
 import { redditCommentRef as commentRef } from "@wren/core/objects";
 import {
   type ActivityQuery,

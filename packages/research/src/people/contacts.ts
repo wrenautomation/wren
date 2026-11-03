@@ -6,7 +6,7 @@
  * current; someone whose firm role ended and who lists another current one
  * left. A headline that only mentions the firm is not employment.
  */
-import type { SiteClient } from "@wren/core/content";
+import type { SiteClient } from "@wren/core/autobrowse";
 import { paced, realSleep } from "../pacing.js";
 import { bareCompanyName, type Firm, firmNames, isFirm } from "./names.js";
 import { linkedinProfile } from "./profile-link.js";

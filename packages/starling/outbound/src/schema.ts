@@ -18,7 +18,7 @@
 import {
   PLATFORMS as CONTENT_PLATFORMS,
   type Platform as ContentPlatform,
-} from "@wren/core/content";
+} from "@wren/core/autobrowse";
 import { platformObjects } from "@wren/core/objects-schema";
 import { PASS_REASONS } from "@wren/core/pass-reasons";
 import { companies, people, runs } from "@wren/core/schema";

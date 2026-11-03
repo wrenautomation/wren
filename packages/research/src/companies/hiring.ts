@@ -16,7 +16,7 @@
  * No board and no LinkedIn = unresolved, never a guess. Pure over a Fetcher
  * and a SiteClient: it returns the finding and the trail, `store.ts` writes.
  */
-import type { SiteClient } from "@wren/core/content";
+import type { SiteClient } from "@wren/core/autobrowse";
 import { FetchError, type Fetcher } from "@wrenautomation/read/fetch";
 import { readPage } from "@wrenautomation/read/text";
 import type { CompanyFindingDraft } from "../findings.js";

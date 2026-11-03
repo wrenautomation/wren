@@ -3,7 +3,7 @@
  * (`marketing_draft_records`) and published ones (`marketing_post_records`).
  */
 import { draftTurns } from "@wren/core/ask";
-import type { Platform } from "@wren/core/content";
+import type { Platform } from "@wren/core/autobrowse";
 import { recordOfPage } from "@wren/core/draft-record";
 import {
   accountField,

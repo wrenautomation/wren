@@ -3,7 +3,7 @@
  * through their public APIs; LinkedIn only when allowed and needed; nothing
  * guessed. Canned pages and a fake SiteClient, no network.
  */
-import { SiteCallError, type SiteClient } from "@wren/core/content";
+import { SiteCallError, type SiteClient } from "@wren/core/autobrowse";
 import { FetchError, type Fetcher, type FetchResponse } from "@wrenautomation/read/fetch";
 import { describe, expect, it } from "vitest";
 import { findBoards, readBoard } from "./boards.js";

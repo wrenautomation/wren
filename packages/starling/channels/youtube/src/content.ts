@@ -10,7 +10,7 @@
  * reportDays = the Reporting API's reach report (same scope): thumbnail impressions and CTR per
  * video per day, the only place YouTube gives them. The first read starts the job.
  */
-import type { FetchedWith, SiteClient } from "@wren/core/content";
+import type { FetchedWith, SiteClient } from "@wren/core/autobrowse";
 import {
   type AccountInsights,
   type ActivityQuery,

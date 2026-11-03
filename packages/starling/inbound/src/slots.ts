@@ -8,7 +8,7 @@
  * over the days instead of piling onto one hour. `--at` still wins, and
  * `--now` posts on the next pass.
  */
-import { PLATFORMS, type Platform } from "@wren/core/content";
+import { PLATFORMS, type Platform } from "@wren/core/autobrowse";
 import { nudgeFixed } from "@wren/core/epsilon";
 import { wallClock, zonedInstant } from "@wren/core/time";
 

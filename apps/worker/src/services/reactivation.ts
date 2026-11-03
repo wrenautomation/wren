@@ -3,8 +3,8 @@
  */
 
 import { ingressOf } from "@wren/config";
-import { sitesHost } from "@wren/core/content/box";
-import { ingressSites } from "@wren/core/content/ingress";
+import { sitesHost } from "@wren/core/autobrowse/box";
+import { ingressSites } from "@wren/core/autobrowse/ingress";
 import { meteredModel, meteredSites } from "@wren/core/metered";
 import { llmForKey } from "@wren/llm";
 import { makeCrmRun, makeReactivation, makeReactivationPortal } from "@wren/reactivation/restate";

@@ -4,7 +4,7 @@
  * The shortfall is the ask: "LinkedIn 1 of 2, 3 drafts wait for you".
  * The planner loop sends it once a day and, when told to, fills the open slots from `nextIdea`.
  */
-import type { Platform } from "@wren/core/content";
+import type { Platform } from "@wren/core/autobrowse";
 import { wallClock, zonedInstant } from "@wren/core/time";
 import type { Queryable } from "@wren/db";
 import { and, asc, count, eq, gte, inArray, isNull, lt, notInArray } from "drizzle-orm";

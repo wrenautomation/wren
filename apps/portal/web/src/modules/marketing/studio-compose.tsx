@@ -6,7 +6,7 @@
  * The line and the angle go with the words and stay on the idea: the waiting board shows the line.
  */
 
-import type { Platform } from "@wren/core/content";
+import type { Platform } from "@wren/core/autobrowse";
 import type { MetroLine } from "@wren/pipeline/metro";
 import { THREAD_MAX, THREAD_MIN, threadPosts, X_POST_MAX } from "@wren/starling-core/thread";
 import {

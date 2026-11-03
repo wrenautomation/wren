@@ -14,7 +14,7 @@
  * publish can be looked for; `metrics` and `comments` want the Graph path
  * and say so plainly.
  */
-import type { SiteClient } from "@wren/core/content";
+import type { SiteClient } from "@wren/core/autobrowse";
 import {
   type CommentRow,
   type ContentChannel,

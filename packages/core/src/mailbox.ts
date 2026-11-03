@@ -4,7 +4,7 @@
  * holds consent for (a personal Gmail), read only through its `gmail` site. The books read bills
  * through it; the Monitor reads the rest.
  */
-import type { SiteClient } from "./content/index.js";
+import type { SiteClient } from "./autobrowse/index.js";
 import { decodeHtml } from "./html.js";
 import { decodeEncodedWords, parseAddr } from "./mail.js";
 

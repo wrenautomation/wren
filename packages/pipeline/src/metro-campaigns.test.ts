@@ -1,4 +1,4 @@
-import { PLATFORMS } from "@wren/core/content";
+import { PLATFORMS } from "@wren/core/autobrowse";
 import { describe, expect, it } from "vitest";
 import { ctx, metroShape } from "../test/fixtures.js";
 import { checkMetro, type MetroBody } from "./metro.js";

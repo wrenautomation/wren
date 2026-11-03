@@ -12,8 +12,8 @@ import {
   makeConnectors,
 } from "@wren/connectors";
 import { makeAccountsConsole } from "@wren/core/accounts/console";
-import { sitesHost } from "@wren/core/content/box";
-import { DESK, journaledSites, restateSites } from "@wren/core/content/restate";
+import { sitesHost } from "@wren/core/autobrowse/box";
+import { DESK, journaledSites, restateSites } from "@wren/core/autobrowse/restate";
 import { delegatedMailbox } from "@wren/core/mailbox";
 import { meteredSites } from "@wren/core/metered";
 import { dbSendJournal } from "@wren/core/send-journal";

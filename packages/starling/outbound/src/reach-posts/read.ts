@@ -1,6 +1,6 @@
 /** The platform reads: each site's posts as one `FeedPost` shape, through autobrowse as the account. */
 
-import { capWaitMs, type SiteClient } from "@wren/core/content";
+import { capWaitMs, type SiteClient } from "@wren/core/autobrowse";
 import type { ReachPostPlatform } from "../schema.js";
 
 /**

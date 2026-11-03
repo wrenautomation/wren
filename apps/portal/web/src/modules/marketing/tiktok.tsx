@@ -1,6 +1,6 @@
 /**
  * A TikTok post's settings as TikTok's Direct Post rules ask (developers.tiktok.com/doc/
- * content-sharing-guidelines, `@wren/core/content/tiktok`): the account it posts to, who can see
+ * content-sharing-guidelines, `@wren/starling-core/tiktok`): the account it posts to, who can see
  * it with nothing picked for you, comments, duets and stitches off until turned on and greyed
  * where the account turned them off, the content disclosure with its labels, the video against the
  * account's longest, and TikTok's declaration above the yes. Each choice saves as it's made.

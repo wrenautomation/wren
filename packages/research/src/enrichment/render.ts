@@ -15,7 +15,7 @@
  */
 import { createHash } from "node:crypto";
 import { type Company, companies, inPlay } from "@wren/core";
-import type { SiteClient, SiteMethod } from "@wren/core/content";
+import type { SiteClient, SiteMethod } from "@wren/core/autobrowse";
 import { atomic, type Queryable } from "@wren/db";
 import {
   type Fetcher,

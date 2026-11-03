@@ -1,7 +1,7 @@
 /** His calls on a post (comment, like, follow, skip) and the likes and follows sent with no yes. */
 
 import { keepSentEdit } from "@wren/core/ask";
-import { type CapHolds, capHeld, holdCap, SiteCallError, untilUtcDay } from "@wren/core/content";
+import { type CapHolds, capHeld, holdCap, SiteCallError, untilUtcDay } from "@wren/core/autobrowse";
 import { recordDraft } from "@wren/core/draft-record";
 import type { RejectReason } from "@wren/core/reject-reasons";
 import type { Queryable } from "@wren/db";

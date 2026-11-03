@@ -3,7 +3,7 @@
  * into every draft prompt for that platform. The newest row wins; pushing
  * the same text again stores nothing.
  */
-import type { Platform } from "@wren/core/content";
+import type { Platform } from "@wren/core/autobrowse";
 import type { Queryable } from "@wren/db";
 import {
   draftScope,

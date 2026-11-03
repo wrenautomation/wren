@@ -7,7 +7,7 @@
  * (WA-1012), else it waits on a person in To approve. A refusal or a send that never left
  * releases it; the next send makes a new key.
  */
-import { keyedWaitEnds } from "@wren/core/content/restate";
+import { keyedWaitEnds } from "@wren/core/autobrowse/restate";
 import { newSendKey, type VerdictNext, type WriteAsk } from "@wren/core/send-verdict";
 import type { Queryable } from "@wren/db";
 import { and, eq, gt, inArray, isNotNull, isNull, lte, not, type SQL, sql } from "drizzle-orm";

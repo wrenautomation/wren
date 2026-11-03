@@ -8,8 +8,8 @@ import * as clients from "@restatedev/restate-sdk-clients";
 import { ingressOf, loadEnvFile, loadSettings } from "@wren/config";
 import { WREN } from "@wren/core/access";
 import { type AuditSealer, SEALER_KEY } from "@wren/core/audit";
+import { RENEWAL_KEY, type TokenRenewal } from "@wren/core/autobrowse/renewal";
 import { type Client, clientUrl, getClient, listClients } from "@wren/core/clients";
-import { RENEWAL_KEY, type TokenRenewal } from "@wren/core/content/renewal";
 import { githubRepo } from "@wren/core/github";
 import { linkPeople } from "@wren/core/leads";
 import {
