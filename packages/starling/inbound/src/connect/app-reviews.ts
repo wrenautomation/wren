@@ -122,7 +122,8 @@ const why = (table: Record<string, string>, scopes: readonly string[]) =>
   scopes.map((s) => [s, table[s] ?? "Not described yet."] as const);
 
 const META_SCOPES = [...new Set([...SOCIAL.facebook.scopes, ...SOCIAL.instagram.scopes])];
-const GOOGLE_SCOPES = [...SOCIAL.youtube.scopes, ...SOCIAL.google_business.scopes];
+/** YouTube only: business.manage waits on a Business Profile verified 60 days (`google-business`). */
+const GOOGLE_SCOPES = SOCIAL.youtube.scopes;
 
 export const REVIEWS: readonly Review[] = [
   {
@@ -193,13 +194,12 @@ export const REVIEWS: readonly Review[] = [
     id: "google-oauth",
     name: "Google OAuth verification (sensitive scopes)",
     app: "google",
-    unlocks: ["youtube", "google_business"],
+    unlocks: ["youtube"],
     where: "https://console.cloud.google.com/auth/verification?project=wren-social",
     after: [],
     needs: [
       ...keys("GOOGLE"),
       cb("youtube"),
-      cb("google_business"),
       GOOGLE_LLM,
       privacy(
         ["Google API Services User Data Policy", "Limited Use"],
@@ -214,7 +214,7 @@ export const REVIEWS: readonly Review[] = [
       ["Application privacy policy link", PRIVACY],
       ["Application terms of service link", TERMS],
       ["Authorized domains", "wrenautomation.com"],
-      ["Authorized redirect URIs", `${callbackOf("youtube")}, ${callbackOf("google_business")}`],
+      ["Authorized redirect URIs", callbackOf("youtube")],
       ["Description", DESCRIPTION],
     ],
     scopes: why(GOOGLE_WHY, GOOGLE_SCOPES),
@@ -225,11 +225,11 @@ export const REVIEWS: readonly Review[] = [
       "Marketing, Content: approve a video and upload it; show it on YouTube Studio (youtube.upload).",
       "A comment on the video shows in Marketing, Inbox; approve a reply; show it on YouTube (youtube.force-ssl).",
       "Marketing, Reports: the video's views and likes (youtube.readonly).",
-      "Connect Google Business Profile the same way: a post published, a review read into the Inbox and answered (business.manage).",
-      "Disconnect in Account, Social; show the app gone from myaccount.google.com/permissions after removing it there.",
+      "Disconnect in Account, Social: the channel shows Not connected.",
     ],
     open: [
       "Upload the video unlisted on YouTube; the form takes its link.",
+      "Before filing, remove business.manage from the consent screen's Data Access, so the filing asks for YouTube only.",
       "Limited Use: a client's Google data (YouTube comments, Business Profile reviews, Gmail) reaches only WREN_GOOGLE_LLM, and nothing while it's unset. Prod sets it to an Anthropic model (2026-10-23): Anthropic's API doesn't train on input.",
     ],
   },
