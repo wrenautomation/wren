@@ -1265,3 +1265,12 @@ monthly credits) and Cohere read instead.
   - Hosted transcript services break the self-host rule.
   Chosen: download, then Claude reads the frames, and only on the agent's ask.
 - Not done: media cached in our bucket, so nothing downloads twice (WA-1029).
+
+## 11-03: a video downloads once; Graph's link before yt-dlp; 6 seen a run (engine 0.33.0, WA-1029)
+
+William: browser and scraping only as a fallback, nothing that trips a rate limit, use the bucket, watch the cost.
+- Checked live: Graph `business_discovery` gives `media_url` (a signed cdninstagram mp4) for other business and creator accounts' reels. So a reel comes from Meta's CDN on our token, not from a logged-out yt-dlp fetch on the home IP. yt-dlp stays for personal accounts Graph can't see. The link expires, so a store keeps the file, not the link.
+- Options for where downloads live: (a) the media bucket only; (b) the Mac's disk only; (c) one port, each host its own store; (d) cache only the read, not the file. Ranked by: no second download on any host, $ (10 GB of reels in S3 is about $0.25 a month), no new infra. Took (c): `MediaStore` (get/put by `<platform>/<id>`, `mediaKey`) in read, `dirStore` on the Mac (5 GB, oldest out), wren's S3 store under the media bucket's `cache/` prefix with a lifecycle rule. (d) alone fails a re-read with another look (`--see` after a caption read).
+- Order in `download`: the store, the direct link, yt-dlp; a fresh file goes into the store.
+- `open --see`: 6 videos a run at most (about $1.80), counted from the run's spends. The agent can't raise it; William can.
+- Release: `pnpm release [patch|minor|<floor>]` takes the next free version past every tag, one release at a time, and retries a lost race; it no longer fails on peers' dirty files.
