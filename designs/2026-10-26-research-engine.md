@@ -1196,3 +1196,7 @@ machine cannot run: they search nothing) and `sourcesUnused`, and carries `recal
 earlier runs found on the ask's text). The `yield` command went: the brief had it. `recall`
 and `sources` stay as pre-plan reads only. What stays behind a command is what is not lean:
 `trace` (every record), `show` (a page's text).
+
+0.30.11: the first live brief listed the run's own openers (hn, fetcher, ladder) as unused,
+a read that would send the agent adding them to a plan. The brief now carries `opens` (the
+openers let in beside the allow-list) and `sourcesUnused` names only what the run has not.
