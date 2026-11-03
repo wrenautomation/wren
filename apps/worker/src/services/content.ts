@@ -4,7 +4,6 @@
  * the site chat.
  */
 import type { ObjectContext } from "@restatedev/restate-sdk";
-import { placeIdOf } from "@wren/starling-sms";
 import { restateAdmin } from "@wren/core/console";
 import { asAccount, type Platform } from "@wren/core/content";
 import { DESK, restateSites } from "@wren/core/content/restate";
@@ -39,6 +38,7 @@ import {
 } from "@wren/starling-inbound/restate";
 import { makeAds, makeAdsWatch } from "@wren/starling-meta/restate";
 import { wakeWatch } from "@wren/starling-outbound/restate";
+import { placeIdOf } from "@wren/starling-sms";
 import { tiktokCreator } from "@wren/starling-tiktok";
 import { clientMarketing } from "../marketing.js";
 import { adsFor, contentClientsFor, contentFor } from "./content-channels.js";

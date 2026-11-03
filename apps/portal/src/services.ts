@@ -15,11 +15,6 @@ import {
   CALENDAR_CONSOLE_WRITES,
 } from "@wren/calendar/console-routes";
 import {
-  SMS_CONSOLE_APPS,
-  SMS_CONSOLE_ROUTES,
-  SMS_CONSOLE_WRITES,
-} from "@wren/starling-sms/console-routes";
-import {
   CONNECTORS_APPS,
   CONNECTORS_ROUTES,
   CONNECTORS_WRITES,
@@ -108,6 +103,11 @@ import {
   SOCIAL_ACCESS_ROUTES,
   SOCIAL_ACCESS_WRITES,
 } from "@wren/starling-inbound/connect/routes";
+import {
+  SMS_CONSOLE_APPS,
+  SMS_CONSOLE_ROUTES,
+  SMS_CONSOLE_WRITES,
+} from "@wren/starling-sms/console-routes";
 import {
   VOICE_CONSOLE_APPS,
   VOICE_CONSOLE_ROUTES,

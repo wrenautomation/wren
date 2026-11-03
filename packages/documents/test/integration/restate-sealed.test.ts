@@ -6,12 +6,12 @@
  * A fake Documenso and a fake bucket, synthetic data, no network, no mail sent.
  */
 import { createHash } from "node:crypto";
-import { smsContacts } from "@wren/starling-sms/schema";
 import { addClient, addOperator, updateClient } from "@wren/core/clients";
 import { pgKeyStore, throwawayRing } from "@wren/core/keys";
 import { startTestRestate } from "@wren/core/testing";
 import { cachedDb, clientDatabaseUrl } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
+import { smsContacts } from "@wren/starling-sms/schema";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { documentsConsoleApi, makeDocumentsConsole } from "../../src/console.js";
 import { documenso } from "../../src/documenso.js";

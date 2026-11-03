@@ -4,7 +4,6 @@
  */
 import { BOOKS_COMPONENTS } from "@wren/books/components";
 import { CALENDAR_COMPONENTS } from "@wren/calendar/components";
-import { SMS_COMPONENTS } from "@wren/starling-sms/components";
 import type { Component } from "@wren/core/components";
 import { FACTS_COMPONENTS } from "@wren/core/facts";
 import { FOLLOW_COMPONENTS } from "@wren/core/follow";
@@ -21,6 +20,7 @@ import { CONTENT_COMPONENTS } from "@wren/starling-inbound/components";
 import { META_COMPONENTS } from "@wren/starling-meta/components";
 import { OUTREACH_COMPONENTS } from "@wren/starling-outbound/components";
 import { SEARCH_COMPONENTS } from "@wren/starling-search/components";
+import { SMS_COMPONENTS } from "@wren/starling-sms/components";
 import { VOICE_COMPONENTS } from "@wren/voice/components";
 import { MAIL_COMPONENTS, WATCH_COMPONENTS } from "@wren/watch/components";
 import { PLANNED_COMPONENTS } from "./planned.js";

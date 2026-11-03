@@ -3,25 +3,6 @@
  */
 import { billsStep } from "@wren/books";
 import { BOOKS_KEY } from "@wren/books/restate";
-import {
-  clientSms,
-  firstTextStep,
-  LINK_ORIGIN,
-  placeIdOf,
-  reviewStep,
-  textBackStep,
-  touchStep,
-} from "@wren/starling-sms";
-import {
-  MISSED_CALL,
-  missedCallSettingsSchema,
-  REVIEW_STEP,
-  REVIEWS,
-  reviewsSettingsSchema,
-  TEXT_BACK,
-  TOUCH,
-} from "@wren/starling-sms/components";
-import { SENDER_KEY } from "@wren/starling-sms/restate";
 import { ingressOf } from "@wren/config";
 import { findClient, sendsOn } from "@wren/core/clients";
 import type { Platform } from "@wren/core/content";
@@ -60,6 +41,25 @@ import { EMAIL_TOUCH } from "@wren/starling-email/components";
 import { commentGuide } from "@wren/starling-inbound";
 import { askFollowEmail } from "@wren/starling-inbound/inbox";
 import { touchStep as reachTouchStep, sortStep } from "@wren/starling-outbound";
+import {
+  clientSms,
+  firstTextStep,
+  LINK_ORIGIN,
+  placeIdOf,
+  reviewStep,
+  textBackStep,
+  touchStep,
+} from "@wren/starling-sms";
+import {
+  MISSED_CALL,
+  missedCallSettingsSchema,
+  REVIEW_STEP,
+  REVIEWS,
+  reviewsSettingsSchema,
+  TEXT_BACK,
+  TOUCH,
+} from "@wren/starling-sms/components";
+import { SENDER_KEY } from "@wren/starling-sms/restate";
 import { CALL_NOW, callNowStep } from "@wren/voice/node";
 import { clientTriageStep, triageStep, mail as watchMail } from "@wren/watch";
 import { geminiReader } from "@wrenautomation/read/video";

@@ -3,11 +3,11 @@
  * events on the main database; a paid thread's mark on the owner's own (`markContactPaid`).
  */
 import { createHash } from "node:crypto";
-import { smsContacts } from "@wren/starling-sms/schema";
 import { clients } from "@wren/core/clients";
 import { UUID } from "@wren/core/ids";
 import { PortalRefusal } from "@wren/core/refusal";
 import { atomic, type Db, type Queryable, type Tx } from "@wren/db";
+import { smsContacts } from "@wren/starling-sms/schema";
 import { and, asc, eq, gt, inArray, isNotNull, isNull, lt, notInArray, or, sql } from "drizzle-orm";
 import {
   type PayAccount,

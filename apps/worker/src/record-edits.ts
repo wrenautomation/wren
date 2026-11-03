@@ -6,14 +6,7 @@
  * A keyword reply (HELP, START, STOP) also sets the provider's own answer, which a database write
  * can't do: those keep the Edit action, which goes through `SmsDesk/setTemplate`.
  */
-import {
-  listTemplates as listTexts,
-  type SmsSequence,
-  textRef,
-  slotsOf as textSlotsOf,
-} from "@wren/starling-sms";
-import { textCopyRecord } from "@wren/starling-sms/records";
-import { checkBody as checkText, keywordOf, type TemplateSlot } from "@wren/starling-sms/templates";
+
 import { wordsPatch } from "@wren/core/edits";
 import { PortalRefusal } from "@wren/core/portal";
 import type { RecordType } from "@wren/core/records";
@@ -31,6 +24,14 @@ import {
   REACH_SEQUENCES,
 } from "@wren/starling-outbound";
 import { dmCopyRecord } from "@wren/starling-outbound/records";
+import {
+  listTemplates as listTexts,
+  type SmsSequence,
+  textRef,
+  slotsOf as textSlotsOf,
+} from "@wren/starling-sms";
+import { textCopyRecord } from "@wren/starling-sms/records";
+import { checkBody as checkText, keywordOf, type TemplateSlot } from "@wren/starling-sms/templates";
 
 /** Only the words: the rest of a copy row is its slot's, fixed in code. */
 const PATCH = wordsPatch({ body: MESSAGE_MAX });

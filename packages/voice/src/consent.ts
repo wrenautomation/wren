@@ -10,9 +10,10 @@
  *
  * `placeCall` is the only way out, and it asks `mayDial` first. Inbound and test calls skip it.
  */
-import { DEFAULT_POLICY, inWindow } from "@wren/starling-sms";
+
 import { activeSuppressionOf } from "@wren/core";
 import type { Db, Queryable } from "@wren/db";
+import { DEFAULT_POLICY, inWindow } from "@wren/starling-sms";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import type { AgentSettings } from "./agent.js";
 import { type PhoneConsent, phoneConsents } from "./schema.js";

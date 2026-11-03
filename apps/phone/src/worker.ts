@@ -62,6 +62,7 @@
  * The Worker holds no data but a link's or a drop's ciphertext: the inbox is Postgres, read through Restate.
  */
 import { AUDIENCE, bearer, type Signed, verifyToken } from "@wren/auth/verify";
+import { readBody } from "@wren/core/http";
 import {
   ourNumber,
   SIGNATURE_HEADER,
@@ -73,7 +74,6 @@ import {
   verifyStandardWebhook,
   verifyTelnyx,
 } from "@wren/starling-sms/webhook";
-import { readBody } from "@wren/core/http";
 import type { Env } from "./env.js";
 
 export const DESK_HANDLERS: ReadonlySet<string> = new Set([

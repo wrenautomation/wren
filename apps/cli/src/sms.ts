@@ -8,6 +8,10 @@
  */
 import { readFile } from "node:fs/promises";
 import * as clients from "@restatedev/restate-sdk-clients";
+import { ingressOf, type Settings } from "@wren/config";
+import { clientKey } from "@wren/core/restate";
+import type { Db } from "@wren/db";
+import { SMS_SEQUENCES } from "@wren/niches";
 import {
   CONTACT_BASES,
   type ContactBasis,
@@ -31,10 +35,6 @@ import {
   type SmsWatchObject,
   WATCH_KEY,
 } from "@wren/starling-sms/restate";
-import { ingressOf, type Settings } from "@wren/config";
-import { clientKey } from "@wren/core/restate";
-import type { Db } from "@wren/db";
-import { SMS_SEQUENCES } from "@wren/niches";
 import type { Command } from "commander";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;

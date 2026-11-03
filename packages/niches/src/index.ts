@@ -4,7 +4,6 @@
  * (niche, name). Crawl hints and discovery words union when unscoped.
  */
 
-import { FORM_SEQUENCES, type SmsSequence, SPEED_SEQUENCES } from "@wren/starling-sms";
 import {
   BUILTIN_FORMATS,
   BUILTIN_PERSON_FORMATS,
@@ -14,6 +13,7 @@ import {
 import { nameParts } from "@wren/core/templates/labels";
 import type { Dataset } from "@wren/research/fetch";
 import { pyReprStr } from "@wren/starling-email";
+import { FORM_SEQUENCES, type SmsSequence, SPEED_SEQUENCES } from "@wren/starling-sms";
 import { agencies } from "./agencies.js";
 import type { Niche } from "./niche.js";
 import { recruiting } from "./recruiting.js";

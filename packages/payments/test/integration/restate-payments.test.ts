@@ -9,13 +9,13 @@
 import * as restate from "@restatedev/restate-sdk";
 import * as restateClients from "@restatedev/restate-sdk-clients";
 import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
-import { smsContacts } from "@wren/starling-sms/schema";
 import { addClient, addOperator, clients } from "@wren/core/clients";
 import type { Fired } from "@wren/core/executor";
 import { pgKeyStore, throwawayRing } from "@wren/core/keys";
 import { startTestRestate } from "@wren/core/testing";
 import { cachedDb, clientDatabaseUrl, type Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
+import { smsContacts } from "@wren/starling-sms/schema";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { PAY_LINKS } from "../../src/components.js";

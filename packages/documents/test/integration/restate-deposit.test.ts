@@ -5,7 +5,7 @@
  * refunded; a failed bank payment gets a new link). A fake Stripe, synthetic data, no network,
  * no charge. Calls go to Restate's ingress by plain HTTP.
  */
-import { smsContacts } from "@wren/starling-sms/schema";
+
 import { addClient, addOperator } from "@wren/core/clients";
 import { pgKeyStore, throwawayRing } from "@wren/core/keys";
 import { startTestRestate } from "@wren/core/testing";
@@ -14,6 +14,7 @@ import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { paymentsConsoleApi } from "@wren/payments/console";
 import { payLinks } from "@wren/payments/schema";
 import type { Fetch } from "@wren/payments/stripe";
+import { smsContacts } from "@wren/starling-sms/schema";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { documentsConsoleApi } from "../../src/console.js";

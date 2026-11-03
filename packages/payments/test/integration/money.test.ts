@@ -6,11 +6,12 @@
  * asked again; and reconcile healing what a dropped webhook missed and flagging what it can't.
  * A fake Stripe, synthetic data, no network, no charge.
  */
-import { smsContacts } from "@wren/starling-sms/schema";
+
 import { addClient, addOperator, clients } from "@wren/core/clients";
 import { pgKeyStore, throwawayRing } from "@wren/core/keys";
 import { cachedDb, clientDatabaseUrl, type Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
+import { smsContacts } from "@wren/starling-sms/schema";
 import { and, eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { paymentsConsoleApi } from "../../src/console.js";

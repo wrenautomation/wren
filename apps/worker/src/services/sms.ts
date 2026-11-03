@@ -1,6 +1,8 @@
 /**
  * Cold SMS: the sender, events, reviews, desk, watch, site forms and console.
  */
+
+import { liveCampaignsOf } from "@wren/pipeline/store";
 import {
   callHooks,
   makeReviews,
@@ -11,7 +13,6 @@ import {
   makeSmsSender,
   makeSmsWatch,
 } from "@wren/starling-sms/restate";
-import { liveCampaignsOf } from "@wren/pipeline/store";
 import type { AnyService, Deps } from "./deps.js";
 
 /** The sms domain's services, in the order they were served from `services.ts`. */

@@ -6,7 +6,6 @@
  * followers per platform (`marketing.audience`).
  */
 
-import { threadRecord as textThreadRecord } from "@wren/starling-sms/records";
 import { draftTurns } from "@wren/core/ask";
 import { broadcastLine, waitingBroadcasts } from "@wren/core/broadcasts";
 import { pickStates, picksOf } from "@wren/core/decide";
@@ -51,6 +50,7 @@ import {
   PLATFORM_LABELS,
   threadRecord,
 } from "@wren/starling-outbound/records";
+import { threadRecord as textThreadRecord } from "@wren/starling-sms/records";
 import { and, eq, sql } from "drizzle-orm";
 import { waitingSwaps } from "../analytics/variants.js";
 import { DRAFT_CALLS } from "../draft-calls.js";

@@ -1,6 +1,5 @@
 /** The Marketing app's records, from each channel that keeps the numbers. */
 
-import { textContactRecord } from "@wren/starling-sms/records";
 import { factsRecord } from "@wren/core/facts";
 import { accountSource } from "@wren/core/record-accounts";
 import {
@@ -29,6 +28,7 @@ import {
   searchDayRecord,
   searchPageRecord,
 } from "@wren/starling-search/records";
+import { textContactRecord } from "@wren/starling-sms/records";
 
 // The accounts a record can be on: the Account filter's labels, read before records are served.
 accountSource(recordAccountsOf);

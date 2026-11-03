@@ -6,7 +6,7 @@
  * request shapes against Stripe's own spec `stripe-mock.test.ts`. Keys go through the key
  * store by ref, as the portal stages them. No network, no charge. Synthetic data only.
  */
-import { smsContacts } from "@wren/starling-sms/schema";
+
 import { addClient, addOperator, clients } from "@wren/core/clients";
 import { pgKeyStore, throwawayRing } from "@wren/core/keys";
 import { clientSecretEvents } from "@wren/core/keys-schema";
@@ -14,6 +14,7 @@ import { clientAccounts } from "@wren/core/setup-schema";
 import { vendorModes } from "@wren/core/vendor-schema";
 import { cachedDb, clientDatabaseUrl, type Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
+import { smsContacts } from "@wren/starling-sms/schema";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { paymentsConsoleApi } from "../../src/console.js";

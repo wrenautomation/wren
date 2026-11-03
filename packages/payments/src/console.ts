@@ -17,8 +17,6 @@
  * its row and never makes a second link. A key is never read back, and no card ever reaches us.
  */
 import type * as restate from "@restatedev/restate-sdk";
-import { toPhoneE164 } from "@wren/starling-sms";
-import { smsContacts } from "@wren/starling-sms/schema";
 import { mayApprove } from "@wren/core/access";
 import { type Client, findClient } from "@wren/core/clients";
 import { UUID } from "@wren/core/ids";
@@ -54,6 +52,8 @@ import { addAccount } from "@wren/core/setup";
 import { vendorModes } from "@wren/core/vendor-schema";
 import { setOwnKey } from "@wren/core/vendors";
 import { snapshot } from "@wren/db";
+import { toPhoneE164 } from "@wren/starling-sms";
+import { smsContacts } from "@wren/starling-sms/schema";
 import { and, count, eq, gt, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { PAYMENTS_CONSOLE_APPS, PAYMENTS_CONSOLE_ROUTES } from "./console-routes.js";

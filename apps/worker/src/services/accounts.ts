@@ -3,7 +3,6 @@
  * access with their callbacks, the social inbox, the mail reader and marketing bounces.
  */
 
-import { findPlace, PLACE_FINDER } from "@wren/starling-sms";
 import { CONTENT_CHANNELS } from "@wren/config";
 import {
   connectorAccess,
@@ -31,6 +30,7 @@ import {
 } from "@wren/starling-inbound/connect";
 import { makeMailReply, makeSocialInbox } from "@wren/starling-inbound/restate";
 import { WREN_LIMITS } from "@wren/starling-outbound/limits";
+import { findPlace, PLACE_FINDER } from "@wren/starling-sms";
 import { makeMailReader } from "@wren/watch/clients";
 import { SETUPS } from "../setups.js";
 import type { AnyService, Deps } from "./deps.js";

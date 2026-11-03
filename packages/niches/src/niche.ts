@@ -6,7 +6,6 @@
  * and one registry entry; nothing in core, research or channel-email branches on a niche name.
  */
 
-import { checkSequence, type SmsSequence } from "@wren/starling-sms";
 import type { Company, CompanyScreen, PersonSourceFormat, SourceFormat } from "@wren/core";
 import { OFFER_PAGES, offerFacts, offerFor } from "@wren/offers";
 import type { Dataset } from "@wren/research/fetch";
@@ -19,6 +18,7 @@ import {
   recontactPolicy,
   type Sequence,
 } from "@wren/starling-email";
+import { checkSequence, type SmsSequence } from "@wren/starling-sms";
 
 export interface Niche {
   readonly name: string;

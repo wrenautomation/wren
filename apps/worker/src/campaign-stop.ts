@@ -3,13 +3,14 @@
  * (designs/2026-11-02-campaigns.md, phase 4): the email enrollment, the reach contact, the SMS
  * contact. The person is found by their profile's keys; each channel stops its own rows.
  */
-import { stopCampaignTexts } from "@wren/starling-sms";
+
 import { keysOfProfile } from "@wren/core/profiles";
 import type { Queryable } from "@wren/db";
 import type { CampaignStop } from "@wren/pipeline/steps";
 import type { StopReason } from "@wren/starling-email/schema";
 import { stopCampaignEnrollments } from "@wren/starling-email/send";
 import { stopCampaignContacts } from "@wren/starling-outbound";
+import { stopCampaignTexts } from "@wren/starling-sms";
 
 /** The email stop reason a winning cause stands for; any other is an operator's call. */
 const REASON: Partial<Record<string, StopReason>> = { reply: "reply", booking: "booked" };

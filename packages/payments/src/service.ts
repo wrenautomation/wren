@@ -16,7 +16,6 @@
  * returned from it, so neither lands in Restate's journal.
  */
 import * as restate from "@restatedev/restate-sdk";
-import type { SmsDeskService } from "@wren/starling-sms/restate";
 import { type Client, findClient, sendsOn } from "@wren/core/clients";
 import type { Fired, FireTriggers } from "@wren/core/executor";
 import type { KeyStore } from "@wren/core/keys";
@@ -25,6 +24,7 @@ import { setUp } from "@wren/core/refusal";
 import { serviceHandler } from "@wren/core/restate";
 import { vendorModes } from "@wren/core/vendor-schema";
 import type { Db } from "@wren/db";
+import type { SmsDeskService } from "@wren/starling-sms/restate";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { PAY_LINKS } from "./components.js";

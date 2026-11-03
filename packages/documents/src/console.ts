@@ -12,8 +12,6 @@
  * - `templateSave`, `templateArchive`: the client's templates.
  */
 import type * as restate from "@restatedev/restate-sdk";
-import { toPhoneE164 } from "@wren/starling-sms";
-import { smsContacts } from "@wren/starling-sms/schema";
 import { mayApprove } from "@wren/core/access";
 import { type Client, findClient } from "@wren/core/clients";
 import { customFacts } from "@wren/core/custom-fields";
@@ -46,6 +44,8 @@ import {
 import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import { snapshot } from "@wren/db";
+import { toPhoneE164 } from "@wren/starling-sms";
+import { smsContacts } from "@wren/starling-sms/schema";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { DOCUMENTS_CONSOLE_APPS, DOCUMENTS_CONSOLE_ROUTES } from "./console-routes.js";

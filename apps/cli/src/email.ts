@@ -8,7 +8,6 @@ import { randomUUID } from "node:crypto";
 import { statSync } from "node:fs";
 import { resolve } from "node:path";
 import * as clients from "@restatedev/restate-sdk-clients";
-import { CalcomBookings } from "@wren/starling-sms";
 import { ingressOf, type Settings } from "@wren/config";
 import {
   type Company,
@@ -61,6 +60,7 @@ import {
   variantOutcomes,
 } from "@wren/starling-email";
 import type { QueueRefresh } from "@wren/starling-email/restate";
+import { CalcomBookings } from "@wren/starling-sms";
 import { expandHome } from "@wrenautomation/autobrowse/google";
 import type { Command } from "commander";
 import { desc, gte, inArray, sql } from "drizzle-orm";

@@ -4,10 +4,11 @@
  * token's hash, an open, a signature checked against the text shown, the PDF, void and expiry.
  * Synthetic data only.
  */
-import { smsContacts } from "@wren/starling-sms/schema";
+
 import { addClient, addOperator } from "@wren/core/clients";
 import { cachedDb, clientDatabaseUrl } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
+import { smsContacts } from "@wren/starling-sms/schema";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { documentsConsoleApi } from "../../src/console.js";

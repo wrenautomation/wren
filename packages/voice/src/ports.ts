@@ -16,9 +16,9 @@ import {
   SlotTaken,
   type Span,
 } from "@wren/calendar";
-import { smsContacts } from "@wren/starling-sms/schema";
 import { companies, people } from "@wren/core/schema";
 import type { Db } from "@wren/db";
+import { smsContacts } from "@wren/starling-sms/schema";
 import { desc, eq } from "drizzle-orm";
 import { type LeadPort, type MessagePort, TimeTaken, type VoiceCalendar } from "./tools.js";
 import type { LeadContext } from "./types.js";

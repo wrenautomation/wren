@@ -4,7 +4,6 @@
  * `components.test.ts` checks them against the catalog.
  */
 
-import { textCadence } from "@wren/starling-sms";
 import { FOLLOW_WORKFLOWS } from "@wren/core/follow";
 import { setupWorkflow } from "@wren/core/setup";
 import { defineWorkflow, type Workflow } from "@wren/core/workflows";
@@ -17,6 +16,7 @@ import { emailCadence } from "@wren/starling-email";
 import { CONTENT_WORKFLOWS } from "@wren/starling-inbound/components";
 import { REACH_SEQUENCES, reachCadence } from "@wren/starling-outbound";
 import { OUTREACH_WORKFLOWS } from "@wren/starling-outbound/components";
+import { textCadence } from "@wren/starling-sms";
 import { WATCH_WORKFLOWS } from "@wren/watch/components";
 import { SETUPS } from "./setups.js";
 
