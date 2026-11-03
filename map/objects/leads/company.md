@@ -13,7 +13,7 @@ A business we might reach. Table `companies`, one row per business; in prose a "
 
 ## Why this shape
 
-The company is the unit of outreach: one active email enrollment per company (`packages/starling/channels/email/src/schema.ts:201`), one SMS thread per company (`packages/channel-sms/src/enroll.ts:1`). Identity is the domain, but a row is never dropped to keep a key clean: `raw` keeps the source row, and a domain clash lands in `import_errors` instead of overwriting (`packages/core/src/ingest/importer.ts:269`).
+The company is the unit of outreach: one active email enrollment per company (`packages/starling/channels/email/src/schema.ts:201`), one SMS thread per company (`packages/starling/channels/sms/src/enroll.ts:1`). Identity is the domain, but a row is never dropped to keep a key clean: `raw` keeps the source row, and a domain clash lands in `import_errors` instead of overwriting (`packages/core/src/ingest/importer.ts:269`).
 
 ## Shape
 

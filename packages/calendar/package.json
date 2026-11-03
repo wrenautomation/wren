@@ -20,10 +20,10 @@
   },
   "dependencies": {
     "@restatedev/restate-sdk": "1.17.1",
-    "@wren/starling-email": "workspace:*",
-    "@wren/channel-sms": "workspace:*",
     "@wren/core": "workspace:*",
     "@wren/db": "workspace:*",
+    "@wren/starling-email": "workspace:*",
+    "@wren/starling-sms": "workspace:*",
     "@wrenautomation/autobrowse": "0.8.4",
     "drizzle-orm": "0.45.2",
     "zod": "4.6.5"

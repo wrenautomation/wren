@@ -3,7 +3,7 @@
  * number and cap checks it already has. The uid carries the start, so a moved call gets its own
  * texts. `AllBookings` reads ours next to cal.com's while both take bookings.
  */
-import type { Booking, Bookings } from "@wren/channel-sms";
+import type { Booking, Bookings } from "@wren/starling-sms";
 import type { Queryable } from "@wren/db";
 import { and, asc, eq, gt, gte, lt, sql } from "drizzle-orm";
 import { bookings } from "./schema.js";

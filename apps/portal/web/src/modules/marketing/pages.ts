@@ -3,7 +3,7 @@
  * `MARKETING_PAGES`, the one list the team apps take from.
  */
 
-import { KEYWORDS } from "@wren/channel-sms/templates";
+import { KEYWORDS } from "@wren/starling-sms/templates";
 import { type Action, said } from "@wren/ui";
 import type { DayPage, ListPage, ModulePage } from "../../module.js";
 import { queueLate } from "../inbox-queues.js";

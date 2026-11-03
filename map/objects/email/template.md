@@ -31,7 +31,7 @@ Citations: `packages/starling/channels/email/src/outreach/templates.ts:47`, `aut
 - **owned-by:** [[platform/niche]] (sequences name the templates; the store holds them)
 - **owns:** the pinned `template` + `template_version` on [[email/message]]
 - **joins:** [[email/sequence]]; facts from `factsFor` (`outreach/facts.ts:125`)
-- **looks-like-but-is-not:** an SMS step body (`packages/channel-sms/src/templates.ts`)
+- **looks-like-but-is-not:** an SMS step body (`packages/starling/channels/sms/src/templates.ts`)
 
 ## If you change this
 

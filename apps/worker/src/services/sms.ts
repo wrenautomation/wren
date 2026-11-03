@@ -10,7 +10,7 @@ import {
   makeSmsForms,
   makeSmsSender,
   makeSmsWatch,
-} from "@wren/channel-sms/restate";
+} from "@wren/starling-sms/restate";
 import { liveCampaignsOf } from "@wren/pipeline/store";
 import type { AnyService, Deps } from "./deps.js";
 

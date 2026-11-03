@@ -6,7 +6,7 @@
  * A fake Documenso and a fake bucket, synthetic data, no network, no mail sent.
  */
 import { createHash } from "node:crypto";
-import { smsContacts } from "@wren/channel-sms/schema";
+import { smsContacts } from "@wren/starling-sms/schema";
 import { addClient, addOperator, updateClient } from "@wren/core/clients";
 import { pgKeyStore, throwawayRing } from "@wren/core/keys";
 import { startTestRestate } from "@wren/core/testing";

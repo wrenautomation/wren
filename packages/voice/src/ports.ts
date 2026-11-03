@@ -16,7 +16,7 @@ import {
   SlotTaken,
   type Span,
 } from "@wren/calendar";
-import { smsContacts } from "@wren/channel-sms/schema";
+import { smsContacts } from "@wren/starling-sms/schema";
 import { companies, people } from "@wren/core/schema";
 import type { Db } from "@wren/db";
 import { desc, eq } from "drizzle-orm";

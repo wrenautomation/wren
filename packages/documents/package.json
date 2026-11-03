@@ -23,10 +23,10 @@
   },
   "dependencies": {
     "@restatedev/restate-sdk": "1.17.1",
-    "@wren/channel-sms": "workspace:*",
     "@wren/core": "workspace:*",
     "@wren/db": "workspace:*",
     "@wren/payments": "workspace:*",
+    "@wren/starling-sms": "workspace:*",
     "drizzle-orm": "0.45.2",
     "pdf-lib": "1.17.1",
     "zod": "4.6.5"

@@ -391,7 +391,7 @@ export const settingsSchema = z.object({
   /** The account posting, for Reddit's required User-Agent (`… (by /u/<name>)`). */
   redditUsername: z.string().min(1).optional(),
   /**
-   * SMS (packages/channel-sms). `none` (the default) has no carrier: nothing is
+   * SMS (packages/starling/channels/sms). `none` (the default) has no carrier: nothing is
    * sent, looked up or synced. `fake` is for tests and local dry runs only: it
    * pretends to send, so never set it on a deploy. `telnyx` needs the key and the
    * messaging profile. Nothing leaves Telnyx until WREN_SMS_LIVE is true: set it
@@ -467,7 +467,7 @@ export const settingsSchema = z.object({
   /**
    * Countries a site applicant's phone may be in to get texts (ISO codes). Any other number gets
    * the email only. Cold texts stay US and Canada whatever this says; each other country needs a
-   * zone in channel-sms COUNTRY_ZONES and the Telnyx messaging profile's allow list.
+   * zone in starling-sms COUNTRY_ZONES and the Telnyx messaging profile's allow list.
    */
   smsFormCountries: z
     .string()

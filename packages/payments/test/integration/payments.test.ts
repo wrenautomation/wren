@@ -6,7 +6,7 @@
  * request shapes against Stripe's own spec `stripe-mock.test.ts`. Keys go through the key
  * store by ref, as the portal stages them. No network, no charge. Synthetic data only.
  */
-import { smsContacts } from "@wren/channel-sms/schema";
+import { smsContacts } from "@wren/starling-sms/schema";
 import { addClient, addOperator, clients } from "@wren/core/clients";
 import { pgKeyStore, throwawayRing } from "@wren/core/keys";
 import { clientSecretEvents } from "@wren/core/keys-schema";

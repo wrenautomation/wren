@@ -4,7 +4,7 @@ cluster: sms
 universe: live
 status: verified
 verified: 2026-09-28 @ 83459e9
-entity: packages/channel-sms/src/provider.ts:74
+entity: packages/starling/channels/sms/src/provider.ts:74
 ---
 
 # sms-provider
@@ -19,7 +19,7 @@ The carrier port: `SmsProvider`, with `telnyx.ts` and `linq.ts` (iMessage, then 
 
 - `SmsProvider` (`provider.ts:74`); `telnyx.ts`; `linq.ts` (no 10DLC, no keyword replies; lookup is its iMessage/RCS check; a Telnyx body still parses as Telnyx, so calls stay there); `webhook.ts` (Telnyx Ed25519 and Standard Webhooks HMAC, WebCrypto so they run in the Cloudflare Worker too)
 
-Citations: `packages/channel-sms/src/provider.ts:74`
+Citations: `packages/starling/channels/sms/src/provider.ts:74`
 
 ## Connected to
 
@@ -40,4 +40,4 @@ Citations: `packages/channel-sms/src/provider.ts:74`
 
 ## See
 
-- Source: `packages/channel-sms/src/provider.ts`
+- Source: `packages/starling/channels/sms/src/provider.ts`

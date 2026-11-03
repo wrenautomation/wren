@@ -4,7 +4,7 @@
  * the site chat.
  */
 import type { ObjectContext } from "@restatedev/restate-sdk";
-import { placeIdOf } from "@wren/channel-sms";
+import { placeIdOf } from "@wren/starling-sms";
 import { restateAdmin } from "@wren/core/console";
 import { asAccount, type Platform } from "@wren/core/content";
 import { DESK, restateSites } from "@wren/core/content/restate";

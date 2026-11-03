@@ -7,7 +7,7 @@
  *
  * A lead who already booked isn't called: the step leaves `booked`, which ends the run.
  */
-import { type Bookings, type SpeedCall, type SpeedRun, speedRuns } from "@wren/channel-sms";
+import { type Bookings, type SpeedCall, type SpeedRun, speedRuns } from "@wren/starling-sms";
 import type { Step } from "@wren/core/executor";
 import type { Db } from "@wren/db";
 import { and, eq, isNull } from "drizzle-orm";

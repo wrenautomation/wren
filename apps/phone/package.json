@@ -12,8 +12,8 @@
   },
   "dependencies": {
     "@wren/auth": "workspace:*",
-    "@wren/channel-sms": "workspace:*",
-    "@wren/core": "workspace:*"
+    "@wren/core": "workspace:*",
+    "@wren/starling-sms": "workspace:*"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "5.20260927.1",

@@ -8,7 +8,7 @@ import { randomUUID } from "node:crypto";
 import { statSync } from "node:fs";
 import { resolve } from "node:path";
 import * as clients from "@restatedev/restate-sdk-clients";
-import { CalcomBookings } from "@wren/channel-sms";
+import { CalcomBookings } from "@wren/starling-sms";
 import { ingressOf, type Settings } from "@wren/config";
 import {
   type Company,

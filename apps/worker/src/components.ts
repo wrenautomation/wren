@@ -4,7 +4,7 @@
  */
 import { BOOKS_COMPONENTS } from "@wren/books/components";
 import { CALENDAR_COMPONENTS } from "@wren/calendar/components";
-import { SMS_COMPONENTS } from "@wren/channel-sms/components";
+import { SMS_COMPONENTS } from "@wren/starling-sms/components";
 import type { Component } from "@wren/core/components";
 import { FACTS_COMPONENTS } from "@wren/core/facts";
 import { FOLLOW_COMPONENTS } from "@wren/core/follow";

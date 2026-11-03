@@ -16,7 +16,7 @@
  * signer asks for it.
  */
 import * as restate from "@restatedev/restate-sdk";
-import type { SmsDeskService } from "@wren/channel-sms/restate";
+import type { SmsDeskService } from "@wren/starling-sms/restate";
 import { type Client, clientMembers, findClient, sendsOn } from "@wren/core/clients";
 import { customFacts } from "@wren/core/custom-fields";
 import type { Fired, FireTriggers } from "@wren/core/executor";

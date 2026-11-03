@@ -4,7 +4,7 @@ cluster: sms
 universe: live
 status: verified
 verified: 2026-09-28 @ 28823cd
-entity: packages/channel-sms/src/schema.ts:110
+entity: packages/starling/channels/sms/src/schema.ts:110
 ---
 
 # sms-number
@@ -20,7 +20,7 @@ A lead is texted from the same number every time; rotation is only volume balanc
 - `provider`, `provider_id`, `state` (active | paused | retired), `paused_reason`, `paused_at`, `ramp_started_on`, `retired_at` (`schema.ts:115`–`123`)
 - `poolToday`, `pickNumber`, `syncNumbers`, `pauseNumber`, `resumeNumber` (`pool.ts:42`, `:90`, `:114`, `:166`, `:180`)
 
-Citations: `packages/channel-sms/src/schema.ts:110`
+Citations: `packages/starling/channels/sms/src/schema.ts:110`
 
 ## Connected to
 
@@ -43,4 +43,4 @@ Citations: `packages/channel-sms/src/schema.ts:110`
 
 ## See
 
-- Source: `packages/channel-sms/src/pool.ts`
+- Source: `packages/starling/channels/sms/src/pool.ts`

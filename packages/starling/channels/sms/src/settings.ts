@@ -40,7 +40,7 @@ export function formCountriesFrom(s: Pick<Settings, "smsFormCountries">): readon
   for (const c of s.smsFormCountries)
     if (c !== "US" && c !== "CA" && !COUNTRY_ZONES[c])
       throw new Error(
-        `WREN_SMS_FORM_COUNTRIES has ${c}, which has no single time zone in channel-sms COUNTRY_ZONES`,
+        `WREN_SMS_FORM_COUNTRIES has ${c}, which has no single time zone in starling-sms COUNTRY_ZONES`,
       );
   return s.smsFormCountries;
 }

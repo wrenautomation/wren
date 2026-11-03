@@ -3,7 +3,7 @@
  * access with their callbacks, the social inbox, the mail reader and marketing bounces.
  */
 
-import { findPlace, PLACE_FINDER } from "@wren/channel-sms";
+import { findPlace, PLACE_FINDER } from "@wren/starling-sms";
 import { CONTENT_CHANNELS } from "@wren/config";
 import {
   connectorAccess,

@@ -37,7 +37,7 @@ export default defineConfig({
     "../starling/inbound/src/connect/reviews-schema.ts",
     "../starling/inbound/src/client-reports/schema.ts",
     "../starling/channels/meta/src/schema.ts",
-    "../channel-sms/src/schema.ts",
+    "../starling/channels/sms/src/schema.ts",
     "../reactivation/src/schema.ts",
     "../reactivation/src/portal/record-views.ts",
     "../books/src/schema.ts",

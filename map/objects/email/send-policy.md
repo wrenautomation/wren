@@ -26,7 +26,7 @@ Citations: `packages/starling/channels/email/src/send/policy.ts:79`
 
 - **owned-by:** [[platform/settings]]
 - **joins:** [[email/roster]], the send walk (`send/deliver.ts:190`), the queue-keeper's capacity (`restate/compose-scheduler.ts`), kill switches (`inbox/health.ts:207`)
-- **looks-like-but-is-not:** the SMS policy (`packages/channel-sms/src/policy.ts`)
+- **looks-like-but-is-not:** the SMS policy (`packages/starling/channels/sms/src/policy.ts`)
 
 ## If you change this
 

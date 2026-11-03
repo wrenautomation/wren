@@ -23,14 +23,14 @@ import {
   smsStats,
   type ThreadFilter,
   toPhoneE164,
-} from "@wren/channel-sms";
+} from "@wren/starling-sms";
 import {
   SENDER_KEY,
   type SmsDeskService,
   type SmsSender,
   type SmsWatchObject,
   WATCH_KEY,
-} from "@wren/channel-sms/restate";
+} from "@wren/starling-sms/restate";
 import { ingressOf, type Settings } from "@wren/config";
 import { clientKey } from "@wren/core/restate";
 import type { Db } from "@wren/db";

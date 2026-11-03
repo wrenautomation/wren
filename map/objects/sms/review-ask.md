@@ -4,7 +4,7 @@ cluster: sms
 universe: live
 status: verified
 verified: 2026-10-23 @ 39edf1d2
-entity: packages/channel-sms/src/schema.ts:624
+entity: packages/starling/channels/sms/src/schema.ts:624
 ---
 
 # review-ask
@@ -13,7 +13,7 @@ One customer asked for a Google review, by text or by email: the ask, the one re
 
 ## Why this shape
 
-One row per subject (`uq_review_asks_subject`), made before anything is sent, so a retry changes nothing and every refusal keeps its reason (`askReview`, `packages/channel-sms/src/reviews.ts:193`). Every customer is asked; rating never decides. The token is stored plain: it can only count a click and open Google's public form.
+One row per subject (`uq_review_asks_subject`), made before anything is sent, so a retry changes nothing and every refusal keeps its reason (`askReview`, `packages/starling/channels/sms/src/reviews.ts:193`). Every customer is asked; rating never decides. The token is stored plain: it can only count a click and open Google's public form.
 
 ## Shape
 
@@ -25,11 +25,11 @@ One row per subject (`uq_review_asks_subject`), made before anything is sent, so
 - link `phone.wrenautomation.com/r/<client>/<token>` → `Reviews/click` (`clickReview`, `reviews.ts:325`) → 302 to Google's write-review form; `/feedback` → `Reviews/feedback` (`saveFeedback`, `reviews.ts:467`); `/stop` (an email's stop link, GET confirms, POST or one-click stops) → `Reviews/stop` (`stopReview`, `reviews.ts:480`), an `opt_out` email suppression in the client's database. `makeReviews` (`restate/answers.ts:88`)
 - record `sms.review` (`reviewRecord`, `records.ts:393`, with By and Email): views Asked, Opened, Feedback, All
 
-Citations: `packages/channel-sms/src/schema.ts:624`, `packages/channel-sms/src/reviews.ts:193`, `packages/channel-sms/src/restate/answers.ts:88`, `packages/channel-sms/src/restate/console.ts:211`, `packages/channel-sms/src/records.ts:393`
+Citations: `packages/starling/channels/sms/src/schema.ts:624`, `packages/starling/channels/sms/src/reviews.ts:193`, `packages/starling/channels/sms/src/restate/answers.ts:88`, `packages/starling/channels/sms/src/restate/console.ts:211`, `packages/starling/channels/sms/src/records.ts:393`
 
 ## Connected to
 
-- **owned-by:** the `reviews` part (`packages/channel-sms/src/components.ts`), a Shop template; needs fact `google_business.place_id` (setup `setup.google_business`, `setups.ts:171`; done for you, `findPlace` (`setups.ts:143`) reads the Place ID off Google Maps through autobrowse `web GET /place` on the desk and makes it the account's ref)
+- **owned-by:** the `reviews` part (`packages/starling/channels/sms/src/components.ts`), a Shop template; needs fact `google_business.place_id` (setup `setup.google_business`, `setups.ts:171`; done for you, `findPlace` (`setups.ts:143`) reads the Place ID off Google Maps through autobrowse `web GET /place` on the desk and makes it the account's ref)
 - **joins:** [[sms/sms-message]] (ask and reminder texts), email suppressions (`/stop`), [[email/call-booking]] (outcomes), [[platform/phone-worker]] (`/r/`), [[platform/executor]]
 - **looks-like-but-is-not:** reviews gained (not counted: Google Business Profile API in development)
 
@@ -48,5 +48,5 @@ Citations: `packages/channel-sms/src/schema.ts:624`, `packages/channel-sms/src/r
 
 ## See
 
-- Source: `packages/channel-sms/src/reviews.ts`
+- Source: `packages/starling/channels/sms/src/reviews.ts`
 - Design: `designs/2026-10-07-missed-call-and-reviews.md`

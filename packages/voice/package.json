@@ -22,11 +22,11 @@
   "dependencies": {
     "@restatedev/restate-sdk": "1.17.1",
     "@wren/calendar": "workspace:*",
-    "@wren/channel-sms": "workspace:*",
     "@wren/config": "workspace:*",
     "@wren/core": "workspace:*",
     "@wren/db": "workspace:*",
     "@wren/llm": "workspace:*",
+    "@wren/starling-sms": "workspace:*",
     "@wrenautomation/models": "0.29.0",
     "drizzle-orm": "0.45.2",
     "zod": "4.6.5"

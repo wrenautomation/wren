@@ -9,7 +9,7 @@
 import * as restate from "@restatedev/restate-sdk";
 import * as restateClients from "@restatedev/restate-sdk-clients";
 import type { RestateTestEnvironment } from "@restatedev/restate-sdk-testcontainers";
-import { smsContacts } from "@wren/channel-sms/schema";
+import { smsContacts } from "@wren/starling-sms/schema";
 import { addClient, addOperator, clients } from "@wren/core/clients";
 import type { Fired } from "@wren/core/executor";
 import { pgKeyStore, throwawayRing } from "@wren/core/keys";

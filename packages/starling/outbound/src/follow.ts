@@ -1,5 +1,5 @@
 /**
- * DM follow-ups on the executor, as texts do (channel-sms/src/follow.ts). Each sequence is a cadence
+ * DM follow-ups on the executor, as texts do (starling/channels/sms/src/follow.ts). Each sequence is a cadence
  * of `reach.touch` nodes. Enroll queues the opener, or the invite, whose send queues step 1. When
  * the tick sends a step it leaves that node as `sent`; the next touch queues the next DM due now.
  */

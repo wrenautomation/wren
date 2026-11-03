@@ -1,6 +1,6 @@
 /** The Marketing app's records, from each channel that keeps the numbers. */
 
-import { textContactRecord } from "@wren/channel-sms/records";
+import { textContactRecord } from "@wren/starling-sms/records";
 import { factsRecord } from "@wren/core/facts";
 import { accountSource } from "@wren/core/record-accounts";
 import {

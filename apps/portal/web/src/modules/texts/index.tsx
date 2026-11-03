@@ -4,7 +4,7 @@
  * the rep marks it done or the lead books. Missed calls and review requests
  * (designs/2026-10-07-missed-call-and-reviews.md) have their own pages once installed.
  */
-import { segments } from "@wren/channel-sms/templates";
+import { segments } from "@wren/starling-sms/templates";
 import { type Action, money, type RecordExtras } from "@wren/ui";
 import { createElement } from "react";
 import type { ListPage, Module } from "../../module.js";

@@ -17,8 +17,8 @@
  * its row and never makes a second link. A key is never read back, and no card ever reaches us.
  */
 import type * as restate from "@restatedev/restate-sdk";
-import { toPhoneE164 } from "@wren/channel-sms";
-import { smsContacts } from "@wren/channel-sms/schema";
+import { toPhoneE164 } from "@wren/starling-sms";
+import { smsContacts } from "@wren/starling-sms/schema";
 import { mayApprove } from "@wren/core/access";
 import { type Client, findClient } from "@wren/core/clients";
 import { UUID } from "@wren/core/ids";

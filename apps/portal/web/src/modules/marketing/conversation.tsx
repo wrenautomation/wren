@@ -3,7 +3,7 @@
  * person on every channel, oldest at the top; a reply box that sends on the channel picked, or
  * asks for a yes; and a note box for the team, never sent. R puts you in the reply, N in the note.
  */
-import { segments } from "@wren/channel-sms/templates";
+import { segments } from "@wren/starling-sms/templates";
 import type { Permission } from "@wren/core/access";
 import type { Row } from "@wren/core/records/serve";
 import {

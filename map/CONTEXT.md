@@ -1,6 +1,6 @@
 # How to walk this map
 
-Verified against commit `83459e9` on 2026-09-28. The repo is a TypeScript monorepo (pnpm + turbo): Restate (self-hosted on the box) calls a Lambda (`apps/worker`), which runs every channel's services over Postgres 17 (Drizzle). Deps point down: `config` ← `db` ← `core` ← `research`, `starling/*`, `starling/channels/*`, `channel-sms`; `niches` sits on the channels; `books` sits on `core`, `db` and `llm`; `cli` and `worker` sit on everything; `llm` and `offers` are leaves. Channels never import each other.
+Verified against commit `83459e9` on 2026-09-28. The repo is a TypeScript monorepo (pnpm + turbo): Restate (self-hosted on the box) calls a Lambda (`apps/worker`), which runs every channel's services over Postgres 17 (Drizzle). Deps point down: `config` ← `db` ← `core` ← `research`, `starling/*`, `starling/channels/*` (sms included); `niches` sits on the channels; `books` sits on `core`, `db` and `llm`; `cli` and `worker` sit on everything; `llm` and `offers` are leaves. Channels never import each other.
 
 ## Walk
 
@@ -23,7 +23,7 @@ Verified against commit `83459e9` on 2026-09-28. The repo is a TypeScript monore
 | Word | Meanings |
 |---|---|
 | lead | prose: a company to reach. `leads` table: one email address with `status` (`packages/core/src/schema.ts:219`). `Ads.leads`: Meta lead-form fills. |
-| message | `messages` (email drafts and sends, `packages/starling/channels/email/src/schema.ts:236`) vs `sms_messages` (`packages/channel-sms/src/schema.ts:200`). Different states, different tick. |
+| message | `messages` (email drafts and sends, `packages/starling/channels/email/src/schema.ts:236`) vs `sms_messages` (`packages/starling/channels/sms/src/schema.ts:200`). Different states, different tick. |
 | draft | `messages.state = draft`; a `content_drafts` row. |
 | enrollment | `enrollments`: one email sequence per company. SMS has no table; a contact's `state` becomes `enrolled`. |
 | campaign | worker `Campaign` (a niche's templates + sequences + plan, `apps/worker/src/services/deps.ts:402`); a Meta campaign id in `ad_launches`; the 10DLC campaign that `WREN_SMS_LIVE` stands for. |

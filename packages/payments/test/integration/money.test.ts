@@ -6,7 +6,7 @@
  * asked again; and reconcile healing what a dropped webhook missed and flagging what it can't.
  * A fake Stripe, synthetic data, no network, no charge.
  */
-import { smsContacts } from "@wren/channel-sms/schema";
+import { smsContacts } from "@wren/starling-sms/schema";
 import { addClient, addOperator, clients } from "@wren/core/clients";
 import { pgKeyStore, throwawayRing } from "@wren/core/keys";
 import { cachedDb, clientDatabaseUrl, type Db } from "@wren/db";

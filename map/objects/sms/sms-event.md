@@ -4,7 +4,7 @@ cluster: sms
 universe: live
 status: verified
 verified: 2026-09-28 @ 28823cd
-entity: packages/channel-sms/src/schema.ts:300
+entity: packages/starling/channels/sms/src/schema.ts:300
 ---
 
 # sms-event
@@ -21,7 +21,7 @@ A webhook delivered twice, or replayed by Restate, applies once (`events.ts:1`).
 - `classifyInbound`, `applyEvent` (`events.ts:56`, `:256`)
 - A reply or STOP alerts every device in `sms_push_subscriptions` after the commit (`push.ts`); a failed push never fails the event.
 
-Citations: `packages/channel-sms/src/schema.ts:300`
+Citations: `packages/starling/channels/sms/src/schema.ts:300`
 
 ## Connected to
 
@@ -42,4 +42,4 @@ Citations: `packages/channel-sms/src/schema.ts:300`
 
 ## See
 
-- Source: `packages/channel-sms/src/events.ts`
+- Source: `packages/starling/channels/sms/src/events.ts`

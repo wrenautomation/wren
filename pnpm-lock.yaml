@@ -102,9 +102,6 @@ importers:
       '@wren/calendar':
         specifier: workspace:*
         version: link:../../packages/calendar
-      '@wren/channel-sms':
-        specifier: workspace:*
-        version: link:../../packages/channel-sms
       '@wren/config':
         specifier: workspace:*
         version: link:../../packages/config
@@ -165,6 +162,9 @@ importers:
       '@wren/starling-search':
         specifier: workspace:*
         version: link:../../packages/starling/search
+      '@wren/starling-sms':
+        specifier: workspace:*
+        version: link:../../packages/starling/channels/sms
       '@wren/starling-studio':
         specifier: workspace:*
         version: link:../../packages/starling/studio
@@ -229,12 +229,12 @@ importers:
       '@wren/auth':
         specifier: workspace:*
         version: link:../../packages/auth
-      '@wren/channel-sms':
-        specifier: workspace:*
-        version: link:../../packages/channel-sms
       '@wren/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@wren/starling-sms':
+        specifier: workspace:*
+        version: link:../../packages/starling/channels/sms
     devDependencies:
       '@cloudflare/workers-types':
         specifier: 5.20260927.1
@@ -402,9 +402,6 @@ importers:
       '@wren/books':
         specifier: workspace:*
         version: link:../../packages/books
-      '@wren/channel-sms':
-        specifier: workspace:*
-        version: link:../../packages/channel-sms
       '@wren/config':
         specifier: workspace:*
         version: link:../../packages/config
@@ -432,6 +429,9 @@ importers:
       '@wren/starling-outbound':
         specifier: workspace:*
         version: link:../../packages/starling/outbound
+      '@wren/starling-sms':
+        specifier: workspace:*
+        version: link:../../packages/starling/channels/sms
       '@wren/starling-studio':
         specifier: workspace:*
         version: link:../../packages/starling/studio
@@ -513,9 +513,6 @@ importers:
       '@wren/calendar':
         specifier: workspace:*
         version: link:../../packages/calendar
-      '@wren/channel-sms':
-        specifier: workspace:*
-        version: link:../../packages/channel-sms
       '@wren/config':
         specifier: workspace:*
         version: link:../../packages/config
@@ -588,6 +585,9 @@ importers:
       '@wren/starling-search':
         specifier: workspace:*
         version: link:../../packages/starling/search
+      '@wren/starling-sms':
+        specifier: workspace:*
+        version: link:../../packages/starling/channels/sms
       '@wren/starling-tiktok':
         specifier: workspace:*
         version: link:../../packages/starling/channels/tiktok
@@ -705,9 +705,6 @@ importers:
       '@restatedev/restate-sdk':
         specifier: 1.17.1
         version: 1.17.1
-      '@wren/channel-sms':
-        specifier: workspace:*
-        version: link:../channel-sms
       '@wren/core':
         specifier: workspace:*
         version: link:../core
@@ -717,6 +714,9 @@ importers:
       '@wren/starling-email':
         specifier: workspace:*
         version: link:../starling/channels/email
+      '@wren/starling-sms':
+        specifier: workspace:*
+        version: link:../starling/channels/sms
       '@wrenautomation/autobrowse':
         specifier: 0.8.4
         version: 0.8.4(@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.1))
@@ -739,61 +739,6 @@ importers:
       '@wren/config':
         specifier: workspace:*
         version: link:../config
-      typescript:
-        specifier: 5.9.3
-        version: 5.9.3
-      vitest:
-        specifier: 5.0.1
-        version: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@26.6.4)(@vitest/browser-playwright@5.0.1)(@vitest/ui@5.0.1)(happy-dom@20.14.5)(msw@2.15.0(@types/node@26.6.4)(typescript@5.9.3))(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
-
-  packages/channel-sms:
-    dependencies:
-      '@restatedev/restate-sdk':
-        specifier: 1.17.1
-        version: 1.17.1
-      '@wren/config':
-        specifier: workspace:*
-        version: link:../config
-      '@wren/core':
-        specifier: workspace:*
-        version: link:../core
-      '@wren/db':
-        specifier: workspace:*
-        version: link:../db
-      '@wren/llm':
-        specifier: workspace:*
-        version: link:../llm
-      '@wren/research':
-        specifier: workspace:*
-        version: link:../research
-      '@wren/starling-core':
-        specifier: workspace:*
-        version: link:../starling/core
-      drizzle-orm:
-        specifier: 0.45.2
-        version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
-      libphonenumber-js:
-        specifier: 1.13.14
-        version: 1.13.14
-      web-push:
-        specifier: 3.6.7
-        version: 3.6.7
-      zod:
-        specifier: 4.6.5
-        version: 4.6.5
-    devDependencies:
-      '@restatedev/restate-sdk-clients':
-        specifier: 1.17.1
-        version: 1.17.1
-      '@restatedev/restate-sdk-testcontainers':
-        specifier: 1.17.1
-        version: 1.17.1
-      '@testcontainers/postgresql':
-        specifier: 12.1.0
-        version: 12.1.0
-      '@types/web-push':
-        specifier: 3.6.4
-        version: 3.6.4
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -991,9 +936,6 @@ importers:
       '@restatedev/restate-sdk':
         specifier: 1.17.1
         version: 1.17.1
-      '@wren/channel-sms':
-        specifier: workspace:*
-        version: link:../channel-sms
       '@wren/core':
         specifier: workspace:*
         version: link:../core
@@ -1003,6 +945,9 @@ importers:
       '@wren/payments':
         specifier: workspace:*
         version: link:../payments
+      '@wren/starling-sms':
+        specifier: workspace:*
+        version: link:../starling/channels/sms
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
@@ -1094,9 +1039,6 @@ importers:
 
   packages/niches:
     dependencies:
-      '@wren/channel-sms':
-        specifier: workspace:*
-        version: link:../channel-sms
       '@wren/core':
         specifier: workspace:*
         version: link:../core
@@ -1109,6 +1051,9 @@ importers:
       '@wren/starling-email':
         specifier: workspace:*
         version: link:../starling/channels/email
+      '@wren/starling-sms':
+        specifier: workspace:*
+        version: link:../starling/channels/sms
       '@wrenautomation/read':
         specifier: 0.29.0
         version: 0.29.0
@@ -1195,15 +1140,15 @@ importers:
       '@restatedev/restate-sdk':
         specifier: 1.17.1
         version: 1.17.1
-      '@wren/channel-sms':
-        specifier: workspace:*
-        version: link:../channel-sms
       '@wren/core':
         specifier: workspace:*
         version: link:../core
       '@wren/db':
         specifier: workspace:*
         version: link:../db
+      '@wren/starling-sms':
+        specifier: workspace:*
+        version: link:../starling/channels/sms
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
@@ -1583,6 +1528,61 @@ importers:
         specifier: 5.0.1
         version: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@26.6.4)(@vitest/browser-playwright@5.0.1)(@vitest/ui@5.0.1)(happy-dom@20.14.5)(msw@2.15.0(@types/node@26.6.4)(typescript@5.9.3))(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
 
+  packages/starling/channels/sms:
+    dependencies:
+      '@restatedev/restate-sdk':
+        specifier: 1.17.1
+        version: 1.17.1
+      '@wren/config':
+        specifier: workspace:*
+        version: link:../../../config
+      '@wren/core':
+        specifier: workspace:*
+        version: link:../../../core
+      '@wren/db':
+        specifier: workspace:*
+        version: link:../../../db
+      '@wren/llm':
+        specifier: workspace:*
+        version: link:../../../llm
+      '@wren/research':
+        specifier: workspace:*
+        version: link:../../../research
+      '@wren/starling-core':
+        specifier: workspace:*
+        version: link:../../core
+      drizzle-orm:
+        specifier: 0.45.2
+        version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
+      libphonenumber-js:
+        specifier: 1.13.14
+        version: 1.13.14
+      web-push:
+        specifier: 3.6.7
+        version: 3.6.7
+      zod:
+        specifier: 4.6.5
+        version: 4.6.5
+    devDependencies:
+      '@restatedev/restate-sdk-clients':
+        specifier: 1.17.1
+        version: 1.17.1
+      '@restatedev/restate-sdk-testcontainers':
+        specifier: 1.17.1
+        version: 1.17.1
+      '@testcontainers/postgresql':
+        specifier: 12.1.0
+        version: 12.1.0
+      '@types/web-push':
+        specifier: 3.6.4
+        version: 3.6.4
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: 5.0.1
+        version: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@26.6.4)(@vitest/browser-playwright@5.0.1)(@vitest/ui@5.0.1)(happy-dom@20.14.5)(msw@2.15.0(@types/node@26.6.4)(typescript@5.9.3))(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+
   packages/starling/channels/tiktok:
     dependencies:
       '@wren/core':
@@ -1661,9 +1661,6 @@ importers:
       '@restatedev/restate-sdk':
         specifier: 1.17.1
         version: 1.17.1
-      '@wren/channel-sms':
-        specifier: workspace:*
-        version: link:../../channel-sms
       '@wren/core':
         specifier: workspace:*
         version: link:../../core
@@ -1700,6 +1697,9 @@ importers:
       '@wren/starling-outbound':
         specifier: workspace:*
         version: link:../outbound
+      '@wren/starling-sms':
+        specifier: workspace:*
+        version: link:../channels/sms
       '@wren/starling-studio':
         specifier: workspace:*
         version: link:../studio
@@ -2054,9 +2054,6 @@ importers:
       '@wren/calendar':
         specifier: workspace:*
         version: link:../calendar
-      '@wren/channel-sms':
-        specifier: workspace:*
-        version: link:../channel-sms
       '@wren/config':
         specifier: workspace:*
         version: link:../config
@@ -2069,6 +2066,9 @@ importers:
       '@wren/llm':
         specifier: workspace:*
         version: link:../llm
+      '@wren/starling-sms':
+        specifier: workspace:*
+        version: link:../starling/channels/sms
       '@wrenautomation/models':
         specifier: 0.29.0
         version: 0.29.0

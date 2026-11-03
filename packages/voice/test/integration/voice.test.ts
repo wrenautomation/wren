@@ -2,7 +2,7 @@
  * The voice agent on Postgres, synthetic numbers only: the rules before any dial, a finished call
  * saved with its turns and matched to its texting contact, and the Calls and Latency views.
  */
-import { smsContacts } from "@wren/channel-sms/schema";
+import { smsContacts } from "@wren/starling-sms/schema";
 import { addSuppression } from "@wren/core";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { sql } from "drizzle-orm";

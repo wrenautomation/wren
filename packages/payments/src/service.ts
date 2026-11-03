@@ -16,7 +16,7 @@
  * returned from it, so neither lands in Restate's journal.
  */
 import * as restate from "@restatedev/restate-sdk";
-import type { SmsDeskService } from "@wren/channel-sms/restate";
+import type { SmsDeskService } from "@wren/starling-sms/restate";
 import { type Client, findClient, sendsOn } from "@wren/core/clients";
 import type { Fired, FireTriggers } from "@wren/core/executor";
 import type { KeyStore } from "@wren/core/keys";

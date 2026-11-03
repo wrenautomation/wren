@@ -72,7 +72,7 @@ import {
   TIMESTAMP_HEADER,
   verifyStandardWebhook,
   verifyTelnyx,
-} from "@wren/channel-sms/webhook";
+} from "@wren/starling-sms/webhook";
 import { readBody } from "@wren/core/http";
 import type { Env } from "./env.js";
 
@@ -139,7 +139,7 @@ const clientIn = (pathname: string, site: string): string | null => {
 const forwarded = (raw: string, client: string | null) =>
   client ? `{"client":${JSON.stringify(client)},"body":${raw}}` : raw;
 
-/** Whose account signed a webhook, as `SmsEvents/signer` answers (channel-sms signer.ts). */
+/** Whose account signed a webhook, as `SmsEvents/signer` answers (starling-sms signer.ts). */
 type Signer =
   | { ok: true; client: string | null; publicKey: string | null }
   | { ok: false; why: string };

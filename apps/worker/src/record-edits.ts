@@ -11,9 +11,9 @@ import {
   type SmsSequence,
   textRef,
   slotsOf as textSlotsOf,
-} from "@wren/channel-sms";
-import { textCopyRecord } from "@wren/channel-sms/records";
-import { checkBody as checkText, keywordOf, type TemplateSlot } from "@wren/channel-sms/templates";
+} from "@wren/starling-sms";
+import { textCopyRecord } from "@wren/starling-sms/records";
+import { checkBody as checkText, keywordOf, type TemplateSlot } from "@wren/starling-sms/templates";
 import { wordsPatch } from "@wren/core/edits";
 import { PortalRefusal } from "@wren/core/portal";
 import type { RecordType } from "@wren/core/records";

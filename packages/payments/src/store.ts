@@ -3,7 +3,7 @@
  * events on the main database; a paid thread's mark on the owner's own (`markContactPaid`).
  */
 import { createHash } from "node:crypto";
-import { smsContacts } from "@wren/channel-sms/schema";
+import { smsContacts } from "@wren/starling-sms/schema";
 import { clients } from "@wren/core/clients";
 import { UUID } from "@wren/core/ids";
 import { PortalRefusal } from "@wren/core/refusal";

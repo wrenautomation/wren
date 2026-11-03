@@ -10,7 +10,7 @@
  *
  * `placeCall` is the only way out, and it asks `mayDial` first. Inbound and test calls skip it.
  */
-import { DEFAULT_POLICY, inWindow } from "@wren/channel-sms";
+import { DEFAULT_POLICY, inWindow } from "@wren/starling-sms";
 import { activeSuppressionOf } from "@wren/core";
 import type { Db, Queryable } from "@wren/db";
 import { and, desc, eq, isNull } from "drizzle-orm";

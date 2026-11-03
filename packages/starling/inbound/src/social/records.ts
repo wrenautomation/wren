@@ -6,7 +6,7 @@
  * followers per platform (`marketing.audience`).
  */
 
-import { threadRecord as textThreadRecord } from "@wren/channel-sms/records";
+import { threadRecord as textThreadRecord } from "@wren/starling-sms/records";
 import { draftTurns } from "@wren/core/ask";
 import { broadcastLine, waitingBroadcasts } from "@wren/core/broadcasts";
 import { pickStates, picksOf } from "@wren/core/decide";

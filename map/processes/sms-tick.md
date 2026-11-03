@@ -20,7 +20,7 @@ Texting a stranger twice is worse than missing one, so intent-before-act and ide
 
 ## Steps
 
-1. Lift (`packages/channel-sms/src/lift.ts:77`); add by hand (`contacts.ts:12`).
+1. Lift (`packages/starling/channels/sms/src/lift.ts:77`); add by hand (`contacts.ts:12`).
 2. Enroll (`enroll.ts:102`; step 1 at `:244`). With `--campaign`, only the live campaign's segment, under its `sms.opener` cap, stamped on the contact ([[platform/campaign]]).
 3. Tick (`deliver.ts:170`; reconcile `:63`; policy `policy.ts`; pool `pool.ts:90`).
 4. Events (`events.ts:230`; rules `:53`; signature `webhook.ts`; door `apps/phone/src/worker.ts`).
@@ -43,4 +43,4 @@ Texting a stranger twice is worse than missing one, so intent-before-act and ide
 ## See
 
 - Objects: [[sms/sms-message]]
-- Source: `packages/channel-sms/src/restate/index.ts`
+- Source: `packages/starling/channels/sms/src/restate/index.ts`

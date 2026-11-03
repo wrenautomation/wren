@@ -4,7 +4,7 @@
  * (niche, name). Crawl hints and discovery words union when unscoped.
  */
 
-import { FORM_SEQUENCES, type SmsSequence, SPEED_SEQUENCES } from "@wren/channel-sms";
+import { FORM_SEQUENCES, type SmsSequence, SPEED_SEQUENCES } from "@wren/starling-sms";
 import {
   BUILTIN_FORMATS,
   BUILTIN_PERSON_FORMATS,

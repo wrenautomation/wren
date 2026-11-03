@@ -3,7 +3,7 @@
  * (designs/2026-11-02-campaigns.md, phase 4): the email enrollment, the reach contact, the SMS
  * contact. The person is found by their profile's keys; each channel stops its own rows.
  */
-import { stopCampaignTexts } from "@wren/channel-sms";
+import { stopCampaignTexts } from "@wren/starling-sms";
 import { keysOfProfile } from "@wren/core/profiles";
 import type { Queryable } from "@wren/db";
 import type { CampaignStop } from "@wren/pipeline/steps";

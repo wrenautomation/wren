@@ -8,7 +8,7 @@
  * - `phone_consents`: prior express written consent to be called. An outbound AI call needs one
  *   with `ai_voice` (the TCPA counts an AI voice as artificial), checked in code before any dial.
  */
-import { smsContacts } from "@wren/channel-sms/schema";
+import { smsContacts } from "@wren/starling-sms/schema";
 import { oneOf } from "@wren/db/columns";
 import { sql } from "drizzle-orm";
 import {

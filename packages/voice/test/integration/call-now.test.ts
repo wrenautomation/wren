@@ -3,7 +3,7 @@
  * rep while voice isn't set up, a lead who booked is skipped and ends the run, and a configured
  * dialer still goes through `placeCall`'s rules. Nothing reaches a phone network.
  */
-import { FakeBookings, speedRuns } from "@wren/channel-sms";
+import { FakeBookings, speedRuns } from "@wren/starling-sms";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { agentOf } from "../../src/agent.js";

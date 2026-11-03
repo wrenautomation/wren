@@ -18,7 +18,7 @@ import {
   SMS_CONSOLE_APPS,
   SMS_CONSOLE_ROUTES,
   SMS_CONSOLE_WRITES,
-} from "@wren/channel-sms/console-routes";
+} from "@wren/starling-sms/console-routes";
 import {
   CONNECTORS_APPS,
   CONNECTORS_ROUTES,

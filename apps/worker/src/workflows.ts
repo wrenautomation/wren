@@ -4,7 +4,7 @@
  * `components.test.ts` checks them against the catalog.
  */
 
-import { textCadence } from "@wren/channel-sms";
+import { textCadence } from "@wren/starling-sms";
 import { FOLLOW_WORKFLOWS } from "@wren/core/follow";
 import { setupWorkflow } from "@wren/core/setup";
 import { defineWorkflow, type Workflow } from "@wren/core/workflows";

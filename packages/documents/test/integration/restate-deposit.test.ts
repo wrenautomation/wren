@@ -5,7 +5,7 @@
  * refunded; a failed bank payment gets a new link). A fake Stripe, synthetic data, no network,
  * no charge. Calls go to Restate's ingress by plain HTTP.
  */
-import { smsContacts } from "@wren/channel-sms/schema";
+import { smsContacts } from "@wren/starling-sms/schema";
 import { addClient, addOperator } from "@wren/core/clients";
 import { pgKeyStore, throwawayRing } from "@wren/core/keys";
 import { startTestRestate } from "@wren/core/testing";

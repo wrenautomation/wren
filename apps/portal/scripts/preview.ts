@@ -21,8 +21,8 @@ import {
   calendarOwner,
   ownerDeps,
 } from "@wren/calendar/restate";
-import { SMS_CONSOLE_APPS, SMS_CONSOLE_ROUTES } from "@wren/channel-sms/console-routes";
-import { smsConsoleApi } from "@wren/channel-sms/restate";
+import { SMS_CONSOLE_APPS, SMS_CONSOLE_ROUTES } from "@wren/starling-sms/console-routes";
+import { smsConsoleApi } from "@wren/starling-sms/restate";
 import { CONTENT_CHANNELS, loadEnvFile, loadSettings } from "@wren/config";
 import {
   CONNECTOR_APPS,

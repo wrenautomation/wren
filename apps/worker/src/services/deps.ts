@@ -32,7 +32,7 @@ import {
   SmsNotifier,
   smsChecks,
   TelnyxProvider,
-} from "@wren/channel-sms";
+} from "@wren/starling-sms";
 import { ingressOf, type Settings } from "@wren/config";
 import { resolve as dohResolve } from "@wren/core";
 import {

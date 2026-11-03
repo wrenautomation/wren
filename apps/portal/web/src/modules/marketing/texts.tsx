@@ -1,5 +1,5 @@
 /** William's texts as the person gets them on a phone and a laptop, filled with sample facts. */
-import { preview, type RenderFields, segments } from "@wren/channel-sms/templates";
+import { preview, type RenderFields, segments } from "@wren/starling-sms/templates";
 import { type MessageKind, MessagePreview, type RecordExtras } from "@wren/ui";
 import { call } from "../../api.js";
 import type { ListPage } from "../../module.js";

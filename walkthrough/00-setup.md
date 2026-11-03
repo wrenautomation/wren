@@ -57,7 +57,7 @@ packages/llm        providers, key fleets, audit
 packages/starling/inbound    ideas, drafts, review, slots, metrics, lessons, costs, restate/
 packages/starling/core      the channel contract, the Content service
 packages/starling/channels/*  email, linkedin, meta (ads + Page/IG posts), youtube, x, tiktok, reddit
-packages/channel-sms  SMS
+packages/starling/channels/sms  SMS
 packages/research   the lead pool, discovery, enrichment
 packages/niches     per-niche registries (agencies, …): the core stays niche-agnostic
 ```

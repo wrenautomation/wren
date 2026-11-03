@@ -11,7 +11,7 @@ import {
   reviewStep,
   textBackStep,
   touchStep,
-} from "@wren/channel-sms";
+} from "@wren/starling-sms";
 import {
   MISSED_CALL,
   missedCallSettingsSchema,
@@ -20,8 +20,8 @@ import {
   reviewsSettingsSchema,
   TEXT_BACK,
   TOUCH,
-} from "@wren/channel-sms/components";
-import { SENDER_KEY } from "@wren/channel-sms/restate";
+} from "@wren/starling-sms/components";
+import { SENDER_KEY } from "@wren/starling-sms/restate";
 import { ingressOf } from "@wren/config";
 import { findClient, sendsOn } from "@wren/core/clients";
 import type { Platform } from "@wren/core/content";

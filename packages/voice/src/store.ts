@@ -2,7 +2,7 @@
  * A finished call into `voice_calls`, its turns into `voice_turns`, in one transaction. The box
  * saves live calls; the portal's test calls come through `VoiceConsole.saveTest`. Node only.
  */
-import { smsContacts } from "@wren/channel-sms/schema";
+import { smsContacts } from "@wren/starling-sms/schema";
 import { atomic, type Queryable } from "@wren/db";
 import { desc, eq } from "drizzle-orm";
 import type { CallResult, Turn } from "./call.js";
