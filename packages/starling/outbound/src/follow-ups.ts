@@ -6,7 +6,6 @@
  * and anything by a person already talking to us there. Kept once by the platform's id.
  */
 
-import { settingsFor } from "@wren/core/clients";
 import { resolveComments, resolveObjectOrNull } from "@wren/core/objects";
 import type { CommentIn, ThreadNode, ThreadRead } from "@wren/core/outreach";
 import { warmEveryMs } from "@wren/core/warm";
@@ -22,29 +21,7 @@ import {
 } from "@wren/starling-conversations/schema";
 import { keepTouch, touchFromAnswer, touchFromComment } from "@wren/starling-conversations/touches";
 import { and, asc, eq, gt, inArray, lte, sql } from "drizzle-orm";
-import { z } from "zod";
 import { reachTurns } from "./turns.js";
-
-export const COMMENTS_READ = "comments.read";
-
-/** The comment reader's block: how long a thread stays watched after its last activity. */
-export const commentsReadSettingsSchema = z
-  .object({
-    /** Days after the last comment or answer in a thread that the watch keeps reading it; 0 = off. */
-    followUpDays: z.number().int().min(0).max(30).default(7),
-  })
-  .strict();
-type CommentsReadSettings = z.infer<typeof commentsReadSettingsSchema>;
-
-/** A bad or missing block reads as the defaults. */
-export function commentsReadSettings(block: unknown): CommentsReadSettings {
-  const p = commentsReadSettingsSchema.safeParse(block ?? {});
-  return p.success ? p.data : commentsReadSettingsSchema.parse({});
-}
-
-/** Wren's own block (`wren_settings`). */
-export const wrenCommentsRead = async (db: Queryable) =>
-  commentsReadSettings((await settingsFor(db, null))[COMMENTS_READ]);
 
 const DAY_MS = 86_400_000;
 const MIN = 60_000;

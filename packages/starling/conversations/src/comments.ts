@@ -7,6 +7,7 @@
  */
 
 import { editsFor } from "@wren/core/ask";
+import { settingsFor } from "@wren/core/clients";
 import { llmOf, type RejectReason, recordDraft } from "@wren/core/draft-record";
 import type { ExecutorEvent, Step } from "@wren/core/executor";
 import { factsBlock, humanBlock } from "@wren/core/facts";
@@ -47,6 +48,27 @@ import { keepTouch, touchFromAnswer, touchFromComment, touchFromMessage } from "
 /** The workflow, and the node the reader is in it. */
 export const COMMENTS_FLOW = "reach.comments";
 export const COMMENTS_FROM = "read.comment";
+
+export const COMMENTS_READ = "comments.read";
+
+/** The comment reader's block: how long a thread stays watched after its last activity. */
+export const commentsReadSettingsSchema = z
+  .object({
+    /** Days after the last comment or answer in a thread that the watch keeps reading it; 0 = off. */
+    followUpDays: z.number().int().min(0).max(30).default(7),
+  })
+  .strict();
+type CommentsReadSettings = z.infer<typeof commentsReadSettingsSchema>;
+
+/** A bad or missing block reads as the defaults. */
+export function commentsReadSettings(block: unknown): CommentsReadSettings {
+  const p = commentsReadSettingsSchema.safeParse(block ?? {});
+  return p.success ? p.data : commentsReadSettingsSchema.parse({});
+}
+
+/** Wren's own block (`wren_settings`). */
+export const wrenCommentsRead = async (db: Queryable) =>
+  commentsReadSettings((await settingsFor(db, null))[COMMENTS_READ]);
 
 /** They asked for the thing, or to be written to: settled in code, never misread. */
 const ASKED =

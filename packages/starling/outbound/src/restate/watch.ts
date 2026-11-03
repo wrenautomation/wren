@@ -39,17 +39,18 @@ import {
 import {
   COMMENTS_FLOW,
   COMMENTS_FROM,
+  COMMENTS_READ,
   commentEvent,
+  commentsReadSettings,
   keepComments,
   pullReplies,
   type RepliesStats,
+  wrenCommentsRead,
 } from "@wren/starling-conversations";
 import { contactsToDraft, DRAFTS_PER_DAY, draftDm, draftsToday } from "../drafts.js";
 import {
   applyThread,
   asThread,
-  COMMENTS_READ,
-  commentsReadSettings,
   dueThreads,
   focusesOf,
   mergeReads,
@@ -58,7 +59,6 @@ import {
   probed,
   THREAD_READS_PER_PASS,
   watchFromComments,
-  wrenCommentsRead,
 } from "../follow-ups.js";
 import { draftInviteNote, invitesToNote, notesLeft } from "../invite-notes.js";
 import {

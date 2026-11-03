@@ -16,6 +16,7 @@ import {
   planAnswer,
   planPrivateReply,
   privateReplyOf,
+  wrenCommentsRead,
 } from "@wren/starling-conversations";
 import { z } from "zod";
 import {
@@ -25,7 +26,6 @@ import {
   focusesOf,
   mergeReads,
   threadFor,
-  wrenCommentsRead,
 } from "../follow-ups.js";
 import { reachKinds } from "../item-kinds.js";
 import { reachTurns } from "../turns.js";

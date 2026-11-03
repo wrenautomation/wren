@@ -2,8 +2,8 @@
 import { defineComponent } from "@wren/core/components";
 import { clientKey } from "@wren/core/restate";
 import { defineWorkflow } from "@wren/core/workflows";
+import { commentsReadSettingsSchema } from "@wren/starling-conversations";
 import { discoverySettingsSchema } from "./discovery/places.js";
-import { commentsReadSettingsSchema } from "./follow-ups.js";
 import { invitesSettingsSchema } from "./invites.js";
 import { COMMENTS_SETTINGS } from "./reach-posts/settings.js";
 
