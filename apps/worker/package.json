@@ -8,7 +8,8 @@
     "./components": "./src/components.ts",
     "./setups": "./src/setups.ts",
     "./services": "./src/services.ts",
-    "./workflows": "./src/workflows.ts"
+    "./workflows": "./src/workflows.ts",
+    "./campaign-stop": "./src/campaign-stop.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
