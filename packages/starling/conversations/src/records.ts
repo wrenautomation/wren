@@ -44,7 +44,7 @@ export const SITES: Record<DmPlatform, string> = {
   x: "X",
 };
 
-export const COMMENT_KIND_LABELS = {
+const COMMENT_KIND_LABELS = {
   post_reply: neutral("On our post"),
   comment_reply: neutral("Under our comment"),
   thread_reply: neutral("Follow-up in the thread"),
