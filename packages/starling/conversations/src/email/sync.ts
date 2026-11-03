@@ -38,13 +38,14 @@
 
 import { parseAddr } from "@wren/core/mail";
 import { atomic, type Db, type Queryable } from "@wren/db";
+import type { SharedSuppressions } from "@wren/starling-email";
 import {
-  type InboxReader,
-  METADATA_HEADERS,
-  type MessageMetadata,
-} from "@wrenautomation/autobrowse/mail";
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
-import type { SharedSuppressions } from "../guards.js";
+  classify,
+  type Inbound,
+  type InboundBounceClass,
+  type InboundKind,
+  normalizeMessageId,
+} from "@wren/starling-email";
 import {
   type BounceClass,
   type DispositionSource,
@@ -59,18 +60,17 @@ import {
   type ThreadEvent,
   type ThreadEventKind,
   threadEvents,
-} from "../schema.js";
-import { PlainDate } from "../send/dates.js";
-import { recordStop, stopCompany } from "../send/stops.js";
-import { ensureSuppression } from "../send/suppress.js";
-import { awayUntil } from "./away.js";
+} from "@wren/starling-email/schema";
+import { PlainDate } from "@wren/starling-email/send/dates";
+import { recordStop, stopCompany } from "@wren/starling-email/send/stops";
+import { ensureSuppression } from "@wren/starling-email/send/suppress";
 import {
-  classify,
-  type Inbound,
-  type InboundBounceClass,
-  type InboundKind,
-  normalizeMessageId,
-} from "./inbound.js";
+  type InboxReader,
+  METADATA_HEADERS,
+  type MessageMetadata,
+} from "@wrenautomation/autobrowse/mail";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { awayUntil } from "./away.js";
 
 // Sent mail, drafts and Hangouts are ours or not mail at all; everything else is a candidate.
 const QUERY = (epochSeconds: number) => `after:${epochSeconds} -in:sent -in:draft -in:chats`;

@@ -23,7 +23,7 @@ import {
 } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import type { LlmClient, Tracer } from "@wren/llm";
-import { type DispositionStats, runDisposition } from "@wren/starling-email";
+import { type DispositionStats, runDisposition } from "@wren/starling-conversations/email";
 import { z } from "zod";
 import {
   type ApproveOutcome,

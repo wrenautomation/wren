@@ -39,4 +39,4 @@ Citations: `packages/starling/channels/email/src/schema.ts:410`
 
 ## See
 
-- Source: `packages/starling/channels/email/src/inbox/sync.ts`
+- Source: `packages/starling/conversations/src/email/sync.ts`

@@ -28,6 +28,7 @@
     "@wren/db": "workspace:*",
     "@wren/llm": "workspace:*",
     "@wren/research": "workspace:*",
+    "@wren/starling-conversations": "workspace:*",
     "@wren/starling-core": "workspace:*",
     "@wren/starling-email": "workspace:*",
     "@wren/starling-linkedin": "workspace:*",

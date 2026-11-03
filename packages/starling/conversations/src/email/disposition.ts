@@ -27,8 +27,6 @@
 import { companies } from "@wren/core";
 import { type Db, type Queryable, serializable } from "@wren/db";
 import { completeAndParse, type Envelope, type LlmClient, LlmError, type Tracer } from "@wren/llm";
-import { and, asc, eq, isNull, not, sql } from "drizzle-orm";
-import { z } from "zod";
 import {
   enrollments,
   messages,
@@ -36,7 +34,9 @@ import {
   type ReplyDisposition,
   type ThreadEvent,
   threadEvents,
-} from "../schema.js";
+} from "@wren/starling-email/schema";
+import { and, asc, eq, isNull, not, sql } from "drizzle-orm";
+import { z } from "zod";
 import { labelEvent } from "./sync.js";
 
 // v1 (2026-09-08): first prompt. Bump whenever the prompt, the label

@@ -21,12 +21,8 @@ import {
 } from "@wren/core";
 import type { Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
-import {
-  labelEvent,
-  recordOperatorReply,
-  syncInbox,
-  transitionMessage,
-} from "@wren/starling-email";
+import { labelEvent, recordOperatorReply, syncInbox } from "@wren/starling-conversations/email";
+import { transitionMessage } from "@wren/starling-email";
 import {
   type Enrollment,
   enrollments,

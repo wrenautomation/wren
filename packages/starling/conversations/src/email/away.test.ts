@@ -1,6 +1,7 @@
 /** Out-of-office return dates, from the shapes real auto-replies take. */
+
+import { PlainDate } from "@wren/starling-email/send/dates";
 import { describe, expect, it } from "vitest";
-import { PlainDate } from "../send/dates.js";
 import { awayUntil } from "./away.js";
 
 const DEC_20 = new PlainDate(2026, 12, 20); // a Sunday

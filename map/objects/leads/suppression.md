@@ -30,7 +30,7 @@ Citations: `packages/core/src/suppress.ts:72`, `packages/core/src/schema.ts:261`
 
 ## If you change this
 
-- **Hits:** the read gate `activeSuppression` (`packages/starling/channels/email/src/guards.ts`) used by compose, resolution and the send tick; the inbox sync (`packages/starling/channels/email/src/inbox/sync.ts`); SMS STOP handling (`packages/starling/channels/sms/src/events.ts:230`) and grounded opt-outs (`packages/starling/channels/sms/src/classify.ts`); email's bulk import and CSV (`packages/starling/channels/email/src/send/suppress.ts`); marketing's `mayMarket`, unsubscribe-everything and the double opt-in lift ([[leads/consent]])
+- **Hits:** the read gate `activeSuppression` (`packages/starling/channels/email/src/guards.ts`) used by compose, resolution and the send tick; the inbox sync (`packages/starling/conversations/src/email/sync.ts`); SMS STOP handling (`packages/starling/channels/sms/src/events.ts:230`) and grounded opt-outs (`packages/starling/channels/sms/src/classify.ts`); email's bulk import and CSV (`packages/starling/channels/email/src/send/suppress.ts`); marketing's `mayMarket`, unsubscribe-everything and the double opt-in lift ([[leads/consent]])
 - **Does not hit:** `leads.status = suppressed` is set separately; the LLM classifiers never write here on their own say
 
 ## Surfaces

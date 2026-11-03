@@ -9,17 +9,16 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Db } from "@wren/db";
 import { nicheFor } from "@wren/niches";
+import { labelEvent, recordOperatorReply } from "@wren/starling-conversations/email";
 import {
   enrollments,
   enumerateRenders,
-  labelEvent,
   messages,
   placeholderFacts,
   REJECT_REASONS,
   REPLY_DISPOSITIONS,
   type RejectReason,
   type ReplyDisposition,
-  recordOperatorReply,
   STOP_REASONS,
   type StopReason,
   threadEvents,

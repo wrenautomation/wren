@@ -11,7 +11,7 @@
  * Numeric dates read month first (1/5 is January 5): the lists are US and
  * Canada. A date without a year is its next occurrence.
  */
-import { PlainDate } from "../send/dates.js";
+import { PlainDate } from "@wren/starling-email/send/dates";
 
 /** A longer leave isn't held: the thread would block the firm's other contacts for months. */
 const MAX_AWAY_DAYS = 60;

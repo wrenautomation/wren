@@ -13,7 +13,7 @@ One inbound thing that happened on an enrollment's thread: reply, bounce, auto-r
 
 ## Why this shape
 
-The mailbox is the source of truth; the harness never infers an outcome (`packages/starling/channels/email/src/inbox/sync.ts:1`). One row per Gmail id (`uq_thread_events_gmail_id`, `:332`) makes a re-sync free of consequence. The reply's meaning is a separate, later column: `disposition` with its `disposition_source` (rule | operator | llm), and the LLM never overwrites an operator (`inbox/disposition.ts:1`).
+The mailbox is the source of truth; the harness never infers an outcome (`packages/starling/conversations/src/email/sync.ts:1`). One row per Gmail id (`uq_thread_events_gmail_id`, `:332`) makes a re-sync free of consequence. The reply's meaning is a separate, later column: `disposition` with its `disposition_source` (rule | operator | llm), and the LLM never overwrites an operator (`inbox/disposition.ts:1`).
 
 ## Shape
 
@@ -43,4 +43,4 @@ Citations: `packages/starling/channels/email/src/schema.ts:306`
 
 ## See
 
-- Source: `packages/starling/channels/email/src/inbox/sync.ts`
+- Source: `packages/starling/conversations/src/email/sync.ts`

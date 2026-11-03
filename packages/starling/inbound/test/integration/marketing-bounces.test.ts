@@ -69,7 +69,7 @@ const NOW = new Date();
 const SENT = new Date(NOW.getTime() - 72 * HOUR);
 const BY = "owner@wren.example";
 
-const FIXTURES = new URL("../fixtures/inbound/", import.meta.url);
+const FIXTURES = new URL("../../../channels/email/test/fixtures/inbound/", import.meta.url);
 /**
  * A fixture report, retold for one of our sends: its original Message-ID and failed address
  * swapped for ours.

@@ -31,8 +31,8 @@ import {
   unitOfKey,
 } from "@wren/core/restate";
 import type { Db } from "@wren/db";
+import { DAY_MS, type SyncStats, syncInbox } from "@wren/starling-conversations/email";
 import type { SharedSuppressions } from "@wren/starling-email";
-import { DAY_MS, type SyncStats, syncInbox } from "@wren/starling-email";
 import type { InboxReader } from "@wrenautomation/autobrowse/mail";
 import { z } from "zod";
 import type { Disposition } from "./disposition.js";

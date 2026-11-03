@@ -9,14 +9,12 @@ import type { Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
 import {
-  classify,
   DISPOSITION_VERSION,
   labelEvent,
   pendingEvents,
   runDisposition,
-  TEXT_MAX_CHARS,
-  transitionMessage,
-} from "@wren/starling-email";
+} from "@wren/starling-conversations/email";
+import { classify, TEXT_MAX_CHARS, transitionMessage } from "@wren/starling-email";
 import {
   type Enrollment,
   enrollments,

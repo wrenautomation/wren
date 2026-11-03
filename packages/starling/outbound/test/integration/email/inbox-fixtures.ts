@@ -7,7 +7,7 @@ import {
   type MessageMetadata,
 } from "@wrenautomation/autobrowse/mail";
 
-export const FIXTURES = new URL("../fixtures/inbound/", import.meta.url);
+export const FIXTURES = new URL("../../../../channels/email/test/fixtures/inbound/", import.meta.url);
 
 export const OTHER_SENDER = "william@wren-automation.test";
 /** What the fixtures call our outgoing message; every loader rewrites it. */
