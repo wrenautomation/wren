@@ -338,6 +338,9 @@ importers:
       '@wren/starling-acts':
         specifier: workspace:*
         version: link:../../packages/starling/acts
+      '@wren/starling-conversations':
+        specifier: workspace:*
+        version: link:../../packages/starling/conversations
       '@wren/starling-core':
         specifier: workspace:*
         version: link:../../packages/starling/core
@@ -1424,6 +1427,9 @@ importers:
       '@wren/db':
         specifier: workspace:*
         version: link:../../db
+      '@wren/llm':
+        specifier: workspace:*
+        version: link:../../llm
       '@wren/starling-reddit':
         specifier: workspace:*
         version: link:../channels/reddit
@@ -1712,12 +1718,18 @@ importers:
       '@wren/sites':
         specifier: workspace:*
         version: link:../../sites
+      '@wren/starling-acts':
+        specifier: workspace:*
+        version: link:../acts
       '@wren/starling-core':
         specifier: workspace:*
         version: link:../core
       '@wren/starling-email':
         specifier: workspace:*
         version: link:../channels/email
+      '@wren/starling-reddit':
+        specifier: workspace:*
+        version: link:../channels/reddit
       '@wrenautomation/autobrowse':
         specifier: 0.8.4
         version: 0.8.4(@opentelemetry/core@2.12.0(@opentelemetry/api@1.9.1))

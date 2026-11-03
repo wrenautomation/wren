@@ -14,11 +14,11 @@ import {
   refreshHealth,
   setAccountState,
 } from "@wren/starling-acts";
+import { addContact } from "@wren/starling-conversations";
+import { reachMessages } from "@wren/starling-conversations/schema";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { addContact } from "../../src/contacts.js";
 import { enroll } from "../../src/enroll.js";
-import { reachMessages } from "../../src/schema.js";
 import { REACH_SEQUENCES, slotsOf, stepKey, subjectKey } from "../../src/sequences.js";
 import { setTemplate } from "../../src/store.js";
 import { tick } from "../../src/tick.js";

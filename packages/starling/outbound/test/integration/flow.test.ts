@@ -20,13 +20,20 @@ import {
   refreshHealth,
   setAccountState,
 } from "@wren/starling-acts";
+import {
+  addContact,
+  contactById,
+  getThread,
+  listThreads,
+  pullReplies,
+  queueManual,
+  reachStats,
+} from "@wren/starling-conversations";
+import { reachMessages } from "@wren/starling-conversations/schema";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { addContact, contactById } from "../../src/contacts.js";
 import { enroll } from "../../src/enroll.js";
 import { dmCopyRecord, dmRecord } from "../../src/records.js";
-import { pullReplies } from "../../src/replies.js";
-import { reachMessages } from "../../src/schema.js";
 import {
   CONNECT_NOTE,
   REACH_SEQUENCES,
@@ -36,8 +43,7 @@ import {
   subjectKey,
 } from "../../src/sequences.js";
 import { liveDms, setTemplate } from "../../src/store.js";
-import { getThread, listThreads, reachStats } from "../../src/threads.js";
-import { queueManual, reconcile, STALE_SENDING_MS, tick, touch } from "../../src/tick.js";
+import { reconcile, STALE_SENDING_MS, tick, touch } from "../../src/tick.js";
 
 const TABLES = [
   "reach_messages",

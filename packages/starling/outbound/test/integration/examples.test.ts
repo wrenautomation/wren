@@ -12,10 +12,12 @@ import {
   type TestPostgres,
 } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
+import { sortComment } from "@wren/starling-conversations";
+import { comments } from "@wren/starling-conversations/schema";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { sortComment } from "../../src/comments.js";
 import { commentDecisions, commentExamples } from "../../src/examples.js";
-import { comments, reachPosts, redditPlaces, redditThreads } from "../../src/schema.js";
+import { reachPosts, redditPlaces, redditThreads } from "../../src/schema.js";
+import { reachTurns } from "../../src/turns.js";
 
 let pg: TestPostgres;
 beforeAll(async () => {
@@ -157,7 +159,7 @@ describe("comment examples", () => {
         return '{"sort":"question","why":"asks about a tool","answer":"Not yet."}';
       },
     });
-    expect(await sortComment(pg.db, llm, next.id)).toBe("question");
+    expect(await sortComment(reachTurns, pg.db, llm, next.id)).toBe("question");
     expect(system).toContain("His past decisions on comment drafts");
     expect(system).toContain("He sent it.");
     expect(system).toContain('He turned it down: Too salesy ("never pitch in a thread").');

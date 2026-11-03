@@ -5,7 +5,7 @@
 import { clientMembers } from "@wren/core/clients";
 import type { Db, Queryable } from "@wren/db";
 import { addInboxNote } from "@wren/notes/inbox";
-import { comments } from "@wren/starling-outbound";
+import { comments } from "@wren/starling-conversations/schema";
 import { and, eq, inArray, isNull, lte } from "drizzle-orm";
 
 /** At or under this many stars, the owners hear of it. */

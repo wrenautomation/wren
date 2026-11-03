@@ -19,15 +19,13 @@ import { askPublish, saveDraft } from "@wren/core/templates";
 import { startTestRestate } from "@wren/core/testing";
 import { seedObjects, startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { parkUnsure, sendAttempts } from "@wren/starling-acts";
+import { answerComment, planAnswer } from "@wren/starling-conversations";
+import { comments, reachContacts, reachMessages } from "@wren/starling-conversations/schema";
 import { type ActivityRow, type ContentChannel, fakeContentChannel } from "@wren/starling-core";
 import { makeContent } from "@wren/starling-core/service";
 import {
-  answerComment,
-  comments,
-  planAnswer,
-  reachContacts,
-  reachMessages,
   reachPosts,
+  reachTurns,
   redditPlaces,
   redditRequirements,
   redditThreads,
@@ -533,10 +531,10 @@ describe("SocialWatch", () => {
     li.receive({ id: "7003", postId: "urn:li:share:3", author: "Di", text: "How?", at: iso(1000) });
     await sync();
     const [c] = await pg.db.select().from(comments).where(eq(comments.ref, "7003"));
-    const plan = await planAnswer(pg.db, c?.id as number, new Date());
+    const plan = await planAnswer(reachTurns, pg.db, c?.id as number, new Date());
     expect(plan).toMatchObject({ account: null, others: [] });
     await expect(
-      answerComment(pg.db, fakeOutreachChannel("linkedin", { account: "linkedin@x" }), {
+      answerComment(reachTurns, pg.db, fakeOutreachChannel("linkedin", { account: "linkedin@x" }), {
         id: c?.id as number,
         body: "Like this",
         now: new Date(),

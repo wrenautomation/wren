@@ -28,8 +28,9 @@ import {
   isSendUnsure,
   sendAtMostOnce,
 } from "@wren/starling-acts/restate";
+import { dropComment, planAnswer } from "@wren/starling-conversations";
 import { SENDS_OFF } from "@wren/starling-core/service";
-import { dropComment, planAnswer, reachKinds } from "@wren/starling-outbound";
+import { reachKinds, reachTurns } from "@wren/starling-outbound";
 import type { PostSettle } from "@wren/starling-outbound/restate";
 import { z } from "zod";
 import { liveConnections, loginOf, type SocialAccessApi } from "../connect/access.js";
@@ -248,7 +249,7 @@ export function makeSocialInbox(deps: SocialInboxDeps) {
           const db = deps.clientDb(req.client);
           const plan = await ctx.run("plan", () =>
             terminal(async () => {
-              const p = await planAnswer(db, req.id, now);
+              const p = await planAnswer(reachTurns, db, req.id, now);
               if (p.account) throw new ReachRefusal("that comment answers from Wren's own Inbox");
               const { platform, ref, url } = p.comment;
               return { platform, ref, url };

@@ -18,6 +18,7 @@ import { parseKind } from "@wren/core/slots";
 import { type LiveTemplate, promptRef, renderPrompt } from "@wren/core/templates";
 import { defaultSource } from "@wren/core/templates/defaults";
 import { atomic, type Queryable } from "@wren/db";
+import { comments, reachContacts } from "@wren/starling-conversations/schema";
 import {
   isThread,
   THREAD_BREAK,
@@ -27,13 +28,11 @@ import {
 } from "@wren/starling-core/thread";
 import {
   COMMENT_KINDS_LEARNED,
-  comments,
   DRAFT_MAX,
   dmContext,
   examplesFor,
   invitedSql,
   COMMENT_MAX as POST_COMMENT_MAX,
-  reachContacts,
   reachPosts,
   redditThreads,
 } from "@wren/starling-outbound";

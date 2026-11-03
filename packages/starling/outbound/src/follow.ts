@@ -11,10 +11,9 @@ import { liveOrDefault } from "@wren/core/templates/defaults";
 import { labelOf, sequenceLabel } from "@wren/core/templates/labels";
 import { cadenceWorkflow, type Workflow } from "@wren/core/workflows";
 import type { Queryable } from "@wren/db";
+import { reachContacts, reachMessages } from "@wren/starling-conversations/schema";
 import { and, eq, inArray, sql } from "drizzle-orm";
-import { fieldsFor } from "./contacts.js";
-import { reachContacts, reachMessages } from "./schema.js";
-import { dmSeed, type ReachSequence, render, stepKey } from "./sequences.js";
+import { dmSeed, fieldsFor, type ReachSequence, render, stepKey } from "./sequences.js";
 import { dmRef } from "./store.js";
 import { type TickOptions, touch } from "./tick.js";
 

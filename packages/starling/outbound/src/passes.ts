@@ -7,17 +7,14 @@
 import { PASS_DAYS, PASS_LABELS, type PassReason } from "@wren/core/pass-reasons";
 import { REJECT_NOTE_MAX } from "@wren/core/reject-reasons";
 import type { Queryable } from "@wren/db";
+import { dropComment, passKey } from "@wren/starling-conversations";
+import { comments, reachContacts } from "@wren/starling-conversations/schema";
 import { and, eq, gt, inArray, isNull, or, sql } from "drizzle-orm";
-import { dropComment } from "./comments.js";
 import { skipThread } from "./discovery/threads.js";
 import { skipPost } from "./reach-posts/acts.js";
-import { comments, reachContacts, reachPasses, reachPosts, redditThreads } from "./schema.js";
+import { reachPasses, reachPosts, redditThreads } from "./schema.js";
 
 const DAY = 86_400_000;
-
-/** The key a pass matches on: the handle, else the name, lowercased. */
-export const passKey = (handle: string | null | undefined, name: string): string =>
-  (handle?.trim() || name.trim()).replace(/^@/, "").toLowerCase().slice(0, 200);
 
 /** Active passes on a platform, as `passKey`s. */
 export async function passedOn(db: Queryable, platform: string): Promise<Set<string>> {

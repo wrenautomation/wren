@@ -22,11 +22,12 @@ import type {
   ReachPart,
   ReachPolicy,
 } from "@wren/starling-acts";
+import type { DmPlatform } from "@wren/starling-conversations/schema";
 import type { LoopCampaign } from "@wren/starling-core/campaigns";
 import { linkedinOutreach } from "@wren/starling-linkedin";
 import { redditOutreach } from "@wren/starling-reddit";
 import type { DmGuide } from "../drafts.js";
-import type { DmPlatform, ReachPostPlatform } from "../schema.js";
+import type { ReachPostPlatform } from "../schema.js";
 import type { ReachSequence } from "../sequences.js";
 
 /** The `Content` service's reply handler as the worker serves it. */

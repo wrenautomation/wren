@@ -5,10 +5,14 @@
  */
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { addAccount, setAccountState } from "@wren/starling-acts";
+import { addProspects, contactByHandle, stopCampaignContacts } from "@wren/starling-conversations";
+import {
+  type ContactState,
+  reachContacts,
+  reachMessages,
+} from "@wren/starling-conversations/schema";
 import { asc, eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { addProspects, contactByHandle, stopCampaignContacts } from "../../src/contacts.js";
-import { type ContactState, reachContacts, reachMessages } from "../../src/schema.js";
 
 let pg: TestPostgres;
 beforeAll(async () => {

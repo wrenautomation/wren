@@ -19,10 +19,11 @@ import {
   sendAttempt,
   setAccountState,
 } from "@wren/starling-acts";
+import { contactById } from "@wren/starling-conversations";
+import { reachContacts, reachMessages } from "@wren/starling-conversations/schema";
 import type { LoopCampaign } from "@wren/starling-core/campaigns";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { contactById } from "../../src/contacts.js";
 import { dmContext } from "../../src/drafts.js";
 import {
   approveInvites,
@@ -39,7 +40,6 @@ import {
   whyOf,
 } from "../../src/invites.js";
 import { dmRecord, inviteRecord } from "../../src/records.js";
-import { reachContacts, reachMessages } from "../../src/schema.js";
 import { CONNECT_NOTE, REACH_SEQUENCES, slotsOf } from "../../src/sequences.js";
 import { setTemplate } from "../../src/store.js";
 import { tick } from "../../src/tick.js";

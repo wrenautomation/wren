@@ -20,6 +20,7 @@ import {
   refreshHealth,
   setAccountState,
 } from "@wren/starling-acts";
+import { comments } from "@wren/starling-conversations/schema";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
@@ -52,7 +53,7 @@ import {
 } from "../../src/index.js";
 import { placeRecord, threadRecord } from "../../src/records.js";
 import { scheduleThreads, THREAD_PACE } from "../../src/scheduled.js";
-import { comments, redditPlaces, redditThreads } from "../../src/schema.js";
+import { redditPlaces, redditThreads } from "../../src/schema.js";
 
 const TABLES = [
   "reddit_threads",

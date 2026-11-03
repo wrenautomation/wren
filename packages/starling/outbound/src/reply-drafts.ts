@@ -1,7 +1,8 @@
 /** Reply boxes when he writes replies himself (`drafts.replies` = you). */
 import type { Queryable } from "@wren/db";
+import { comments, reachContacts } from "@wren/starling-conversations/schema";
 import { and, eq, inArray, sql } from "drizzle-orm";
-import { comments, reachContacts, reachPosts, redditThreads } from "./schema.js";
+import { reachPosts, redditThreads } from "./schema.js";
 
 /**
  * Empty every open reply box: queued threads and posts, comments waiting on him, DM drafts. The

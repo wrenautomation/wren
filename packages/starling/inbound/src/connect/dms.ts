@@ -11,8 +11,12 @@ import { recordDraft } from "@wren/core/draft-record";
 import { recordTouch } from "@wren/core/touches";
 import type { Queryable } from "@wren/db";
 import { ReachRefusal } from "@wren/starling-acts";
+import {
+  type ReachContact,
+  reachContacts,
+  reachMessages,
+} from "@wren/starling-conversations/schema";
 import { pageInboxOf, pageInboxQuery } from "@wren/starling-core/page-inbox";
-import { type ReachContact, reachContacts, reachMessages } from "@wren/starling-outbound";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { loginOf } from "./access.js";
 import type { SocialPlatform } from "./platforms.js";

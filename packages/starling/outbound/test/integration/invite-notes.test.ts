@@ -7,9 +7,10 @@ import { draftEvents } from "@wren/core/schema";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
 import { addAccount, type ReachAccount, setAccountState } from "@wren/starling-acts";
+import { addProspects, contactByHandle } from "@wren/starling-conversations";
+import { reachMessages } from "@wren/starling-conversations/schema";
 import { and, asc, eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { addProspects, contactByHandle } from "../../src/contacts.js";
 import {
   draftInviteNote,
   invitesToNote,
@@ -19,7 +20,6 @@ import {
   setInviteNote,
 } from "../../src/invite-notes.js";
 import { approveInvites, skipInvites } from "../../src/invites.js";
-import { reachMessages } from "../../src/schema.js";
 
 const TABLES = ["reach_messages", "reach_contacts", "reach_accounts", "draft_events"];
 const NOW = new Date("2026-10-06T15:00:00Z");

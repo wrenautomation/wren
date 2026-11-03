@@ -21,15 +21,15 @@ import {
   settleSent,
   standingOf,
 } from "@wren/starling-acts";
+import { addProspects, setContactState } from "@wren/starling-conversations";
+import { type InviteFit, reachContacts, reachMessages } from "@wren/starling-conversations/schema";
+import { keepTouch, touchInvites } from "@wren/starling-conversations/touches";
 import { capLeft, type LoopCampaign, sweepsOn } from "@wren/starling-core/campaigns";
 import { and, eq, inArray, isNull, or, type SQL, sql } from "drizzle-orm";
 import { z } from "zod";
-import { addProspects, setContactState } from "./contacts.js";
 import { enroll } from "./enroll.js";
-import { type InviteFit, reachContacts, reachMessages } from "./schema.js";
 import type { ReachSequence } from "./sequences.js";
 import type { Journal } from "./tick.js";
-import { keepTouch, touchInvites } from "./touches.js";
 
 export const INVITES_COMPONENT = "linkedin.invites";
 export const INVITE_SEQUENCE = "linkedin-invite";

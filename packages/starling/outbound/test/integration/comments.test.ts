@@ -16,19 +16,20 @@ import {
   refreshHealth,
   setAccountState,
 } from "@wren/starling-acts";
-import { eq } from "drizzle-orm";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   answerComment,
   commentById,
   dmCommenter,
   keepComments,
   sortComment,
-} from "../../src/comments.js";
+} from "@wren/starling-conversations";
+import { comments, reachMessages } from "@wren/starling-conversations/schema";
+import { eq } from "drizzle-orm";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { commentRecord } from "../../src/records.js";
-import { comments, reachMessages } from "../../src/schema.js";
 import { REACH_SEQUENCES } from "../../src/sequences.js";
 import { tick } from "../../src/tick.js";
+import { reachTurns } from "../../src/turns.js";
 
 const TABLES = ["comments", "reach_messages", "reach_contacts", "reach_accounts"];
 // Thursday 14:00 New York.
@@ -91,7 +92,7 @@ describe("comments", () => {
   it("last touch per account: the newest comment or answer, DMs too", async () => {
     const a = await account("reddit@a", "ok_crow", 60, 100);
     expect(await lastTouches(db())).toEqual({});
-    const [c] = await keepComments(db(), a, [comment(1)], []);
+    const [c] = await keepComments(reachTurns, db(), a, [comment(1)], []);
     expect((await lastTouches(db()))[a.id]).toBe(comment(1).at);
     await db()
       .update(comments)
@@ -103,9 +104,9 @@ describe("comments", () => {
   it("kept once; ours closed; the rest returned oldest first", async () => {
     const a = await account("reddit@wren", "WrenAutomation", 10, 5);
     const items = [comment(1), comment(2), comment(3, { handle: "Ok_Crow" })];
-    const kept = await keepComments(db(), a, items, ["ok_crow", "WrenAutomation"]);
+    const kept = await keepComments(reachTurns, db(), a, items, ["ok_crow", "WrenAutomation"]);
     expect(kept.map((k) => k.author)).toEqual(["reader2", "reader1"]);
-    expect(await keepComments(db(), a, items, [])).toEqual([]);
+    expect(await keepComments(reachTurns, db(), a, items, [])).toEqual([]);
     const [ours] = await db().select().from(comments).where(eq(comments.author, "Ok_Crow"));
     expect(ours).toMatchObject({ sort: "ours", state: "dropped" });
     const rows = (await commentRecord.rows?.(db())) ?? [];
@@ -119,6 +120,7 @@ describe("comments", () => {
   it("sorts by words for $0, else by the model, which drafts for asked and question", async () => {
     const a = await account("reddit@wren", "WrenAutomation", 10, 5);
     const [asked, q, chat, noise] = await keepComments(
+      reachTurns,
       db(),
       a,
       [
@@ -138,12 +140,12 @@ describe("comments", () => {
             ? '{"sort":"chat","why":"x","answer":"Sending it over in a DM."}'
             : '{"sort":"chat","why":"a nod","answer":"Thanks!"}',
     });
-    expect(await sortComment(db(), llm, asked?.id ?? 0)).toBe("asked");
-    expect(await sortComment(db(), llm, q?.id ?? 0)).toBe("question");
-    expect(await sortComment(db(), llm, chat?.id ?? 0)).toBe("chat");
+    expect(await sortComment(reachTurns, db(), llm, asked?.id ?? 0)).toBe("asked");
+    expect(await sortComment(reachTurns, db(), llm, q?.id ?? 0)).toBe("question");
+    expect(await sortComment(reachTurns, db(), llm, chat?.id ?? 0)).toBe("chat");
     // Noise never reaches the model: kept, closed, with why.
     const before = asks;
-    expect(await sortComment(db(), llm, noise?.id ?? 0)).toBe("noise");
+    expect(await sortComment(reachTurns, db(), llm, noise?.id ?? 0)).toBe("noise");
     expect(asks).toBe(before);
     expect(await commentById(db(), noise?.id ?? 0)).toMatchObject({
       state: "dropped",
@@ -162,6 +164,7 @@ describe("comments", () => {
     const a = await account("reddit@wren", "WrenAutomation", 10, 5);
     await account("reddit@alt", "Ok_Crow", 10, 5);
     const [c1, c2, c3, c4] = await keepComments(
+      reachTurns,
       db(),
       a,
       [comment(4), comment(3, { post: "t3_p2", parent: "t3_p2" }), comment(2), comment(1)],
@@ -170,35 +173,41 @@ describe("comments", () => {
     const ch = channelFor(a);
     ch.threads.set("t3_p2", ["someone", "ok_crow"]);
     await expect(
-      answerComment(db(), ch, { id: c2?.id ?? 0, body: "Thanks", now: NOW }),
+      answerComment(reachTurns, db(), ch, { id: c2?.id ?? 0, body: "Thanks", now: NOW }),
     ).rejects.toThrow(/Ok_Crow already wrote/);
 
-    await answerComment(db(), ch, { id: c1?.id ?? 0, body: "Thanks!", now: NOW });
+    await answerComment(reachTurns, db(), ch, { id: c1?.id ?? 0, body: "Thanks!", now: NOW });
     expect(ch.sent).toEqual([{ kind: "comment", handle: "t1_c4", text: "Thanks!" }]);
     expect(await commentById(db(), c1?.id ?? 0)).toMatchObject({ state: "answered" });
     await expect(
-      answerComment(db(), ch, { id: c1?.id ?? 0, body: "again", now: NOW }),
+      answerComment(reachTurns, db(), ch, { id: c1?.id ?? 0, body: "again", now: NOW }),
     ).rejects.toThrow(/already answered/);
     // The comment rung allows 5 a day.
-    await answerComment(db(), ch, { id: c3?.id ?? 0, body: "a", now: NOW });
-    await answerComment(db(), ch, { id: c4?.id ?? 0, body: "b", now: NOW });
-    const [c5, c6, c7] = await keepComments(db(), a, [comment(5), comment(6), comment(7)], []);
-    await answerComment(db(), ch, { id: c5?.id ?? 0, body: "c", now: NOW });
-    await answerComment(db(), ch, { id: c6?.id ?? 0, body: "d", now: NOW });
-    await expect(answerComment(db(), ch, { id: c7?.id ?? 0, body: "e", now: NOW })).rejects.toThrow(
-      /5 comments a day/,
+    await answerComment(reachTurns, db(), ch, { id: c3?.id ?? 0, body: "a", now: NOW });
+    await answerComment(reachTurns, db(), ch, { id: c4?.id ?? 0, body: "b", now: NOW });
+    const [c5, c6, c7] = await keepComments(
+      reachTurns,
+      db(),
+      a,
+      [comment(5), comment(6), comment(7)],
+      [],
     );
+    await answerComment(reachTurns, db(), ch, { id: c5?.id ?? 0, body: "c", now: NOW });
+    await answerComment(reachTurns, db(), ch, { id: c6?.id ?? 0, body: "d", now: NOW });
+    await expect(
+      answerComment(reachTurns, db(), ch, { id: c7?.id ?? 0, body: "e", now: NOW }),
+    ).rejects.toThrow(/5 comments a day/);
   });
 
   it("one DM per person, refused before the account may message, sent with the gate off", async () => {
     const young = await account("reddit@wren", "WrenAutomation", 10, 5);
-    const [early] = await keepComments(db(), young, [comment(9)], []);
+    const [early] = await keepComments(reachTurns, db(), young, [comment(9)], []);
     await expect(dmCommenter(db(), { id: early?.id ?? 0, body: "hi", now: NOW })).rejects.toThrow(
       /can't DM yet/,
     );
 
     const old = await account("reddit@alt", "Ok_Crow", 40, 200);
-    const [c] = await keepComments(db(), old, [comment(1, { ref: "t1_x1" })], []);
+    const [c] = await keepComments(reachTurns, db(), old, [comment(1, { ref: "t1_x1" })], []);
     const r = await dmCommenter(db(), { id: c?.id ?? 0, body: "Here it is", now: NOW });
     await expect(
       dmCommenter(db(), { id: c?.id ?? 0, body: "And again", now: NOW }),

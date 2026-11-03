@@ -8,8 +8,10 @@
     "./chat": "./src/chat/index.ts",
     "./email": "./src/email/index.ts",
     "./inbox": "./src/inbox/index.ts",
+    "./records": "./src/records.ts",
     "./restate": "./src/restate/index.ts",
-    "./schema": "./src/schema.ts"
+    "./schema": "./src/schema.ts",
+    "./touches": "./src/touches.ts"
   },
   "scripts": {
     "test:unit": "vitest run src",
@@ -23,8 +25,10 @@
     "@wren/notes": "workspace:*",
     "@wren/research": "workspace:*",
     "@wren/sites": "workspace:*",
+    "@wren/starling-acts": "workspace:*",
     "@wren/starling-core": "workspace:*",
     "@wren/starling-email": "workspace:*",
+    "@wren/starling-reddit": "workspace:*",
     "@wrenautomation/autobrowse": "0.8.4",
     "drizzle-orm": "0.45.2",
     "zod": "4.6.5"

@@ -12,18 +12,16 @@ import { companies, people } from "@wren/core/schema";
 import { normalizeHandle, recordTouch, socialHandles, touches } from "@wren/core/touches";
 import type { Queryable } from "@wren/db";
 import { listAccounts, type Platform, type ReachAccount, ReachRefusal } from "@wren/starling-acts";
-import { and, eq, sql } from "drizzle-orm";
-import { checkCanDm } from "./comments.js";
-import { addProspects, contactByHandle } from "./contacts.js";
-import { whoOf } from "./passes.js";
+import { addProspects, checkCanDm, contactByHandle } from "@wren/starling-conversations";
 import {
   isReachPlatform,
-  REACH_POST_PLATFORMS,
   type ReachContact,
-  type ReachPostPlatform,
   reachContacts,
-} from "./schema.js";
-import { keepTouch } from "./touches.js";
+} from "@wren/starling-conversations/schema";
+import { keepTouch } from "@wren/starling-conversations/touches";
+import { and, eq, sql } from "drizzle-orm";
+import { whoOf } from "./passes.js";
+import { REACH_POST_PLATFORMS, type ReachPostPlatform } from "./schema.js";
 
 const isPostPlatform = (p: string): p is ReachPostPlatform =>
   (REACH_POST_PLATFORMS as readonly string[]).includes(p);

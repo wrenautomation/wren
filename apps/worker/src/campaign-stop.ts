@@ -7,9 +7,9 @@
 import { keysOfProfile } from "@wren/core/profiles";
 import type { Queryable } from "@wren/db";
 import type { CampaignStop } from "@wren/pipeline/steps";
+import { stopCampaignContacts } from "@wren/starling-conversations";
 import type { StopReason } from "@wren/starling-email/schema";
 import { stopCampaignEnrollments } from "@wren/starling-email/send";
-import { stopCampaignContacts } from "@wren/starling-outbound";
 import { stopCampaignTexts } from "@wren/starling-sms";
 
 /** The email stop reason a winning cause stands for; any other is an operator's call. */

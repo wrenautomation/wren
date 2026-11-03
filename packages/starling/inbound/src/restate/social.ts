@@ -52,6 +52,7 @@ import {
 } from "@wren/core/restate";
 import { wallClock } from "@wren/core/time";
 import type { Db } from "@wren/db";
+import { COMMENTS_FLOW, COMMENTS_FROM, commentEvent } from "@wren/starling-conversations";
 import { autoReplyReviews } from "@wren/starling-conversations/restate";
 import type {
   ActivityQuery,
@@ -64,13 +65,7 @@ import type {
   PublishedRow,
 } from "@wren/starling-core";
 import { MANY_POSTS } from "@wren/starling-core/service";
-import {
-  COMMENTS_FLOW,
-  COMMENTS_FROM,
-  commentEvent,
-  commentsReadSettings,
-  wrenCommentsRead,
-} from "@wren/starling-outbound";
+import { commentsReadSettings, wrenCommentsRead } from "@wren/starling-outbound";
 import { z } from "zod";
 import { clientContent } from "../clients.js";
 import { keepSitePosts } from "../site-posts.js";

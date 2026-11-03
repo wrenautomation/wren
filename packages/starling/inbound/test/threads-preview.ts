@@ -9,8 +9,9 @@
 import type { ThreadNode } from "@wren/core/outreach";
 import { createDb, migrate } from "@wren/db";
 import { addAccount, setAccountState } from "@wren/starling-acts";
-import { applyThread, keepComments, watchFromComments } from "@wren/starling-outbound";
-import { commentThreads } from "@wren/starling-outbound/schema";
+import { keepComments } from "@wren/starling-conversations";
+import { commentThreads } from "@wren/starling-conversations/schema";
+import { applyThread, reachTurns, watchFromComments } from "@wren/starling-outbound";
 import { sql } from "drizzle-orm";
 import { INBOX_TABLES, seedInbox } from "./inbox-seed.js";
 
@@ -81,6 +82,7 @@ const nodes = [
 ];
 // The inbox showed only the direct reply.
 await keepComments(
+  reachTurns,
   db,
   acct,
   [

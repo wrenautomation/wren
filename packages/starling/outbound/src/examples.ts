@@ -7,8 +7,9 @@
 import type { DraftRecordKind } from "@wren/core/draft-record";
 import { REJECT_LABELS, type RejectReason } from "@wren/core/draft-record";
 import type { Queryable } from "@wren/db";
+import { comments } from "@wren/starling-conversations/schema";
 import { sql } from "drizzle-orm";
-import { comments, reachPosts, redditThreads } from "./schema.js";
+import { reachPosts, redditThreads } from "./schema.js";
 
 /** The kinds that are comments: answers on our posts, Reddit threads, others' LinkedIn posts. */
 export const COMMENT_KINDS_LEARNED = [

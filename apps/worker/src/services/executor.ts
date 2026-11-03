@@ -43,11 +43,12 @@ import { collectSteps } from "@wren/pipeline/collect";
 import { shapeWorkflowsOf, soundShapes } from "@wren/pipeline/journeys";
 import { journeySteps } from "@wren/pipeline/steps";
 import { youtubeByUrl } from "@wren/research/sops";
+import { sortStep } from "@wren/starling-conversations";
 import { askFollowEmail } from "@wren/starling-conversations/inbox";
 import { isGoogleMailbox } from "@wren/starling-email/access/access";
 import { EMAIL_TOUCH } from "@wren/starling-email/components";
 import { commentGuide } from "@wren/starling-inbound";
-import { touchStep as reachTouchStep, sortStep } from "@wren/starling-outbound";
+import { touchStep as reachTouchStep, reachTurns } from "@wren/starling-outbound";
 import { emailTouchStep } from "@wren/starling-outbound/email";
 import { clientSms, touchStep } from "@wren/starling-sms";
 import {
@@ -342,6 +343,7 @@ export function executorServices(deps: Deps): AnyService[] {
         }),
         // The Monitor's model: both read a few lines and answer in one.
         "comments.sort": sortStep(
+          reachTurns,
           db,
           draftsLlm,
           (p) => commentGuide(db, p as Platform),

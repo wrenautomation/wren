@@ -14,13 +14,13 @@ import { PASS_REASONS, type PassReason } from "@wren/core/pass-reasons";
 import { REJECT_REASONS } from "@wren/core/reject-reasons";
 import { atomic, type Db, setAuditActor } from "@wren/db";
 import { listAccounts, PLATFORMS, platformOf, viewOf } from "@wren/starling-acts";
+import { listThreads, reachStats } from "@wren/starling-conversations";
+import { CONTACT_STATES, type ContactState } from "@wren/starling-conversations/schema";
 import type { Proof } from "@wren/starling-core";
 import {
   backfillFromProofs,
   COMMENTS_COMPONENTS,
   COMMENTS_SETTINGS,
-  CONTACT_STATES,
-  type ContactState,
   clearGate,
   commentsSettings,
   discoverySettingsSchema,
@@ -32,14 +32,12 @@ import {
   learnText,
   listPosts,
   listTemplates,
-  listThreads,
   policyFrom,
   proofsSince,
   proposedInvites,
   REACH_POST_PLATFORMS,
   REACH_SEQUENCES,
   type ReachPostPlatform,
-  reachStats,
   sentSince,
   setNeed,
   slotsOf,

@@ -8,7 +8,7 @@ import { resolveObjectOrNull } from "@wren/core/objects";
 import { date, defineRecord, link, number, prose, status, text } from "@wren/core/records";
 import { PortalRefusal } from "@wren/core/refusal";
 import { atomic, type Queryable } from "@wren/db";
-import { comments } from "@wren/starling-outbound/schema";
+import { comments } from "@wren/starling-conversations/schema";
 import { and, eq, inArray, isNull, ne, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import {

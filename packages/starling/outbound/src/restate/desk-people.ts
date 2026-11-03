@@ -2,6 +2,7 @@
 import * as restate from "@restatedev/restate-sdk";
 import { byOf } from "@wren/core/ask";
 import { errorText, serviceHandler } from "@wren/core/restate";
+import { reachContacts } from "@wren/starling-conversations/schema";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { draftDm, queueDraft } from "../drafts.js";
@@ -14,7 +15,6 @@ import {
 } from "../from-people.js";
 import { followAct } from "../reach-posts/acts.js";
 import { commentsSettings } from "../reach-posts/settings.js";
-import { reachContacts } from "../schema.js";
 import type { DeskContext } from "./desk-context.js";
 
 const PERSON = z.looseObject({

@@ -1,6 +1,6 @@
 import { parseBody } from "@wren/core/slots";
+import { isOptOut } from "@wren/starling-conversations";
 import { describe, expect, it } from "vitest";
-import { isOptOut } from "./replies.js";
 import {
   CONNECT_NOTE,
   checkBody,

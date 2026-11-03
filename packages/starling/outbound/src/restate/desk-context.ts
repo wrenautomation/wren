@@ -10,14 +10,14 @@ import { sendAcross } from "@wren/core/send-verdict";
 import type { Db, Queryable } from "@wren/db";
 import { listAccounts, ReachRefusal, recordLanded } from "@wren/starling-acts";
 import { isSendUnsure, type Landed, sendAtMostOnce, sendError } from "@wren/starling-acts/restate";
+import { answerFor, checkThread, contactById, planAnswer } from "@wren/starling-conversations";
+import type { ReachContact } from "@wren/starling-conversations/schema";
 import { z } from "zod";
-import { answerFor, checkThread, planAnswer } from "../comments.js";
-import { contactById } from "../contacts.js";
 import { enroll } from "../enroll.js";
 import { INVITE_SEQUENCE, inviteSettings } from "../invites.js";
 import { reachKinds } from "../item-kinds.js";
-import type { ReachContact } from "../schema.js";
 import { slotsOf } from "../sequences.js";
+import { reachTurns } from "../turns.js";
 import {
   type ContentReply,
   channelsFor,
@@ -108,7 +108,9 @@ export function deskContext(deps: ReachDeps) {
     again = false,
   ): Promise<{ ref: string | null }> => {
     const now = await nowOf(ctx);
-    const plan = await ctx.run("plan", () => terminal(() => planAnswer(deps.db, id, now)));
+    const plan = await ctx.run("plan", () =>
+      terminal(() => planAnswer(reachTurns, deps.db, id, now)),
+    );
     const words = (given ?? plan.comment.draft ?? "").trim();
     if (!words) throw new restate.TerminalError("the answer is empty");
     // Answered, and words that differ from the draft kept as his edit.

@@ -35,6 +35,7 @@ import { money, payApprovalId, waitingPayLinks } from "@wren/payments/store";
 import { pageApprovalId, retireApprovalId } from "@wren/sites/console";
 import { waitingPages, waitingRetires } from "@wren/sites/store";
 import { accountPickFor, type SendAttempt, unsureSends } from "@wren/starling-acts";
+import { threadContextOf } from "@wren/starling-conversations";
 import {
   conversationOf,
   queuedReplies,
@@ -43,17 +44,13 @@ import {
   typed,
   waitingReplies,
 } from "@wren/starling-conversations/inbox";
+import { COMMENT_FOLD } from "@wren/starling-conversations/records";
 import type { InboxReply, InboxThread } from "@wren/starling-conversations/schema";
 import { isUrl } from "@wren/starling-core";
+import { PLATFORM_CUES } from "@wren/starling-core/platform-cues";
 import { TIKTOK_COPY } from "@wren/starling-core/tiktok";
-import { invitedSql, threadContextOf } from "@wren/starling-outbound";
-import {
-  COMMENT_FOLD,
-  commentRecord,
-  dmRecord,
-  PLATFORM_LABELS,
-  threadRecord,
-} from "@wren/starling-outbound/records";
+import { invitedSql } from "@wren/starling-outbound";
+import { commentRecord, dmRecord, threadRecord } from "@wren/starling-outbound/records";
 import { threadRecord as textThreadRecord } from "@wren/starling-sms/records";
 import { and, eq, sql } from "drizzle-orm";
 import { waitingSwaps } from "../analytics/variants.js";
@@ -102,7 +99,7 @@ export const activityRecord = defineRecord({
     text: text("What"),
     who: name("Who"),
     actorUrl: link("Their page"),
-    platform: status(PLATFORM_LABELS, "Site"),
+    platform: status(PLATFORM_CUES, "Site"),
     kind: status(cued(KIND_LABELS), "Kind"),
     state: status({ new: { label: "New", tone: "warn" }, seen: neutral("Seen") }),
     at: date("When"),
@@ -714,7 +711,7 @@ export const inboxRecord = defineRecord({
       }),
       "Type",
     ),
-    platform: status(PLATFORM_LABELS, "Site"),
+    platform: status(PLATFORM_CUES, "Site"),
     assignee: actor("Assignee"),
     kind: status(
       cued({
@@ -1160,7 +1157,7 @@ const approvalRecordOf = (signer?: VideoSigner) =>
         "Type",
       ),
       platform: status(
-        cued({ ...PLATFORM_LABELS, email: neutral("Email"), sms: neutral("Texts") }),
+        cued({ ...PLATFORM_CUES, email: neutral("Email"), sms: neutral("Texts") }),
         "Site",
       ),
       kind: status(
@@ -1409,7 +1406,7 @@ const engageRecordOf = (signer?: VideoSigner) =>
         }),
         "Type",
       ),
-      platform: status(PLATFORM_LABELS, "Site"),
+      platform: status(PLATFORM_CUES, "Site"),
       state: STATES,
       body: prose("Their words"),
       postTitle: text("Post"),
@@ -1584,7 +1581,7 @@ export const exploreRecord = defineRecord({
   fields: {
     who: name("Who"),
     type: status(cued({ thread: neutral("Reddit thread"), onpost: neutral("Post") }), "Type"),
-    platform: status(PLATFORM_LABELS, "Site"),
+    platform: status(PLATFORM_CUES, "Site"),
     where: text("Where"),
     body: prose("Their words"),
     why: text("Found for"),

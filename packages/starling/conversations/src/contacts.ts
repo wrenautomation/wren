@@ -1,7 +1,7 @@
 /**
  * People on a platform. `addProspects` keeps what a search found (a row per
  * handle, never a duplicate); `enrichContact` reads their page once and
- * stores it; `fieldsFor` is what a template fills in for them.
+ * stores it. `fieldsFor` (sequences) is what a template fills in for them.
  */
 
 import { linkPeople } from "@wren/core/leads";
@@ -16,7 +16,6 @@ import type { Queryable } from "@wren/db";
 import { type Platform, ReachRefusal } from "@wren/starling-acts";
 import { and, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import { type ContactState, type ReachContact, reachContacts, reachMessages } from "./schema.js";
-import { firstName, type RenderFields } from "./sequences.js";
 
 export interface AddStats {
   added: number;
@@ -136,18 +135,6 @@ export async function enrichContact(
 
 export const profileOf = (c: ReachContact): Profile | null => (c.profile as Profile | null) ?? null;
 
-/** What a template fills in for this person. */
-export function fieldsFor(contact: ReachContact, sender: string): RenderFields {
-  const p = profileOf(contact);
-  return {
-    first_name: firstName(contact.name ?? p?.name),
-    company: p?.company ?? null,
-    headline: contact.headline ?? p?.headline ?? p?.current ?? null,
-    found_in: contact.foundIn === "manual" || contact.foundIn === "enrich" ? null : contact.foundIn,
-    sender,
-  };
-}
-
 export async function setContactState(
   db: Queryable,
   id: number,
@@ -250,3 +237,7 @@ export async function loadByAccount(
     .groupBy(reachContacts.accountId);
   return new Map(rows.filter((r) => r.accountId).map((r) => [r.accountId as string, r.n]));
 }
+
+/** The key a pass matches on: the handle, else the name, lowercased. */
+export const passKey = (handle: string | null | undefined, name: string): string =>
+  (handle?.trim() || name.trim()).replace(/^@/, "").toLowerCase().slice(0, 200);

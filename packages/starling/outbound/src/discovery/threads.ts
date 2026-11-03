@@ -30,20 +30,24 @@ import { wallClock, zonedInstant } from "@wren/core/time";
 import { atomic, type Queryable } from "@wren/db";
 import { completeAndParse, type LlmClient } from "@wren/llm";
 import {
+  armMeta,
+  guardBy,
+  modelFor,
   pickedReachAccount,
   type ReachAccount,
   ReachRefusal,
   reachAccounts,
 } from "@wren/starling-acts";
+import { passKey } from "@wren/starling-conversations";
+import { comments } from "@wren/starling-conversations/schema";
+import { keepTouch } from "@wren/starling-conversations/touches";
 import { REACH_FULL_KARMA, warmupOf } from "@wren/starling-reddit";
 import { and, asc, desc, eq, gt, gte, inArray, isNotNull, isNull, lt, or, sql } from "drizzle-orm";
 import { z } from "zod";
-import { armMeta, guardBy, modelFor } from "../draft-llm.js";
 import { COMMENT_KINDS_LEARNED, examplesFor } from "../examples.js";
 import { ZONE } from "../pacing.js";
-import { passedOn, passKey } from "../passes.js";
+import { passedOn } from "../passes.js";
 import {
-  comments,
   type PlaceJudged,
   type PlacePurpose,
   type RedditPerson,
@@ -52,7 +56,7 @@ import {
   redditThreads,
   THREAD_KINDS,
 } from "../schema.js";
-import { keepTouch, touchFromThread } from "../touches.js";
+import { touchFromThread } from "../touches.js";
 import { personLine } from "./people.js";
 import type { Audience } from "./places.js";
 import type { Post } from "./reads.js";

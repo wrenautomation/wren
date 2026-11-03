@@ -16,11 +16,11 @@ import {
   refreshHealth,
   setAccountState,
 } from "@wren/starling-acts";
+import { addContact, contactById } from "@wren/starling-conversations";
+import { reachContacts } from "@wren/starling-conversations/schema";
 import { reachKinds } from "@wren/starling-outbound";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { addContact, contactById } from "../../src/contacts.js";
 import { queueDraft } from "../../src/drafts.js";
-import { reachContacts } from "../../src/schema.js";
 import { REACH_SEQUENCES } from "../../src/sequences.js";
 import { tick } from "../../src/tick.js";
 

@@ -19,6 +19,9 @@ import { whereSent } from "@wren/core/sent-url";
 import { atomic, type Db, type Queryable } from "@wren/db";
 import { completeAndParse, type LlmClient, type Outcome } from "@wren/llm";
 import {
+  armMeta,
+  guardBy,
+  modelFor,
   pickedReachAccount,
   type ReachAccount,
   ReachRefusal,
@@ -27,11 +30,8 @@ import {
 import { warmupOf } from "@wren/starling-reddit";
 import { and, desc, eq, inArray, lte, ne, sql } from "drizzle-orm";
 import { z } from "zod";
-import { addProspects, contactByHandle } from "./contacts.js";
-import { commentsToday } from "./discovery/threads.js";
-import { armMeta, guardBy, modelFor } from "./draft-llm.js";
-import { COMMENT_KINDS_LEARNED, examplesFor } from "./examples.js";
-import { passedOn, passKey } from "./passes.js";
+import { addProspects, contactByHandle, passKey } from "./contacts.js";
+import type { TurnDeps } from "./deps.js";
 import {
   COMMENT_KINDS,
   type Comment,
@@ -41,7 +41,7 @@ import {
   reachContacts,
   reachMessages,
 } from "./schema.js";
-import { queueManual } from "./tick.js";
+import { queueManual } from "./threads.js";
 import { keepTouch, touchFromAnswer, touchFromComment, touchFromMessage } from "./touches.js";
 
 /** The workflow, and the node the reader is in it. */
@@ -89,13 +89,14 @@ const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
  * new comments from other people, oldest first.
  */
 export async function keepComments(
+  deps: Pick<TurnDeps, "passedOn" | "warmupAnswer">,
   db: Queryable,
   account: Pick<ReachAccount, "id" | "platform">,
   items: readonly CommentIn[],
   ours: readonly string[],
 ): Promise<Array<Pick<Comment, "id" | "platform" | "author" | "post">>> {
   if (!items.length) return [];
-  const passed = await passedOn(db, account.platform);
+  const passed = await deps.passedOn(db, account.platform);
   const kept = await atomic(db, async (tx) => {
     // Each comment and its post are `platform_objects` first, in their one spelling: the reach
     // reader and the content reader meet on the same row. A post no rule reads keeps nothing.
@@ -169,7 +170,7 @@ export async function keepComments(
     .filter((k) => k.sort !== "ours" && k.state !== "dropped")
     .map(({ sort: _, state: __, ...k }) => k)
     .sort((a, b) => a.id - b.id);
-  for (const k of theirs) await keepTouch(`c:${k.id}`, () => touchFromComment(db, k.id));
+  for (const k of theirs) await keepTouch(`c:${k.id}`, () => touchFromComment(db, k.id, deps));
   return theirs;
 }
 
@@ -238,6 +239,7 @@ const line = (s: string) => s.replace(/\s+/g, " ").trim().slice(0, 300);
  * makes up a claim or number is asked for once more, then left undrafted for him to write.
  */
 export async function sortComment(
+  deps: Pick<TurnDeps, "examplesFor">,
   db: Db,
   llm: LlmClient | null,
   id: number,
@@ -269,7 +271,7 @@ export async function sortComment(
     const [sops, edits, examples] = await Promise.all([
       guide ? guide(c.platform) : "",
       editsFor(db, ["comment"]),
-      examplesFor(db, COMMENT_KINDS_LEARNED, `${c.postTitle ?? ""} ${c.body}`),
+      deps.examplesFor(db, `${c.postTitle ?? ""} ${c.body}`),
     ]);
     const prompt = promptFor(c);
     const system = systemFor(
@@ -338,6 +340,7 @@ export async function sortComment(
  */
 export const sortStep =
   (
+    deps: Pick<TurnDeps, "examplesFor">,
     db: Db,
     llm: LlmClient | null,
     guide?: CommentGuide,
@@ -357,7 +360,7 @@ export const sortStep =
       at.client && forClient
         ? { ...(await forClient(at.client)), facts: [] as readonly string[] }
         : { db, llm, guide, facts: facts ? await facts() : [] };
-    const sort = await sortComment(on.db, on.llm, id, on.guide, on.facts);
+    const sort = await sortComment(deps, on.db, on.llm, id, on.guide, on.facts);
     return sort === "ours" || sort === "noise" ? [] : [{ port: sort ?? "chat", event: e }];
   };
 
@@ -392,7 +395,12 @@ interface AnswerPlan {
 }
 
 /** Everything that refuses an answer before the platform is asked. */
-export async function planAnswer(db: Queryable, id: number, now: Date): Promise<AnswerPlan> {
+export async function planAnswer(
+  deps: Pick<TurnDeps, "commentsToday">,
+  db: Queryable,
+  id: number,
+  now: Date,
+): Promise<AnswerPlan> {
   const comment = await commentById(db, id);
   if (comment.state === "answered") throw new ReachRefusal("already answered");
   if (comment.sort === "ours") throw new ReachRefusal("that one is ours");
@@ -404,7 +412,7 @@ export async function planAnswer(db: Queryable, id: number, now: Date): Promise<
   if (account.platform === "reddit" && account.health) {
     const w = warmupOf(account.health as Parameters<typeof warmupOf>[0], now);
     if (w.frozen) throw new ReachRefusal(`${account.account}: ${w.frozen}`);
-    if ((await commentsToday(db, account.id, now)) >= w.caps.comments)
+    if ((await deps.commentsToday(db, account.id, now)) >= w.caps.comments)
       throw new ReachRefusal(
         `${account.account} is at ${w.stage}: ${w.caps.comments} comments a day${w.next ? ` (${w.next})` : ""}`,
       );
@@ -514,13 +522,14 @@ export function answerFor(
 
 /** The answer, end to end, for the CLI and tests; the desk journals the same steps one by one. */
 export async function answerComment(
+  deps: Pick<TurnDeps, "commentsToday">,
   db: Queryable,
   ch: OutreachChannel,
   req: { id: number; body: string; now: Date },
 ): Promise<{ ref: string | null }> {
   const body = req.body.trim();
   if (!body) throw new ReachRefusal("the answer is empty");
-  const plan = await planAnswer(db, req.id, req.now);
+  const plan = await planAnswer(deps, db, req.id, req.now);
   if (!plan.account) throw new ReachRefusal("a content comment is answered through Content.reply");
   if (!ch.comment) throw new ReachRefusal(`${plan.account.platform} can't answer comments`);
   checkThread((await ch.threadAuthors?.(plan.comment.post)) ?? [], plan.others);

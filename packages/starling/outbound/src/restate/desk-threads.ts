@@ -3,18 +3,18 @@ import type * as restate from "@restatedev/restate-sdk";
 import { byOf } from "@wren/core/ask";
 import { serviceHandler } from "@wren/core/restate";
 import { ReachRefusal } from "@wren/starling-acts";
-import { z } from "zod";
-import { contactById } from "../contacts.js";
-import { queueDraft } from "../drafts.js";
-import { CONTACT_STATES } from "../schema.js";
 import {
+  contactById,
   getThread,
   listThreads,
   markRead,
   type Thread,
   type ThreadFilter,
   type ThreadSummary,
-} from "../threads.js";
+} from "@wren/starling-conversations";
+import { CONTACT_STATES } from "@wren/starling-conversations/schema";
+import { z } from "zod";
+import { queueDraft } from "../drafts.js";
 import { CONTACT, type DeskContext, PLATFORM } from "./desk-context.js";
 
 const THREADS = z

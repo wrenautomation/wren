@@ -18,6 +18,8 @@ import {
   type Template,
 } from "@wren/core/slots";
 import type { Platform } from "@wren/starling-acts";
+import { profileOf } from "@wren/starling-conversations";
+import { MESSAGE_MAX, type ReachContact } from "@wren/starling-conversations/schema";
 
 interface ReachStep {
   /** 1-based. Step 1 is the opener. */
@@ -78,7 +80,6 @@ const ALL_FIELDS: readonly RenderField[] = [
 ];
 /** LinkedIn's note cap; a Reddit PM is long enough for anyone. */
 const NOTE_MAX = 200;
-export const MESSAGE_MAX = 2000;
 const SUBJECT_MAX = 100;
 
 export const CONNECT_NOTE = "linkedin:connect-note";
@@ -198,4 +199,16 @@ export const preview = (source: string, fields: RenderFields): string =>
 export function firstName(full: string | null | undefined): string | null {
   const word = full?.trim().split(/\s+/)[0] ?? "";
   return /^[A-Z][a-z'’-]{1,}$/.test(word) ? word : null;
+}
+
+/** What a template fills in for this person. */
+export function fieldsFor(contact: ReachContact, sender: string): RenderFields {
+  const p = profileOf(contact);
+  return {
+    first_name: firstName(contact.name ?? p?.name),
+    company: p?.company ?? null,
+    headline: contact.headline ?? p?.headline ?? p?.current ?? null,
+    found_in: contact.foundIn === "manual" || contact.foundIn === "enrich" ? null : contact.foundIn,
+    sender,
+  };
 }

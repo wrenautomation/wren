@@ -70,7 +70,9 @@ import {
   browserRenderer,
   cdpRenderer,
 } from "@wren/research";
+import { ArmedLlm, savedArms } from "@wren/starling-acts";
 import { autoReplyFire } from "@wren/starling-conversations/restate";
+import type { DmPlatform } from "@wren/starling-conversations/schema";
 import {
   activeSenders,
   ConsoleTransport,
@@ -112,13 +114,7 @@ import {
 import { contentDrafts, contentPlaybooks } from "@wren/starling-inbound/schema";
 import { formPasses } from "@wren/starling-inbound/sms";
 import { metaChecks } from "@wren/starling-meta";
-import {
-  ArmedLlm,
-  type DmPlatform,
-  REACH_SEQUENCES,
-  policyFrom as reachPolicyFrom,
-  savedArms,
-} from "@wren/starling-outbound";
+import { REACH_SEQUENCES, policyFrom as reachPolicyFrom } from "@wren/starling-outbound";
 import type { Campaign } from "@wren/starling-outbound/email";
 import { makeFiller, rosterFleet } from "@wren/starling-outbound/email";
 import { searchConsoleChecks, searchConsoleClient } from "@wren/starling-search";

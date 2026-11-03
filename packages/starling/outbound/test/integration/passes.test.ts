@@ -10,9 +10,10 @@ import { REPLY_DRAFTS_COMPONENT } from "@wren/core/reply-drafts";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
 import { addAccount } from "@wren/starling-acts";
+import { keepComments } from "@wren/starling-conversations";
+import { comments } from "@wren/starling-conversations/schema";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { keepComments } from "../../src/comments.js";
 import { addPlaces } from "../../src/discovery/places.js";
 import type { Post } from "../../src/discovery/reads.js";
 import { keepThreads, threadsToDraft } from "../../src/discovery/threads.js";
@@ -22,7 +23,8 @@ import { draftPost } from "../../src/reach-posts/draft.js";
 import { keepPosts } from "../../src/reach-posts/pass.js";
 import type { FeedPost } from "../../src/reach-posts/read.js";
 import { clearReplyDrafts } from "../../src/reply-drafts.js";
-import { comments, reachPasses, reachPosts, redditThreads } from "../../src/schema.js";
+import { reachPasses, reachPosts, redditThreads } from "../../src/schema.js";
+import { reachTurns } from "../../src/turns.js";
 
 const TABLES = [
   "reach_passes",
@@ -108,6 +110,7 @@ describe("passes", () => {
   it("closes the picked row, the rest of theirs, and what comes later", async () => {
     const a = await reddit();
     const [mine, other] = await keepComments(
+      reachTurns,
       db(),
       a,
       [comment(2, "Spammy"), comment(1, "real_owner")],
@@ -140,9 +143,9 @@ describe("passes", () => {
     expect(ev).toEqual({ event: "rejected", note: "Spam or a bot: sells followers" });
 
     // Later reads: theirs land closed, anyone else's as usual.
-    expect(await keepComments(db(), a, [comment(3, "SPAMMY"), comment(4, "someone")], [])).toEqual([
-      expect.objectContaining({ author: "someone" }),
-    ]);
+    expect(
+      await keepComments(reachTurns, db(), a, [comment(3, "SPAMMY"), comment(4, "someone")], []),
+    ).toEqual([expect.objectContaining({ author: "someone" })]);
     expect(
       await keepThreads(db(), "agency", [thread(2, "Spammy"), thread(3, "x")], THREADS),
     ).toEqual(["t3_p3"]);

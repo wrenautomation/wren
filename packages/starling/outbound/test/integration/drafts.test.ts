@@ -10,9 +10,10 @@ import { companies, people } from "@wren/core/schema";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
 import { addAccount, type ReachAccount, setAccountState } from "@wren/starling-acts";
+import { addProspects, contactByHandle, contactById, receive } from "@wren/starling-conversations";
+import { reachContacts, reachMessages } from "@wren/starling-conversations/schema";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { addProspects, contactByHandle, contactById } from "../../src/contacts.js";
 import {
   contactsToDraft,
   DRAFT_MAX,
@@ -24,8 +25,6 @@ import {
 import { messageAccount, personContact } from "../../src/from-people.js";
 import { INVITES_COMPONENT } from "../../src/invites.js";
 import { personRecord } from "../../src/records.js";
-import { receive } from "../../src/replies.js";
-import { reachContacts, reachMessages } from "../../src/schema.js";
 
 const TABLES = [
   "reach_messages",

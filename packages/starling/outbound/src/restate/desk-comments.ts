@@ -6,7 +6,6 @@ import { serviceHandler } from "@wren/core/restate";
 import { sendAcross } from "@wren/core/send-verdict";
 import { listAccounts, pickAccount, recordLanded } from "@wren/starling-acts";
 import { sendAtMostOnce } from "@wren/starling-acts/restate";
-import { z } from "zod";
 import {
   COMMENTS_FLOW,
   COMMENTS_FROM,
@@ -17,7 +16,8 @@ import {
   planAnswer,
   planPrivateReply,
   privateReplyOf,
-} from "../comments.js";
+} from "@wren/starling-conversations";
+import { z } from "zod";
 import {
   adoptNode,
   applyThread,
@@ -28,6 +28,7 @@ import {
   wrenCommentsRead,
 } from "../follow-ups.js";
 import { reachKinds } from "../item-kinds.js";
+import { reachTurns } from "../turns.js";
 import { type ContentReply, channelsFor, finalRefusal } from "./deps.js";
 import { type DeskContext, terminalWhy } from "./desk-context.js";
 
@@ -147,7 +148,7 @@ export function commentsHandlers(desk: DeskContext) {
         const now = await nowOf(ctx);
         // A comment that can't be answered now arms nothing; the yes says why.
         const plan = await ctx.run("plan", () =>
-          planAnswer(deps.db, req.id, now).catch(() => null),
+          planAnswer(reachTurns, deps.db, req.id, now).catch(() => null),
         );
         const text = (req.body ?? plan?.comment.draft ?? "").trim();
         if (!plan || plan.account || !text) return { armed: false };

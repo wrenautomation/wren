@@ -23,15 +23,9 @@ import {
   truncate,
 } from "@wren/db/testing";
 import { addAccount } from "@wren/starling-acts";
-import {
-  addProspects,
-  comments,
-  contactByHandle,
-  reachContacts,
-  reachMessages,
-  reachPosts,
-  receive,
-} from "@wren/starling-outbound";
+import { addProspects, contactByHandle, receive } from "@wren/starling-conversations";
+import { comments, reachContacts, reachMessages } from "@wren/starling-conversations/schema";
+import { reachPosts } from "@wren/starling-outbound";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {

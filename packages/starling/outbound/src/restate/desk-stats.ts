@@ -3,9 +3,9 @@ import * as restate from "@restatedev/restate-sdk";
 import type { Scorecard } from "@wren/core/draft-models";
 import { serviceHandler } from "@wren/core/restate";
 import { platformOf } from "@wren/starling-acts";
+import { type ReachStats, reachStats } from "@wren/starling-conversations";
 import { z } from "zod";
 import { draftScorecard, parseSince } from "../draft-models.js";
-import { type ReachStats, reachStats } from "../threads.js";
 import { type DeskContext, PLATFORM } from "./desk-context.js";
 
 const STATS = z.looseObject({ platform: PLATFORM.nullish(), days: z.number().nullish() }).nullish();

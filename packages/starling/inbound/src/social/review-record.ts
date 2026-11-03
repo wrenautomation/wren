@@ -7,7 +7,7 @@
 import { date, defineRecord, link, name, number, prose, status } from "@wren/core/records";
 import type { Queryable } from "@wren/db";
 import { conversationOf } from "@wren/starling-conversations/inbox";
-import { PLATFORM_LABELS } from "@wren/starling-outbound/records";
+import { PLATFORM_CUES } from "@wren/starling-core/platform-cues";
 import { sql } from "drizzle-orm";
 
 /** ponytail: rows, not a view: a business has hundreds of reviews, not thousands. */
@@ -60,7 +60,7 @@ export const reviewRecord = defineRecord({
       "Reply",
     ),
     answer: prose("Our reply", { listed: false }),
-    platform: status(PLATFORM_LABELS, "Site"),
+    platform: status(PLATFORM_CUES, "Site"),
     at: date("When"),
     url: link("Open the thread"),
   },

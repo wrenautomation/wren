@@ -9,19 +9,20 @@ import type { CommentIn, ThreadNode, ThreadRead } from "@wren/core/outreach";
 import { foldRows } from "@wren/core/records";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { addAccount, type ReachAccount, setAccountState } from "@wren/starling-acts";
+import { keepComments, markAnswered, threadContextOf } from "@wren/starling-conversations";
+import { COMMENT_FOLD } from "@wren/starling-conversations/records";
+import { comments, commentThreads } from "@wren/starling-conversations/schema";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { keepComments, markAnswered } from "../../src/comments.js";
 import {
   adoptNode,
   applyThread,
   dueThreads,
-  threadContextOf,
   threadFor,
   watchFromComments,
 } from "../../src/follow-ups.js";
-import { COMMENT_FOLD, commentRecord } from "../../src/records.js";
-import { comments, commentThreads } from "../../src/schema.js";
+import { commentRecord } from "../../src/records.js";
+import { reachTurns } from "../../src/turns.js";
 
 const TABLES = ["comment_threads", "comments", "reach_contacts", "reach_accounts"];
 const NOW = new Date("2026-10-01T18:00:00Z");
@@ -100,7 +101,7 @@ const THREAD = [
 ];
 
 async function watched() {
-  await keepComments(db(), acct, [inboxReply()], OURS);
+  await keepComments(reachTurns, db(), acct, [inboxReply()], OURS);
   expect(await watchFromComments(db(), NOW, 7, ["reddit"])).toBe(1);
   const [t] = await dueThreads(db(), NOW, [acct.id]);
   if (!t) throw new Error("no watch");
@@ -119,6 +120,7 @@ describe("engage threads", () => {
     // A reply older than the window starts none.
     await truncate(pg.db, ["comment_threads", "comments"]);
     await keepComments(
+      reachTurns,
       db(),
       acct,
       [inboxReply({ at: new Date(NOW.getTime() - 8 * DAY).toISOString() })],
@@ -149,7 +151,7 @@ describe("engage threads", () => {
     expect((await applyThread(db(), again, acct, readOf(THREAD), OURS, NOW, 0.5, 7)).kept).toEqual(
       [],
     );
-    expect(await keepComments(db(), acct, [inboxReply()], OURS)).toEqual([]);
+    expect(await keepComments(reachTurns, db(), acct, [inboxReply()], OURS)).toEqual([]);
     expect(await db().select().from(comments)).toHaveLength(3);
   });
 
@@ -232,7 +234,7 @@ describe("engage threads", () => {
   });
 
   it("threadFor makes a watch for a row opened before one existed", async () => {
-    const [c] = await keepComments(db(), acct, [inboxReply()], OURS);
+    const [c] = await keepComments(reachTurns, db(), acct, [inboxReply()], OURS);
     const t = await threadFor(db(), c?.id ?? 0, NOW, 7);
     expect(t?.thread).toMatchObject({ post: "t3_p1", accountId: acct.id });
     expect(t?.account.id).toBe(acct.id);

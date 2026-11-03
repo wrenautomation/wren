@@ -11,7 +11,8 @@ import { sendAcross } from "@wren/core/send-verdict";
 import type { Db } from "@wren/db";
 import { ReachRefusal, recordLanded } from "@wren/starling-acts";
 import { isSendTaken, isSendUnsure, sendAtMostOnce, sendError } from "@wren/starling-acts/restate";
-import { planPrivateReply, reachKinds } from "@wren/starling-outbound";
+import { planPrivateReply } from "@wren/starling-conversations";
+import { reachKinds } from "@wren/starling-outbound";
 import { z } from "zod";
 import {
   addKeyword,

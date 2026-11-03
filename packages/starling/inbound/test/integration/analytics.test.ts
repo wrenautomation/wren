@@ -12,7 +12,7 @@ import {
   startTestPostgres,
   type TestPostgres,
 } from "@wren/db/testing";
-import { comments, reachContacts, reachMessages } from "@wren/starling-outbound";
+import { comments, reachContacts, reachMessages } from "@wren/starling-conversations/schema";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { latestDigest, writeDigest } from "../../src/analytics/digest.js";

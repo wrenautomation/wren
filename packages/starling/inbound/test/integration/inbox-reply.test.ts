@@ -12,6 +12,7 @@ import { startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
 import { mentionRecord } from "@wren/notes/records";
+import { markAnswered } from "@wren/starling-conversations";
 import {
   askFollowEmail,
   conversationOf,
@@ -20,7 +21,7 @@ import {
   setThread,
 } from "@wren/starling-conversations/inbox";
 import { makeInboxDesk } from "@wren/starling-conversations/restate";
-import { draftDm, markAnswered } from "@wren/starling-outbound";
+import { draftDm } from "@wren/starling-outbound";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { approvalRecord, inboxRecord } from "../../src/social/records.js";

@@ -26,9 +26,10 @@ import {
   loginsOf,
   reachAccounts,
 } from "@wren/starling-acts";
+import { sortStep } from "@wren/starling-conversations";
+import { comments, reachContacts, reachMessages } from "@wren/starling-conversations/schema";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { sortStep } from "../../src/comments.js";
 import { touchStep } from "../../src/follow.js";
 import type { DiscoveryStats } from "../../src/restate/discovery.js";
 import { makeRedditReads } from "../../src/restate/discovery.js";
@@ -39,14 +40,10 @@ import {
   type ReachDeps,
   type WatchStats,
 } from "../../src/restate/index.js";
-import {
-  comments,
-  redditPlaces as places,
-  reachContacts,
-  reachMessages,
-} from "../../src/schema.js";
+import { redditPlaces as places } from "../../src/schema.js";
 import { REACH_SEQUENCES } from "../../src/sequences.js";
 import type { TickStats } from "../../src/tick.js";
+import { reachTurns } from "../../src/turns.js";
 
 const calls: { site: string; path: string; account: string | undefined }[] = [];
 /** The signed-out daily cap is used: every `reddit-public` read answers 429 until noon. */
@@ -339,6 +336,7 @@ describe("the comment sort per client", () => {
   it("sorts in the client's database; no model reads the words", async () => {
     const [c] = await kappa.select({ id: comments.id }).from(comments);
     const step = sortStep(
+      reachTurns,
       pg.db,
       new FakeLlm({
         respond: () => {

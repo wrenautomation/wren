@@ -17,11 +17,12 @@ import { dbSendJournal } from "@wren/core/send-journal";
 import { executorRecorder, startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { addAccount, DEFAULT_POLICY, setAccountState } from "@wren/starling-acts";
+import { COMMENTS_FLOW } from "@wren/starling-conversations";
+import { COMMENT_FOLD } from "@wren/starling-conversations/records";
+import { comments } from "@wren/starling-conversations/schema";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { COMMENTS_FLOW } from "../../src/comments.js";
-import { COMMENT_FOLD, commentRecord } from "../../src/records.js";
+import { commentRecord } from "../../src/records.js";
 import { makeReachWatch, type WatchStats } from "../../src/restate/index.js";
-import { comments } from "../../src/schema.js";
 import { REACH_SEQUENCES } from "../../src/sequences.js";
 
 const HOUR = 3_600_000;

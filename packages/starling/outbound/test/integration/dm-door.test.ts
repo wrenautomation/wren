@@ -12,10 +12,10 @@ import {
   type TestPostgres,
   truncate,
 } from "@wren/db/testing";
+import { commentById, planPrivateReply, privateReplied } from "@wren/starling-conversations";
+import { comments, reachContacts, reachMessages } from "@wren/starling-conversations/schema";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { commentById, planPrivateReply, privateReplied } from "../../src/comments.js";
-import { comments, reachContacts, reachMessages } from "../../src/schema.js";
 
 const TABLES = ["touches", "social_handles", "comments", "reach_messages", "reach_contacts"];
 const NOW = new Date("2026-10-11T15:00:00Z");

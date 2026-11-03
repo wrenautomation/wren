@@ -7,8 +7,9 @@
 import { recordDraft } from "@wren/core/draft-record";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { addAccount } from "@wren/starling-acts";
-import { keepComments } from "@wren/starling-outbound";
-import { comments } from "@wren/starling-outbound/schema";
+import { keepComments } from "@wren/starling-conversations";
+import { comments } from "@wren/starling-conversations/schema";
+import { reachTurns } from "@wren/starling-outbound";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { markPublished } from "../../src/index.js";
@@ -233,6 +234,7 @@ describe("kept comments", () => {
       now: new Date(AT),
     });
     const kept = await keepComments(
+      reachTurns,
       pg.db,
       a,
       [

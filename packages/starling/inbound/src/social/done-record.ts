@@ -3,7 +3,7 @@
  * `draft_events`, newest first, with Today and This week as tabs.
  */
 import { cued, date, defineRecord, link, prose, status, text } from "@wren/core/records";
-import { PLATFORM_LABELS } from "@wren/starling-outbound/records";
+import { PLATFORM_CUES } from "@wren/starling-core/platform-cues";
 
 const neutral = (label: string) => ({ label, tone: "neutral" as const });
 
@@ -42,7 +42,7 @@ export const doneRecord = defineRecord({
       }),
       "Kind",
     ),
-    platform: status(PLATFORM_LABELS, "Site"),
+    platform: status(PLATFORM_CUES, "Site"),
     via: status(
       {
         person: neutral("You"),

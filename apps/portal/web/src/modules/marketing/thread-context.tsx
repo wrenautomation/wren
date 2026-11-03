@@ -5,7 +5,7 @@
  * Refresh reads the thread on the site again. On a phone it opens as its own full sheet.
  */
 import type { AccountPick } from "@wren/core/record-accounts";
-import type { ContextNode, ThreadContext } from "@wren/starling-outbound";
+import type { ContextNode, ThreadContext } from "@wren/starling-conversations";
 import {
   AccountPicker,
   BottomSheet,

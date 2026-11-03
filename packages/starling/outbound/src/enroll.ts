@@ -11,12 +11,17 @@ import { leadRefusal } from "@wren/core/leads";
 import type { Template } from "@wren/core/slots";
 import type { Queryable } from "@wren/db";
 import { activeAccounts, ReachRefusal } from "@wren/starling-acts";
+import { loadByAccount } from "@wren/starling-conversations";
+import {
+  type ReachContact,
+  reachContacts,
+  reachMessages,
+} from "@wren/starling-conversations/schema";
 import { and, asc, eq, inArray, isNotNull } from "drizzle-orm";
-import { fieldsFor, loadByAccount } from "./contacts.js";
-import { type ReachContact, reachContacts, reachMessages } from "./schema.js";
 import {
   CONNECT_NOTE,
   dmSeed,
+  fieldsFor,
   type ReachSequence,
   render,
   stepKey,

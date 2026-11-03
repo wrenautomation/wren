@@ -1,6 +1,6 @@
 import type { ThreadNode, ThreadRead } from "@wren/core/outreach";
+import { answerFor } from "@wren/starling-conversations";
 import { describe, expect, it } from "vitest";
-import { answerFor } from "./comments.js";
 import {
   focusesOf,
   followUpsOf,

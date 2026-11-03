@@ -5,7 +5,7 @@
  * rows only.
  */
 import { seedObjects, startTestPostgres, type TestPostgres } from "@wren/db/testing";
-import { comments } from "@wren/starling-outbound";
+import { comments } from "@wren/starling-conversations/schema";
 import { and, eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { postAnalytics, readSources } from "../../src/analytics/records.js";

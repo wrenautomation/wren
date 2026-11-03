@@ -53,7 +53,6 @@ import {
   parkUnsure,
   type ReachAccount,
   type ReachPolicy,
-  ReachRefusal,
   type RecheckCols,
   reachAccounts,
   recheckOf,
@@ -63,12 +62,17 @@ import {
   settleUnsure,
   standingOf,
 } from "@wren/starling-acts";
+import { contactsById, setContactState } from "@wren/starling-conversations";
+import {
+  type ReachContact,
+  type ReachMessage,
+  reachContacts,
+  reachMessages,
+} from "@wren/starling-conversations/schema";
+import { keepTouch, touchFromMessage } from "@wren/starling-conversations/touches";
 import { and, asc, eq, gt, gte, inArray, isNull, lt, lte, or, sql } from "drizzle-orm";
-import { contactsById, fieldsFor, setContactState } from "./contacts.js";
-import { type ReachContact, type ReachMessage, reachContacts, reachMessages } from "./schema.js";
-import { dmSeed, type ReachSequence, render, stepKey, subjectKey } from "./sequences.js";
+import { dmSeed, fieldsFor, type ReachSequence, render, stepKey, subjectKey } from "./sequences.js";
 import { liveDms } from "./store.js";
-import { keepTouch, touchFromMessage } from "./touches.js";
 
 /** A `sending` row older than this lost its platform call to a crash. */
 export const STALE_SENDING_MS = 10 * 60 * 1000;
@@ -1046,24 +1050,3 @@ function merge(into: TickStats, from: TickStats) {
 }
 
 /** A message typed by the operator on a thread, out on the next tick from the contact's account. */
-export async function queueManual(
-  db: Queryable,
-  req: { contact: ReachContact; body: string; subject?: string | null; now: Date },
-): Promise<ReachMessage> {
-  if (!req.contact.accountId)
-    throw new ReachRefusal("the contact has no account yet: enroll first");
-  const [row] = await db
-    .insert(reachMessages)
-    .values({
-      contactId: req.contact.id,
-      accountId: req.contact.accountId,
-      direction: "out",
-      kind: "manual",
-      subject: req.subject ?? null,
-      body: req.body.trim(),
-      state: "queued",
-      dueAt: req.now,
-    })
-    .returning();
-  return row as ReachMessage;
-}

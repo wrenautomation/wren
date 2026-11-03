@@ -15,12 +15,12 @@ import { AuthoringError, type SlotRules } from "@wren/core/slots";
 import { clearTemplate, saveLive, type TemplateRef } from "@wren/core/templates";
 import type { Queryable } from "@wren/db";
 import { SMS_SEQUENCES } from "@wren/niches";
+import { MESSAGE_MAX } from "@wren/starling-conversations/schema";
 import {
   checkBody as checkDm,
   dmRef,
   slotsOf as dmSlotsOf,
   listTemplates as listDms,
-  MESSAGE_MAX,
   REACH_SEQUENCES,
 } from "@wren/starling-outbound";
 import { dmCopyRecord } from "@wren/starling-outbound/records";

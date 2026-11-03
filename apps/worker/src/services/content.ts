@@ -13,6 +13,7 @@ import { githubRepo } from "@wren/core/github";
 import { LIMITS } from "@wren/core/restate";
 import { placeIdOf } from "@wren/delivery/sms";
 import { liveCampaignsOf } from "@wren/pipeline/store";
+import { markAnswered } from "@wren/starling-conversations";
 import { makeAutoReply, makeChat, makeInboxDesk } from "@wren/starling-conversations/restate";
 import { makeContent } from "@wren/starling-core/service";
 import { isGoogleMailbox } from "@wren/starling-email/access/access";
@@ -36,7 +37,7 @@ import {
   socialPushed,
 } from "@wren/starling-inbound/restate";
 import { makeAds, makeAdsWatch } from "@wren/starling-meta/restate";
-import { draftDm, markAnswered } from "@wren/starling-outbound";
+import { draftDm } from "@wren/starling-outbound";
 import { wakeWatch } from "@wren/starling-outbound/restate";
 import { tiktokCreator } from "@wren/starling-tiktok";
 import { clientMarketing } from "../marketing.js";

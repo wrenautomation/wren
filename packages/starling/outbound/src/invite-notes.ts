@@ -10,12 +10,11 @@ import { factsBlock, humanBlock } from "@wren/core/facts";
 import { guardDraft, recordGuard } from "@wren/core/grounded";
 import type { Queryable } from "@wren/db";
 import { completeAndParse, type LlmClient } from "@wren/llm";
-import { ReachRefusal } from "@wren/starling-acts";
+import { armMeta, guardBy, modelFor, ReachRefusal } from "@wren/starling-acts";
+import { reachMessages } from "@wren/starling-conversations/schema";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
-import { armMeta, guardBy, modelFor } from "./draft-llm.js";
 import { dmContext } from "./drafts.js";
-import { reachMessages } from "./schema.js";
 import { notesThisMonth } from "./tick.js";
 
 /** LinkedIn's cap on an invite note. */

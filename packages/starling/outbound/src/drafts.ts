@@ -16,22 +16,20 @@ import { modelDrafts } from "@wren/core/reply-drafts";
 import { findHandle, touchesContext, touchesFor } from "@wren/core/touches";
 import type { Queryable } from "@wren/db";
 import { completeAndParse, type LlmClient } from "@wren/llm";
-import { pickedReachAccount, ReachRefusal } from "@wren/starling-acts";
-import { and, desc, eq, gt, or, sql } from "drizzle-orm";
-import { z } from "zod";
-import { contactById } from "./contacts.js";
-import { personLine } from "./discovery/people.js";
-import { armMeta, guardBy, modelFor } from "./draft-llm.js";
-import { invitedSql, inviteSettings } from "./invites.js";
+import { armMeta, guardBy, modelFor, pickedReachAccount, ReachRefusal } from "@wren/starling-acts";
+import { contactById, queueManual } from "@wren/starling-conversations";
 import {
   comments,
   type DmPlatform,
   type ReachContact,
   reachContacts,
   reachMessages,
-  redditPeople,
-} from "./schema.js";
-import { queueManual } from "./tick.js";
+} from "@wren/starling-conversations/schema";
+import { and, desc, eq, gt, or, sql } from "drizzle-orm";
+import { z } from "zod";
+import { personLine } from "./discovery/people.js";
+import { invitedSql, inviteSettings } from "./invites.js";
+import { redditPeople } from "./schema.js";
 
 /** Model calls a day at most: Cohere's free credits. */
 export const DRAFTS_PER_DAY = 30;

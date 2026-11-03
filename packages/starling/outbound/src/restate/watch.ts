@@ -36,7 +36,14 @@ import {
   refreshHealth,
   syncLogins,
 } from "@wren/starling-acts";
-import { COMMENTS_FLOW, COMMENTS_FROM, commentEvent, keepComments } from "../comments.js";
+import {
+  COMMENTS_FLOW,
+  COMMENTS_FROM,
+  commentEvent,
+  keepComments,
+  pullReplies,
+  type RepliesStats,
+} from "@wren/starling-conversations";
 import { contactsToDraft, DRAFTS_PER_DAY, draftDm, draftsToday } from "../drafts.js";
 import {
   applyThread,
@@ -70,9 +77,9 @@ import { autoActs } from "../reach-posts/acts.js";
 import { type PostsStats, postsPass } from "../reach-posts/pass.js";
 import { postReader } from "../reach-posts/read.js";
 import { allCommentsSettings, type CommentsSettings } from "../reach-posts/settings.js";
-import { pullReplies, type RepliesStats } from "../replies.js";
 import { schedulePosts } from "../scheduled.js";
 import { REACH_POST_PLATFORMS, type ReachPostPlatform } from "../schema.js";
+import { reachTurns } from "../turns.js";
 import { channelsFor, clientDeps, nowFor, type ReachDeps, type ReachView } from "./deps.js";
 import { fireSlots } from "./schedule.js";
 
@@ -603,7 +610,7 @@ async function watchPass(
       try {
         const got = await limits.guard(`comments ${a.account}`, () => readComments(), a.platform);
         const rows = await ctx.run(`comments ${a.account}`, () =>
-          keepComments(deps.db, a, got, ours),
+          keepComments(reachTurns, deps.db, a, got, ours),
         );
         kept.kept += rows.length;
         if (rows.length)

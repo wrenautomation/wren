@@ -1,6 +1,6 @@
 /** The operator's reads: threads, one thread, counts. */
 import { type Queryable, snapshot } from "@wren/db";
-import { type Platform, reachAccounts } from "@wren/starling-acts";
+import { type Platform, ReachRefusal, reachAccounts } from "@wren/starling-acts";
 import { and, desc, eq, gte, inArray, sql } from "drizzle-orm";
 import { contactById } from "./contacts.js";
 import {
@@ -140,4 +140,26 @@ export async function reachStats(
       days: o.days,
     };
   });
+}
+
+export async function queueManual(
+  db: Queryable,
+  req: { contact: ReachContact; body: string; subject?: string | null; now: Date },
+): Promise<ReachMessage> {
+  if (!req.contact.accountId)
+    throw new ReachRefusal("the contact has no account yet: enroll first");
+  const [row] = await db
+    .insert(reachMessages)
+    .values({
+      contactId: req.contact.id,
+      accountId: req.contact.accountId,
+      direction: "out",
+      kind: "manual",
+      subject: req.subject ?? null,
+      body: req.body.trim(),
+      state: "queued",
+      dueAt: req.now,
+    })
+    .returning();
+  return row as ReachMessage;
 }

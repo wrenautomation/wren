@@ -53,24 +53,18 @@ import {
   isSendUnsure,
   sendAtMostOnce,
 } from "@wren/starling-acts/restate";
+import { addContact, commentById } from "@wren/starling-conversations";
+import { comments, reachContacts, reachMessages } from "@wren/starling-conversations/schema";
 import { markDmPosted, reachKinds, requeueDm } from "@wren/starling-outbound";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { commentById } from "../../src/comments.js";
-import { addContact } from "../../src/contacts.js";
 import { enroll } from "../../src/enroll.js";
 import { addPlaces, keepPlace, keepThreads, watchPlace } from "../../src/index.js";
 import { COMMENTS_SETTINGS } from "../../src/reach-posts/settings.js";
 import { discoveryHandlers } from "../../src/restate/discovery.js";
 import type { ReachDeps } from "../../src/restate/index.js";
 import { schedulePosts } from "../../src/scheduled.js";
-import {
-  comments,
-  reachContacts,
-  reachMessages,
-  reachPosts,
-  redditThreads,
-} from "../../src/schema.js";
+import { reachPosts, redditThreads } from "../../src/schema.js";
 import { REACH_SEQUENCES, slotsOf, stepKey, subjectKey } from "../../src/sequences.js";
 import { setTemplate } from "../../src/store.js";
 import { nextDue, tick } from "../../src/tick.js";

@@ -1,8 +1,8 @@
 /**
- * Outbound's draft item kinds for the act base (`@wren/starling-acts` ItemKinds): where each goes
- * out, its default account, the sub's floor, and what a landed or dropped send does to it. `dm`
- * has no `landed` here: a DM's settle moves its sequence on (`markDmPosted`), which needs the
- * sequences and the sender. `comment` and `private` leave with the comment store (R2).
+ * Outbound's draft item kinds for the act base (`@wren/starling-acts` ItemKinds): Reddit threads
+ * and others' posts, with the sub's floor, plus the turn stores' kinds (`turnKinds`) with the
+ * Reddit floor laid over `comment`. A DM's "posted" is `markDmPosted`: its sequence moves on,
+ * which needs the sequences and the sender.
  */
 import { keepSentEdit } from "@wren/core/ask";
 import { atomic, type Queryable } from "@wren/db";
@@ -16,19 +16,13 @@ import {
   settleSent,
   unsureItem,
 } from "@wren/starling-acts";
+import { turnKinds } from "@wren/starling-conversations";
+import { reachContacts, reachMessages } from "@wren/starling-conversations/schema";
 import { and, eq, sql } from "drizzle-orm";
-import { commentById, dropComment, markAnswered, privateReplied } from "./comments.js";
-import { setContactState } from "./contacts.js";
 import { effectiveNeed, shortfall, standingOfAccount } from "./discovery/requirements.js";
 import { markCommented, skipThread } from "./discovery/threads.js";
 import { markPostCommented, skipPost } from "./reach-posts/acts.js";
-import {
-  reachContacts,
-  reachMessages,
-  reachPosts,
-  redditRequirements,
-  redditThreads,
-} from "./schema.js";
+import { reachPosts, redditRequirements, redditThreads } from "./schema.js";
 import {
   type Candidate,
   emptyStats,
@@ -56,23 +50,6 @@ const redditFloors: ItemKind["floors"] = async (db, sub, now) => {
     if (!s.needs.length) return null;
     return `r/${sub} needs ${s.needs.join(" and ")}, ${label} has ${s.has.join(" and ")}`;
   };
-};
-
-const contactPlace = (db: Queryable, id: string) => {
-  const n = num(id);
-  return n === null
-    ? Promise.resolve(null)
-    : one<Place>(db, sql`select platform, null sub from reach_contacts where id = ${n}`);
-};
-const contactFallback = async (db: Queryable, id: string) => {
-  const n = num(id);
-  if (n === null) return null;
-  const r = await one<{ account: string | null }>(
-    db,
-    sql`select a.account from reach_contacts c join reach_accounts a on a.id = c.account_id
-      where c.id = ${n}`,
-  );
-  return r?.account ?? null;
 };
 
 const thread: ItemKind = {
@@ -127,58 +104,6 @@ const thread: ItemKind = {
   dropped: (db, id, o) => skipThread(db, id, { by: o.by, note: o.note }),
 };
 
-const comment: ItemKind = {
-  place: (db, id) =>
-    num(id) === null
-      ? Promise.resolve(null)
-      : one<Place>(
-          db,
-          sql`select platform, case when platform = 'reddit' then lower(regexp_replace(place, '^r/', '')) end sub
-            from comments where id = ${Number(id)}`,
-        ),
-  fallback: async (db, id) => {
-    const n = num(id);
-    if (n === null) return null;
-    const r = await one<{ account: string | null }>(
-      db,
-      sql`select a.account from comments c join reach_accounts a on a.id = c.account_id where c.id = ${n}`,
-    );
-    return r?.account ?? null;
-  },
-  floors: redditFloors,
-  async landed(tx, id, o) {
-    const c = await commentById(tx, Number(id));
-    // A rule's words are no person's edit of the draft.
-    if (o.via !== "wren")
-      await keepSentEdit(tx, { record: "comment", id, by: o.by, before: c.draft, after: o.body });
-    await markAnswered(tx, c.id, {
-      body: o.body,
-      ref: o.ref,
-      now: o.now,
-      by: o.by,
-      ...(o.via ? { via: o.via } : {}),
-    });
-  },
-  dropped: (db, id, o) => dropComment(db, Number(id), { by: o.by, note: o.note }),
-};
-
-/** A DM from a comment on our own post. Dropped: only the ledger row goes; the comment stays. */
-const privateKind: ItemKind = {
-  place: comment.place,
-  fallback: comment.fallback,
-  async landed(tx, id, o) {
-    const c = await commentById(tx, Number(id));
-    await privateReplied(tx, c, {
-      body: o.body,
-      ref: o.ref,
-      now: o.now,
-      by: o.by,
-      ...(o.via ? { via: o.via } : {}),
-    });
-  },
-  dropped: async () => {},
-};
-
 const onpost: ItemKind = {
   place: (db, id) =>
     num(id) === null
@@ -206,25 +131,13 @@ const onpost: ItemKind = {
   },
 };
 
-/** A DM: skipped and the contact finished, as a skipped invite does. Its "posted" is `markDmPosted`. */
-const dm: ItemKind = {
-  place: contactPlace,
-  fallback: contactFallback,
-  async dropped(db, id, o) {
-    const [m] = await db
-      .update(reachMessages)
-      .set({ state: "skipped", stateReason: o.note })
-      .where(and(eq(reachMessages.id, Number(id)), eq(reachMessages.state, "unknown")))
-      .returning({ contactId: reachMessages.contactId });
-    if (!m) throw new ReachRefusal("that message is no longer waiting");
-    await setContactState(db, m.contactId, "finished", { reason: o.note, now: o.now });
-  },
+/** The kinds outbound settles: its own and the turn stores', Reddit floors on `comment`. */
+export const reachKinds: ItemKinds = {
+  ...turnKinds,
+  comment: { ...turnKinds.comment, floors: redditFloors },
+  thread,
+  onpost,
 };
-
-const invite: ItemKind = { place: contactPlace, fallback: contactFallback };
-
-/** The kinds outbound owns. */
-export const reachKinds: ItemKinds = { thread, comment, private: privateKind, onpost, dm, invite };
 
 /**
  * A person's Mark posted on a DM: its sequence moves on as if it sent (`recordSent`), and its

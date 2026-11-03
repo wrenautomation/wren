@@ -1,4 +1,4 @@
-import type { ContextNode, ThreadContext } from "@wren/starling-outbound";
+import type { ContextNode, ThreadContext } from "@wren/starling-conversations";
 import type { RecordAct } from "@wren/ui";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";

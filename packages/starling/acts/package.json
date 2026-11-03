@@ -16,6 +16,7 @@
     "@restatedev/restate-sdk": "1.17.1",
     "@wren/core": "workspace:*",
     "@wren/db": "workspace:*",
+    "@wren/llm": "workspace:*",
     "@wren/starling-reddit": "workspace:*",
     "drizzle-orm": "0.45.2"
   },

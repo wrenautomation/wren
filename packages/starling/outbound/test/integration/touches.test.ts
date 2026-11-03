@@ -10,9 +10,9 @@ import { companies, imports, leads, people } from "@wren/core/schema";
 import { lookupTouches, touchesFor, touchFactsFor } from "@wren/core/touches";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { addAccount, setAccountState } from "@wren/starling-acts";
+import { keepComments, markAnswered } from "@wren/starling-conversations";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { keepComments, markAnswered } from "../../src/comments.js";
 import { dmContext } from "../../src/drafts.js";
 import { personContact } from "../../src/from-people.js";
 import { markAccepted } from "../../src/invites.js";
@@ -26,16 +26,13 @@ const conn = (handle: string) => ({
 });
 
 import type { ReachAccount } from "@wren/starling-acts";
+import { reachContacts, reachMessages } from "@wren/starling-conversations/schema";
+import { touchFromMessage } from "@wren/starling-conversations/touches";
 import { markPostCommented } from "../../src/reach-posts/acts.js";
 import { personRecord } from "../../src/records.js";
-import {
-  reachContacts,
-  reachMessages,
-  reachPosts,
-  redditPlaces,
-  redditThreads,
-} from "../../src/schema.js";
-import { backfillOutreachTouches, touchFromMessage, touchFromThread } from "../../src/touches.js";
+import { reachPosts, redditPlaces, redditThreads } from "../../src/schema.js";
+import { backfillOutreachTouches, touchFromThread } from "../../src/touches.js";
+import { reachTurns } from "../../src/turns.js";
 
 const TABLES = [
   "touches",
@@ -154,6 +151,7 @@ describe("touches", () => {
       raw: {},
     });
     const [first] = await keepComments(
+      reachTurns,
       db(),
       reddit,
       [item("t1_c1", "t3_post1", "post_reply", "Do you use a CRM for this?", ago(6))],
@@ -165,6 +163,7 @@ describe("touches", () => {
       now: ago(5),
     });
     await keepComments(
+      reachTurns,
       db(),
       reddit,
       [item("t1_c2", "t1_ours1", "comment_reply", "Which CRM?", ago(4))],
@@ -244,6 +243,7 @@ describe("touches", () => {
 
   it("fills a kept touch's missing link, and counts it first", async () => {
     const [first] = await keepComments(
+      reachTurns,
       db(),
       reddit,
       [

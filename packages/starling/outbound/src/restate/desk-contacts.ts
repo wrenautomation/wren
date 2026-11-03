@@ -3,7 +3,6 @@ import * as restate from "@restatedev/restate-sdk";
 import type { Found, Profile } from "@wren/core/outreach";
 import { NO_INPUT, PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { accountById, listAccounts, platformOf, ReachRefusal } from "@wren/starling-acts";
-import { z } from "zod";
 import {
   type AddStats,
   addContact,
@@ -11,14 +10,15 @@ import {
   contactById,
   enrichContact,
   listContacts,
-} from "../contacts.js";
-import { type EnrollStats, enroll } from "../enroll.js";
+} from "@wren/starling-conversations";
 import {
   CONTACT_STATES,
   type ContactState,
   isReachPlatform,
   type ReachContact,
-} from "../schema.js";
+} from "@wren/starling-conversations/schema";
+import { z } from "zod";
+import { type EnrollStats, enroll } from "../enroll.js";
 import { listTemplates, type SetTemplate, type SlotView, setTemplate } from "../store.js";
 import { channelsFor } from "./deps.js";
 import { type DeskContext, PLATFORM } from "./desk-context.js";
