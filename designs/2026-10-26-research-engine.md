@@ -1159,3 +1159,30 @@ records which query found each hit; triage, the gap record and the cross-run pat
 A merged list would credit every hit to five queries and starve the weak ones. The saving is
 $0.0008 a query, under the model calls of the same run. Exa has no batch endpoint. Revisit
 only if Perplexity returns results per query.
+
+### 11-03: a post's draw on the hit, engine 0.30.9
+
+Content research needs what a post drew, and we never see deals or replies, only the public
+counts. So a hit now carries `metrics` (views, likes, comments, shares, saves) where its
+listing shows them, before any read: a YouTube listing's views (a channel listing names the
+channel on the page, not on each entry; like and comment counts come only with a video's own
+page), a Reddit post's score and comments, an HN story's points and comments, a LinkedIn
+post's reactions and comments. Dedupe keeps each count from the first source that showed it. A
+hit found again in the same run is not rewritten, so a count refreshes per run, not per search.
+
+Two sources: `hn` (Algolia's HN API, free, no key: stories for a query, a user's stories, a
+thread read as data with every comment; web plan v9) and `linkedin` (the desk's
+`/search/results/content`, 50 a page, past month, and `/in/{vanity}/activity` or
+`/company/{handle}/posts` for an author's own posts; channel plan v8). LinkedIn reads only as
+the account `BIRDWATCH_ACCOUNTS` names (`linkedin=linkedin@wren`), never the bare `linkedin`,
+which is William's own profile and paused. Caps today: posts search 40 a day on linkedin@wren;
+a member's activity page is 0 on linkedin@wren and 10 on the paused personal account, so a
+LinkedIn author's baseline comes from search hits grouped per author (a sample skewed upward)
+until an account opens activity.
+
+`lift`: each hit's count over its author's median (the latest record per URL, across runs),
+`--metric views|likes|comments|shares|saves`, null under 5 posts rather than 1. Live: YC's
+channel, median 75K views over 29 uploads; the top upload 54.7x, the format reads come next.
+This is the competition scraper's core: lift, not raw counts, so a 2K-follower founder and a
+200K one compare. The pain-point side is the same hits read (`hn` and `reddit` threads with
+their comments) plus the findings path that exists.
