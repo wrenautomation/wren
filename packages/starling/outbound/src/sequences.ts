@@ -18,8 +18,7 @@ import {
   type Template,
 } from "@wren/core/slots";
 import type { Platform } from "@wren/starling-acts";
-import { profileOf } from "@wren/starling-conversations";
-import { MESSAGE_MAX, type ReachContact } from "@wren/starling-conversations/schema";
+import { MESSAGE_MAX, profileOf, type ReachContact } from "@wren/starling-conversations/schema";
 
 interface ReachStep {
   /** 1-based. Step 1 is the opener. */

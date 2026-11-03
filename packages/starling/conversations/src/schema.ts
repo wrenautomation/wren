@@ -7,6 +7,7 @@ import {
   type Platform as ContentPlatform,
 } from "@wren/core/autobrowse";
 import { platformObjects } from "@wren/core/objects-schema";
+import type { Profile } from "@wren/core/outreach";
 import { companies, people, runs } from "@wren/core/schema";
 import { oneOf } from "@wren/db/columns";
 import { PLATFORMS, type Platform, reachAccounts } from "@wren/starling-acts/schema";
@@ -601,5 +602,7 @@ export const reachInvites = pgView("reach_invites", {
 );
 
 export type ReachContact = typeof reachContacts.$inferSelect;
+/** The contact's profile column, typed. Here, db-free, so the portal web can read it. */
+export const profileOf = (c: ReachContact): Profile | null => (c.profile as Profile | null) ?? null;
 export type ReachMessage = typeof reachMessages.$inferSelect;
 export type Comment = typeof comments.$inferSelect;

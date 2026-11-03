@@ -15,7 +15,15 @@ import {
 import type { Queryable } from "@wren/db";
 import { type Platform, ReachRefusal } from "@wren/starling-acts";
 import { and, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
-import { type ContactState, type ReachContact, reachContacts, reachMessages } from "./schema.js";
+import {
+  type ContactState,
+  profileOf,
+  type ReachContact,
+  reachContacts,
+  reachMessages,
+} from "./schema.js";
+
+export { profileOf };
 
 export interface AddStats {
   added: number;
@@ -132,8 +140,6 @@ export async function enrichContact(
     .where(eq(reachContacts.id, contact.id));
   return profile;
 }
-
-export const profileOf = (c: ReachContact): Profile | null => (c.profile as Profile | null) ?? null;
 
 export async function setContactState(
   db: Queryable,
