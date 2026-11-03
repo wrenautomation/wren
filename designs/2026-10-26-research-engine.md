@@ -1210,3 +1210,22 @@ up to ten minutes: Restate's retries land the answer whichever try finishes. And
 stream to Restate is cut past about two minutes (RT0010 "stream closed because of a broken
 pipe"), each retry a fresh flow and a spent cap unit: LinkedIn pages read 20 posts (143 s live;
 50 took 196 s) until the desk holds a long stream (task filed for autobrowse).
+
+## 11-03: the judge labels, never judges quality (engine 0.31.0)
+
+William: Jev's quality calls are not good enough; the agent (Sonnet 5.5, high effort, in the
+Claude Code session) reads everything and decides. Jev stays for classification, and may grow.
+
+The content run that prompted it (347 drops, 25 keeps) held no judge drop: every call was the
+agent's, with its own rule as the why. Jev reached triage through `serves` (the brief's hit
+order) and `accept keep|drop` (bulk calls by `serves`, which the skill advised). Both are gone.
+
+- Out: `serves` on hits, `worth` on pages, `accept keep|drop`, the `hits` and `worth` stats.
+- Stays: `class`, `side`, `cites`, the run's criteria (labels on what a page is or covers), and
+  `backs`, which only adds doubted findings to the model's check, never takes one out.
+- New: `format` on hits and pages (video, post, thread, article, paper, list, sales page,
+  directory, docs).
+- The brief orders hits by facets, then the criteria; pages to extract by the criteria, else as
+  read. The skill says read every hit; a drop on a rule names the rule.
+- Not added: a bulk drop by label (`--side seller`). It is the same read-nothing drop under a
+  classification name.
