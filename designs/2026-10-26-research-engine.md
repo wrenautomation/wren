@@ -1229,3 +1229,11 @@ order) and `accept keep|drop` (bulk calls by `serves`, which the skill advised).
   read. The skill says read every hit; a drop on a rule names the rule.
 - Not added: a bulk drop by label (`--side seller`). It is the same read-nothing drop under a
   classification name.
+
+0.31.1, same day, from the content run: 12 of 32 YouTube opens failed on caption 429s (all
+21 tracks), and Gemini clip reads hit 429 too. The open step ran 4 videos at once, each with
+4 clips. Now captions wait out a round of 429s (20 s, 60 s, 120 s, or YouTube's retry-after),
+clips wait out a per-minute cap 2 at a time (a per-day quota fails the rest at once), and the
+youtube source reads one video at a time, 3 s apart. `brief.hits.toRead` carries title,
+channel, metrics and lift. Not changed: YouTube listings give views only (likes and comments
+need a page call per video), and channel listings round views ("141K").
