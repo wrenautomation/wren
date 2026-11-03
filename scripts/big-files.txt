@@ -5,7 +5,6 @@ apps/portal/web/src/modules/marketing/videos.tsx
 apps/portal/web/src/modules/people/segments.tsx
 apps/portal/web/src/modules/wren/workflows.tsx
 packages/starling/inbound/src/analytics/catalog.ts
-packages/starling/inbound/src/schema.ts
 packages/starling/inbound/src/social/records.ts
 packages/core/src/logic.ts
 packages/core/src/schema.ts
