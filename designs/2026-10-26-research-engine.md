@@ -1237,3 +1237,31 @@ clips wait out a per-minute cap 2 at a time (a per-day quota fails the rest at o
 youtube source reads one video at a time, 3 s apart. `brief.hits.toRead` carries title,
 channel, metrics and lift. Not changed: YouTube listings give views only (likes and comments
 need a page call per video), and channel listings round views ("141K").
+
+### 11-03: YouTube through the Data API; a video seen only on ask (engine 0.32.0, WA-1025)
+
+William: YouTube has a free official API, so use it. Gemini reads are out; Claude (the
+monthly credits) and Cohere read instead.
+- Hits come from the YouTube Data API v3 when `YOUTUBE_API_KEY` is set: search, a channel's
+  uploads, and exact views, likes and comments. The key is in its own GCP project
+  (`wren-research-yt`), so research cannot spend the channel's upload quota (10k units a day;
+  search 100, a list 1 per 50 ids). After a quota error, yt-dlp lists for the rest of the
+  process.
+- The API gives no captions for others' videos, so an open still reads captions with yt-dlp
+  (home IP), one at a time. An open calls no model. The Gemini screen read on every open is
+  removed.
+- `open <run> <hit> --see --why` runs `youtube-see`, a source marked `asked`: a plain read
+  never uses it. It downloads the video with yt-dlp. On 11-03 the stream downloaded fine for a
+  video whose captions got 429. Claude Sonnet 5.5 then reads each frame: its text, then what
+  it shows. When captions fail, Cohere transcribes the audio. The read is a second document on
+  the hit. Live: a 7-minute video took 312 s and $0.29.
+- Skill: on a content ask, drop only off-topic hits. A low-lift video is kept as the
+  comparison. Every kept video is opened. `--see` only when three conditions hold: strong
+  metrics or lift, the video answers the ask, and the captions lean on the screen.
+- Options weighed for a blocked or visual video:
+  - Gemini by URL needs no home IP, but Gemini is what William would not use.
+  - Claude cannot take a video URL; it reads frames.
+  - Cohere vision is weak (it refuses frames with people).
+  - Hosted transcript services break the self-host rule.
+  Chosen: download, then Claude reads the frames, and only on the agent's ask.
+- Not done: media cached in our bucket, so nothing downloads twice (WA-1029).
