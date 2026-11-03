@@ -224,6 +224,7 @@ describe("Content service", () => {
       kind: "unknown",
       reason: "lags",
       since: "2026-10-16T12:00:00.000Z",
+      ask: null,
     });
     expect(await typed(new NotSent("before_submit", "busy"))).toMatchObject({
       kind: "not_sent",
