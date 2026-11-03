@@ -15,12 +15,14 @@ import {
   truncate,
 } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
+import { draftDesk } from "@wren/starling-acts";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   addIdea,
   approveDrafts,
   backfillTraining,
+  contentDraftKinds,
   contentMetrics,
   draftIdea,
   markFailed,
@@ -28,9 +30,11 @@ import {
   redraft,
   rejectDrafts,
   setFields,
-  writeDraft,
 } from "../../src/index.js";
 import { draftRecord } from "../../src/records.js";
+
+// Posts only: the whole desk is the app's to compose.
+const { writeDraft } = draftDesk({ kinds: contentDraftKinds, examplesFor: async () => "" });
 
 const llm = new FakeLlm({
   respond: async (prompt) =>

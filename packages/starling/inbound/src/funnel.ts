@@ -8,9 +8,10 @@
 
 import { recordDraft } from "@wren/core/draft-record";
 import type { Queryable } from "@wren/db";
+import { GONE } from "@wren/starling-acts";
 import { kindOf } from "@wren/starling-core/shapes";
 import { eq, sql } from "drizzle-orm";
-import { aboutDraft, GONE, lockedWhy, named, PLATFORM_SPECS } from "./platforms.js";
+import { aboutDraft, lockedWhy, named, PLATFORM_SPECS } from "./platforms.js";
 import {
   type ContentDraft,
   contentDrafts,

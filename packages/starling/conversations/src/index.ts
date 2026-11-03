@@ -6,6 +6,7 @@
 export * from "./comments.js";
 export * from "./contacts.js";
 export * from "./deps.js";
+export * from "./draft-kinds.js";
 export * from "./email/index.js";
 export * from "./item-kinds.js";
 export * from "./replies.js";

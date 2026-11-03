@@ -13,11 +13,12 @@ import { githubRepo } from "@wren/core/github";
 import { LIMITS } from "@wren/core/restate";
 import { placeIdOf } from "@wren/delivery/sms";
 import { liveCampaignsOf } from "@wren/pipeline/store";
+import { makeDraftAsk } from "@wren/starling-acts/restate";
 import { markAnswered } from "@wren/starling-conversations";
 import { makeAutoReply, makeChat, makeInboxDesk } from "@wren/starling-conversations/restate";
 import { makeContent } from "@wren/starling-core/service";
 import { isGoogleMailbox } from "@wren/starling-email/access/access";
-import { contentKinds, slidePainter } from "@wren/starling-inbound";
+import { slidePainter } from "@wren/starling-inbound";
 import { liveConnections, loginOf } from "@wren/starling-inbound/connect";
 import {
   makeBlog,
@@ -26,7 +27,6 @@ import {
   makeContentMetrics,
   makeContentPlanner,
   makeContentScheduler,
-  makeDraftAsk,
   makeKeywordDm,
   makeMarketingConsole,
   makePieces,
@@ -37,9 +37,10 @@ import {
   socialPushed,
 } from "@wren/starling-inbound/restate";
 import { makeAds, makeAdsWatch } from "@wren/starling-meta/restate";
-import { draftDm, reachKinds } from "@wren/starling-outbound";
+import { draftDm } from "@wren/starling-outbound";
 import { wakeWatch } from "@wren/starling-outbound/restate";
 import { tiktokCreator } from "@wren/starling-tiktok";
+import { deskDrafts, deskKinds } from "../desk.js";
 import { clientMarketing } from "../marketing.js";
 import { adsFor, contentClientsFor, contentFor } from "./content-channels.js";
 import type { AnyService, Deps } from "./deps.js";
@@ -201,7 +202,7 @@ export function contentServices(deps: Deps): AnyService[] {
     }),
     socialPushed,
     // Ask Claude on any draft: the desk's Claude Code rewrites, Wren writes. Nothing sends.
-    makeDraftAsk(db, { ...reachKinds, ...contentKinds }),
+    makeDraftAsk(db, deskKinds, deskDrafts),
     makeVideoDesk(db, { llm }),
     // Reply from the Inbox on the thread's own channel, notes, assignees
     // (designs/2026-10-07-inbox-reply.md). Each send goes through that channel's desk.

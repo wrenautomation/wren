@@ -23,14 +23,7 @@ import { DEFAULT_FACTS, FACTS_ID, factsRecord, wrenFacts } from "@wren/core/fact
 import { factsOf, factsText } from "@wren/core/facts-list";
 import { modelDrafts, REPLY_DRAFTS_COMPONENT } from "@wren/core/reply-drafts";
 import { type Db, serializable, setAuditActor } from "@wren/db";
-import {
-  DRAFT_TYPES,
-  type DraftType,
-  listEdits,
-  listWaiting,
-  readDraft,
-  writeDraft,
-} from "@wren/starling-inbound";
+import { DRAFT_TYPES, type DraftType } from "@wren/starling-acts";
 import {
   clearReplyDrafts,
   commentExamples,
@@ -40,8 +33,11 @@ import {
 } from "@wren/starling-outbound";
 import type { Command } from "commander";
 import { readText } from "./content.js";
+import { deskDrafts } from "./desk.js";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
+
+const { listEdits, listWaiting, readDraft, writeDraft } = deskDrafts;
 
 const line = (s: string | null, n = 90) => (s ?? "").replace(/\s+/g, " ").trim().slice(0, n);
 

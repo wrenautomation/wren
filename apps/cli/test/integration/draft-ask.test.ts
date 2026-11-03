@@ -23,25 +23,23 @@ import {
   truncate,
 } from "@wren/db/testing";
 import { addAccount } from "@wren/starling-acts";
+import { makeDraftAsk } from "@wren/starling-acts/restate";
 import { addProspects, contactByHandle, receive } from "@wren/starling-conversations";
 import { comments, reachContacts, reachMessages } from "@wren/starling-conversations/schema";
-import { reachKinds, reachPosts } from "@wren/starling-outbound";
-import { eq, sql } from "drizzle-orm";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   addIdea,
   approveDrafts,
   contentDrafts,
-  contentKinds,
   draftVersion,
   editDraft,
-  listEdits,
-  listWaiting,
-  readDraft,
-  writeDraft,
-} from "../../src/index.js";
-import { makeDraftAsk } from "../../src/restate/draft-ask.js";
-import { inboxRecord } from "../../src/social/records.js";
+} from "@wren/starling-inbound";
+import { inboxRecord } from "@wren/starling-inbound/records";
+import { reachPosts } from "@wren/starling-outbound";
+import { eq, sql } from "drizzle-orm";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { deskDrafts, deskKinds } from "../../src/desk.js";
+
+const { listEdits, listWaiting, readDraft, writeDraft } = deskDrafts;
 
 /** What the fake desk answers next, and what it was asked. */
 const answers: string[] = [];
@@ -61,7 +59,7 @@ let env: RestateTestEnvironment;
 beforeAll(async () => {
   pg = await startTestPostgres();
   env = await startTestRestate({
-    services: [fakeClaude, makeDraftAsk(pg.db, { ...reachKinds, ...contentKinds })],
+    services: [fakeClaude, makeDraftAsk(pg.db, deskKinds, deskDrafts)],
     alwaysReplay: true,
   });
 });

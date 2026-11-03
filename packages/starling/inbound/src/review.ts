@@ -8,6 +8,7 @@ import type { Platform } from "@wren/core/autobrowse";
 import { type DraftVia, type RejectReason, recordDraft } from "@wren/core/draft-record";
 import { PortalRefusal } from "@wren/core/refusal";
 import type { Queryable } from "@wren/db";
+import { GONE } from "@wren/starling-acts";
 import {
   consented,
   fieldsOf,
@@ -19,7 +20,7 @@ import { carouselUnfit, isCarousel } from "@wren/starling-core/slides";
 import { isThread, threadPosts, threadUnfit } from "@wren/starling-core/thread";
 import { and, asc, desc, eq, gte, inArray, type SQL } from "drizzle-orm";
 import { postedLink, refuseUnlinked } from "./funnel.js";
-import { aboutDraft, GONE, lockedWhy, named, PLATFORM_SPECS, wordsUnfit } from "./platforms.js";
+import { aboutDraft, lockedWhy, named, PLATFORM_SPECS, wordsUnfit } from "./platforms.js";
 import { type ContentDraft, contentDrafts, type DraftStatus } from "./schema.js";
 import { nextSlot, type Slots } from "./slots.js";
 import { withSubreddit } from "./subreddit.js";

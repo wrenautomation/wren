@@ -10,6 +10,7 @@
 import { randomUUID } from "node:crypto";
 import { type DraftVia, recordDraft } from "@wren/core/draft-record";
 import type { Queryable } from "@wren/db";
+import { GONE } from "@wren/starling-acts";
 import { fieldsOf } from "@wren/starling-core/shapes";
 import {
   cleanSlides,
@@ -24,7 +25,7 @@ import { and, eq, inArray, sql } from "drizzle-orm";
 import type { DraftResult } from "./draft.js";
 import { addIdea } from "./ideas.js";
 import { type MediaStoreOptions, putMedia } from "./media.js";
-import { aboutDraft, GONE, lockedWhy, PLATFORM_SPECS } from "./platforms.js";
+import { aboutDraft, lockedWhy, PLATFORM_SPECS } from "./platforms.js";
 import { type ContentDraft, contentDrafts, contentIdeas, type DraftStatus } from "./schema.js";
 import { OWN_WORDS } from "./write.js";
 

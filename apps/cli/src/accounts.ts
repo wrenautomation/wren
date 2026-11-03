@@ -9,17 +9,14 @@ import { ingressOf, type Settings } from "@wren/config";
 import { dollars, keyAccounts, VAULT_KEYS_KEY, type VaultKeys } from "@wren/core/vault-keys";
 import type { Db } from "@wren/db";
 import { pickAccount } from "@wren/starling-acts";
-import { contentKinds } from "@wren/starling-inbound";
-import { movePlace, policyFrom, reachKinds } from "@wren/starling-outbound";
+import { movePlace, policyFrom } from "@wren/starling-outbound";
 import { accountRecordOf } from "@wren/starling-outbound/records";
 import type { Command } from "commander";
 import { sql } from "drizzle-orm";
+import { deskKinds } from "./desk.js";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
 type Row = Record<string, unknown>;
-
-/** Every kind a draft box shows: outbound's and inbound's, composed here. */
-const deskKinds = { ...reachKinds, ...contentKinds };
 
 const json = (v: unknown) => console.log(JSON.stringify(v, null, 2));
 const cell = (v: unknown) => (v === null || v === undefined ? "" : String(v));

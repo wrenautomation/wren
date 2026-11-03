@@ -17,6 +17,7 @@ import type { Platform } from "@wren/core/autobrowse";
 import { droppedWhy, guardParts, recordGuard } from "@wren/core/grounded";
 import type { Queryable } from "@wren/db";
 import { completeAndParse, type LlmClient } from "@wren/llm";
+import { GONE } from "@wren/starling-acts";
 import { fieldsOf } from "@wren/starling-core/shapes";
 import {
   cleanSlides,
@@ -47,7 +48,7 @@ import {
   unfitProposal,
 } from "./draft.js";
 import { lessonsFor } from "./lessons.js";
-import { GONE, named, PLATFORM_SPECS } from "./platforms.js";
+import { named, PLATFORM_SPECS } from "./platforms.js";
 import { playbookFor } from "./playbook.js";
 import { type ContentDraft, type ContentIdea, contentDrafts, contentIdeas } from "./schema.js";
 import { type PostPlace, postPlace } from "./subreddit.js";

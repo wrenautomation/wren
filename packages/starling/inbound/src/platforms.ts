@@ -204,7 +204,6 @@ export function named(r: { title?: string | null; text: string; platform: string
 }
 
 /** A draft gone from the list since it was read: deleted, or another tab moved it. */
-export const GONE = "That draft isn't here any more. Reload the page to see what's left.";
 
 /**
  * Why a draft can't `doing` ("be changed", "be approved") in the state it's in, naming it and
