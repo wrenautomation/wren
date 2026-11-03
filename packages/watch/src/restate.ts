@@ -69,6 +69,8 @@ export interface WatchDeps {
   sites?: SiteClient | null;
   /** Keeps Learn's thumbnails and avatars in our store; absent, the portal reads them at their host. */
   pictures?: PictureStore | null;
+  /** Learn's reads, alerts and mail. Off: parked, birdwatch replaces it (WA-1015). */
+  learn?: boolean;
 }
 
 /** `InboxPush` (channel-email) as far as the Monitor calls it. */
@@ -172,7 +174,7 @@ export function makeWatch(deps: WatchDeps) {
       ledger: { command: "watch read", argv: { daemon: true } },
       body: async () => ({
         ...(await readMail(deps.db, deps.mailboxes, now)),
-        feeds: await pullAll(deps, now),
+        feeds: deps.learn ? await pullAll(deps, now) : { added: [], failed: [] },
       }),
       delayAfter: () => (pushed ? WATCH_NET_MS : WATCH_EVERY_MS),
       retryMs: WATCH_EVERY_MS,
@@ -194,6 +196,7 @@ export function makeWatch(deps: WatchDeps) {
         from: LEARN_FEEDS_FROM,
         events: added.map(itemEvent),
       });
+    if (!deps.learn) return outcome;
     const w = wallClock(deps.zone ?? "America/Chicago", now);
     const pad = (n: number) => String(n).padStart(2, "0");
     const today = `${w.year}-${pad(w.month)}-${pad(w.day)}`;
