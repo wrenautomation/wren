@@ -263,7 +263,15 @@ describe("journey condition", () => {
     expect(at.sql).toContain("j.node = $1");
     expect(at.sql).not.toContain("trail");
     expect(at.sql).toContain("j.moved_at >=");
-    expect(at.params).toEqual(["booked", "open", "2026-10-07T15:00:00.000Z", NOW.toISOString()]);
+    // "At" counts any branch there, not only the front (f7b489a5).
+    expect(at.sql).toContain("j.branches @>");
+    expect(at.params).toEqual([
+      "booked",
+      '[{"node":"booked"}]',
+      "open",
+      "2026-10-07T15:00:00.000Z",
+      NOW.toISOString(),
+    ]);
     const past = sqlOf({
       kind: "journey",
       node: "booked",
