@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import type { RedditRequirement } from "../schema.js";
 import {
   type AccountStanding,
   decide,
@@ -7,8 +6,9 @@ import {
   type Need,
   NO_NEED,
   parseNeed,
+  type RedditRequirement,
   shortfall,
-} from "./requirements.js";
+} from "./index.js";
 
 describe("parseNeed", () => {
   it("reads AutoModerator's age and karma", () => {

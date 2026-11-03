@@ -26,7 +26,9 @@ import { dollars, type KeyAccount, keyAccounts } from "@wren/core/vault-keys";
 import {
   accountPickFor,
   DEFAULT_POLICY,
+  gatesFor,
   listAccounts,
+  type PlaceJudged,
   type ReachPolicy,
   recordAccountsOf,
   viewOf,
@@ -43,12 +45,12 @@ import { sql } from "drizzle-orm";
 import { z } from "zod";
 import { personLine } from "./discovery/people.js";
 import { movePlace } from "./discovery/places.js";
-import { gatesFor, holdsThread } from "./discovery/requirements.js";
+import { holdsThread } from "./discovery/requirements.js";
 import { commentsToday } from "./discovery/threads.js";
 import { PERSON_ACCOUNTS } from "./from-people.js";
 import { VANITY } from "./invites.js";
 import { reachKinds } from "./item-kinds.js";
-import type { PlaceJudged, RedditPerson } from "./schema.js";
+import type { RedditPerson } from "./schema.js";
 import { REACH_SEQUENCES, type RenderFields, sampleFields, slotsOf } from "./sequences.js";
 import { listTemplates } from "./store.js";
 import { sentToday } from "./tick.js";

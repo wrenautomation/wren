@@ -10,7 +10,9 @@ import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing
 import {
   addAccount,
   draftAccounts,
+  gatesFor,
   type ReachAccount,
+  redditPlaces,
   refreshHealth,
   setAccountState,
 } from "@wren/starling-acts";
@@ -22,7 +24,6 @@ import {
   backfillFromProofs,
   clearGate,
   gateList,
-  gatesFor,
   keepPlace,
   keepRulesNeed,
   learnFromProof,
@@ -33,7 +34,7 @@ import {
 } from "../../src/index.js";
 import { keepProof } from "../../src/proofs.js";
 import { scheduleThreads } from "../../src/scheduled.js";
-import { redditPlaces, redditThreads } from "../../src/schema.js";
+import { redditThreads } from "../../src/schema.js";
 
 const TABLES = [
   "reddit_requirements",

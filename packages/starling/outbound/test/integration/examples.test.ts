@@ -12,11 +12,12 @@ import {
   type TestPostgres,
 } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
+import { redditPlaces } from "@wren/starling-acts/schema";
 import { sortComment } from "@wren/starling-conversations";
 import { comments } from "@wren/starling-conversations/schema";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { commentDecisions, commentExamples } from "../../src/examples.js";
-import { reachPosts, redditPlaces, redditThreads } from "../../src/schema.js";
+import { reachPosts, redditThreads } from "../../src/schema.js";
 import { reachTurns } from "../../src/turns.js";
 
 let pg: TestPostgres;

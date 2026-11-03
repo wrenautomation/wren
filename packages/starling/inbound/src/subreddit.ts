@@ -6,7 +6,7 @@
  */
 
 import type { Queryable } from "@wren/db";
-import { gatesFor } from "@wren/starling-outbound";
+import { gatesFor } from "@wren/starling-acts";
 import { sql } from "drizzle-orm";
 
 /** A watched subreddit a post may go to, as research judged it. */

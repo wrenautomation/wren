@@ -17,6 +17,7 @@ import {
   addAccount,
   type ReachAccount,
   ReachRefusal,
+  redditPlaces,
   refreshHealth,
   setAccountState,
 } from "@wren/starling-acts";
@@ -53,7 +54,7 @@ import {
 } from "../../src/index.js";
 import { placeRecord, threadRecord } from "../../src/records.js";
 import { scheduleThreads, THREAD_PACE } from "../../src/scheduled.js";
-import { redditPlaces, redditThreads } from "../../src/schema.js";
+import { redditThreads } from "../../src/schema.js";
 
 const TABLES = [
   "reddit_threads",

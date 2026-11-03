@@ -9,7 +9,7 @@ import { resolveObjects } from "@wren/core/objects";
 import { companies, imports, leads, people } from "@wren/core/schema";
 import { lookupTouches, touchesFor, touchFactsFor } from "@wren/core/touches";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
-import { addAccount, setAccountState } from "@wren/starling-acts";
+import { addAccount, redditPlaces, setAccountState } from "@wren/starling-acts";
 import { keepComments, markAnswered } from "@wren/starling-conversations";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -30,7 +30,7 @@ import { reachContacts, reachMessages } from "@wren/starling-conversations/schem
 import { touchFromMessage } from "@wren/starling-conversations/touches";
 import { markPostCommented } from "../../src/reach-posts/acts.js";
 import { personRecord } from "../../src/records.js";
-import { reachPosts, redditPlaces, redditThreads } from "../../src/schema.js";
+import { reachPosts, redditThreads } from "../../src/schema.js";
 import { backfillOutreachTouches, touchFromThread } from "../../src/touches.js";
 import { reachTurns } from "../../src/turns.js";
 

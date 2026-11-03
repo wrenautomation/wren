@@ -31,12 +31,16 @@ import { atomic, type Queryable } from "@wren/db";
 import { completeAndParse, type LlmClient } from "@wren/llm";
 import {
   armMeta,
+  gatesFor,
   guardBy,
   modelFor,
+  type PlaceJudged,
+  type PlacePurpose,
   pickedReachAccount,
   type ReachAccount,
   ReachRefusal,
   reachAccounts,
+  redditPlaces,
 } from "@wren/starling-acts";
 import { passKey } from "@wren/starling-conversations";
 import { comments } from "@wren/starling-conversations/schema";
@@ -47,20 +51,12 @@ import { z } from "zod";
 import { COMMENT_KINDS_LEARNED, examplesFor } from "../examples.js";
 import { ZONE } from "../pacing.js";
 import { passedOn } from "../passes.js";
-import {
-  type PlaceJudged,
-  type PlacePurpose,
-  type RedditPerson,
-  type RedditThread,
-  redditPlaces,
-  redditThreads,
-  THREAD_KINDS,
-} from "../schema.js";
+import { type RedditPerson, type RedditThread, redditThreads, THREAD_KINDS } from "../schema.js";
 import { touchFromThread } from "../touches.js";
 import { personLine } from "./people.js";
 import type { Audience } from "./places.js";
 import type { Post } from "./reads.js";
-import { gatesFor, holdsThread, ThreadHeld } from "./requirements.js";
+import { holdsThread, ThreadHeld } from "./requirements.js";
 
 const HOUR = 3_600_000;
 /** Late comments sink: older or busier threads are dropped in code. */

@@ -9,6 +9,7 @@ export * from "./accounts.js";
 export * from "./clients.js";
 export * from "./draft-accounts.js";
 export * from "./draft-llm.js";
+export * from "./gates.js";
 export * from "./item-kinds.js";
 export * from "./policy.js";
 export * from "./refusal.js";

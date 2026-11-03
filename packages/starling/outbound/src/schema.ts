@@ -1,18 +1,17 @@
 /**
  * Outbound's own tables: where we look and what we did there. Reddit discovery (`reddit_people`,
- * `reddit_places`, `reddit_threads`, `reddit_requirements`), others' posts we act on
- * (`reach_posts`), the passes a reader made (`reach_passes`) and Reddit claim checks
- * (`comment_proofs`). The accounts are acts' (`reach_accounts`); the turn stores (contacts,
- * messages, comments) are conversations'.
+ * `reddit_threads`), others' posts we act on (`reach_posts`), the passes a reader made
+ * (`reach_passes`) and Reddit claim checks (`comment_proofs`). The accounts, the places and their
+ * floors are acts' (`reach_accounts`, `reddit_places`, `reddit_requirements`); the turn stores
+ * (contacts, messages, comments) are conversations'.
  */
 import { platformObjects } from "@wren/core/objects-schema";
 import { PASS_REASONS } from "@wren/core/pass-reasons";
 import { oneOf } from "@wren/db/columns";
-import { reachAccounts } from "@wren/starling-acts/schema";
+import { reachAccounts, redditPlaces } from "@wren/starling-acts/schema";
 import { PROOF_STATES } from "@wren/starling-core";
 import { sql } from "drizzle-orm";
 import {
-  boolean,
   check,
   foreignKey,
   index,
@@ -29,18 +28,6 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 
-/**
- * Reddit discovery (designs/2026-10-06-reddit-discovery.md): people, places and threads, all read
- * signed out through autobrowse's `reddit-public`. Raw reads are kept whole; the model's reading
- * sits beside them, each fact with the words it came from.
- */
-export const PLACE_STATES = ["found", "watching", "skipped"] as const;
-/**
- * Why we comment in a place: `reach` finds buyers (business subs), `karma` earns a young account
- * its karma with plain answers that never name Wren (designs/2026-10-18-reddit-karma.md).
- */
-export const PLACE_PURPOSES = ["reach", "karma"] as const;
-export type PlacePurpose = (typeof PLACE_PURPOSES)[number];
 export const THREAD_STATES = [
   "new",
   "dropped",
@@ -100,58 +87,6 @@ export const redditPeople = pgTable(
     primaryKey({ columns: [t.handle], name: "pk_reddit_people" }),
     index("ix_reddit_people_read_at").on(t.readAt),
     check("ck_reddit_people_fit", sql`${t.fit} between 0 and 10`),
-  ],
-);
-
-/** A subreddit's rules and pace in plain words, as the model read them. */
-export interface PlaceJudged {
-  fit: number;
-  why: string;
-  rules: string;
-  mayComment: boolean;
-  mayPost: boolean;
-  linkOnly: boolean;
-  karmaMin: number | null;
-  ageMinDays: number | null;
-  postsADay: number;
-  medianComments: number;
-}
-
-export const redditPlaces = pgTable(
-  "reddit_places",
-  {
-    /** Lowercase, without r/. */
-    subreddit: varchar("subreddit", { length: 64 }).notNull(),
-    name: varchar("name", { length: 64 }).notNull(),
-    /** "topic: <words>", "named" or "people": how it was found. */
-    foundBy: text("found_by").notNull(),
-    /** about, rules, top of the week and new, as read. */
-    raw: jsonb("raw"),
-    judged: jsonb("judged").$type<PlaceJudged>(),
-    fit: smallint("fit"),
-    subscribers: integer("subscribers"),
-    state: varchar("state", { length: 16, enum: PLACE_STATES }).notNull().default("found"),
-    purpose: varchar("purpose", { length: 16, enum: PLACE_PURPOSES }).notNull().default("reach"),
-    /** The pool account that works it: one per place, so two of ours never meet. */
-    accountId: uuid("account_id"),
-    readAt: timestamp("read_at", { withTimezone: true }),
-    threadsAt: timestamp("threads_at", { withTimezone: true }),
-    /** When its account joined it on Reddit; null until then. Joined subs read as a member's. */
-    joinedAt: timestamp("joined_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  },
-  (t) => [
-    primaryKey({ columns: [t.subreddit], name: "pk_reddit_places" }),
-    index("ix_reddit_places_state").on(t.state),
-    index("ix_reddit_places_account_id").on(t.accountId),
-    oneOf("ck_reddit_places_state", t.state, PLACE_STATES),
-    oneOf("ck_reddit_places_purpose", t.purpose, PLACE_PURPOSES),
-    check("ck_reddit_places_fit", sql`${t.fit} between 0 and 10`),
-    foreignKey({
-      columns: [t.accountId],
-      foreignColumns: [reachAccounts.id],
-      name: "fk_reddit_places_account_id_reach_accounts",
-    }).onDelete("set null"),
   ],
 );
 
@@ -236,55 +171,7 @@ export const redditThreads = pgTable(
   ],
 );
 
-/**
- * What a subreddit asks of an account before our comment stays up (designs/2026-10-14-reddit-gates.md).
- * One row per place and where the fact came from: `removal` (a mod or AutoModerator removed our
- * comment, with the numbers it stated), `rules` (the rules the place read names), `manual` (set by
- * hand). The effective floor is the highest of the rows not cleared. `hold` is a removal that
- * stated nothing: an unknown gate, held for every account until he clears it.
- */
-export const REQUIREMENT_SOURCES = ["removal", "rules", "manual"] as const;
-export type RequirementSource = (typeof REQUIREMENT_SOURCES)[number];
-
-export const redditRequirements = pgTable(
-  "reddit_requirements",
-  {
-    subreddit: varchar("subreddit", { length: 64 }).notNull(),
-    source: varchar("source", { length: 16, enum: REQUIREMENT_SOURCES }).notNull(),
-    /** Account age in days, total karma and comment karma; null = not stated. */
-    minAgeDays: integer("min_age_days"),
-    minKarma: integer("min_karma"),
-    minCommentKarma: integer("min_comment_karma"),
-    /** A gate we can't count (a verified email): shown, never enforced. */
-    other: text("other"),
-    hold: boolean("hold").notNull().default(false),
-    /** The proof item (`thread:t3_x`) a removal was learned from. */
-    item: varchar("item", { length: 80 }),
-    /** The words it came from, shortened. */
-    evidence: text("evidence"),
-    learnedAt: timestamp("learned_at", { withTimezone: true }).notNull().defaultNow(),
-    /** He lifted it: the row counts for nothing until a newer removal. */
-    clearedAt: timestamp("cleared_at", { withTimezone: true }),
-  },
-  (t) => [
-    primaryKey({ columns: [t.subreddit, t.source], name: "pk_reddit_requirements" }),
-    oneOf("ck_reddit_requirements_source", t.source, REQUIREMENT_SOURCES),
-    check(
-      "ck_reddit_requirements_floors",
-      sql`coalesce(${t.minAgeDays}, 0) >= 0 and coalesce(${t.minKarma}, 0) >= 0 and coalesce(${t.minCommentKarma}, 0) >= 0`,
-    ),
-    foreignKey({
-      columns: [t.subreddit],
-      foreignColumns: [redditPlaces.subreddit],
-      name: "fk_reddit_requirements_subreddit_reddit_places",
-    }).onDelete("cascade"),
-  ],
-);
-
-export type RedditRequirement = typeof redditRequirements.$inferSelect;
-
 export type RedditPerson = typeof redditPeople.$inferSelect;
-export type RedditPlace = typeof redditPlaces.$inferSelect;
 export type RedditThread = typeof redditThreads.$inferSelect;
 
 /**

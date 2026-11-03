@@ -24,6 +24,7 @@ import {
   DEFAULT_POLICY,
   listAccounts,
   loginsOf,
+  redditPlaces as places,
   reachAccounts,
 } from "@wren/starling-acts";
 import { sortStep } from "@wren/starling-conversations";
@@ -40,7 +41,6 @@ import {
   type ReachDeps,
   type WatchStats,
 } from "../../src/restate/index.js";
-import { redditPlaces as places } from "../../src/schema.js";
 import { REACH_SEQUENCES } from "../../src/sequences.js";
 import type { TickStats } from "../../src/tick.js";
 import { reachTurns } from "../../src/turns.js";

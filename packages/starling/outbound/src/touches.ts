@@ -6,6 +6,7 @@
 import { itemLink } from "@wren/core/touch-link";
 import { recordTouch } from "@wren/core/touches";
 import type { Queryable } from "@wren/db";
+import { redditPlaces } from "@wren/starling-acts/schema";
 import {
   accountName,
   backfillTurnTouches,
@@ -14,7 +15,7 @@ import {
   type TurnTouchBackfill,
 } from "@wren/starling-conversations/touches";
 import { and, eq, sql } from "drizzle-orm";
-import { reachPosts, redditPlaces, redditThreads } from "./schema.js";
+import { reachPosts, redditThreads } from "./schema.js";
 
 /** The page of our comment in a Reddit thread. */
 const threadLink = (

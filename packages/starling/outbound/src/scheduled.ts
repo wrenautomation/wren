@@ -14,14 +14,14 @@
 
 import type { AccountHealth } from "@wren/core/outreach";
 import type { Queryable } from "@wren/db";
-import { reachAccounts, sendOpen } from "@wren/starling-acts";
+import { reachAccounts, redditPlaces, sendOpen } from "@wren/starling-acts";
 import { warmupOf } from "@wren/starling-reddit";
 import { and, desc, eq, gte, inArray, isNotNull, isNull, or, sql } from "drizzle-orm";
 import { applyGates, holdsThread } from "./discovery/requirements.js";
 import { inKarmaPlace, KARMA_FRESH_MS, SLOT_WITHIN_MS } from "./discovery/threads.js";
 import { type Pace, sendSlots, ZONE } from "./pacing.js";
 import type { CommentsSettings } from "./reach-posts/settings.js";
-import { type ReachPostPlatform, reachPosts, redditPlaces, redditThreads } from "./schema.js";
+import { type ReachPostPlatform, reachPosts, redditThreads } from "./schema.js";
 
 const HOUR = 3_600_000;
 /** Sends looked back on for spacing and the day's count. */

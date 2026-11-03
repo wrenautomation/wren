@@ -14,17 +14,18 @@
 import type { AccountHealth } from "@wren/core/outreach";
 import type { Queryable } from "@wren/db";
 import { completeAndParse, type LlmClient } from "@wren/llm";
-import { ReachRefusal, reachAccounts } from "@wren/starling-acts";
-import { warmupOf } from "@wren/starling-reddit";
-import { and, asc, eq, inArray, isNull, lt, ne, or, sql } from "drizzle-orm";
-import { z } from "zod";
 import {
   type PlaceJudged,
   type PlacePurpose,
+  ReachRefusal,
   type RedditPlace,
-  redditPeople,
+  reachAccounts,
   redditPlaces,
-} from "../schema.js";
+} from "@wren/starling-acts";
+import { warmupOf } from "@wren/starling-reddit";
+import { and, asc, eq, inArray, isNull, lt, ne, or, sql } from "drizzle-orm";
+import { z } from "zod";
+import { redditPeople } from "../schema.js";
 import type { PlaceRead, Post } from "./reads.js";
 import { keepRulesNeed } from "./requirements.js";
 

@@ -7,22 +7,25 @@
 import { keepSentEdit } from "@wren/core/ask";
 import { atomic, type Queryable } from "@wren/db";
 import {
+  effectiveNeed,
   forgetUnsure,
   type ItemKind,
   type ItemKinds,
   type ReachAccount,
   ReachRefusal,
   reachAccounts,
+  redditRequirements,
   settleSent,
+  shortfall,
+  standingOfAccount,
   unsureItem,
 } from "@wren/starling-acts";
 import { turnKinds } from "@wren/starling-conversations";
 import { reachContacts, reachMessages } from "@wren/starling-conversations/schema";
 import { and, eq, sql } from "drizzle-orm";
-import { effectiveNeed, shortfall, standingOfAccount } from "./discovery/requirements.js";
 import { markCommented, skipThread } from "./discovery/threads.js";
 import { markPostCommented, skipPost } from "./reach-posts/acts.js";
-import { reachPosts, redditRequirements, redditThreads } from "./schema.js";
+import { reachPosts, redditThreads } from "./schema.js";
 import {
   type Candidate,
   emptyStats,
