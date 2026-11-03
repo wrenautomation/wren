@@ -8,7 +8,6 @@
 
 import { draftTurns } from "@wren/core/ask";
 import { broadcastLine, waitingBroadcasts } from "@wren/core/broadcasts";
-import { pickStates, picksOf } from "@wren/core/decide";
 import { draftItemsOf, recordOfPage } from "@wren/core/draft-record";
 import {
   accountField,
@@ -34,7 +33,17 @@ import { docApprovalId, waitingDocs } from "@wren/documents/store";
 import { money, payApprovalId, waitingPayLinks } from "@wren/payments/store";
 import { pageApprovalId, retireApprovalId } from "@wren/sites/console";
 import { waitingPages, waitingRetires } from "@wren/sites/store";
-import { accountPickFor, type ItemKinds, type SendAttempt, unsureSends } from "@wren/starling-acts";
+import {
+  accountPickFor,
+  ITEM_STATES,
+  type ItemKinds,
+  notParked,
+  PICK_FIELD,
+  type ConsoleRow as Row,
+  unsureOver,
+  unsureSends,
+  withPicks,
+} from "@wren/starling-acts";
 import { threadContextOf } from "@wren/starling-conversations";
 import {
   conversationOf,
@@ -49,13 +58,10 @@ import type { InboxReply, InboxThread } from "@wren/starling-conversations/schem
 import { isUrl } from "@wren/starling-core";
 import { PLATFORM_CUES } from "@wren/starling-core/platform-cues";
 import { TIKTOK_COPY } from "@wren/starling-core/tiktok";
-import { invitedSql, reachKinds } from "@wren/starling-outbound";
-import { commentRecord, dmRecord, threadRecord } from "@wren/starling-outbound/records";
 import { threadRecord as textThreadRecord } from "@wren/starling-sms/records";
 import { and, eq, sql } from "drizzle-orm";
 import { waitingSwaps } from "../analytics/variants.js";
 import { DRAFT_CALLS } from "../draft-calls.js";
-import { contentKinds } from "../draft-items.js";
 import { contentDrafts } from "../schema.js";
 import { shapeView } from "../shape-view.js";
 import { mixedThumbs } from "../thumbs.js";
@@ -67,8 +73,6 @@ import { PLATFORM_NAMES } from "./store.js";
 
 /** ponytail: rows, not a view: a few hundred unseen rows at most; a view past that. */
 const ACTIVITY_ROWS = 500;
-// Until the records split (R3): the console still composes the desk's kinds here.
-const deskKinds: ItemKinds = { ...reachKinds, ...contentKinds };
 
 const neutral = (label: string) => ({ label, tone: "neutral" as const });
 
@@ -81,7 +85,35 @@ const KIND_LABELS = {
 };
 
 const rowsOf = async (db: Queryable, q: ReturnType<typeof sql>) =>
-  (await db.execute(q)) as unknown as Array<Record<string, unknown>>;
+  (await db.execute(q)) as unknown as Row[];
+
+/**
+ * What outbound lays on the Inbox and To approve (designs/2026-11-02-starling.md, R3): rows
+ * shaped as the lists show them, and a reach item's own page. Outbound's `reachItems` fills it;
+ * the app composes. Inbound never reads a reach column.
+ */
+export interface ReachItems {
+  /** Comments on our posts and DM threads, as the Inbox lists them. */
+  inbox(db: Queryable): Promise<Row[]>;
+  /** Queued threads and posts (with picks), accepted and proposed invites: To approve's. */
+  approval(db: Queryable): Promise<Row[]>;
+  /** A DM thread's or an accepted invite's own page (its messages); null for other kinds. */
+  load(db: Queryable, id: string): Promise<Row | null>;
+}
+/** No reach rows: a test of inbound's own rows, or a console with no outbound. */
+export const bareReach: ReachItems = {
+  inbox: async () => [],
+  approval: async () => [],
+  load: async () => null,
+};
+
+export interface ConsoleDeps {
+  reach: ReachItems;
+  /** Every kind a draft box shows: the account picked for an item. */
+  kinds: ItemKinds;
+  /** Signs a draft's stored files (thumbnail, cover) for its page. */
+  signer?: VideoSigner;
+}
 
 export const activityRecord = defineRecord({
   id: "marketing.activity",
@@ -249,132 +281,6 @@ const videoRows = (db: Queryable) =>
       where state = 'rendered' order by updated_at desc limit ${ACTIVITY_ROWS}`,
   );
 
-/** Accepted invites nobody wrote to yet: no message either way past the invite. A connection
- * made on the site (no invite of ours) is no invite record. */
-const acceptedRows = (db: Queryable) =>
-  rowsOf(
-    db,
-    sql`select c.id, coalesce(c.name, c.handle) who, c.headline, c.connected_at at, c.draft, c.url,
-        coalesce(da.account, a.account) account,
-        (c.read_at is null or c.read_at < c.connected_at) unread
-      from reach_contacts c left join reach_accounts a on a.id = c.account_id
-      left join draft_accounts da on da.item = 'invite:' || c.id
-      where c.connected_at is not null and c.state not in ('opted_out', 'blocked')
-        and ${invitedSql(sql`c.id`)}
-        and not exists (select 1 from reach_messages m where m.contact_id = c.id
-          and (m.direction = 'in' or m.kind <> 'connect'))
-      order by c.connected_at desc limit ${ACTIVITY_ROWS}`,
-  );
-
-/** LinkedIn invites the sweep proposed, waiting on his yes: who, and why they were picked. */
-const connectRows = (db: Queryable) =>
-  rowsOf(
-    db,
-    sql`select c.id, coalesce(c.name, c.handle) who, c.headline, c.fit->>'why' why,
-        c.fit->>'company' company, c.url, a.account account, m.created_at at, m.body note
-      from reach_messages m join reach_contacts c on c.id = m.contact_id
-      left join reach_accounts a on a.id = m.account_id
-      where m.kind = 'connect' and m.direction = 'out' and m.state = 'proposed'
-      order by m.id limit ${ACTIVITY_ROWS}`,
-  );
-
-/** Others' posts (LinkedIn, X, Instagram) with a comment drafted, waiting on his yes. */
-const onPostRows = (db: Queryable) =>
-  rowsOf(
-    db,
-    sql`select p.id, p.platform, p.author, p.text, p.why, p.draft, p.url,
-        coalesce(da.account, p.account) account, coalesce(p.posted_at, p.created_at) at,
-        p.queued_at, p.send_at
-      from reach_posts p left join draft_accounts da on da.item = 'onpost:' || p.id
-      where p.state = 'queued'
-      order by p.fit desc nulls last, p.id limit ${ACTIVITY_ROWS}`,
-  );
-
-/** Our comments sent on their ground, newest first: Engage's Posted. */
-const sentRows = (db: Queryable) =>
-  rowsOf(
-    db,
-    sql`select * from (
-        select 'thread:' || t.id id, 'thread' type, t.author who, 'reddit' platform,
-          coalesce(nullif(t.body, ''), t.title) body, t.title post_title, t.answer draft,
-          a.account account, t.posted_at at, t.answered_at sent, t.url, 'r/' || t.subreddit place
-        from reddit_threads t left join reach_accounts a on a.id = t.account_id
-        where t.answered_at is not null and t.answer_ref is not null
-        union all
-        select 'onpost:' || id, 'onpost', author, platform, text, null, comment, account,
-          coalesce(posted_at, created_at), commented_at, url, null
-        from reach_posts where commented_at is not null
-      ) s order by sent desc limit ${ACTIVITY_ROWS}`,
-  );
-
-/**
- * Each sent comment's last proof (designs/2026-10-14-comment-proof.md), by item: whether a
- * stranger sees it, when that was read, its permalink and shot (signed by `signer`).
- */
-async function proofsBy(db: Queryable, signer?: VideoSigner) {
-  const rows = await rowsOf(
-    db,
-    sql`select item, state, note, url, shot, checked_at from comment_proofs
-      order by checked_at desc limit ${ACTIVITY_ROWS * 2}`,
-  );
-  const sign = async (shot: unknown) =>
-    typeof shot === "string" && shot && signer ? signer.host.host(shot).catch(() => null) : null;
-  return new Map(
-    await Promise.all(
-      rows.map(
-        async (r) =>
-          [
-            String(r.item),
-            {
-              proof: r.state,
-              proof_note: r.note,
-              proof_at: r.checked_at,
-              proof_url: r.url,
-              proof_shot: await sign(r.shot),
-            },
-          ] as const,
-      ),
-    ),
-  );
-}
-
-/** A row with its proof, when its item has one. */
-const withProof =
-  (by: Awaited<ReturnType<typeof proofsBy>>) =>
-  <R extends { id: string }>(r: R) => ({ ...r, ...by.get(r.id) });
-
-/**
- * Each drafted comment's newest pick (designs/2026-10-16-decide.md), on rows whose id is the
- * draft's item. Only when comment drafts show their picks (recommend or gate); his call still rules.
- */
-const DRAFTED = /^(thread|onpost|comment):/;
-async function withPicks<R extends object>(db: Queryable, rows: R[]): Promise<R[]> {
-  const idOf = (r: R) => String((r as { id?: unknown }).id);
-  const picks = await picksOf(
-    db,
-    "comment_quality",
-    rows.map(idOf).filter((id) => DRAFTED.test(id)),
-  );
-  if (!picks.size) return rows;
-  return rows.map((r) => {
-    const p = picks.get(idOf(r));
-    return p ? { ...r, pick: p.label } : r;
-  });
-}
-const PICK_FIELD = () => status(pickStates("comment_quality"), "Suggests");
-
-/** Whether a stranger sees our sent comment: Live, Hidden (only we see it), Missing, Checking. */
-export const PROOF_STATES = {
-  live: { label: "Live", tone: "good", about: "Someone signed out sees it" },
-  hidden: {
-    label: "Hidden",
-    tone: "warn",
-    about: "We see it, strangers don't: a filter or a mod holds it",
-  },
-  missing: { label: "Missing", tone: "bad", about: "Gone even for us: removed or deleted" },
-  pending: { label: "Checking", tone: "neutral", about: "Not read yet, or the read said nothing" },
-} as const;
-
 /** What a draft goes out as: one post, an X thread, or a slide set (`marketing_draft_records`). */
 export const FORMATS = {
   post: neutral("Post"),
@@ -388,143 +294,13 @@ export const MISSING_PICKS = {
   disclosure: { label: TIKTOK_COPY.pickOne, tone: "warn" as const },
 };
 
-/** A row's state, as both lists say it. */
-const STATES = status({
-  new: { label: "New", tone: "warn" },
-  waiting: { label: "Waiting on you", tone: "warn" },
-  scheduled: { label: "Scheduled", tone: "good" },
-  answered: { label: "Answered", tone: "good" },
-  sent: { label: "Sent", tone: "good" },
-  queued: neutral("Queued"),
-  held: {
-    label: "Held",
-    tone: "warn",
-    about:
-      "The subreddit asks for more karma or an older account than ours has, or removed our last comment without saying why. It stays queued and sends itself once the rule is met.",
-  },
-  dropped: neutral("Dropped"),
-  read: neutral("Read"),
-  seen: neutral("Seen"),
-  left: neutral("Left"),
-});
-
-type Row = Record<string, unknown>;
-/** A Reddit thread queued for our comment. */
-const threadItem = (t: Row) => ({
-  id: `thread:${t.id}`,
-  type: "thread",
-  who: t.author,
-  platform: "reddit",
-  kind: "thread",
-  // A sub whose karma or age rule we don't meet holds it: queued, never sent, never dropped.
-  state: t.held ? "held" : t.send_at ? "scheduled" : "waiting",
-  body: t.body || t.title,
-  post_title: t.title,
-  place: t.place ?? null,
-  why: t.angle ?? null,
-  held: t.held ?? null,
-  draft: t.draft,
-  account: t.account,
-  at: t.posted_at,
-  due: t.held ? t.posted_at : (t.send_at ?? t.posted_at),
-  send_at: t.held ? null : (t.send_at ?? null),
-  url: t.url,
-});
-/** Someone else's post with our comment drafted. */
-const onPostItem = (l: Row) => ({
-  id: `onpost:${l.id}`,
-  type: "onpost",
-  who: l.author,
-  platform: l.platform,
-  kind: "onpost",
-  state: l.send_at ? "scheduled" : "waiting",
-  body: l.text,
-  post_title: null,
-  why: l.why,
-  draft: l.draft,
-  account: l.account,
-  at: l.at,
-  due: l.send_at ?? l.queued_at ?? l.at,
-  send_at: l.send_at ?? null,
-  url: l.url,
-});
-/** A comment on our post or under our comment. */
-const commentItem = (c: Row) => ({
-  id: `comment:${c.id}`,
-  type: "comment",
-  who: c.who,
-  platform: c.platform,
-  kind: c.kind,
-  channel: c.channel,
-  state: c.state,
-  body: c.body,
-  post: c.post,
-  post_title: c.post_title,
-  place: c.place ?? null,
-  draft: c.draft,
-  account: c.account,
-  at: c.at,
-  due: c.at,
-  sent: c.answered_at ?? null,
-  url: c.url,
-});
-/** A DM thread; waiting when theirs is the last word. */
-const dmItem = (d: Row) => ({
-  id: `dm:${d.id}`,
-  type: "dm",
-  who: d.who,
-  platform: d.platform,
-  kind: "dm",
-  // Reddit and LinkedIn DMs are reach's; the rest come through a connected account.
-  channel: d.platform === "reddit" || d.platform === "linkedin" ? "reach" : "social",
-  state: d.waiting === "waiting" ? "waiting" : "read",
-  body: d.last_body,
-  post_title: null,
-  draft: d.draft,
-  account: d.account,
-  at: d.last_at,
-  due: d.last_at,
-  url: null,
-});
-
-/**
- * A send that may have gone out and no read could tell (designs/2026-10-16-maybe-sent.md): its
- * own row, over the queued one it came from (`thread:`, `onpost:`), which nothing sends meanwhile.
- */
-const unsureItem = (u: SendAttempt, from: Row | undefined) => ({
-  ...(from ?? {}),
-  id: `unsure:${u.item}`,
-  type: "unsure",
-  who: from?.who ?? u.target,
-  platform: u.platform,
-  kind: "unsure",
-  state: "waiting",
-  body: u.words,
-  draft: null,
-  unsure: u.why,
-  account: u.account,
-  at: u.updatedAt,
-  due: u.updatedAt,
-  send_at: null,
-  on_site: u.url,
-});
-/** Rows an unsure send stands in for leave the list; its own row takes their place. */
-const unsureOver = (us: SendAttempt[], rows: Row[]): Row[] => {
-  const by = new Map(rows.map((r) => [String(r.id), r]));
-  return us.map((u) => unsureItem(u, by.get(u.item)));
-};
-const notParked = (us: SendAttempt[]) => {
-  const parked = new Set(us.map((u) => u.item));
-  return (r: Row) => !parked.has(String(r.id));
-};
-
 /**
  * What other people sent us, as one list. Ids carry their type (`comment:12`, `dm:5`, `email:4`
  * (a call invite), `reply:6` (a reply with none), `text:8`, `chat:3`, `activity:9`); each action reads the
  * id after the colon. `due` orders "Waiting on you": when it came.
  */
 /** Our own post as a context view heads it: its words, link and picture when it is a link. */
-const ourPostOf = (db: Queryable) => async (platform: string, post: string) => {
+export const ourPostOf = (db: Queryable) => async (platform: string, post: string) => {
   const [d] = await db
     .select({
       title: contentDrafts.title,
@@ -549,307 +325,308 @@ const ourPostOf = (db: Queryable) => async (platform: string, post: string) => {
   };
 };
 
-export const inboxRecord = defineRecord({
-  id: "marketing.inbox",
-  app: "marketing",
-  channel: { field: "platform" },
-  // Table | By Type: comment, DM, email, mail, text, chat, activity.
-  by: "type",
-  name: { one: "inbox item", many: "inbox items" },
-  rows: async (db) => {
-    const cs = (await commentRecord.rows?.(db)) ?? [];
-    const ds = (await dmRecord.rows?.(db)) ?? [];
-    const es = await emailRows(db);
-    const xs = await textRows(db);
-    const as = (await activityRecord.rows?.(db)) ?? [];
-    const ms = await mailRows(db);
-    const hs = await chatRows(db);
-    const kept = await threadStates(db);
-    const now = new Date();
-    // The team's state on each: who has it, open, waiting, closed or snoozed. One person's
-    // comments under one post fold into one row, so its state is the group's: a follow-up
-    // without its own takes the newest any of them has (a new word still reopens it).
-    const byGroup = new Map<string, InboxThread>();
-    for (const c of cs.map(commentItem)) {
-      const g = COMMENT_FOLD.by(c);
-      const k = g === null ? undefined : kept.get(c.id);
-      if (g === null || !k) continue;
-      const had = byGroup.get(g);
-      if (!had || k.updatedAt > had.updatedAt) byGroup.set(g, k);
-    }
-    const team = (r: Record<string, unknown>) => {
-      const g = COMMENT_FOLD.by(r);
-      const k = kept.get(String(r.id)) ?? (g === null ? undefined : byGroup.get(g));
-      return {
-        ...r,
-        status: statusOf({ state: r.state, at: r.at }, k, now),
-        assignee: k?.assignee ?? null,
-        snooze: k?.snoozeUntil && k.snoozeUntil > now ? k.snoozeUntil : null,
+export const inboxRecordOf = (deps: ConsoleDeps) =>
+  defineRecord({
+    id: "marketing.inbox",
+    app: "marketing",
+    channel: { field: "platform" },
+    // Table | By Type: comment, DM, email, mail, text, chat, activity.
+    by: "type",
+    name: { one: "inbox item", many: "inbox items" },
+    rows: async (db) => {
+      const reach = await deps.reach.inbox(db);
+      const cs = reach.filter((r) => r.type === "comment");
+      const es = await emailRows(db);
+      const xs = await textRows(db);
+      const as = (await activityRecord.rows?.(db)) ?? [];
+      const ms = await mailRows(db);
+      const hs = await chatRows(db);
+      const kept = await threadStates(db);
+      const now = new Date();
+      // The team's state on each: who has it, open, waiting, closed or snoozed. One person's
+      // comments under one post fold into one row, so its state is the group's: a follow-up
+      // without its own takes the newest any of them has (a new word still reopens it).
+      const byGroup = new Map<string, InboxThread>();
+      for (const c of cs) {
+        const g = COMMENT_FOLD.by(c);
+        const k = g === null ? undefined : kept.get(String(c.id));
+        if (g === null || !k) continue;
+        const had = byGroup.get(g);
+        if (!had || k.updatedAt > had.updatedAt) byGroup.set(g, k);
+      }
+      const team = (r: Record<string, unknown>) => {
+        const g = COMMENT_FOLD.by(r);
+        const k = kept.get(String(r.id)) ?? (g === null ? undefined : byGroup.get(g));
+        return {
+          ...r,
+          status: statusOf({ state: r.state, at: r.at }, k, now),
+          assignee: k?.assignee ?? null,
+          snooze: k?.snoozeUntil && k.snoozeUntil > now ? k.snoozeUntil : null,
+        };
       };
-    };
-    const all: Record<string, unknown>[] = [
-      ...cs.map(commentItem),
-      ...ds.map(dmItem),
-      // A reply with a call invite is answered here or on its replies page, by the invite's id;
-      // one with no invite has nothing to answer with and shows unlinked.
-      ...es.map((e) => ({
-        id: e.invite ? `email:${e.invite}` : `reply:${e.id}`,
-        type: "email",
-        who: e.who,
-        company: e.company,
-        platform: null,
-        kind: "email",
-        channel: null,
-        state: e.invite
-          ? (INVITE[String(e.invite_state)] ?? "left")
-          : (DISPOSITION[String(e.disposition)] ?? "waiting"),
-        answer: e.invite_state,
-        body: e.words,
-        post_title: null,
-        draft: e.draft,
-        account: null,
-        at: e.at,
-        due: e.at,
-        url: e.invite ? `/inbox/replies/${e.invite}` : null,
-      })),
-      // Theirs is the last word and nobody read it: waiting. Ours came after: answered.
-      ...xs.map((x) => ({
-        id: `text:${x.id}`,
-        type: "text",
-        who: x.who,
-        platform: null,
-        kind: "text",
-        channel: null,
-        state: x.answered ? "answered" : x.unread ? "waiting" : "read",
-        body: x.words,
-        post_title: null,
-        draft: null,
-        account: null,
-        at: x.at,
-        due: x.at,
-        url: null,
-      })),
-      // Site chats: answered in the bubble, as texts are.
-      ...hs.map((h) => ({
-        id: `chat:${h.id}`,
-        type: "chat",
-        who: h.who,
-        platform: null,
-        kind: "chat",
-        channel: null,
-        state: h.answered ? "answered" : h.unread ? "waiting" : "read",
-        body: h.words,
-        post_title: h.page,
-        draft: null,
-        account: null,
-        at: h.at,
-        due: h.at,
-        url: null,
-      })),
-      // Mail to the client's own mailboxes: opened in Gmail or Outlook, Done when dealt with.
-      ...ms.map((m) => ({
-        id: `mail:${m.id}`,
-        type: "mail",
-        who: Number(m.mails) > 1 ? `${m.who} (${m.mails})` : m.who,
-        platform: null,
-        kind: "mail",
-        channel: null,
-        state: mailState(m),
-        body: m.words,
-        post_title: m.subject,
-        draft: null,
-        account: null,
-        mailbox: m.mailbox,
-        at: m.at,
-        due: m.at,
-        url: m.open,
-      })),
-      ...as.map((a) => ({
-        id: `activity:${a.id}`,
-        type: "activity",
-        who: a.who,
-        platform: a.platform,
-        kind: a.kind,
-        channel: null,
-        state: a.state,
-        body: a.text,
-        post_title: null,
-        draft: null,
-        account: null,
-        at: a.at,
-        due: a.at,
-        url: a.url,
-      })),
-    ];
-    return withPicks(db, all.map(team));
-  },
-  key: "id",
-  title: "who",
-  account: "account",
-  subtitle: "body",
-  fold: COMMENT_FOLD,
-  fields: {
-    who: name("Who"),
-    messages: text("Their messages", { listed: false }),
-    status: status(
-      {
-        open: { label: "Open", tone: "warn" },
-        waiting: neutral("Waiting on them"),
-        snoozed: neutral("Snoozed"),
-        closed: neutral("Closed"),
-      },
-      "Status",
-    ),
-    snooze: date("Snoozed until"),
-    type: status(
-      cued({
-        comment: neutral("Comment"),
-        dm: neutral("DM"),
-        email: neutral("Email"),
-        mail: neutral("Mail"),
-        text: neutral("Text"),
-        chat: neutral("Site chat"),
-        activity: neutral("Activity"),
-      }),
-      "Type",
-    ),
-    platform: status(PLATFORM_CUES, "Site"),
-    assignee: actor("Assignee"),
-    kind: status(
-      cued({
-        post_reply: neutral("On our post"),
-        comment_reply: neutral("Under our comment"),
-        thread_reply: neutral("Follow-up in the thread"),
-        username_mention: neutral("Mention"),
-        dm: neutral("DM"),
-        email: neutral("Email reply"),
-        mail: neutral("To your mailbox"),
-        text: neutral("Text"),
-        chat: neutral("Site chat"),
-        ...KIND_LABELS,
-      }),
-      "Kind",
-    ),
-    channel: status(
-      cued({
-        reach: neutral("Reach account"),
-        social: neutral("Connected account"),
-        content: neutral("Our post"),
-      }),
-      "Where",
-    ),
-    state: STATES,
-    company: text("Company"),
-    answer: status(
-      {
-        needs_you: { label: "Needs you", tone: "bad" },
-        proposed: { label: "Draft ready", tone: "warn" },
-        booking: neutral("Booking"),
-        booked: { label: "Booked", tone: "good" },
-        already_booked: { label: "Already booked", tone: "good" },
-        sent: { label: "Answered", tone: "good" },
-        dropped: neutral("Dropped"),
-      },
-      "Call invite",
-    ),
-    body: prose("Their words"),
-    postTitle: text("Post"),
-    draft: prose("Draft reply"),
-    pick: PICK_FIELD(),
-    account: accountField("On"),
-    mailbox: text("Mailbox"),
-    at: date("When"),
-    due: date("Waiting since"),
-    url: link("Open"),
-  },
-  views: [
-    { id: "waiting", label: "Waiting on you", where: INBOX_OPEN, sort: "due", at: "due" },
-    {
-      id: "mine",
-      label: "Mine",
-      where: { status: ["open", "waiting", "snoozed"] },
-      mine: "assignee",
-      sort: "due",
-      at: "due",
+      const all: Row[] = [
+        ...reach,
+        // A reply with a call invite is answered here or on its replies page, by the invite's id;
+        // one with no invite has nothing to answer with and shows unlinked.
+        ...es.map((e) => ({
+          id: e.invite ? `email:${e.invite}` : `reply:${e.id}`,
+          type: "email",
+          who: e.who,
+          company: e.company,
+          platform: null,
+          kind: "email",
+          channel: null,
+          state: e.invite
+            ? (INVITE[String(e.invite_state)] ?? "left")
+            : (DISPOSITION[String(e.disposition)] ?? "waiting"),
+          answer: e.invite_state,
+          body: e.words,
+          post_title: null,
+          draft: e.draft,
+          account: null,
+          at: e.at,
+          due: e.at,
+          url: e.invite ? `/inbox/replies/${e.invite}` : null,
+        })),
+        // Theirs is the last word and nobody read it: waiting. Ours came after: answered.
+        ...xs.map((x) => ({
+          id: `text:${x.id}`,
+          type: "text",
+          who: x.who,
+          platform: null,
+          kind: "text",
+          channel: null,
+          state: x.answered ? "answered" : x.unread ? "waiting" : "read",
+          body: x.words,
+          post_title: null,
+          draft: null,
+          account: null,
+          at: x.at,
+          due: x.at,
+          url: null,
+        })),
+        // Site chats: answered in the bubble, as texts are.
+        ...hs.map((h) => ({
+          id: `chat:${h.id}`,
+          type: "chat",
+          who: h.who,
+          platform: null,
+          kind: "chat",
+          channel: null,
+          state: h.answered ? "answered" : h.unread ? "waiting" : "read",
+          body: h.words,
+          post_title: h.page,
+          draft: null,
+          account: null,
+          at: h.at,
+          due: h.at,
+          url: null,
+        })),
+        // Mail to the client's own mailboxes: opened in Gmail or Outlook, Done when dealt with.
+        ...ms.map((m) => ({
+          id: `mail:${m.id}`,
+          type: "mail",
+          who: Number(m.mails) > 1 ? `${m.who} (${m.mails})` : m.who,
+          platform: null,
+          kind: "mail",
+          channel: null,
+          state: mailState(m),
+          body: m.words,
+          post_title: m.subject,
+          draft: null,
+          account: null,
+          mailbox: m.mailbox,
+          at: m.at,
+          due: m.at,
+          url: m.open,
+        })),
+        ...as.map((a) => ({
+          id: `activity:${a.id}`,
+          type: "activity",
+          who: a.who,
+          platform: a.platform,
+          kind: a.kind,
+          channel: null,
+          state: a.state,
+          body: a.text,
+          post_title: null,
+          draft: null,
+          account: null,
+          at: a.at,
+          due: a.at,
+          url: a.url,
+        })),
+      ];
+      return withPicks(db, all.map(team));
     },
-    {
-      id: "unassigned",
-      label: "Unassigned",
-      where: { ...INBOX_OPEN, assignee: { empty: true } },
-      sort: "due",
-      at: "due",
+    key: "id",
+    title: "who",
+    account: "account",
+    subtitle: "body",
+    fold: COMMENT_FOLD,
+    fields: {
+      who: name("Who"),
+      messages: text("Their messages", { listed: false }),
+      status: status(
+        {
+          open: { label: "Open", tone: "warn" },
+          waiting: neutral("Waiting on them"),
+          snoozed: neutral("Snoozed"),
+          closed: neutral("Closed"),
+        },
+        "Status",
+      ),
+      snooze: date("Snoozed until"),
+      type: status(
+        cued({
+          comment: neutral("Comment"),
+          dm: neutral("DM"),
+          email: neutral("Email"),
+          mail: neutral("Mail"),
+          text: neutral("Text"),
+          chat: neutral("Site chat"),
+          activity: neutral("Activity"),
+        }),
+        "Type",
+      ),
+      platform: status(PLATFORM_CUES, "Site"),
+      assignee: actor("Assignee"),
+      kind: status(
+        cued({
+          post_reply: neutral("On our post"),
+          comment_reply: neutral("Under our comment"),
+          thread_reply: neutral("Follow-up in the thread"),
+          username_mention: neutral("Mention"),
+          dm: neutral("DM"),
+          email: neutral("Email reply"),
+          mail: neutral("To your mailbox"),
+          text: neutral("Text"),
+          chat: neutral("Site chat"),
+          ...KIND_LABELS,
+        }),
+        "Kind",
+      ),
+      channel: status(
+        cued({
+          reach: neutral("Reach account"),
+          social: neutral("Connected account"),
+          content: neutral("Our post"),
+        }),
+        "Where",
+      ),
+      state: ITEM_STATES,
+      company: text("Company"),
+      answer: status(
+        {
+          needs_you: { label: "Needs you", tone: "bad" },
+          proposed: { label: "Draft ready", tone: "warn" },
+          booking: neutral("Booking"),
+          booked: { label: "Booked", tone: "good" },
+          already_booked: { label: "Already booked", tone: "good" },
+          sent: { label: "Answered", tone: "good" },
+          dropped: neutral("Dropped"),
+        },
+        "Call invite",
+      ),
+      body: prose("Their words"),
+      postTitle: text("Post"),
+      draft: prose("Draft reply"),
+      pick: PICK_FIELD(),
+      account: accountField("On"),
+      mailbox: text("Mailbox"),
+      at: date("When"),
+      due: date("Waiting since"),
+      url: link("Open"),
     },
-    { id: "snoozed", label: "Snoozed", where: { status: "snoozed" }, sort: "snooze", at: "due" },
-    { id: "comments", label: "Comments", where: { type: "comment" }, sort: "-at", at: "at" },
-    { id: "dms", label: "DMs", where: { type: "dm" }, sort: "-at", at: "at" },
-    { id: "email", label: "Email", where: { type: "email" }, sort: "-at", at: "at" },
-    { id: "mail", label: "Mail", where: { type: "mail" }, sort: "-at", at: "at" },
-    { id: "texts", label: "Texts", where: { type: "text" }, sort: "-at", at: "at" },
-    { id: "chats", label: "Site chat", where: { type: "chat" }, sort: "-at", at: "at" },
-    { id: "activity", label: "Activity", where: { type: "activity" }, sort: "-at", at: "at" },
-    { id: "all", label: "All", sort: "-at", at: "at" },
-  ],
-  activity: { view: "draft_activity", by: "item", seq: "seq" },
-  drafts: (id) => draftItemsOf(id.slice(0, id.indexOf(":")), id.slice(id.indexOf(":") + 1)),
-  actions: [
-    "marketing.commentAnswer",
-    "marketing.threadReply",
-    "marketing.threadRead",
-    "marketing.commentDm",
-    "marketing.commentDrop",
-    "marketing.dmReply",
-    "marketing.dmRead",
-    "marketing.markRead",
-    "email.approve",
-    "email.drop",
-    "mail.done",
-    "marketing.activitySeen",
-    "marketing.activityAllSeen",
-    "marketing.draftSet",
-    "marketing.draftAsk",
-    "marketing.draftUndo",
-    "inbox.reply",
-    "inbox.ask",
-    "inbox.suggest",
-    "inbox.note",
-    "inbox.assign",
-    "inbox.take",
-    "inbox.open",
-    "inbox.close",
-    "inbox.snooze",
-    "inbox.wake",
-  ],
-  // The Inbox's handlers on one thread: a login limited to a channel may call them on its rows.
-  calls: Object.fromEntries(
-    ["reply", "ask", "suggest", "note", "assign", "take", "status", "snooze"].map((h) => [
-      `InboxDesk/${h}`,
-      "thread",
-    ]),
-  ),
-  /**
-   * The whole conversation with the person (every channel, touches, notes) and where a reply can
-   * go; a DM thread's or a text thread's own messages; a draft's Ask Claude thread.
-   */
-  load: async (db, id) => {
-    const [type, rest] = typed(id);
-    const conversation = await conversationOf(db, id);
-    if (type === "text")
-      return { ...((await textThreadRecord.load?.(db, rest)) ?? {}), conversation };
-    // An email's words and our drafted answer are the row's own.
-    if (["activity", "email", "reply", "mail", "outbound"].includes(type)) return { conversation };
-    const ask = {
-      ask: await draftTurns(db, type, rest),
-      record: await recordOfPage(db, type, rest),
-      accounts: await accountPickFor(db, id, deskKinds),
-      conversation,
-      // The post and every reply under it, nested (designs/2026-10-15-engage-threads.md).
-      ...(type === "comment"
-        ? { context: await threadContextOf(db, Number(rest), ourPostOf(db)) }
-        : {}),
-    };
-    return type === "dm" ? { ...(await dmRecord.load?.(db, rest)), ...ask } : ask;
-  },
-});
+    views: [
+      { id: "waiting", label: "Waiting on you", where: INBOX_OPEN, sort: "due", at: "due" },
+      {
+        id: "mine",
+        label: "Mine",
+        where: { status: ["open", "waiting", "snoozed"] },
+        mine: "assignee",
+        sort: "due",
+        at: "due",
+      },
+      {
+        id: "unassigned",
+        label: "Unassigned",
+        where: { ...INBOX_OPEN, assignee: { empty: true } },
+        sort: "due",
+        at: "due",
+      },
+      { id: "snoozed", label: "Snoozed", where: { status: "snoozed" }, sort: "snooze", at: "due" },
+      { id: "comments", label: "Comments", where: { type: "comment" }, sort: "-at", at: "at" },
+      { id: "dms", label: "DMs", where: { type: "dm" }, sort: "-at", at: "at" },
+      { id: "email", label: "Email", where: { type: "email" }, sort: "-at", at: "at" },
+      { id: "mail", label: "Mail", where: { type: "mail" }, sort: "-at", at: "at" },
+      { id: "texts", label: "Texts", where: { type: "text" }, sort: "-at", at: "at" },
+      { id: "chats", label: "Site chat", where: { type: "chat" }, sort: "-at", at: "at" },
+      { id: "activity", label: "Activity", where: { type: "activity" }, sort: "-at", at: "at" },
+      { id: "all", label: "All", sort: "-at", at: "at" },
+    ],
+    activity: { view: "draft_activity", by: "item", seq: "seq" },
+    drafts: (id) => draftItemsOf(id.slice(0, id.indexOf(":")), id.slice(id.indexOf(":") + 1)),
+    actions: [
+      "marketing.commentAnswer",
+      "marketing.threadReply",
+      "marketing.threadRead",
+      "marketing.commentDm",
+      "marketing.commentDrop",
+      "marketing.dmReply",
+      "marketing.dmRead",
+      "marketing.markRead",
+      "email.approve",
+      "email.drop",
+      "mail.done",
+      "marketing.activitySeen",
+      "marketing.activityAllSeen",
+      "marketing.draftSet",
+      "marketing.draftAsk",
+      "marketing.draftUndo",
+      "inbox.reply",
+      "inbox.ask",
+      "inbox.suggest",
+      "inbox.note",
+      "inbox.assign",
+      "inbox.take",
+      "inbox.open",
+      "inbox.close",
+      "inbox.snooze",
+      "inbox.wake",
+    ],
+    // The Inbox's handlers on one thread: a login limited to a channel may call them on its rows.
+    calls: Object.fromEntries(
+      ["reply", "ask", "suggest", "note", "assign", "take", "status", "snooze"].map((h) => [
+        `InboxDesk/${h}`,
+        "thread",
+      ]),
+    ),
+    /**
+     * The whole conversation with the person (every channel, touches, notes) and where a reply can
+     * go; a DM thread's or a text thread's own messages; a draft's Ask Claude thread.
+     */
+    load: async (db, id) => {
+      const [type, rest] = typed(id);
+      const conversation = await conversationOf(db, id);
+      if (type === "text")
+        return { ...((await textThreadRecord.load?.(db, rest)) ?? {}), conversation };
+      // An email's words and our drafted answer are the row's own.
+      if (["activity", "email", "reply", "mail", "outbound"].includes(type))
+        return { conversation };
+      const ask = {
+        ask: await draftTurns(db, type, rest),
+        record: await recordOfPage(db, type, rest),
+        accounts: await accountPickFor(db, id, deps.kinds),
+        conversation,
+        // The post and every reply under it, nested (designs/2026-10-15-engage-threads.md).
+        ...(type === "comment"
+          ? { context: await threadContextOf(db, Number(rest), ourPostOf(db)) }
+          : {}),
+      };
+      return type === "dm" ? { ...(await deps.reach.load(db, id)), ...ask } : ask;
+    },
+  });
 
 /**
  * An asked reply as To approve's row: waiting on a yes, or queued after one (`send_at`, and why the
@@ -894,8 +671,8 @@ function outreachOf(id: string): string | null {
  * `template:4:3` (version 3 asked to go live)); each action reads the id after the colon. `due` orders "Waiting on you": a
  * draft's slot, else when it came.
  */
-/** To approve; a post draft's fields come with it, its stored files signed by `signer`. */
-const approvalRecordOf = (signer?: VideoSigner) =>
+/** To approve; a post draft's fields come with it, its stored files signed by `deps.signer`. */
+export const approvalRecordOf = (deps: ConsoleDeps) =>
   defineRecord({
     id: "marketing.approval",
     app: "marketing",
@@ -904,10 +681,7 @@ const approvalRecordOf = (signer?: VideoSigner) =>
     rows: async (db) => {
       const ps = await draftRows(db);
       const vs = await videoRows(db);
-      const ts = ((await threadRecord.rows?.(db)) ?? []).filter((t) => t.state === "queued");
-      const is = await acceptedRows(db);
-      const cs = await connectRows(db);
-      const ls = await onPostRows(db);
+      const reach = await deps.reach.approval(db);
       const asks = await waitingAsks(db);
       const ws = await waitingInstalls(db);
       const pgs = await waitingPages(db);
@@ -920,10 +694,9 @@ const approvalRecordOf = (signer?: VideoSigner) =>
       const bcs = await waitingBroadcasts(db);
       const crs = await creditsList(db, { status: ["review"], limit: 200 });
       const uss = await unsureSends(db);
-      const sends = await withPicks(db, [...ts.map(threadItem), ...ls.map(onPostItem)]);
       const rows: Row[] = [
         // A send that may have gone out: he checks the site, marks it posted or sends it again.
-        ...unsureOver(uss, sends),
+        ...unsureOver(uss, reach),
         // A broadcast to a segment (People → Broadcasts): a yes schedules it; nothing sends before.
         ...bcs.map(broadcastItem),
         // A reply typed in the Inbox that waits on a yes: Approve sends it on its channel.
@@ -964,40 +737,8 @@ const approvalRecordOf = (signer?: VideoSigner) =>
           due: v.at,
           url: `/marketing/videos/${v.id}`,
         })),
-        ...sends.filter((r) => r.type === "thread").filter(notParked(uss)),
-        ...is.map((i) => ({
-          id: `invite:${i.id}`,
-          type: "invite",
-          who: i.who,
-          platform: "linkedin",
-          kind: "invite",
-          state: i.unread ? "waiting" : "read",
-          body: i.headline,
-          post_title: null,
-          draft: i.draft,
-          account: i.account,
-          at: i.at,
-          due: i.at,
-          url: i.url,
-        })),
-        ...sends.filter((r) => r.type === "onpost").filter(notParked(uss)),
-        ...cs.map((c) => ({
-          id: `connect:${c.id}`,
-          type: "connect",
-          who: c.who,
-          platform: "linkedin",
-          kind: "connect",
-          state: "waiting",
-          body: c.why ?? c.headline,
-          post_title: c.company,
-          why: c.why,
-          // Its note: drafted while the month's free notes last; empty sends it bare.
-          draft: c.note || null,
-          account: c.account,
-          at: c.at,
-          due: c.at,
-          url: c.url,
-        })),
+        // Queued threads and posts, accepted and proposed invites: outbound's, with their picks.
+        ...reach.filter(notParked(uss)),
         ...asks.map((a) => ({
           id: approvalId(a.id, a.number),
           type: "template",
@@ -1184,7 +925,7 @@ const approvalRecordOf = (signer?: VideoSigner) =>
         }),
         "Kind",
       ),
-      state: STATES,
+      state: ITEM_STATES,
       format: status(FORMATS, "Format", { listed: false }),
       missing: status(MISSING_PICKS, "Pick first", { listed: false }),
       version: text("Version", { listed: false }),
@@ -1324,7 +1065,7 @@ const approvalRecordOf = (signer?: VideoSigner) =>
     thumbs: mixedThumbs((id) => {
       const [type, rest] = typed(id);
       return type === "draft" ? { draft: rest } : type === "video" ? { video: rest } : null;
-    }, signer),
+    }, deps.signer),
     /** An accepted invite's messages; a draft's Ask Claude thread. */
     load: async (db, id) => {
       const [type, rest] = typed(id);
@@ -1352,260 +1093,12 @@ const approvalRecordOf = (signer?: VideoSigner) =>
       const ask = {
         ask: await draftTurns(db, type, rest),
         record: await recordOfPage(db, type, rest),
-        accounts: await accountPickFor(db, id, deskKinds),
+        accounts: await accountPickFor(db, id, deps.kinds),
       };
-      if (type === "draft") return { shape: await shapeView(db, rest, signer), ...ask };
-      return type === "invite" ? { ...(await dmRecord.load?.(db, rest)), ...ask } : ask;
+      if (type === "draft") return { shape: await shapeView(db, rest, deps.signer), ...ask };
+      return type === "invite" ? { ...(await deps.reach.load(db, id)), ...ask } : ask;
     },
   });
-export const approvalRecord = approvalRecordOf();
-
-/**
- * Outreach → Engage (designs/2026-10-16-outreach-app.md): what we write on others' ground, in one
- * queue. Reddit threads and others' posts with our comment drafted (as To approve has them), and
- * what went out, with its proof: those comments and our answers under comments. Comments waiting
- * on us stay in Marketing → Comments and the Inbox; DMs are Outreach → DMs. Each row keeps its
- * own page's actions; links he pastes land here too (`ReachDesk.paste`).
- */
-/** Engage; a sent comment's shot signed by `signer`. */
-const engageRecordOf = (signer?: VideoSigner) =>
-  defineRecord({
-    id: "marketing.engage",
-    app: "marketing",
-    channel: { field: "platform" },
-    name: { one: "reply", many: "replies" },
-    rows: async (db) => {
-      const ts = ((await threadRecord.rows?.(db)) ?? []).filter((t) => t.state === "queued");
-      const ls = await onPostRows(db);
-      // Our answers under comments: sent, so they're ours to prove.
-      const cs = ((await commentRecord.rows?.(db)) ?? []).filter((c) => c.state === "answered");
-      const ss = await sentRows(db);
-      const proved = withProof(await proofsBy(db, signer));
-      // A send that may have gone out waits in To approve, not here.
-      const parked = notParked(await unsureSends(db));
-      return withPicks(db, [
-        ...ts.map(threadItem).filter(parked),
-        ...ls.map(onPostItem).filter(parked),
-        ...cs.map(commentItem).map(proved),
-        ...ss.map((r) =>
-          proved({ ...r, id: String(r.id), kind: r.type, state: "sent", due: r.sent }),
-        ),
-      ]);
-    },
-    key: "id",
-    title: "who",
-    account: "account",
-    subtitle: "body",
-    fold: COMMENT_FOLD,
-    fields: {
-      who: name("Who"),
-      messages: text("Their messages", { listed: false }),
-      type: status(
-        cued({
-          thread: neutral("Reddit thread"),
-          onpost: neutral("Their post"),
-          comment: neutral("On our post"),
-        }),
-        "Type",
-      ),
-      platform: status(PLATFORM_CUES, "Site"),
-      state: STATES,
-      body: prose("Their words"),
-      postTitle: text("Post"),
-      place: text("Where"),
-      why: text("Picked for"),
-      held: text("Held because"),
-      draft: prose("Our draft"),
-      pick: PICK_FIELD(),
-      account: accountField("On"),
-      at: date("When"),
-      due: date("Due"),
-      sendAt: date("Sends"),
-      sent: date("Sent"),
-      proof: status(PROOF_STATES, "Proof"),
-      proofNote: text("Proof note"),
-      proofAt: date("Checked"),
-      proofUrl: link("Permalink", { listed: false }),
-      proofShot: link("Screenshot", { listed: false }),
-      url: link("Open"),
-    },
-    views: [
-      {
-        id: "waiting",
-        label: "To do",
-        where: INBOX_WAITING,
-        sort: "due",
-        at: "due",
-        hint: "Comments drafted for your yes, most overdue first",
-      },
-      {
-        id: "scheduled",
-        label: "Scheduled",
-        where: { state: "scheduled" },
-        sort: "due",
-        at: "due",
-        hint: "Approved and set to send, soonest first",
-      },
-      // Behind a subreddit's karma or age rule: queued, each with the rule it waits on.
-      {
-        id: "held",
-        label: "Held",
-        where: { state: "held" },
-        sort: "due",
-        at: "due",
-        hint: "Comments waiting on a subreddit's karma or account-age rule; each sends itself once we meet it",
-      },
-      // What went out, and whether a stranger sees it (designs/2026-10-14-comment-proof.md).
-      {
-        id: "posted",
-        label: "Posted",
-        where: { state: ["sent", "answered"] },
-        sort: "-sent",
-        at: "sent",
-        hint: "Comments and replies we sent, newest first, each with whether a stranger sees it",
-      },
-      {
-        id: "notlive",
-        label: "Not live",
-        where: { proof: ["hidden", "missing"] },
-        sort: "-sent",
-        at: "sent",
-        hint: "Sent comments a stranger can't see: hidden by a filter or a mod, or gone",
-      },
-      {
-        id: "threads",
-        label: "Reddit",
-        where: { type: "thread", state: ["waiting", "scheduled", "held"] },
-        sort: "-at",
-        at: "at",
-        hint: "Reddit threads we found and drafted a comment for, newest first",
-      },
-      {
-        id: "posts",
-        label: "Their posts",
-        where: { type: "onpost", state: ["waiting", "scheduled"] },
-        sort: "due",
-        at: "due",
-        hint: "Other people's posts we drafted a comment on, due soonest first",
-      },
-      { id: "all", label: "All", sort: "-at", at: "at", hint: "Every item above, newest first" },
-    ],
-    activity: { view: "draft_activity", by: "item", seq: "seq" },
-    drafts: (id) => draftItemsOf(id.slice(0, id.indexOf(":")), id.slice(id.indexOf(":") + 1)),
-    actions: [
-      "marketing.threadComment",
-      "marketing.threadSkip",
-      "marketing.onpostComment",
-      "marketing.onpostLike",
-      "marketing.onpostFollow",
-      "marketing.onpostSkip",
-      "marketing.messageFrom",
-      "marketing.pass",
-      "marketing.draftSet",
-      "marketing.draftAsk",
-      "marketing.draftUndo",
-    ],
-    /** An answered comment as the Inbox opens it; threads and posts as To approve does. */
-    load: async (db, id) => {
-      const [type] = typed(id);
-      const from = type === "comment" ? inboxRecord : approvalRecord;
-      return (await from.load?.(db, id)) ?? null;
-    },
-  });
-export const engageRecord = engageRecordOf();
-
-/** Found posts (last 7 days) and ranked Reddit threads (last 3), best fit first: Explore's rows. */
-const exploreRows = async (db: Queryable, id?: string) => {
-  const [type, key] = id ? typed(id) : [null, null];
-  const posts =
-    type === null || type === "onpost"
-      ? await rowsOf(
-          db,
-          sql`select id, platform, author, text, why, fit, url, coalesce(posted_at, created_at) at
-            from reach_posts where state = 'found'
-              and ${key === null ? sql`created_at > now() - interval '7 days'` : sql`id = ${Number(key)}`}
-            order by fit desc nulls last, id desc limit ${EXPLORE_ROWS}`,
-        )
-      : [];
-  const threads =
-    type === null || type === "thread"
-      ? await rowsOf(
-          db,
-          sql`select id, subreddit, author, title, body, angle, fit, url, posted_at
-            from reddit_threads where state = 'ranked'
-              and ${key === null ? sql`posted_at > now() - interval '3 days'` : sql`id = ${key}`}
-            order by fit desc nulls last, posted_at desc limit ${EXPLORE_ROWS}`,
-        )
-      : [];
-  return [
-    ...posts.map((p) => ({
-      id: `onpost:${p.id}`,
-      type: "onpost",
-      who: p.author,
-      platform: p.platform,
-      where: null,
-      body: p.text,
-      why: p.why,
-      fit: p.fit,
-      at: p.at,
-      url: p.url,
-    })),
-    ...threads.map((t) => ({
-      id: `thread:${t.id}`,
-      type: "thread",
-      who: t.author,
-      platform: "reddit",
-      where: `r/${t.subreddit}`,
-      body: t.body ? `${t.title}\n\n${t.body}` : t.title,
-      why: t.angle,
-      fit: t.fit,
-      at: t.posted_at,
-      url: t.url,
-    })),
-  ];
-};
-const EXPLORE_ROWS = 150;
-
-/**
- * Marketing → Feed's Explore: what the topic searches and subreddit reads found that no one
- * follows or picked yet. Reply drafts on it now, Follow follows its author (a thread: its
- * subreddit), Skip keeps it out (`ReachDesk.pick`, `skipPost`, `skipThread`).
- */
-export const exploreRecord = defineRecord({
-  id: "marketing.explore",
-  app: "marketing",
-  channel: { field: "platform" },
-  name: { one: "find", many: "finds" },
-  rows: (db) => exploreRows(db),
-  key: "id",
-  title: "who",
-  subtitle: "body",
-  fields: {
-    who: name("Who"),
-    type: status(cued({ thread: neutral("Reddit thread"), onpost: neutral("Post") }), "Type"),
-    platform: status(PLATFORM_CUES, "Site"),
-    where: text("Where"),
-    body: prose("Their words"),
-    why: text("Found for"),
-    fit: number("Fit"),
-    at: date("When"),
-    url: link("Open"),
-  },
-  views: [
-    { id: "best", label: "Best fit", sort: "-fit", at: "at" },
-    { id: "posts", label: "Posts", where: { type: "onpost" }, sort: "-fit", at: "at" },
-    { id: "reddit", label: "Reddit", where: { type: "thread" }, sort: "-fit", at: "at" },
-    { id: "new", label: "Newest", sort: "-at", at: "at" },
-  ],
-  actions: [
-    "marketing.exploreReply",
-    "marketing.exploreFollow",
-    "marketing.onpostSkip",
-    "marketing.threadSkip",
-    "marketing.pass",
-  ],
-  load: async (db, id) => (await exploreRows(db, id))[0] ?? null,
-});
 
 /** An asked reply's access channel: texts are `sms`, email `email`; a DM's or comment's, none here. */
 const askedVia = (channel: string) =>
@@ -1695,7 +1188,7 @@ export const askedReplyRecord = defineRecord({
       }),
       "Reply by",
     ),
-    state: STATES,
+    state: ITEM_STATES,
     body: prose("Words"),
     why: text("Why it waits"),
     held: text("Held because"),
@@ -1784,11 +1277,10 @@ export const audienceRecord = defineRecord({
 });
 
 /** The social records; the worker's sign a draft's stored files. */
-export const socialRecords = (signer?: VideoSigner) => [
-  inboxRecord,
-  approvalRecordOf(signer),
-  engageRecordOf(signer),
-  exploreRecord,
+/** Marketing's lists over every channel; Engage and Explore are outbound's, the app adds them. */
+export const socialRecordsOf = (deps: ConsoleDeps) => [
+  inboxRecordOf(deps),
+  approvalRecordOf(deps),
   doneRecord,
   adFormatRecord,
   keywordRecord,

@@ -48,6 +48,8 @@ const program = () => {
   registerShape(p, {
     withDb: (fn) => fn(pg.db),
     writes: undefined,
+    // The Map's saved views live on the main database; here it is the one database.
+    withViews: (fn) => fn(pg.db, "wren"),
     mirror: (db) => mirrorShapes(db, { files, repo: "o/shapes", workspace: "wren", log: () => {} }),
     mirrorAll: async () => [
       {

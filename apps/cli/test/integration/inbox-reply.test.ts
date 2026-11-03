@@ -21,11 +21,17 @@ import {
   setThread,
 } from "@wren/starling-conversations/inbox";
 import { makeInboxDesk } from "@wren/starling-conversations/restate";
-import { draftDm } from "@wren/starling-outbound";
+import { approvalRecordOf, inboxRecordOf } from "@wren/starling-inbound/records";
+import { INBOX_TABLES, type InboxSeed, seedInbox } from "@wren/starling-inbound/testing";
+import { draftDm, reachItems } from "@wren/starling-outbound";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { approvalRecord, inboxRecord } from "../../src/social/records.js";
-import { INBOX_TABLES, type InboxSeed, seedInbox } from "../inbox-seed.js";
+import { deskKinds } from "../../src/desk.js";
+
+// The Inbox and To approve as the worker composes them: outbound's rows on inbound's lists.
+const consoleDeps = { reach: reachItems, kinds: deskKinds };
+const inboxRecord = inboxRecordOf(consoleDeps);
+const approvalRecord = approvalRecordOf(consoleDeps);
 
 /** What the fake channels were asked to send. */
 const sent: { channel: string; id: number; body: string }[] = [];

@@ -43,6 +43,11 @@ for (const dir of dirs) {
   );
 }
 
+// Two packages of one layer that must never meet, either way (designs/2026-11-02-starling.md,
+// R3): inbound and outbound share acts and conversations below them and the apps above.
+const NEVER = [["starling-inbound", "starling-outbound"]];
+const never = (a, b) => NEVER.some(([x, y]) => (a === x && b === y) || (a === y && b === x));
+
 const bad = [];
 for (const [name, imports] of deps) {
   const layer = layerOf.get(name);
@@ -54,6 +59,7 @@ for (const [name, imports] of deps) {
     if (!layerOf.has(dep)) bad.push(`${name} -> ${dep}: ${dep} is not in a layer`);
     else if (layerOf.get(dep) > layer)
       bad.push(`${name} -> ${dep}: a lower layer imports a higher one`);
+    else if (never(name, dep)) bad.push(`${name} -> ${dep}: these two never meet (NEVER)`);
 }
 // A cycle: DFS, the stack says where it closes.
 const seen = new Set();

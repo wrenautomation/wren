@@ -4,16 +4,16 @@
  * replied to their own reply, and a third person answered them. Local only.
  *
  *   WREN_DATABASE_URL=postgres://...@127.0.0.1:5434/wren_threads_preview \
- *     npx tsx packages/starling/inbound/test/threads-preview.ts
+ *     npx tsx apps/cli/test/threads-preview.ts
  */
 import type { ThreadNode } from "@wren/core/outreach";
 import { createDb, migrate } from "@wren/db";
 import { addAccount, setAccountState } from "@wren/starling-acts";
 import { keepComments } from "@wren/starling-conversations";
 import { commentThreads } from "@wren/starling-conversations/schema";
+import { INBOX_TABLES, seedInbox } from "@wren/starling-inbound/testing";
 import { applyThread, reachTurns, watchFromComments } from "@wren/starling-outbound";
 import { sql } from "drizzle-orm";
-import { INBOX_TABLES, seedInbox } from "./inbox-seed.js";
 
 const url = process.env.WREN_DATABASE_URL ?? "";
 if (!/@(127\.0\.0\.1|localhost)[:/]/.test(url)) throw new Error("a local database only");

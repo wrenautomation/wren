@@ -28,23 +28,32 @@ import { parkUnsure, sendAttempt } from "@wren/starling-acts";
 import { markAnswered } from "@wren/starling-conversations";
 import { makeInboxDesk } from "@wren/starling-conversations/restate";
 import { reachContacts, reachMessages } from "@wren/starling-conversations/schema";
-import { draftDm, reachTurns } from "@wren/starling-outbound";
-import { eq, sql } from "drizzle-orm";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { clientContent } from "../../src/clients.js";
-import { liveConnections, loginOf, socialAccess } from "../../src/connect/access.js";
-import { socialConsoleApi } from "../../src/connect/console.js";
-import { liveFrom, SOCIAL } from "../../src/connect/platforms.js";
-import { socialConnections } from "../../src/connect/schema.js";
-import { socialChecks } from "../../src/connect/setups.js";
-import { socialSites } from "../../src/connect/sites.js";
-import { CONTENT_RECORDS } from "../../src/records.js";
+import { clientContent } from "@wren/starling-inbound";
+import {
+  liveConnections,
+  liveFrom,
+  loginOf,
+  SOCIAL,
+  socialAccess,
+  socialChecks,
+  socialConnections,
+  socialConsoleApi,
+  socialSites,
+} from "@wren/starling-inbound/connect";
+import { askedReplyRecord, CONTENT_RECORDS, inboxRecordOf } from "@wren/starling-inbound/records";
 import {
   type MarketingConsoleService,
   makeMarketingConsole,
-} from "../../src/restate/marketing-console.js";
-import { makeSocialInbox } from "../../src/restate/social-inbox.js";
-import { askedReplyRecord, inboxRecord } from "../../src/social/records.js";
+  makeSocialInbox,
+} from "@wren/starling-inbound/restate";
+import { draftDm, reachItems, reachTurns } from "@wren/starling-outbound";
+import { eq, sql } from "drizzle-orm";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { deskKinds } from "../../src/desk.js";
+
+// The Inbox and To approve as the worker composes them: outbound's rows on inbound's lists.
+const consoleDeps = { reach: reachItems, kinds: deskKinds };
+const inboxRecord = inboxRecordOf(consoleDeps);
 
 const TOKEN = "x-access-SYNTHETIC";
 /** X, as far as these tests need it. */

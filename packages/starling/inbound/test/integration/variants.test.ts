@@ -19,8 +19,13 @@ import {
   variantWindows,
   waitingSwaps,
 } from "../../src/analytics/variants.js";
+import { contentKinds } from "../../src/draft-items.js";
 import { contentDrafts, contentIdeas, postMetricDays, postVariants } from "../../src/schema.js";
-import { approvalRecord } from "../../src/social/records.js";
+import { approvalRecordOf, bareReach } from "../../src/social/records.js";
+
+// Inbound's lists alone: no reach rows here.
+const approvalRecord = approvalRecordOf({ reach: bareReach, kinds: contentKinds });
+
 import { keepPostComments } from "../../src/social/store.js";
 
 let pg: TestPostgres;

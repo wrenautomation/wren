@@ -21,17 +21,21 @@ import { inboxMentionsOf } from "@wren/notes/inbox";
 import { markAnswered } from "@wren/starling-conversations";
 import { conversationOf, type ReplySender } from "@wren/starling-conversations/inbox";
 import { type MailReply, makeInboxDesk, makeMailReply } from "@wren/starling-conversations/restate";
-import { draftDm } from "@wren/starling-outbound";
-import { sql } from "drizzle-orm";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { CONTENT_RECORDS } from "../../src/records.js";
+import { askedReplyRecord, CONTENT_RECORDS, inboxRecordOf } from "@wren/starling-inbound/records";
 import {
   type MarketingConsoleService,
   makeMarketingConsole,
   marketingConsoleApi,
-} from "../../src/restate/marketing-console.js";
-import { askedReplyRecord, inboxRecord } from "../../src/social/records.js";
-import { type InboxSeed, seedInbox } from "../inbox-seed.js";
+} from "@wren/starling-inbound/restate";
+import { type InboxSeed, seedInbox } from "@wren/starling-inbound/testing";
+import { draftDm, reachItems } from "@wren/starling-outbound";
+import { sql } from "drizzle-orm";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { deskKinds } from "../../src/desk.js";
+
+// The Inbox and To approve as the worker composes them: outbound's rows on inbound's lists.
+const consoleDeps = { reach: reachItems, kinds: deskKinds };
+const inboxRecord = inboxRecordOf(consoleDeps);
 
 /** What the fake channels sent, and for which client. */
 const sent: { client: string | null; channel: string; id: number; body: string }[] = [];

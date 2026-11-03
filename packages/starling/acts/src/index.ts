@@ -7,6 +7,7 @@
  */
 export * from "./accounts.js";
 export * from "./clients.js";
+export * from "./console.js";
 export * from "./draft-accounts.js";
 export * from "./draft-ask.js";
 export * from "./draft-kinds.js";

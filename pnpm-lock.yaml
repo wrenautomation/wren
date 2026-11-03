@@ -1828,9 +1828,6 @@ importers:
       '@wren/starling-email':
         specifier: workspace:*
         version: link:../channels/email
-      '@wren/starling-outbound':
-        specifier: workspace:*
-        version: link:../outbound
       '@wren/starling-sms':
         specifier: workspace:*
         version: link:../channels/sms

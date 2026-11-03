@@ -23,9 +23,6 @@ import { answerComment, planAnswer } from "@wren/starling-conversations";
 import { comments, reachContacts, reachMessages } from "@wren/starling-conversations/schema";
 import { type ActivityRow, type ContentChannel, fakeContentChannel } from "@wren/starling-core";
 import { makeContent } from "@wren/starling-core/service";
-import { reachPosts, reachTurns, redditThreads } from "@wren/starling-outbound";
-import { eq } from "drizzle-orm";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   addIdea,
   COMMENTS_SOP,
@@ -37,16 +34,30 @@ import {
   pushPlaybook,
   socialActivity,
   socialDays,
-} from "../../src/index.js";
-import type { SocialStats } from "../../src/restate/social.js";
-import { makeSocialDesk, makeSocialWatch, SOCIAL_KEY } from "../../src/restate/social.js";
-import { makeSocialPush, socialPushed } from "../../src/restate/social-push.js";
+} from "@wren/starling-inbound";
 import {
   activityRecord,
-  approvalRecord,
+  approvalRecordOf,
   audienceRecord,
-  inboxRecord,
-} from "../../src/social/records.js";
+  inboxRecordOf,
+} from "@wren/starling-inbound/records";
+import type { SocialStats } from "@wren/starling-inbound/restate";
+import {
+  makeSocialDesk,
+  makeSocialPush,
+  makeSocialWatch,
+  SOCIAL_KEY,
+  socialPushed,
+} from "@wren/starling-inbound/restate";
+import { reachItems, reachPosts, reachTurns, redditThreads } from "@wren/starling-outbound";
+import { eq } from "drizzle-orm";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { deskKinds } from "../../src/desk.js";
+
+// The Inbox and To approve as the worker composes them: outbound's rows on inbound's lists.
+const consoleDeps = { reach: reachItems, kinds: deskKinds };
+const inboxRecord = inboxRecordOf(consoleDeps);
+const approvalRecord = approvalRecordOf(consoleDeps);
 
 const DAY = 86_400_000;
 const ytReads: string[] = [];

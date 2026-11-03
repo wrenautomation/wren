@@ -9,13 +9,11 @@ import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing
 import { addAccount } from "@wren/starling-acts";
 import { keepComments } from "@wren/starling-conversations";
 import { comments } from "@wren/starling-conversations/schema";
+import { addKeyword, keepPostComments, markPublished } from "@wren/starling-inbound";
+import { commentKeywords, contentDrafts, contentIdeas } from "@wren/starling-inbound/schema";
 import { reachTurns } from "@wren/starling-outbound";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { markPublished } from "../../src/index.js";
-import { commentKeywords, contentDrafts, contentIdeas } from "../../src/schema.js";
-import { addKeyword } from "../../src/social/keywords.js";
-import { keepPostComments } from "../../src/social/store.js";
 
 let pg: TestPostgres;
 beforeAll(async () => {

@@ -13,7 +13,11 @@ import {
 } from "@wren/starling-conversations/chat";
 import { optionsOf, partyOf, timelineOf } from "@wren/starling-conversations/inbox";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { inboxRecord } from "../../src/social/records.js";
+import { contentKinds } from "../../src/draft-items.js";
+import { bareReach, inboxRecordOf } from "../../src/social/records.js";
+
+// Inbound's lists alone: no reach rows here.
+const inboxRecord = inboxRecordOf({ reach: bareReach, kinds: contentKinds });
 
 let pg: TestPostgres;
 beforeAll(async () => {

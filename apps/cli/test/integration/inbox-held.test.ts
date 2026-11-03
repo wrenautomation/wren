@@ -15,11 +15,16 @@ import { markAnswered } from "@wren/starling-conversations";
 import { askFollowEmail, conversationOf } from "@wren/starling-conversations/inbox";
 import { makeInboxDesk } from "@wren/starling-conversations/restate";
 import { inboxReplies } from "@wren/starling-conversations/schema";
-import { draftDm } from "@wren/starling-outbound";
+import { approvalRecordOf, askedReplyRecord } from "@wren/starling-inbound/records";
+import { INBOX_TABLES, type InboxSeed, seedInbox } from "@wren/starling-inbound/testing";
+import { draftDm, reachItems } from "@wren/starling-outbound";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { approvalRecord, askedReplyRecord } from "../../src/social/records.js";
-import { INBOX_TABLES, type InboxSeed, seedInbox } from "../inbox-seed.js";
+import { deskKinds } from "../../src/desk.js";
+
+// The Inbox and To approve as the worker composes them: outbound's rows on inbound's lists.
+const consoleDeps = { reach: reachItems, kinds: deskKinds };
+const approvalRecord = approvalRecordOf(consoleDeps);
 
 type Out = { ok: boolean; reason: string | null; until: string | null };
 const SENT: Out = { ok: true, reason: null, until: null };

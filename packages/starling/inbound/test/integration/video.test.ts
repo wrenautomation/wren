@@ -12,8 +12,13 @@ import { setWords } from "@wren/starling-studio/edit";
 import { videoEdits } from "@wren/starling-studio/schema";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { contentKinds } from "../../src/draft-items.js";
 import { contentDrafts } from "../../src/schema.js";
-import { approvalRecord } from "../../src/social/records.js";
+import { approvalRecordOf, bareReach } from "../../src/social/records.js";
+
+// Inbound's lists alone: no reach rows here.
+const approvalRecord = approvalRecordOf({ reach: bareReach, kinds: contentKinds });
+
 import {
   approveVideo,
   pickThumbnail,

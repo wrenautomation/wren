@@ -35,6 +35,7 @@ export * from "./review.js";
 export * from "./schema.js";
 export { PaintUnavailable, slidePainter } from "./slide-paint.js";
 export * from "./slots.js";
+export { addKeyword } from "./social/keywords.js";
 export * from "./social/store.js";
 export * from "./status.js";
 export * from "./touches.js";

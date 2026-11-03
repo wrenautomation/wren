@@ -21,19 +21,25 @@ import { makeAutoReply } from "@wren/starling-conversations/restate";
 import { comments } from "@wren/starling-conversations/schema";
 import { fakeContentChannel } from "@wren/starling-core";
 import { type Channels, makeContent } from "@wren/starling-core/service";
+import { addIdea, clientContent, contentDrafts } from "@wren/starling-inbound";
+import {
+  businessProfileContent,
+  liveConnections,
+  liveFrom,
+  SOCIAL,
+  socialAccess,
+  socialConsoleApi,
+  socialSites,
+} from "@wren/starling-inbound/connect";
+import {
+  makeSocialInbox,
+  makeSocialWatch,
+  type SocialStats,
+  socialPushed,
+} from "@wren/starling-inbound/restate";
 import { draftDm, reachTurns } from "@wren/starling-outbound";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { clientContent } from "../../src/clients.js";
-import { liveConnections, socialAccess } from "../../src/connect/access.js";
-import { businessProfileContent } from "../../src/connect/business.js";
-import { socialConsoleApi } from "../../src/connect/console.js";
-import { liveFrom, SOCIAL } from "../../src/connect/platforms.js";
-import { socialSites } from "../../src/connect/sites.js";
-import { addIdea, contentDrafts } from "../../src/index.js";
-import { makeSocialWatch, type SocialStats } from "../../src/restate/social.js";
-import { makeSocialInbox } from "../../src/restate/social-inbox.js";
-import { socialPushed } from "../../src/restate/social-push.js";
 
 const ORG = "urn:li:organization:5";
 const LOC = "accounts/1/locations/2";

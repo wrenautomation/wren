@@ -33,13 +33,15 @@ import {
   draftVersion,
   editDraft,
 } from "@wren/starling-inbound";
-import { inboxRecord } from "@wren/starling-inbound/records";
-import { reachPosts } from "@wren/starling-outbound";
+import { inboxRecordOf } from "@wren/starling-inbound/records";
+import { reachItems, reachPosts } from "@wren/starling-outbound";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { deskDrafts, deskKinds } from "../../src/desk.js";
 
 const { listEdits, listWaiting, readDraft, writeDraft } = deskDrafts;
+// The Inbox as the worker composes it: the thread a draft's ask shows.
+const inboxRecord = inboxRecordOf({ reach: reachItems, kinds: deskKinds });
 
 /** What the fake desk answers next, and what it was asked. */
 const answers: string[] = [];
