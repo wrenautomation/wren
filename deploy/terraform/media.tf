@@ -58,3 +58,29 @@ resource "aws_iam_role_policy" "worker_media" {
   role   = aws_iam_role.worker.id
   policy = data.aws_iam_policy_document.worker_media.json
 }
+
+# Downloaded media and their reads (WA-1029): `cache/<platform>/<id>`, so nothing downloads
+# twice. Kept, never expired (store everything): Glacier Instant Retrieval after 30 days,
+# same millisecond reads at a sixth of the price. Its 90-day minimum is moot for kept files.
+resource "aws_s3_bucket_lifecycle_configuration" "media" {
+  bucket = aws_s3_bucket.media.id
+  rule {
+    id     = "cache-glacier-ir-30d"
+    status = "Enabled"
+    filter {
+      prefix = "cache/"
+    }
+    transition {
+      days          = 30
+      storage_class = "GLACIER_IR"
+    }
+  }
+  rule {
+    id     = "abort-uploads-7d"
+    status = "Enabled"
+    filter {}
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 7
+    }
+  }
+}

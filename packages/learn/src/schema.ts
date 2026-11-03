@@ -197,7 +197,7 @@ export const items = learn.table(
     thumbnailUrl: text("thumbnail_url"),
     /** Seconds long, for video and audio. */
     duration: integer("duration"),
-    /** The audio file an episode plays. */
+    /** The audio file an episode plays; a reel's video file (Instagram Graph: signed, expires). */
     mediaUrl: text("media_url"),
     /** Moments worth jumping to, from the scorer. */
     moments: jsonb("moments").$type<Moment[]>().notNull().default([]),

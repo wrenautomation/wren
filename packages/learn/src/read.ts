@@ -202,7 +202,7 @@ export type VideoReader = (item: {
   creator: string | null;
   /** Seconds, when the feed said. */
   duration: number | null;
-  /** An episode's audio file. */
+  /** An episode's audio file; a reel's video file (signed, expires). */
   mediaUrl: string | null;
 }) => Promise<{ file: string; md: string }>;
 

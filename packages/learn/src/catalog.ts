@@ -124,7 +124,13 @@ export async function readCatalog(
       if (h && !h.readAt && !h.needsMac && h.why === FOLLOWED_BEFORE) {
         await db
           .update(items)
-          .set({ archivedAt: null, why: null, needsMac: o.now })
+          // a fresh signed link: the old one may have expired
+          .set({
+            archivedAt: null,
+            why: null,
+            needsMac: o.now,
+            ...(p.media ? { mediaUrl: p.media } : {}),
+          })
           .where(eq(items.id, h.id));
         out.revived.push(h.id);
         continue;
@@ -146,6 +152,7 @@ export async function readCatalog(
           text: pgSafe(p.text),
           publishedAt: p.publishedAt,
           thumbnailUrl: p.thumbnail,
+          mediaUrl: p.media ?? null,
           duration: p.duration,
           stats: p.stats ?? null,
           statsAt: p.stats ? o.now : null,

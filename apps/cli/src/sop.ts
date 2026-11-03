@@ -24,9 +24,8 @@ import {
   readQueued,
   scopeOf,
   writeSopFiles,
-  youtubeSearch,
 } from "@wren/learn";
-import { modelLlm } from "@wren/llm";
+import { loadLlmEnv, modelLlm } from "@wren/llm";
 import {
   addSource,
   buildSop,
@@ -49,6 +48,7 @@ import type { Command } from "commander";
 import { inArray } from "drizzle-orm";
 import { learnReaders } from "./learn-readers.js";
 import { geminiModel, watchModels } from "./video-watch.js";
+import { huntSearch } from "./youtube-search.js";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
 
@@ -172,7 +172,7 @@ export function registerSop(
   sop
     .command("hunt <name>")
     .description(
-      "seed Learn with candidates for this SOP: the set's followed creators, then the topic searched on YouTube (yt-dlp), most viewed first, up to --cap a day, each tagged with the SOP's name; then read, scored and broken down here, so they reach Competitors → To call",
+      "seed Learn with candidates for this SOP: the set's followed creators, then the topic searched on YouTube (the Data API; yt-dlp with no key or no quota left), most viewed first, up to --cap a day, each tagged with the SOP's name; then read, scored and broken down here, so they reach Competitors → To call",
     )
     .option("--cap <n>", "candidates a day for this SOP", (v) => Number.parseInt(v, 10), HUNT_CAP)
     .option(
@@ -193,12 +193,13 @@ export function registerSop(
           );
         const { reader, judgeFor, catalogReader } = learnReaders(settings, rootDir);
         const say = (line: string) => console.error(line);
+        loadLlmEnv(settings.llmEnvPath, rootDir);
         const out = await withDb(async (db) => {
           const hunt = await huntSop(db, {
             client: WREN,
             name,
             scope,
-            search: youtubeSearch(settings.ytDlp),
+            search: huntSearch({ key: process.env.YOUTUBE_API_KEY, ytDlp: settings.ytDlp, say }),
             catalog: catalogReader(),
             cap: o.cap,
             perQuery: o.perQuery,

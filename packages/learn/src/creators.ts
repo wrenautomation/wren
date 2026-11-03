@@ -30,6 +30,8 @@ export interface CreatorPost extends FeedItem {
   kind: ItemKind;
   /** Its likes, comments and views as the platform gives them now. */
   stats?: PostStats | null;
+  /** A video's file (Graph's `media_url`): signed, expires; read soon or ask Graph again. */
+  media?: string | null;
 }
 
 /** Only the numbers a platform gave; null when it gave none. */
@@ -190,6 +192,7 @@ export async function instagramPage(
         thumbnail: m.thumbnail_url ?? (video ? null : (m.media_url ?? null)),
         duration: null,
         stats: statsOf({ likes: m.like_count, comments: m.comments_count }),
+        media: video ? (m.media_url ?? null) : null,
       };
     });
   return { posts, next: a.next ?? null };
