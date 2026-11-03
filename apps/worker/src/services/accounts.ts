@@ -30,6 +30,7 @@ import {
   ownSwitchesOf,
 } from "@wren/starling-inbound/connect";
 import { makeBounceScheduler, makeSocialInbox } from "@wren/starling-inbound/restate";
+import { reachTurns } from "@wren/starling-outbound";
 import { WREN_LIMITS } from "@wren/starling-outbound/limits";
 import { makeMailReader } from "@wren/watch/clients";
 import { SETUPS } from "../setups.js";
@@ -130,6 +131,7 @@ export function accountsServices(deps: Deps): AnyService[] {
     makeSocialInbox({
       main: db,
       clientDb,
+      turns: reachTurns,
       access: clientSocial,
       sites: (ctx, client, part) =>
         meteredSites(journaledSites(ctx, socialApi, dbSendJournal(clientDb(client))), {

@@ -90,7 +90,7 @@ import { mailAccess, mailAppsFrom } from "@wren/starling-email/access/access";
 import { mailConsoleApi } from "@wren/starling-email/access/console";
 import { MAIL_ACCESS_APPS, MAIL_ACCESS_ROUTES } from "@wren/starling-email/access/console-routes";
 import { EMAIL_CONSOLE_VIEWS } from "@wren/starling-email/views";
-import { deskKinds, swapShortMedia, undoVideo, waitingIdeas } from "@wren/starling-inbound";
+import { contentKinds, swapShortMedia, undoVideo, waitingIdeas } from "@wren/starling-inbound";
 import {
   liveFrom,
   type OwnSites,
@@ -103,6 +103,7 @@ import {
   socialConsoleApi,
 } from "@wren/starling-inbound/connect";
 import { pieceRows, piecesOf } from "@wren/starling-inbound/pieces";
+import { reachKinds } from "@wren/starling-outbound";
 import { SMS_CONSOLE_APPS, SMS_CONSOLE_ROUTES } from "@wren/starling-sms/console-routes";
 import { proposeChange } from "@wren/starling-studio/change";
 import { setEdit, setLine, setWords } from "@wren/starling-studio/edit";
@@ -161,6 +162,8 @@ const standInTikTok: SiteClient = {
   via: async () => "api",
 };
 const main = createDb(settings.databaseUrl, { max: 2 }).db;
+/** Every kind a draft box shows: outbound's and inbound's, composed here as the worker does. */
+const deskKinds = { ...reachKinds, ...contentKinds };
 /** The key store with a key pair made at start: keys saved in an earlier run won't open. */
 const ring = throwawayRing("dev");
 const keys = pgKeyStore(main, ring);

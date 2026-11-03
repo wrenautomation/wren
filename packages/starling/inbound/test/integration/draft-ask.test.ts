@@ -25,13 +25,14 @@ import {
 import { addAccount } from "@wren/starling-acts";
 import { addProspects, contactByHandle, receive } from "@wren/starling-conversations";
 import { comments, reachContacts, reachMessages } from "@wren/starling-conversations/schema";
-import { reachPosts } from "@wren/starling-outbound";
+import { reachKinds, reachPosts } from "@wren/starling-outbound";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   addIdea,
   approveDrafts,
   contentDrafts,
+  contentKinds,
   draftVersion,
   editDraft,
   listEdits,
@@ -59,7 +60,10 @@ let pg: TestPostgres;
 let env: RestateTestEnvironment;
 beforeAll(async () => {
   pg = await startTestPostgres();
-  env = await startTestRestate({ services: [fakeClaude, makeDraftAsk(pg.db)], alwaysReplay: true });
+  env = await startTestRestate({
+    services: [fakeClaude, makeDraftAsk(pg.db, { ...reachKinds, ...contentKinds })],
+    alwaysReplay: true,
+  });
 });
 afterAll(async () => {
   await env?.stop();

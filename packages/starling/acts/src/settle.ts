@@ -4,6 +4,7 @@
  * he asks for it again, or he drops it: it did not go out and he does not want it sent. The
  * ledger flips here; what "sent" or "dropped" means for the item is its kind's word (`ItemKinds`).
  */
+import type { ObjectContext } from "@restatedev/restate-sdk";
 import { atomic, type Queryable } from "@wren/db";
 import { type ItemKinds, itemOf } from "./item-kinds.js";
 import { ReachRefusal } from "./refusal.js";
@@ -12,6 +13,14 @@ import { forgetUnsure, sendAttempt, settleSent } from "./send-attempts.js";
 /** A person's word on an unsure send: he saw it, send it again, or it did not go out and stays out. */
 export const SETTLE_OUTCOMES = ["posted", "again", "dropped"] as const;
 export type SettleOutcome = (typeof SETTLE_OUTCOMES)[number];
+
+/** `ContentDesk/<key>/settlePost` as inbound serves it: a desk settles a `draft:` through it, no import of inbound. */
+export type PostSettle = {
+  settlePost: (
+    ctx: ObjectContext,
+    req: { id: string; outcome: SettleOutcome; by: string },
+  ) => Promise<{ id: string; outcome: SettleOutcome; found: boolean }>;
+};
 
 /** An unsure item, or the refusal that it isn't one. */
 export async function unsureItem(db: Queryable, item: string) {

@@ -28,7 +28,7 @@ import { parkUnsure, sendAttempt } from "@wren/starling-acts";
 import { markAnswered } from "@wren/starling-conversations";
 import { makeInboxDesk } from "@wren/starling-conversations/restate";
 import { reachContacts, reachMessages } from "@wren/starling-conversations/schema";
-import { draftDm } from "@wren/starling-outbound";
+import { draftDm, reachTurns } from "@wren/starling-outbound";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { clientContent } from "../../src/clients.js";
@@ -176,6 +176,7 @@ beforeAll(async () => {
       makeSocialInbox({
         main: pg.db,
         clientDb: open,
+        turns: reachTurns,
         access,
         // As the worker wires it: a client's write answers a typed outcome under its ledger key.
         sites: (ctx) => journaledSites(ctx, sitesOf(), dbSendJournal(kappa)),

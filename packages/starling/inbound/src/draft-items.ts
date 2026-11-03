@@ -1,9 +1,9 @@
 /**
  * Inbound's draft item kind for the act base: `draft:<uuid>`, a post of ours on our own channel.
- * No default account (the channel's own) and no settle here: ContentDesk settles a post.
+ * No default account (the channel's own) and no settle here: ContentDesk settles a post. The
+ * whole desk's kinds (`{...reachKinds, ...contentKinds}`) are each app's to compose.
  */
 import type { ItemKinds } from "@wren/starling-acts";
-import { reachKinds } from "@wren/starling-outbound";
 import { eq } from "drizzle-orm";
 import { contentDrafts } from "./schema.js";
 
@@ -22,6 +22,3 @@ export const contentKinds: ItemKinds = {
     fallback: async () => null,
   },
 };
-
-/** Every kind a draft box can show. R3: the worker passes this in; inbound stops importing outbound. */
-export const deskKinds: ItemKinds = { ...reachKinds, ...contentKinds };

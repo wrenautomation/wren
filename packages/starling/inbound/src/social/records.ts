@@ -34,7 +34,7 @@ import { docApprovalId, waitingDocs } from "@wren/documents/store";
 import { money, payApprovalId, waitingPayLinks } from "@wren/payments/store";
 import { pageApprovalId, retireApprovalId } from "@wren/sites/console";
 import { waitingPages, waitingRetires } from "@wren/sites/store";
-import { accountPickFor, type SendAttempt, unsureSends } from "@wren/starling-acts";
+import { accountPickFor, type ItemKinds, type SendAttempt, unsureSends } from "@wren/starling-acts";
 import { threadContextOf } from "@wren/starling-conversations";
 import {
   conversationOf,
@@ -49,13 +49,13 @@ import type { InboxReply, InboxThread } from "@wren/starling-conversations/schem
 import { isUrl } from "@wren/starling-core";
 import { PLATFORM_CUES } from "@wren/starling-core/platform-cues";
 import { TIKTOK_COPY } from "@wren/starling-core/tiktok";
-import { invitedSql } from "@wren/starling-outbound";
+import { invitedSql, reachKinds } from "@wren/starling-outbound";
 import { commentRecord, dmRecord, threadRecord } from "@wren/starling-outbound/records";
 import { threadRecord as textThreadRecord } from "@wren/starling-sms/records";
 import { and, eq, sql } from "drizzle-orm";
 import { waitingSwaps } from "../analytics/variants.js";
 import { DRAFT_CALLS } from "../draft-calls.js";
-import { deskKinds } from "../draft-items.js";
+import { contentKinds } from "../draft-items.js";
 import { contentDrafts } from "../schema.js";
 import { shapeView } from "../shape-view.js";
 import { mixedThumbs } from "../thumbs.js";
@@ -67,6 +67,8 @@ import { PLATFORM_NAMES } from "./store.js";
 
 /** ponytail: rows, not a view: a few hundred unseen rows at most; a view past that. */
 const ACTIVITY_ROWS = 500;
+// Until the records split (R3): the console still composes the desk's kinds here.
+const deskKinds: ItemKinds = { ...reachKinds, ...contentKinds };
 
 const neutral = (label: string) => ({ label, tone: "neutral" as const });
 

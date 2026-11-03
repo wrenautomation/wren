@@ -15,7 +15,7 @@ import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { runs } from "@wren/core/schema";
 import { livePrompt } from "@wren/core/templates/defaults";
 import type { Db } from "@wren/db";
-import { pickAccount } from "@wren/starling-acts";
+import { type ItemKinds, pickAccount } from "@wren/starling-acts";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import {
@@ -26,7 +26,6 @@ import {
   undoDraft,
   writeDraft,
 } from "../draft-ask.js";
-import { deskKinds } from "../draft-items.js";
 
 export const DRAFT_ASK = { name: "DraftAsk" } as const;
 const COMMAND = "draft-ask";
@@ -64,7 +63,8 @@ const refuse = (err: unknown, code = 409) =>
       terminalOf(err)
     : new restate.TerminalError((err as Error).message, { errorCode: code });
 
-export function makeDraftAsk(db: Db) {
+/** `kinds`: every kind a draft box shows (the app composes outbound's and inbound's). */
+export function makeDraftAsk(db: Db, kinds: ItemKinds) {
   return restate.service({
     name: DRAFT_ASK.name,
     handlers: {
@@ -120,7 +120,7 @@ export function makeDraftAsk(db: Db) {
                   pickAccount(
                     db,
                     { item, account: req.account ?? null, by: whoOf(req) },
-                    deskKinds,
+                    kinds,
                   ).catch((err) => {
                     throw refuse(err, 400);
                   }),

@@ -21,7 +21,7 @@ import { makeAutoReply } from "@wren/starling-conversations/restate";
 import { comments } from "@wren/starling-conversations/schema";
 import { fakeContentChannel } from "@wren/starling-core";
 import { type Channels, makeContent } from "@wren/starling-core/service";
-import { draftDm } from "@wren/starling-outbound";
+import { draftDm, reachTurns } from "@wren/starling-outbound";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { clientContent } from "../../src/clients.js";
@@ -144,7 +144,13 @@ beforeAll(async () => {
       // Wren runs no channel of its own: a connected account doesn't wait on that.
       socialPushed,
       makeSocialWatch({ db: pg.db, platforms: [], zone: "UTC", clientDb: open }),
-      makeSocialInbox({ main: pg.db, clientDb: open, access: api, sites: () => sitesOf() }),
+      makeSocialInbox({
+        main: pg.db,
+        clientDb: open,
+        turns: reachTurns,
+        access: api,
+        sites: () => sitesOf(),
+      }),
       // Reviews just read go to AutoReply; with no model it drafts nothing.
       makeAutoReply({ db: pg.db, clientDb: open, llm: null, draftDm, senderName: "Wren" }),
     ],

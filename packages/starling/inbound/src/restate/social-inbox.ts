@@ -15,6 +15,7 @@ import {
   forgetUnsure,
   itemOf,
   markPosted,
+  type PostSettle,
   ReachRefusal,
   recordLanded,
   SETTLE_OUTCOMES,
@@ -28,10 +29,8 @@ import {
   isSendUnsure,
   sendAtMostOnce,
 } from "@wren/starling-acts/restate";
-import { dropComment, planAnswer } from "@wren/starling-conversations";
+import { dropComment, planAnswer, type TurnDeps } from "@wren/starling-conversations";
 import { SENDS_OFF } from "@wren/starling-core/service";
-import { reachKinds, reachTurns } from "@wren/starling-outbound";
-import type { PostSettle } from "@wren/starling-outbound/restate";
 import { z } from "zod";
 import { liveConnections, loginOf, type SocialAccessApi } from "../connect/access.js";
 import {
@@ -52,6 +51,8 @@ import {
 interface SocialInboxDeps {
   main: Db;
   clientDb: (client: string) => Db;
+  /** The turn stores' kinds and reads; the worker passes outbound's (`reachTurns`). */
+  turns: TurnDeps;
   access: Pick<SocialAccessApi, "connection">;
   /** A client's accounts' API, each call one journaled step, reads metered as `part`. */
   sites: (
@@ -249,7 +250,7 @@ export function makeSocialInbox(deps: SocialInboxDeps) {
           const db = deps.clientDb(req.client);
           const plan = await ctx.run("plan", () =>
             terminal(async () => {
-              const p = await planAnswer(reachTurns, db, req.id, now);
+              const p = await planAnswer(deps.turns, db, req.id, now);
               if (p.account) throw new ReachRefusal("that comment answers from Wren's own Inbox");
               const { platform, ref, url } = p.comment;
               return { platform, ref, url };
@@ -279,7 +280,7 @@ export function makeSocialInbox(deps: SocialInboxDeps) {
               return { ref: null };
             },
             landed: (tx, sent) =>
-              recordLanded(tx, `comment:${req.id}`, reachKinds, {
+              recordLanded(tx, `comment:${req.id}`, deps.turns.kinds, {
                 ref: sent.ref,
                 now,
                 by: req.by ?? "inbox",
@@ -342,7 +343,7 @@ export function makeSocialInbox(deps: SocialInboxDeps) {
             await ctx.run("posted", () =>
               terminal(async () => {
                 if (kind === "comment" || kind === "private")
-                  return void (await markPosted(db, req.item, reachKinds, { by, now }));
+                  return void (await markPosted(db, req.item, deps.turns.kinds, { by, now }));
                 const plan = await dmPlanOf(db, Number(id));
                 await atomic(db, async (tx) => {
                   if (!(await settleSent(tx, req.item, { ref, at: now, by, now })))

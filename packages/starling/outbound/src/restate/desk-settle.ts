@@ -11,6 +11,7 @@ import {
   dropItem,
   itemOf,
   markPosted,
+  type PostSettle,
   ReachRefusal,
   SETTLE_OUTCOMES,
   type SettleOutcome,
@@ -51,14 +52,6 @@ type DeskSends = {
     ctx: restate.Context,
     req: { id: number; body: string; again: true; viewer?: unknown },
   ) => Promise<unknown>;
-};
-
-/** `ContentDesk/<key>/settlePost` as the content package serves it; no import from there. */
-export type PostSettle = {
-  settlePost: (
-    ctx: restate.ObjectContext,
-    req: { id: string; outcome: SettleOutcome; by: string },
-  ) => Promise<{ id: string; outcome: SettleOutcome; found: boolean }>;
 };
 
 export function settleHandlers(desk: DeskContext) {

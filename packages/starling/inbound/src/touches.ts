@@ -1,7 +1,8 @@
 /**
  * Touches from our own accounts' activity, and the whole backfill (designs/2026-10-07-touches.md).
  * A follow, subscribe, reaction or mention someone gave us is theirs; a notice is no one's.
- * `wren touches backfill` folds every source table in under the refs the live writers use.
+ * `wren touches backfill` folds every source table in under the refs the live writers use:
+ * outbound's (`backfillOutreachTouches`) first, then this half.
  */
 
 import { usableUrl } from "@wren/core/touch-link";
@@ -14,7 +15,6 @@ import {
 } from "@wren/core/touches";
 import type { Queryable } from "@wren/db";
 import type { FollowingRow, OwnCommentRow } from "@wren/starling-core";
-import { backfillOutreachTouches, type TouchBackfill } from "@wren/starling-outbound/touches";
 import { eq, ne, sql } from "drizzle-orm";
 import { socialActivity } from "./schema.js";
 
@@ -199,32 +199,35 @@ export async function linkCommentAuthors(db: Queryable): Promise<number> {
   return n;
 }
 
-interface TouchesBackfill extends TouchBackfill {
+export interface SocialTouchBackfill {
   activity: number;
   /** LinkedIn comment authors moved from a URN to their profile. */
   authors: number;
+  links: number;
   linked: number;
 }
 
-/** Every source table as touches; re-runs keep nothing twice. `dryRun` counts the rows. */
-export async function backfillTouches(
+/**
+ * The social activity rows as touches, then the handle links they allow; re-runs keep nothing
+ * twice. `dryRun` counts the rows. Run after outbound's backfill: a link needs its touch.
+ */
+export async function backfillSocialTouches(
   db: Queryable,
-  o: { dryRun?: boolean; now?: Date } = {},
-): Promise<TouchesBackfill> {
-  const reach = await backfillOutreachTouches(db, o);
+  o: { dryRun?: boolean } = {},
+): Promise<SocialTouchBackfill> {
   const rows = await db
     .select({ id: socialActivity.id })
     .from(socialActivity)
     .where(ne(socialActivity.kind, "notification"))
     .orderBy(socialActivity.at, socialActivity.id);
-  if (o.dryRun) return { ...reach, activity: rows.length, authors: 0, linked: 0 };
+  if (o.dryRun) return { activity: rows.length, authors: 0, links: 0, linked: 0 };
   let activity = 0;
-  let links = reach.links;
+  let links = 0;
   for (const r of rows) {
     const t = await touchFromActivity(db, r.id);
     if (t?.created) activity++;
     if (t?.linked) links++;
   }
   const authors = await linkCommentAuthors(db);
-  return { ...reach, links, activity, authors, linked: await relinkHandles(db) };
+  return { activity, authors, links, linked: await relinkHandles(db) };
 }

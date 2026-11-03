@@ -11,8 +11,7 @@ import { sendAcross } from "@wren/core/send-verdict";
 import type { Db } from "@wren/db";
 import { ReachRefusal, recordLanded } from "@wren/starling-acts";
 import { isSendTaken, isSendUnsure, sendAtMostOnce, sendError } from "@wren/starling-acts/restate";
-import { planPrivateReply } from "@wren/starling-conversations";
-import { reachKinds } from "@wren/starling-outbound";
+import { planPrivateReply, turnKinds } from "@wren/starling-conversations";
 import { z } from "zod";
 import {
   addKeyword,
@@ -169,7 +168,7 @@ export function makeKeywordDm(deps: KeywordDmDeps) {
                   }),
                 ),
               landed: (tx, sent) =>
-                recordLanded(tx, `private:${c.id}`, reachKinds, {
+                recordLanded(tx, `private:${c.id}`, turnKinds, {
                   ref: sent.ref,
                   now,
                   by: "keyword",
@@ -207,7 +206,7 @@ export function makeKeywordDm(deps: KeywordDmDeps) {
                 },
                 via: "wren",
                 landed: (tx, answer) =>
-                  recordLanded(tx, `comment:${c.id}`, reachKinds, {
+                  recordLanded(tx, `comment:${c.id}`, turnKinds, {
                     ref: answer.ref,
                     now,
                     by: "keyword",

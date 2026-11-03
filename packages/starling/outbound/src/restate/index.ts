@@ -40,7 +40,7 @@ export {
   WATCH_KEY,
   wakeWatch,
 } from "./deps.js";
-export { makeReachDesk, type PostSettle, type ReachDeskService, terminalWhy } from "./desk.js";
+export { makeReachDesk, type ReachDeskService, terminalWhy } from "./desk.js";
 export {
   type DiscoveryDeps,
   makeRedditReads,

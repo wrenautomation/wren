@@ -20,7 +20,6 @@ import { discoveryHandlers } from "./discovery.js";
 import { pasteHandlers } from "./paste.js";
 
 export { terminalWhy } from "./desk-context.js";
-export type { PostSettle } from "./desk-settle.js";
 
 export function makeReachDesk(deps: ReachDeps) {
   const desk = deskContext(deps);

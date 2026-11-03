@@ -17,7 +17,7 @@ import { markAnswered } from "@wren/starling-conversations";
 import { makeAutoReply, makeChat, makeInboxDesk } from "@wren/starling-conversations/restate";
 import { makeContent } from "@wren/starling-core/service";
 import { isGoogleMailbox } from "@wren/starling-email/access/access";
-import { slidePainter } from "@wren/starling-inbound";
+import { contentKinds, slidePainter } from "@wren/starling-inbound";
 import { liveConnections, loginOf } from "@wren/starling-inbound/connect";
 import {
   makeBlog,
@@ -37,7 +37,7 @@ import {
   socialPushed,
 } from "@wren/starling-inbound/restate";
 import { makeAds, makeAdsWatch } from "@wren/starling-meta/restate";
-import { draftDm } from "@wren/starling-outbound";
+import { draftDm, reachKinds } from "@wren/starling-outbound";
 import { wakeWatch } from "@wren/starling-outbound/restate";
 import { tiktokCreator } from "@wren/starling-tiktok";
 import { clientMarketing } from "../marketing.js";
@@ -201,7 +201,7 @@ export function contentServices(deps: Deps): AnyService[] {
     }),
     socialPushed,
     // Ask Claude on any draft: the desk's Claude Code rewrites, Wren writes. Nothing sends.
-    makeDraftAsk(db),
+    makeDraftAsk(db, { ...reachKinds, ...contentKinds }),
     makeVideoDesk(db, { llm }),
     // Reply from the Inbox on the thread's own channel, notes, assignees
     // (designs/2026-10-07-inbox-reply.md). Each send goes through that channel's desk.

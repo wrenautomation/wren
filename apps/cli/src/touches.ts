@@ -14,7 +14,8 @@ import {
   touchText,
 } from "@wren/core/touches";
 import type { Db } from "@wren/db";
-import { backfillTouches } from "@wren/starling-inbound";
+import { backfillSocialTouches } from "@wren/starling-inbound";
+import { backfillOutreachTouches } from "@wren/starling-outbound/touches";
 import { type Command, InvalidArgumentError } from "commander";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
@@ -68,7 +69,12 @@ export function registerTouches(program: Command, withDb: WithDb): void {
     .description("fold every source table into touches; safe to run again")
     .option("--dry-run", "count the source rows; write nothing")
     .action(async (o: { dryRun?: boolean }) => {
-      const r = await withDb((db) => backfillTouches(db, { dryRun: !!o.dryRun }));
+      // Outbound's rows first, then the social activity: a handle link needs its touch.
+      const r = await withDb(async (db) => {
+        const reach = await backfillOutreachTouches(db, { dryRun: !!o.dryRun });
+        const social = await backfillSocialTouches(db, { dryRun: !!o.dryRun });
+        return { ...reach, ...social, links: reach.links + social.links };
+      });
       const verb = o.dryRun ? "would read" : "wrote";
       console.log(
         `${verb}: ${r.messages} DMs and invites, ${r.comments} comments, ${r.answers} answers, ${r.threads} Reddit comments, ${r.posts} LinkedIn comments, ${r.activity} follows and reactions`,
