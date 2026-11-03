@@ -1186,3 +1186,13 @@ channel, median 75K views over 29 uploads; the top upload 54.7x, the format read
 This is the competition scraper's core: lift, not raw counts, so a 2K-follower founder and a
 200K one compare. The pain-point side is the same hits read (`hn` and `reddit` threads with
 their comments) plus the findings path that exists.
+
+Same day, 0.30.10, on William's rule: lean data that can change a read goes to the agent by
+default, in the brief, never behind a command it has to think to run. So `lift` is not a
+command: each uncalled hit in the brief carries `metrics` and `lift` (its counts over the
+author's medians across every run) and the brief lists `authors` (each author's median and
+posts behind it, five up). The brief also names `sourcesMissing` (allow-listed sources this
+machine cannot run: they search nothing) and `sourcesUnused`, and carries `recalled` (what
+earlier runs found on the ask's text). The `yield` command went: the brief had it. `recall`
+and `sources` stay as pre-plan reads only. What stays behind a command is what is not lean:
+`trace` (every record), `show` (a page's text).
