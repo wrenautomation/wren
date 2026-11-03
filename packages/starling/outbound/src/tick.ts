@@ -39,7 +39,7 @@ import {
   tagLinks,
 } from "@wren/core/message-settings";
 import type { NoInvite, OutreachChannel, Relationship, Sent } from "@wren/core/outreach";
-import { newSendKey } from "@wren/core/send-verdict";
+import { newSendKey, type SendVerdict, type WriteAsk } from "@wren/core/send-verdict";
 import type { Queryable } from "@wren/db";
 import { and, asc, eq, gt, gte, inArray, isNull, lt, lte, or, sql } from "drizzle-orm";
 import { healthOf } from "./accounts.js";
@@ -56,10 +56,14 @@ import {
 } from "./schema.js";
 import {
   forgetUnsure,
+  NO_RECHECK,
+  nextRecheck,
+  noteRef,
   parkUnsure,
-  RECHECK_EVERY_MS,
-  RECHECK_WHYS,
+  type RecheckCols,
+  recheckOf,
   sendsToRecheck,
+  setRecheck,
   settleSent,
   settleUnsure,
 } from "./send-attempts.js";
@@ -91,8 +95,20 @@ export interface TickOptions {
    * workspace's switch decides whether any are added). Null or left out: links go as written.
    */
   linkSource?: string | null;
+  /**
+   * An unsure post, comment or reply asked again by its write (WA-1012). Unset (a client's pass):
+   * those wait on a person.
+   */
+  asks?: RecheckAsks;
   now: Date;
   runId?: string | null;
+}
+
+export interface RecheckAsks {
+  /** autobrowse's `verdict` for one keyed write; reads only. */
+  verdict: (ask: WriteAsk) => Promise<SendVerdict>;
+  /** Found on the site: settle it as a person's Mark posted does. */
+  posted: (item: string) => void;
 }
 
 export interface TickStats {
@@ -552,8 +568,8 @@ async function recordNoInvite(
 }
 
 /**
- * Step 4c: it may have gone out and no read could tell. `unknown`, never resent; the item
- * waits unsure in To approve for a person to mark it sent or send it again.
+ * Step 4c: it may have gone out and no read could tell. `unknown`, never resent; the item is
+ * asked again per `recheck`, else waits unsure in To approve for a person.
  */
 async function recordUnsure(
   db: Queryable,
@@ -563,6 +579,7 @@ async function recordUnsure(
   now: Date,
   stats: TickStats,
   sendKey: string | null = null,
+  recheck: RecheckCols = NO_RECHECK,
 ): Promise<void> {
   await db
     .update(reachMessages)
@@ -579,6 +596,7 @@ async function recordUnsure(
     tries: 1,
     now,
     sendKey,
+    recheck,
   });
   stats.failed++;
 }
@@ -776,8 +794,9 @@ export async function tick(
       });
       if (got.kind === "unsure") {
         const why = got.why;
+        const recheck = recheckOf(got, o.now, o.now);
         await stepStats(`unsure ${c.row.id}`, (s) =>
-          recordUnsure(db, c, words ?? "", why, o.now, s, sendKey),
+          recordUnsure(db, c, words ?? "", why, o.now, s, sendKey, recheck),
         );
         continue;
       }
@@ -807,17 +826,38 @@ const sendCall = (channel: OutreachChannel, c: Candidate, words: string | null) 
     ? (channel.connect as NonNullable<typeof channel.connect>)(c.contact.handle, words)
     : channel.message(c.contact.handle, words ?? "", c.row.subject);
 
-/** An unsure DM the sender asks about again: its candidate, ledger item, key and words. */
-interface Recheck {
-  c: Candidate;
-  item: string;
-  key: string;
-  words: string | null;
-}
+/**
+ * An unsure send due a recheck. A DM runs its send again as verify only, under its own key; any
+ * other kind asks its write's verdict.
+ */
+type Recheck =
+  | {
+      kind: "dm";
+      c: Candidate;
+      item: string;
+      key: string;
+      words: string | null;
+      ask: WriteAsk | null;
+      since: string;
+    }
+  | { kind: "ask"; item: string; ask: WriteAsk; since: string };
 
-async function recheckPlan(db: Queryable, now: Date): Promise<Recheck[]> {
+/** The due rows; one this pass cannot ask stops its recheck, so it never wakes the loop again. */
+async function recheckPlan(db: Queryable, now: Date, asks: boolean): Promise<Recheck[]> {
   const out: Recheck[] = [];
   for (const a of await sendsToRecheck(db, now)) {
+    const since = a.startedAt.toISOString();
+    if (!a.item.startsWith("dm:")) {
+      if (asks && a.askService && a.askKey)
+        out.push({
+          kind: "ask",
+          item: a.item,
+          ask: { service: a.askService, key: a.askKey },
+          since,
+        });
+      else await setRecheck(db, a.item, NO_RECHECK);
+      continue;
+    }
     const [row] = await db
       .select()
       .from(reachMessages)
@@ -827,30 +867,33 @@ async function recheckPlan(db: Queryable, now: Date): Promise<Recheck[]> {
           eq(reachMessages.state, "unknown"),
         ),
       );
-    if (!row?.accountId || !a.sendKey) continue;
-    const [contact] = await db
-      .select()
-      .from(reachContacts)
-      .where(eq(reachContacts.id, row.contactId));
-    const [account] = await db
-      .select()
-      .from(reachAccounts)
-      .where(eq(reachAccounts.id, row.accountId));
-    if (!contact || !account) continue;
+    const [contact] = row
+      ? await db.select().from(reachContacts).where(eq(reachContacts.id, row.contactId))
+      : [];
+    const [account] = row?.accountId
+      ? await db.select().from(reachAccounts).where(eq(reachAccounts.id, row.accountId))
+      : [];
+    if (!row || !contact || !account || !a.sendKey) {
+      await setRecheck(db, a.item, NO_RECHECK);
+      continue;
+    }
     out.push({
+      kind: "dm",
       c: { row, contact, account, checkRelationship: false },
       item: a.item,
       key: a.sendKey,
       words: row.kind === "connect" ? row.body || null : a.words,
+      ask: a.askService && a.askKey ? { service: a.askService, key: a.askKey } : null,
+      since,
     });
   }
   return out;
 }
 
 /**
- * Step 0: an unsure DM whose answer came late (designs/2026-10-16-maybe-sent.md). It asks
- * autobrowse's verdict under its own key and writes nothing. Sent settles it as a send would; not
- * sent queues it again; still running waits for the next pass; any other answer waits on a person.
+ * Step 0: unsure sends due a recheck (designs/2026-10-16-maybe-sent.md, WA-1012). Each asks
+ * autobrowse and writes nothing on the site. Sent settles it as a send would; not sent goes to a
+ * person (never resent on its own); unknown takes the answer's next time.
  */
 async function recheckUnsure(
   db: Queryable,
@@ -858,62 +901,120 @@ async function recheckUnsure(
   run: Journal,
   stepStats: (name: string, body: (s: TickStats) => Promise<unknown>) => Promise<TickStats>,
 ): Promise<void> {
-  const rechecks = await run("rechecks", () => recheckPlan(db, o.now));
-  for (const { c, item, key, words } of rechecks) {
-    const channel = o.channelFor(c.account);
-    if (!channel || (c.row.kind === "connect" && !channel.connect)) continue;
-    let got: Awaited<ReturnType<typeof sendOnce<Sent | NoInvite>>>;
-    try {
-      got = await sendOnce<Sent | NoInvite>({
-        key,
-        verifyOnly: true,
-        send: () => sendCall(channel, c, words),
-      });
-    } catch (err) {
-      // The platform said no to the first try: nothing went out. Else ask again next pass.
-      if (err instanceof SiteCallError && err.status >= 400 && err.status < 500)
-        await stepStats(`recheck failed ${c.row.id}`, async (s) => {
-          await recordFailure(db, c, err, o.now, s);
-          await forgetUnsure(db, item);
-        });
-      continue;
-    }
-    if (got.kind === "unsure") {
-      const why = got.why;
-      if (!RECHECK_WHYS.includes(why))
-        await run(`recheck unsure ${c.row.id}`, () => settleUnsure(db, item, { why, now: o.now }));
-      continue;
-    }
-    if (got.kind === "not_sent") {
-      await stepStats(`recheck not sent ${c.row.id}`, async (s) => {
-        await recordNotSent(db, c, got, o.now, s);
-        await forgetUnsure(db, item);
-      });
-      continue;
-    }
-    const out: Sent | NoInvite =
-      got.kind === "sent"
-        ? got.sent
-        : { ref: got.seen.ref, at: got.seen.at ?? o.now.toISOString(), fetchedWith: "browser" };
-    await stepStats(`recheck sent ${c.row.id}`, async (s) => {
-      if ("noInvite" in out) {
-        await recordNoInvite(db, c, out, o, s);
-        await forgetUnsure(db, item);
-        return;
-      }
-      await recordSent(db, c, out, o, s);
-      await settleSent(db, item, { ref: out.ref, at: o.now, by: "autobrowse", now: o.now });
-    });
+  const rechecks = await run("rechecks", () => recheckPlan(db, o.now, !!o.asks));
+  for (const r of rechecks) {
+    if (r.kind === "ask") await recheckAsk(db, o, run, r);
+    else await recheckDm(db, o, run, stepStats, r);
   }
 }
 
+async function recheckAsk(
+  db: Queryable,
+  o: TickOptions,
+  run: Journal,
+  r: Extract<Recheck, { kind: "ask" }>,
+): Promise<void> {
+  const asks = o.asks as RecheckAsks;
+  const since = new Date(r.since);
+  let v: SendVerdict;
+  try {
+    v = await asks.verdict(r.ask);
+  } catch {
+    // The desk did not answer (the Mac asleep, a deploy): ask again later.
+    await run(`recheck later ${r.item}`, () =>
+      setRecheck(db, r.item, recheckOf({ ask: r.ask }, since, o.now)),
+    );
+    return;
+  }
+  if (v.verdict === "sent") {
+    const ref = v.id ?? v.url;
+    await run(`recheck sent ${r.item}`, () => noteRef(db, r.item, ref));
+    asks.posted(r.item);
+    return;
+  }
+  if (v.verdict === "not_sent") {
+    const why = `checked: it did not go out (${v.reason}); send it again or drop it`;
+    await run(`recheck not sent ${r.item}`, () => settleUnsure(db, r.item, { why, now: o.now }));
+    return;
+  }
+  const next = recheckOf({ next: v.next, ask: r.ask }, since, o.now);
+  await run(`recheck unknown ${r.item}`, () => setRecheck(db, r.item, next));
+}
+
+async function recheckDm(
+  db: Queryable,
+  o: TickOptions,
+  run: Journal,
+  stepStats: (name: string, body: (s: TickStats) => Promise<unknown>) => Promise<TickStats>,
+  r: Extract<Recheck, { kind: "dm" }>,
+): Promise<void> {
+  const { c, item, key, words, ask } = r;
+  const since = new Date(r.since);
+  const later = () =>
+    run(`recheck later ${item}`, () => setRecheck(db, item, recheckOf({ ask }, since, o.now)));
+  const channel = o.channelFor(c.account);
+  if (!channel || (c.row.kind === "connect" && !channel.connect)) {
+    await later();
+    return;
+  }
+  let got: Awaited<ReturnType<typeof sendOnce<Sent | NoInvite>>>;
+  try {
+    got = await sendOnce<Sent | NoInvite>({
+      key,
+      verifyOnly: true,
+      send: () => sendCall(channel, c, words),
+    });
+  } catch (err) {
+    // The platform said no to the first try: nothing went out. Else ask again later.
+    if (err instanceof SiteCallError && err.status >= 400 && err.status < 500)
+      await stepStats(`recheck failed ${c.row.id}`, async (s) => {
+        await recordFailure(db, c, err, o.now, s);
+        await forgetUnsure(db, item);
+      });
+    else await later();
+    return;
+  }
+  if (got.kind === "unsure") {
+    const why = got.why;
+    const recheck = recheckOf(got, since, o.now);
+    await run(`recheck unsure ${c.row.id}`, () =>
+      settleUnsure(db, item, { why, now: o.now, recheck }),
+    );
+    return;
+  }
+  if (got.kind === "not_sent") {
+    await stepStats(`recheck not sent ${c.row.id}`, async (s) => {
+      await recordNotSent(db, c, got, o.now, s);
+      await forgetUnsure(db, item);
+    });
+    return;
+  }
+  const out: Sent | NoInvite =
+    got.kind === "sent"
+      ? got.sent
+      : { ref: got.seen.ref, at: got.seen.at ?? o.now.toISOString(), fetchedWith: "browser" };
+  await stepStats(`recheck sent ${c.row.id}`, async (s) => {
+    if ("noInvite" in out) {
+      await recordNoInvite(db, c, out, o, s);
+      await forgetUnsure(db, item);
+      return;
+    }
+    await recordSent(db, c, out, o, s);
+    await settleSent(db, item, { ref: out.ref, at: o.now, by: "autobrowse", now: o.now });
+  });
+}
+
+/** A recheck wakes the loop no sooner than this, so a row stuck due never spins it. */
+const RECHECK_MIN_WAIT_MS = 60_000;
+
 /**
- * The soonest outbound row queued after `now`, ISO, or null: the sender sleeps until then. An
- * unsure DM still rechecked wakes it within `RECHECK_EVERY_MS`.
+ * The soonest outbound row queued after `now`, ISO, or null: the sender sleeps until then. The
+ * soonest unsure send's recheck wakes it too.
  */
 export async function nextDue(db: Queryable, now: Date): Promise<string | null> {
-  const recheck = (await sendsToRecheck(db, now)).length
-    ? new Date(now.getTime() + RECHECK_EVERY_MS).toISOString()
+  const at = await nextRecheck(db);
+  const recheck = at
+    ? new Date(Math.max(at.getTime(), now.getTime() + RECHECK_MIN_WAIT_MS)).toISOString()
     : null;
   const queued = await queuedDue(db, now);
   return queued && recheck ? (queued < recheck ? queued : recheck) : (queued ?? recheck);

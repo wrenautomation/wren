@@ -14,6 +14,7 @@ import {
   type SendVerdict,
   unknownSend,
   verifyingOnly,
+  type WriteAsk,
   writeKey,
 } from "../send-verdict.js";
 import { dayEnd } from "../time.js";
@@ -213,7 +214,7 @@ export function restateSites(
         err instanceof CallTimeout
           ? "the verdict is still being read"
           : "the verdict could not be read";
-      throw unknownSend(why, since);
+      throw unknownSend(why, since, { ask: { service: service.name, key } });
     }
   };
   /** A keyed write: its key rides in the body and as Restate's idempotency key. */
@@ -255,7 +256,10 @@ export function restateSites(
       if (cancelledBy(err)) throw err;
       // Past its day: the journal's record says what it did; none means it never started.
       if (err instanceof CallTimeout)
-        return settled(site, method, path, await askVerdict(site, method, path, key, since));
+        return settled(site, method, path, await askVerdict(site, method, path, key, since), {
+          service: service.name,
+          key,
+        });
       const e = siteCallErrorFrom(err, site, method, path);
       if (!(e instanceof SiteCallError)) throw e;
       // A request that was wrong stays an error: nothing was attempted (a 408 or a kill, 409, may
@@ -275,7 +279,7 @@ export function restateSites(
       answer.verdict === "unknown" && rechecking()
         ? await askVerdict(site, method, path, key, since)
         : answer;
-    return settled(site, method, path, v);
+    return settled(site, method, path, v, { service: service.name, key });
   }
   /** A keyed write in a verify-only scope: ask what became of it, never call. */
   async function keyedVerify(
@@ -285,9 +289,22 @@ export function restateSites(
     key: string,
   ): Promise<never> {
     const since = new Date(await ctx.date.now()).toISOString();
-    return settled(site, method, path, await askVerdict(site, method, path, key, since));
+    return settled(site, method, path, await askVerdict(site, method, path, key, since), {
+      service: service.name,
+      key,
+    });
   }
   return {
+    async verdict(ask) {
+      if (cancelled) throw cancelled;
+      const c = ctx.serviceClient<SitesService>({ name: ask.service });
+      try {
+        return await waited(c.verdict({ sendKey: ask.key }), "verdict", true);
+      } catch (err) {
+        cancelledBy(err);
+        throw err;
+      }
+    },
     async call(site, method, path, input = {}, account) {
       if (cancelled) throw cancelled;
       if (arm && method !== "GET") {
@@ -370,14 +387,20 @@ const CALL_PAUSE_MS = 30_000;
  * cap and refusal logic read an error), anything else is `outputOf`. The one mapping for a
  * `sites` verdict and a send journal's.
  */
-function settled(site: string, method: string, path: string, v: SendVerdict): never {
+function settled(
+  site: string,
+  method: string,
+  path: string,
+  v: SendVerdict,
+  ask: WriteAsk | null = null,
+): never {
   if (v.verdict === "not_sent" && v.how === "refused") {
     noteAnswer("not_sent");
     const refused = new SiteCallError(site, method, path, v.status ?? 400, v.reason);
     refused.journaled = true;
     throw refused;
   }
-  return outputOf<never>(v);
+  return outputOf<never>(v, ask);
 }
 
 /**

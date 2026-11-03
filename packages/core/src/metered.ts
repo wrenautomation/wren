@@ -211,6 +211,8 @@ function routed(
     return own<T>(exaKeys, client, "exa", site, method, path, input);
   }
 
+  // a verdict ask reads a journal, no vendor key
+  const verdict = sites.verdict?.bind(sites);
   return {
     call: <T>(
       site: string,
@@ -229,6 +231,7 @@ function routed(
       return inTurn(() => read<T>(vendor, site, method, path, input, go));
     },
     via: (site, method, path) => sites.via(site, method, path),
+    ...(verdict ? { verdict } : {}),
   };
 }
 

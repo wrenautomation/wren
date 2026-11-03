@@ -29,7 +29,23 @@ export type SendVerdict =
       how: "refused" | "before_submit" | "verified_absent";
       status?: number;
     }
-  | { verdict: "unknown"; reason: string; since: string };
+  | { verdict: "unknown"; reason: string; since: string; next?: VerdictNext | null };
+
+/**
+ * When an `unknown` is worth asking again (autobrowse WA-1012). `healthy`: the read failed or the
+ * account is held; `time`: the list cannot prove absence yet. Null: no read can tell, a person
+ * decides. Absent: an older desk, or the ask itself failed.
+ */
+export interface VerdictNext {
+  at: string;
+  when: "healthy" | "time";
+}
+
+/** Where one keyed write's verdict lives: the service whose journal holds it, and its key. */
+export interface WriteAsk {
+  service: string;
+  key: string;
+}
 
 /** The verify read found it: it went out, with this id. The answer itself was lost. */
 export class SentFound extends Error {
@@ -55,32 +71,47 @@ export class NotSent extends Error {
   }
 }
 
-/** No read could tell. A person checks it (To approve, "May have gone out"). */
+/**
+ * No read could tell yet. `ask` and `next`: where and when a recheck asks again; without `ask` a
+ * person checks it (To approve, "May have gone out").
+ */
 export class SendUnknown extends Error {
+  readonly next: VerdictNext | null | undefined;
+  readonly ask: WriteAsk | null;
   constructor(
     readonly reason: string,
     readonly since: string,
+    o: { next?: VerdictNext | null | undefined; ask?: WriteAsk | null } = {},
   ) {
     super(`may have gone out: ${reason}`);
     this.name = "SendUnknown";
+    this.next = o.next;
+    this.ask = o.ask ?? null;
   }
 }
 
 /** A write whose end no answer told: `unknown`, and something may be out there. */
-export function unknownSend(reason: string, since: string): SendUnknown {
+export function unknownSend(
+  reason: string,
+  since: string,
+  o: { next?: VerdictNext | null; ask?: WriteAsk | null } = {},
+): SendUnknown {
   noteAnswer("unknown");
-  return new SendUnknown(reason, since);
+  return new SendUnknown(reason, since, o);
 }
 
-/** A verdict as `restateSites` hands it on: the answer's output, or one of the typed errors. */
-export function outputOf<T>(v: SendVerdict): T {
+/**
+ * A verdict as `restateSites` hands it on: the answer's output, or one of the typed errors.
+ * `ask`: where the write's verdict lives, for a recheck of an `unknown`.
+ */
+export function outputOf<T>(v: SendVerdict, ask: WriteAsk | null = null): T {
   noteAnswer(v.verdict);
   if (v.verdict === "sent") {
     if (v.how === "answer") return v.output as T;
     throw new SentFound(v.id, v.url, v.at);
   }
   if (v.verdict === "not_sent") throw new NotSent(v.how, v.reason, v.status ?? null);
-  throw new SendUnknown(v.reason, v.since);
+  throw new SendUnknown(v.reason, v.since, { next: v.next, ask });
 }
 
 /** What a send's writes did, readable by the caller once the send ends (also when it threw). */
@@ -185,7 +216,13 @@ export type Delivery<T> =
       reason: string;
       status: number | null;
     }
-  | { kind: "unknown"; reason: string; since: string };
+  | {
+      kind: "unknown";
+      reason: string;
+      since: string;
+      next?: VerdictNext | null;
+      ask?: WriteAsk | null;
+    };
 
 /** Is this answer a `Delivery` (a keyed write's answer), not the plain output of an older callee? */
 export const isDelivery = (v: unknown): v is Delivery<unknown> => {
@@ -208,7 +245,13 @@ export async function deliveryOf<T>(
     if (err instanceof NotSent)
       return { kind: "not_sent", how: err.how, reason: err.reason, status: err.status };
     if (err instanceof SendUnknown)
-      return { kind: "unknown", reason: err.reason, since: err.since };
+      return {
+        kind: "unknown",
+        reason: err.reason,
+        since: err.since,
+        ...(err.next === undefined ? {} : { next: err.next }),
+        ask: err.ask,
+      };
     // An error after a write answered: something may be out there, so the caller must not
     // see a plain failure it could release and send again.
     if (trace.wrote)
@@ -227,7 +270,7 @@ export function delivered<T>(d: Delivery<T>): T {
   if (d.kind === "sent") return d.out;
   if (d.kind === "found") throw new SentFound(d.id, d.url, d.at);
   if (d.kind === "not_sent") throw new NotSent(d.how, d.reason, d.status);
-  throw new SendUnknown(d.reason, d.since);
+  throw new SendUnknown(d.reason, d.since, { next: d.next, ask: d.ask ?? null });
 }
 
 /**

@@ -54,9 +54,27 @@ describe("send verdicts", () => {
       kind: "unknown",
       reason: "the list lags",
       since: "2026-10-16T12:00:00.000Z",
+      ask: null,
     });
     expect(() => delivered(d)).toThrow(SendUnknown);
     expect(delivered(await deliveryOf("k", async () => 5))).toBe(5);
+  });
+
+  it("an unknown keeps when and where to ask again across the boundary (WA-1012)", async () => {
+    const next = { at: "2026-10-16T12:30:00.000Z", when: "time" as const };
+    const ask = { service: "desk", key: "k reddit POST /c" };
+    const d = await deliveryOf("k", async () => {
+      throw new SendUnknown("the list lags", "2026-10-16T12:00:00.000Z", { next, ask });
+    });
+    expect(d).toMatchObject({ kind: "unknown", next, ask });
+    const err = (() => {
+      try {
+        return delivered(d);
+      } catch (e) {
+        return e;
+      }
+    })();
+    expect(err).toMatchObject({ next, ask });
   });
 
   it("a callee that wrote and then failed answers unknown, never a plain failure", async () => {

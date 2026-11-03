@@ -59,9 +59,11 @@ import { ShapeError } from "@wren/starling-core/shapes";
 import {
   claimSend,
   forgetUnsure,
+  NO_RECHECK,
   parkUnsure,
   pickedAccount,
   ReachRefusal,
+  recheckOf,
   releaseSend,
   sendAttempt,
 } from "@wren/starling-outbound";
@@ -311,7 +313,7 @@ export function makeContentScheduler(deps: ContentSchedulerDeps) {
       };
       return finish(ctx, o, content, p, published, "found", stats);
     }
-    if (d.kind === "unknown") return unsure(ctx, o, p, d.reason, stats);
+    if (d.kind === "unknown") return unsure(ctx, o, p, d.reason, stats, d);
     if (d.how === "refused") return failed(ctx, o, p, d.reason, stats);
     return notSent(ctx, o, p, d.reason, stats, busy);
   }
@@ -424,10 +426,17 @@ export function makeContentScheduler(deps: ContentSchedulerDeps) {
     p: OpenPublish,
     reason: string,
     stats: PublishStats,
+    /** The write's answer: where and when to ask again. Absent: a person decides. */
+    d?: Pick<Extract<Delivery<Published>, { kind: "unknown" }>, "next" | "ask">,
   ): Promise<void> {
     const name = PLATFORM_SPECS[p.platform].name;
     const why = reason.slice(0, 3000);
     const now = new Date(await ctx.date.now());
+    // The sender asks again in Wren's database only (WA-1012).
+    const recheck =
+      o.client || !d
+        ? NO_RECHECK
+        : recheckOf({ next: d.next, ask: d.ask ?? null }, new Date(p.since), now);
     await ctx.run(`unsure ${p.draftId}`, async () => {
       await parkUnsure(o.db, {
         item: itemOf(p),
@@ -441,6 +450,7 @@ export function makeContentScheduler(deps: ContentSchedulerDeps) {
         now,
         since: new Date(p.since),
         sendKey: p.sendKey ?? null,
+        recheck,
       });
       await markUnsure(o.db, p.draftId, why);
     });

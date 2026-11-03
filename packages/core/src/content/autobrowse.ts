@@ -7,6 +7,7 @@
  * `./restate.js`, which reaches the box through Restate without a port.
  */
 import type { FetchLike } from "../doh.js";
+import type { SendVerdict, WriteAsk } from "../send-verdict.js";
 import type { FetchedWith } from "./index.js";
 
 export type SiteMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
@@ -22,6 +23,11 @@ export interface SiteClient {
   ): Promise<T>;
   /** How the worker answers a route now; `api` or `browser` (`none` when it cannot yet). */
   via(site: string, method: SiteMethod, path: string): Promise<FetchedWith | "none">;
+  /**
+   * What became of one keyed write, asked of the service whose journal holds it; never a write
+   * (WA-1012). Only on Restate; throws when the service gives no answer in time.
+   */
+  verdict?(ask: WriteAsk): Promise<SendVerdict>;
 }
 
 export class SiteCallError extends Error {

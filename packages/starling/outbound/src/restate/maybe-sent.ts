@@ -12,6 +12,7 @@ import { atomic, type Queryable } from "@wren/db";
 import { ReachRefusal } from "../refusal.js";
 import {
   claimSend,
+  recheckOf,
   releaseSend,
   type SendClaim,
   settleSent,
@@ -121,7 +122,8 @@ export async function sendAtMostOnce(
   }
   if (out.kind === "unsure") {
     const why = out.why;
-    await ctx.run("unsure", () => settleUnsure(db, o.item, { why, now }));
+    const recheck = recheckOf(out, now, now);
+    await ctx.run("unsure", () => settleUnsure(db, o.item, { why, now, recheck }));
     throw new SendUnsure(`It ${UNSURE_WAITS}. ${why}`, { errorCode: 409 });
   }
   const ref = out.kind === "sent" ? out.sent.ref : out.seen.ref;

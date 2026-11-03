@@ -60,6 +60,15 @@ On 2026-10-16 a TikTok publish came back the same way, and the scheduler marked 
 - **The six rows.** Two the desk sent: Mark posted. One "comments are off": dropped. One with no desk record past its wait: sent again under a new key. Two LinkedIn rows stay unsure until LinkedIn reads return.
 - **Two TikTok comments are `sent` and never went out** (comments off, counted sent by the desk bug). No path undoes a `sent` row: Settle takes only unsure rows, skip only `found` or `queued` posts. Each needs its post back to `skipped`, and its touch, sent edit, draft `sent` record and ledger row gone. A person applies that.
 
+**2026-11-02, one recheck for every kind (WA-1012).** The DM-only recheck asked on a 3-minute timer for 2 hours, by why text. Health and lag decide when a read can tell, and autobrowse holds both (autobrowse `designs/2026-11-02-typed-inputs-files-undo.md` §3).
+
+- **What autobrowse answers.** An `unknown` verdict carries `next: {at, when}`: `healthy` (the read failed or the account is held), `time` (the list lags). `null`: no read can tell. `SendUnknown`, `Delivery` and `sendOnce`'s `unsure` carry it, plus `ask`: the service and write key that hold the verdict (`restateSites` sets it). A row's `send_key` is the scope; one write's key is scope + route, so the row keeps the write's own.
+- **The row.** `send_attempts` gains `recheck_at`, `recheck_when`, `ask_service`, `ask_key` (migration 0359). `recheckOf` fills them from the answer: none without `ask`, with `next: null`, or past 48 h from the start (`RECHECK_FOR_MS`). No hint: 10 min (`RECHECK_EVERY_MS`). `claimSend` and `settleSent` clear them.
+- **Step 0.** `recheckUnsure` takes every unsure row whose `recheck_at` is due. A DM runs its send again verify-only, as before. Any other kind asks `verdict` by its write (`SiteClient.verdict`): sent puts the ref on the row and sends `ReachDesk/settleSend {outcome: posted, by: autobrowse}` (a `draft:` goes on to `settlePost`, which asks again and runs `afterPublish`); not sent goes to a person, marked "checked", never resent; unknown takes the new `next`; no answer (the Mac asleep) asks again in 10 min. A row it cannot ask loses its recheck, so it never spins the loop.
+- **Wren's database only.** ReachDesk settles in Wren's database, so a client's pass asks DMs only; a client's post parks with no recheck.
+- **To approve.** A row still rechecked shows after 2 h (`RECHECK_QUIET_MS`). `nextDue` wakes at the soonest `recheck_at`, at least 1 min ahead.
+- **Rejected:** a verify-only flag on each kind's send handler, rerun as the DM recheck does. More plumbing, and the reads before the write run again against the caps.
+
 **2026-10-30, one record per send kind (C1, WA-980).** Option C split in two. C1: one record function per kind. C2: the `Send` object. William: "consistency over availability for these type of systems where we're trying to automate": refuse or wait on a person, never guess.
 
 - **C2 is skipped.** Restate state would be a second store beside the ledger, and A already gives one flip per send. The gain is the stale take-over only.

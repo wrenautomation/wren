@@ -34,6 +34,10 @@ const SETTLE_SEND = z.looseObject({
     .describe(
       "posted: he saw it on the site; again: send it once more; dropped: it did not go out and stays out",
     ),
+  by: z
+    .literal("autobrowse")
+    .optional()
+    .describe("The sender's recheck found it on the site (WA-1012); unset: the viewer"),
 });
 
 /** ReachDesk's own sends, called again on a person's Send again. */
@@ -70,9 +74,10 @@ export function settleHandlers(desk: DeskContext) {
       { input: SETTLE_SEND, effect: "sends" },
       async (
         ctx: restate.Context,
-        req: { item: string; outcome: SettleOutcome; viewer?: unknown },
+        req: { item: string; outcome: SettleOutcome; by?: "autobrowse"; viewer?: unknown },
       ): Promise<{ item: string; outcome: SettleOutcome }> => {
         const now = await nowOf(ctx);
+        const by = req.by ?? byOf(req);
         const { kind, id, words } = await ctx.run("item", () =>
           terminal(async () => {
             const a = await unsureItem(deps.db, req.item);
@@ -85,13 +90,11 @@ export function settleHandlers(desk: DeskContext) {
         if (kind === "draft") {
           await ctx
             .objectClient<PostSettle>({ name: "ContentDesk" }, "default")
-            .settlePost({ id, outcome: req.outcome, by: byOf(req) });
+            .settlePost({ id, outcome: req.outcome, by });
           return { item: req.item, outcome: req.outcome };
         }
         if (req.outcome === "dropped") {
-          await ctx.run("dropped", () =>
-            terminal(() => dropItem(deps.db, req.item, { by: byOf(req), now })),
-          );
+          await ctx.run("dropped", () => terminal(() => dropItem(deps.db, req.item, { by, now })));
           return { item: req.item, outcome: "dropped" };
         }
         if (req.outcome === "posted") {
@@ -100,7 +103,7 @@ export function settleHandlers(desk: DeskContext) {
               markPosted(deps.db, req.item, {
                 sequences: deps.sequences,
                 sender: deps.senderName,
-                by: byOf(req),
+                by,
                 now,
               }),
             ),

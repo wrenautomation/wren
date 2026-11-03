@@ -7,7 +7,15 @@
  * `send` may hold journaled site calls, so `sendOnce` never wraps it in a step.
  */
 import { SiteCallError } from "./content/autobrowse.js";
-import { NotSent, type SendTrace, SendUnknown, SentFound, withSendKey } from "./send-verdict.js";
+import {
+  NotSent,
+  type SendTrace,
+  SendUnknown,
+  SentFound,
+  type VerdictNext,
+  type WriteAsk,
+  withSendKey,
+} from "./send-verdict.js";
 
 const said = (err: unknown) => (err instanceof Error ? err.message : String(err));
 
@@ -20,7 +28,11 @@ type SendOutcome<S> =
     }
   /** Nothing went out, and the item may be sent again (under a new key). */
   | { kind: "not_sent"; how: "before_submit" | "verified_absent"; reason: string }
-  | { kind: "unsure"; why: string };
+  /**
+   * It may have gone out. `ask` and `next`: where and when a recheck asks the verdict again;
+   * `next` absent means no hint (an older desk, or the ask failed), null means no read can tell.
+   */
+  | { kind: "unsure"; why: string; next?: VerdictNext | null; ask: WriteAsk | null };
 
 interface SendOnce<S> {
   /** The ledger row's send key: the send runs under it. */
@@ -68,9 +80,19 @@ export async function sendOnce<S>(o: SendOnce<S>): Promise<SendOutcome<S>> {
       if (err.how === "refused") throw refusalOf(err);
       return { kind: "not_sent", how: err.how, reason: err.reason };
     }
-    if (err instanceof SendUnknown) return { kind: "unsure", why: err.reason };
+    if (err instanceof SendUnknown)
+      return {
+        kind: "unsure",
+        why: err.reason,
+        ...(err.next === undefined ? {} : { next: err.next }),
+        ask: err.ask,
+      };
     if (trace.wrote)
-      return { kind: "unsure", why: `a write answered, then: ${said(err).slice(0, 2000)}` };
+      return {
+        kind: "unsure",
+        why: `a write answered, then: ${said(err).slice(0, 2000)}`,
+        ask: null,
+      };
     throw err;
   }
 }

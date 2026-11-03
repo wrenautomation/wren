@@ -18,7 +18,7 @@ import {
 import { cadenceId } from "@wren/core/workflows";
 import { clientReach, clientSends, syncLogins } from "../clients.js";
 import { reachLead } from "../follow.js";
-import { nextDue, type TickStats, tick } from "../tick.js";
+import { nextDue, type RecheckAsks, type TickStats, tick } from "../tick.js";
 import { channelsFor, clientDeps, nowFor, type ReachDeps, wakeWatch } from "./deps.js";
 
 /** Due rows held (window, caps, warming): asked again this soon. */
@@ -64,6 +64,30 @@ export function makeReachSender(deps: ReachDeps) {
   });
 }
 
+/** `ReachDesk/settleSend` as desk-settle.ts serves it. */
+type SettleSend = {
+  settleSend: (
+    ctx: restate.Context,
+    req: { item: string; outcome: "posted"; by: "autobrowse" },
+  ) => Promise<unknown>;
+};
+
+/**
+ * Wren's own unsure posts and replies, asked again by their write (WA-1012). ReachDesk settles
+ * in Wren's database, so a client's pass has none.
+ */
+function recheckAsks(deps: ReachDeps, ctx: restate.ObjectContext): RecheckAsks | null {
+  const verdict = deps.sitesFor(ctx).verdict;
+  if (!verdict) return null;
+  return {
+    verdict,
+    posted: (item) =>
+      ctx
+        .serviceSendClient<SettleSend>({ name: "ReachDesk" })
+        .settleSend({ item, outcome: "posted", by: "autobrowse" }),
+  };
+}
+
 /** One tick: Wren's over its database, or a client's over its own with its live flags. */
 async function senderPass(
   deps: ReachDeps,
@@ -72,6 +96,7 @@ async function senderPass(
   scope: { client: string | null; sends?: (kind: string) => boolean },
 ): Promise<PassOutcome<TickStats>> {
   const channelFor = channelsFor(deps, ctx);
+  const asks = scope.client ? null : recheckAsks(deps, ctx);
   // The ledger row brackets the pass; the tick's own steps are journaled one by one.
   const runId = await ctx.run("open run", async () => {
     const run = await openRun(deps.db, { command: "reach tick", argv: { live: deps.live } });
@@ -90,6 +115,7 @@ async function senderPass(
         live: deps.live,
         ...(scope.sends ? { sends: scope.sends } : {}),
         linkSource: scope.client ?? "wren",
+        ...(asks ? { asks } : {}),
         now,
         runId,
       },

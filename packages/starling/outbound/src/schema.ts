@@ -944,8 +944,9 @@ export type CommentProofRow = typeof commentProofs.$inferSelect;
  * One send that must land at most once (designs/2026-10-16-maybe-sent.md): a thread comment, an
  * answer, a comment on someone's post, a DM. `sending` while a call is out (a second invocation
  * is refused); `sent` once it went out or our words were found on the site; `unsure` when a send
- * may have gone out and no read could tell. Unsure waits in To approve for a person: open it
- * on the site, mark it posted, or send it again. Nothing resends it by itself.
+ * may have gone out and no read could tell. An unsure row with `recheck_at` is asked again
+ * (WA-1012); else it waits in To approve for a person: open it on the site, mark it posted, or
+ * send it again. Nothing resends it by itself.
  */
 export const SEND_ATTEMPT_STATES = ["sending", "sent", "unsure"] as const;
 export type SendAttemptState = (typeof SEND_ATTEMPT_STATES)[number];
@@ -983,6 +984,16 @@ export const sendAttempts = pgTable(
     via: varchar("via", { length: 12, enum: ["person", "wren"] }),
     /** `found` (read back on the site), `sent`, or the person who marked it. */
     settledBy: varchar("settled_by", { length: 120 }),
+    /**
+     * When the sender asks autobrowse's verdict again (WA-1012); null: a person decides. Set only
+     * on an unsure row whose write says where to ask (`ask_service`, `ask_key`).
+     */
+    recheckAt: timestamp("recheck_at", { withTimezone: true }),
+    /** `healthy`: the read failed or the account is held. `time`: the site's list lags. */
+    recheckWhen: varchar("recheck_when", { length: 8, enum: ["healthy", "time"] }),
+    /** The service whose send journal holds the write (`sites`, `desk`), and the write's key. */
+    askService: varchar("ask_service", { length: 40 }),
+    askKey: varchar("ask_key", { length: 200 }),
     startedAt: timestamp("started_at", { withTimezone: true }).notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
   },

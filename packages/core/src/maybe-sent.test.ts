@@ -75,7 +75,7 @@ describe("sendOnce", () => {
         throw unknown();
       }),
     );
-    expect(r).toEqual({ kind: "unsure", why: "the list lags" });
+    expect(r).toEqual({ kind: "unsure", why: "the list lags", ask: null });
     expect(sends).toBe(1);
   });
 

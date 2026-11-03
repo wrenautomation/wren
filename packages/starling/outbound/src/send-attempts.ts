@@ -3,13 +3,14 @@
  * once. A claim marks it `sending` before any call and makes the send key (autobrowse keeps one
  * verdict per key); a second invocation meanwhile is refused, and one after a lost answer takes
  * it over under the same key, so autobrowse answers its stored verdict. Settled `sent` (with the
- * real ref) or `unsure` (waits on a person in To approve). A refusal or a send that never left
+ * real ref) or `unsure`: asked again at `recheck_at` while its write's verdict may still come
+ * (WA-1012), else it waits on a person in To approve. A refusal or a send that never left
  * releases it; the next send makes a new key.
  */
 import { keyedWaitEnds } from "@wren/core/content/restate";
-import { newSendKey } from "@wren/core/send-verdict";
+import { newSendKey, type VerdictNext, type WriteAsk } from "@wren/core/send-verdict";
 import type { Queryable } from "@wren/db";
-import { and, eq, gt, inArray, isNotNull, isNull, like, not, type SQL, sql } from "drizzle-orm";
+import { and, eq, gt, inArray, isNotNull, isNull, lte, not, type SQL, sql } from "drizzle-orm";
 import { ReachRefusal } from "./refusal.js";
 import { type SendAttempt, sendAttempts } from "./schema.js";
 
@@ -25,22 +26,57 @@ export const UNSURE_WAITS =
   "may have gone out. It waits in To approve, where you can open it on the site, mark it posted, or send it again";
 
 /**
- * A DM parked unsure only because its answer came late (the desk's queue can hold a send for
- * many minutes): the sender asks autobrowse's verdict again each few minutes and settles it
- * itself. It waits on a person only when the verdict stays open past `RECHECK_FOR_MS`, or says
- * something else.
+ * An unsure send whose write says where its verdict lives is asked again (WA-1012): at the time
+ * the last verdict's `next` gave, any item kind. Past `RECHECK_FOR_MS` from its start it is a
+ * person's. To approve shows it only after `RECHECK_QUIET_MS`, so one that settles itself
+ * never shows.
  */
-export const RECHECK_WHYS = ["the verdict is still being read", "the send is still running"];
-export const RECHECK_FOR_MS = 2 * 60 * 60_000;
-export const RECHECK_EVERY_MS = 3 * 60_000;
+export const RECHECK_FOR_MS = 48 * 60 * 60_000;
+export const RECHECK_QUIET_MS = 2 * 60 * 60_000;
+/** No hint in the answer (an older desk, or the ask timed out: the Mac asleep): ask after this. */
+export const RECHECK_EVERY_MS = 10 * 60_000;
 
-/** SQL true for an unsure row the sender still rechecks. */
-const rechecking = (now: Date) =>
+/** A row's recheck columns: all null when a person decides. */
+export interface RecheckCols {
+  recheckAt: Date | null;
+  recheckWhen: "healthy" | "time" | null;
+  askService: string | null;
+  askKey: string | null;
+}
+
+export const NO_RECHECK: RecheckCols = {
+  recheckAt: null,
+  recheckWhen: null,
+  askService: null,
+  askKey: null,
+};
+
+/**
+ * When to ask an unsure send again, from its write's answer. None without `ask`, with
+ * `next: null` (no read can tell), or past `RECHECK_FOR_MS` from `since`.
+ */
+export function recheckOf(
+  u: { next?: VerdictNext | null | undefined; ask: WriteAsk | null },
+  since: Date,
+  now: Date,
+): RecheckCols {
+  if (!u.ask || u.next === null) return NO_RECHECK;
+  const at = u.next ? new Date(u.next.at) : new Date(now.getTime() + RECHECK_EVERY_MS);
+  if (Number.isNaN(at.getTime()) || at.getTime() > since.getTime() + RECHECK_FOR_MS)
+    return NO_RECHECK;
+  return {
+    recheckAt: at,
+    recheckWhen: u.next?.when ?? "healthy",
+    askService: u.ask.service,
+    askKey: u.ask.key,
+  };
+}
+
+/** SQL true for an unsure row still rechecked and too young to show a person. */
+const quiet = (now: Date) =>
   and(
-    like(sendAttempts.item, "dm:%"),
-    isNotNull(sendAttempts.sendKey),
-    inArray(sendAttempts.why, RECHECK_WHYS),
-    gt(sendAttempts.startedAt, new Date(now.getTime() - RECHECK_FOR_MS)),
+    isNotNull(sendAttempts.recheckAt),
+    gt(sendAttempts.startedAt, new Date(now.getTime() - RECHECK_QUIET_MS)),
   ) as SQL;
 
 /** Why a key-less `sending` row taken over waits on a person. */
@@ -108,7 +144,14 @@ export async function claimSend(db: Queryable, c: SendClaim): Promise<Claimed> {
   const sendKey = takeOver && row.sendKey ? row.sendKey : newSendKey(c.item);
   const taken = await db
     .update(sendAttempts)
-    .set({ state: "sending", tries: sql`${sendAttempts.tries} + 1`, why: null, sendKey, ...fields })
+    .set({
+      state: "sending",
+      tries: sql`${sendAttempts.tries} + 1`,
+      why: null,
+      sendKey,
+      ...NO_RECHECK,
+      ...fields,
+    })
     .where(
       and(
         eq(sendAttempts.item, c.item),
@@ -147,6 +190,7 @@ export async function settleSent(
       settledBy: s.by,
       invocation: null,
       why: null,
+      ...NO_RECHECK,
       updatedAt: s.now,
     })
     .where(and(eq(sendAttempts.item, item), inArray(sendAttempts.state, ["sending", "unsure"])))
@@ -154,16 +198,38 @@ export async function settleSent(
   return rows.length > 0;
 }
 
-/** May have gone through and no read could tell: a person decides. */
+/**
+ * May have gone through and no read could tell yet: asked again per `recheck`, else a person
+ * decides.
+ */
 export async function settleUnsure(
   db: Queryable,
   item: string,
-  s: { why: string; now: Date },
+  s: { why: string; now: Date; recheck?: RecheckCols },
 ): Promise<void> {
   await db
     .update(sendAttempts)
-    .set({ state: "unsure", why: s.why.slice(0, 10_000), invocation: null, updatedAt: s.now })
+    .set({
+      state: "unsure",
+      why: s.why.slice(0, 10_000),
+      invocation: null,
+      ...(s.recheck ?? NO_RECHECK),
+      updatedAt: s.now,
+    })
     .where(eq(sendAttempts.item, item));
+}
+
+/** A new recheck time, or none: the row and its why stay. */
+export async function setRecheck(db: Queryable, item: string, r: RecheckCols): Promise<void> {
+  await db
+    .update(sendAttempts)
+    .set(r)
+    .where(and(eq(sendAttempts.item, item), eq(sendAttempts.state, "unsure")));
+}
+
+/** A recheck found it: the platform's ref goes on the row before it settles as Mark posted. */
+export async function noteRef(db: Queryable, item: string, ref: string | null): Promise<void> {
+  if (ref) await db.update(sendAttempts).set({ ref }).where(eq(sendAttempts.item, item));
 }
 
 /** Refused, or never left: no attempt stands, so the item sends as if never tried. */
@@ -190,6 +256,8 @@ export async function parkUnsure(
     since?: Date;
     /** The key the send ran under, where there was one. A row parked again keeps its own. */
     sendKey?: string | null;
+    /** When and where to ask its verdict again; a person decides when absent. */
+    recheck?: RecheckCols;
   },
 ): Promise<void> {
   const row = {
@@ -201,6 +269,7 @@ export async function parkUnsure(
     url: a.url,
     tries: a.tries,
     why: a.why.slice(0, 10_000),
+    ...(a.recheck ?? NO_RECHECK),
     updatedAt: a.now,
   };
   await db
@@ -222,17 +291,26 @@ export async function unsureSends(db: Queryable, now = new Date()): Promise<Send
   return db
     .select()
     .from(sendAttempts)
-    .where(and(eq(sendAttempts.state, "unsure"), not(rechecking(now))))
+    .where(and(eq(sendAttempts.state, "unsure"), not(quiet(now))))
     .orderBy(sql`${sendAttempts.updatedAt} desc`);
 }
 
-/** The unsure DMs the sender asks autobrowse about again, oldest first. */
+/** The unsure sends due a recheck at `now`, any kind, soonest first. */
 export async function sendsToRecheck(db: Queryable, now: Date): Promise<SendAttempt[]> {
   return db
     .select()
     .from(sendAttempts)
-    .where(and(eq(sendAttempts.state, "unsure"), rechecking(now)))
-    .orderBy(sendAttempts.startedAt);
+    .where(and(eq(sendAttempts.state, "unsure"), lte(sendAttempts.recheckAt, now)))
+    .orderBy(sendAttempts.recheckAt);
+}
+
+/** The soonest recheck still ahead, or null. */
+export async function nextRecheck(db: Queryable): Promise<Date | null> {
+  const [row] = await db
+    .select({ at: sql<Date | string | null>`min(${sendAttempts.recheckAt})` })
+    .from(sendAttempts)
+    .where(eq(sendAttempts.state, "unsure"));
+  return row?.at ? new Date(row.at) : null;
 }
 
 /**
