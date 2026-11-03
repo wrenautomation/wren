@@ -236,8 +236,8 @@ describe("anthropic tokens", () => {
       usage: { input: 1_000_000, output: 100_000, cacheRead: 200_000 },
       at,
     });
-    // 800k plain at 2, 200k read at 0.10, 100k out at 10, in dollars: 1.6 + 0.02 + 1.
-    expect(a).toEqual({ units: 1_100_000, micros: 2_620_000 });
+    // 800k plain at 2, 200k read at 0.20, 100k out at 10, in dollars: 1.6 + 0.04 + 1.
+    expect(a).toEqual({ units: 1_100_000, micros: 2_640_000 });
     await meterTokens(pg.db, {
       model: "claude-haiku-5-5",
       part: "fills",
@@ -262,7 +262,7 @@ describe("anthropic tokens", () => {
     expect(warns).toEqual(["anthropic: no price for model claude-old-1; costed 0"]);
     const rows = (await usageSince(pg.db, null, at)).filter((r) => r.vendor === "anthropic");
     expect(rows).toEqual([
-      { vendor: "anthropic", mode: "managed", units: 1_100_000 + 100_000 + 30, micros: 2_630_000 },
+      { vendor: "anthropic", mode: "managed", units: 1_100_000 + 100_000 + 30, micros: 2_650_000 },
     ]);
   });
 

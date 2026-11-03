@@ -519,8 +519,12 @@ describe("lowerable", () => {
   it("refuses logic stations, exit stations, exit tracks and frames", () => {
     const m = metroShape();
     const lines = why(m);
-    for (const kind of ["condition", "race", "split", "join", "ab", "approval", "link"]) {
+    for (const kind of ["condition", "ab", "approval", "link"]) {
       expect(lines.some((l) => l.includes(`is a ${kind} station`))).toBe(true);
+    }
+    // split, join and race run (f7b489a5): refused only by gateWhy's shape rules, never by kind.
+    for (const kind of ["split", "join", "race"]) {
+      expect(lines.some((l) => l.includes(`is a ${kind} station`))).toBe(false);
     }
     expect(lines).toContain('Station "gone" is an exit. The runtime does not run exits yet.');
     expect(lines).toContain(

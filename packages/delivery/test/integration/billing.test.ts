@@ -65,6 +65,12 @@ const pass = (at: string, over: { wise?: WiseReader | null } = {}) =>
   );
 const take = <T>(a: T[]) => a.splice(0, a.length);
 
+// addInvoice issues today and views call a past due date overdue, so the dates follow the clock.
+const dayPlus = (days: number) =>
+  new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10);
+const ISSUED = dayPlus(0);
+const DUE = dayPlus(30);
+
 let seq = 0;
 const credit = (over: Partial<CreditIn> = {}): CreditIn => ({
   wiseId: `DEPOSIT-${++seq}`,
@@ -123,7 +129,8 @@ describe("invoices out", () => {
       await addInvoice(pg.db, e, {
         description: "Setup",
         cents: 100_000,
-        dueOn: "2026-10-30",
+        dueOn: DUE,
+        issuedOn: ISSUED,
         by: BY,
       })
     ).number;
@@ -131,14 +138,16 @@ describe("invoices out", () => {
       await addInvoice(pg.db, e, {
         description: "October",
         cents: 50_000,
-        dueOn: "2026-10-30",
+        dueOn: DUE,
+        issuedOn: ISSUED,
         by: BY,
       })
     ).number;
     await addInvoice(pg.db, await engagementOf(pg.db, "demo"), {
       description: "Setup",
       cents: 100_000,
-      dueOn: "2026-10-30",
+      dueOn: DUE,
+      issuedOn: ISSUED,
       by: BY,
     });
     expect(first).toMatch(/^WREN-\d+$/);
@@ -221,8 +230,8 @@ describe("money in", () => {
         description: "CAD one",
         cents: 20_000,
         currency: "CAD",
-        issuedOn: "2026-10-15",
-        dueOn: "2026-10-30",
+        issuedOn: ISSUED,
+        dueOn: DUE,
         createdBy: BY,
       })
       .returning();
@@ -254,7 +263,8 @@ describe("money in", () => {
     const third = await addInvoice(pg.db, e, {
       description: "November",
       cents: 40_000,
-      dueOn: "2026-11-30",
+      dueOn: DUE,
+      issuedOn: ISSUED,
       by: BY,
     });
     inbox = [credit({ memo: third.number, cents: 10_000 })];
@@ -290,7 +300,8 @@ describe("money in", () => {
     const setup = await addInvoice(pg.db, engagement, {
       description: "Setup",
       cents: 150_000,
-      dueOn: "2026-10-30",
+      dueOn: DUE,
+      issuedOn: ISSUED,
       setup: true,
       by: BY,
     });
