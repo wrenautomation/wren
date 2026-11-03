@@ -18,12 +18,12 @@ import type { PassOutcome } from "@wren/core/restate";
 import { askPublish, saveDraft } from "@wren/core/templates";
 import { startTestRestate } from "@wren/core/testing";
 import { seedObjects, startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
+import { parkUnsure, sendAttempts } from "@wren/starling-acts";
 import { type ActivityRow, type ContentChannel, fakeContentChannel } from "@wren/starling-core";
 import { makeContent } from "@wren/starling-core/service";
 import {
   answerComment,
   comments,
-  parkUnsure,
   planAnswer,
   reachContacts,
   reachMessages,
@@ -31,7 +31,6 @@ import {
   redditPlaces,
   redditRequirements,
   redditThreads,
-  sendAttempts,
 } from "@wren/starling-outbound";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";

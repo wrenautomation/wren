@@ -5,8 +5,8 @@ import { type CapHolds, capHeld, holdCap, SiteCallError, untilUtcDay } from "@wr
 import { recordDraft } from "@wren/core/draft-record";
 import type { RejectReason } from "@wren/core/reject-reasons";
 import type { Queryable } from "@wren/db";
+import { ReachRefusal } from "@wren/starling-acts";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
-import { ReachRefusal } from "../refusal.js";
 import { type ReachPost, type ReachPostPlatform, reachPosts } from "../schema.js";
 import { keepTouch, touchesFromReachPost } from "../touches.js";
 import type { CommentsSettings } from "./settings.js";

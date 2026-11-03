@@ -48,6 +48,7 @@ export default defineConfig({
     "../delivery/src/schema.ts",
     "../delivery/src/health/schema.ts",
     "../delivery/src/health/views.ts",
+    "../starling/acts/src/schema.ts",
     "../starling/outbound/src/schema.ts",
     "../watch/src/schema.ts",
     "../learn/src/schema.ts",

@@ -2,8 +2,8 @@
 import * as restate from "@restatedev/restate-sdk";
 import { byOf } from "@wren/core/ask";
 import { NO_INPUT, serviceHandler } from "@wren/core/restate";
+import { accountById, listAccounts, ReachRefusal } from "@wren/starling-acts";
 import { z } from "zod";
-import { accountById, listAccounts } from "../accounts.js";
 import { contactById } from "../contacts.js";
 import { NOTE_MAX, recordNote, setInviteNote } from "../invite-notes.js";
 import {
@@ -14,7 +14,6 @@ import {
   proposedInvites,
   skipInvites,
 } from "../invites.js";
-import { ReachRefusal } from "../refusal.js";
 import { channelsFor } from "./deps.js";
 import { CONTACT, type DeskContext } from "./desk-context.js";
 import { type InvitesPass, invitesAccount, invitesPass } from "./watch.js";

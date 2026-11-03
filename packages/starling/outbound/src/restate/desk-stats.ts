@@ -2,8 +2,8 @@
 import * as restate from "@restatedev/restate-sdk";
 import type { Scorecard } from "@wren/core/draft-models";
 import { serviceHandler } from "@wren/core/restate";
+import { platformOf } from "@wren/starling-acts";
 import { z } from "zod";
-import { platformOf } from "../accounts.js";
 import { draftScorecard, parseSince } from "../draft-models.js";
 import { type ReachStats, reachStats } from "../threads.js";
 import { type DeskContext, PLATFORM } from "./desk-context.js";

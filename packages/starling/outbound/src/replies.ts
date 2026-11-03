@@ -7,9 +7,10 @@
  */
 import type { OutreachChannel, Reply } from "@wren/core/outreach";
 import type { Queryable } from "@wren/db";
+import type { Platform, ReachAccount } from "@wren/starling-acts";
 import { and, eq, inArray } from "drizzle-orm";
 import { addProspects, contactByHandle, setContactState } from "./contacts.js";
-import { type Platform, type ReachAccount, reachContacts, reachMessages } from "./schema.js";
+import { reachContacts, reachMessages } from "./schema.js";
 import { keepTouch, touchFromMessage } from "./touches.js";
 
 const OPT_OUT =

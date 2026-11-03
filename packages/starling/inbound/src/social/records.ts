@@ -34,6 +34,7 @@ import { docApprovalId, waitingDocs } from "@wren/documents/store";
 import { money, payApprovalId, waitingPayLinks } from "@wren/payments/store";
 import { pageApprovalId, retireApprovalId } from "@wren/sites/console";
 import { waitingPages, waitingRetires } from "@wren/sites/store";
+import { accountPickFor, type SendAttempt, unsureSends } from "@wren/starling-acts";
 import {
   conversationOf,
   queuedReplies,
@@ -45,13 +46,7 @@ import {
 import type { InboxReply, InboxThread } from "@wren/starling-conversations/schema";
 import { isUrl } from "@wren/starling-core";
 import { TIKTOK_COPY } from "@wren/starling-core/tiktok";
-import {
-  accountPickFor,
-  invitedSql,
-  type SendAttempt,
-  threadContextOf,
-  unsureSends,
-} from "@wren/starling-outbound";
+import { invitedSql, threadContextOf } from "@wren/starling-outbound";
 import {
   COMMENT_FOLD,
   commentRecord,
@@ -63,6 +58,7 @@ import { threadRecord as textThreadRecord } from "@wren/starling-sms/records";
 import { and, eq, sql } from "drizzle-orm";
 import { waitingSwaps } from "../analytics/variants.js";
 import { DRAFT_CALLS } from "../draft-calls.js";
+import { deskKinds } from "../draft-items.js";
 import { contentDrafts } from "../schema.js";
 import { shapeView } from "../shape-view.js";
 import { mixedThumbs } from "../thumbs.js";
@@ -845,7 +841,7 @@ export const inboxRecord = defineRecord({
     const ask = {
       ask: await draftTurns(db, type, rest),
       record: await recordOfPage(db, type, rest),
-      accounts: await accountPickFor(db, id),
+      accounts: await accountPickFor(db, id, deskKinds),
       conversation,
       // The post and every reply under it, nested (designs/2026-10-15-engage-threads.md).
       ...(type === "comment"
@@ -1357,7 +1353,7 @@ const approvalRecordOf = (signer?: VideoSigner) =>
       const ask = {
         ask: await draftTurns(db, type, rest),
         record: await recordOfPage(db, type, rest),
-        accounts: await accountPickFor(db, id),
+        accounts: await accountPickFor(db, id, deskKinds),
       };
       if (type === "draft") return { shape: await shapeView(db, rest, signer), ...ask };
       return type === "invite" ? { ...(await dmRecord.load?.(db, rest)), ...ask } : ask;

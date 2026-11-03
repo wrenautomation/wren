@@ -15,13 +15,18 @@ import type { OutreachChannel } from "@wren/core/outreach";
 import { clientKey } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import { type LlmClient, llmForKey } from "@wren/llm";
+import type {
+  ClientReach,
+  Platform,
+  ReachAccount,
+  ReachPart,
+  ReachPolicy,
+} from "@wren/starling-acts";
 import type { LoopCampaign } from "@wren/starling-core/campaigns";
 import { linkedinOutreach } from "@wren/starling-linkedin";
 import { redditOutreach } from "@wren/starling-reddit";
-import type { ClientReach, ReachPart } from "../clients.js";
 import type { DmGuide } from "../drafts.js";
-import type { ReachPolicy } from "../policy.js";
-import type { DmPlatform, Platform, ReachAccount, ReachPostPlatform } from "../schema.js";
+import type { DmPlatform, ReachPostPlatform } from "../schema.js";
 import type { ReachSequence } from "../sequences.js";
 
 /** The `Content` service's reply handler as the worker serves it. */

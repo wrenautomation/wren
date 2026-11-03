@@ -9,8 +9,8 @@ import { pgKeyStore, throwawayRing } from "@wren/core/keys";
 import { syncVaultKeys } from "@wren/core/vault-keys";
 import { meter, setOwnKey } from "@wren/core/vendors";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
+import { addAccount } from "@wren/starling-acts";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { addAccount } from "../../src/accounts.js";
 import { accountRecord } from "../../src/records.js";
 
 let pg: TestPostgres;

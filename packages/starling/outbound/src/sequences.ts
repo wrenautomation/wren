@@ -17,7 +17,7 @@ import {
   renderKind,
   type Template,
 } from "@wren/core/slots";
-import type { Platform } from "./schema.js";
+import type { Platform } from "@wren/starling-acts";
 
 interface ReachStep {
   /** 1-based. Step 1 is the opener. */

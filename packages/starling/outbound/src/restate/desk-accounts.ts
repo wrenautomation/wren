@@ -1,8 +1,9 @@
 /** `ReachDesk`'s accounts: the list, one added, its state, its health now. */
 import * as restate from "@restatedev/restate-sdk";
 import { serviceHandler } from "@wren/core/restate";
-import { z } from "zod";
 import {
+  ACCOUNT_STATES,
+  type AccountState,
   type AccountView,
   accountById,
   addAccount,
@@ -11,8 +12,8 @@ import {
   refreshHealth,
   setAccountState,
   viewOf,
-} from "../accounts.js";
-import { ACCOUNT_STATES, type AccountState } from "../schema.js";
+} from "@wren/starling-acts";
+import { z } from "zod";
 import { channelsFor } from "./deps.js";
 import { type DeskContext, PLATFORM } from "./desk-context.js";
 

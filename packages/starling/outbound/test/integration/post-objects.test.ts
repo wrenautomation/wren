@@ -6,16 +6,15 @@
  */
 import { resolveObjects } from "@wren/core/objects";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
+import { addAccount, ReachRefusal } from "@wren/starling-acts";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { addAccount } from "../../src/accounts.js";
 import { addPlaces } from "../../src/discovery/places.js";
 import type { Post } from "../../src/discovery/reads.js";
 import { keepThreads, markCommented } from "../../src/discovery/threads.js";
 import { keepPasted, queuePastedThread } from "../../src/intercept.js";
 import { keepPosts } from "../../src/reach-posts/pass.js";
 import type { FeedPost } from "../../src/reach-posts/read.js";
-import { ReachRefusal } from "../../src/refusal.js";
 import { reachPosts, redditThreads } from "../../src/schema.js";
 
 const NOW = new Date("2026-10-13T15:00:00Z");

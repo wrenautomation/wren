@@ -85,11 +85,12 @@ import { SITES_CONSOLE_APPS, SITES_CONSOLE_ROUTES } from "@wren/sites/console-ro
 import { FORM_PATH, KIT_JS, KIT_PATH, TRACK_PATH } from "@wren/sites/kit";
 import { FORM_CSP, PAGE_CSP } from "@wren/sites/render";
 import { sitesPublicApi } from "@wren/sites/service";
+import { pickAccount } from "@wren/starling-acts";
 import { mailAccess, mailAppsFrom } from "@wren/starling-email/access/access";
 import { mailConsoleApi } from "@wren/starling-email/access/console";
 import { MAIL_ACCESS_APPS, MAIL_ACCESS_ROUTES } from "@wren/starling-email/access/console-routes";
 import { EMAIL_CONSOLE_VIEWS } from "@wren/starling-email/views";
-import { swapShortMedia, undoVideo, waitingIdeas } from "@wren/starling-inbound";
+import { deskKinds, swapShortMedia, undoVideo, waitingIdeas } from "@wren/starling-inbound";
 import {
   liveFrom,
   type OwnSites,
@@ -102,7 +103,6 @@ import {
   socialConsoleApi,
 } from "@wren/starling-inbound/connect";
 import { pieceRows, piecesOf } from "@wren/starling-inbound/pieces";
-import { pickAccount } from "@wren/starling-outbound";
 import { SMS_CONSOLE_APPS, SMS_CONSOLE_ROUTES } from "@wren/starling-sms/console-routes";
 import { proposeChange } from "@wren/starling-studio/change";
 import { setEdit, setLine, setWords } from "@wren/starling-studio/edit";
@@ -559,11 +559,11 @@ local.call = async (i) => {
     };
     if (service === "DraftAsk" && handler === "set" && pick.text === undefined && "account" in pick)
       return {
-        accounts: await pickAccount(main, {
-          item: `${pick.record}:${pick.id}`,
-          account: pick.account ?? null,
-          by,
-        }),
+        accounts: await pickAccount(
+          main,
+          { item: `${pick.record}:${pick.id}`, account: pick.account ?? null, by },
+          deskKinds,
+        ),
       };
     // Studio's reads: what waits on him, and every piece with where it went.
     if (service === "ContentDesk" && handler === "waiting")

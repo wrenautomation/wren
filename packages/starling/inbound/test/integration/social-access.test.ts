@@ -24,15 +24,9 @@ import { touches } from "@wren/core/touches-schema";
 import { cachedDb, clientDatabaseUrl, type Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
+import { parkUnsure, sendAttempt } from "@wren/starling-acts";
 import { makeInboxDesk } from "@wren/starling-conversations/restate";
-import {
-  draftDm,
-  markAnswered,
-  parkUnsure,
-  reachContacts,
-  reachMessages,
-  sendAttempt,
-} from "@wren/starling-outbound";
+import { draftDm, markAnswered, reachContacts, reachMessages } from "@wren/starling-outbound";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { clientContent } from "../../src/clients.js";

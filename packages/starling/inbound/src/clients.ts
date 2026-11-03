@@ -9,7 +9,7 @@
 import type { Platform } from "@wren/core/autobrowse";
 import { type Client, findClient } from "@wren/core/clients";
 import type { Queryable } from "@wren/db";
-import { listAccounts, loginsOf } from "@wren/starling-outbound";
+import { listAccounts, loginsOf } from "@wren/starling-acts";
 import { type ClientPlannerSettings, clientPlannerSchema } from "./components.js";
 import { liveConnections, loginOf } from "./connect/access.js";
 import { channelOf, SOCIAL, type SocialPlatform } from "./connect/platforms.js";

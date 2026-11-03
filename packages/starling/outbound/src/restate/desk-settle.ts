@@ -7,18 +7,18 @@ import { byOf } from "@wren/core/ask";
 import { executorEmit } from "@wren/core/executor";
 import { serviceHandler } from "@wren/core/restate";
 import { cadenceId } from "@wren/core/workflows";
-import { z } from "zod";
-import { reachLead } from "../follow.js";
-import { ReachRefusal } from "../refusal.js";
 import {
   dropItem,
   itemOf,
   markPosted,
-  requeueDm,
+  ReachRefusal,
   SETTLE_OUTCOMES,
   type SettleOutcome,
   unsureItem,
-} from "../settle-send.js";
+} from "@wren/starling-acts";
+import { z } from "zod";
+import { reachLead } from "../follow.js";
+import { markDmPosted, reachKinds, requeueDm } from "../item-kinds.js";
 import type { DeskContext } from "./desk-context.js";
 import { scheduleProofs } from "./proofs.js";
 
@@ -94,29 +94,37 @@ export function settleHandlers(desk: DeskContext) {
           return { item: req.item, outcome: req.outcome };
         }
         if (req.outcome === "dropped") {
-          await ctx.run("dropped", () => terminal(() => dropItem(deps.db, req.item, { by, now })));
+          await ctx.run("dropped", () =>
+            terminal(() => dropItem(deps.db, req.item, reachKinds, { by, now })),
+          );
           return { item: req.item, outcome: "dropped" };
         }
         if (req.outcome === "posted") {
-          const stats = await ctx.run("posted", () =>
-            terminal(() =>
-              markPosted(deps.db, req.item, {
-                sequences: deps.sequences,
-                sender: deps.senderName,
-                by,
-                now,
-              }),
-            ),
+          if (kind === "dm") {
+            const stats = await ctx.run("posted", () =>
+              terminal(() =>
+                markDmPosted(deps.db, req.item, {
+                  sequences: deps.sequences,
+                  sender: deps.senderName,
+                  by,
+                  now,
+                }),
+              ),
+            );
+            // A DM's sequence step leaves its node, as the sender's would.
+            for (const s of stats.stepped)
+              executorEmit(ctx, {
+                client: null,
+                workflow: cadenceId(s.sequence),
+                from: `s${s.step}.sent`,
+                events: [reachLead(s.contactId)],
+              });
+            return { item: req.item, outcome: "posted" };
+          }
+          await ctx.run("posted", () =>
+            terminal(() => markPosted(deps.db, req.item, reachKinds, { by, now })),
           );
-          // A DM's sequence step leaves its node, as the sender's would.
-          for (const s of stats.stepped)
-            executorEmit(ctx, {
-              client: null,
-              workflow: cadenceId(s.sequence),
-              from: `s${s.step}.sent`,
-              events: [reachLead(s.contactId)],
-            });
-          if (kind !== "dm" && kind !== "private") scheduleProofs(ctx, req.item);
+          if (kind !== "private") scheduleProofs(ctx, req.item);
           return { item: req.item, outcome: "posted" };
         }
         if (kind === "dm") {

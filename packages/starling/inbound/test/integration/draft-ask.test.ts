@@ -22,8 +22,8 @@ import {
   type TestPostgres,
   truncate,
 } from "@wren/db/testing";
+import { addAccount } from "@wren/starling-acts";
 import {
-  addAccount,
   addProspects,
   comments,
   contactByHandle,

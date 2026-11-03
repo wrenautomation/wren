@@ -13,12 +13,11 @@ import {
   touches,
 } from "@wren/core/touches";
 import type { Queryable } from "@wren/db";
+import { pickedAccount, reachAccounts } from "@wren/starling-acts";
 import { and, eq, inArray, isNull, sql } from "drizzle-orm";
-import { pickedAccount } from "./draft-accounts.js";
 import {
   type Comment,
   comments,
-  reachAccounts,
   reachContacts,
   reachMessages,
   reachPosts,

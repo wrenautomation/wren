@@ -18,7 +18,17 @@
  *   enroll, templates, threads), each one journaled.
  */
 
-export type { Platform } from "../schema.js";
+export type { Platform } from "@wren/starling-acts";
+export {
+  isSendNotSent,
+  isSendTaken,
+  isSendUnsure,
+  SendNotSent,
+  SendTaken,
+  SendUnsure,
+  sendAtMostOnce,
+  sendError,
+} from "@wren/starling-acts/restate";
 export {
   channelsFor,
   clientDeps,
@@ -37,16 +47,6 @@ export {
   READS_KEY,
   type RedditReadsObject,
 } from "./discovery.js";
-export {
-  isSendNotSent,
-  isSendTaken,
-  isSendUnsure,
-  SendNotSent,
-  SendTaken,
-  SendUnsure,
-  sendAtMostOnce,
-  sendError,
-} from "./maybe-sent.js";
 export {
   type CommentProofsService,
   makeCommentProofs,

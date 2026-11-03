@@ -5,14 +5,22 @@
  */
 import { fakeOutreachChannel } from "@wren/core/outreach";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
+import {
+  accountPickFor,
+  addAccount,
+  DEFAULT_POLICY,
+  pickAccount,
+  pickedAccount,
+  type ReachAccount,
+  ReachRefusal,
+  refreshHealth,
+  setAccountState,
+} from "@wren/starling-acts";
+import { reachKinds } from "@wren/starling-outbound";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { addAccount, refreshHealth, setAccountState } from "../../src/accounts.js";
 import { addContact, contactById } from "../../src/contacts.js";
-import { accountPickFor, pickAccount, pickedAccount } from "../../src/draft-accounts.js";
 import { queueDraft } from "../../src/drafts.js";
-import { DEFAULT_POLICY } from "../../src/policy.js";
-import { ReachRefusal } from "../../src/refusal.js";
-import { type ReachAccount, reachContacts } from "../../src/schema.js";
+import { reachContacts } from "../../src/schema.js";
 import { REACH_SEQUENCES } from "../../src/sequences.js";
 import { tick } from "../../src/tick.js";
 
@@ -85,17 +93,17 @@ describe("a reply's account", () => {
     await db().update(reachContacts).set({ accountId: one.id });
     const item = `dm:${c.id}`;
 
-    const before = await accountPickFor(db(), item, at(0));
+    const before = await accountPickFor(db(), item, reachKinds, at(0));
     expect(before?.platform).toBe("reddit");
     expect(before?.fallback).toBe("reddit@one");
     expect(before?.current).toBe("reddit@one");
     expect(before?.picked).toBe(false);
     expect(before?.options.map((o) => o.key).sort()).toEqual(["reddit@one", "reddit@two"]);
 
-    await expect(pickAccount(db(), { item, account: "linkedin@one" })).rejects.toThrow(
+    await expect(pickAccount(db(), { item, account: "linkedin@one" }, reachKinds)).rejects.toThrow(
       ReachRefusal,
     );
-    const after = await pickAccount(db(), { item, account: "reddit@two", by: "test" });
+    const after = await pickAccount(db(), { item, account: "reddit@two", by: "test" }, reachKinds);
     expect(after).toMatchObject({ current: "reddit@two", fallback: "reddit@one", picked: true });
 
     const msg = await queueDraft(
@@ -111,7 +119,7 @@ describe("a reply's account", () => {
     expect(fakes.get("reddit@two")?.sent.at(-1)?.text).toBe("From the other one");
     expect(fakes.get("reddit@one")?.sent ?? []).toHaveLength(0);
 
-    await pickAccount(db(), { item, account: "" });
+    await pickAccount(db(), { item, account: "" }, reachKinds);
     expect(await pickedAccount(db(), item)).toBeNull();
   });
 
@@ -119,6 +127,6 @@ describe("a reply's account", () => {
     const a = await account("linkedin", "linkedin@one", "Synthetic Co");
     const c = await addContact(db(), { platform: "linkedin", handle: "synthetic-lead" });
     await db().update(reachContacts).set({ accountId: a.id });
-    expect(await accountPickFor(db(), `dm:${c.id}`)).toBeNull();
+    expect(await accountPickFor(db(), `dm:${c.id}`, reachKinds)).toBeNull();
   });
 });

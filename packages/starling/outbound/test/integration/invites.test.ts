@@ -10,10 +10,18 @@ import { fakeOutreachChannel } from "@wren/core/outreach";
 import { companies, people } from "@wren/core/schema";
 import { segmentOf } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
+import {
+  addAccount,
+  DEFAULT_POLICY,
+  parkUnsure,
+  type ReachAccount,
+  type ReachPolicy,
+  sendAttempt,
+  setAccountState,
+} from "@wren/starling-acts";
 import type { LoopCampaign } from "@wren/starling-core/campaigns";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { addAccount, setAccountState } from "../../src/accounts.js";
 import { contactById } from "../../src/contacts.js";
 import { dmContext } from "../../src/drafts.js";
 import {
@@ -30,10 +38,8 @@ import {
   topUp,
   whyOf,
 } from "../../src/invites.js";
-import { DEFAULT_POLICY, type ReachPolicy } from "../../src/policy.js";
 import { dmRecord, inviteRecord } from "../../src/records.js";
-import { type ReachAccount, reachContacts, reachMessages } from "../../src/schema.js";
-import { parkUnsure, sendAttempt } from "../../src/send-attempts.js";
+import { reachContacts, reachMessages } from "../../src/schema.js";
 import { CONNECT_NOTE, REACH_SEQUENCES, slotsOf } from "../../src/sequences.js";
 import { setTemplate } from "../../src/store.js";
 import { tick } from "../../src/tick.js";

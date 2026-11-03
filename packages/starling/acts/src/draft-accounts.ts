@@ -2,7 +2,8 @@
  * Which account a draft goes out as (designs/2026-10-15-accounts-first-class.md). A person picks
  * one on the draft box; it is kept by draft item in `draft_accounts` and every send reads it
  * before its own default (the place's account, the one they spoke to). A pick that misses the
- * sub's karma or age rule is warned about on the picker, never refused.
+ * sub's karma or age rule is warned about on the picker, never refused. What the item is and
+ * where it goes is its kind's word (`ItemKinds`): this file reads no channel's table.
  */
 
 import type { AccountHealth } from "@wren/core/outreach";
@@ -16,12 +17,9 @@ import type { Queryable } from "@wren/db";
 import { warmupOf } from "@wren/starling-reddit";
 import { eq, inArray, sql } from "drizzle-orm";
 import { listAccounts, recordAccountsOf } from "./accounts.js";
-import { effectiveNeed, shortfall, standingOfAccount } from "./discovery/requirements.js";
+import { type ItemKinds, itemOf } from "./item-kinds.js";
 import { ReachRefusal } from "./refusal.js";
-import { draftAccounts, type ReachAccount, redditRequirements } from "./schema.js";
-
-const rowsOf = async <T>(db: Queryable, q: ReturnType<typeof sql>): Promise<T[]> =>
-  (await db.execute(q)) as unknown as T[];
+import { draftAccounts, type ReachAccount } from "./schema.js";
 
 /** The account a person picked for an item; null when none was. */
 export async function pickedAccount(db: Queryable, item: string): Promise<string | null> {
@@ -45,46 +43,16 @@ export async function pickedAccounts(
   return new Map(rows.map((r) => [r.item, r.account]));
 }
 
-/** An item's platform and the subreddit its rule comes from; null when there is no such item. */
-async function itemOf(
-  db: Queryable,
-  item: string,
-): Promise<{ platform: string; sub: string | null } | null> {
-  const at = item.indexOf(":");
-  const kind = item.slice(0, at);
-  const id = item.slice(at + 1);
-  if (at < 1 || !id) return null;
-  const one = async (q: ReturnType<typeof sql>) =>
-    (await rowsOf<{ platform: string; sub: string | null }>(db, q))[0] ?? null;
-  switch (kind) {
-    case "thread":
-      return one(sql`select 'reddit' platform, subreddit sub from reddit_threads where id = ${id}`);
-    case "comment":
-      return /^\d+$/.test(id)
-        ? one(
-            sql`select platform, case when platform = 'reddit' then lower(regexp_replace(place, '^r/', '')) end sub
-              from comments where id = ${Number(id)}`,
-          )
-        : null;
-    case "dm":
-    case "invite":
-      return /^\d+$/.test(id)
-        ? one(sql`select platform, null sub from reach_contacts where id = ${Number(id)}`)
-        : null;
-    case "onpost":
-      return /^\d+$/.test(id)
-        ? one(sql`select platform, null sub from reach_posts where id = ${Number(id)}`)
-        : null;
-    case "draft":
-      return /^[0-9a-f-]{36}$/i.test(id)
-        ? one(
-            sql`select platform::text platform, null sub from content_drafts where id = ${id}::uuid`,
-          )
-        : null;
-    default:
-      return null;
+/** The item's kind, or null for an item no kind here owns (a bad id, a kind the desk lacks). */
+const kindOf = (item: string, kinds: ItemKinds) => {
+  try {
+    const { kind, id } = itemOf(item);
+    const k = kinds[kind];
+    return k ? { kind: k, id } : null;
+  } catch {
+    return null;
   }
-}
+};
 
 /**
  * Keep a person's pick for an item: an account on the item's platform that isn't retired. Empty
@@ -93,13 +61,15 @@ async function itemOf(
 export async function pickAccount(
   db: Queryable,
   req: { item: string; account: string | null; by?: string | null; now?: Date },
+  kinds: ItemKinds,
 ): Promise<AccountPick | null> {
-  const it = await itemOf(db, req.item);
+  const k = kindOf(req.item, kinds);
+  const it = k ? await k.kind.place(db, k.id) : null;
   if (!it) throw new ReachRefusal(`no draft ${req.item}`);
   const key = req.account?.trim() || null;
   if (!key) {
     await db.delete(draftAccounts).where(eq(draftAccounts.item, req.item));
-    return accountPickFor(db, req.item, req.now);
+    return accountPickFor(db, req.item, kinds, req.now);
   }
   const known = (await recordAccountsOf(db)).find((a) => a.key === key);
   if (!known || known.platform !== it.platform)
@@ -113,58 +83,7 @@ export async function pickAccount(
       target: draftAccounts.item,
       set: { account: key, by: req.by ?? null, at: sql`now()` },
     });
-  return accountPickFor(db, req.item, req.now);
-}
-
-/** The account an item goes out as with no pick: its place's, the one they spoke to, the read's. */
-async function fallbackOf(db: Queryable, item: string): Promise<string | null> {
-  const at = item.indexOf(":");
-  const kind = item.slice(0, at);
-  const id = item.slice(at + 1);
-  const one = async (q: ReturnType<typeof sql>) =>
-    (await rowsOf<{ account: string | null }>(db, q))[0]?.account ?? null;
-  const n = /^\d+$/.test(id) ? Number(id) : null;
-  switch (kind) {
-    case "thread":
-      // The send's order (`planThreadComment`): the place's account, else the thread's.
-      return one(sql`select coalesce(pa.account, ta.account) account
-        from reddit_threads t
-        left join reddit_places p on p.subreddit = t.subreddit
-        left join reach_accounts pa on pa.id = p.account_id
-        left join reach_accounts ta on ta.id = t.account_id
-        where t.id = ${id}`);
-    case "comment":
-      return n === null
-        ? null
-        : one(sql`select a.account from comments c join reach_accounts a on a.id = c.account_id
-            where c.id = ${n}`);
-    case "dm":
-    case "invite":
-      return n === null
-        ? null
-        : one(sql`select a.account from reach_contacts c join reach_accounts a on a.id = c.account_id
-            where c.id = ${n}`);
-    case "onpost":
-      return n === null ? null : one(sql`select account from reach_posts where id = ${n}`);
-    default:
-      return null;
-  }
-}
-
-/** Why an account may not land in a sub: its karma or age under the sub's floor. Null = fine. */
-function warnOf(
-  sub: string | null,
-  a: ReachAccount | undefined,
-  rows: Parameters<typeof effectiveNeed>[0],
-  label: string,
-  now: Date,
-): string | null {
-  if (!sub || !a || a.platform !== "reddit") return null;
-  const need = effectiveNeed(rows);
-  if (need.hold) return `r/${sub} removed our last comment without saying why`;
-  const s = shortfall(need, standingOfAccount(a, now));
-  if (!s.needs.length) return null;
-  return `r/${sub} needs ${s.needs.join(" and ")}, ${label} has ${s.has.join(" and ")}`;
+  return accountPickFor(db, req.item, kinds, req.now);
 }
 
 /**
@@ -175,10 +94,12 @@ function warnOf(
 export async function accountPickFor(
   db: Queryable,
   item: string,
+  kinds: ItemKinds,
   now = new Date(),
 ): Promise<AccountPick | null> {
-  const it = await itemOf(db, item);
-  if (!it) return null;
+  const k = kindOf(item, kinds);
+  const it = k ? await k.kind.place(db, k.id) : null;
+  if (!k || !it) return null;
   const reach = await listAccounts(db);
   const live = new Set(reach.filter((a) => a.state !== "retired").map((a) => a.account));
   const retired = new Set(reach.filter((a) => a.state === "retired").map((a) => a.account));
@@ -187,10 +108,9 @@ export async function accountPickFor(
   );
   if (all.length < 2) return null;
   const picked = await pickedAccount(db, item);
-  const fallback = await fallbackOf(db, item);
-  const rows = it.sub
-    ? await db.select().from(redditRequirements).where(eq(redditRequirements.subreddit, it.sub))
-    : [];
+  const fallback = await k.kind.fallback(db, k.id);
+  const floor =
+    it.sub && k.kind.floors ? await k.kind.floors(db, it.sub, now) : (): string | null => null;
   const byKey = new Map(reach.map((a) => [a.account, a]));
   const options: AccountOption[] = all.map((a) => {
     const r = byKey.get(a.key);
@@ -200,7 +120,7 @@ export async function accountPickFor(
       key: a.key,
       label: a.label,
       state: live.has(a.key) ? (r?.state ?? null) : null,
-      warn: frozen ? `${a.label}: ${frozen}` : warnOf(it.sub, r, rows, a.label, now),
+      warn: frozen ? `${a.label}: ${frozen}` : r ? floor(r, a.label) : null,
     };
   });
   return {

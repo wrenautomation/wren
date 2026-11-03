@@ -8,9 +8,9 @@
 import { readFileSync } from "node:fs";
 import { normalUrl } from "@wren/core/objects";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
+import { addAccount } from "@wren/starling-acts";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { addAccount } from "../../src/accounts.js";
 
 const FILE = new URL("../../../../db/drizzle/0312_our_platform_objects.sql", import.meta.url);
 const STATEMENTS = readFileSync(FILE, "utf8")

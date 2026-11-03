@@ -4,8 +4,9 @@ import { byOf } from "@wren/core/ask";
 import { executorEmit } from "@wren/core/executor";
 import { serviceHandler } from "@wren/core/restate";
 import { sendAcross } from "@wren/core/send-verdict";
+import { listAccounts, pickAccount, recordLanded } from "@wren/starling-acts";
+import { sendAtMostOnce } from "@wren/starling-acts/restate";
 import { z } from "zod";
-import { listAccounts } from "../accounts.js";
 import {
   COMMENTS_FLOW,
   COMMENTS_FROM,
@@ -17,7 +18,6 @@ import {
   planPrivateReply,
   privateReplyOf,
 } from "../comments.js";
-import { pickAccount } from "../draft-accounts.js";
 import {
   adoptNode,
   applyThread,
@@ -27,10 +27,9 @@ import {
   threadFor,
   wrenCommentsRead,
 } from "../follow-ups.js";
-import { recordLanded } from "../send-kinds.js";
+import { reachKinds } from "../item-kinds.js";
 import { type ContentReply, channelsFor, finalRefusal } from "./deps.js";
 import { type DeskContext, terminalWhy } from "./desk-context.js";
-import { sendAtMostOnce } from "./maybe-sent.js";
 
 const COMMENT = z.looseObject({ id: z.number() });
 
@@ -83,11 +82,11 @@ export function commentsHandlers(desk: DeskContext) {
         if (req.account)
           await ctx.run("send as", () =>
             terminal(() =>
-              pickAccount(deps.db, {
-                item: `comment:${target}`,
-                account: req.account ?? null,
-                by: byOf(req),
-              }),
+              pickAccount(
+                deps.db,
+                { item: `comment:${target}`, account: req.account ?? null, by: byOf(req) },
+                reachKinds,
+              ),
             ),
           );
         const sent = await answerOne(ctx, target, req.body ?? null, byOf(req));
@@ -194,7 +193,11 @@ export function commentsHandlers(desk: DeskContext) {
                   .privateReply({ platform: c.platform, commentId: c.ref, text: body, ...k }),
               ),
             landed: (tx, sent) =>
-              recordLanded(tx, `private:${c.id}`, { ref: sent.ref, now, by: byOf(req) }),
+              recordLanded(tx, `private:${c.id}`, reachKinds, {
+                ref: sent.ref,
+                now,
+                by: byOf(req),
+              }),
           }).catch(failed);
           return ctx.run("sent", () => privateReplyOf(deps.db, c.id));
         }

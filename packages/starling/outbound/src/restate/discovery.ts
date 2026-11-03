@@ -39,9 +39,22 @@ import {
 } from "@wren/core/restate";
 import { gate } from "@wren/core/vendors";
 import type { LlmClient } from "@wren/llm";
+import {
+  clientReach,
+  ReachRefusal,
+  reachAccounts,
+  recordLanded,
+  syncLogins,
+} from "@wren/starling-acts";
+import {
+  isSendNotSent,
+  isSendUnsure,
+  type Landed,
+  sendAtMostOnce,
+  sendError,
+} from "@wren/starling-acts/restate";
 import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
-import { clientReach, syncLogins } from "../clients.js";
 import { peopleToRead, readPerson } from "../discovery/people.js";
 import {
   type Audience,
@@ -81,18 +94,9 @@ import {
   threadsToScore,
   unrankedThreads,
 } from "../discovery/threads.js";
-import { ReachRefusal } from "../refusal.js";
+import { reachKinds } from "../item-kinds.js";
 import { scheduleThreads, sendFailed, sendHeld, stillDue, unschedule } from "../scheduled.js";
-import { reachAccounts } from "../schema.js";
-import { recordLanded } from "../send-kinds.js";
 import { channelsFor, clientDeps, type ReachDeps, terminalWhy, wakeWatch } from "./index.js";
-import {
-  isSendNotSent,
-  isSendUnsure,
-  type Landed,
-  sendAtMostOnce,
-  sendError,
-} from "./maybe-sent.js";
 import { scheduleProofs } from "./proofs.js";
 import { fireSlots } from "./schedule.js";
 
@@ -669,7 +673,11 @@ export function discoveryHandlers(deps: ReachDeps) {
             },
             send: () => comment(target, body),
             landed: (tx, landed) =>
-              recordLanded(tx, `thread:${req.id}`, { ref: landed.ref, now, by: byOf(req) }),
+              recordLanded(tx, `thread:${req.id}`, reachKinds, {
+                ref: landed.ref,
+                now,
+                by: byOf(req),
+              }),
           });
         } catch (thrown) {
           // Unsure waits on a person in To approve; its slot leaves the schedule.

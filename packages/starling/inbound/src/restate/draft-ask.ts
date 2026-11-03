@@ -15,7 +15,7 @@ import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { runs } from "@wren/core/schema";
 import { livePrompt } from "@wren/core/templates/defaults";
 import type { Db } from "@wren/db";
-import { pickAccount } from "@wren/starling-outbound";
+import { pickAccount } from "@wren/starling-acts";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import {
@@ -26,6 +26,7 @@ import {
   undoDraft,
   writeDraft,
 } from "../draft-ask.js";
+import { deskKinds } from "../draft-items.js";
 
 export const DRAFT_ASK = { name: "DraftAsk" } as const;
 const COMMAND = "draft-ask";
@@ -116,11 +117,13 @@ export function makeDraftAsk(db: Db) {
             req.account === undefined
               ? undefined
               : await ctx.run("account", () =>
-                  pickAccount(db, { item, account: req.account ?? null, by: whoOf(req) }).catch(
-                    (err) => {
-                      throw refuse(err, 400);
-                    },
-                  ),
+                  pickAccount(
+                    db,
+                    { item, account: req.account ?? null, by: whoOf(req) },
+                    deskKinds,
+                  ).catch((err) => {
+                    throw refuse(err, 400);
+                  }),
                 );
           if (req.text === undefined) {
             if (accounts === undefined)

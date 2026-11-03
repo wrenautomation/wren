@@ -1,6 +1,6 @@
 /** The policy from `WREN_REACH_*` settings. */
 import type { Settings } from "@wren/config";
-import { DEFAULT_POLICY, parseClock, type ReachPolicy } from "./policy.js";
+import { DEFAULT_POLICY, parseClock, type ReachPolicy } from "@wren/starling-acts";
 
 export function policyFrom(s: Settings): ReachPolicy {
   const [start, end] = s.reachWindow.split("-").map(parseClock) as [number, number];

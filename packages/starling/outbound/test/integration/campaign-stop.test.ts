@@ -4,9 +4,9 @@
  * data only.
  */
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
+import { addAccount, setAccountState } from "@wren/starling-acts";
 import { asc, eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { addAccount, setAccountState } from "../../src/accounts.js";
 import { addProspects, contactByHandle, stopCampaignContacts } from "../../src/contacts.js";
 import { type ContactState, reachContacts, reachMessages } from "../../src/schema.js";
 

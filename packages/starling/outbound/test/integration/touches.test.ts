@@ -9,9 +9,9 @@ import { resolveObjects } from "@wren/core/objects";
 import { companies, imports, leads, people } from "@wren/core/schema";
 import { lookupTouches, touchesFor, touchFactsFor } from "@wren/core/touches";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
+import { addAccount, setAccountState } from "@wren/starling-acts";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { addAccount, setAccountState } from "../../src/accounts.js";
 import { keepComments, markAnswered } from "../../src/comments.js";
 import { dmContext } from "../../src/drafts.js";
 import { personContact } from "../../src/from-people.js";
@@ -25,10 +25,10 @@ const conn = (handle: string) => ({
   connectedOn: null,
 });
 
+import type { ReachAccount } from "@wren/starling-acts";
 import { markPostCommented } from "../../src/reach-posts/acts.js";
 import { personRecord } from "../../src/records.js";
 import {
-  type ReachAccount,
   reachContacts,
   reachMessages,
   reachPosts,

@@ -15,8 +15,8 @@ import {
   startTestPostgres,
   type TestPostgres,
 } from "@wren/db/testing";
-import { sendAttempt } from "@wren/starling-outbound";
-import { comments, sendAttempts } from "@wren/starling-outbound/schema";
+import { sendAttempt, sendAttempts } from "@wren/starling-acts";
+import { comments } from "@wren/starling-outbound/schema";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { type KeywordDm, makeKeywordDm } from "../../src/restate/keyword-dm.js";

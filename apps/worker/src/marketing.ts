@@ -2,6 +2,7 @@
 
 import { factsRecord } from "@wren/core/facts";
 import { accountSource } from "@wren/core/record-accounts";
+import { type ReachPolicy, recordAccountsOf } from "@wren/starling-acts";
 import {
   ANALYTICS_RECORDS,
   askedReplyRecord,
@@ -12,7 +13,6 @@ import {
   type VideoSigner,
 } from "@wren/starling-inbound/records";
 import { adDayRecord } from "@wren/starling-meta/records";
-import { type ReachPolicy, recordAccountsOf } from "@wren/starling-outbound";
 import {
   accountRecordOf,
   commentRecord,

@@ -8,15 +8,15 @@ import type { byOf } from "@wren/core/ask";
 import { rejectWhy } from "@wren/core/draft-record";
 import { sendAcross } from "@wren/core/send-verdict";
 import type { Db, Queryable } from "@wren/db";
+import { listAccounts, ReachRefusal, recordLanded } from "@wren/starling-acts";
+import { isSendUnsure, type Landed, sendAtMostOnce, sendError } from "@wren/starling-acts/restate";
 import { z } from "zod";
-import { listAccounts } from "../accounts.js";
 import { answerFor, checkThread, planAnswer } from "../comments.js";
 import { contactById } from "../contacts.js";
 import { enroll } from "../enroll.js";
 import { INVITE_SEQUENCE, inviteSettings } from "../invites.js";
-import { ReachRefusal } from "../refusal.js";
+import { reachKinds } from "../item-kinds.js";
 import type { ReachContact } from "../schema.js";
-import { recordLanded } from "../send-kinds.js";
 import { slotsOf } from "../sequences.js";
 import {
   type ContentReply,
@@ -26,7 +26,6 @@ import {
   SENDER_KEY,
   wakeWatch,
 } from "./deps.js";
-import { isSendUnsure, type Landed, sendAtMostOnce, sendError } from "./maybe-sent.js";
 import { scheduleProofs } from "./proofs.js";
 import { invitesAccount } from "./watch.js";
 
@@ -115,7 +114,7 @@ export function deskContext(deps: ReachDeps) {
     // Answered, and words that differ from the draft kept as his edit.
     const item = `comment:${id}`;
     const answered = (tx: Queryable, sent: Landed) =>
-      recordLanded(tx, item, { ref: sent.ref, now, by });
+      recordLanded(tx, item, reachKinds, { ref: sent.ref, now, by });
     if (!plan.account) {
       // On our own post: the content channel answers (designs/2026-10-06-social-inbox.md).
       const { target, text } = answerFor(plan.comment, words);

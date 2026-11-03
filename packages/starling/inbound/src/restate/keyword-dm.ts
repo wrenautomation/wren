@@ -9,13 +9,9 @@ import { tagged } from "@wren/core/message-settings";
 import { errorText, PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { sendAcross } from "@wren/core/send-verdict";
 import type { Db } from "@wren/db";
-import { planPrivateReply, ReachRefusal, recordLanded } from "@wren/starling-outbound";
-import {
-  isSendTaken,
-  isSendUnsure,
-  sendAtMostOnce,
-  sendError,
-} from "@wren/starling-outbound/restate";
+import { ReachRefusal, recordLanded } from "@wren/starling-acts";
+import { isSendTaken, isSendUnsure, sendAtMostOnce, sendError } from "@wren/starling-acts/restate";
+import { planPrivateReply, reachKinds } from "@wren/starling-outbound";
 import { z } from "zod";
 import {
   addKeyword,
@@ -172,7 +168,11 @@ export function makeKeywordDm(deps: KeywordDmDeps) {
                   }),
                 ),
               landed: (tx, sent) =>
-                recordLanded(tx, `private:${c.id}`, { ref: sent.ref, now, by: "keyword" }),
+                recordLanded(tx, `private:${c.id}`, reachKinds, {
+                  ref: sent.ref,
+                  now,
+                  by: "keyword",
+                }),
             }).catch((err) => {
               throw sendError(err);
             });
@@ -206,7 +206,11 @@ export function makeKeywordDm(deps: KeywordDmDeps) {
                 },
                 via: "wren",
                 landed: (tx, answer) =>
-                  recordLanded(tx, `comment:${c.id}`, { ref: answer.ref, now, by: "keyword" }),
+                  recordLanded(tx, `comment:${c.id}`, reachKinds, {
+                    ref: answer.ref,
+                    now,
+                    by: "keyword",
+                  }),
               }).catch((err) => {
                 throw sendError(err);
               });

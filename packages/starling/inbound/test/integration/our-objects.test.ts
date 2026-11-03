@@ -6,7 +6,8 @@
  */
 import { recordDraft } from "@wren/core/draft-record";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
-import { addAccount, keepComments } from "@wren/starling-outbound";
+import { addAccount } from "@wren/starling-acts";
+import { keepComments } from "@wren/starling-outbound";
 import { comments } from "@wren/starling-outbound/schema";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";

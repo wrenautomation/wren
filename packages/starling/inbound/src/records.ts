@@ -21,10 +21,11 @@ import {
   text,
 } from "@wren/core/records";
 import type { Queryable } from "@wren/db";
-import { accountPickFor } from "@wren/starling-outbound";
+import { accountPickFor } from "@wren/starling-acts";
 import { and, asc, eq, ne } from "drizzle-orm";
 import { postAnalytics } from "./analytics/records.js";
 import { DRAFT_CALLS } from "./draft-calls.js";
+import { contentKinds } from "./draft-items.js";
 import { PLATFORM_SPECS } from "./platforms.js";
 import { contentDrafts, type DraftStatus } from "./schema.js";
 import { shapeView } from "./shape-view.js";
@@ -260,7 +261,7 @@ export const draftRecordOf = (signer?: VideoSigner) =>
       ask: await draftTurns(db, "draft", id),
       record: await recordOfPage(db, "draft", id),
       siblings: await siblingsOf(db, id),
-      accounts: await accountPickFor(db, `draft:${id}`),
+      accounts: await accountPickFor(db, `draft:${id}`, contentKinds),
     }),
   });
 

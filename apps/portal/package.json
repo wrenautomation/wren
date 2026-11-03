@@ -47,6 +47,7 @@
     "@wren/pipeline": "workspace:*",
     "@wren/reactivation": "workspace:*",
     "@wren/sites": "workspace:*",
+    "@wren/starling-acts": "workspace:*",
     "@wren/starling-core": "workspace:*",
     "@wren/ui": "workspace:*",
     "@wren/voice": "workspace:*",

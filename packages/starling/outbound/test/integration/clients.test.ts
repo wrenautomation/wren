@@ -17,13 +17,19 @@ import { setManaged } from "@wren/core/vendors";
 import { cachedDb, clientDatabaseUrl, type Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
+import {
+  addAccount,
+  clientReach,
+  clientSends,
+  DEFAULT_POLICY,
+  listAccounts,
+  loginsOf,
+  reachAccounts,
+} from "@wren/starling-acts";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { addAccount, listAccounts } from "../../src/accounts.js";
-import { clientReach, clientSends, loginsOf } from "../../src/clients.js";
 import { sortStep } from "../../src/comments.js";
 import { touchStep } from "../../src/follow.js";
-import { DEFAULT_POLICY } from "../../src/policy.js";
 import type { DiscoveryStats } from "../../src/restate/discovery.js";
 import { makeRedditReads } from "../../src/restate/discovery.js";
 import {
@@ -36,7 +42,6 @@ import {
 import {
   comments,
   redditPlaces as places,
-  reachAccounts,
   reachContacts,
   reachMessages,
 } from "../../src/schema.js";

@@ -22,9 +22,9 @@ import {
   truncate,
 } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
+import { sendAttempt } from "@wren/starling-acts";
 import type { Post, Published } from "@wren/starling-core";
 import type { LoopCampaign } from "@wren/starling-core/campaigns";
-import { sendAttempt } from "@wren/starling-outbound";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { chapterIdea } from "../../src/ideas/chapters.js";

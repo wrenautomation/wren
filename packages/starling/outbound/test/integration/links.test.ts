@@ -3,12 +3,11 @@
 import { saveMessageSettings } from "@wren/core/message-settings";
 import { fakeOutreachChannel } from "@wren/core/outreach";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
+import type { ReachAccount } from "@wren/starling-acts";
+import { addAccount, DEFAULT_POLICY, refreshHealth, setAccountState } from "@wren/starling-acts";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { addAccount, refreshHealth, setAccountState } from "../../src/accounts.js";
 import { addContact } from "../../src/contacts.js";
 import { enroll } from "../../src/enroll.js";
-import { DEFAULT_POLICY } from "../../src/policy.js";
-import type { ReachAccount } from "../../src/schema.js";
 import { REACH_SEQUENCES, slotsOf, stepKey, subjectKey } from "../../src/sequences.js";
 import { setTemplate } from "../../src/store.js";
 import { tick } from "../../src/tick.js";

@@ -21,10 +21,10 @@ import { companies, people } from "@wren/core/schema";
 import { segmentOf, startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
+import { DEFAULT_POLICY } from "@wren/starling-acts";
 import type { LoopCampaign } from "@wren/starling-core/campaigns";
 import { eq, inArray, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { DEFAULT_POLICY } from "../../src/policy.js";
 import {
   ACT_BREAK,
   ACT_TRIES,

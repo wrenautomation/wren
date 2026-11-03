@@ -8,7 +8,9 @@ import * as clients from "@restatedev/restate-sdk-clients";
 import { ingressOf, type Settings } from "@wren/config";
 import { dollars, keyAccounts, VAULT_KEYS_KEY, type VaultKeys } from "@wren/core/vault-keys";
 import type { Db } from "@wren/db";
-import { movePlace, pickAccount, policyFrom } from "@wren/starling-outbound";
+import { pickAccount } from "@wren/starling-acts";
+import { deskKinds } from "@wren/starling-inbound";
+import { movePlace, policyFrom } from "@wren/starling-outbound";
 import { accountRecordOf } from "@wren/starling-outbound/records";
 import type { Command } from "commander";
 import { sql } from "drizzle-orm";
@@ -22,7 +24,7 @@ const cell = (v: unknown) => (v === null || v === undefined ? "" : String(v));
 /** Keep a draft's account pick (`<kind>:<id>`); "default" or "" clears it. */
 export async function pickFor(db: Db, item: string, account: string, by = "cli") {
   const key = account === "default" ? "" : account;
-  return pickAccount(db, { item, account: key, by });
+  return pickAccount(db, { item, account: key, by }, deskKinds);
 }
 
 export function registerAccounts(program: Command, withDb: WithDb, settings: Settings): void {

@@ -144,6 +144,9 @@ importers:
       '@wren/sites':
         specifier: workspace:*
         version: link:../../packages/sites
+      '@wren/starling-acts':
+        specifier: workspace:*
+        version: link:../../packages/starling/acts
       '@wren/starling-conversations':
         specifier: workspace:*
         version: link:../../packages/starling/conversations
@@ -332,6 +335,9 @@ importers:
       '@wren/sites':
         specifier: workspace:*
         version: link:../../packages/sites
+      '@wren/starling-acts':
+        specifier: workspace:*
+        version: link:../../packages/starling/acts
       '@wren/starling-core':
         specifier: workspace:*
         version: link:../../packages/starling/core
@@ -564,6 +570,9 @@ importers:
       '@wren/sites':
         specifier: workspace:*
         version: link:../../packages/sites
+      '@wren/starling-acts':
+        specifier: workspace:*
+        version: link:../../packages/starling/acts
       '@wren/starling-conversations':
         specifier: workspace:*
         version: link:../../packages/starling/conversations
@@ -1404,6 +1413,31 @@ importers:
         specifier: 5.0.1
         version: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@26.6.4)(@vitest/browser-playwright@5.0.1)(@vitest/ui@5.0.1)(happy-dom@20.14.5)(msw@2.15.0(@types/node@26.6.4)(typescript@5.9.3))(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
 
+  packages/starling/acts:
+    dependencies:
+      '@restatedev/restate-sdk':
+        specifier: 1.17.1
+        version: 1.17.1
+      '@wren/core':
+        specifier: workspace:*
+        version: link:../../core
+      '@wren/db':
+        specifier: workspace:*
+        version: link:../../db
+      '@wren/starling-reddit':
+        specifier: workspace:*
+        version: link:../channels/reddit
+      drizzle-orm:
+        specifier: 0.45.2
+        version: 0.45.2(@cloudflare/workers-types@5.20260927.1)(@opentelemetry/api@1.9.1)(kysely@0.29.6)(postgres@3.4.9)
+    devDependencies:
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: 5.0.1
+        version: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@26.6.4)(@vitest/browser-playwright@5.0.1)(@vitest/ui@5.0.1)(happy-dom@20.14.5)(msw@2.15.0(@types/node@26.6.4)(typescript@5.9.3))(vite@8.3.0(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1))
+
   packages/starling/channels/email:
     dependencies:
       '@restatedev/restate-sdk':
@@ -1761,6 +1795,9 @@ importers:
       '@wren/sites':
         specifier: workspace:*
         version: link:../../sites
+      '@wren/starling-acts':
+        specifier: workspace:*
+        version: link:../acts
       '@wren/starling-conversations':
         specifier: workspace:*
         version: link:../conversations
@@ -1834,6 +1871,9 @@ importers:
       '@wren/research':
         specifier: workspace:*
         version: link:../../research
+      '@wren/starling-acts':
+        specifier: workspace:*
+        version: link:../acts
       '@wren/starling-conversations':
         specifier: workspace:*
         version: link:../conversations

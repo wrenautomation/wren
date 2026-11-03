@@ -8,7 +8,7 @@
 import { AuthoringError, type Template } from "@wren/core/slots";
 import { clearTemplate, liveTemplates, saveLive, type TemplateRef } from "@wren/core/templates";
 import type { Queryable } from "@wren/db";
-import { ReachRefusal } from "./refusal.js";
+import { ReachRefusal } from "@wren/starling-acts";
 import { checkBody, render, sampleFields, type TemplateSlot } from "./sequences.js";
 
 /** Whose messages these are in the template store. */

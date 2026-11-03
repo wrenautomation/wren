@@ -6,6 +6,7 @@
 import * as restate from "@restatedev/restate-sdk";
 import { byOf } from "@wren/core/ask";
 import { serviceHandler } from "@wren/core/restate";
+import { ReachRefusal } from "@wren/starling-acts";
 import { sql } from "drizzle-orm";
 import { z } from "zod";
 import { CREATOR_SITES, type CreatorSite, findCreators, markFollowed } from "../creator-search.js";
@@ -23,7 +24,6 @@ import {
 import { draftPost } from "../reach-posts/draft.js";
 import { postReader } from "../reach-posts/read.js";
 import { allCommentsSettings } from "../reach-posts/settings.js";
-import { ReachRefusal } from "../refusal.js";
 import { READS_KEY } from "./discovery.js";
 import type { ReachDeps } from "./index.js";
 

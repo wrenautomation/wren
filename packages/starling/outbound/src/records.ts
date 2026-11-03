@@ -23,19 +23,28 @@ import {
   text,
 } from "@wren/core/records";
 import { dollars, type KeyAccount, keyAccounts } from "@wren/core/vault-keys";
+import {
+  accountById,
+  accountPickFor,
+  DEFAULT_POLICY,
+  listAccounts,
+  pickedAccounts,
+  pickedReachAccount,
+  type ReachPolicy,
+  recordAccountsOf,
+  viewOf,
+} from "@wren/starling-acts";
 import { warmupOf } from "@wren/starling-reddit";
 import { inArray, sql } from "drizzle-orm";
 import { z } from "zod";
-import { accountById, listAccounts, recordAccountsOf, viewOf } from "./accounts.js";
 import { personLine } from "./discovery/people.js";
 import { movePlace } from "./discovery/places.js";
 import { gatesFor, holdsThread } from "./discovery/requirements.js";
 import { commentsToday } from "./discovery/threads.js";
-import { accountPickFor, pickedAccounts, pickedReachAccount } from "./draft-accounts.js";
 import { threadContextOf } from "./follow-ups.js";
 import { PERSON_ACCOUNTS } from "./from-people.js";
 import { VANITY } from "./invites.js";
-import { DEFAULT_POLICY, type ReachPolicy } from "./policy.js";
+import { reachKinds } from "./item-kinds.js";
 import { type DmPlatform, type PlaceJudged, type RedditPerson, redditPeople } from "./schema.js";
 import {
   MESSAGE_MAX,
@@ -242,7 +251,7 @@ export const dmRecord = defineRecord({
         state: m.state,
       })),
       dm: { site: SITES[t.contact.platform], from, max: MESSAGE_MAX },
-      accounts: await accountPickFor(db, `dm:${id}`),
+      accounts: await accountPickFor(db, `dm:${id}`, reachKinds),
       ask: await draftTurns(db, "dm", id),
       record: await recordOfPage(db, "dm", id),
     };
@@ -370,7 +379,7 @@ export const commentRecord = defineRecord({
   ],
   /** Ask Claude's thread on the draft answer. */
   load: async (db, id) => ({
-    accounts: await accountPickFor(db, `comment:${id}`),
+    accounts: await accountPickFor(db, `comment:${id}`, reachKinds),
     ask: await draftTurns(db, "comment", id),
     record: await recordOfPage(db, "comment", id),
     context: await threadContextOf(db, Number(id)),
@@ -690,7 +699,7 @@ export const threadRecord = defineRecord({
   ],
   /** Ask Claude's thread on the draft comment. */
   load: async (db, id) => ({
-    accounts: await accountPickFor(db, `thread:${id}`),
+    accounts: await accountPickFor(db, `thread:${id}`, reachKinds),
     ask: await draftTurns(db, "thread", id),
     record: await recordOfPage(db, "thread", id),
   }),
@@ -811,7 +820,7 @@ export const inviteRecord = defineRecord({
     "marketing.draftUndo",
   ],
   load: async (db, id) => ({
-    accounts: await accountPickFor(db, `invite:${id}`),
+    accounts: await accountPickFor(db, `invite:${id}`, reachKinds),
     ask: await draftTurns(db, "invite", id),
     record: await recordOfPage(db, "invite", id),
   }),

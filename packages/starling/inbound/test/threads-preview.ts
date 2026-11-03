@@ -8,13 +8,8 @@
  */
 import type { ThreadNode } from "@wren/core/outreach";
 import { createDb, migrate } from "@wren/db";
-import {
-  addAccount,
-  applyThread,
-  keepComments,
-  setAccountState,
-  watchFromComments,
-} from "@wren/starling-outbound";
+import { addAccount, setAccountState } from "@wren/starling-acts";
+import { applyThread, keepComments, watchFromComments } from "@wren/starling-outbound";
 import { commentThreads } from "@wren/starling-outbound/schema";
 import { sql } from "drizzle-orm";
 import { INBOX_TABLES, seedInbox } from "./inbox-seed.js";

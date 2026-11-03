@@ -44,6 +44,7 @@ import {
 } from "@wren/core/records/serve";
 import { clientKey, PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { type Db, snapshot } from "@wren/db";
+import { SETTLE_OUTCOMES, type SettleOutcome } from "@wren/starling-acts";
 import type { ReplyOption } from "@wren/starling-conversations/inbox";
 import { clientRoutes, withRoutes } from "@wren/starling-conversations/inbox";
 import type { InboxDesk } from "@wren/starling-conversations/restate";
@@ -56,7 +57,6 @@ import {
   type InboxStatus,
 } from "@wren/starling-conversations/schema";
 import type { TikTokCreator } from "@wren/starling-core/tiktok";
-import { SETTLE_OUTCOMES, type SettleOutcome } from "@wren/starling-outbound";
 import { z } from "zod";
 import {
   deleteReport,

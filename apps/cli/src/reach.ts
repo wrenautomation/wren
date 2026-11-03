@@ -13,6 +13,7 @@ import { settingsFor, setWrenSettings } from "@wren/core/clients";
 import { PASS_REASONS, type PassReason } from "@wren/core/pass-reasons";
 import { REJECT_REASONS } from "@wren/core/reject-reasons";
 import { atomic, type Db, setAuditActor } from "@wren/db";
+import { listAccounts, PLATFORMS, platformOf, viewOf } from "@wren/starling-acts";
 import type { Proof } from "@wren/starling-core";
 import {
   backfillFromProofs,
@@ -29,12 +30,9 @@ import {
   invitesSettingsSchema,
   isProofItem,
   learnText,
-  listAccounts,
   listPosts,
   listTemplates,
   listThreads,
-  PLATFORMS,
-  platformOf,
   policyFrom,
   proofsSince,
   proposedInvites,
@@ -46,7 +44,6 @@ import {
   setNeed,
   slotsOf,
   topicYields,
-  viewOf,
   warmupOf,
 } from "@wren/starling-outbound";
 import {

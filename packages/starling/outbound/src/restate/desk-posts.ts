@@ -4,8 +4,16 @@ import { byOf } from "@wren/core/ask";
 import { PASS_REASONS, type PassReason } from "@wren/core/pass-reasons";
 import { errorText, NO_INPUT, serviceHandler } from "@wren/core/restate";
 import { sendAcross } from "@wren/core/send-verdict";
+import { pickedAccount, recordLanded } from "@wren/starling-acts";
+import {
+  isSendNotSent,
+  isSendUnsure,
+  type Landed,
+  sendAtMostOnce,
+  sendError,
+} from "@wren/starling-acts/restate";
 import { z } from "zod";
-import { pickedAccount } from "../draft-accounts.js";
+import { reachKinds } from "../item-kinds.js";
 import { liftPass, listPasses, passOn } from "../passes.js";
 import {
   listPosts,
@@ -21,16 +29,8 @@ import type { PostsStats } from "../reach-posts/pass.js";
 import { allCommentsSettings, COMMENT_MAX, commentsSettings } from "../reach-posts/settings.js";
 import { sendFailed, sendHeld, stillDue, unschedule } from "../scheduled.js";
 import { REACH_POST_PLATFORMS } from "../schema.js";
-import { recordLanded } from "../send-kinds.js";
 import type { ContentReply } from "./deps.js";
 import { type DeskContext, terminalWhy } from "./desk-context.js";
-import {
-  isSendNotSent,
-  isSendUnsure,
-  type Landed,
-  sendAtMostOnce,
-  sendError,
-} from "./maybe-sent.js";
 import { scheduleProofs } from "./proofs.js";
 import { postsFor } from "./watch.js";
 
@@ -128,7 +128,8 @@ export function postsHandlers(desk: DeskContext) {
                 );
               return { ref: null };
             },
-            landed: (tx, landed) => recordLanded(tx, item, { ref: landed.ref, now, by: byOf(req) }),
+            landed: (tx, landed) =>
+              recordLanded(tx, item, reachKinds, { ref: landed.ref, now, by: byOf(req) }),
           });
         } catch (thrown) {
           if (isSendUnsure(thrown)) {

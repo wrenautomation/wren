@@ -13,15 +13,13 @@
 
 import type { AccountHealth } from "@wren/core/outreach";
 import type { Queryable } from "@wren/db";
+import { type ReachAccount, ReachRefusal, reachAccounts } from "@wren/starling-acts";
 import { warmupOf } from "@wren/starling-reddit";
 import { and, eq, inArray, isNull, sql } from "drizzle-orm";
-import { ReachRefusal } from "../refusal.js";
 import {
   type PlaceJudged,
-  type ReachAccount,
   type RedditRequirement,
   type RequirementSource,
-  reachAccounts,
   redditPlaces,
   redditRequirements,
   redditThreads,

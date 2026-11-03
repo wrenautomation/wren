@@ -11,17 +11,14 @@ import { handleOf } from "@wren/core/outreach";
 import { companies, people } from "@wren/core/schema";
 import { normalizeHandle, recordTouch, socialHandles, touches } from "@wren/core/touches";
 import type { Queryable } from "@wren/db";
+import { listAccounts, type Platform, type ReachAccount, ReachRefusal } from "@wren/starling-acts";
 import { and, eq, sql } from "drizzle-orm";
-import { listAccounts } from "./accounts.js";
 import { checkCanDm } from "./comments.js";
 import { addProspects, contactByHandle } from "./contacts.js";
 import { whoOf } from "./passes.js";
-import { ReachRefusal } from "./refusal.js";
 import {
   isReachPlatform,
-  type Platform,
   REACH_POST_PLATFORMS,
-  type ReachAccount,
   type ReachContact,
   type ReachPostPlatform,
   reachContacts,

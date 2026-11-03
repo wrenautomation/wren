@@ -54,8 +54,6 @@ import {
 } from "@wren/core/restate";
 import { type Delivery, isDelivery } from "@wren/core/send-verdict";
 import type { Db } from "@wren/db";
-import type { Post, Published } from "@wren/starling-core";
-import { ShapeError } from "@wren/starling-core/shapes";
 import {
   claimSend,
   forgetUnsure,
@@ -66,7 +64,9 @@ import {
   recheckOf,
   releaseSend,
   sendAttempt,
-} from "@wren/starling-outbound";
+} from "@wren/starling-acts";
+import type { Post, Published } from "@wren/starling-core";
+import { ShapeError } from "@wren/starling-core/shapes";
 import { clientContent } from "../clients.js";
 import { postedLinks } from "../funnel.js";
 import { PLATFORM_SPECS, postOf } from "../platforms.js";

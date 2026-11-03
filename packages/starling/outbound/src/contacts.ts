@@ -13,15 +13,9 @@ import {
   type Prospect,
 } from "@wren/core/outreach";
 import type { Queryable } from "@wren/db";
+import { type Platform, ReachRefusal } from "@wren/starling-acts";
 import { and, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
-import { ReachRefusal } from "./refusal.js";
-import {
-  type ContactState,
-  type Platform,
-  type ReachContact,
-  reachContacts,
-  reachMessages,
-} from "./schema.js";
+import { type ContactState, type ReachContact, reachContacts, reachMessages } from "./schema.js";
 import { firstName, type RenderFields } from "./sequences.js";
 
 export interface AddStats {

@@ -7,11 +7,11 @@
 import type { ExecutorEvent, StepAt } from "@wren/core/executor";
 import { saveLive } from "@wren/core/templates";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
+import { clientSends, reachAccounts } from "@wren/starling-acts";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { clientSends } from "../../src/clients.js";
 import { touchStep } from "../../src/follow.js";
-import { reachAccounts, reachContacts, reachMessages } from "../../src/schema.js";
+import { reachContacts, reachMessages } from "../../src/schema.js";
 import { REACH_SEQUENCES } from "../../src/sequences.js";
 
 let pg: TestPostgres;

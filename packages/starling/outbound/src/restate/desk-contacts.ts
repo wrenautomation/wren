@@ -2,8 +2,8 @@
 import * as restate from "@restatedev/restate-sdk";
 import type { Found, Profile } from "@wren/core/outreach";
 import { NO_INPUT, PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
+import { accountById, listAccounts, platformOf, ReachRefusal } from "@wren/starling-acts";
 import { z } from "zod";
-import { accountById, listAccounts, platformOf } from "../accounts.js";
 import {
   type AddStats,
   addContact,
@@ -13,7 +13,6 @@ import {
   listContacts,
 } from "../contacts.js";
 import { type EnrollStats, enroll } from "../enroll.js";
-import { ReachRefusal } from "../refusal.js";
 import {
   CONTACT_STATES,
   type ContactState,

@@ -7,9 +7,17 @@
 import { type CommentIn, fakeOutreachChannel } from "@wren/core/outreach";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
+import {
+  addAccount,
+  DEFAULT_POLICY,
+  lastTouches,
+  type ReachAccount,
+  ReachRefusal,
+  refreshHealth,
+  setAccountState,
+} from "@wren/starling-acts";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { addAccount, lastTouches, refreshHealth, setAccountState } from "../../src/accounts.js";
 import {
   answerComment,
   commentById,
@@ -17,10 +25,8 @@ import {
   keepComments,
   sortComment,
 } from "../../src/comments.js";
-import { DEFAULT_POLICY } from "../../src/policy.js";
 import { commentRecord } from "../../src/records.js";
-import { ReachRefusal } from "../../src/refusal.js";
-import { comments, type ReachAccount, reachMessages } from "../../src/schema.js";
+import { comments, reachMessages } from "../../src/schema.js";
 import { REACH_SEQUENCES } from "../../src/sequences.js";
 import { tick } from "../../src/tick.js";
 

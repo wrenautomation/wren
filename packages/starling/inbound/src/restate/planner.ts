@@ -40,10 +40,11 @@ import {
 } from "@wren/core/restate";
 import { wallClock, zonedInstant } from "@wren/core/time";
 import type { Db } from "@wren/db";
+import { pickAccount, ReachRefusal } from "@wren/starling-acts";
 import { capLeft, type LoopCampaign } from "@wren/starling-core/campaigns";
-import { pickAccount, ReachRefusal } from "@wren/starling-outbound";
 import { eq } from "drizzle-orm";
 import { clientContent, clientPlan } from "../clients.js";
+import { contentKinds } from "../draft-items.js";
 import {
   campaignSlots,
   type DayPlan,
@@ -292,11 +293,11 @@ export function makeContentPlanner(deps: ContentPlannerDeps) {
                 client || !account
                   ? null
                   : await ctx.run(`account ${r.draft.id}`, () =>
-                      pickAccount(db, {
-                        item: `draft:${r.draft.id}`,
-                        account,
-                        by: "ContentPlanner",
-                      }).then(
+                      pickAccount(
+                        db,
+                        { item: `draft:${r.draft.id}`, account, by: "ContentPlanner" },
+                        contentKinds,
+                      ).then(
                         () => null,
                         (err: unknown) => {
                           if (err instanceof ReachRefusal) return err.message;

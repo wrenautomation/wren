@@ -2,10 +2,10 @@
 import type * as restate from "@restatedev/restate-sdk";
 import { byOf } from "@wren/core/ask";
 import { serviceHandler } from "@wren/core/restate";
+import { ReachRefusal } from "@wren/starling-acts";
 import { z } from "zod";
 import { contactById } from "../contacts.js";
 import { queueDraft } from "../drafts.js";
-import { ReachRefusal } from "../refusal.js";
 import { CONTACT_STATES } from "../schema.js";
 import {
   getThread,

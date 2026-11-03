@@ -13,9 +13,15 @@ import {
   truncate,
 } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
+import {
+  addAccount,
+  type ReachAccount,
+  ReachRefusal,
+  refreshHealth,
+  setAccountState,
+} from "@wren/starling-acts";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { addAccount, refreshHealth, setAccountState } from "../../src/accounts.js";
 import {
   addKarmaPlaces,
   addPlaces,
@@ -45,9 +51,8 @@ import {
   watchPlace,
 } from "../../src/index.js";
 import { placeRecord, threadRecord } from "../../src/records.js";
-import { ReachRefusal } from "../../src/refusal.js";
 import { scheduleThreads, THREAD_PACE } from "../../src/scheduled.js";
-import { comments, type ReachAccount, redditPlaces, redditThreads } from "../../src/schema.js";
+import { comments, redditPlaces, redditThreads } from "../../src/schema.js";
 
 const TABLES = [
   "reddit_threads",

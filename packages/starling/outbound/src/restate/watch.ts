@@ -26,8 +26,16 @@ import {
 } from "@wren/core/restate";
 import { gate } from "@wren/core/vendors";
 import { COLD_EVERY_MS, warmEveryMs } from "@wren/core/warm";
-import { type HealthStats, lastTouches, listAccounts, refreshHealth } from "../accounts.js";
-import { clientReach, type ReachPart, syncLogins } from "../clients.js";
+import {
+  clientReach,
+  type HealthStats,
+  lastTouches,
+  listAccounts,
+  type ReachAccount,
+  type ReachPart,
+  refreshHealth,
+  syncLogins,
+} from "@wren/starling-acts";
 import { COMMENTS_FLOW, COMMENTS_FROM, commentEvent, keepComments } from "../comments.js";
 import { contactsToDraft, DRAFTS_PER_DAY, draftDm, draftsToday } from "../drafts.js";
 import {
@@ -64,7 +72,7 @@ import { postReader } from "../reach-posts/read.js";
 import { allCommentsSettings, type CommentsSettings } from "../reach-posts/settings.js";
 import { pullReplies, type RepliesStats } from "../replies.js";
 import { schedulePosts } from "../scheduled.js";
-import { REACH_POST_PLATFORMS, type ReachAccount, type ReachPostPlatform } from "../schema.js";
+import { REACH_POST_PLATFORMS, type ReachPostPlatform } from "../schema.js";
 import { channelsFor, clientDeps, nowFor, type ReachDeps, type ReachView } from "./deps.js";
 import { fireSlots } from "./schedule.js";
 

@@ -39,6 +39,7 @@
     "@wren/reactivation": "workspace:*",
     "@wren/research": "workspace:*",
     "@wren/sites": "workspace:*",
+    "@wren/starling-acts": "workspace:*",
     "@wren/starling-conversations": "workspace:*",
     "@wren/starling-core": "workspace:*",
     "@wren/starling-email": "workspace:*",

@@ -11,27 +11,26 @@ import { noRawKeys } from "@wren/core/key-refs";
 import { clientKey, errorText, serviceHandler } from "@wren/core/restate";
 import { sendAcross } from "@wren/core/send-verdict";
 import { atomic, type Db } from "@wren/db";
-import { SENDS_OFF } from "@wren/starling-core/service";
 import {
-  dropComment,
   forgetUnsure,
   itemOf,
   markPosted,
-  planAnswer,
   ReachRefusal,
   recordLanded,
   SETTLE_OUTCOMES,
   type SettleOutcome,
   settleSent,
   unsureItem,
-} from "@wren/starling-outbound";
+} from "@wren/starling-acts";
 import {
   isSendNotSent,
   isSendTaken,
   isSendUnsure,
-  type PostSettle,
   sendAtMostOnce,
-} from "@wren/starling-outbound/restate";
+} from "@wren/starling-acts/restate";
+import { SENDS_OFF } from "@wren/starling-core/service";
+import { dropComment, planAnswer, reachKinds } from "@wren/starling-outbound";
+import type { PostSettle } from "@wren/starling-outbound/restate";
 import { z } from "zod";
 import { liveConnections, loginOf, type SocialAccessApi } from "../connect/access.js";
 import {
@@ -279,7 +278,11 @@ export function makeSocialInbox(deps: SocialInboxDeps) {
               return { ref: null };
             },
             landed: (tx, sent) =>
-              recordLanded(tx, `comment:${req.id}`, { ref: sent.ref, now, by: req.by ?? "inbox" }),
+              recordLanded(tx, `comment:${req.id}`, reachKinds, {
+                ref: sent.ref,
+                now,
+                by: req.by ?? "inbox",
+              }),
           });
           return { ok: true };
         },
@@ -338,7 +341,7 @@ export function makeSocialInbox(deps: SocialInboxDeps) {
             await ctx.run("posted", () =>
               terminal(async () => {
                 if (kind === "comment" || kind === "private")
-                  return void (await markPosted(db, req.item, { by, now }));
+                  return void (await markPosted(db, req.item, reachKinds, { by, now }));
                 const plan = await dmPlanOf(db, Number(id));
                 await atomic(db, async (tx) => {
                   if (!(await settleSent(tx, req.item, { ref, at: now, by, now })))

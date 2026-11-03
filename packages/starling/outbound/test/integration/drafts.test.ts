@@ -9,9 +9,9 @@ import { setWrenSettings } from "@wren/core/clients";
 import { companies, people } from "@wren/core/schema";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
+import { addAccount, type ReachAccount, setAccountState } from "@wren/starling-acts";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { addAccount, setAccountState } from "../../src/accounts.js";
 import { addProspects, contactByHandle, contactById } from "../../src/contacts.js";
 import {
   contactsToDraft,
@@ -25,7 +25,7 @@ import { messageAccount, personContact } from "../../src/from-people.js";
 import { INVITES_COMPONENT } from "../../src/invites.js";
 import { personRecord } from "../../src/records.js";
 import { receive } from "../../src/replies.js";
-import { type ReachAccount, reachContacts, reachMessages } from "../../src/schema.js";
+import { reachContacts, reachMessages } from "../../src/schema.js";
 
 const TABLES = [
   "reach_messages",

@@ -14,9 +14,9 @@ import { dbSendJournal } from "@wren/core/send-journal";
 import { startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { FakeLlm } from "@wren/llm";
+import { DEFAULT_POLICY } from "@wren/starling-acts";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { discoverySettingsSchema } from "../../src/discovery/places.js";
-import { DEFAULT_POLICY } from "../../src/policy.js";
 import { type DiscoveryStats, makeRedditReads } from "../../src/restate/discovery.js";
 import { REACH_SEQUENCES } from "../../src/sequences.js";
 

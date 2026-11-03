@@ -10,10 +10,9 @@
 import { leadRefusal } from "@wren/core/leads";
 import type { Template } from "@wren/core/slots";
 import type { Queryable } from "@wren/db";
+import { activeAccounts, ReachRefusal } from "@wren/starling-acts";
 import { and, asc, eq, inArray, isNotNull } from "drizzle-orm";
-import { activeAccounts } from "./accounts.js";
 import { fieldsFor, loadByAccount } from "./contacts.js";
-import { ReachRefusal } from "./refusal.js";
 import { type ReachContact, reachContacts, reachMessages } from "./schema.js";
 import {
   CONNECT_NOTE,

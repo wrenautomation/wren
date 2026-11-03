@@ -16,7 +16,7 @@ import {
   stoppedPass,
 } from "@wren/core/restate";
 import { cadenceId } from "@wren/core/workflows";
-import { clientReach, clientSends, syncLogins } from "../clients.js";
+import { clientReach, clientSends, syncLogins } from "@wren/starling-acts";
 import { reachLead } from "../follow.js";
 import { nextDue, type RecheckAsks, type TickStats, tick } from "../tick.js";
 import { channelsFor, clientDeps, nowFor, type ReachDeps, wakeWatch } from "./deps.js";

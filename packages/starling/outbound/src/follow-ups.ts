@@ -11,17 +11,15 @@ import { resolveComments, resolveObjectOrNull } from "@wren/core/objects";
 import type { CommentIn, ThreadNode, ThreadRead } from "@wren/core/outreach";
 import { warmEveryMs } from "@wren/core/warm";
 import { atomic, type Queryable } from "@wren/db";
+import { type ReachAccount, ReachRefusal, reachAccounts } from "@wren/starling-acts";
 import { and, asc, eq, gt, inArray, lte, sql } from "drizzle-orm";
 import { z } from "zod";
 import { keepComments } from "./comments.js";
-import { ReachRefusal } from "./refusal.js";
 import {
   type Comment,
   type CommentThread,
   comments,
   commentThreads,
-  type ReachAccount,
-  reachAccounts,
   type ThreadNodeRow,
 } from "./schema.js";
 import { keepTouch, touchFromAnswer, touchFromComment } from "./touches.js";

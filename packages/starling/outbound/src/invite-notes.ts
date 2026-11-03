@@ -10,11 +10,11 @@ import { factsBlock, humanBlock } from "@wren/core/facts";
 import { guardDraft, recordGuard } from "@wren/core/grounded";
 import type { Queryable } from "@wren/db";
 import { completeAndParse, type LlmClient } from "@wren/llm";
+import { ReachRefusal } from "@wren/starling-acts";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { armMeta, guardBy, modelFor } from "./draft-llm.js";
 import { dmContext } from "./drafts.js";
-import { ReachRefusal } from "./refusal.js";
 import { reachMessages } from "./schema.js";
 import { notesThisMonth } from "./tick.js";
 

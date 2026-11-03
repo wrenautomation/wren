@@ -8,9 +8,9 @@
 import type { CommentIn, ThreadNode, ThreadRead } from "@wren/core/outreach";
 import { foldRows } from "@wren/core/records";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
+import { addAccount, type ReachAccount, setAccountState } from "@wren/starling-acts";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { addAccount, setAccountState } from "../../src/accounts.js";
 import { keepComments, markAnswered } from "../../src/comments.js";
 import {
   adoptNode,
@@ -21,7 +21,7 @@ import {
   watchFromComments,
 } from "../../src/follow-ups.js";
 import { COMMENT_FOLD, commentRecord } from "../../src/records.js";
-import { comments, commentThreads, type ReachAccount } from "../../src/schema.js";
+import { comments, commentThreads } from "../../src/schema.js";
 
 const TABLES = ["comment_threads", "comments", "reach_contacts", "reach_accounts"];
 const NOW = new Date("2026-10-01T18:00:00Z");

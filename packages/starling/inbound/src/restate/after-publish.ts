@@ -9,8 +9,8 @@ import type { Platform } from "@wren/core/autobrowse";
 import { errorText, LIMITS, within } from "@wren/core/restate";
 import { type Delivery, isDelivery } from "@wren/core/send-verdict";
 import type { Db } from "@wren/db";
+import { settleSent } from "@wren/starling-acts";
 import type { Published } from "@wren/starling-core";
-import { settleSent } from "@wren/starling-outbound";
 import { markPublished, noteOnDraft } from "../queue.js";
 
 /** A first comment is a nicety: waited on this long, then noted on the draft. */

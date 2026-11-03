@@ -1,13 +1,12 @@
 /** The operator's reads: threads, one thread, counts. */
 import { type Queryable, snapshot } from "@wren/db";
+import { type Platform, reachAccounts } from "@wren/starling-acts";
 import { and, desc, eq, gte, inArray, sql } from "drizzle-orm";
 import { contactById } from "./contacts.js";
 import {
   type ContactState,
-  type Platform,
   type ReachContact,
   type ReachMessage,
-  reachAccounts,
   reachContacts,
   reachMessages,
 } from "./schema.js";

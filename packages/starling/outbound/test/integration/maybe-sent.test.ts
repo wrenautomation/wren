@@ -29,44 +29,49 @@ import {
   type TestPostgres,
   truncate,
 } from "@wren/db/testing";
-import { eq } from "drizzle-orm";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { addAccount, refreshHealth, setAccountState } from "../../src/accounts.js";
-import { commentById } from "../../src/comments.js";
-import { addContact } from "../../src/contacts.js";
-import { enroll } from "../../src/enroll.js";
-import { addPlaces, keepPlace, keepThreads, watchPlace } from "../../src/index.js";
-import { DEFAULT_POLICY } from "../../src/policy.js";
-import { COMMENTS_SETTINGS } from "../../src/reach-posts/settings.js";
-import { discoveryHandlers } from "../../src/restate/discovery.js";
-import type { ReachDeps } from "../../src/restate/index.js";
+import {
+  addAccount,
+  claimSend,
+  DEFAULT_POLICY,
+  dropItem,
+  KEYLESS_TRY,
+  markPosted,
+  parkUnsure,
+  RECHECK_FOR_MS,
+  RECHECK_QUIET_MS,
+  type ReachAccount,
+  refreshHealth,
+  SETTLE_OUTCOMES,
+  sendAttempt,
+  sendAttempts,
+  setAccountState,
+  unsureSends,
+} from "@wren/starling-acts";
 import {
   isSendNotSent,
   isSendTaken,
   isSendUnsure,
   sendAtMostOnce,
-} from "../../src/restate/maybe-sent.js";
+} from "@wren/starling-acts/restate";
+import { markDmPosted, reachKinds, requeueDm } from "@wren/starling-outbound";
+import { eq } from "drizzle-orm";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { commentById } from "../../src/comments.js";
+import { addContact } from "../../src/contacts.js";
+import { enroll } from "../../src/enroll.js";
+import { addPlaces, keepPlace, keepThreads, watchPlace } from "../../src/index.js";
+import { COMMENTS_SETTINGS } from "../../src/reach-posts/settings.js";
+import { discoveryHandlers } from "../../src/restate/discovery.js";
+import type { ReachDeps } from "../../src/restate/index.js";
 import { schedulePosts } from "../../src/scheduled.js";
 import {
   comments,
-  type ReachAccount,
   reachContacts,
   reachMessages,
   reachPosts,
   redditThreads,
-  sendAttempts,
 } from "../../src/schema.js";
-import {
-  claimSend,
-  KEYLESS_TRY,
-  parkUnsure,
-  RECHECK_FOR_MS,
-  RECHECK_QUIET_MS,
-  sendAttempt,
-  unsureSends,
-} from "../../src/send-attempts.js";
 import { REACH_SEQUENCES, slotsOf, stepKey, subjectKey } from "../../src/sequences.js";
-import { dropItem, markPosted, requeueDm, SETTLE_OUTCOMES } from "../../src/settle-send.js";
 import { setTemplate } from "../../src/store.js";
 import { nextDue, tick } from "../../src/tick.js";
 
@@ -657,7 +662,7 @@ describe("a Reddit comment, the whole way (ReachDesk commentThread)", () => {
     await expect(run(desk).result).rejects.toThrow(/may have gone out/);
     expect(desk.writes).toHaveLength(1);
     // "Not sent, drop": the thread is skipped and the ledger row goes.
-    await dropItem(db(), ITEM, { by: "test@example.com", now: NOW });
+    await dropItem(db(), ITEM, reachKinds, { by: "test@example.com", now: NOW });
     expect(await thread()).toMatchObject({ state: "skipped" });
     expect(await sendAttempt(db(), ITEM)).toBeNull();
     await expect(run(desk).result).rejects.toThrow(/that thread is skipped/);
@@ -674,7 +679,7 @@ describe("a Reddit comment, the whole way (ReachDesk commentThread)", () => {
       .update(sendAttempts)
       .set({ words: "Our edited words." })
       .where(eq(sendAttempts.item, ITEM));
-    await markPosted(db(), ITEM, { by: "test@example.com", now: NOW });
+    await markPosted(db(), ITEM, reachKinds, { by: "test@example.com", now: NOW });
     expect(await thread()).toMatchObject({ state: "commented", answer: "Our edited words." });
     const steps = await draftSteps(db(), ITEM);
     expect(steps.filter((s) => s.event === "edited")).toEqual([
@@ -765,7 +770,7 @@ describe("the sender's DMs", () => {
     // Nothing resends it.
     await tickNow();
     expect(ch.sent).toHaveLength(1);
-    const after = await markPosted(db(), item, {
+    const after = await markDmPosted(db(), item, {
       sequences: REACH_SEQUENCES,
       sender: "William",
       by: "test@example.com",
@@ -1019,7 +1024,7 @@ describe("the sender's DMs", () => {
     await tickNow();
     const [m] = await db().select().from(reachMessages);
     const item = `dm:${m?.id}`;
-    await dropItem(db(), item, { by: "test@example.com", now: NOW });
+    await dropItem(db(), item, reachKinds, { by: "test@example.com", now: NOW });
     const [after] = await db().select().from(reachMessages);
     expect(after?.state).toBe("skipped");
     const [c] = await db().select().from(reachContacts);
@@ -1028,7 +1033,9 @@ describe("the sender's DMs", () => {
     // Nothing resends it, and a second drop finds nothing waiting.
     await tickNow();
     expect(ch.sent).toHaveLength(0);
-    await expect(dropItem(db(), item, { by: "x", now: NOW })).rejects.toThrow(/nothing waits/);
+    await expect(dropItem(db(), item, reachKinds, { by: "x", now: NOW })).rejects.toThrow(
+      /nothing waits/,
+    );
   });
 });
 
@@ -1098,7 +1105,7 @@ describe("Not sent, drop, for each kind of item", () => {
   it("an on-post comment: skipped, as a skip in To approve does", async () => {
     const id = await onePost();
     await park(`onpost:${id}`);
-    await dropItem(db(), `onpost:${id}`, { by: "test@example.com", now: NOW });
+    await dropItem(db(), `onpost:${id}`, reachKinds, { by: "test@example.com", now: NOW });
     const [p] = await db().select().from(reachPosts).where(eq(reachPosts.id, id));
     expect(p).toMatchObject({ state: "skipped", stateReason: "skipped in To approve" });
     expect(await sendAttempt(db(), `onpost:${id}`)).toBeNull();
@@ -1107,7 +1114,7 @@ describe("Not sent, drop, for each kind of item", () => {
   it("a comment answer: dropped, the ledger row gone", async () => {
     const id = await oneComment();
     await park(`comment:${id}`, "instagram");
-    await dropItem(db(), `comment:${id}`, { by: "test@example.com", now: NOW });
+    await dropItem(db(), `comment:${id}`, reachKinds, { by: "test@example.com", now: NOW });
     expect((await commentById(db(), id)).state).toBe("dropped");
     expect(await sendAttempt(db(), `comment:${id}`)).toBeNull();
   });
@@ -1115,7 +1122,7 @@ describe("Not sent, drop, for each kind of item", () => {
   it("a private reply: only the ledger row goes, the comment it answers stays as it was", async () => {
     const id = await oneComment();
     await park(`private:${id}`, "instagram");
-    await dropItem(db(), `private:${id}`, { by: "test@example.com", now: NOW });
+    await dropItem(db(), `private:${id}`, reachKinds, { by: "test@example.com", now: NOW });
     expect((await commentById(db(), id)).state).toBe("waiting");
     expect(await sendAttempt(db(), `private:${id}`)).toBeNull();
   });
@@ -1123,15 +1130,17 @@ describe("Not sent, drop, for each kind of item", () => {
   it("a client's DM and a post of ours close in their own desks: here they are refused and stay", async () => {
     for (const item of ["sdm:5", "draft:9"]) {
       await park(item, "x");
-      await expect(dropItem(db(), item, { by: "x", now: NOW })).rejects.toThrow(/settles in/);
+      await expect(dropItem(db(), item, reachKinds, { by: "x", now: NOW })).rejects.toThrow(
+        /settles in/,
+      );
       expect(await sendAttempt(db(), item)).toMatchObject({ state: "unsure" });
     }
   });
 
   it("an item nothing waits on is refused", async () => {
-    await expect(dropItem(db(), "thread:t3_none", { by: "x", now: NOW })).rejects.toThrow(
-      /nothing waits/,
-    );
+    await expect(
+      dropItem(db(), "thread:t3_none", reachKinds, { by: "x", now: NOW }),
+    ).rejects.toThrow(/nothing waits/);
   });
 });
 
@@ -1224,7 +1233,7 @@ describe("a private reply (private:), with no key to ask: the desk says unknown"
     expect(await sendAttempt(db(), `private:${id}`)).toMatchObject({ state: "unsure" });
     await expect(privately(id, async () => ({ ref: "m_2" }))).rejects.toThrow(/may have gone out/);
     expect(sent).toBe(1);
-    await markPosted(db(), `private:${id}`, { by: "test@example.com", now: NOW });
+    await markPosted(db(), `private:${id}`, reachKinds, { by: "test@example.com", now: NOW });
     const c = await commentById(db(), id);
     expect(c.contactId).toBeTruthy();
     const [m] = await db()

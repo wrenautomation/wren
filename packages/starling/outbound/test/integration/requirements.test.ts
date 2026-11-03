@@ -7,9 +7,15 @@
 import { resolveObjects } from "@wren/core/objects";
 import { fakeOutreachChannel } from "@wren/core/outreach";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
+import {
+  addAccount,
+  draftAccounts,
+  type ReachAccount,
+  refreshHealth,
+  setAccountState,
+} from "@wren/starling-acts";
 import { eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { addAccount, refreshHealth, setAccountState } from "../../src/accounts.js";
 import { ThreadHeld } from "../../src/discovery/requirements.js";
 import {
   applyGates,
@@ -27,7 +33,7 @@ import {
 } from "../../src/index.js";
 import { keepProof } from "../../src/proofs.js";
 import { scheduleThreads } from "../../src/scheduled.js";
-import { draftAccounts, type ReachAccount, redditPlaces, redditThreads } from "../../src/schema.js";
+import { redditPlaces, redditThreads } from "../../src/schema.js";
 
 const TABLES = [
   "reddit_requirements",

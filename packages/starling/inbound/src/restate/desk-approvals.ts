@@ -5,15 +5,15 @@ import type { Platform } from "@wren/core/autobrowse";
 import { REJECT_REASONS, rejectWhy } from "@wren/core/draft-record";
 import { clientKey, clientOfKey, exclusiveHandler, PORTAL_FIELDS } from "@wren/core/restate";
 import { isDelivery } from "@wren/core/send-verdict";
-import type { Post, Published } from "@wren/starling-core";
-import { ShapeError } from "@wren/starling-core/shapes";
 import {
   forgetUnsure,
   SETTLE_OUTCOMES,
   type SettleOutcome,
   settleSent,
   unsureItem,
-} from "@wren/starling-outbound";
+} from "@wren/starling-acts";
+import type { Post, Published } from "@wren/starling-core";
+import { ShapeError } from "@wren/starling-core/shapes";
 import { z } from "zod";
 import { POSTS_UNIT } from "../components.js";
 import { postedLinks } from "../funnel.js";
