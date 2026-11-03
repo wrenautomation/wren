@@ -4,6 +4,7 @@
  * report, and the Email console.
  */
 
+import { makeCallBookings } from "@wren/calendar/calls";
 import { sitesHost } from "@wren/core/autobrowse/box";
 import { restateSites } from "@wren/core/autobrowse/restate";
 import type { Calendar } from "@wren/core/calendar";
@@ -20,7 +21,6 @@ import {
   senderDomain,
 } from "@wren/starling-email";
 import {
-  makeCallBookings,
   makeClicksScheduler,
   makeOpensScheduler,
   makePostmasterScheduler,

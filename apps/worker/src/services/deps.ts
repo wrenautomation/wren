@@ -17,6 +17,8 @@ import {
   calendarChecks,
   GoogleHost,
 } from "@wren/calendar";
+import { landerVisits } from "@wren/calendar/calls";
+import { briefSettingsOf, CALL_BRIEF } from "@wren/calendar/calls/settings";
 import { ingressOf, type Settings } from "@wren/config";
 import { resolve as dohResolve } from "@wren/core";
 import { sitesHost } from "@wren/core/autobrowse/box";
@@ -89,7 +91,6 @@ import {
 } from "@wren/starling-email";
 import { mailAccess, mailAppsFrom } from "@wren/starling-email/access/access";
 import { mailChecks } from "@wren/starling-email/access/setups";
-import { briefSettingsOf, CALL_BRIEF, landerVisits } from "@wren/starling-email/calls";
 import { commentGuide, DEFAULT_VOICE, dmGuide, s3MediaHost } from "@wren/starling-inbound";
 import {
   liveFrom,

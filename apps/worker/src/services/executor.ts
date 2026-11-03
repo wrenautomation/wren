@@ -3,6 +3,8 @@
  */
 import { billsStep } from "@wren/books";
 import { BOOKS_KEY } from "@wren/books/restate";
+import { briefStep } from "@wren/calendar/calls";
+import { CALL_BRIEF } from "@wren/calendar/calls/settings";
 import { ingressOf } from "@wren/config";
 import type { Platform } from "@wren/core/autobrowse";
 import { findClient, sendsOn } from "@wren/core/clients";
@@ -42,7 +44,6 @@ import { shapeWorkflowsOf, soundShapes } from "@wren/pipeline/journeys";
 import { journeySteps } from "@wren/pipeline/steps";
 import { youtubeByUrl } from "@wren/research/sops";
 import { isGoogleMailbox } from "@wren/starling-email/access/access";
-import { briefStep, CALL_BRIEF } from "@wren/starling-email/calls";
 import { EMAIL_TOUCH } from "@wren/starling-email/components";
 import { commentGuide } from "@wren/starling-inbound";
 import { askFollowEmail } from "@wren/starling-inbound/inbox";

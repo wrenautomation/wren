@@ -4,7 +4,7 @@ cluster: email
 universe: live
 status: verified
 verified: 2026-10-16 @ d046f3c9
-entity: packages/starling/channels/email/src/schema.ts:593
+entity: packages/calendar/src/schema.ts
 ---
 
 # call-recording
@@ -22,7 +22,7 @@ Meet recording needs paid Workspace, so the desk on the Mac records instead (des
 - out: `wren calls upcoming` (`upcomingCalls`, `calls/recording.ts:32`): what the desk arms for; `recordingOf` puts it on the call's brief (`calls/brief.ts`)
 - Record now / Stop: `CalendarConsole.recorder|record|stopRecording` (`packages/calendar/src/console.ts:319`) ask autobrowse's `calls` service through `askRecorder` (`packages/calendar/src/recorder.ts:41`), cancelled past `RECORDER_WAIT_MS`
 
-Citations: `packages/starling/channels/email/src/schema.ts:593`, `packages/starling/channels/email/src/calls/recording.ts:175`, `packages/calendar/src/records.ts:112`
+Citations: `packages/calendar/src/schema.ts`, `packages/calendar/src/calls/recording.ts:175`, `packages/calendar/src/records.ts:112`
 
 ## Connected to
 

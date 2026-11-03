@@ -1,4 +1,3 @@
-export * from "./bookings.js";
 export * from "./click-sync.js";
 export * from "./clicks.js";
 export * from "./health.js";

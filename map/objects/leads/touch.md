@@ -38,7 +38,7 @@ Citations: `packages/core/src/touches-schema.ts:98`, `packages/core/src/touches.
 
 ## If you change this
 
-- **Hits:** the writers in `recordSent`, `receive`, `markAccepted`, `applyWithdraw`, `keepComments`, `markAnswered`, `markCommented`, `markPostCommented`, `keepPostComments`, `keepActivity`; DM prompt (`packages/starling/outbound/src/drafts.ts` `dmContext`); compose `touch.*` facts (`packages/starling/outbound/src/email/outreach/facts.ts`); the call brief (`packages/starling/channels/email/src/calls/brief.ts`); `wren dossier` (`packages/starling/outbound/src/email/dossier.ts`); Outreach → People (`packages/starling/outbound/src/records.ts` `personRecord`)
+- **Hits:** the writers in `recordSent`, `receive`, `markAccepted`, `applyWithdraw`, `keepComments`, `markAnswered`, `markCommented`, `markPostCommented`, `keepPostComments`, `keepActivity`; DM prompt (`packages/starling/outbound/src/drafts.ts` `dmContext`); compose `touch.*` facts (`packages/starling/outbound/src/email/outreach/facts.ts`); the call brief (`packages/calendar/src/calls/brief.ts`); `wren dossier` (`packages/starling/outbound/src/email/dossier.ts`); Outreach → People (`packages/starling/outbound/src/records.ts` `personRecord`)
 - **Does not hit:** the source tables (a touch only reads them); email `messages` (email touches are not social)
 
 ## Surfaces

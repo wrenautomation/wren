@@ -3,6 +3,7 @@
  * and broadcasts.
  */
 
+import { landerHits } from "@wren/calendar/calls";
 import { makeBroadcast } from "@wren/core/broadcast-run";
 import { loopClients } from "@wren/core/clients";
 import { editsOf, savedWorkflows } from "@wren/core/executor";
@@ -15,7 +16,6 @@ import { makeSegments, makeSegmentsNet } from "@wren/core/segments-pass";
 import { makeTouchFeed } from "@wren/core/touch-feed";
 import { flowsWith } from "@wren/core/workflows";
 import { llmForKey } from "@wren/llm";
-import { landerHits } from "@wren/starling-email/calls";
 import { COMPONENTS } from "../components.js";
 import { makeLineFeed } from "../line-feed.js";
 import { makePainFeed } from "../pain-feed.js";

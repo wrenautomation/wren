@@ -714,6 +714,12 @@ importers:
       '@wren/db':
         specifier: workspace:*
         version: link:../db
+      '@wren/llm':
+        specifier: workspace:*
+        version: link:../llm
+      '@wren/research':
+        specifier: workspace:*
+        version: link:../research
       '@wren/starling-email':
         specifier: workspace:*
         version: link:../starling/channels/email
@@ -1412,9 +1418,6 @@ importers:
       '@wren/experiments':
         specifier: workspace:*
         version: link:../../../experiments
-      '@wren/llm':
-        specifier: workspace:*
-        version: link:../../../llm
       '@wren/research':
         specifier: workspace:*
         version: link:../../../research
@@ -1792,6 +1795,9 @@ importers:
       '@restatedev/restate-sdk':
         specifier: 1.17.1
         version: 1.17.1
+      '@wren/calendar':
+        specifier: workspace:*
+        version: link:../../calendar
       '@wren/config':
         specifier: workspace:*
         version: link:../../config

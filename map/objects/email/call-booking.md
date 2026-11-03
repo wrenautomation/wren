@@ -4,7 +4,7 @@ cluster: email
 universe: live
 status: verified
 verified: 2026-10-07 @ 2cdad29
-entity: packages/starling/channels/email/src/schema.ts:639
+entity: packages/calendar/src/schema.ts
 ---
 
 # call-booking
@@ -13,19 +13,19 @@ A call booked on Wren's cal.com, from its webhook or the catch-up list, or on ou
 
 ## Why this shape
 
-A lead who books from an email's link must stop getting mail, and the booking must count as a result, whether or not William answered a reply first (designs/2026-10-04-booking-webhook.md). The row matches its email by the link's `r` code (`messages.link_code`), else by the attendee's address; a matched booking stops the firm with stop reason `booked` (`packages/starling/channels/email/src/inbox/bookings.ts:139`). A cancel only marks the row and never restarts a sequence. A reschedule moves the row to the new uid and time. An unmatched booking is still kept.
+A lead who books from an email's link must stop getting mail, and the booking must count as a result, whether or not William answered a reply first (designs/2026-10-04-booking-webhook.md). The row matches its email by the link's `r` code (`messages.link_code`), else by the attendee's address; a matched booking stops the firm with stop reason `booked` (`packages/calendar/src/calls/bookings.ts:139`). A cancel only marks the row and never restarts a sequence. A reschedule moves the row to the new uid and time. An unmatched booking is still kept.
 
 ## Shape
 
 - `uid` (unique), `state` (booked | cancelled), `start`, `email`, `name`, `offer`, `code`, `message_id`, `enrollment_id` (both nullable), `booked_at` (`schema.ts:639`)
 - how the call went, for every source (our calendar's too, on its mirror): `outcome` (`MEETING_OUTCOMES` in `@wren/core/calls`: won, not_yet, no_show, not_fit, checked), `outcome_reason`, `outcome_at`, `outcome_by`. `setCallOutcome` marks only a booked call that has started (`calls/outcome.ts:36`); `markOutcome` audits it and emits `outcomeEmits` on the executor: won leaves `close` and enters `onboarding` (queue only), not_yet leaves by `later` to keep warm (`calls/outcome.ts:79`)
 - every booking write emits `bookingEmit` into `close` at `in.calls`, one arrival per call and start (`calls/restate.ts:32`); its brief is [[email/call-brief]]
-- in: `CallBookings/ingest` (`restate/call-bookings.ts`), fed by the phone Worker's `/webhooks/calcom` (`apps/phone/src/worker.ts:114`); `wren email bookings sync [--since]` (`apps/cli/src/email.ts`)
-- a client's cal.com: `CallBookings/ingestFor {client, body}` (`restate/call-bookings.ts:37`), same rules, into its database
+- in: `CallBookings/ingest` (`calendar/src/calls/call-bookings.ts`), fed by the phone Worker's `/webhooks/calcom` (`apps/phone/src/worker.ts:114`); `wren email bookings sync [--since]` (`apps/cli/src/email.ts`)
+- a client's cal.com: `CallBookings/ingestFor {client, body}` (`calendar/src/calls/call-bookings.ts:37`), same rules, into its database
 - each booking, move or cancel also fires the executor's Booking triggers (`bookingFired`, the `fire` dep; [[platform/executor]])
 - `call_invites` is the other source of "booked": a slot William approved from a reply
 
-Citations: `packages/starling/channels/email/src/schema.ts:639`, `packages/starling/channels/email/src/inbox/bookings.ts:66`, `packages/starling/channels/email/src/calls/outcome.ts:36`
+Citations: `packages/calendar/src/schema.ts`, `packages/calendar/src/calls/bookings.ts:66`, `packages/calendar/src/calls/outcome.ts:36`
 
 ## Connected to
 
@@ -50,4 +50,4 @@ Citations: `packages/starling/channels/email/src/schema.ts:639`, `packages/starl
 
 ## See
 
-- Source: `packages/starling/channels/email/src/inbox/bookings.ts`
+- Source: `packages/calendar/src/calls/bookings.ts`

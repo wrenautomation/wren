@@ -4,8 +4,8 @@
  * firm and counts), a move and a cancel, and the calls SmsWatch's reminder pass reads.
  */
 
+import { setCallOutcome } from "@wren/calendar/calls";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
-import { setCallOutcome } from "@wren/starling-email/calls";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {

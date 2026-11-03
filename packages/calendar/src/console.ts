@@ -37,11 +37,10 @@ import {
 } from "@wren/core/records/serve";
 import { PORTAL_FIELDS, serviceHandler } from "@wren/core/restate";
 import { type Db, snapshot } from "@wren/db";
-import { markOutcome } from "@wren/starling-email/calls";
-import { callBookings } from "@wren/starling-email/schema";
 import { inArray } from "drizzle-orm";
 import { z } from "zod";
 import { callsBetween, mirrorUid } from "./book.js";
+import { markOutcome } from "./calls/index.js";
 import { CALENDAR_CONSOLE_APPS, CALENDAR_CONSOLE_ROUTES } from "./console-routes.js";
 import { askRecorder, type RecorderCalls } from "./recorder.js";
 import { CALENDAR_RECORDS } from "./records.js";
@@ -53,6 +52,7 @@ import {
   ownerDeps,
 } from "./restate.js";
 import { CALENDAR, rulesOf } from "./rules.js";
+import { callBookings } from "./schema.js";
 import { openHours } from "./slots.js";
 
 export interface IdsRequest extends PortalRequest {

@@ -3,8 +3,9 @@
  * booking from an email's link stops the firm and is warm, the same event twice applies
  * once, a cancel only marks the row, a reschedule moves it, and one no email led to stays.
  */
+
+import { applyBooking, bookingFromList, bookingFromWebhook } from "@wren/calendar/calls";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
-import { applyBooking, bookingFromList, bookingFromWebhook } from "@wren/starling-email";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { allMessages, makeCompany, makePerson, runCompose, TABLES } from "./compose-fixtures.js";

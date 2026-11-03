@@ -8,6 +8,7 @@ import { randomUUID } from "node:crypto";
 import { statSync } from "node:fs";
 import { resolve } from "node:path";
 import * as clients from "@restatedev/restate-sdk-clients";
+import { applyBooking, bookingFromList } from "@wren/calendar/calls";
 import { ingressOf, type Settings } from "@wren/config";
 import {
   type Company,
@@ -34,9 +35,7 @@ import {
   activeSenders,
   activeSuppression,
   addSuppression,
-  applyBooking,
   audienceGate,
-  bookingFromList,
   type ClickFollowUp,
   campaignFunnel,
   classifyValue,

@@ -3,12 +3,7 @@
  * with a date and keeps it per call, the model's questions pass code's checks, and an outcome
  * marks only a started, booked call. A client with the outcome part reads its own calls.
  */
-import { loadSettings } from "@wren/config";
-import { addClient } from "@wren/core/clients";
-import { serveRecords } from "@wren/core/records/serve";
-import { atomic, cachedDb, clientDatabaseUrl, setAuditActor } from "@wren/db";
-import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
-import type { LlmClient } from "@wren/llm";
+
 import {
   briefOf,
   buildBrief,
@@ -17,9 +12,16 @@ import {
   saveBrief,
   setCallOutcome,
   upcomingCalls,
-} from "@wren/starling-email/calls";
-import { callRecord } from "@wren/starling-email/records";
-import { callBookings, threadEvents } from "@wren/starling-email/schema";
+} from "@wren/calendar/calls";
+import { callRecord } from "@wren/calendar/records";
+import { callBookings } from "@wren/calendar/schema";
+import { loadSettings } from "@wren/config";
+import { addClient } from "@wren/core/clients";
+import { serveRecords } from "@wren/core/records/serve";
+import { atomic, cachedDb, clientDatabaseUrl, setAuditActor } from "@wren/db";
+import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
+import type { LlmClient } from "@wren/llm";
+import { threadEvents } from "@wren/starling-email/schema";
 import { SendPolicy } from "@wren/starling-email/send/policy";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";

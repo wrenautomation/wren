@@ -28,7 +28,6 @@ import { executorEmit, type FireTriggers } from "@wren/core/executor";
 import { serviceHandler } from "@wren/core/restate";
 import { canonicalZone } from "@wren/core/time";
 import type { Db } from "@wren/db";
-import { bookingEmit, bookingFired } from "@wren/starling-email/calls";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import {
@@ -44,6 +43,7 @@ import {
   setEvent,
   Unchangeable,
 } from "./book.js";
+import { bookingEmit, bookingFired } from "./calls/index.js";
 import { contactLinks } from "./contact.js";
 import { type CalendarHost, eventIdOf } from "./google.js";
 import { bookSigned, manageUrl, readManage } from "./links.js";

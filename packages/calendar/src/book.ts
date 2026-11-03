@@ -11,11 +11,10 @@ import type { MeetingOutcome } from "@wren/core/calls";
 import { noteProfileFrom, profileFrom } from "@wren/core/profiles-backfill";
 import { linkByName } from "@wren/core/profiles-link";
 import { type Db, type Queryable, serializable, sqlState } from "@wren/db";
-import { applyBooking, type BookingChange, type BookingOutcome } from "@wren/starling-email/inbox";
-import { callBookings } from "@wren/starling-email/schema";
 import { and, asc, eq, gt, lt, ne, sql } from "drizzle-orm";
+import { applyBooking, type BookingChange, type BookingOutcome } from "./calls/index.js";
 import type { Rules } from "./rules.js";
-import { type BookingSource, bookings, type CalendarBooking } from "./schema.js";
+import { type BookingSource, bookings, type CalendarBooking, callBookings } from "./schema.js";
 import { isOpen, type Span } from "./slots.js";
 
 /** Someone else took the slot, or it was never open. */

@@ -3,10 +3,11 @@
  * Calendar > Calls and Pipelines > Calls: Record now, or Stop and since when, read from the Mac.
  * `recordingExtras` is a recording's page: the video (the shell's player), the notes, then the transcript.
  */
+
+import type { CallNotes } from "@wren/calendar/calls";
 import type { RecorderState } from "@wren/calendar/recorder";
 import type { RecordingDetail } from "@wren/calendar/records";
 import { modelLabel } from "@wren/core/models/labels";
-import type { CallNotes } from "@wren/starling-email/calls";
 import { Button, type RecordExtras, tipProps } from "@wren/ui";
 import { type ReactNode, useState } from "react";
 import { call } from "../../api.js";

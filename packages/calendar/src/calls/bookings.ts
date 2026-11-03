@@ -10,9 +10,10 @@
 import { noteProfileFrom, profileFrom } from "@wren/core/profiles-backfill";
 import { linkByName } from "@wren/core/profiles-link";
 import { type Db, type Queryable, serializable } from "@wren/db";
+import { enrollments, messages } from "@wren/starling-email/schema";
+import { stopCompany } from "@wren/starling-email/send/stops";
 import { desc, eq, sql } from "drizzle-orm";
-import { callBookings, enrollments, messages } from "../schema.js";
-import { stopCompany } from "../send/stops.js";
+import { callBookings } from "../schema.js";
 
 export type BookingChange = "created" | "rescheduled" | "cancelled";
 

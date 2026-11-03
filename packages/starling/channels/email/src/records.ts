@@ -5,7 +5,6 @@
  * policy each read is env with the console's campaign overrides on top (`campaign_controls`).
  */
 
-import { MEETING_OUTCOMES, outcomeStatus } from "@wren/core/calls";
 import {
   actor,
   choice,
@@ -27,7 +26,6 @@ import {
 import { labelOf, namedParts } from "@wren/core/templates/labels";
 import type { Queryable } from "@wren/db";
 import { sql } from "drizzle-orm";
-import { briefOf } from "./calls/brief.js";
 import { activePauses, domainHealth, domainOf, wouldTrip } from "./inbox/health.js";
 import { campaignPolicy, loadCampaignControls } from "./send/campaign-controls.js";
 import type { SendPolicy } from "./send/policy.js";
@@ -231,98 +229,6 @@ export const replyRecord = defineRecord({
   actions: ["email.approve", "email.drop"],
 });
 
-/** Where a call shows: ahead, over and unmarked, how it went, or cancelled. */
-const CALL_STATUS = {
-  upcoming: { label: "Upcoming", tone: "warn" },
-  past: { label: "Say how it went", tone: "neutral" },
-  ...outcomeStatus(MEETING_OUTCOMES),
-  cancelled: { label: "Cancelled", tone: "neutral" },
-} as const;
-const MARKED = [...MEETING_OUTCOMES];
-
-/**
- * Every booked call (`call_bookings`): cal.com's, from its webhook, and our calendar's mirror,
- * matched to an enrollment or not. Its detail is the pre-call brief (`calls/brief.ts`); its
- * actions say how it went (`EmailConsole.call*`).
- */
-export const callRecord = defineRecord({
-  id: "email.call",
-  app: "calls",
-  channel: "email",
-  name: { one: "call", many: "calls" },
-  rows: async (db) =>
-    await db.execute<Record<string, unknown>>(sql`
-        select cb.id, cb.state::text state, cb.start, cb.booked_at booked, cb.email::text email,
-          cb.offer::text offer, e.niche::text niche, co.name::text company, co.domain::text domain,
-          case when cb.state = 'cancelled' then 'cancelled'
-            when cb.outcome is not null then cb.outcome::text
-            when cb.start > now() then 'upcoming' else 'past' end status,
-          case when cb.state <> 'cancelled' and cb.outcome is null and cb.start > now()
-            and cb.start < now() + interval '24 hours' then 'yes' else 'no' end soon,
-          cb.outcome_reason reason, cb.outcome_by marked_by, cb.outcome_at marked,
-          coalesce(nullif(concat_ws(' ', nullif(p.first_name, ''), nullif(p.last_name, '')), ''),
-            p.full_name, cb.name, cb.email)::text who
-        from call_bookings cb
-        left join enrollments e on e.id = cb.enrollment_id
-        left join people p on p.id = e.person_id
-        left join companies co on co.id = e.company_id`),
-  key: "id",
-  title: "who",
-  subtitle: "company",
-  fields: {
-    who: name("Who"),
-    company: company("Company", { domain: "domain" }),
-    status: status(CALL_STATUS),
-    soon: status(
-      { yes: { label: "Within a day", tone: "warn" }, no: { label: "No", tone: "neutral" } },
-      "Starts within a day",
-    ),
-    start: date("Call"),
-    reason: text("Why"),
-    booked: date("Booked"),
-    campaign: campaign(),
-    offer: text("Offer"),
-    email: text("Email"),
-    markedBy: text("Marked by"),
-    marked: date("Marked"),
-  },
-  views: [
-    {
-      id: "upcoming",
-      label: "Upcoming",
-      where: { status: "upcoming" },
-      sort: "start",
-      at: "booked",
-    },
-    {
-      id: "soon",
-      label: "Within a day",
-      where: { soon: "yes" },
-      sort: "start",
-      at: "start",
-    },
-    { id: "past", label: "To mark", where: { status: "past" }, sort: "-start", at: "start" },
-    { id: "marked", label: "Marked", where: { status: MARKED }, sort: "-start", at: "start" },
-    {
-      id: "booked",
-      label: "All booked",
-      where: { status: ["upcoming", "past", ...MARKED] },
-      sort: "-booked",
-      at: "booked",
-    },
-    { id: "cancelled", label: "Cancelled", where: { status: "cancelled" }, sort: "-booked" },
-    { id: "all", label: "All", sort: "-booked", at: "booked" },
-  ],
-  actions: [
-    "email.callWon",
-    "email.callNotYet",
-    "email.callNoShow",
-    "email.callNotFit",
-    "email.callBrief",
-  ],
-  load: (db, id) => briefOf(db, id),
-});
-
 const IN_PLAY = { declined: { empty: true } } as const;
 export const firmRecord = defineRecord({
   id: "email.firm",
@@ -463,7 +369,6 @@ export const emailRecords = (roster: readonly Sender[], policy: SendPolicy): Rec
   campaignRecord(policy),
   inboxRecord(roster, policy),
   replyRecord,
-  callRecord,
   firmRecord,
   modelRecord,
   stallRecord,

@@ -5,18 +5,24 @@
  * get one row and one refusal. Each booking is mirrored into `call_bookings` as `wren-<id>`, so
  * follow-up stops and booked counts read it like a cal.com one.
  */
+import { MEETING_OUTCOMES } from "@wren/core/calls";
 import { oneOf } from "@wren/db/columns";
+import { enrollments, messages } from "@wren/starling-email/schema";
 import { sql } from "drizzle-orm";
 import {
+  bigint,
   check,
+  foreignKey,
   index,
   integer,
   jsonb,
   pgSchema,
+  pgTable,
   primaryKey,
   serial,
   text,
   timestamp,
+  unique,
   uniqueIndex,
   varchar,
 } from "drizzle-orm/pg-core";
@@ -119,3 +125,132 @@ export const bookingRecords = calendar
       cb.outcome_by marked_by, cb.outcome_at marked
     from calendar.bookings b
     left join public.call_bookings cb on cb.uid = 'wren-' || b.id`);
+
+/**
+ * A call booked on Wren's cal.com, one row per booking (designs/2026-10-04-booking-webhook.md).
+ * cal.com's webhook (through the phone Worker) and `wren email bookings sync` both write it.
+ * A reschedule moves the row to the new uid and time; a cancel only marks it. The message and
+ * enrollment are what it matched: the link's `r` code, else the attendee's address. No match
+ * still keeps the row.
+ */
+export const CALL_BOOKING_STATES = ["booked", "cancelled"] as const;
+export type CallBookingState = (typeof CALL_BOOKING_STATES)[number];
+
+export const callBookings = pgTable(
+  "call_bookings",
+  {
+    id: serial("id").notNull(),
+    uid: varchar("uid", { length: 64 }).notNull(),
+    state: varchar("state", { length: 16, enum: CALL_BOOKING_STATES }).notNull(),
+    start: timestamp("start", { withTimezone: true }),
+    email: varchar("email", { length: 320 }),
+    name: text("name"),
+    offer: varchar("offer", { length: 64 }),
+    /** The link's `?r=` code, as cal.com hands it back in `metadata.r`. */
+    code: varchar("code", { length: 40 }),
+    messageId: integer("message_id"),
+    enrollmentId: integer("enrollment_id"),
+    /** When it was booked on cal.com: what the counts date it by. */
+    bookedAt: timestamp("booked_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+    /** How it went, marked by a person once it's over (`@wren/core/calls`); null until then. */
+    outcome: varchar("outcome", { length: 16, enum: MEETING_OUTCOMES }),
+    /** Why a not yet (or any outcome) went that way, in the rep's words. */
+    outcomeReason: text("outcome_reason"),
+    outcomeAt: timestamp("outcome_at", { withTimezone: true }),
+    /** Who marked it: their email. */
+    outcomeBy: text("outcome_by"),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_call_bookings" }),
+    unique("uq_call_bookings_uid").on(t.uid),
+    index("ix_call_bookings_enrollment_id").on(t.enrollmentId),
+    index("ix_call_bookings_message_id").on(t.messageId),
+    foreignKey({
+      columns: [t.messageId],
+      foreignColumns: [messages.id],
+      name: "fk_call_bookings_message_id_messages",
+    }),
+    foreignKey({
+      columns: [t.enrollmentId],
+      foreignColumns: [enrollments.id],
+      name: "fk_call_bookings_enrollment_id_enrollments",
+    }),
+    oneOf("ck_call_bookings_callbookingstate", t.state, CALL_BOOKING_STATES),
+    oneOf("ck_call_bookings_outcome", t.outcome, MEETING_OUTCOMES),
+  ],
+);
+export type CallBooking = typeof callBookings.$inferSelect;
+
+/**
+ * The pre-call brief of a booked call, one per call (designs/2026-10-07-close-brief-outcome.md):
+ * built when it's booked, rebuilt before it starts. `brief` is `CallBrief` (`calls/brief.ts`),
+ * every item with its source and date. `start` is the call time it was built for, so a moved
+ * call's old send skips.
+ */
+export const callBriefs = pgTable(
+  "call_briefs",
+  {
+    callBookingId: integer("call_booking_id").notNull(),
+    start: timestamp("start", { withTimezone: true }),
+    brief: jsonb("brief").notNull(),
+    /** The model that wrote its questions; null when code alone did. */
+    model: varchar("model", { length: 64 }),
+    builtAt: timestamp("built_at", { withTimezone: true }).notNull(),
+    /** When the rep was pinged with it. */
+    sentAt: timestamp("sent_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.callBookingId], name: "pk_call_briefs" }),
+    foreignKey({
+      columns: [t.callBookingId],
+      foreignColumns: [callBookings.id],
+      name: "fk_call_briefs_call_booking_id_call_bookings",
+    }).onDelete("cascade"),
+  ],
+);
+export type CallBriefRow = typeof callBriefs.$inferSelect;
+
+/**
+ * A call recorded on William's Mac (designs/2026-10-16-call-recording.md): OBS records it, `wren
+ * calls add` transcribes it there, uploads the mp4 to the files bucket (`file_key`) and writes the
+ * notes. `call_booking_id` is the booked call it was, null for a manual one no booking matched.
+ */
+export const CALL_RECORDING_BY = ["desk", "manual"] as const;
+export const callRecordings = pgTable(
+  "call_recordings",
+  {
+    id: serial("id").notNull(),
+    callBookingId: integer("call_booking_id"),
+    /** Its mp4 in the files bucket, under `calls/`. */
+    fileKey: text("file_key").notNull(),
+    bytes: bigint("bytes", { mode: "number" }).notNull(),
+    durationS: integer("duration_s").notNull(),
+    startedAt: timestamp("started_at", { withTimezone: true }).notNull(),
+    endedAt: timestamp("ended_at", { withTimezone: true }).notNull(),
+    transcript: text("transcript").notNull(),
+    /** Timed lines, `{ start, end, text }` in seconds. */
+    segments: jsonb("segments").notNull(),
+    /** `CallNotes` (`calls/recording.ts`); null when the model gave none. */
+    notes: jsonb("notes"),
+    /** The model that wrote the notes. */
+    model: varchar("model", { length: 64 }),
+    /** The desk started it for a booking, or a person did. */
+    by: varchar("by", { length: 8, enum: CALL_RECORDING_BY }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.id], name: "pk_call_recordings" }),
+    unique("uq_call_recordings_file_key").on(t.fileKey),
+    index("ix_call_recordings_call_booking_id").on(t.callBookingId),
+    foreignKey({
+      columns: [t.callBookingId],
+      foreignColumns: [callBookings.id],
+      name: "fk_call_recordings_call_booking_id_call_bookings",
+    }).onDelete("cascade"),
+    oneOf("ck_call_recordings_by", t.by, CALL_RECORDING_BY),
+  ],
+);
+export type CallRecordingRow = typeof callRecordings.$inferSelect;

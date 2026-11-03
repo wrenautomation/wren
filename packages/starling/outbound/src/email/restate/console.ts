@@ -12,6 +12,10 @@
  * drop through `Disposition/<client>/replies`).
  */
 import type * as restate from "@restatedev/restate-sdk";
+import type { CallBriefs } from "@wren/calendar/calls";
+import { markOutcome } from "@wren/calendar/calls";
+import { CALL_OUTCOME } from "@wren/calendar/calls/settings";
+import { callRecord } from "@wren/calendar/records";
 import { WREN } from "@wren/core/access";
 import type { MeetingOutcome } from "@wren/core/calls";
 import type { Client } from "@wren/core/clients";
@@ -42,11 +46,8 @@ import { type Db, type Queryable, serializable, setAuditActor, snapshot } from "
 import { DOSSIER, LEAD_SHEET } from "@wren/research/components";
 import { dossierBrief, dossiers } from "@wren/research/dossier";
 import { pause, resolveTarget, resume } from "@wren/starling-email";
-import type { CallBriefs } from "@wren/starling-email/calls";
-import { markOutcome } from "@wren/starling-email/calls";
-import { CALL_OUTCOME } from "@wren/starling-email/calls/settings";
 import { EMAIL_CONSOLE_APPS, EMAIL_CONSOLE_ROUTES } from "@wren/starling-email/console-routes";
-import { callRecord, firmRecord, stallRecord } from "@wren/starling-email/records";
+import { firmRecord, stallRecord } from "@wren/starling-email/records";
 import {
   type CampaignChange,
   campaignPolicy,

@@ -5,7 +5,7 @@
  * part's own fallback: no bucket lists files unplayed, no lander has no visits or replays.
  */
 import { BOOKS_RECORDS } from "@wren/books/records";
-import { CALENDAR_RECORDS, recordingRecord } from "@wren/calendar/records";
+import { CALENDAR_RECORDS, callRecord, recordingRecord } from "@wren/calendar/records";
 import { askRecord } from "@wren/core/ask";
 import { BROADCAST_RECORDS } from "@wren/core/broadcast-records";
 import { clientRecord } from "@wren/core/clients";
@@ -22,13 +22,7 @@ import { NOTES_RECORDS } from "@wren/notes/records";
 import { PIPELINE_RECORDS } from "@wren/pipeline/records";
 import { RESEARCH_RECORDS } from "@wren/research/records";
 import { SITES_RECORDS } from "@wren/sites/records";
-import {
-  callRecord,
-  emailRecords,
-  firmRecord,
-  modelRecord,
-  replyRecord,
-} from "@wren/starling-email/records";
+import { emailRecords, firmRecord, modelRecord, replyRecord } from "@wren/starling-email/records";
 import { mediaRecord, sopRecord, videoRecord } from "@wren/starling-inbound/records";
 import { heatRecord, sessionRecord, surveyAnswerRecord } from "@wren/starling-search/records";
 import { VOICE_RECORDS } from "@wren/voice/records";
@@ -65,7 +59,8 @@ export function consoleRecords(at: ConsoleRecordsAt = {}): RecordType[] {
   return [
     ...(at.email
       ? emailRecords(at.email.roster, at.email.policy)
-      : [replyRecord, callRecord, firmRecord, modelRecord]),
+      : [replyRecord, firmRecord, modelRecord]),
+    callRecord,
     ...BOOKS_RECORDS,
     ...WATCH_RECORDS,
     ...LEARN_RECORDS,

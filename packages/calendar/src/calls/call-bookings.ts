@@ -10,13 +10,13 @@ import * as restate from "@restatedev/restate-sdk";
 import { findClient } from "@wren/core/clients";
 import { executorEmit, type FireTriggers } from "@wren/core/executor";
 import type { Db } from "@wren/db";
-import { bookingEmit, bookingFired } from "../calls/restate.js";
 import {
   applyBooking,
   type BookingEvent,
   type BookingOutcome,
   bookingFromWebhook,
-} from "../inbox/bookings.js";
+} from "./bookings.js";
+import { bookingEmit, bookingFired } from "./restate.js";
 
 export function makeCallBookings(deps: {
   db: Db;

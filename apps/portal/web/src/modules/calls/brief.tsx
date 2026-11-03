@@ -7,9 +7,9 @@
  * panel and a client's Calls.
  */
 
+import type { CallBrief, Cited, StoredBrief } from "@wren/calendar/calls";
 import { CALL_OUTCOME_LABELS, type CallOutcome } from "@wren/core/calls";
 import { modelLabel } from "@wren/core/models/labels";
-import type { CallBrief, Cited, StoredBrief } from "@wren/starling-email/calls";
 import { Button, type RecordExtras, StateMark, tipProps } from "@wren/ui";
 import { type ReactNode, useState } from "react";
 import { CallNotesView } from "../calendar/recorder.js";

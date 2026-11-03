@@ -10,10 +10,6 @@ import { mkdtemp, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 import { promisify } from "node:util";
-import type { Settings } from "@wren/config";
-import type { Db } from "@wren/db";
-import { putLocalFile } from "@wren/delivery/files";
-import { loadLlmEnv, makeLlm } from "@wren/llm";
 import {
   matchBooking,
   type Segment,
@@ -21,8 +17,12 @@ import {
   transcriptOf,
   upcomingCalls,
   writeNotes,
-} from "@wren/starling-email/calls";
-import { callBookings, callRecordings } from "@wren/starling-email/schema";
+} from "@wren/calendar/calls";
+import { callBookings, callRecordings } from "@wren/calendar/schema";
+import type { Settings } from "@wren/config";
+import type { Db } from "@wren/db";
+import { putLocalFile } from "@wren/delivery/files";
+import { loadLlmEnv, makeLlm } from "@wren/llm";
 import { probe, sentenceEdges, transcribe, type Word, wav16k } from "@wren/starling-studio";
 import type { Command } from "commander";
 import { eq } from "drizzle-orm";

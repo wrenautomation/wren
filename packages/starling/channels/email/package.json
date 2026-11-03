@@ -5,8 +5,6 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./calls": "./src/calls/index.ts",
-    "./calls/settings": "./src/calls/settings.ts",
     "./components": "./src/components.ts",
     "./fetch-like": "./src/fetch-like.ts",
     "./sequences-settings": "./src/sequences-settings.ts",
@@ -36,7 +34,6 @@
     "@wren/core": "workspace:*",
     "@wren/db": "workspace:*",
     "@wren/experiments": "workspace:*",
-    "@wren/llm": "workspace:*",
     "@wren/research": "workspace:*",
     "@wren/starling-core": "workspace:*",
     "@wrenautomation/autobrowse": "0.8.4",

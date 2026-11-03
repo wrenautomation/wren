@@ -3,7 +3,7 @@
  * application carries the booking's email, then those visitors' pages and recorded sessions. Read
  * live from the lander's export; only these lines are kept, never a visitor id (the 09-29 rule).
  */
-import { type SiteApplication, siteExport } from "../inbox/clicks.js";
+import { type SiteApplication, siteExport } from "@wren/starling-email/inbox";
 import type { Cited } from "./brief.js";
 
 type Site = Parameters<typeof siteExport>[1];
