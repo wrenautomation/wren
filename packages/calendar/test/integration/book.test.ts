@@ -14,7 +14,7 @@ import {
   makePerson,
   runCompose,
   TABLES,
-} from "../../../starling/channels/email/test/integration/compose-fixtures.js";
+} from "../../../starling/outbound/test/integration/email/compose-fixtures.js";
 import {
   type Booker,
   cancelBooking,
