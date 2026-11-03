@@ -7,8 +7,8 @@ import * as clients from "@restatedev/restate-sdk-clients";
 import { ingressOf, type Settings } from "@wren/config";
 import { issueAudience, issueSends, mayMarket, saveTopic } from "@wren/core/marketing";
 import type { Db } from "@wren/db";
-import { issueTag, listmonk } from "@wren/starling-email/listmonk";
-import type { Newsletter } from "@wren/starling-email/restate";
+import { issueTag, listmonk } from "@wren/starling-inbound/listmonk";
+import type { Newsletter } from "@wren/starling-inbound/restate";
 import type { Command } from "commander";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;

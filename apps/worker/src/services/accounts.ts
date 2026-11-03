@@ -22,13 +22,16 @@ import { makeSetupWatch } from "@wren/core/setup-watch";
 import { crmLanding } from "@wren/reactivation";
 import { sweepGrants } from "@wren/starling-email/access/access";
 import { makeMailAccess, makeMailCallback } from "@wren/starling-email/access/console";
-import { makeBounceScheduler } from "@wren/starling-email/restate";
 import {
   makeSocialAccess,
   makeSocialCallback,
   ownSwitchesOf,
 } from "@wren/starling-inbound/connect";
-import { makeMailReply, makeSocialInbox } from "@wren/starling-inbound/restate";
+import {
+  makeBounceScheduler,
+  makeMailReply,
+  makeSocialInbox,
+} from "@wren/starling-inbound/restate";
 import { WREN_LIMITS } from "@wren/starling-outbound/limits";
 import { findPlace, PLACE_FINDER } from "@wren/starling-sms";
 import { makeMailReader } from "@wren/watch/clients";

@@ -4,8 +4,9 @@
  * Every shape here was probed against Listmonk 6.2.0. The API user's token goes in one header and
  * never in a log line or an error.
  */
+
+import type { FetchLike } from "@wren/starling-email/fetch-like";
 import { z } from "zod";
-import type { FetchLike } from "../fetch-like.js";
 
 interface ListmonkConfig {
   /** Base URL, no trailing path: `https://lists.example.test`. */

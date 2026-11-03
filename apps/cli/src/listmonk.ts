@@ -6,8 +6,8 @@
 
 import type { Settings } from "@wren/config";
 import type { Db } from "@wren/db";
-import { applySetup, listmonk } from "@wren/starling-email/listmonk";
-import { syncAllTopics } from "@wren/starling-email/restate";
+import { applySetup, listmonk } from "@wren/starling-inbound/listmonk";
+import { syncAllTopics } from "@wren/starling-inbound/restate";
 import type { Command } from "commander";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;

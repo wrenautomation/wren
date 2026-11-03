@@ -18,7 +18,7 @@ import {
 } from "@wren/core/bounces";
 import type { Mailbox } from "@wren/core/mailbox";
 import type { Queryable } from "@wren/db";
-import { classify, mayBeBounce } from "./inbound.js";
+import { classify, mayBeBounce } from "@wren/starling-email/inbox";
 
 /** Gmail's search for delivery reports; Graph reads only its `after:`. */
 export const BOUNCE_QUERY =

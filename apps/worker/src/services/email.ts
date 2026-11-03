@@ -23,7 +23,6 @@ import {
   sequencesSendScope,
   sharedFor,
 } from "@wren/starling-email";
-import { type Listmonk, listmonk } from "@wren/starling-email/listmonk";
 import {
   DISPOSITION_KEY,
   inboxPush,
@@ -34,11 +33,6 @@ import {
   makeDisposition,
   makeEmailConsole,
   makeInboxScheduler,
-  makeListmonkIntake,
-  makeListmonkMail,
-  makeListmonkSync,
-  makeMarketing,
-  makeNewsletter,
   makeOpensScheduler,
   makePlacementScheduler,
   makePostmasterScheduler,
@@ -46,8 +40,16 @@ import {
   makeReportScheduler,
   makeSendScheduler,
   type SendScope,
-  syncTopicByName,
 } from "@wren/starling-email/restate";
+import { type Listmonk, listmonk } from "@wren/starling-inbound/listmonk";
+import {
+  makeListmonkIntake,
+  makeListmonkMail,
+  makeListmonkSync,
+  makeMarketing,
+  makeNewsletter,
+  syncTopicByName,
+} from "@wren/starling-inbound/restate";
 import { gmailPushTopic } from "@wrenautomation/autobrowse/google";
 import { ImapReader, type InboxReader, RoutedReader } from "@wrenautomation/autobrowse/mail";
 import { type AnyService, type Deps, googleKey } from "./deps.js";

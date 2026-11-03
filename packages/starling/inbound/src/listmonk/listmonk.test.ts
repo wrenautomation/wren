@@ -2,8 +2,9 @@
  * The Listmonk client against a fake `fetch`, and the sync planner. Every payload is synthetic;
  * the shapes were probed against Listmonk 6.2.0.
  */
+
+import type { FetchLike } from "@wren/starling-email/fetch-like";
 import { describe, expect, it } from "vitest";
-import type { FetchLike } from "../fetch-like.js";
 import { escapeTemplate, ListmonkError, type ListmonkSubscriber, listmonk } from "./client.js";
 import { applySetup, settingsFor } from "./setup.js";
 import { planTopic, syncTopic, topicTag, type WrenConsent } from "./sync.js";

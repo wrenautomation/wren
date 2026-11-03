@@ -12,8 +12,9 @@ import { giveConsent, issueSends, mayMarket, withdrawConsent } from "@wren/core/
 import { topics } from "@wren/core/schema";
 import { startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
+import type { FetchLike } from "@wren/starling-email/fetch-like";
+import type { PlainMail } from "@wren/starling-email/send/gmail";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import type { FetchLike } from "../../src/fetch-like.js";
 import { listmonk } from "../../src/listmonk/client.js";
 import {
   type ListmonkIntake,
@@ -21,7 +22,6 @@ import {
   makeListmonkMail,
   syncAllTopics,
 } from "../../src/restate/listmonk.js";
-import type { PlainMail } from "../../src/send/gmail.js";
 
 const sent: PlainMail[] = [];
 let pg: TestPostgres;

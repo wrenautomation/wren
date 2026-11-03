@@ -28,9 +28,9 @@ import {
 import { serviceHandler } from "@wren/core/restate";
 import { FREQUENCIES, type Frequency, topics } from "@wren/core/schema";
 import type { Db, Queryable } from "@wren/db";
+import type { PlainMail } from "@wren/starling-email/send/gmail";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
-import type { PlainMail } from "../send/gmail.js";
 
 /** Who clicked: the lander passes the visitor's IP and user agent as proof. */
 interface Visit {

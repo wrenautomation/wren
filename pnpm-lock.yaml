@@ -1694,6 +1694,9 @@ importers:
       '@wren/starling-core':
         specifier: workspace:*
         version: link:../core
+      '@wren/starling-email':
+        specifier: workspace:*
+        version: link:../channels/email
       '@wren/starling-outbound':
         specifier: workspace:*
         version: link:../outbound

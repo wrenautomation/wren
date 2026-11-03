@@ -26,9 +26,9 @@ import { topics } from "@wren/core/schema";
 import { addMembers, saveSegment } from "@wren/core/segments";
 import { cachedDb, clientDatabaseUrl, type Db } from "@wren/db";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
+import { gmailMailbox, graphMailbox } from "@wren/starling-email/access/mailbox";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { gmailMailbox, graphMailbox } from "../../src/access/mailbox.js";
 import { BOUNCE_QUERY } from "../../src/inbox/marketing-bounces.js";
 import { GONE, readAllBounces, SEND_ONLY } from "../../src/restate/bounce-scheduler.js";
 

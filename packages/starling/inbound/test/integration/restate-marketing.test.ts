@@ -11,9 +11,9 @@ import { linkKey, mayMarket, signLink, signupSig } from "@wren/core/marketing";
 import { topics } from "@wren/core/schema";
 import { startTestRestate } from "@wren/core/testing";
 import { startTestPostgres, type TestPostgres, truncate } from "@wren/db/testing";
+import type { PlainMail } from "@wren/starling-email/send/gmail";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { type Marketing, makeMarketing } from "../../src/restate/marketing.js";
-import type { PlainMail } from "../../src/send/gmail.js";
 
 const SHARED = "test-shared-secret";
 const sent: PlainMail[] = [];

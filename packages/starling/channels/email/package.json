@@ -8,6 +8,7 @@
     "./calls": "./src/calls/index.ts",
     "./calls/settings": "./src/calls/settings.ts",
     "./components": "./src/components.ts",
+    "./fetch-like": "./src/fetch-like.ts",
     "./sequences-settings": "./src/sequences-settings.ts",
     "./schema": "./src/schema.ts",
     "./views": "./src/views.ts",
@@ -18,7 +19,6 @@
     "./send": "./src/send/index.ts",
     "./send/*": "./src/send/*.ts",
     "./inbox": "./src/inbox/index.ts",
-    "./listmonk": "./src/listmonk/index.ts",
     "./spam": "./src/spam/index.ts",
     "./access/*": "./src/access/*.ts"
   },

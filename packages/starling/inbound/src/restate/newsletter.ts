@@ -23,10 +23,10 @@ import {
 import { type LinkTags, readMessageSettings, tagLinks } from "@wren/core/message-settings";
 import { exclusiveHandler } from "@wren/core/restate";
 import type { Db } from "@wren/db";
+import type { PlainMail } from "@wren/starling-email/send/gmail";
 import { z } from "zod";
 import { startCampaign } from "../listmonk/campaign.js";
 import { type Listmonk, ListmonkError } from "../listmonk/client.js";
-import type { PlainMail } from "../send/gmail.js";
 
 export type IssueSent = { messageId: string } | { skip: string };
 
