@@ -31,16 +31,11 @@ import {
   verifications,
 } from "../../src/schema.js";
 import { addBusinessDays, PlainDate } from "../../src/send/dates.js";
-import {
-  lockSender,
-  recordStop,
-  type SendDueOptions,
-  sendDue,
-  stopCompany,
-} from "../../src/send/deliver.js";
+import { lockSender, type SendDueOptions, sendDue } from "../../src/send/deliver.js";
 import { SendPolicy } from "../../src/send/policy.js";
 import { reconcile } from "../../src/send/reconcile.js";
 import { seededRng } from "../../src/send/rng.js";
+import { recordStop, stopCompany } from "../../src/send/stops.js";
 import {
   ConsoleTransport,
   type ConsoleTransportOptions,

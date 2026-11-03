@@ -28,23 +28,7 @@ import { firstTouchElsewhere } from "@wren/core/leads";
 import { coldOpenerRefusal, WARM_SEQUENCES } from "@wren/core/people-map";
 import { pyReprStr } from "@wren/core/slots";
 import { atomic, type Db, type Queryable } from "@wren/db";
-import {
-  and,
-  asc,
-  count,
-  desc,
-  eq,
-  gt,
-  gte,
-  inArray,
-  isNotNull,
-  isNull,
-  lt,
-  max,
-  ne,
-  or,
-  sql,
-} from "drizzle-orm";
+import { and, asc, desc, eq, gt, inArray, isNotNull, max, ne, or, sql } from "drizzle-orm";
 import { activeSuppressions, type SharedSuppressions } from "../guards.js";
 import { offPage } from "../outreach/pages.js";
 import {
@@ -63,7 +47,8 @@ import { addBusinessDays, PlainDate } from "./dates.js";
 import type { Ramp, SendPolicy } from "./policy.js";
 import { IN_FLIGHT, reconcile } from "./reconcile.js";
 import { type Rng, systemRng } from "./rng.js";
-import { ensureSuppression } from "./suppress.js";
+import { isLive, messagesOf, recordStop } from "./stops.js";
+import { todaysSends } from "./today.js";
 import {
   buildPixelUrl,
   carrierOf,
@@ -76,9 +61,6 @@ import {
 } from "./transport.js";
 import { assertInstant, canonicalZone } from "./tz.js";
 
-/** States a step can still be sent from — and the only states a stop may skip. */
-export const LIVE = ["draft", "approved", "failed"] as const satisfies readonly MessageState[];
-const isLive = (state: MessageState) => (LIVE as readonly MessageState[]).includes(state);
 const isInFlight = (state: MessageState) => (IN_FLIGHT as readonly MessageState[]).includes(state);
 
 const SUPPRESSION_STOP: Readonly<Record<string, StopReason>> = Object.freeze({
@@ -175,13 +157,6 @@ interface Candidate {
   message: Message;
   anchor: Message | null;
 }
-
-const messagesOf = (db: Queryable, enrollmentId: number): Promise<Message[]> =>
-  db
-    .select()
-    .from(messages)
-    .where(eq(messages.enrollmentId, enrollmentId))
-    .orderBy(asc(messages.step));
 
 /** `messagesOf` for many enrollments in one query, each list in step order. */
 async function messagesOfAll(db: Queryable, ids: number[]): Promise<Map<number, Message[]>> {
@@ -420,46 +395,6 @@ export async function sendDue(db: Db, opts: SendDueOptions): Promise<SendStats> 
 }
 
 // --- the pacing facts, read once per tick ------------------------------
-
-/**
- * (sends per inbox, openers fleet-wide, openers per niche) over the policy's
- * LOCAL day: the cap is a promise about one operator's working day. Openers are step 0.
- */
-export async function todaysSends(
-  db: Queryable,
-  policy: SendPolicy,
-  now: Date,
-): Promise<{
-  sentToday: Map<string, number>;
-  openersToday: number;
-  nicheOpeners: Map<string, number>;
-}> {
-  const [dayStart, dayEnd] = policy.localDayBounds(now);
-  const rows = await db
-    .select({
-      sender: enrollments.sender,
-      niche: enrollments.niche,
-      step: messages.step,
-      n: count(),
-    })
-    .from(messages)
-    .innerJoin(enrollments, eq(enrollments.id, messages.enrollmentId))
-    .where(
-      and(eq(messages.state, "sent"), gte(messages.sentAt, dayStart), lt(messages.sentAt, dayEnd)),
-    )
-    .groupBy(enrollments.sender, enrollments.niche, messages.step);
-  const sentToday = new Map<string, number>();
-  const nicheOpeners = new Map<string, number>();
-  let openersToday = 0;
-  for (const { sender, niche, step, n } of rows) {
-    sentToday.set(sender, (sentToday.get(sender) ?? 0) + n);
-    if (step === 0) {
-      openersToday += n;
-      nicheOpeners.set(niche, (nicheOpeners.get(niche) ?? 0) + n);
-    }
-  }
-  return { sentToday, openersToday, nicheOpeners };
-}
 
 /**
  * Each candidate company's own clock (companies.timezone), parsed once per
@@ -1010,140 +945,4 @@ async function attempt(
     },
     delivered: true,
   };
-}
-
-// --- stops --------------------------------------------------------------
-
-/**
- * Stop one ACTIVE enrollment: every unsent step (draft, approved, or wedged
- * failed) becomes SKIPPED so nothing can send later. Returns the number of
- * steps skipped. Illegal on a finished/stopped enrollment.
- *
- * A SENDING or UNKNOWN step is deliberately NOT skipped: that mail may already
- * be on its way, and the enrollment being STOPPED means the walk never touches
- * it again either way.
- *
- * opt_out/complaint/bounce also get-or-create a Suppression for the
- * enrollment's to_email — the row compose/send actually gate on — with the
- * enrollment id, stop reason and detail as the event's evidence.
- */
-export async function recordStop(
-  db: Queryable,
-  enrollment: Enrollment,
-  reason: StopReason,
-  opts: {
-    detail?: string | null;
-    now?: Date;
-    messages?: Message[];
-    shared?: SharedSuppressions | null;
-  } = {},
-): Promise<number> {
-  const detail = opts.detail ?? null;
-  await db
-    .update(enrollments)
-    .set({
-      state: transitionEnrollment(enrollment.state, "stopped"),
-      stopReason: reason,
-      stoppedAt: opts.now ?? new Date(),
-    })
-    .where(eq(enrollments.id, enrollment.id));
-  const msgs = opts.messages ?? (await messagesOf(db, enrollment.id));
-  let skipped = 0;
-  for (const message of msgs) {
-    if (!isLive(message.state)) continue;
-    message.state = transitionMessage(message.state, "skipped");
-    message.detail = detail ?? `enrollment stopped: ${reason}`;
-    await db
-      .update(messages)
-      .set({ state: message.state, detail: message.detail })
-      .where(eq(messages.id, message.id));
-    skipped += 1;
-  }
-  const first = msgs[0];
-  if (first !== undefined) {
-    await ensureSuppression(
-      db,
-      first.toEmail,
-      reason,
-      { enrollment_id: enrollment.id, stop_reason: reason, detail },
-      opts.shared,
-    );
-  }
-  return skipped;
-}
-
-/**
- * Company-scoped stop: a reply from anyone at the firm stops every active
- * enrollment into it. Returns enrollments stopped. Filters on
- * `enrollments.company_id`, pinned at compose — never through `people`.
- */
-export async function stopCompany(
-  db: Queryable,
-  opts: {
-    companyId: number;
-    reason: StopReason;
-    detail?: string | null;
-    now?: Date;
-    shared?: SharedSuppressions | null;
-  },
-): Promise<number> {
-  const rows = await db
-    .select()
-    .from(enrollments)
-    .where(and(eq(enrollments.companyId, opts.companyId), eq(enrollments.state, "active")))
-    .orderBy(asc(enrollments.id));
-  for (const enrollment of rows) {
-    await recordStop(db, enrollment, opts.reason, {
-      detail: opts.detail ?? null,
-      ...(opts.now ? { now: opts.now } : {}),
-      shared: opts.shared ?? null,
-    });
-  }
-  return rows.length;
-}
-
-/**
- * A race won in a metro campaign: the person's active enrollments in it stop
- * (designs/2026-11-02-campaigns.md). Matched by address or people id; null is
- * the default campaign. Returns enrollments stopped.
- */
-export async function stopCampaignEnrollments(
-  db: Queryable,
-  opts: {
-    campaign: string | null;
-    emails: readonly string[];
-    persons: readonly number[];
-    reason: StopReason;
-    detail: string;
-    now: Date;
-  },
-): Promise<number> {
-  const who = [
-    ...(opts.emails.length
-      ? [
-          inArray(
-            sql`lower(${enrollments.toEmail})`,
-            opts.emails.map((e) => e.toLowerCase()),
-          ),
-        ]
-      : []),
-    ...(opts.persons.length ? [inArray(enrollments.personId, [...opts.persons])] : []),
-  ];
-  if (!who.length) return 0;
-  const rows = await db
-    .select()
-    .from(enrollments)
-    .where(
-      and(
-        eq(enrollments.state, "active"),
-        opts.campaign === null
-          ? isNull(enrollments.campaign)
-          : eq(enrollments.campaign, opts.campaign),
-        or(...who),
-      ),
-    )
-    .orderBy(asc(enrollments.id));
-  for (const enrollment of rows)
-    await recordStop(db, enrollment, opts.reason, { detail: opts.detail, now: opts.now });
-  return rows.length;
 }

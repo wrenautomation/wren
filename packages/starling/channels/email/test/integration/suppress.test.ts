@@ -9,7 +9,7 @@ import { asc, eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { activeSuppression } from "../../src/guards.js";
 import { type Enrollment, enrollments, messages } from "../../src/schema.js";
-import { recordStop } from "../../src/send/deliver.js";
+import { recordStop } from "../../src/send/stops.js";
 import {
   addSuppression,
   ensureSuppression,

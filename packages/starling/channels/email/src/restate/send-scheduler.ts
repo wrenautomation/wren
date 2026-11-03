@@ -35,10 +35,11 @@ import {
 } from "@wren/core/restate";
 import type { Db } from "@wren/db";
 import type { SharedSuppressions } from "../guards.js";
+import type { KillSwitches } from "../inbox/health.js";
 import type { SendStats } from "../send/deliver.js";
 import type { SendPolicy } from "../send/policy.js";
 import { seededRng } from "../send/rng.js";
-import { type Fleet, type KillSwitches, sendTick, type TickResult } from "../send/tick.js";
+import { type Fleet, sendTick, type TickResult } from "../send/tick.js";
 import type { Transport } from "../send/transport.js";
 
 /** What one key sends under. */

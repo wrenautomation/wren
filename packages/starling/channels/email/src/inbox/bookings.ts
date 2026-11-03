@@ -12,7 +12,7 @@ import { linkByName } from "@wren/core/profiles-link";
 import { type Db, type Queryable, serializable } from "@wren/db";
 import { desc, eq, sql } from "drizzle-orm";
 import { callBookings, enrollments, messages } from "../schema.js";
-import { stopCompany } from "../send/deliver.js";
+import { stopCompany } from "../send/stops.js";
 
 export type BookingChange = "created" | "rescheduled" | "cancelled";
 

@@ -7,7 +7,7 @@ import type { Calendar } from "@wren/core/calendar";
 import type { Db } from "@wren/db";
 import { executorTouches, type Touch } from "../follow.js";
 import type { SharedSuppressions } from "../guards.js";
-import { evaluateKillSwitches } from "../inbox/health.js";
+import { evaluateKillSwitches, type KillSwitches } from "../inbox/health.js";
 import type { SenderPause } from "../schema.js";
 import { nextSendAt, type RampMap, type SendStats, sendDue } from "./deliver.js";
 import type { Ramp, SendPolicy } from "./policy.js";
@@ -54,12 +54,6 @@ export function rosterFleet(
     ramps,
   };
 }
-
-/** The kill-switch hook: pauses a domain whose trailing bounces crossed the line. */
-export type KillSwitches = (
-  db: Db,
-  opts: { policy: SendPolicy; now: Date; senders: readonly string[]; runId: string | null },
-) => Promise<SenderPause[]>;
 
 export interface TickOptions {
   policy: SendPolicy;

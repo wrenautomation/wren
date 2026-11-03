@@ -61,7 +61,7 @@ import {
   threadEvents,
 } from "../schema.js";
 import { PlainDate } from "../send/dates.js";
-import { recordStop, stopCompany } from "../send/deliver.js";
+import { recordStop, stopCompany } from "../send/stops.js";
 import { ensureSuppression } from "../send/suppress.js";
 import { awayUntil } from "./away.js";
 import {

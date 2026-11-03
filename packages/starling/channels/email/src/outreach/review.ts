@@ -15,7 +15,7 @@ import {
   type RejectReason,
   type StopReason,
 } from "../schema.js";
-import { recordStop, stopCompany } from "../send/deliver.js";
+import { recordStop, stopCompany } from "../send/stops.js";
 import { ensureSuppression } from "../send/suppress.js";
 import { transitionMessage } from "../state.js";
 import { describeAddress } from "./provenance.js";

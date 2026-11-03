@@ -7,7 +7,7 @@ import { startTestPostgres, type TestPostgres } from "@wren/db/testing";
 import { asc } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { enrollments } from "../../src/schema.js";
-import { stopCampaignEnrollments } from "../../src/send/deliver.js";
+import { stopCampaignEnrollments } from "../../src/send/stops.js";
 
 let pg: TestPostgres;
 beforeAll(async () => {

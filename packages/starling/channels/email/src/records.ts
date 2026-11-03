@@ -30,9 +30,9 @@ import { sql } from "drizzle-orm";
 import { briefOf } from "./calls/brief.js";
 import { activePauses, domainHealth, domainOf, wouldTrip } from "./inbox/health.js";
 import { campaignPolicy, loadCampaignControls } from "./send/campaign-controls.js";
-import { todaysSends } from "./send/deliver.js";
 import type { SendPolicy } from "./send/policy.js";
 import type { Sender } from "./send/roster.js";
+import { todaysSends } from "./send/today.js";
 
 /**
  * A campaign: the row keeps its niche key, so filters and links match keys, and shows the

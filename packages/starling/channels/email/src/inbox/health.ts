@@ -57,7 +57,6 @@ import {
   threadEvents,
 } from "../schema.js";
 import type { SendPolicy } from "../send/policy.js";
-import type { KillSwitches } from "../send/tick.js";
 import { sendHealth } from "../views.js";
 
 /** The sending domain of a roster address — the grain reputation lives at. */
@@ -191,6 +190,12 @@ export async function domainHealth(
     return health;
   });
 }
+
+/** The kill-switch hook: pauses a domain whose trailing bounces crossed the line. */
+export type KillSwitches = (
+  db: Db,
+  opts: { policy: SendPolicy; now: Date; senders: readonly string[]; runId: string | null },
+) => Promise<SenderPause[]>;
 
 /**
  * Pause every inbox on any domain whose trailing numbers have gone bad.
