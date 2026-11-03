@@ -778,6 +778,18 @@ describe("the sender's DMs", () => {
     });
   });
 
+  it("proved absent: the row goes back to a person's yes, never a resend on its own", async () => {
+    ch.faults.push({ err: new NotSent("verified_absent", "not on the sent list"), landed: false });
+    const stats = await tickNow();
+    expect(stats.held["not-sent"]).toBe(1);
+    expect(stats.failed).toBe(0);
+    const [m] = await db().select().from(reachMessages);
+    expect(m).toMatchObject({ state: "proposed" });
+    expect(m?.stateReason).toContain("approve to send again");
+    expect((await tickAt(new Date(NOW.getTime() + 60 * 60_000))).sent).toBe(0);
+    expect(keys).toHaveLength(1);
+  });
+
   it("not sent: the row waits five minutes and goes again under a new key", async () => {
     ch.faults.push({ err: new NotSent("before_submit", "the browser was busy"), landed: false });
     const stats = await tickNow();

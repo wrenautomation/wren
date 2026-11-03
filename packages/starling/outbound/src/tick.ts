@@ -584,20 +584,33 @@ async function recordUnsure(
 }
 
 /**
- * Step 4d: autobrowse says nothing went out. The row waits and goes again under a new key; it is
- * no failure and spends nothing.
+ * Step 4d: autobrowse says nothing went out; no failure, nothing spent. Refused before the submit:
+ * the row goes again under a new key. A read proved it absent: back to a person's yes, never a
+ * resend on its own (William, 11-02: a duplicate costs trust).
  */
 async function recordNotSent(
   db: Queryable,
   c: Candidate,
-  reason: string,
+  got: { how: "before_submit" | "verified_absent"; reason: string },
   now: Date,
   stats: TickStats,
 ): Promise<void> {
+  const { reason } = got;
   const limit = limitWaitMs(reason);
   if (limit !== null) {
     await holdLane(db, c, new Date(now.getTime() + limit), reason);
     hold(stats, "cap");
+    return;
+  }
+  if (got.how === "verified_absent") {
+    await db
+      .update(reachMessages)
+      .set({
+        state: "proposed",
+        stateReason: `checked: it did not go out; approve to send again (${reason})`.slice(0, 5000),
+      })
+      .where(eq(reachMessages.id, c.row.id));
+    hold(stats, "not-sent");
     return;
   }
   await db
@@ -769,8 +782,7 @@ export async function tick(
         continue;
       }
       if (got.kind === "not_sent") {
-        const reason = got.reason;
-        await stepStats(`not sent ${c.row.id}`, (s) => recordNotSent(db, c, reason, o.now, s));
+        await stepStats(`not sent ${c.row.id}`, (s) => recordNotSent(db, c, got, o.now, s));
         continue;
       }
       sent =
@@ -873,9 +885,8 @@ async function recheckUnsure(
       continue;
     }
     if (got.kind === "not_sent") {
-      const reason = got.reason;
       await stepStats(`recheck not sent ${c.row.id}`, async (s) => {
-        await recordNotSent(db, c, reason, o.now, s);
+        await recordNotSent(db, c, got, o.now, s);
         await forgetUnsure(db, item);
       });
       continue;
