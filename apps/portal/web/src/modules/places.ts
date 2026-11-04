@@ -99,7 +99,7 @@ const TEAM = { audience: "team" } as const;
 
 // Wren's team.
 
-export const mapPlace: Module = {
+const mapPlace: Module = {
   id: "map",
   name: "Map",
   icon: "workflow",
@@ -125,7 +125,7 @@ export const mapPlace: Module = {
   ],
 };
 
-export const campaignsPlace: Module = {
+const campaignsPlace: Module = {
   id: "campaigns",
   name: "Campaigns",
   icon: "billboard",
@@ -171,7 +171,7 @@ export const campaignsPlace: Module = {
   ],
 };
 
-export const contentPlace: Module = {
+const contentPlace: Module = {
   id: "content",
   name: "Content",
   icon: "megaphone",
@@ -198,7 +198,7 @@ export const contentPlace: Module = {
   ],
 };
 
-export const peoplePlace: Module = {
+const peoplePlace: Module = {
   ...oldPeople,
   blurb: "Everyone we know: leads, clients, companies, their journeys and calls.",
   find: finds(oldPeople, pipelines, clients, outbound, engage),
@@ -231,7 +231,7 @@ export const peoplePlace: Module = {
   ],
 };
 
-export const inboxPlace: Module = {
+const inboxPlace: Module = {
   ...oldInbox,
   blurb: "What waits on you now: replies, approvals, holds and mail.",
   pages: [
@@ -251,7 +251,7 @@ export const inboxPlace: Module = {
   ],
 };
 
-export const officePlace: Module = {
+const officePlace: Module = {
   id: "office",
   name: "Back office",
   icon: "building",
@@ -308,7 +308,7 @@ export const TEAM_PARKED: Module[] = [without(workflows, "holds"), without(handl
 
 // A client's workspace: the same places, less Research.
 
-export const clientMapPlace: Module = {
+const clientMapPlace: Module = {
   id: "map",
   name: "Map",
   icon: "workflow",
@@ -321,7 +321,7 @@ export const clientMapPlace: Module = {
   ],
 };
 
-export const clientCampaignsPlace: Module = {
+const clientCampaignsPlace: Module = {
   id: "campaigns",
   name: "Campaigns",
   icon: "billboard",
@@ -340,7 +340,7 @@ export const clientCampaignsPlace: Module = {
   ],
 };
 
-export const clientContentPlace: Module = {
+const clientContentPlace: Module = {
   id: "content",
   name: "Content",
   icon: "megaphone",
@@ -351,7 +351,7 @@ export const clientContentPlace: Module = {
   ]),
 };
 
-export const clientPeoplePlace: Module = {
+const clientPeoplePlace: Module = {
   ...oldClientPeople,
   find: finds(oldClientPeople, clientDeals, leads),
   pages: [
@@ -366,7 +366,7 @@ export const clientPeoplePlace: Module = {
   ],
 };
 
-export const clientInboxPlace: Module = {
+const clientInboxPlace: Module = {
   id: "inbox",
   name: "Inbox",
   icon: "inbox",
@@ -382,7 +382,7 @@ export const clientInboxPlace: Module = {
   ],
 };
 
-export const clientOfficePlace: Module = {
+const clientOfficePlace: Module = {
   id: "office",
   name: "Back office",
   icon: "building",

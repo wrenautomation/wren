@@ -212,7 +212,7 @@ const RESULT_ACTIONS: Action[] = [
  * The plan's pages for a product's app: the ones a client opens often as tabs, the rest by
  * link. A client's own, so never on the demo.
  */
-export const ENGAGEMENT_PAGES: ModulePage[] = [
+const ENGAGEMENT_PAGES: ModulePage[] = [
   {
     id: "plan",
     label: "Plan",

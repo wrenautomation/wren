@@ -1155,16 +1155,3 @@ export const ask: Module = {
     },
   ],
 };
-
-export const WREN_APPS = [
-  workflows,
-  outbound,
-  inbox,
-  loops,
-  money,
-  clients,
-  team,
-  handlers,
-  review,
-  ask,
-];
