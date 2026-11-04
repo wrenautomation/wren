@@ -135,7 +135,7 @@ describe("automationRows", () => {
     expect(rows).toHaveLength(2);
     expect(rows[0]).toMatchObject({
       id: "loop:SmsSend",
-      name: "Texts: SMS sender",
+      name: "Texts: SMS send",
       state: "on",
       health: "failing",
       runs: 2,

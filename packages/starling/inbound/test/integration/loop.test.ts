@@ -1733,7 +1733,7 @@ describe("daily drafts (PostPlan with draft on)", () => {
       sql`select stage, subject from unit_holds`,
     );
     expect([...holds]).toEqual([
-      { stage: `loop.content-planner/${PLANNER_KEY}`, subject: `idea ${slow.id}` },
+      { stage: `loop.post-plan/${PLANNER_KEY}`, subject: `idea ${slow.id}` },
     ]);
     // Held: the next pass passes it over and drafts the next idea.
     await reopen();

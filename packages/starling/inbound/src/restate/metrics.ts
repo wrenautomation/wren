@@ -20,7 +20,7 @@
  * Every `Content` call waits at most its limit (`LIMITS`, designs/2026-10-16-loop-watchdog.md):
  * a read that gives no answer is cancelled and its post skipped till the next pass. A platform
  * that times out twice in a pass is left for the next; a post that times out three passes in a
- * row is held (`unit_holds`, stage `loop.content-metrics/<key>`).
+ * row is held (`unit_holds`, stage `loop.post-metrics/<key>`).
  *
  * A post whose look fails waits before its next (`MISSES`): 2 hours, twice as long after each
  * next miss, at most a day. A failed look writes no row, so the post is due every pass and

@@ -203,7 +203,7 @@ interface UnitWithinOpts extends Omit<WithinOpts, "unit"> {
 /** `PostMetrics` → `content-metrics`. */
 const kebab = (s: string) => s.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
 
-/** The stage a loop's held units go under: `loop.content-metrics/default`. */
+/** The stage a loop's held units go under: `loop.post-metrics/default`. */
 export const limitStage = (service: string, key: string) => `loop.${kebab(service)}/${key}`;
 
 export interface UnitLimitsOpts {

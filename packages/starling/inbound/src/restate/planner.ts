@@ -13,7 +13,7 @@
  * A draft waits at most `DRAFT_WAIT_MS` (designs/2026-10-16-loop-watchdog.md): past it the desk's
  * call runs on alone (it writes the draft) and the pass drafts no more, since the desk's one lock
  * is that call's. The next pass starts past it. An idea that times out three passes in a row is
- * held (`unit_holds`, stage `loop.content-planner/<key>`), and the next idea goes first.
+ * held (`unit_holds`, stage `loop.post-plan/<key>`), and the next idea goes first.
  *
  * Campaigns (designs/2026-11-02-campaigns.md, phase 3): the pass fills slots per live campaign in
  * body order, then the default. A campaign takes only its own ideas, on the platforms it names an

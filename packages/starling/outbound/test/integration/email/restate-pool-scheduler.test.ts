@@ -311,7 +311,7 @@ describe("LeadPoolFill", () => {
     const holds = await pg.db.execute<{ stage: string; subject: string }>(
       sql`select stage, subject from unit_holds`,
     );
-    expect([...holds]).toEqual([{ stage: "loop.pool-scheduler/hang_ria", subject: "crawl" }]);
+    expect([...holds]).toEqual([{ stage: "loop.lead-pool-fill/hang_ria", subject: "crawl" }]);
     // Held: the next pass leaves crawl out and walks the rest.
     called.length = 0;
     const after = await sync(key);

@@ -12,7 +12,7 @@
  *
  * Each Gmail read waits at most its `sites` client's `limitMs` (the worker passes `LIMITS.read`).
  * A check that gets no answer is asked again next pass; one that gets none three passes in a row
- * is held (`unit_holds`, stage `loop.placement-scheduler/fleet`). A seed that times out twice in
+ * is held (`unit_holds`, stage `loop.email-placement-test/fleet`). A seed that times out twice in
  * a pass with nothing answered is left out for the rest of it, its checks not blamed.
  */
 import type * as restate from "@restatedev/restate-sdk";

@@ -47,7 +47,7 @@
  * Each stage call waits at most `STAGE_WAIT_MS` (designs/2026-10-16-loop-watchdog.md). Past it
  * the call is cancelled and the stage counts as failed this pass; the rest of that object's
  * stages (`Enrichment/<key>` is one lock) wait for the next pass. A stage that times out three
- * passes in a row is held (`unit_holds`, stage `loop.pool-scheduler/<key>`), then tried again
+ * passes in a row is held (`unit_holds`, stage `loop.lead-pool-fill/<key>`), then tried again
  * after its hold.
  */
 import * as restate from "@restatedev/restate-sdk";

@@ -19,7 +19,7 @@
  * Every read waits at most its limit (`LIMITS`, designs/2026-10-16-loop-watchdog.md): one that
  * gives no answer is cancelled and said in `errors`; a platform that times out twice in a pass is
  * left for the next; a post or read that times out three passes in a row is held (`unit_holds`,
- * stage `loop.social-watch/<key>`).
+ * stage `loop.social-activity-read/<key>`).
  *
  * `SocialDesk` is Marketing → Inbox's activity actions (mark seen, mark all seen) and Followers'
  * "Read now": a follower count read once, for a platform the loop never reads one on (LinkedIn).
