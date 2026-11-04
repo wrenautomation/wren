@@ -1,7 +1,9 @@
 /**
- * Research: birdwatch runs read from `birdwatch serve` on this Mac, live. Wren's team only, read only.
+ * Research: ask a Claude agent with birdwatch (this Mac's `wren agent serve`), and read birdwatch
+ * runs from `birdwatch serve`, live. Wren's team only.
  */
 import type { Module } from "../../module.js";
+import { AskPage } from "./ask.js";
 import { RunsPage } from "./page.js";
 
 export const research: Module = {
@@ -11,6 +13,13 @@ export const research: Module = {
   blurb: "Birdwatch runs as they go: the tree, the back and forth, and every source to check.",
   requires: { audience: "team" },
   pages: [
+    {
+      id: "ask",
+      label: "Ask",
+      about: "Ask a Claude agent with birdwatch; your past chats stay on the left.",
+      Page: AskPage,
+      wide: true,
+    },
     {
       id: "runs",
       label: "Runs",

@@ -57,6 +57,8 @@ export interface LaunchOptions {
   /** Host env to pick from. */
   host: Readonly<Record<string, string | undefined>>;
   resume?: string | undefined;
+  /** One of the setup's models, picked by the page; default `setup.model`. */
+  model?: string | undefined;
   /** Hook command that blocks printing secrets (William's user hook, carried per setup). */
   secretHook?: string | undefined;
   /** Package name → root dir; default resolves from this package. */
@@ -121,7 +123,7 @@ export function launch(setup: Setup, cred: Credential, o: LaunchOptions): Launch
     "--mcp-config", JSON.stringify({ mcpServers: setup.mcpServers ?? {} }),
     "--exclude-dynamic-system-prompt-sections",
     "--tools", setup.tools.join(","),
-    "--model", setup.model,
+    "--model", o.model ?? setup.model,
   ];
   if (setup.mode) args.push("--permission-mode", setup.mode);
   const plugin = o.resolvePlugin ?? pluginRoot;

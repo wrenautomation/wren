@@ -113,3 +113,15 @@ Decision 3 says a grant decides. The relay must check it, not trust the page.
 | D. The relay reads grants from Postgres | exact | database credentials on every relay host |
 
 Choice: A. The relay asks only an origin on its allow list, so a page cannot point it elsewhere. On app.wrenautomation.com the token is the sign-in's (15 min); on localhost:5173 the dev Worker answers as `WREN_DEV_EMAIL`, on this Mac only. A client with no Origin (`wren agent check`) uses the local token. The target is `{app}` only: Wren's own workspace. A client setup adds `client` when one exists. `research` joins `APPS` so a grant can name it. B is the path for a relay with no route to the portal.
+
+### Built 11-04 (WA-1053)
+WA-1052's Built list said "the browser `query()` ran two turns". That ran in Node. In a real page the SDK's browser build failed at once: it reads `process.env`, `.argv` and `.platform` unguarded (0.3.318, latest). Fixed here; see the stub below.
+- Relay: `GET /setups`, `GET /s/<setup>/sessions[/<id>]` (per person, from its ledger), `?model=` on the socket (one of the setup's models; else 4400). The CLI starts on the picked model, so no `set_model` runs on a new chat. Chat titles are the first prompt: the CLI's `summary` moves to the latest one.
+- Decision 5 built: `pageGrant` in `apps/cli/src/agent.ts`. The ledger `who` is the token's email (better-auth JWT carries it); in dev it is the page host.
+- `@wren/ui` `AgentThread` (assistant-ui 0.15.32 `useExternalStoreRuntime`, Streamdown 2.7.1). Turns rise in; a tool card's state cross-fades; the foot fades in; a chat switch dims the last chat and holds Send. Stories per state with play tests and axe, both looks.
+- Portal `modules/agent`: `thread.ts` folds SDK frames to thread messages. Its tests run on fixtures cut from real relay captures: stream, ask and deny, Stop, stored history. `use-agent.ts` opens the socket on the first send; a stored chat loads through `useLoad` in a tab scope, so a return to it paints at once. The chat list is a `useCall` kept on the device; it reads again behind itself when a chat starts or a turn ends.
+- `nodeStub()` in `connect.ts` sets an empty `process` before the SDK loads, only when none exists. Trade-off: a library that tests `typeof process` now sees one. The portal's own code has no such test. A patch per read would break on each SDK bump.
+- The CLI echoes a mid-chat `/model` as a user frame (`<local-command-stdout>`); the fold drops it.
+- Live from localhost:5173 (headless Chromium, Haiku, plan): two turns; an ask on `touch $TMPDIR/…` with Deny, which showed Denied; Stop mid-essay, which showed "Stopped"; New chat; reopen of the stored chat with its denied tool and stopped reply; resume and one more turn. Relay down: one sentence and Try again.
+- Stored chats have no foot: the CLI stores no `result` frames.
+- Not done: the try from app.wrenautomation.com (Chrome's local network access prompt), which waits on William's browser.

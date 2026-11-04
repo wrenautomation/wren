@@ -159,6 +159,11 @@ describe("relay", () => {
     expect((await session("/s/demo?resume=s9", [auth()])).code).toBe(CLOSE.unauthorized);
   });
 
+  it("refuses a model the setup does not list", async () => {
+    await start();
+    expect((await session("/s/demo?model=opus", [auth()])).code).toBe(CLOSE.setup);
+  });
+
   it("lists setups, and only the asker's own sessions with their history", async () => {
     const ledger = await start();
     await session("/s/demo", [auth(), user("one")], isResult);

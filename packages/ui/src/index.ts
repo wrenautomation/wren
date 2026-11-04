@@ -33,6 +33,16 @@ export {
   BrowserRow,
   folderTree,
 } from "./browser.js";
+export {
+  type AgentFoot,
+  type AgentMessage,
+  type AgentPart,
+  AgentThread,
+  type AgentThreadProps,
+  footLine,
+  threadMessage,
+  toolLine,
+} from "./agent-thread.js";
 export { Busy, BusyBox, type BusySize, Ring } from "./busy.js";
 export {
   BarsChart,

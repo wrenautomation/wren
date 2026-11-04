@@ -75,6 +75,13 @@ describe("launch", () => {
     expect(flag(l.args, "--resume")).toBe("abc");
   });
 
+  it("the page's model replaces the default", () => {
+    expect(flag(launch(setup, { kind: "plan" }, opts).args, "--model")).toBe("haiku");
+    expect(
+      flag(launch(setup, { kind: "plan" }, { ...opts, model: "sonnet" }).args, "--model"),
+    ).toBe("sonnet");
+  });
+
   it("terminal is a skeleton; a credential the setup does not take fails", () => {
     expect(() => launch({ ...setup, connection: "terminal" }, { kind: "plan" }, opts)).toThrow(
       /not built/,

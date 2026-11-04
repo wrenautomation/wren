@@ -299,7 +299,11 @@ export interface MeAccess {
 export function whoFromMe(me: MeAccess, client: string | null): Who | undefined {
   if (me.demo) return undefined;
   if (me.team)
-    return { team: me.team.role, clients: null, ...(me.team.grants ? { grants: me.team.grants } : {}) };
+    return {
+      team: me.team.role,
+      clients: null,
+      ...(me.team.grants ? { grants: me.team.grants } : {}),
+    };
   if (client === null) return undefined;
   const c = me.clients.find((x) => x.id === client);
   if (!c?.role) return undefined;

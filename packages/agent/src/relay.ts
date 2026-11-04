@@ -1,5 +1,5 @@
 /**
- * The relay: one WebSocket per session at `ws://127.0.0.1:<port>/s/<setup>?resume=<id>`, one
+ * The relay: one WebSocket per session at `ws://127.0.0.1:<port>/s/<setup>?resume=<id>&model=<m>`, one
  * `claude` child per socket. Frames are the CLI's own stream-json (NDJSON), which the Agent SDK's
  * `./browser` `query({websocket})` speaks, so the page holds the whole SDK and the relay parses
  * only to filter (filter.ts), to guard the credential (guard.ts) and to note the session id.
@@ -41,7 +41,7 @@ export interface RelayOptions {
   origins: readonly string[];
   setups: readonly Setup[];
   credential: Credential;
-  launch: Omit<LaunchOptions, "resume">;
+  launch: Omit<LaunchOptions, "resume" | "model">;
   /** The setup's CLI dirs, put before PATH (bins.ts). */
   binDirs?: (setup: Setup) => readonly string[];
   /** Live children at once; each `claude` holds a few hundred MB. */
@@ -99,6 +99,9 @@ export function relay(o: RelayOptions): {
 
     const origin = req.headers.origin;
     const resume = url.searchParams.get("resume") ?? undefined;
+    const model = url.searchParams.get("model") ?? undefined;
+    if (model && model !== setup.model && !setup.models?.includes(model))
+      return ws.close(CLOSE.setup, `setup ${setup.name} has no model ${model}`.slice(0, 120));
     let child: ChildProcess | undefined;
     let state: "auth" | "checking" | "open" | "closed" = "auth";
     // the SDK sends initialize and the first turn right after auth: held in order until let in
@@ -130,7 +133,7 @@ export function relay(o: RelayOptions): {
               clearTimeout(timer);
               if (state === "closed") return;
               if (!who) return ws.close(CLOSE.unauthorized, "not allowed to open this setup");
-              child = start(ws, setup, who, resume);
+              child = start(ws, setup, who, resume, model);
               if (!child) return;
               state = "open";
               for (const l of held.splice(0)) forward(l);
@@ -154,6 +157,7 @@ export function relay(o: RelayOptions): {
     setup: Setup,
     who: string,
     resume: string | undefined,
+    model: string | undefined,
   ): ChildProcess | undefined {
     if (resume && !ledger.list(setup.name, who).some((r) => r.session === resume)) {
       ws.close(CLOSE.unauthorized, "not your session");
@@ -162,7 +166,12 @@ export function relay(o: RelayOptions): {
     let l: ReturnType<typeof launch>;
     try {
       const binDirs = o.binDirs?.(setup) ?? o.launch.binDirs;
-      l = launch(setup, o.credential, { ...o.launch, resume, ...(binDirs ? { binDirs } : {}) });
+      l = launch(setup, o.credential, {
+        ...o.launch,
+        resume,
+        model,
+        ...(binDirs ? { binDirs } : {}),
+      });
     } catch (e) {
       const why = e instanceof Error ? e.message : String(e);
       log(`${setup.name}: launch failed: ${why}`);

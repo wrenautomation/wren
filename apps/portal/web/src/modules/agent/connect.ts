@@ -19,6 +19,48 @@ const RELAY =
   (typeof location === "undefined" ? null : new URLSearchParams(location.search).get("agent")) ??
   "ws://127.0.0.1:4748";
 
+/** The relay's HTTP side, same port: setups, and the asker's own past sessions. */
+const HTTP = RELAY.replace(/^ws/, "http");
+
+/** A setup as the relay lists it (`GET /setups`). */
+export interface SetupInfo {
+  name: string;
+  title: string;
+  app: string;
+  model: string;
+  models: string[];
+  tools: string[];
+  skills: string[];
+}
+
+/** A past session of the asker's (`GET /s/<setup>/sessions`), newest first. */
+export interface SessionRow {
+  session: string;
+  at: string;
+  title?: string | undefined;
+}
+
+async function relayGet<T>(path: string, token?: string): Promise<T> {
+  const res = await fetch(`${HTTP}${path}`, {
+    headers: token ? { authorization: `Bearer ${token}` } : {},
+  }).catch(() => {
+    throw new Error("WebSocket connection error");
+  });
+  if (!res.ok)
+    throw new Error(`relay ${res.status}: code ${res.status === 401 ? 4401 : res.status}`);
+  return (await res.json()) as T;
+}
+
+export const relaySetups = () => relayGet<SetupInfo[]>("/setups");
+export const relaySessions = (setup: string, token: string) =>
+  relayGet<SessionRow[]>(`/s/${encodeURIComponent(setup)}/sessions`, token);
+/** A stored session's frames, to fold with `history` (thread.ts). */
+export const relayHistory = (setup: string, session: string, token: string) =>
+  relayGet<Record<string, unknown>[]>(
+    `/s/${encodeURIComponent(setup)}/sessions/${encodeURIComponent(session)}`,
+    token,
+  );
+
 /** The page's turns as the SDK's prompt stream: `say` queues one, `end` closes the session. */
 export function turns(): {
   stream: AsyncIterable<SDKUserMessage>;
@@ -60,25 +102,40 @@ export function turns(): {
 export interface OpenOptions {
   /** A setup's name (`wren agent setups`). */
   setup: string;
-  /** `wren agent token` on the Mac. */
+  /** The page's sign-in token ("dev" on a local run); `wren agent token` for a local process. */
   token: string;
   prompt: AsyncIterable<SDKUserMessage>;
   canUseTool: CanUseTool;
   resume?: string;
+  /** One of the setup's models; the relay starts the CLI on it. */
+  model?: string;
   abortController?: AbortController;
+}
+
+/**
+ * The SDK's browser build reads `process.env`, `.argv`, `.platform` unguarded (0.3.318): an empty
+ * stand-in, set only when absent. Its guarded reads (`typeof process.cwd`) still see no Node.
+ */
+function nodeStub(): void {
+  const g = globalThis as { process?: unknown };
+  g.process ??= { env: {}, argv: [], platform: "browser", versions: {} };
 }
 
 /** One session; iterate the result for every SDKMessage, call `.interrupt()` to stop a turn. */
 export async function openSetup(o: OpenOptions): Promise<Query> {
+  nodeStub();
   const { query } = await import("@anthropic-ai/claude-agent-sdk/browser");
-  const q = o.resume ? `?resume=${encodeURIComponent(o.resume)}` : "";
+  const p = new URLSearchParams();
+  if (o.resume) p.set("resume", o.resume);
+  if (o.model) p.set("model", o.model);
+  const q = p.size ? `?${p}` : "";
   return query({
     prompt: o.prompt,
     canUseTool: o.canUseTool,
     ...(o.abortController ? { abortController: o.abortController } : {}),
     websocket: {
       url: `${RELAY}/s/${encodeURIComponent(o.setup)}${q}`,
-      // the SDK's auth frame carries our local relay token, never a Claude credential
+      // the auth frame carries the page's sign-in token (Decision 5), never a Claude credential
       authMessage: { type: "auth", credential: { type: "oauth", token: o.token } },
     },
   });
