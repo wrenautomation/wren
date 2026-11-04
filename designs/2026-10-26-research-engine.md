@@ -1293,3 +1293,9 @@ autobrowse now takes one preset grammar on every search route (WA-1031): `latest
 - Options for a source that can't honor a preset: (a) ignore it silently; (b) warn and search without it; (c) send the query only to sources that take presets, and refuse the write when none in the run does. Took (c): a dropped window would pass off old hits as recent.
 - Dropped birdwatch's own LinkedIn `past-month`. No preset now means the platform's default; the agent picks a window.
 - Reddit: `reddit-public /search` took presets all along; only the catalog hid them. birdwatch reddit takes them in 0.35.1, its own `sort: relevance` dropped.
+
+## 11-03: Cohere limits per org; platform sources count by channel (engine 0.35.2)
+
+- Three videos failed with Cohere 429. The ear paced 20 a minute per key, and the env holds 2 keys. Cohere counts both keys together: 20 calls on key A, then key B got a 429. The ear now paces 20 a minute over all keys, and a 429 waits 20, 40, 60 s. J04_XStLzP0 (23 min): 23 clips, no 429, 104 s.
+- Other processes on the same org can still collide. A shared lock across processes is not built; the 429 waits cover a short overlap.
+- A pattern on 2 YouTube creators showed 1 source: sources were counted by host. On a platform host (YouTube, TikTok, Instagram, LinkedIn, X, Threads, Facebook, Medium, Substack), the hit's channel is now the source.
