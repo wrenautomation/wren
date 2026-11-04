@@ -1299,3 +1299,10 @@ autobrowse now takes one preset grammar on every search route (WA-1031): `latest
 - Three videos failed with Cohere 429. The ear paced 20 a minute per key, and the env holds 2 keys. Cohere counts both keys together: 20 calls on key A, then key B got a 429. The ear now paces 20 a minute over all keys, and a 429 waits 20, 40, 60 s. J04_XStLzP0 (23 min): 23 clips, no 429, 104 s.
 - Other processes on the same org can still collide. A shared lock across processes is not built; the 429 waits cover a short overlap.
 - A pattern on 2 YouTube creators showed 1 source: sources were counted by host. On a platform host (YouTube, TikTok, Instagram, LinkedIn, X, Threads, Facebook, Medium, Substack), the hit's channel is now the source.
+
+## 11-03: a local ear, Cohere second (engine 0.36.0)
+
+- Cohere Transcribe hit a per-month request cap on our org after about 1,000 calls (429 "per-month request limit for this model"). Chat on the same key still works; the $970 credit does not lift it. Asked support for 500 a minute and no monthly cap.
+- Options: (a) wait for Cohere; (b) a paid ear (OpenAI, Groq); (c) whisper.cpp on this Mac, already installed for studio. Took (c): free, no limit, no network, no vendor to rely on. Cohere stays the ear only where the model is not on disk.
+- 11-03, 5 real 60 s clips: turbo q5_0 20 s, 0.9 GB peak; full turbo 22 s, 1.9 GB, the same words. Took q5_0 (memory lean). 10-min clips lost half the words, and Silero VAD gave none, so 60 s clips and no VAD.
+- `speechHere(cohereKeys)` in read picks the ear; birdwatch `open`, `read` and `watch` use it. J04_XStLzP0 (23 min): 116 s, about the same text as Cohere.
