@@ -31,7 +31,8 @@ export function toolTitle(name: string, input: Args): string {
   if (typeof input.description === "string" && input.description) return input.description;
   const line = toolLine(name, input);
   if (name === "Read") return `Read ${line.split("/").pop() || "a file"}`;
-  if (name === "Skill") return `Load the ${line || "a"} skill`;
+  // plugin skills come as "plugin:skill"
+  if (name === "Skill") return line ? `Load the ${line.split(":").at(-1)} skill` : "Load a skill";
   if (name === "Bash") return "Run a command";
   return name;
 }
@@ -301,6 +302,13 @@ const StepRow: ToolCallMessagePartComponent = (t) => {
   const done = t.result !== undefined;
   const out = done && typeof t.result === "string" ? t.result.trim() : "";
   const [mine, setMine] = useState(false);
+  // one answer per ask: a second click throws in assistant-ui
+  const [sent, setSent] = useState(false);
+  const answer = (approved: boolean) => {
+    if (sent) return;
+    setSent(true);
+    void t.respondToApproval?.({ approved });
+  };
   const open = waits || mine;
   const ms =
     t.timing?.completedAt && t.timing.startedAt ? t.timing.completedAt - t.timing.startedAt : 0;
@@ -387,14 +395,10 @@ const StepRow: ToolCallMessagePartComponent = (t) => {
                 Claude agent asks to run this{ask?.prompt ? `: ${ask.prompt.toLowerCase()}` : "."}
               </span>
               <div className="flex gap-2">
-                <Button size="sm" onClick={() => void t.respondToApproval?.({ approved: true })}>
+                <Button size="sm" disabled={sent} onClick={() => answer(true)}>
                   Allow once
                 </Button>
-                <Button
-                  size="sm"
-                  tone="secondary"
-                  onClick={() => void t.respondToApproval?.({ approved: false })}
-                >
+                <Button size="sm" tone="secondary" disabled={sent} onClick={() => answer(false)}>
                   Deny
                 </Button>
               </div>

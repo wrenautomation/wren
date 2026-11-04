@@ -189,16 +189,20 @@ function partial(s0: ThreadState, e: Frame, t: number): ThreadState {
   return s0;
 }
 
+const STOPPED = /^No response requested\.?$/;
+
 function whole(
   s0: ThreadState,
   msg: { id?: string; model?: string; content?: Block[]; usage?: Record<string, unknown> },
   t: number,
 ): ThreadState {
-  // the CLI's own line after a stop ("No response requested."), not the model's
-  if (msg.model === "<synthetic>") return s0;
   const blocks = msg.content ?? [];
+  // the CLI's own lines: a typed command's answer shows; its line after a stop doesn't; no usage
+  const cli = msg.model === "<synthetic>";
+  if (cli && !blocks.some((b) => b.type === "text" && b.text && !STOPPED.test(String(b.text))))
+    return s0;
   const { s: s1, m } = reply(s0);
-  const s = grew(used(s1, m, msg), m, msg);
+  const s = cli ? s1 : grew(used(s1, m, msg), m, msg);
   if (msg.id && s0.streamed.includes(msg.id)) {
     for (const b of blocks) {
       if (b.type !== "tool_use") continue;

@@ -239,3 +239,21 @@ Chosen: A. The owner runs every command, as in their terminal. Anyone else runs 
 - `/clear` starts a new session in the same child. The ledger records each session id, so a cleared chat stays the person's and can be resumed.
 - The page follows: after `/model` or `/effort` the pickers show what the CLI applies; after `/clear` the thread empties and the chat id moves. A stored chat shows a command as typed (`/model sonnet`), never its tags.
 - `wren agent serve --tape <dir>` writes each session's frames, both ways, for story fixtures. The auth frame is never taped.
+
+## Decision 14: story parity by replayed tapes (11-04, WA-1076)
+William: the story may look worse than the live page, never better. Part stories drifted. They showed features with hand data that the live page dropped or broke.
+
+| Option | Drift caught | Cost | Against |
+|---|---|---|---|
+| A. The real page (`/research/ask`) over a fake relay that replays real tapes | code: none, it is the same code; data: re-record | fixtures in git, a recorder | tapes go stale when the CLI changes its frames |
+| B. Hand fixtures, part stories | only what we thought to write | low | the old drift: the story looks better |
+| C. Pixel compare against live | layout | a live session per run | rejected: no pixel compare |
+| D. Record from the portal dev page | the same as A | none | rejected: the dev Worker can reach prod |
+
+Chosen: A. The story "Revamp/Agent chat" (`pages-agent.stories.tsx`) runs the real page, SDK and thread fold. msw `ws.link` stands in for the relay.
+- `packages/agent/scripts/record-tape.mjs` drives the relay as the page does: settings at init, context after each result, task output on a task, settings after `/model` and `/effort`. So a re-record is deterministic.
+- `scrub-tape.mjs` makes a tape public: home paths, account, ids and emails go. It fails if any is left.
+- The fake answers each control call by the next reply in the same turn. Turns replay at the recorded pace, each gap at most 400 ms. An approval waits for the page; Stop jumps to the recorded cut.
+- Play tests assert each feature. A story fails when the page drops one.
+- The first replay found 4 bugs the part stories hid: typed command answers never showed, the `/model` refusal named a model twice, "Load the a skill" while the input streamed, and a second click on Allow threw.
+- Re-record when the CLI or SDK changes: `record-tape.mjs`, then `scrub-tape.mjs` into `mocks/data/agent/`.

@@ -157,6 +157,22 @@ describe("fold", () => {
     });
   });
 
+  it("shows a typed command's answer, never the line after a stop", () => {
+    const cli = (text: string) => ({
+      type: "assistant",
+      message: { id: text, model: "<synthetic>", content: [{ type: "text", text }] },
+    });
+    const s = history([
+      { type: "user", message: { role: "user", content: "/context" } },
+      cli("## Context Usage"),
+      { type: "user", message: { role: "user", content: "Go on" } },
+      cli("No response requested."),
+    ] as Frame[]);
+    const said = s.messages.flatMap((m) => m.parts.map((p) => ("text" in p ? p.text : "")));
+    expect(said).toContain("## Context Usage");
+    expect(said).not.toContain("No response requested.");
+  });
+
   it("cut ends a live reply: failed, or stopped after Stop", () => {
     const live = said(EMPTY, "x");
     expect(cut(live).messages[1]?.state).toBe("failed");

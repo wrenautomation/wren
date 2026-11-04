@@ -1,0 +1,11 @@
+[
+  {
+    "name": "birdwatch",
+    "title": "Research",
+    "app": "research",
+    "model": "sonnet",
+    "models": ["sonnet", "haiku", "opus", "fable"],
+    "tools": ["Bash", "Read", "Skill", "AskUserQuestion"],
+    "skills": ["birdwatch:birdwatch"]
+  }
+]

@@ -1,0 +1,4260 @@
+[
+  {
+    "t": 0,
+    "from": "page",
+    "frame": {
+      "request_id": "yaf1yxdc4vn",
+      "type": "control_request",
+      "request": { "subtype": "initialize" }
+    }
+  },
+  {
+    "t": 1,
+    "from": "page",
+    "frame": {
+      "type": "user",
+      "message": {
+        "role": "user",
+        "content": "A test of the chat page, no research. Do these in order:\n1. Run `printf 'northwind.example 200\\nbakers.example 200\\n'` with Bash.\n2. Start `for i in 1 2 3 4 5 6; do echo \"tick $i\"; sleep 2; done` with Bash in the background.\n3. Load the birdwatch skill, but do not run it.\n4. Ask me with AskUserQuestion which site to read first: northwind.example or bakers.example.\n5. Reply with three short markdown bullets on what you did, and one line on my pick."
+      },
+      "parent_tool_use_id": null,
+      "session_id": ""
+    }
+  },
+  {
+    "t": 456,
+    "from": "cli",
+    "frame": {
+      "type": "control_response",
+      "response": {
+        "subtype": "success",
+        "request_id": "yaf1yxdc4vn",
+        "response": {
+          "commands": [
+            {
+              "name": "birdwatch:birdwatch",
+              "description": "(birdwatch) Research a question from the open web with birdwatch, one step per command. Use when the user says \"research &lt;topic&gt;\", \"find out &lt;question&gt;\", \"what do sources say about &lt;x&gt;\", \"look into &lt;vertical&gt;\", or wants a sourced answer. You plan, triage, review and stop; the engine searches, opens pages, extracts findings behind a quote gate, checks them, and keeps every record. Every finding is a sentence with a quote on a page the run read.",
+              "argumentHint": "",
+              "aliases": ["birdwatch"]
+            },
+            {
+              "name": "doctor",
+              "description": "Health-check the user's Claude Code setup and fix issues: diagnose installation health — what the `claude doctor` terminal diagnostics cover — from local data (duplicate or leftover installs, PATH, unparseable settings files, broken or colliding agent definitions, skills whose frontmatter fails to parse); find unused skills, MCP servers, and plugins versus their context cost and disable dead weight; deduplicate local CLAUDE.md files against checked-in ones; trim checked-in CLAUDE.md files by cutting content a session could derive from the codebase (directory layouts, tech-stack lists, architecture overviews) while keeping gotchas, rationale, and non-standard conventions; migrate always-loaded CLAUDE.md guidance into lazy skills and nested CLAUDE.md files; flag slow hooks and context-heavy extensions; check the installed version is current; make auto mode the default permission mode; and pre-approve frequently denied read-only commands. Use when the user asks for a doctor run, checkup, audit, tune-up, or cleanup of their Claude Code setup or configuration.",
+              "argumentHint": "[prompt-audit [<path>]]",
+              "aliases": ["checkup"],
+              "builtin": true
+            },
+            {
+              "name": "plugin-authoring",
+              "description": "Make a mod: a change to Claude's own interface or behaviour, such as a panel or pane that stays beside the chat and updates, a band, status line, toast, slash command, or hook on tool calls. Use to make, change or debug a mod or its hooks module.",
+              "argumentHint": "",
+              "builtin": true
+            },
+            {
+              "name": "agents",
+              "description": "(removed) Ask Claude to create/manage subagents, or edit .claude/agents/",
+              "argumentHint": "",
+              "builtin": true
+            },
+            {
+              "name": "auto-mode-setup",
+              "description": "Teach auto mode about your environment, plus optional rule tweaks",
+              "argumentHint": "[--request-id <uuid>] (--wizard posture=… scope=… depth=… --propose | --expect-sha256 <64-hex> --apply-file <path>)",
+              "builtin": true
+            },
+            {
+              "name": "autocompact",
+              "description": "Configure the auto-compact window size",
+              "argumentHint": "[auto|<tokens>]",
+              "builtin": true
+            },
+            {
+              "name": "clear",
+              "description": "Start a new session with empty context; previous session stays on disk (resumable with /resume)",
+              "argumentHint": "[name]",
+              "aliases": ["reset", "new"],
+              "builtin": true
+            },
+            {
+              "name": "color",
+              "description": "Set the prompt bar color for this session",
+              "argumentHint": "[red|blue|green|yellow|purple|orange|pink|cyan|default]",
+              "builtin": true
+            },
+            {
+              "name": "compact",
+              "description": "Free up context by summarizing the conversation so far",
+              "argumentHint": "<optional custom summarization instructions>",
+              "builtin": true
+            },
+            {
+              "name": "config",
+              "description": "Set a setting by key",
+              "argumentHint": "key=value",
+              "aliases": ["settings"],
+              "builtin": true
+            },
+            {
+              "name": "output-style",
+              "description": "List output styles or switch to one",
+              "argumentHint": "[style]",
+              "builtin": true
+            },
+            {
+              "name": "context",
+              "description": "Show current context usage",
+              "argumentHint": "",
+              "builtin": true
+            },
+            {
+              "name": "effort",
+              "description": "Set effort level for model usage",
+              "argumentHint": "<low|medium|high|xhigh|max|auto|ultracode [on|off]>",
+              "builtin": true
+            },
+            {
+              "name": "fast",
+              "description": "Toggle fast mode (Opus 5.5)",
+              "argumentHint": "[on|off]",
+              "builtin": true
+            },
+            {
+              "name": "focus",
+              "description": "Toggle focus view: just your prompt, summary, and response",
+              "argumentHint": "[on|off]",
+              "builtin": true
+            },
+            {
+              "name": "heapdump",
+              "description": "Dump the JS heap to the Desktop; on Linux with no Desktop folder, the home directory",
+              "argumentHint": "",
+              "builtin": true
+            },
+            {
+              "name": "init",
+              "description": "Initialize a new CLAUDE.md file with codebase documentation",
+              "argumentHint": "",
+              "builtin": true
+            },
+            {
+              "name": "mcp",
+              "description": "Manage MCP servers",
+              "argumentHint": "[reconnect|enable|disable [<server>|all]]",
+              "builtin": true
+            },
+            {
+              "name": "model",
+              "description": "Set the AI model for Claude Code",
+              "argumentHint": "<model>",
+              "builtin": true
+            },
+            {
+              "name": "__remote-workflow",
+              "description": "Run the workflow script delivered in this session environment (server-launched sessions only)",
+              "argumentHint": "",
+              "builtin": true
+            },
+            {
+              "name": "workflow-launch-exec",
+              "description": "Execute a server-launched workflow handoff (workflow_launch event sessions only)",
+              "argumentHint": "",
+              "builtin": true
+            },
+            {
+              "name": "reload-plugins",
+              "description": "Activate pending plugin changes in the current session",
+              "argumentHint": "[--force]",
+              "builtin": true
+            },
+            {
+              "name": "reload-skills",
+              "description": "Pick up skills added or changed on disk during this session",
+              "argumentHint": "",
+              "builtin": true
+            },
+            {
+              "name": "rename",
+              "description": "Rename the current conversation",
+              "argumentHint": "[name]",
+              "aliases": ["name"],
+              "builtin": true
+            },
+            {
+              "name": "security-review",
+              "description": "Complete a security review of the pending changes on the current branch",
+              "argumentHint": "",
+              "builtin": true
+            },
+            {
+              "name": "usage-credits",
+              "description": "Configure usage credits or request them from your admin when you hit a limit",
+              "argumentHint": "",
+              "builtin": true
+            },
+            {
+              "name": "extra-usage",
+              "description": "Renamed to /usage-credits",
+              "argumentHint": "",
+              "builtin": true
+            },
+            {
+              "name": "usage",
+              "description": "Show session cost, plan usage, and what's contributing to your limits",
+              "argumentHint": "",
+              "aliases": ["cost", "stats"],
+              "builtin": true
+            },
+            {
+              "name": "insights",
+              "description": "Generate a report analyzing your Claude Code sessions",
+              "argumentHint": "",
+              "builtin": true
+            },
+            {
+              "name": "recap",
+              "description": "Generate a one-line session recap now",
+              "argumentHint": "",
+              "builtin": true
+            },
+            {
+              "name": "goal",
+              "description": "Set a goal — keep working until the condition is met",
+              "argumentHint": "",
+              "builtin": true
+            },
+            {
+              "name": "list-agents",
+              "description": "List subagents, teammates, and other Claude sessions you can message",
+              "argumentHint": "",
+              "aliases": ["peers"],
+              "builtin": true
+            },
+            {
+              "name": "team-onboarding",
+              "description": "Help teammates ramp on Claude Code with a guide from your usage",
+              "argumentHint": "",
+              "builtin": true
+            }
+          ],
+          "agents": [
+            {
+              "name": "claude",
+              "description": "Catch-all for any task that doesn't fit a more specific agent. FleetView's default when no agent name is typed."
+            },
+            {
+              "name": "Explore",
+              "description": "Fast read-only search agent for locating code. Use it to find files by pattern (eg. \"src/components/**/*.tsx\"), grep for symbols or keywords (eg. \"API endpoints\"), or answer \"where is X defined / which files reference Y.\" Do NOT use it for code review, design-doc auditing, cross-file consistency checks, or open-ended analysis — it reads excerpts rather than whole files and will miss content past its read window. When calling, specify search breadth: \"quick\" for a single targeted lookup, \"medium\" for moderate exploration, or \"very thorough\" to search across multiple locations and naming conventions.",
+              "model": "inherit"
+            },
+            {
+              "name": "general-purpose",
+              "description": "General-purpose agent for researching complex questions, searching for code, and executing multi-step tasks. When you are searching for a keyword or file and are not confident that you will find the right match in the first few tries use this agent to perform the search for you."
+            },
+            {
+              "name": "Plan",
+              "description": "Software architect agent for designing implementation plans. Use this when you need to plan the implementation strategy for a task. Returns step-by-step plans, identifies critical files, and considers architectural trade-offs.",
+              "model": "inherit"
+            },
+            {
+              "name": "statusline-setup",
+              "description": "Use this agent to configure the user's Claude Code status line setting.",
+              "model": "sonnet"
+            }
+          ],
+          "output_style": "default",
+          "available_output_styles": ["default", "Proactive", "Concise", "Explanatory", "Learning"],
+          "models": [
+            {
+              "value": "default",
+              "resolvedModel": "claude-opus-5-5",
+              "displayName": "Default (recommended)",
+              "description": "Opus 5.5 · Best for everyday, complex tasks",
+              "supportsEffort": true,
+              "supportedEffortLevels": ["low", "medium", "high", "xhigh", "max"],
+              "supportsAdaptiveThinking": true,
+              "supportsFastMode": true,
+              "supportsAutoMode": true,
+              "supportsThinkingOff": false
+            },
+            {
+              "value": "opus",
+              "resolvedModel": "claude-opus-5-5",
+              "displayName": "Opus",
+              "description": "Opus 5.5 · Best for everyday, complex tasks",
+              "supportsEffort": true,
+              "supportedEffortLevels": ["low", "medium", "high", "xhigh", "max"],
+              "supportsAdaptiveThinking": true,
+              "supportsFastMode": true,
+              "supportsAutoMode": true,
+              "supportsThinkingOff": false
+            },
+            {
+              "value": "claude-fable-5-1[1m]",
+              "resolvedModel": "claude-fable-5-1",
+              "displayName": "Fable",
+              "description": "Fable 5.1 · Most capable for your hardest and longest-running tasks",
+              "supportsEffort": true,
+              "supportedEffortLevels": ["low", "medium", "high", "xhigh", "max"],
+              "supportsAdaptiveThinking": true,
+              "supportsAutoMode": true,
+              "supportsThinkingOff": false
+            },
+            {
+              "value": "sonnet",
+              "resolvedModel": "claude-sonnet-5-5",
+              "displayName": "Sonnet",
+              "description": "Sonnet 5.5 · Efficient for routine tasks",
+              "supportsEffort": true,
+              "supportedEffortLevels": ["low", "medium", "high", "xhigh", "max"],
+              "supportsAdaptiveThinking": true,
+              "supportsAutoMode": true,
+              "supportsThinkingOff": false
+            },
+            {
+              "value": "haiku",
+              "resolvedModel": "claude-haiku-5-5",
+              "displayName": "Haiku",
+              "description": "Haiku 5.5 · Fastest for quick answers",
+              "supportsEffort": true,
+              "supportedEffortLevels": ["low", "medium", "high", "xhigh", "max"],
+              "supportsAdaptiveThinking": true,
+              "supportsAutoMode": true,
+              "supportsThinkingOff": false
+            }
+          ],
+          "claude_code_version": "2.1.318",
+          "current_permission_mode": "default",
+          "hook_on_failure_supported": true,
+          "feedback_mode": { "kind": "disabled" },
+          "analytics_disabled": true,
+          "remote_control_auto_enable": false,
+          "remote_control_auto_connect_default": false,
+          "remote_control_available": true,
+          "remote_control_auto_on_by_default": false,
+          "ide_rc_auto_enable_gate": false,
+          "fast_mode_state": "off",
+          "fast_mode_disabled_reason": "sdk_opt_in_required",
+          "session_state": "idle",
+          "capabilities": ["ui_surface_v1", "mcp_call_result_not_for_model_v1"]
+        },
+        "pending_permission_requests": [],
+        "pending_user_dialog_requests": []
+      }
+    }
+  },
+  {
+    "t": 507,
+    "from": "cli",
+    "frame": {
+      "type": "system",
+      "subtype": "init",
+      "cwd": "/Users/you/work/tasks/docs/research",
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "tools": ["AskUserQuestion", "Bash", "Read", "Skill"],
+      "model": "claude-sonnet-5-5",
+      "permissionMode": "default",
+      "slash_commands": [
+        "birdwatch:birdwatch",
+        "doctor",
+        "plugin-authoring",
+        "agents",
+        "auto-mode-setup",
+        "autocompact",
+        "clear",
+        "color",
+        "compact",
+        "config",
+        "output-style",
+        "context",
+        "effort",
+        "fast",
+        "focus",
+        "heapdump",
+        "init",
+        "mcp",
+        "model",
+        "__remote-workflow",
+        "workflow-launch-exec",
+        "reload-plugins",
+        "reload-skills",
+        "rename",
+        "security-review",
+        "usage-credits",
+        "extra-usage",
+        "usage",
+        "insights",
+        "recap",
+        "goal",
+        "list-agents",
+        "team-onboarding"
+      ],
+      "terminal_slash_commands": ["doctor", "color", "focus", "reload-plugins"],
+      "claude_code_version": "2.1.318",
+      "output_style": "default",
+      "agents": ["claude", "Explore", "general-purpose", "Plan", "statusline-setup"],
+      "skills": ["birdwatch:birdwatch", "doctor", "plugin-authoring"],
+      "capabilities": [
+        "interrupt_receipt_v1",
+        "interrupt_cancel_queued_v1",
+        "interrupt_send_now_v1",
+        "interrupt_requeue_taken_v1",
+        "msg_lifecycle_v1",
+        "request_marker_lists_v1",
+        "ask_user_question_unanswered_v1",
+        "lifecycle_wakeup_source_v1",
+        "sdk_mcp_tools_list_changed",
+        "sdk_mcp_manifests",
+        "mcp_read_resource_v1",
+        "mcp_tool_ui_meta_v1",
+        "ui_surface_v1",
+        "mcp_call_result_not_for_model_v1"
+      ],
+      "analytics_disabled": true,
+      "product_feedback_disabled": true,
+      "uuid": "378f3274-8545-4e82-8a6d-eea868cfee36",
+      "original_cwd": "/Users/you/work/tasks/docs/research",
+      "fast_mode_state": "off",
+      "fast_mode_disabled_reason": "sdk_opt_in_required",
+      "per_turn_effort_active": true,
+      "ultrathink_available": false,
+      "ultrathink_typed_raises": false,
+      "view_mode": "default"
+    }
+  },
+  {
+    "t": 508,
+    "from": "page",
+    "frame": {
+      "request_id": "144fhzi98z69",
+      "type": "control_request",
+      "request": { "subtype": "get_settings" }
+    }
+  },
+  {
+    "t": 508,
+    "from": "cli",
+    "frame": {
+      "type": "system",
+      "subtype": "status",
+      "status": "requesting",
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "uuid": "93e54db3-801c-43bb-8771-820128c3323b"
+    }
+  },
+  {
+    "t": 539,
+    "from": "cli",
+    "frame": {
+      "type": "control_response",
+      "response": {
+        "subtype": "success",
+        "request_id": "144fhzi98z69",
+        "response": {
+          "applied": {
+            "model": "claude-sonnet-5-5",
+            "effort": "medium",
+            "advisor": null,
+            "ultracode": false,
+            "ultracodeRequested": false,
+            "ultracodeAvailable": true,
+            "ultrathinkAvailable": false
+          }
+        }
+      }
+    }
+  },
+  {
+    "t": 1578,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "message_start",
+        "message": {
+          "model": "claude-sonnet-5-5",
+          "id": "msg_011CgikB4HyU44ViixAuS11o",
+          "type": "message",
+          "role": "assistant",
+          "content": [],
+          "container": null,
+          "stop_reason": null,
+          "stop_sequence": null,
+          "stop_details": null,
+          "usage": {
+            "input_tokens": 2,
+            "cache_creation_input_tokens": 7725,
+            "cache_read_input_tokens": 0,
+            "cache_creation": { "ephemeral_5m_input_tokens": 0, "ephemeral_1h_input_tokens": 7725 },
+            "output_tokens": 7,
+            "service_tier": "standard",
+            "inference_geo": "global",
+            "speed": "standard"
+          },
+          "input_transformations": [],
+          "diagnostics": null,
+          "context_management": null
+        }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "b70d5591-257b-47f3-855f-c43755ae42bc",
+      "ttft_ms": 1047,
+      "thinking_display": "updates",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 1579,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_start",
+        "index": 0,
+        "content_block": { "type": "thinking", "thinking": "" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "3a6640c2-14d8-428d-b89e-640401f49e71",
+      "thinking_display": "updates",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 2081,
+    "from": "cli",
+    "frame": {
+      "type": "system",
+      "subtype": "thinking_tokens",
+      "estimated_tokens": 50,
+      "estimated_tokens_delta": 50,
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "uuid": "8bde9cce-1b05-42f7-b205-4bd7e620c20e"
+    }
+  },
+  {
+    "t": 2082,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "thinking_delta", "thinking": "", "estimated_tokens": 50 }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "659c3665-1300-4ffa-b02c-739cf5e0655c",
+      "thinking_display": "updates",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 2403,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "thinking_delta", "thinking": "", "estimated_tokens": null }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "46ee2517-3236-43f4-87c8-e523f6a53cc2",
+      "thinking_display": "updates",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 2405,
+    "from": "cli",
+    "frame": {
+      "type": "system",
+      "subtype": "thinking_tokens",
+      "estimated_tokens": 192,
+      "estimated_tokens_delta": 142,
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "uuid": "3e98397f-7632-44dd-ad9c-e3c9d980e2e2"
+    }
+  },
+  {
+    "t": 2409,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "signature_delta" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "9bc2ce88-a634-4314-9921-42da44aede4c",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 2410,
+    "from": "cli",
+    "frame": {
+      "type": "assistant",
+      "message": {
+        "model": "claude-sonnet-5-5",
+        "id": "msg_011CgikB4HyU44ViixAuS11o",
+        "type": "message",
+        "role": "assistant",
+        "content": [{ "type": "thinking", "thinking": "" }],
+        "container": null,
+        "stop_reason": null,
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 2,
+          "cache_creation_input_tokens": 7725,
+          "cache_read_input_tokens": 0,
+          "cache_creation": { "ephemeral_5m_input_tokens": 0, "ephemeral_1h_input_tokens": 7725 },
+          "output_tokens": 7,
+          "service_tier": "standard",
+          "inference_geo": "global",
+          "speed": "standard"
+        },
+        "input_transformations": [],
+        "diagnostics": null,
+        "context_management": null
+      },
+      "parent_tool_use_id": null,
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "uuid": "a80998e5-edf9-4577-8051-3c0966b2fed9",
+      "timestamp": "2026-11-04T23:20:25.982Z",
+      "request_id": "req_011CgikB46oyLrncUM7qQFfK",
+      "thinking_duration_ms": 828,
+      "thinking_display": "updates"
+    }
+  },
+  {
+    "t": 2411,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": { "type": "content_block_stop", "index": 0 },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "d74f6f62-a861-4413-8e33-9df4c9c6e5b7",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 2412,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_start",
+        "index": 1,
+        "content_block": {
+          "type": "tool_use",
+          "id": "toolu_01Pu5EqvXJgW7aUTvBSqb9ba",
+          "name": "Bash",
+          "input": {},
+          "caller": { "type": "direct" }
+        }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "3c05635c-7d6d-4530-9621-68f459e90eb1",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 2412,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 1,
+        "delta": { "type": "input_json_delta", "partial_json": "" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "0cd10b47-6b64-453e-aa94-4c024d81baa2",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 2413,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 1,
+        "delta": { "type": "input_json_delta", "partial_json": "{\"comma" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "c4fdf9f9-fb6a-428d-a063-55a81359afa2",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 2413,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 1,
+        "delta": { "type": "input_json_delta", "partial_json": "nd\": \"p" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "04a57219-b087-474d-9677-5ce26dcf03ac",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 2413,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 1,
+        "delta": { "type": "input_json_delta", "partial_json": "rintf '" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "1cdeb910-6d3c-43be-896e-3e70c1cff178",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 2413,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 1,
+        "delta": { "type": "input_json_delta", "partial_json": "northwi" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "92d1d475-6f0f-4d68-8783-0a5c2086aa9b",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 2417,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 1,
+        "delta": { "type": "input_json_delta", "partial_json": "nd.exam" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "218146e4-6610-458f-b2b0-1cafe12080e2",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 2417,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 1,
+        "delta": { "type": "input_json_delta", "partial_json": "ple 200" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "2b6bbd17-2ef5-4dcd-8123-4b64b5e4f603",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 2418,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 1,
+        "delta": { "type": "input_json_delta", "partial_json": "\\\\nbake" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "091f2c0e-b35f-4974-85b4-b45e885806d3",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 2419,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 1,
+        "delta": { "type": "input_json_delta", "partial_json": "rs.exam" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "360b2608-9f98-4b76-94ac-609f7e478721",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 2419,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 1,
+        "delta": { "type": "input_json_delta", "partial_json": "ple 200" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "b748d850-e946-470a-bb89-520991697237",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 2419,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 1,
+        "delta": { "type": "input_json_delta", "partial_json": "\\\\n'\"" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "c6a04da9-08a0-4a99-8e07-61ecd96f074c",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 2809,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 1,
+        "delta": { "type": "input_json_delta", "partial_json": ", \"desc" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "2d1e62ae-1a96-4cd7-bca8-9700aa55a47d",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 2809,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 1,
+        "delta": { "type": "input_json_delta", "partial_json": "ription" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "3588a874-e6d8-412f-bf81-7cea41c3292b",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 2810,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 1,
+        "delta": { "type": "input_json_delta", "partial_json": "\": \"Pri" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "9eeab351-b5d2-4f43-b120-460e250ab8aa",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 2810,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 1,
+        "delta": { "type": "input_json_delta", "partial_json": "nt two " }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "3be5f625-1f13-4c8a-8323-b8ff3b1bd665",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 2810,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 1,
+        "delta": { "type": "input_json_delta", "partial_json": "sample " }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "e93ddf47-65d1-4baf-80e8-3d20fd01c66c",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 2810,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 1,
+        "delta": { "type": "input_json_delta", "partial_json": "site li" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "e5b558be-897b-443b-a0e7-4db39d883812",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 2811,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 1,
+        "delta": { "type": "input_json_delta", "partial_json": "nes\"}" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "77763a71-eb0e-4527-9f00-414335e2b47e",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 2815,
+    "from": "cli",
+    "frame": {
+      "type": "assistant",
+      "message": {
+        "model": "claude-sonnet-5-5",
+        "id": "msg_011CgikB4HyU44ViixAuS11o",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "tool_use",
+            "id": "toolu_01Pu5EqvXJgW7aUTvBSqb9ba",
+            "name": "Bash",
+            "input": {
+              "command": "printf 'northwind.example 200\\nbakers.example 200\\n'",
+              "description": "Print two sample site lines"
+            },
+            "caller": { "type": "direct" }
+          }
+        ],
+        "container": null,
+        "stop_reason": null,
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 2,
+          "cache_creation_input_tokens": 7725,
+          "cache_read_input_tokens": 0,
+          "cache_creation": { "ephemeral_5m_input_tokens": 0, "ephemeral_1h_input_tokens": 7725 },
+          "output_tokens": 7,
+          "service_tier": "standard",
+          "inference_geo": "global",
+          "speed": "standard"
+        },
+        "input_transformations": [],
+        "diagnostics": null,
+        "context_management": null
+      },
+      "parent_tool_use_id": null,
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "uuid": "d83064d5-2c18-45f0-8f5c-edf18e6c36a9",
+      "timestamp": "2026-11-04T23:20:26.388Z",
+      "request_id": "req_011CgikB46oyLrncUM7qQFfK"
+    }
+  },
+  {
+    "t": 2823,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": { "type": "content_block_stop", "index": 1 },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "5d1d0278-3e7f-434a-9e2e-521abaa485bd",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 2823,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_start",
+        "index": 2,
+        "content_block": {
+          "type": "tool_use",
+          "id": "toolu_013qZnpqjD1BmJNZbeRkNzgf",
+          "name": "Bash",
+          "input": {},
+          "caller": { "type": "direct" }
+        }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "63ddfef9-7bb7-4454-b1e9-8b1a65a5a3bb",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 2823,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 2,
+        "delta": { "type": "input_json_delta", "partial_json": "" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "b9add176-b51c-48a5-86f9-67d7a789a903",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 2824,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 2,
+        "delta": { "type": "input_json_delta", "partial_json": "{\"comma" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "c2efa844-3e7a-4e00-8006-ebbc3675ae57",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 2824,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 2,
+        "delta": { "type": "input_json_delta", "partial_json": "nd\": \"f" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "b45128a6-a7f8-4cc3-925f-662b98d33319",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 2824,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 2,
+        "delta": { "type": "input_json_delta", "partial_json": "or i in" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "8181ecc1-0377-4a68-80e7-dc10487fe462",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 2824,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 2,
+        "delta": { "type": "input_json_delta", "partial_json": " 1 2 3 " }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "c87591a6-72e6-4d61-a204-d75510643043",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 2824,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 2,
+        "delta": { "type": "input_json_delta", "partial_json": "4 5 6; " }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "a71b11c1-fbc7-42f6-9df7-7f2be29bf42f",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 2824,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 2,
+        "delta": { "type": "input_json_delta", "partial_json": "do echo" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "d33f3918-b69b-4a78-8621-cf955711a471",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 2825,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 2,
+        "delta": { "type": "input_json_delta", "partial_json": " \\\"tick" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "6d6444d4-9dfe-4987-897f-16790cb06fe1",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 2825,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 2,
+        "delta": { "type": "input_json_delta", "partial_json": " $i\\\"; " }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "5a2af55c-f05d-448b-8f13-63ed4ddbaf73",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 2825,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 2,
+        "delta": { "type": "input_json_delta", "partial_json": "sleep 2" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "f87ae0dc-328c-4561-ab2b-b239591886ff",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 2826,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 2,
+        "delta": { "type": "input_json_delta", "partial_json": "; done\"" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "c8bc63c6-d74f-4402-8a2a-5bae980ad281",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 3298,
+    "from": "cli",
+    "frame": {
+      "type": "user",
+      "message": {
+        "role": "user",
+        "content": [
+          {
+            "tool_use_id": "toolu_01Pu5EqvXJgW7aUTvBSqb9ba",
+            "type": "tool_result",
+            "content": "northwind.example 200\nbakers.example 200",
+            "is_error": false
+          }
+        ]
+      },
+      "parent_tool_use_id": null,
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "uuid": "ddb7ad38-5a20-4e04-ab8a-dc99ee04e31e",
+      "timestamp": "2026-11-04T23:20:26.875Z",
+      "tool_use_result": {
+        "stdout": "northwind.example 200\nbakers.example 200",
+        "stderr": "",
+        "interrupted": false,
+        "isImage": false,
+        "noOutputExpected": false
+      },
+      "tool_result_meta": [
+        {
+          "id": "toolu_01Pu5EqvXJgW7aUTvBSqb9ba",
+          "permission_decision": {
+            "decision": "accept",
+            "source": "config",
+            "reason_type": "subcommandResults"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "t": 3432,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 2,
+        "delta": { "type": "input_json_delta", "partial_json": ", \"desc" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "a9992939-1ab6-4465-9abd-a84e3f2f01e2",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 3433,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 2,
+        "delta": { "type": "input_json_delta", "partial_json": "ription" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "92392d39-de94-481b-94a8-95be987c8e48",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 3433,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 2,
+        "delta": { "type": "input_json_delta", "partial_json": "\": \"Run" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "5d4c9617-1a98-4c3a-bc49-46bee8f5f151",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 3434,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 2,
+        "delta": { "type": "input_json_delta", "partial_json": " a six-" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "aee486bb-e1fd-41f3-a5ad-ce95aedcccc7",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 3434,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 2,
+        "delta": { "type": "input_json_delta", "partial_json": "tick co" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "0a0b265a-8ef6-40ee-9a14-999317f49159",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 3435,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 2,
+        "delta": { "type": "input_json_delta", "partial_json": "unter i" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "c3b5c76f-0e2f-4212-9cf0-2741351cf16a",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 3435,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 2,
+        "delta": { "type": "input_json_delta", "partial_json": "n backg" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "b3d279c0-7af4-4595-a914-4535280c3be2",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 3435,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 2,
+        "delta": { "type": "input_json_delta", "partial_json": "round\"" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "eba53dd2-8b31-43f3-9703-b1ac8fe2dc46",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 3436,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 2,
+        "delta": { "type": "input_json_delta", "partial_json": ", \"run_" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "1c1d6b3d-70b6-4b00-a8cd-26c3de9c1c89",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 3436,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 2,
+        "delta": { "type": "input_json_delta", "partial_json": "in_back" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "6f0350ef-7539-44bf-acbe-b945e48268af",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 3436,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 2,
+        "delta": { "type": "input_json_delta", "partial_json": "ground\"" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "e18b6ea3-2fc1-4ba8-9052-b623ec65d20d",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 3436,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 2,
+        "delta": { "type": "input_json_delta", "partial_json": ": true}" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "1d502a19-3b53-4a2f-a9f0-e5daf3a91f94",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 3436,
+    "from": "cli",
+    "frame": {
+      "type": "assistant",
+      "message": {
+        "model": "claude-sonnet-5-5",
+        "id": "msg_011CgikB4HyU44ViixAuS11o",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "tool_use",
+            "id": "toolu_013qZnpqjD1BmJNZbeRkNzgf",
+            "name": "Bash",
+            "input": {
+              "command": "for i in 1 2 3 4 5 6; do echo \"tick $i\"; sleep 2; done",
+              "description": "Run a six-tick counter in background",
+              "run_in_background": true
+            },
+            "caller": { "type": "direct" }
+          }
+        ],
+        "container": null,
+        "stop_reason": null,
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 2,
+          "cache_creation_input_tokens": 7725,
+          "cache_read_input_tokens": 0,
+          "cache_creation": { "ephemeral_5m_input_tokens": 0, "ephemeral_1h_input_tokens": 7725 },
+          "output_tokens": 7,
+          "service_tier": "standard",
+          "inference_geo": "global",
+          "speed": "standard"
+        },
+        "input_transformations": [],
+        "diagnostics": null,
+        "context_management": null
+      },
+      "parent_tool_use_id": null,
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "uuid": "c5720321-d6c9-4844-9f5c-592e53e76184",
+      "timestamp": "2026-11-04T23:20:27.011Z",
+      "request_id": "req_011CgikB46oyLrncUM7qQFfK"
+    }
+  },
+  {
+    "t": 3438,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": { "type": "content_block_stop", "index": 2 },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "29da8e72-63fb-4d4a-a104-968b3730cacc",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 3438,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_start",
+        "index": 3,
+        "content_block": {
+          "type": "tool_use",
+          "id": "toolu_01SmTr9buqyaYcLrNor8P6gF",
+          "name": "Skill",
+          "input": {},
+          "caller": { "type": "direct" }
+        }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "6c481f50-8d33-4488-8521-cf247b3fa637",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 3438,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 3,
+        "delta": { "type": "input_json_delta", "partial_json": "" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "a211e964-a3bd-4d0b-b65e-8680ce69f453",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 3439,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 3,
+        "delta": { "type": "input_json_delta", "partial_json": "{\"skill" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "f2c4c19c-4ac0-4806-b367-7e0aeb55cc0e",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 3440,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 3,
+        "delta": { "type": "input_json_delta", "partial_json": "\": \"bir" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "9ffbd95a-3a43-4bd7-80ac-6fad86955ec2",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 3440,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 3,
+        "delta": { "type": "input_json_delta", "partial_json": "dwatch:" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "8db776b2-b2db-4288-a8be-a280c864277d",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 3441,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 3,
+        "delta": { "type": "input_json_delta", "partial_json": "birdwat" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "0222a2cd-5fba-4a53-8e9d-e9566e3b9b85",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 3441,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 3,
+        "delta": { "type": "input_json_delta", "partial_json": "ch\"}" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "5300af82-4bc3-4fb8-a12e-3ae9218ddd72",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 3441,
+    "from": "cli",
+    "frame": {
+      "type": "assistant",
+      "message": {
+        "model": "claude-sonnet-5-5",
+        "id": "msg_011CgikB4HyU44ViixAuS11o",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "tool_use",
+            "id": "toolu_01SmTr9buqyaYcLrNor8P6gF",
+            "name": "Skill",
+            "input": { "skill": "birdwatch:birdwatch" },
+            "caller": { "type": "direct" }
+          }
+        ],
+        "container": null,
+        "stop_reason": null,
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 2,
+          "cache_creation_input_tokens": 7725,
+          "cache_read_input_tokens": 0,
+          "cache_creation": { "ephemeral_5m_input_tokens": 0, "ephemeral_1h_input_tokens": 7725 },
+          "output_tokens": 7,
+          "service_tier": "standard",
+          "inference_geo": "global",
+          "speed": "standard"
+        },
+        "input_transformations": [],
+        "diagnostics": null,
+        "context_management": null
+      },
+      "parent_tool_use_id": null,
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "uuid": "001a1479-af57-4c57-a590-fb124550dba2",
+      "timestamp": "2026-11-04T23:20:27.017Z",
+      "request_id": "req_011CgikB46oyLrncUM7qQFfK"
+    }
+  },
+  {
+    "t": 3441,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": { "type": "content_block_stop", "index": 3 },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "14fbb6f4-6d6e-4d2b-9e4e-75c00e8c90a0",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 3442,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "message_delta",
+        "delta": {
+          "stop_reason": "tool_use",
+          "stop_sequence": null,
+          "stop_details": null,
+          "container": null
+        },
+        "usage": {
+          "input_tokens": 2,
+          "cache_creation_input_tokens": 7725,
+          "cache_read_input_tokens": 0,
+          "output_tokens": 341,
+          "output_tokens_details": { "thinking_tokens": 56 }
+        },
+        "context_management": { "applied_edits": [] }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "8c5e9f85-4f97-4a8f-9e16-bb3047635af9",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 3443,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": { "type": "message_stop" },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "ce133fca-3337-4447-bc58-e23b466f9635",
+      "api_message_id": "msg_011CgikB4HyU44ViixAuS11o"
+    }
+  },
+  {
+    "t": 3445,
+    "from": "cli",
+    "frame": {
+      "type": "rate_limit_event",
+      "rate_limit_info": {
+        "status": "allowed",
+        "resetsAt": 1793944800,
+        "rateLimitType": "seven_day",
+        "overageStatus": "rejected",
+        "overageDisabledReason": "org_level_disabled",
+        "isUsingOverage": false,
+        "unifiedWindows": {
+          "seven_day": { "utilization": 0.5, "resetsAt": 1793944800, "status": "allowed" }
+        }
+      },
+      "uuid": "9de51df6-c8ca-4e04-b9ed-0e999de98a6d",
+      "session_id": "00000000-0000-4000-8000-000000000001"
+    }
+  },
+  {
+    "t": 3496,
+    "from": "cli",
+    "frame": {
+      "type": "control_request",
+      "request_id": "2c9bea9d-6016-46a7-b8f1-b90b8e3845bd",
+      "request": {
+        "subtype": "can_use_tool",
+        "tool_name": "Bash",
+        "display_name": "Bash",
+        "input": {
+          "command": "for i in 1 2 3 4 5 6; do echo \"tick $i\"; sleep 2; done",
+          "description": "Run a six-tick counter in background",
+          "run_in_background": true
+        },
+        "description": "Run a six-tick counter in background",
+        "permission_suggestions": [],
+        "decision_reason": "A variable in this command can't be checked before it runs",
+        "decision_reason_type": "other",
+        "tool_use_id": "toolu_013qZnpqjD1BmJNZbeRkNzgf"
+      }
+    }
+  },
+  {
+    "t": 3498,
+    "from": "page",
+    "frame": {
+      "type": "control_response",
+      "response": {
+        "subtype": "success",
+        "request_id": "2c9bea9d-6016-46a7-b8f1-b90b8e3845bd",
+        "response": {
+          "behavior": "allow",
+          "updatedInput": {
+            "command": "for i in 1 2 3 4 5 6; do echo \"tick $i\"; sleep 2; done",
+            "description": "Run a six-tick counter in background",
+            "run_in_background": true
+          },
+          "toolUseID": "toolu_013qZnpqjD1BmJNZbeRkNzgf"
+        }
+      }
+    }
+  },
+  {
+    "t": 3504,
+    "from": "cli",
+    "frame": {
+      "type": "system",
+      "subtype": "background_tasks_changed",
+      "tasks": [
+        {
+          "task_id": "bwqy5fz0r",
+          "run_id": "0mw2qpadl-4fb7959c",
+          "task_type": "local_bash",
+          "description": "Run a six-tick counter in background"
+        }
+      ],
+      "uuid": "9713600b-b9a6-4b76-9dfa-42c3d3d9c429",
+      "session_id": "00000000-0000-4000-8000-000000000001"
+    }
+  },
+  {
+    "t": 3504,
+    "from": "cli",
+    "frame": {
+      "type": "system",
+      "subtype": "task_started",
+      "task_id": "bwqy5fz0r",
+      "run_id": "0mw2qpadl-4fb7959c",
+      "tool_use_id": "toolu_013qZnpqjD1BmJNZbeRkNzgf",
+      "description": "Run a six-tick counter in background",
+      "is_backgrounded": true,
+      "task_type": "local_bash",
+      "uuid": "d23314f7-b06a-4755-a3bf-5ac552361dc1",
+      "session_id": "00000000-0000-4000-8000-000000000001"
+    }
+  },
+  {
+    "t": 3511,
+    "from": "cli",
+    "frame": {
+      "type": "user",
+      "message": {
+        "role": "user",
+        "content": [
+          {
+            "tool_use_id": "toolu_013qZnpqjD1BmJNZbeRkNzgf",
+            "type": "tool_result",
+            "content": "Command running in background with ID: bwqy5fz0r. Output is being written to: /private/tmp/claude-502/-Users-you-Documents-wren-automation-tasks-docs-research/00000000-0000-4000-8000-000000000001/tasks/bwqy5fz0r.output. You will be notified when it completes. To check interim output, use Read on that file path.",
+            "is_error": false
+          }
+        ]
+      },
+      "parent_tool_use_id": null,
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "uuid": "0e7fa0e5-6a18-4482-b000-9a3c9543b2de",
+      "timestamp": "2026-11-04T23:20:27.084Z",
+      "tool_use_result": {
+        "stdout": "",
+        "stderr": "",
+        "interrupted": false,
+        "isImage": false,
+        "noOutputExpected": false,
+        "backgroundTaskId": "bwqy5fz0r"
+      },
+      "tool_result_meta": [
+        {
+          "id": "toolu_013qZnpqjD1BmJNZbeRkNzgf",
+          "permission_decision": { "decision": "accept", "source": "user_temporary" }
+        }
+      ]
+    }
+  },
+  {
+    "t": 3535,
+    "from": "cli",
+    "frame": {
+      "type": "user",
+      "message": {
+        "role": "user",
+        "content": [
+          {
+            "type": "tool_result",
+            "tool_use_id": "toolu_01SmTr9buqyaYcLrNor8P6gF",
+            "content": "Launching skill: birdwatch:birdwatch"
+          }
+        ]
+      },
+      "parent_tool_use_id": null,
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "uuid": "b9501418-05e3-4092-bc0a-cb3d6acfe4f1",
+      "timestamp": "2026-11-04T23:20:27.112Z",
+      "tool_use_result": { "success": true, "commandName": "birdwatch:birdwatch" },
+      "tool_result_meta": [
+        {
+          "id": "toolu_01SmTr9buqyaYcLrNor8P6gF",
+          "permission_decision": { "decision": "accept", "source": "config", "reason_type": "rule" }
+        }
+      ]
+    }
+  },
+  {
+    "t": 3536,
+    "from": "cli",
+    "frame": {
+      "type": "user",
+      "message": {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "Base directory for this skill: /Users/you/work/wren/node_modules/.pnpm/@wrenautomation+birdwatch@0.36.1/node_modules/@wrenautomation/birdwatch/skills/birdwatch\n\n# birdwatch\n\nYou drive. The engine is a CLI (`birdwatch`, `@wrenautomation/birdwatch`) that prints JSON and\nwrites a ledger. In the engine repo it is `node packages/birdwatch/dist/app/cli.js`; elsewhere\n`npx @wrenautomation/birdwatch`. It never decides what to search next, what to read, or when to stop: you do, in your\nown head, and you write each decision as a record with a why. The person steers you in chat;\ntheir words reach the ledger through you as `--human` records.\n\nSet `BIRDWATCH_AGENT` to your id (`claude-code`, `codex`, a name) once: every record you write\nnames it. The ledger folder is `--ledger` (before or after the command) or `BIRDWATCH_LEDGER`\n(default `./ledger`). Sources come from the environment. `~/.config/birdwatch/config.json`\nnames the env files to read keys from, so no wrapper is needed; a set variable wins.\n`birdwatch sources` lists what this machine can run. A Reddit thread and a Facebook\ngroup post open through their own readers (`reddit`, `facebook`) before the page openers. A query pinned to `reddit.com` also searches Reddit itself, signed out (it shares a daily read cap; Exa has no Reddit index). `hn` searches Hacker News (free) and reads a thread with every comment. `youtube` lists through the YouTube Data API when `YOUTUBE_API_KEY` is set (exact views, likes and comments; 10k units a day, a search costs 100, a listing 1), else through yt-dlp. A YouTube open reads the captions only, free. `youtube-see` (with `ANTHROPIC_API_KEY`) reads what a video shows, only when you name it: `open --see`. A query pinned to `linkedin.com` searches LinkedIn posts through the desk, only as the account `BIRDWATCH_ACCOUNTS` names (`linkedin=linkedin@wren`; never the bare `linkedin`, a person's own profile). **Presets** set a search's sort and window in one grammar: `latest` or `top`, `day`, `week`, `month` or `year`, or paired (`top-week`). Set `preset` on a query or leaf (`--preset` on the CLI). A preset query goes only to sources that take presets; when none in the run does, the write fails and names them. `linkedin` takes latest, top, day, week, month and pairs (no year). `google` takes day, week, month and year (no sort). `youtube` (Data API only) and `reddit` take all of them. The open-web searchers take none. No preset: each platform's default. For content asks (\"what draws now\"), use `top-month` or `top-week`. A hit's `metrics` (views, likes, comments) are what the listing showed: a post's draw, before any read. The brief reads each hit's `lift` against its author's median over every run (`authors`): 54.7 is 54.7 times the author's usual, so a small account and a big one compare. `follow --as posts` on an author fills their baseline (five posts up). Reddit\nreads signed out, then as the account `BIRDWATCH_ACCOUNTS` names (`reddit=reddit@alt`); the person\npicks that account, never you. `google` searches Google's own page through the desk's browser:\neach result is a hit, and the AI Overview is one hit (channel \"Google AI Overview\") whose\nsnippet holds its text. The Overview is a claim, never a proof: do not open it; keep and read\nthe pages it cites, which come as hits of their own.\n\nA judge (Jev) answers cheap typed questions on every hit, page and finding: probabilities, no\ntext. It labels and routes, never judges quality (William, 11-03): it says what a page is\n(`format`, `side`, `class`, the ask's criteria) and sends doubted findings to the check. You\nread every hit and call each one; nothing is dropped on a judge's number. It runs when `TYPESAFE_API_KEY` is set (`--judge`,\n`BIRDWATCH_JUDGE`; `--no-judge` for one command). `brief.judge` says what it cost and how often\nyou and the check agreed with it: a low agreement means read its hints less.\n\n## One run\n\n```sh\nbirdwatch recall <terms> [--not <run>] [--also <ledger>...]   # what earlier runs found: quote, URL, source date, run, who wrote it\nbirdwatch plan \"<the ask>\" [--kind web|video|site|channel|person] [--known \"<fact> (<url>)\"...] [--premise \"<given>\"...] [--site <host>] [--reads N]   # --reads: a wide root's whole-tree read cap\nbirdwatch brief <run>                                   # read it after every step; a field with no value is left out (read it with .get)\nbirdwatch search <run> < tree.json                      # the round's query tree (below); or \"<terms>\" --why [--preset top-week], or a JSON array\nbirdwatch add call <run> <hit> keep|drop --why \"<why>\"  # triage, one per hit; the last call wins, a flip warns, a person's call stands over yours\necho '[{\"on\":\"<hit>\",\"verdict\":\"keep\",\"why\":\"..\"}]' | birdwatch add call <run>   # many calls, one process\nbirdwatch open <run> [<hit>...] [--url <url>...] --why \"<why>\"   # reads the named; no names: every kept hit without a document\nbirdwatch open <run> <hit>... --see --why \"<why>\"         # what a video shows, frame by frame: only a strong video whose captions lean on the screen\nbirdwatch open <run> --with <source>                    # an opener `sources` lists but the run lacks (a ladder that came later); it joins to open, never to search\nbirdwatch show <run> <document> [--head N]              # the page's text: read it yourself\nbirdwatch add finding <run> <document> --text \"<sentence>\" --quote \"<quote on the page>\"\nbirdwatch add check <run> <finding> --ok|--fail --why \"<why>\"    # your own check; a fail drops it\nbirdwatch extract <run> [--limit N]                     # bulk only: a model behind the quote gate; --limit: N pages a call; a line per page on stderr\nbirdwatch check <run> [-n N] [--patterns]               # bulk only: a model's check; --patterns: every finding a pattern rests on\nbirdwatch add gap <run> \"<what is still missing>\"\nbirdwatch add class <run> <document|finding> <class> --why \"<why>\"   # primary_data, survey, practitioner, vendor, forum, news, other\nbirdwatch accept <run> class --min P --why \"<why>\"   # the judge's class guesses in bulk, at your bar\nbirdwatch add pattern <run> \"<what several findings say together>\" --on <finding> <finding>...   # findings of this run or its children\nbirdwatch add edge <run> again|stop --why \"<why>\"       # your review of the round\necho '[{\"title\":\"..\",\"body\":\"..\",\"cites\":[\"<pattern or finding>\"]}]' | birdwatch add draft <run> --for \"<a decision memo>\"   # a rough draft, gated\nbirdwatch plan --run <run>                              # after again: the next round\nbirdwatch plan \"<one niche>\" --parent <run> --why \"<why this child>\"   # a child run: it reads what the tree found\nbirdwatch add dead <run> <facet> --why \"<why>\"          # give up on a facet; later tries skip it\nbirdwatch add cap <root> <reads> --why \"<why>\" --human  # the person raises the tree's read cap; never you alone\nbirdwatch follow <run> [<url>] --as posts|similar|refs|citers [--from <document>] --why \"<why>\" [--with <source>...]   # a good page's author's posts, or pages like it\nbirdwatch add person <run> \"<name>\" [--profile <url>...] [--aka <name>...] --why \"<why>\"   # one person across sites\nbirdwatch learn <kind> [--sources ...] [--rounds N] [--age \"...\"]   # after a good run, on the person's yes\n```\n\nEach step command prints `{run, round, step, ok, note, wrote}`; `wrote` is every record it\nwrote (a document's text as `chars`). A step that gave up exits 2 with its note: read the note,\nfix the cause (no source, no contact, no key), run it again. A step run again skips what its\nrecords show done.\n\n## How to drive\n\n0. **Recall.** Before the plan, `recall` the ask's words (after it, `brief.recalled` carries the\n   same for the ask's text). A recalled finding still fresh for the\n   ask (its `date`, else `found`) goes in `--known` with its URL; an old one names a query to\n   read again. A quote short of 5 words fails the gate: take the line with its label.\n1. **Name the premises.** Before the plan, say what the ask takes as given: a buyer, an offer, a\n   price, a channel, a niche. Pass each as `--premise`. A `--known` line without a URL or ledger\n   id becomes a premise too. The guide then names a `premise` facet: one try per premise that\n   would show it wrong. `tree.uncovered` lists it until a query serves it. A premise that fails\n   changes the ask: tell the person.\n2. **Plan the tree.** Read the ask and `brief`. `brief.guide` holds the kind's age sentence and\n   rules: heed them when you plan and when you triage. `brief.sourcesMissing` names allow-listed\n   sources this machine cannot run (they search nothing); `brief.sourcesUnused` the ones it can\n   that the run has not (not in `sources`, not let in as `opens`). Write the round's query tree: one facet per\n   side of the ask the guide names (`birdwatch plans <kind>`: a number, a how, a who, a\n   counter-view, a primary source; add a facet the ask needs), each with 2 or 3 tries in the\n   order you expect to work: the plain words first, then a narrower angle (a site, a year, a\n   synonym the trade uses, a forum, a filing). Each query's why says what it would prove. Show\n   the tree to the person before you run it. `search < tree.json` runs one tier: the first\n   time, every facet's first try. After you triage, the same command with the same file runs\n   the next try of each facet with fewer kept hits than the guide's `thin` (3); a facet at\n   `thin` is done, a facet out of tries is a gap, a facet with uncalled hits waits. So the\n   tree falls through on what you kept, never on what a searcher returned (a searcher always\n   returns a page). `--all` runs every facet's next try at once. `tree` in the output shows\n   each try, what it wrote, `kept`, `uncalled`, and which guide facets you did not cover. A\n   trade word that sits on both sides of a market (\"agency\", \"coach\", \"setter\") pulls the\n   other side: put a buyer marker in the terms (\"coaches who hired\", not \"appointment\n   setting\"), and read the first tries' titles in `brief` before you write the next. Each\n   facet's why names the buyer it looks for and the inverse to avoid: \"owners who pay for\n   setters, not consumers who hire a coach\"; \"firms that buy cold email, not vendors who sell\n   it\". A facet that still returns the inverse after its tries: `add dead` with the why. The\n   budget is a guard rail, not a cap.\n\n   A facet names the source classes that can prove it in `needs`: a spend or price claim\n   needs `survey` or `primary_data`, not a forum. Its tries then go where those live, not\n   only to new words: public price pages, job ads for the role the buyer would replace (the\n   wage), an ad library, a trade association's survey, a filing. Never pin every try of a\n   facet to one site: the search says so, and the facet ends with one class. `tree.facets[]`\n   shows `classes` (read pages with a kept finding) and `lacks` (none of its `needs`).\n\n   ```json\n   {\"facets\": [\n     {\"name\": \"number\", \"why\": \"how often it happens\", \"tries\": [\n       [{\"terms\": \"<plain words> rate\", \"why\": \"...\"}],\n       [{\"terms\": \"<plain words> survey 2025\", \"why\": \"...\"}, {\"terms\": \"...\", \"site\": \"reddit.com\", \"why\": \"...\"}]\n     ]},\n     {\"name\": \"counter\", \"why\": \"who says it fails\", \"tries\": [[{\"terms\": \"...\", \"why\": \"...\"}]]},\n     {\"name\": \"spend\", \"why\": \"what the buyer pays\", \"needs\": [\"survey\", \"primary_data\"], \"tries\": [[{\"terms\": \"...\", \"why\": \"...\"}]]}\n   ]}\n   ```\n3. **Triage.** `brief` lists `hits.uncalled` with title, snippet, `metrics` (what the post\n   drew, as its site counts it), `lift` (each count over the author's median in `brief.authors`,\n   every run: 4.5 is 4.5 times their usual, the read for a format that worked) and `facets`: the\n   facets whose queries found it, most first, then the ask's criteria. `judge` shows its labels:\n   `format` (video, post, thread, article, paper, list, sales_page, directory, docs, other),\n   `side` (subject, seller, other) and `class`. A page two facets found is worth a look\n   first. A `side` of seller on a buyer facet is the inverse the facet's why names. Call every\n   one (the tree's next tier waits on it):\n   keep what can hold a fact that answers the ask, drop the rest (vendor pages, listicles, a\n   page the ask does not need). One why per call, short. A page you know of yourself: `open --url`.\n   Read every hit yourself, however many: the labels sort them, they never call one. There is\n   no bulk keep or drop. A drop on a rule (under 3 times the author's usual) names the rule.\n   On an ask about content (what draws, what works, a format, a hook), drop only what is off\n   the topic. A video that drew little is the comparison that shows what the strong ones did\n   differently: keep it, and say so in the why. Open every kept video: its words cost nothing (captions; after a caption 429, Cohere hears the audio).\n4. **Read.** `open`, then `show` each document and read it. A video that failed to read\n   stays kept and unread: `open <run> <hit> --why` retries that one alone. **See a video** (`open <run> <hit>\n   --see --why`) only when all three hold: its metrics or lift put it among the run's strongest,\n   it answers the ask, and its captions lean on the screen (\"as you can see\", \"this slide\",\n   \"look at this\", a demo or chart the words do not describe) or leave the point unsaid. It\n   downloads the video, and Claude reads each frame: the text, then what it shows (~$0.30 for\n   10 minutes; 6 videos a run at most). The why names the test it passed. The read is a second document on the hit. Write each fact that answers the\n   ask as `add finding` with its exact quote; a quote that is not on the page fails. Say what\n   the page lacks as `add gap --on <document>`. For a run too big to read (tens of pages),\n   `extract` puts a model behind the same gate; then judge its findings in\n   `wrote` and drop what does not answer the ask (`add call <finding> drop --why`). Class each\n   page with a kept finding (`brief.documents.unclassed`): `add class <document> <class> --why`.\n   Its findings take the class. When one finding differs (a vendor page that quotes a survey),\n   class that finding too. `unclassed[].guess` is the judge's class; spot-check a few, then\n   `accept class --min 0.8 --why` (a guess at 0.8 or more held in 8 of 8 on one run; under it,\n   5 of 7 changed). A facet's `enough` counts the judge's class guess: kept hits that are all\n   the wrong class keep the facet's next try open, and `search` says \"none of them <needs>\".\n   After the read, a facet whose classed pages lack its `needs` (`lacks`) is never enough.\n   **Follow.** Signals cluster in people. After a page that gave kept findings, do what a person\n   does: `follow --from <document> --as posts` lists its author's own posts (a YouTube channel's\n   uploads from a video or a channel, a TikTok profile, a Reddit user's top posts and comments);\n   `--as similar` lists pages like it (Exa, off the page's own site). After a good paper,\n   `--as refs` lists what it cites and `--as citers` what cites it, most cited first (arxiv:\n   Semantic Scholar and OpenAlex; a hit is the arXiv page when there is one). The hits come back to\n   triage like a search's, under the same caps. `brief.unfollowed` lists the kept pages no\n   follow started from and no person owns, most kept findings first. When one author is good,\n   find their other places (the channel's about links, a Substack, an X account, a blog): search\n   or read, then `add person \"<name>\" --profile <url>... --aka <channel name>... --why`, and\n   follow each profile. `brief.people` counts the documents, kept findings and sites per person.\n   A follow no source in the run can do fails and names one that can: add it with `--with`.\n   `documents.toExtract[]` carries the judge's `format` and the criteria; the order is a sort,\n   never a skip.\n5. **Check.** Read a sample of the kept findings again against their documents (`show`), a\n   different page each: `add check <finding> --ok|--fail --why`. A fail drops it. For a bulk\n   run, `check` does the same with a model over the budget's `checks` or a tenth of the kept\n   findings, whichever is more, plus each finding the judge doubts. A fail's narrower\n   sentence on the same quote comes back as a new finding with `fixes` once a second check\n   backs it. Put a finding back with `add call <finding> keep --why` only if you read the page\n   and the check is wrong.\n6. **Patterns.** When kept findings from different sites say one thing, write it once:\n   `add pattern` with the finding ids, from this run or its children. The engine counts the distinct sites; one site is a\n   claim, not a pattern, and it warns. A pattern is your sentence; the findings are its proof.\n   `brief.patterns[].classes` counts its sources per class: a site, but each forum thread on\n   its own. Three vendor pages are weaker than one survey: weigh the classes, not the total.\n   `echo` says every classed source is a vendor: vendors cite each other, so find the source\n   they cite or call it a claim. `cites` lists the findings the judge says credit another\n   source: search for that source by name. Every finding a pattern rests on gets checked: `check\n   --patterns` (bulk) or your own `add check`; `brief.patterns[].unchecked` lists the rest.\n7. **Review.** Ask: does what is kept answer the ask? What is missing? Write each hole as a gap.\n   Then the edge: `again` with a why that names the hole (the next round's plan reads it), or\n   `stop` with a why that says what the run has and what it still lacks. The budget's rounds\n   are a guard rail: past them, say in the why why one more round is worth it. A facet still\n   thin after its tries, or one that searches the wrong buyer: `add dead <facet> --why`.\n8. **Children.** A wide ask (which niche, which offer) goes deep in child runs, one per option\n   worth it: `plan \"<the option's ask>\" --parent <run> --why \"<why this one>\"`. The child's plan\n   reads what the parent and its siblings found; its budget is never more than the parent's.\n   The plan file's `runs.depth` (2: the root and its children) is a guard rail: a deeper child\n   warns, and its why says why it beats a sibling. A facet to try again needs no run: add a try\n   to `tree.json`, or `add edge again` and plan the next round. Two caps stop: the children per\n   round, and the whole tree's reads (`runs.reads` on the root's plan file; by default the\n   root's reads times its rounds times children plus one). `open` stops or cuts its hits at the\n   tree's cap. `brief.lineage` lists the ancestors, root first, with their asks and whys;\n   `brief.treeRoom` says the cap, what the tree read and what is left. Out of room: ask the\n   person; on their yes, `add cap <root> <reads> --why --human`. Drive each child to its\n   stop. Then `add edge again` on the parent: its next plan reads each stopped\n   child's stop, patterns (with sites per class) and dead ends, and lists a child still going\n   as open. The parent decides: drop an option, add one, or stop. `brief.children` shows the\n   tree; `brief.treeCost` what all of it cost.\n9. **Report.** From `brief`: the patterns first, each with its site count per class and its findings;\n   then the kept findings no pattern rests on, each with its quote, URL and date; the gaps; the\n   cost line. Nothing in the report that is not a finding. When the person wants prose (a memo,\n   an SOP outline), write a rough draft with `add draft`: each item cites kept patterns or\n   findings, and each number comes from a cited quote, or the gate drops the item. A draft is\n   never final: the person writes the SOP or the decision.\n10. **Learn.** If the run was good and the person agrees, `birdwatch learn <kind>` with what it\n   taught: a source order that yielded, a budget that fit, an age sentence, a rule for the\n   kind (`--rule`, every line), a `--thin` that fits the kind, a facet the guide should name\n   (`--tree <file>`). The next run of that kind starts there. Never change a rule without\n   showing the person the diff.\n\nStop when the ask is answered or two rounds in a row added nothing that changed the answer.\nSay so in the edge's why.\n\n## The person\n\nTheir words are theirs: `birdwatch add steer <run> \"<their words>\" --human <name>`. A steer is\nshown first in every later brief and snapshot. Their keep or drop on a hit or finding:\n`add call ... --human <name>`; their gap, `add gap ... --human <name>`; a step they want rerun,\n`add edge <run> back --to <step> --why \"<their why>\" --human <name>`. Never put your words in a `--human` record.\n\nWhen they ask a question mid-run, answer from `brief` (kept findings, gaps, cost); run no step\nthey did not ask for.\n\n## Records\n\nEvery record carries `from` (ai, human, tool), `by` (your id, their name, a source or model\nid), its round, and on a decision, a why. `birdwatch trace <run>` prints them all;\n`birdwatch trace <run> --type finding` one type. A run from before 0.30.0 that the old runner\nmade reads the same way in `brief`.\n\nTo let a person watch or check a run, start `birdwatch serve` (same `--ledger`) in the background\nand tell them to open the portal's Research page on this Mac. It updates live as you write.\nStop it when they are done.\n"
+          }
+        ]
+      },
+      "parent_tool_use_id": null,
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "uuid": "59404376-6eb7-412f-a06a-288624de5584",
+      "timestamp": "2026-11-04T23:20:27.111Z",
+      "isSynthetic": true
+    }
+  },
+  {
+    "t": 3542,
+    "from": "cli",
+    "frame": {
+      "type": "system",
+      "subtype": "status",
+      "status": "requesting",
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "uuid": "51e35c08-802c-4bf8-9f0d-8fc764f09af3"
+    }
+  },
+  {
+    "t": 5498,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "message_start",
+        "message": {
+          "model": "claude-sonnet-5-5",
+          "id": "msg_011CgikBHD7exm5LEBMuChuq",
+          "type": "message",
+          "role": "assistant",
+          "content": [],
+          "container": null,
+          "stop_reason": null,
+          "stop_sequence": null,
+          "stop_details": null,
+          "usage": {
+            "input_tokens": 4,
+            "cache_creation_input_tokens": 8263,
+            "cache_read_input_tokens": 7725,
+            "cache_creation": { "ephemeral_5m_input_tokens": 0, "ephemeral_1h_input_tokens": 8263 },
+            "output_tokens": 24,
+            "service_tier": "standard",
+            "inference_geo": "global",
+            "speed": "standard"
+          },
+          "input_transformations": [],
+          "diagnostics": null,
+          "context_management": null
+        }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "d2efcac3-a007-40a1-a860-34ae3940f239",
+      "ttft_ms": 1951,
+      "thinking_display": "updates",
+      "api_message_id": "msg_011CgikBHD7exm5LEBMuChuq"
+    }
+  },
+  {
+    "t": 5499,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_start",
+        "index": 0,
+        "content_block": {
+          "type": "tool_use",
+          "id": "toolu_01Fezv8U3tBYGpghfZHtYFGo",
+          "name": "AskUserQuestion",
+          "input": {},
+          "caller": { "type": "direct" }
+        }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "4a076568-f9d1-4b55-8514-1d27633a9bb3",
+      "api_message_id": "msg_011CgikBHD7exm5LEBMuChuq"
+    }
+  },
+  {
+    "t": 5500,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "input_json_delta", "partial_json": "" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "b95307fe-cf2e-41c5-aa75-657a354f70d9",
+      "api_message_id": "msg_011CgikBHD7exm5LEBMuChuq"
+    }
+  },
+  {
+    "t": 6059,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "input_json_delta", "partial_json": "{\"quest" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "4b6e3e23-df61-4f1a-b746-7247695045f2",
+      "api_message_id": "msg_011CgikBHD7exm5LEBMuChuq"
+    }
+  },
+  {
+    "t": 6059,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "input_json_delta", "partial_json": "ions\": " }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "669a1d1b-83d0-4454-b514-9b90f27557a7",
+      "api_message_id": "msg_011CgikBHD7exm5LEBMuChuq"
+    }
+  },
+  {
+    "t": 6059,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "input_json_delta", "partial_json": "[{\"ques" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "15bf519f-8abf-4631-a314-03d7861c4363",
+      "api_message_id": "msg_011CgikBHD7exm5LEBMuChuq"
+    }
+  },
+  {
+    "t": 6059,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "input_json_delta", "partial_json": "tion\":\"" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "56475bca-663f-460e-8853-7056f3be6701",
+      "api_message_id": "msg_011CgikBHD7exm5LEBMuChuq"
+    }
+  },
+  {
+    "t": 6059,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "input_json_delta", "partial_json": "Which s" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "5f0468fe-81af-467b-ae54-19f1b78c0a8d",
+      "api_message_id": "msg_011CgikBHD7exm5LEBMuChuq"
+    }
+  },
+  {
+    "t": 6060,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "input_json_delta", "partial_json": "ite sho" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "b536e58f-418d-46b9-8d84-a121b282185a",
+      "api_message_id": "msg_011CgikBHD7exm5LEBMuChuq"
+    }
+  },
+  {
+    "t": 6060,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "input_json_delta", "partial_json": "uld be " }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "ec7d4be6-566b-4046-866a-9ed914ac8b89",
+      "api_message_id": "msg_011CgikBHD7exm5LEBMuChuq"
+    }
+  },
+  {
+    "t": 6060,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "input_json_delta", "partial_json": "read fi" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "666fdb7d-af8f-4cd5-847d-f4101d0b0a53",
+      "api_message_id": "msg_011CgikBHD7exm5LEBMuChuq"
+    }
+  },
+  {
+    "t": 6060,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "input_json_delta", "partial_json": "rst?\",\"" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "8c39cb92-e817-4cdd-9184-165dd03865a7",
+      "api_message_id": "msg_011CgikBHD7exm5LEBMuChuq"
+    }
+  },
+  {
+    "t": 6060,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "input_json_delta", "partial_json": "header\"" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "133be27d-52bc-4be2-a2ab-a8186bd7f37c",
+      "api_message_id": "msg_011CgikBHD7exm5LEBMuChuq"
+    }
+  },
+  {
+    "t": 6061,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "input_json_delta", "partial_json": ":\"First" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "03933481-a4c0-4343-9689-50502a8c4269",
+      "api_message_id": "msg_011CgikBHD7exm5LEBMuChuq"
+    }
+  },
+  {
+    "t": 6061,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "input_json_delta", "partial_json": " site\"," }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "a0f31b3b-3bbc-46f4-ab40-4187a79d9b38",
+      "api_message_id": "msg_011CgikBHD7exm5LEBMuChuq"
+    }
+  },
+  {
+    "t": 6061,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "input_json_delta", "partial_json": "\"multiS" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "5cbef396-9ffe-4aea-ade3-3ce7a906cb4e",
+      "api_message_id": "msg_011CgikBHD7exm5LEBMuChuq"
+    }
+  },
+  {
+    "t": 6061,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "input_json_delta", "partial_json": "elect\":" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "3c67e0be-67fb-45ba-8e21-629c46e5de1a",
+      "api_message_id": "msg_011CgikBHD7exm5LEBMuChuq"
+    }
+  },
+  {
+    "t": 6061,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "input_json_delta", "partial_json": "false,\"" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "b329b352-e291-40ba-b5b2-430451c6d672",
+      "api_message_id": "msg_011CgikBHD7exm5LEBMuChuq"
+    }
+  },
+  {
+    "t": 6062,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "input_json_delta", "partial_json": "options" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "e20cb975-7b05-46f3-a0e5-c5b584bba2ef",
+      "api_message_id": "msg_011CgikBHD7exm5LEBMuChuq"
+    }
+  },
+  {
+    "t": 6062,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "input_json_delta", "partial_json": "\":[{\"la" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "ec55c4f5-f620-4e44-8178-2cf7e7334b80",
+      "api_message_id": "msg_011CgikBHD7exm5LEBMuChuq"
+    }
+  },
+  {
+    "t": 6062,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "input_json_delta", "partial_json": "bel\":\"n" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "aee6e4ab-1eb8-429c-84d6-0e2d1aa3d991",
+      "api_message_id": "msg_011CgikBHD7exm5LEBMuChuq"
+    }
+  },
+  {
+    "t": 6062,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "input_json_delta", "partial_json": "orthwin" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "f698f56d-70d3-4659-b69a-1322069d1047",
+      "api_message_id": "msg_011CgikBHD7exm5LEBMuChuq"
+    }
+  },
+  {
+    "t": 6062,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "input_json_delta", "partial_json": "d.examp" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "c1aac2e6-8e2e-41c1-b01e-1e8621bd754a",
+      "api_message_id": "msg_011CgikBHD7exm5LEBMuChuq"
+    }
+  },
+  {
+    "t": 6062,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "input_json_delta", "partial_json": "le\",\"de" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "327ce57d-d3b5-4c9c-b869-ccb1f8862e42",
+      "api_message_id": "msg_011CgikBHD7exm5LEBMuChuq"
+    }
+  },
+  {
+    "t": 6062,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "input_json_delta", "partial_json": "scripti" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "751d72f8-c79c-4142-a75b-4a6923574fd2",
+      "api_message_id": "msg_011CgikBHD7exm5LEBMuChuq"
+    }
+  },
+  {
+    "t": 6062,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "input_json_delta", "partial_json": "on\":\"Re" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "bc07ece5-d254-4b41-a0bb-76a718cd7daa",
+      "api_message_id": "msg_011CgikBHD7exm5LEBMuChuq"
+    }
+  },
+  {
+    "t": 6063,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "input_json_delta", "partial_json": "ad nort" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "194f30f1-f025-4d7e-b05b-a1dced2f26dd",
+      "api_message_id": "msg_011CgikBHD7exm5LEBMuChuq"
+    }
+  },
+  {
+    "t": 6063,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "input_json_delta", "partial_json": "hwind.e" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "dfd3c99e-ded7-4143-91a9-f1185f8f8207",
+      "api_message_id": "msg_011CgikBHD7exm5LEBMuChuq"
+    }
+  },
+  {
+    "t": 6063,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "input_json_delta", "partial_json": "xample " }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "6c5fb6ca-a0c3-44d5-971e-d3246dfc0a5b",
+      "api_message_id": "msg_011CgikBHD7exm5LEBMuChuq"
+    }
+  },
+  {
+    "t": 6063,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "input_json_delta", "partial_json": "first (" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "6bd3902e-b018-4d22-b4b5-9dbbb2f760e9",
+      "api_message_id": "msg_011CgikBHD7exm5LEBMuChuq"
+    }
+  },
+  {
+    "t": 6063,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "input_json_delta", "partial_json": "returne" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "2089a51d-92ea-42d7-a47a-0624c9d02880",
+      "api_message_id": "msg_011CgikBHD7exm5LEBMuChuq"
+    }
+  },
+  {
+    "t": 6063,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "input_json_delta", "partial_json": "d 200)\"" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "80915a0b-46ab-4905-b362-274861ca529e",
+      "api_message_id": "msg_011CgikBHD7exm5LEBMuChuq"
+    }
+  },
+  {
+    "t": 6063,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "input_json_delta", "partial_json": "},{\"lab" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "6a46b5df-eac0-49b1-8ac0-339382957f67",
+      "api_message_id": "msg_011CgikBHD7exm5LEBMuChuq"
+    }
+  },
+  {
+    "t": 6064,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "input_json_delta", "partial_json": "el\":\"ba" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "3973bb6b-8505-42dc-910a-6262e05ed3fb",
+      "api_message_id": "msg_011CgikBHD7exm5LEBMuChuq"
+    }
+  },
+  {
+    "t": 6064,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "input_json_delta", "partial_json": "kers.ex" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "1241e9c7-e3a7-40d6-9de4-bba184fcae59",
+      "api_message_id": "msg_011CgikBHD7exm5LEBMuChuq"
+    }
+  },
+  {
+    "t": 6064,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "input_json_delta", "partial_json": "ample\"," }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "5617f48a-bad6-4aaa-87a7-d7da04482214",
+      "api_message_id": "msg_011CgikBHD7exm5LEBMuChuq"
+    }
+  },
+  {
+    "t": 6064,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "input_json_delta", "partial_json": "\"descri" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "fdca1118-df25-4da1-ad44-24730aa87c8e",
+      "api_message_id": "msg_011CgikBHD7exm5LEBMuChuq"
+    }
+  },
+  {
+    "t": 6064,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "input_json_delta", "partial_json": "ption\":" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "34ef149a-0f87-4086-a143-49ed863b2c89",
+      "api_message_id": "msg_011CgikBHD7exm5LEBMuChuq"
+    }
+  },
+  {
+    "t": 6065,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "input_json_delta", "partial_json": "\"Read b" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "171c8cb5-e7fd-49a3-b397-12ccea480919",
+      "api_message_id": "msg_011CgikBHD7exm5LEBMuChuq"
+    }
+  },
+  {
+    "t": 6065,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "input_json_delta", "partial_json": "akers.e" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "85341f78-7517-4670-ab1b-28d210a22bdc",
+      "api_message_id": "msg_011CgikBHD7exm5LEBMuChuq"
+    }
+  },
+  {
+    "t": 6066,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "input_json_delta", "partial_json": "xample " }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "3681122b-362f-4186-aacf-d2aef80adeb4",
+      "api_message_id": "msg_011CgikBHD7exm5LEBMuChuq"
+    }
+  },
+  {
+    "t": 6066,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "input_json_delta", "partial_json": "first (" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "fabd9937-ca10-4aee-9219-89b202929284",
+      "api_message_id": "msg_011CgikBHD7exm5LEBMuChuq"
+    }
+  },
+  {
+    "t": 6066,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "input_json_delta", "partial_json": "returne" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "518dea8b-e0a5-4dd8-bc08-0f0126b9b462",
+      "api_message_id": "msg_011CgikBHD7exm5LEBMuChuq"
+    }
+  },
+  {
+    "t": 6066,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "input_json_delta", "partial_json": "d 200)\"" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "5235193f-ac54-4384-bd3a-73ba52441e43",
+      "api_message_id": "msg_011CgikBHD7exm5LEBMuChuq"
+    }
+  },
+  {
+    "t": 6066,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "input_json_delta", "partial_json": "}]}]}" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "7735d719-7394-4225-a4f0-91a096e1242a",
+      "api_message_id": "msg_011CgikBHD7exm5LEBMuChuq"
+    }
+  },
+  {
+    "t": 6067,
+    "from": "cli",
+    "frame": {
+      "type": "assistant",
+      "message": {
+        "model": "claude-sonnet-5-5",
+        "id": "msg_011CgikBHD7exm5LEBMuChuq",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "tool_use",
+            "id": "toolu_01Fezv8U3tBYGpghfZHtYFGo",
+            "name": "AskUserQuestion",
+            "input": {
+              "questions": [
+                {
+                  "question": "Which site should be read first?",
+                  "header": "First site",
+                  "multiSelect": false,
+                  "options": [
+                    {
+                      "label": "northwind.example",
+                      "description": "Read northwind.example first (returned 200)"
+                    },
+                    {
+                      "label": "bakers.example",
+                      "description": "Read bakers.example first (returned 200)"
+                    }
+                  ]
+                }
+              ]
+            },
+            "caller": { "type": "direct" }
+          }
+        ],
+        "container": null,
+        "stop_reason": null,
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 4,
+          "cache_creation_input_tokens": 8263,
+          "cache_read_input_tokens": 7725,
+          "cache_creation": { "ephemeral_5m_input_tokens": 0, "ephemeral_1h_input_tokens": 8263 },
+          "output_tokens": 24,
+          "service_tier": "standard",
+          "inference_geo": "global",
+          "speed": "standard"
+        },
+        "input_transformations": [],
+        "diagnostics": null,
+        "context_management": null
+      },
+      "parent_tool_use_id": null,
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "uuid": "01dc7d20-7072-4795-943b-7b3b21accc68",
+      "timestamp": "2026-11-04T23:20:29.640Z",
+      "request_id": "req_011CgikBGsmbHQVRjm3XaraR"
+    }
+  },
+  {
+    "t": 6070,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": { "type": "content_block_stop", "index": 0 },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "8095deed-e32d-47b3-be58-bea5d5f9af7d",
+      "api_message_id": "msg_011CgikBHD7exm5LEBMuChuq"
+    }
+  },
+  {
+    "t": 6073,
+    "from": "cli",
+    "frame": {
+      "type": "control_request",
+      "request_id": "bd90bcc8-d743-4e08-bbbc-8a92e2936b97",
+      "request": {
+        "subtype": "can_use_tool",
+        "tool_name": "AskUserQuestion",
+        "display_name": "AskUserQuestion",
+        "input": {
+          "questions": [
+            {
+              "question": "Which site should be read first?",
+              "header": "First site",
+              "options": [
+                {
+                  "label": "northwind.example",
+                  "description": "Read northwind.example first (returned 200)"
+                },
+                {
+                  "label": "bakers.example",
+                  "description": "Read bakers.example first (returned 200)"
+                }
+              ],
+              "multiSelect": false
+            }
+          ]
+        },
+        "tool_use_id": "toolu_01Fezv8U3tBYGpghfZHtYFGo",
+        "requires_user_interaction": true
+      }
+    }
+  },
+  {
+    "t": 6074,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "message_delta",
+        "delta": {
+          "stop_reason": "tool_use",
+          "stop_sequence": null,
+          "stop_details": null,
+          "container": null
+        },
+        "usage": {
+          "input_tokens": 4,
+          "cache_creation_input_tokens": 8263,
+          "cache_read_input_tokens": 7725,
+          "output_tokens": 148,
+          "output_tokens_details": { "thinking_tokens": 0 }
+        },
+        "context_management": { "applied_edits": [] }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "e35bdefc-8202-43eb-ae2a-3e30dcbefd46",
+      "api_message_id": "msg_011CgikBHD7exm5LEBMuChuq"
+    }
+  },
+  {
+    "t": 6074,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": { "type": "message_stop" },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "5bf7faf0-a5f4-4f60-b08a-3730859d3108",
+      "api_message_id": "msg_011CgikBHD7exm5LEBMuChuq"
+    }
+  },
+  {
+    "t": 6075,
+    "from": "page",
+    "frame": {
+      "type": "control_response",
+      "response": {
+        "subtype": "success",
+        "request_id": "bd90bcc8-d743-4e08-bbbc-8a92e2936b97",
+        "response": {
+          "behavior": "allow",
+          "updatedInput": {
+            "questions": [
+              {
+                "question": "Which site should be read first?",
+                "header": "First site",
+                "options": [
+                  {
+                    "label": "northwind.example",
+                    "description": "Read northwind.example first (returned 200)"
+                  },
+                  {
+                    "label": "bakers.example",
+                    "description": "Read bakers.example first (returned 200)"
+                  }
+                ],
+                "multiSelect": false
+              }
+            ],
+            "answers": { "Which site should be read first?": "northwind.example" }
+          },
+          "toolUseID": "toolu_01Fezv8U3tBYGpghfZHtYFGo"
+        }
+      }
+    }
+  },
+  {
+    "t": 6079,
+    "from": "cli",
+    "frame": {
+      "type": "user",
+      "message": {
+        "role": "user",
+        "content": [
+          {
+            "type": "tool_result",
+            "content": "Your questions have been answered: \"Which site should be read first?\"=\"northwind.example\". You can now continue with these answers in mind.",
+            "tool_use_id": "toolu_01Fezv8U3tBYGpghfZHtYFGo"
+          }
+        ]
+      },
+      "parent_tool_use_id": null,
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "uuid": "78d72ed4-4522-4751-b20a-bba474ce28ef",
+      "timestamp": "2026-11-04T23:20:29.656Z",
+      "tool_use_result": {
+        "questions": [
+          {
+            "question": "Which site should be read first?",
+            "header": "First site",
+            "options": [
+              {
+                "label": "northwind.example",
+                "description": "Read northwind.example first (returned 200)"
+              },
+              {
+                "label": "bakers.example",
+                "description": "Read bakers.example first (returned 200)"
+              }
+            ],
+            "multiSelect": false
+          }
+        ],
+        "answers": { "Which site should be read first?": "northwind.example" }
+      },
+      "tool_result_meta": [
+        {
+          "id": "toolu_01Fezv8U3tBYGpghfZHtYFGo",
+          "permission_decision": { "decision": "accept", "source": "user_temporary" }
+        }
+      ]
+    }
+  },
+  {
+    "t": 6082,
+    "from": "cli",
+    "frame": {
+      "type": "system",
+      "subtype": "status",
+      "status": "requesting",
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "uuid": "9feb89a4-3cc2-4cb9-9736-e2aa856c3084"
+    }
+  },
+  {
+    "t": 6505,
+    "from": "page",
+    "frame": {
+      "request_id": "a6jdxdawukp",
+      "type": "control_request",
+      "request": { "subtype": "get_task_output", "task_id": "bwqy5fz0r" }
+    }
+  },
+  {
+    "t": 6509,
+    "from": "cli",
+    "frame": {
+      "type": "control_response",
+      "response": {
+        "subtype": "success",
+        "request_id": "a6jdxdawukp",
+        "response": { "output": "tick 1\ntick 2\n", "total_bytes": 14, "truncated": false }
+      }
+    }
+  },
+  {
+    "t": 7881,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "message_start",
+        "message": {
+          "model": "claude-sonnet-5-5",
+          "id": "msg_011CgikBTxGTTdCYL88ugFvb",
+          "type": "message",
+          "role": "assistant",
+          "content": [],
+          "container": null,
+          "stop_reason": null,
+          "stop_sequence": null,
+          "stop_details": null,
+          "usage": {
+            "input_tokens": 2,
+            "cache_creation_input_tokens": 199,
+            "cache_read_input_tokens": 15988,
+            "cache_creation": { "ephemeral_5m_input_tokens": 0, "ephemeral_1h_input_tokens": 199 },
+            "output_tokens": 137,
+            "service_tier": "standard",
+            "inference_geo": "global",
+            "speed": "standard"
+          },
+          "input_transformations": [],
+          "diagnostics": null,
+          "context_management": null
+        }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "d047b296-c65c-42a7-b197-5d248ca5cbb7",
+      "ttft_ms": 1794,
+      "thinking_display": "updates",
+      "api_message_id": "msg_011CgikBTxGTTdCYL88ugFvb"
+    }
+  },
+  {
+    "t": 7882,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_start",
+        "index": 0,
+        "content_block": { "type": "text", "text": "" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "533ab790-c0d5-4c85-9ba9-7b5dadb9f068",
+      "api_message_id": "msg_011CgikBTxGTTdCYL88ugFvb"
+    }
+  },
+  {
+    "t": 7882,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "text_delta", "text": "- Ran `printf`" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "fd8a6576-dce5-4501-baaf-99bd0bb77db1",
+      "api_message_id": "msg_011CgikBTxGTTdCYL88ugFvb"
+    }
+  },
+  {
+    "t": 7882,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "text_delta", "text": " and got" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "0113a06a-809f-4867-bbdb-85d3f1d859f5",
+      "api_message_id": "msg_011CgikBTxGTTdCYL88ugFvb"
+    }
+  },
+  {
+    "t": 7882,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "text_delta", "text": " `" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "4c019c68-bd18-48ca-b900-2931fc3d633f",
+      "api_message_id": "msg_011CgikBTxGTTdCYL88ugFvb"
+    }
+  },
+  {
+    "t": 7882,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "text_delta", "text": "northwind.example 200`" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "09a17bbd-337d-42b7-9430-8c9aa7cc41e0",
+      "api_message_id": "msg_011CgikBTxGTTdCYL88ugFvb"
+    }
+  },
+  {
+    "t": 7882,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "text_delta", "text": " and `bakers.example " }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "3a8d0b8f-592e-4789-82fa-3a90d91caa2d",
+      "api_message_id": "msg_011CgikBTxGTTdCYL88ugFvb"
+    }
+  },
+  {
+    "t": 7882,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "text_delta", "text": "200`.\n- Started the" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "0744c259-0604-463f-8129-16ca7e91398b",
+      "api_message_id": "msg_011CgikBTxGTTdCYL88ugFvb"
+    }
+  },
+  {
+    "t": 7882,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "text_delta", "text": " six-tick counter in the" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "34b627a5-ce0e-4f05-9308-09546afd6edf",
+      "api_message_id": "msg_011CgikBTxGTTdCYL88ugFvb"
+    }
+  },
+  {
+    "t": 7883,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "text_delta", "text": " background (" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "e582502f-7c6a-45a9-9432-6a9fef3ae888",
+      "api_message_id": "msg_011CgikBTxGTTdCYL88ugFvb"
+    }
+  },
+  {
+    "t": 7883,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "text_delta", "text": "ID `bwqy5f" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "a80ed5c3-94c2-48c0-aad1-bfe8c217c1da",
+      "api_message_id": "msg_011CgikBTxGTTdCYL88ugFvb"
+    }
+  },
+  {
+    "t": 7883,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "text_delta", "text": "z0r`). I haven" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "51a1c1a5-421e-460d-a403-ecfe89a6aaa7",
+      "api_message_id": "msg_011CgikBTxGTTdCYL88ugFvb"
+    }
+  },
+  {
+    "t": 7883,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "text_delta", "text": "'t checked its output.\n-" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "692a7afe-7b19-44be-8fcf-ba318bf67ee1",
+      "api_message_id": "msg_011CgikBTxGTTdCYL88ugFvb"
+    }
+  },
+  {
+    "t": 7883,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "text_delta", "text": " Loaded the birdw" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "5f250c67-ca53-43c5-ab84-97ec60a59791",
+      "api_message_id": "msg_011CgikBTxGTTdCYL88ugFvb"
+    }
+  },
+  {
+    "t": 7883,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "text_delta", "text": "atch skill without running any `" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "8946b610-eb40-44c6-bc5e-59fdf1260527",
+      "api_message_id": "msg_011CgikBTxGTTdCYL88ugFvb"
+    }
+  },
+  {
+    "t": 7883,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "text_delta", "text": "birdwatch` command" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "3c742310-57a7-45ff-88a8-8938a84c454a",
+      "api_message_id": "msg_011CgikBTxGTTdCYL88ugFvb"
+    }
+  },
+  {
+    "t": 7883,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "text_delta", "text": "," }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "c75d4076-d165-42a6-8d08-7edade17f9ce",
+      "api_message_id": "msg_011CgikBTxGTTdCYL88ugFvb"
+    }
+  },
+  {
+    "t": 7883,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "text_delta", "text": " then asked which" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "ef5401b7-ff1b-4493-b13f-25fddf43d9c0",
+      "api_message_id": "msg_011CgikBTxGTTdCYL88ugFvb"
+    }
+  },
+  {
+    "t": 7883,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "text_delta", "text": " site to read first.\n\nYou" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "a7bd474d-36a1-4c0b-b0a3-a0110e90eb2f",
+      "api_message_id": "msg_011CgikBTxGTTdCYL88ugFvb"
+    }
+  },
+  {
+    "t": 7883,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "text_delta", "text": " picked north" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "1a6ac92f-31bd-4327-86ce-863bcc318302",
+      "api_message_id": "msg_011CgikBTxGTTdCYL88ugFvb"
+    }
+  },
+  {
+    "t": 7883,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "text_delta", "text": "wind.example, so it" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "476a5ebb-2b71-458e-bb55-35ea658891ff",
+      "api_message_id": "msg_011CgikBTxGTTdCYL88ugFvb"
+    }
+  },
+  {
+    "t": 7883,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "text_delta", "text": " go" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "e634a864-6c34-4bc4-99b0-ef17c8ededdb",
+      "api_message_id": "msg_011CgikBTxGTTdCYL88ugFvb"
+    }
+  },
+  {
+    "t": 7884,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "text_delta", "text": "es first. I haven't read" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "18c68e92-a747-462a-83a9-52e5d1f3b516",
+      "api_message_id": "msg_011CgikBTxGTTdCYL88ugFvb"
+    }
+  },
+  {
+    "t": 7884,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "text_delta", "text": " it" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "63e1f94b-5c8d-4627-b5e5-576a3e3431f3",
+      "api_message_id": "msg_011CgikBTxGTTdCYL88ugFvb"
+    }
+  },
+  {
+    "t": 7884,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "text_delta", "text": "," }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "32f96bef-2cea-420b-9342-058e9632e478",
+      "api_message_id": "msg_011CgikBTxGTTdCYL88ugFvb"
+    }
+  },
+  {
+    "t": 7884,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "text_delta", "text": " since this was only" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "0bd61c18-4f37-4e08-8232-4a5e2b9b0de8",
+      "api_message_id": "msg_011CgikBTxGTTdCYL88ugFvb"
+    }
+  },
+  {
+    "t": 7885,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "text_delta", "text": " a ch" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "62fdbe56-b311-4a3d-9b04-5d7fb0fd6e66",
+      "api_message_id": "msg_011CgikBTxGTTdCYL88ugFvb"
+    }
+  },
+  {
+    "t": 7885,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "text_delta", "text": "at test." }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "3d465f3a-ef8f-4e90-8267-1e005ba2c2d2",
+      "api_message_id": "msg_011CgikBTxGTTdCYL88ugFvb"
+    }
+  },
+  {
+    "t": 7885,
+    "from": "cli",
+    "frame": {
+      "type": "assistant",
+      "message": {
+        "model": "claude-sonnet-5-5",
+        "id": "msg_011CgikBTxGTTdCYL88ugFvb",
+        "type": "message",
+        "role": "assistant",
+        "content": [
+          {
+            "type": "text",
+            "text": "- Ran `printf` and got `northwind.example 200` and `bakers.example 200`.\n- Started the six-tick counter in the background (ID `bwqy5fz0r`). I haven't checked its output.\n- Loaded the birdwatch skill without running any `birdwatch` command, then asked which site to read first.\n\nYou picked northwind.example, so it goes first. I haven't read it, since this was only a chat test."
+          }
+        ],
+        "container": null,
+        "stop_reason": null,
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 2,
+          "cache_creation_input_tokens": 199,
+          "cache_read_input_tokens": 15988,
+          "cache_creation": { "ephemeral_5m_input_tokens": 0, "ephemeral_1h_input_tokens": 199 },
+          "output_tokens": 137,
+          "service_tier": "standard",
+          "inference_geo": "global",
+          "speed": "standard"
+        },
+        "input_transformations": [],
+        "diagnostics": null,
+        "context_management": null
+      },
+      "parent_tool_use_id": null,
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "uuid": "1e3bf59c-3a16-4061-a8d6-6847380e5a2a",
+      "timestamp": "2026-11-04T23:20:31.460Z",
+      "request_id": "req_011CgikBTiP3ZppMmaXBL8kd"
+    }
+  },
+  {
+    "t": 7885,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": { "type": "content_block_stop", "index": 0 },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "9ce1d3fe-5522-4efb-940c-43c78dc93fbf",
+      "api_message_id": "msg_011CgikBTxGTTdCYL88ugFvb"
+    }
+  },
+  {
+    "t": 7886,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "message_delta",
+        "delta": {
+          "stop_reason": "end_turn",
+          "stop_sequence": null,
+          "stop_details": null,
+          "container": null
+        },
+        "usage": {
+          "input_tokens": 2,
+          "cache_creation_input_tokens": 199,
+          "cache_read_input_tokens": 15988,
+          "output_tokens": 137,
+          "output_tokens_details": { "thinking_tokens": 0 }
+        },
+        "context_management": { "applied_edits": [] }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "f2490092-e017-4632-9b85-a97b79ead578",
+      "api_message_id": "msg_011CgikBTxGTTdCYL88ugFvb"
+    }
+  },
+  {
+    "t": 7886,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": { "type": "message_stop" },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "2b6c2e18-1a68-47e7-8f2a-e523d1433b17",
+      "api_message_id": "msg_011CgikBTxGTTdCYL88ugFvb"
+    }
+  },
+  {
+    "t": 7894,
+    "from": "cli",
+    "frame": {
+      "duration_api_ms": 7255,
+      "stop_reason": "end_turn",
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "total_cost_usd": 0.0733953,
+      "usage": {
+        "input_tokens": 8,
+        "cache_creation_input_tokens": 16187,
+        "cache_read_input_tokens": 23713,
+        "output_tokens": 626,
+        "output_tokens_details": { "thinking_tokens": 56 },
+        "server_tool_use": { "web_search_requests": 0, "web_fetch_requests": 0 },
+        "service_tier": "standard",
+        "cache_creation": { "ephemeral_1h_input_tokens": 16187, "ephemeral_5m_input_tokens": 0 },
+        "inference_geo": "global",
+        "iterations": [],
+        "speed": "standard",
+        "fallback_credit": null
+      },
+      "modelUsage": {
+        "claude-sonnet-5-5": {
+          "inputTokens": 8,
+          "outputTokens": 626,
+          "cacheReadInputTokens": 23713,
+          "cacheCreationInputTokens": 16187,
+          "webSearchRequests": 0,
+          "costUSD": 0.0733953,
+          "contextWindow": 1000000,
+          "maxOutputTokens": 128000,
+          "thinkingTokens": 56,
+          "cacheCreationEphemeral5mInputTokens": 0,
+          "cacheCreationEphemeral1hInputTokens": 16187,
+          "canonicalModel": "claude-sonnet-5-5",
+          "provider": "firstParty",
+          "costBasis": "list"
+        }
+      },
+      "permission_denials": [],
+      "terminal_reason": "completed",
+      "fast_mode_state": "off",
+      "fast_mode_disabled_reason": "sdk_opt_in_required",
+      "subagent_stats": {
+        "spawned": 0,
+        "requested": { "background": 0, "foreground": 0, "unset": 0 },
+        "started_in_background": 0,
+        "max_depth": 0,
+        "spawned_by_subagents": 0,
+        "completed": 0,
+        "failed": 0,
+        "killed": { "parent": 0, "user": 0, "system": 0 },
+        "refused": { "depth_limit": 0, "concurrency_limit": 0, "budget": 0 },
+        "by_type": {}
+      },
+      "safety_stops": 0,
+      "is_error": false,
+      "num_turns": 6,
+      "subtype": "success",
+      "api_error_status": null,
+      "result": "- Ran `printf` and got `northwind.example 200` and `bakers.example 200`.\n- Started the six-tick counter in the background (ID `bwqy5fz0r`). I haven't checked its output.\n- Loaded the birdwatch skill without running any `birdwatch` command, then asked which site to read first.\n\nYou picked northwind.example, so it goes first. I haven't read it, since this was only a chat test.",
+      "ttft_ms": 1943,
+      "type": "result",
+      "duration_ms": 7431,
+      "uuid": "943ef5bc-7775-4c21-81b5-2fd2cf00cd0f",
+      "ttft_stream_ms": 1113,
+      "time_to_request_ms": 67,
+      "first_content_frame_ms": 1114,
+      "queued_turn_count": 0,
+      "result_index": 0,
+      "model_usage_since_last_result": {
+        "claude-sonnet-5-5": {
+          "inputTokens": 8,
+          "outputTokens": 626,
+          "cacheReadInputTokens": 23713,
+          "cacheCreationInputTokens": 16187,
+          "webSearchRequests": 0,
+          "costUSD": 0.0733953,
+          "contextWindow": 1000000,
+          "maxOutputTokens": 128000,
+          "thinkingTokens": 56,
+          "cacheCreationEphemeral5mInputTokens": 0,
+          "cacheCreationEphemeral1hInputTokens": 16187,
+          "canonicalModel": "claude-sonnet-5-5",
+          "provider": "firstParty",
+          "costBasis": "list"
+        }
+      },
+      "credential_expires_at": "2026-11-27T23:35:13.847Z"
+    }
+  },
+  {
+    "t": 7895,
+    "from": "page",
+    "frame": {
+      "request_id": "o7tejca7pr",
+      "type": "control_request",
+      "request": { "subtype": "get_context_usage", "detail": "summary" }
+    }
+  },
+  {
+    "t": 7903,
+    "from": "cli",
+    "frame": {
+      "type": "control_response",
+      "response": {
+        "subtype": "success",
+        "request_id": "o7tejca7pr",
+        "response": {
+          "categories": [
+            {
+              "id": "system_prompt",
+              "name": "System prompt",
+              "tokens": 1225,
+              "color": "promptBorder",
+              "kind": "used"
+            },
+            {
+              "id": "system_tools",
+              "name": "System tools",
+              "tokens": 6310,
+              "color": "inactive",
+              "kind": "used"
+            },
+            { "id": "skills", "name": "Skills", "tokens": 161, "color": "warning", "kind": "used" },
+            {
+              "id": "messages",
+              "name": "Messages",
+              "tokens": 8493,
+              "color": "purple_FOR_SUBAGENTS_ONLY",
+              "kind": "used"
+            },
+            {
+              "id": "autocompact_buffer",
+              "name": "Autocompact buffer",
+              "tokens": 33000,
+              "color": "inactive",
+              "kind": "buffer"
+            },
+            {
+              "id": "free_space",
+              "name": "Free space",
+              "tokens": 950811,
+              "color": "promptBorder",
+              "kind": "free"
+            }
+          ],
+          "totalTokens": 16189,
+          "maxTokens": 1000000,
+          "rawMaxTokens": 1000000,
+          "autocompactSource": "model-default",
+          "percentage": 2,
+          "model": "claude-sonnet-5-5",
+          "memoryFiles": [],
+          "mcpTools": [],
+          "mcpInstructions": [],
+          "agents": [],
+          "slashCommands": { "totalCommands": 2, "includedCommands": 1, "tokens": 1403 },
+          "skills": {
+            "totalSkills": 2,
+            "includedSkills": 1,
+            "tokens": 161,
+            "skillFrontmatter": [
+              {
+                "name": "birdwatch:birdwatch",
+                "source": "plugin",
+                "pluginName": "birdwatch",
+                "pluginId": "birdwatch@inline",
+                "path": "/Users/you/work/wren/node_modules/.pnpm/@wrenautomation+birdwatch@0.36.1/node_modules/@wrenautomation/birdwatch/skills/birdwatch/SKILL.md",
+                "tokens": 161
+              }
+            ]
+          },
+          "autoCompactThreshold": 967000,
+          "isAutoCompactEnabled": true,
+          "messageBreakdown": {
+            "toolCallTokens": 256,
+            "toolResultTokens": 226,
+            "attachmentTokens": 7366,
+            "assistantMessageTokens": 370,
+            "userMessageTokens": 5521,
+            "redirectedContextTokens": 0,
+            "unattributedTokens": 0,
+            "toolCallsByType": [
+              { "name": "Bash", "callTokens": 119, "resultTokens": 140 },
+              { "name": "AskUserQuestion", "callTokens": 102, "resultTokens": 56 },
+              { "name": "Skill", "callTokens": 35, "resultTokens": 30 }
+            ],
+            "attachmentsByType": [
+              { "name": "prompt_snapshot", "tokens": 6414 },
+              { "name": "session_context", "tokens": 419 },
+              { "name": "skill_listing", "tokens": 156 },
+              { "name": "hook_success", "tokens": 130 },
+              { "name": "environment", "tokens": 79 },
+              { "name": "model", "tokens": 64 },
+              { "name": "remote_session_change", "tokens": 62 },
+              { "name": "credential_org", "tokens": 21 },
+              { "name": "command_permissions", "tokens": 12 },
+              { "name": "date", "tokens": 9 }
+            ]
+          },
+          "apiUsage": {
+            "input_tokens": 2,
+            "output_tokens": 137,
+            "cache_creation_input_tokens": 199,
+            "cache_read_input_tokens": 15988
+          }
+        }
+      }
+    }
+  },
+  {
+    "t": 7904,
+    "from": "page",
+    "frame": {
+      "type": "user",
+      "message": { "role": "user", "content": "Thanks. One line: what is 6 times 7?" },
+      "parent_tool_use_id": null,
+      "session_id": ""
+    }
+  },
+  {
+    "t": 8010,
+    "from": "cli",
+    "frame": {
+      "type": "system",
+      "subtype": "init",
+      "cwd": "/Users/you/work/tasks/docs/research",
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "tools": ["AskUserQuestion", "Bash", "Read", "Skill"],
+      "model": "claude-sonnet-5-5",
+      "permissionMode": "default",
+      "slash_commands": [
+        "birdwatch:birdwatch",
+        "doctor",
+        "plugin-authoring",
+        "agents",
+        "auto-mode-setup",
+        "autocompact",
+        "clear",
+        "color",
+        "compact",
+        "config",
+        "output-style",
+        "context",
+        "effort",
+        "fast",
+        "focus",
+        "heapdump",
+        "init",
+        "mcp",
+        "model",
+        "__remote-workflow",
+        "workflow-launch-exec",
+        "reload-plugins",
+        "reload-skills",
+        "rename",
+        "security-review",
+        "usage-credits",
+        "extra-usage",
+        "usage",
+        "insights",
+        "recap",
+        "goal",
+        "list-agents",
+        "team-onboarding"
+      ],
+      "terminal_slash_commands": ["doctor", "color", "focus", "reload-plugins"],
+      "claude_code_version": "2.1.318",
+      "output_style": "default",
+      "agents": ["claude", "Explore", "general-purpose", "Plan", "statusline-setup"],
+      "skills": ["birdwatch:birdwatch", "doctor", "plugin-authoring"],
+      "capabilities": [
+        "interrupt_receipt_v1",
+        "interrupt_cancel_queued_v1",
+        "interrupt_send_now_v1",
+        "interrupt_requeue_taken_v1",
+        "msg_lifecycle_v1",
+        "request_marker_lists_v1",
+        "ask_user_question_unanswered_v1",
+        "lifecycle_wakeup_source_v1",
+        "sdk_mcp_tools_list_changed",
+        "sdk_mcp_manifests",
+        "mcp_read_resource_v1",
+        "mcp_tool_ui_meta_v1",
+        "ui_surface_v1",
+        "mcp_call_result_not_for_model_v1"
+      ],
+      "analytics_disabled": true,
+      "product_feedback_disabled": true,
+      "uuid": "2366f172-767a-4242-96cc-bd927516da49",
+      "original_cwd": "/Users/you/work/tasks/docs/research",
+      "fast_mode_state": "off",
+      "fast_mode_disabled_reason": "sdk_opt_in_required",
+      "per_turn_effort_active": true,
+      "ultrathink_available": false,
+      "ultrathink_typed_raises": false,
+      "view_mode": "default"
+    }
+  },
+  {
+    "t": 8010,
+    "from": "cli",
+    "frame": {
+      "type": "system",
+      "subtype": "status",
+      "status": "requesting",
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "uuid": "764fad02-272b-4369-ae89-7ed84b82e143"
+    }
+  },
+  {
+    "t": 8011,
+    "from": "page",
+    "frame": {
+      "request_id": "zuthnbmrs2p",
+      "type": "control_request",
+      "request": { "subtype": "get_settings" }
+    }
+  },
+  {
+    "t": 8015,
+    "from": "cli",
+    "frame": {
+      "type": "control_response",
+      "response": {
+        "subtype": "success",
+        "request_id": "zuthnbmrs2p",
+        "response": {
+          "applied": {
+            "model": "claude-sonnet-5-5",
+            "effort": "medium",
+            "advisor": null,
+            "ultracode": false,
+            "ultracodeRequested": false,
+            "ultracodeAvailable": true,
+            "ultrathinkAvailable": false
+          }
+        }
+      }
+    }
+  },
+  {
+    "t": 9108,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "message_start",
+        "message": {
+          "model": "claude-sonnet-5-5",
+          "id": "msg_011CgikBcJpChKdHjXWWK8hQ",
+          "type": "message",
+          "role": "assistant",
+          "content": [],
+          "container": null,
+          "stop_reason": null,
+          "stop_sequence": null,
+          "stop_details": null,
+          "usage": {
+            "input_tokens": 4,
+            "cache_creation_input_tokens": 156,
+            "cache_read_input_tokens": 16187,
+            "cache_creation": { "ephemeral_5m_input_tokens": 0, "ephemeral_1h_input_tokens": 156 },
+            "output_tokens": 8,
+            "service_tier": "standard",
+            "inference_geo": "global",
+            "speed": "standard"
+          },
+          "input_transformations": [],
+          "diagnostics": null,
+          "context_management": null
+        }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "a6e34fe2-fcdc-43ff-9281-6f80d0f1951d",
+      "ttft_ms": 1092,
+      "thinking_display": "updates",
+      "api_message_id": "msg_011CgikBcJpChKdHjXWWK8hQ"
+    }
+  },
+  {
+    "t": 9112,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_start",
+        "index": 0,
+        "content_block": { "type": "text", "text": "" }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "78d8791e-40e6-4a9c-8aa1-8b4ef3bd85b4",
+      "api_message_id": "msg_011CgikBcJpChKdHjXWWK8hQ"
+    }
+  },
+  {
+    "t": 9118,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "text_delta", "text": "6 times 7 is " }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "4202cdcc-2370-4ebe-9848-7a3abfe54db2",
+      "api_message_id": "msg_011CgikBcJpChKdHjXWWK8hQ"
+    }
+  },
+  {
+    "t": 9123,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "content_block_delta",
+        "index": 0,
+        "delta": { "type": "text_delta", "text": "42." }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "11c3d52d-631f-48e7-982c-0d72dc6e4d9b",
+      "api_message_id": "msg_011CgikBcJpChKdHjXWWK8hQ"
+    }
+  },
+  {
+    "t": 9125,
+    "from": "cli",
+    "frame": {
+      "type": "assistant",
+      "message": {
+        "model": "claude-sonnet-5-5",
+        "id": "msg_011CgikBcJpChKdHjXWWK8hQ",
+        "type": "message",
+        "role": "assistant",
+        "content": [{ "type": "text", "text": "6 times 7 is 42." }],
+        "container": null,
+        "stop_reason": null,
+        "stop_sequence": null,
+        "stop_details": null,
+        "usage": {
+          "input_tokens": 4,
+          "cache_creation_input_tokens": 156,
+          "cache_read_input_tokens": 16187,
+          "cache_creation": { "ephemeral_5m_input_tokens": 0, "ephemeral_1h_input_tokens": 156 },
+          "output_tokens": 8,
+          "service_tier": "standard",
+          "inference_geo": "global",
+          "speed": "standard"
+        },
+        "input_transformations": [],
+        "diagnostics": null,
+        "context_management": null
+      },
+      "parent_tool_use_id": null,
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "uuid": "8426a9b8-94d5-4572-a6b7-f8d7db646735",
+      "timestamp": "2026-11-04T23:20:32.700Z",
+      "request_id": "req_011CgikBc5BDEJaBVeZyuVmS"
+    }
+  },
+  {
+    "t": 9125,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": { "type": "content_block_stop", "index": 0 },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "ec4b3eab-99bc-4c2c-921e-0cc6f9611385",
+      "api_message_id": "msg_011CgikBcJpChKdHjXWWK8hQ"
+    }
+  },
+  {
+    "t": 9133,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": {
+        "type": "message_delta",
+        "delta": {
+          "stop_reason": "end_turn",
+          "stop_sequence": null,
+          "stop_details": null,
+          "container": null
+        },
+        "usage": {
+          "input_tokens": 4,
+          "cache_creation_input_tokens": 156,
+          "cache_read_input_tokens": 16187,
+          "output_tokens": 12,
+          "output_tokens_details": { "thinking_tokens": 0 }
+        },
+        "context_management": { "applied_edits": [] }
+      },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "7af85c9e-fe5d-45eb-8ea6-bd7e1d4b76a5",
+      "api_message_id": "msg_011CgikBcJpChKdHjXWWK8hQ"
+    }
+  },
+  {
+    "t": 9133,
+    "from": "cli",
+    "frame": {
+      "type": "stream_event",
+      "event": { "type": "message_stop" },
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "parent_tool_use_id": null,
+      "uuid": "6ee6fef6-79e5-43ae-9fd7-3ef6cce005ec",
+      "api_message_id": "msg_011CgikBcJpChKdHjXWWK8hQ"
+    }
+  },
+  {
+    "t": 9134,
+    "from": "cli",
+    "frame": {
+      "duration_api_ms": 8371,
+      "stop_reason": "end_turn",
+      "session_id": "00000000-0000-4000-8000-000000000001",
+      "total_cost_usd": 0.075766,
+      "usage": {
+        "input_tokens": 4,
+        "cache_creation_input_tokens": 156,
+        "cache_read_input_tokens": 16187,
+        "output_tokens": 12,
+        "output_tokens_details": { "thinking_tokens": 0 },
+        "server_tool_use": { "web_search_requests": 0, "web_fetch_requests": 0 },
+        "service_tier": "standard",
+        "cache_creation": { "ephemeral_1h_input_tokens": 156, "ephemeral_5m_input_tokens": 0 },
+        "inference_geo": "global",
+        "iterations": [],
+        "speed": "standard",
+        "fallback_credit": null
+      },
+      "modelUsage": {
+        "claude-sonnet-5-5": {
+          "inputTokens": 12,
+          "outputTokens": 638,
+          "cacheReadInputTokens": 39900,
+          "cacheCreationInputTokens": 16343,
+          "webSearchRequests": 0,
+          "costUSD": 0.075766,
+          "contextWindow": 1000000,
+          "maxOutputTokens": 128000,
+          "thinkingTokens": 56,
+          "cacheCreationEphemeral5mInputTokens": 0,
+          "cacheCreationEphemeral1hInputTokens": 16343,
+          "canonicalModel": "claude-sonnet-5-5",
+          "provider": "firstParty",
+          "costBasis": "list"
+        }
+      },
+      "permission_denials": [],
+      "terminal_reason": "completed",
+      "fast_mode_state": "off",
+      "fast_mode_disabled_reason": "sdk_opt_in_required",
+      "subagent_stats": {
+        "spawned": 0,
+        "requested": { "background": 0, "foreground": 0, "unset": 0 },
+        "started_in_background": 0,
+        "max_depth": 0,
+        "spawned_by_subagents": 0,
+        "completed": 0,
+        "failed": 0,
+        "killed": { "parent": 0, "user": 0, "system": 0 },
+        "refused": { "depth_limit": 0, "concurrency_limit": 0, "budget": 0 },
+        "by_type": {}
+      },
+      "safety_stops": 0,
+      "is_error": false,
+      "num_turns": 1,
+      "subtype": "success",
+      "api_error_status": null,
+      "result": "6 times 7 is 42.",
+      "ttft_ms": 1121,
+      "type": "result",
+      "duration_ms": 1131,
+      "uuid": "aa5571e0-60e1-42bc-918b-7d1050ac3129",
+      "ttft_stream_ms": 1106,
+      "time_to_request_ms": 15,
+      "first_content_frame_ms": 1106,
+      "queued_turn_count": 0,
+      "result_index": 1,
+      "model_usage_since_last_result": {
+        "claude-sonnet-5-5": {
+          "inputTokens": 4,
+          "outputTokens": 12,
+          "cacheReadInputTokens": 16187,
+          "cacheCreationInputTokens": 156,
+          "webSearchRequests": 0,
+          "costUSD": 0.0023707,
+          "contextWindow": 1000000,
+          "maxOutputTokens": 128000,
+          "thinkingTokens": 0,
+          "cacheCreationEphemeral5mInputTokens": 0,
+          "cacheCreationEphemeral1hInputTokens": 156,
+          "canonicalModel": "claude-sonnet-5-5",
+          "provider": "firstParty",
+          "costBasis": "list"
+        }
+      },
+      "credential_expires_at": "2026-11-27T23:35:13.847Z"
+    }
+  },
+  {
+    "t": 9134,
+    "from": "page",
+    "frame": {
+      "request_id": "qdvsgbmmwfe",
+      "type": "control_request",
+      "request": { "subtype": "get_context_usage", "detail": "summary" }
+    }
+  },
+  {
+    "t": 9137,
+    "from": "cli",
+    "frame": {
+      "type": "control_response",
+      "response": {
+        "subtype": "success",
+        "request_id": "qdvsgbmmwfe",
+        "response": {
+          "categories": [
+            {
+              "id": "system_prompt",
+              "name": "System prompt",
+              "tokens": 1225,
+              "color": "promptBorder",
+              "kind": "used"
+            },
+            {
+              "id": "system_tools",
+              "name": "System tools",
+              "tokens": 6310,
+              "color": "inactive",
+              "kind": "used"
+            },
+            { "id": "skills", "name": "Skills", "tokens": 161, "color": "warning", "kind": "used" },
+            {
+              "id": "messages",
+              "name": "Messages",
+              "tokens": 8651,
+              "color": "purple_FOR_SUBAGENTS_ONLY",
+              "kind": "used"
+            },
+            {
+              "id": "autocompact_buffer",
+              "name": "Autocompact buffer",
+              "tokens": 33000,
+              "color": "inactive",
+              "kind": "buffer"
+            },
+            {
+              "id": "free_space",
+              "name": "Free space",
+              "tokens": 950653,
+              "color": "promptBorder",
+              "kind": "free"
+            }
+          ],
+          "totalTokens": 16347,
+          "maxTokens": 1000000,
+          "rawMaxTokens": 1000000,
+          "autocompactSource": "model-default",
+          "percentage": 2,
+          "model": "claude-sonnet-5-5",
+          "memoryFiles": [],
+          "mcpTools": [],
+          "mcpInstructions": [],
+          "agents": [],
+          "slashCommands": { "totalCommands": 2, "includedCommands": 1, "tokens": 1403 },
+          "skills": {
+            "totalSkills": 2,
+            "includedSkills": 1,
+            "tokens": 161,
+            "skillFrontmatter": [
+              {
+                "name": "birdwatch:birdwatch",
+                "source": "plugin",
+                "pluginName": "birdwatch",
+                "pluginId": "birdwatch@inline",
+                "path": "/Users/you/work/wren/node_modules/.pnpm/@wrenautomation+birdwatch@0.36.1/node_modules/@wrenautomation/birdwatch/skills/birdwatch/SKILL.md",
+                "tokens": 161
+              }
+            ]
+          },
+          "autoCompactThreshold": 967000,
+          "isAutoCompactEnabled": true,
+          "messageBreakdown": {
+            "toolCallTokens": 256,
+            "toolResultTokens": 226,
+            "attachmentTokens": 7366,
+            "assistantMessageTokens": 380,
+            "userMessageTokens": 5530,
+            "redirectedContextTokens": 0,
+            "unattributedTokens": 0,
+            "toolCallsByType": [
+              { "name": "Bash", "callTokens": 119, "resultTokens": 140 },
+              { "name": "AskUserQuestion", "callTokens": 102, "resultTokens": 56 },
+              { "name": "Skill", "callTokens": 35, "resultTokens": 30 }
+            ],
+            "attachmentsByType": [
+              { "name": "prompt_snapshot", "tokens": 6414 },
+              { "name": "session_context", "tokens": 419 },
+              { "name": "skill_listing", "tokens": 156 },
+              { "name": "hook_success", "tokens": 130 },
+              { "name": "environment", "tokens": 79 },
+              { "name": "model", "tokens": 64 },
+              { "name": "remote_session_change", "tokens": 62 },
+              { "name": "credential_org", "tokens": 21 },
+              { "name": "command_permissions", "tokens": 12 },
+              { "name": "date", "tokens": 9 }
+            ]
+          },
+          "apiUsage": {
+            "input_tokens": 4,
+            "output_tokens": 12,
+            "cache_creation_input_tokens": 156,
+            "cache_read_input_tokens": 16187
+          }
+        }
+      }
+    }
+  },
+  {
+    "t": 9159,
+    "from": "cli",
+    "frame": {
+      "type": "system",
+      "subtype": "task_notification",
+      "task_id": "bwqy5fz0r",
+      "run_id": "0mw2qpadl-4fb7959c",
+      "tool_use_id": "toolu_013qZnpqjD1BmJNZbeRkNzgf",
+      "status": "stopped",
+      "output_file": "",
+      "summary": "Run a six-tick counter in background",
+      "uuid": "e07c2c8b-7768-4e10-869e-567f9fb4b54b",
+      "session_id": "00000000-0000-4000-8000-000000000001"
+    }
+  },
+  {
+    "t": 9163,
+    "from": "cli",
+    "frame": {
+      "type": "system",
+      "subtype": "task_updated",
+      "task_id": "bwqy5fz0r",
+      "run_id": "0mw2qpadl-4fb7959c",
+      "patch": { "status": "killed", "end_time": 1793834432738 },
+      "uuid": "7506a6df-8d5b-4ee1-aeb3-9e670326d58b",
+      "session_id": "00000000-0000-4000-8000-000000000001"
+    }
+  },
+  {
+    "t": 9163,
+    "from": "cli",
+    "frame": {
+      "type": "system",
+      "subtype": "background_tasks_changed",
+      "tasks": [],
+      "uuid": "b63dd3ff-5901-4f9c-944d-a0fd64fc2676",
+      "session_id": "00000000-0000-4000-8000-000000000001"
+    }
+  }
+]

@@ -15,12 +15,12 @@ import type {
 export type { CanUseTool, Query, SDKMessage };
 
 /** `?agent=` for another relay. */
-const RELAY =
+export const RELAY =
   (typeof location === "undefined" ? null : new URLSearchParams(location.search).get("agent")) ??
   "ws://127.0.0.1:4748";
 
 /** The relay's HTTP side, same port: setups, and the asker's own past sessions. */
-const HTTP = RELAY.replace(/^ws/, "http");
+export const HTTP = RELAY.replace(/^ws/, "http");
 
 /** A setup as the relay lists it (`GET /setups`). */
 export interface SetupInfo {
