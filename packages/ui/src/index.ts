@@ -27,6 +27,7 @@ export {
   useHeld,
   useLastWrite,
 } from "./action.js";
+export { type AgentChatRow, AgentChats } from "./agent-chats.js";
 export {
   type AgentCommand,
   AgentPick,
@@ -521,7 +522,14 @@ export {
   type WorkspaceOption,
 } from "./shell.js";
 export { RecordShop } from "./shop.js";
-export { PANEL, PanelButton, type PanelDoor, SidePanel } from "./side-panel.js";
+export {
+  PANEL,
+  PanelAct,
+  PanelButton,
+  PanelClose,
+  type PanelDoor,
+  SidePanel,
+} from "./side-panel.js";
 export {
   FavoriteStar,
   InsertSnippet,

@@ -4,7 +4,7 @@
  * unmounts: the socket closes and frees a relay slot; reopened, the chat reads back by its id.
  * Open and width on the device; the setup and chat per tab.
  */
-import { Alert, Button, ButtonLink, Loading, PANEL, Seg, SidePanel, tipProps } from "@wren/ui";
+import { Alert, Loading, PANEL, PanelAct, PanelClose, Seg, SidePanel } from "@wren/ui";
 import { useCallback, useEffect, useState } from "react";
 import { useCall } from "../../load.js";
 import { keep, recall } from "../../local.js";
@@ -104,14 +104,7 @@ export function AgentPanel({
   // closed and idle: nothing mounted, no socket
   if (!open && !busy) return null;
   return (
-    <SidePanel
-      open={open}
-      label="Agent"
-      width={width}
-      onWidth={onWidth}
-      onClose={onClose}
-      title={<span className="text-[14px] font-semibold text-(--ui-ink)">Agent</span>}
-    >
+    <SidePanel open={open} label="Agent" width={width} onWidth={onWidth} onClose={onClose}>
       <PanelChat app={app} page={page} owner={owner} onRunning={setBusy} onClose={onClose} />
     </SidePanel>
   );
@@ -176,7 +169,7 @@ function PanelChat({
       page={page}
       className="min-h-0 flex-1"
       head={(first) => (
-        <div className="flex flex-none flex-wrap items-center gap-2 border-(--ui-hair) border-b px-3 py-2">
+        <div className="flex min-h-[54px] flex-none flex-wrap items-center gap-1 border-(--ui-hair) border-b py-2 pr-2 pl-4">
           {list.length > 1 ? (
             <Seg
               label="Setup"
@@ -193,24 +186,13 @@ function PanelChat({
             onRenamed={sessions.retry}
             className="flex-1 text-[13.5px]"
           />
-          <Button
-            tone="quiet"
-            size="sm"
+          <PanelAct
             icon="plus"
+            label="New chat"
             onClick={() => put({ setup: setup.name, chat: null })}
-          >
-            New chat
-          </Button>
-          <ButtonLink
-            tone="quiet"
-            size="sm"
-            icon="expand"
-            href={full}
-            onClick={onClose}
-            {...tipProps("Open on its own page")}
-          >
-            Full page
-          </ButtonLink>
+          />
+          <PanelAct icon="expand" label="Open on its own page" href={full} onClick={onClose} />
+          <PanelClose label="Agent" onClose={onClose} />
         </div>
       )}
       onSession={(id) => put({ setup: setup.name, chat: id })}

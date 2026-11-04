@@ -767,7 +767,7 @@ function Composer({
 }) {
   const running = useAuiState((s) => s.thread.isRunning);
   const box = (
-    <ComposerPrimitive.Root className="relative grid rounded-[16px] bg-(--ui-paper) shadow-[inset_0_0_0_1px_var(--ui-hair),var(--ui-raise)] transition-shadow duration-150 focus-within:shadow-[inset_0_0_0_1px_var(--ui-focus),var(--ui-raise)] in-data-dragging:shadow-[inset_0_0_0_2px_var(--ui-active),var(--ui-raise)]">
+    <ComposerPrimitive.Root className="relative grid rounded-[16px] bg-(--ui-paper) shadow-[inset_0_0_0_1px_var(--ui-hair),var(--ui-raise)] transition-shadow duration-150 focus-within:shadow-[inset_0_0_0_1px_var(--ui-ink-3),var(--ui-raise)] in-data-dragging:shadow-[inset_0_0_0_2px_var(--ui-active),var(--ui-raise)]">
       <ComposerPrimitive.TriggerPopoverRoot>
         {commands?.length ? <SlashMenu commands={commands} /> : null}
         {context || files ? (
@@ -825,7 +825,7 @@ function Composer({
           ) : (
             <ComposerPrimitive.Send
               aria-label="Send"
-              className="grid size-8 flex-none place-items-center rounded-full bg-(--ui-primary) text-(--ui-on-accent) [animation:ui-fade_.15s_both] hover:opacity-90 disabled:bg-(--ui-fill) disabled:text-(--ui-ink-3)"
+              className="grid size-8 flex-none place-items-center rounded-full bg-(--ui-ink) text-(--ui-paper) [animation:ui-fade_.15s_both] hover:opacity-90 disabled:bg-(--ui-fill) disabled:text-(--ui-ink-3)"
             >
               <Icon name="arrowUp" size={16} />
             </ComposerPrimitive.Send>

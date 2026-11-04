@@ -120,7 +120,7 @@
   --ui-bad-tint: color-mix(in srgb, var(--ui-bad) 6%, transparent);
   --ui-warn-tint: color-mix(in srgb, var(--ui-warn) 9%, transparent); /* under what waits on you */
   /* A terminal block: dark in both looks, so commands read apart from words */
-  --ui-term: #17161b;
+  --ui-term: light-dark(#17161b, #070708); /* at night a well under the paper, never the paper */
   --ui-term-ink: #ecebe6;
   --ui-term-dim: #a3a199; /* 7:1 on --ui-term */
   --ui-term-prompt: #f0a074; /* the $ */

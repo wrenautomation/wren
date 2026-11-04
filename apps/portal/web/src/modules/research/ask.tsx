@@ -3,13 +3,13 @@
  * birdwatch skill, on this Mac's relay. The page fills the window: past chats on the left (only
  * the asker's own), the chat on the right with the setup at its head and the model in the box.
  */
-import { Alert, Button, cx, Empty, Loading, relative, Seg } from "@wren/ui";
+import { AgentChats, Alert, Button, cx, Empty, Loading, Seg } from "@wren/ui";
 import { useState } from "react";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
 import { href, navigate, useRoute } from "../../route.js";
 import { AgentChat, ChatTitle, ownerOf } from "../agent/chat.js";
-import { relaySessions, relaySetups, type SessionRow } from "../agent/connect.js";
+import { relaySessions, relaySetups } from "../agent/connect.js";
 import { closeText } from "../agent/thread.js";
 import { pageToken } from "../agent/use-agent.js";
 
@@ -69,10 +69,11 @@ export function AskPage({ params, who }: PageProps) {
           ) : sessions.pending ? (
             <Loading shape="rows" lines={4} />
           ) : rows.length ? (
-            <ChatList
+            <AgentChats
               rows={rows}
               open={chat}
               hrefOf={(r) => href(here, { chat: r.session }, params)}
+              onOpen={(r) => navigate(href(here, { chat: r.session }, params))}
             />
           ) : (
             <p className="m-0 px-2 text-[13px] text-(--ui-ink-3)">No chats yet.</p>
@@ -88,7 +89,8 @@ export function AskPage({ params, who }: PageProps) {
           onModel={(v) => go({ model: v === setup.model ? null : v }, true)}
           owner={ownerOf(who)}
           head={(first) => (
-            <header className="flex min-h-9 flex-wrap items-center gap-3 border-(--ui-hair) border-b pb-3">
+            // the thread's own column, so the title and the turns share one center
+            <header className="mx-auto flex min-h-9 w-full max-w-[46rem] flex-wrap items-center gap-3 px-[clamp(12px,3vw,28px)] pb-2">
               <ChatTitle
                 setup={setup.name}
                 chat={chat}
@@ -114,43 +116,5 @@ export function AskPage({ params, who }: PageProps) {
         />
       </section>
     </div>
-  );
-}
-
-/** The asker's chats, newest first; the open one marked. */
-function ChatList({
-  rows,
-  open,
-  hrefOf,
-}: {
-  rows: readonly SessionRow[];
-  open: string | null;
-  hrefOf: (r: SessionRow) => string;
-}) {
-  return (
-    <ul className="m-0 grid min-h-0 list-none content-start gap-px overflow-y-auto p-0 [scrollbar-width:thin]">
-      {rows.map((r) => (
-        <li key={r.session}>
-          <a
-            href={hrefOf(r)}
-            aria-current={r.session === open ? "page" : undefined}
-            onClick={(e) => {
-              if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
-              e.preventDefault();
-              navigate(hrefOf(r));
-            }}
-            className={cx(
-              "grid gap-0.5 rounded-(--ui-radius) px-2.5 py-2 no-underline transition-colors duration-150",
-              r.session === open
-                ? "bg-(--ui-wash) text-(--ui-ink)"
-                : "text-(--ui-ink-2) hover:bg-(--ui-fill) hover:text-(--ui-ink)",
-            )}
-          >
-            <span className="text-[13.5px]/[1.35] wrap-anywhere">{r.title || "Untitled chat"}</span>
-            <span className="text-[12px] text-(--ui-ink-3)">{relative(new Date(r.at))}</span>
-          </a>
-        </li>
-      ))}
-    </ul>
   );
 }

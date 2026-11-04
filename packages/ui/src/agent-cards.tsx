@@ -161,7 +161,7 @@ export function Choices(props: DataMessagePartProps<ChoicesData>) {
                   className={cx(
                     "group/opt flex items-center gap-3 rounded-[12px] px-3 py-2.5 text-left transition-[background-color,color,box-shadow,transform] duration-150 enabled:active:scale-[.99]",
                     on
-                      ? "bg-(--ui-ink) text-(--ui-paper) shadow-[0_1px_2px_rgb(0_0_0/.12)]"
+                      ? "bg-(--ui-fill) text-(--ui-ink) shadow-[inset_0_0_0_1.5px_var(--ui-ink-2)]"
                       : "bg-(--ui-paper) text-(--ui-ink) shadow-[inset_0_0_0_1px_var(--ui-hair),0_1px_2px_rgb(0_0_0/.04)] enabled:hover:shadow-[inset_0_0_0_1px_var(--ui-ink-3),0_1px_2px_rgb(0_0_0/.06)]",
                     !data.open && !on && "text-(--ui-ink-2)",
                   )}
@@ -170,9 +170,7 @@ export function Choices(props: DataMessagePartProps<ChoicesData>) {
                     aria-hidden="true"
                     className={cx(
                       "grid size-5.5 flex-none place-items-center rounded-[6px] font-mono text-[11.5px] tabular-nums",
-                      on
-                        ? "bg-(--ui-paper)/15 text-(--ui-paper)"
-                        : "bg-(--ui-fill) text-(--ui-ink-2)",
+                      on ? "bg-(--ui-ink) text-(--ui-paper)" : "bg-(--ui-fill) text-(--ui-ink-2)",
                     )}
                   >
                     {on && !data.open ? <Icon name="check" size={12} /> : k + 1}
@@ -180,12 +178,7 @@ export function Choices(props: DataMessagePartProps<ChoicesData>) {
                   <span className="grid min-w-0 flex-1 gap-0.5">
                     <span className="text-[14px] font-medium wrap-anywhere">{o.label}</span>
                     {o.description ? (
-                      <span
-                        className={cx(
-                          "text-[12.5px]/[1.45]",
-                          on ? "text-(--ui-paper)/70" : "text-(--ui-ink-3)",
-                        )}
-                      >
+                      <span className={cx("text-[12.5px]/[1.45]", "text-(--ui-ink-3)")}>
                         {o.description}
                       </span>
                     ) : null}
@@ -201,9 +194,9 @@ export function Choices(props: DataMessagePartProps<ChoicesData>) {
               );
             })}
             {own !== undefined ? (
-              <p className="m-0 flex items-start gap-2 rounded-[10px] bg-(--ui-wash) px-3 py-2.5 text-[14px] text-(--ui-ink) shadow-[inset_0_0_0_1.5px_var(--ui-active)]">
+              <p className="m-0 flex items-start gap-2 rounded-[10px] bg-(--ui-fill) px-3 py-2.5 text-[14px] text-(--ui-ink) shadow-[inset_0_0_0_1.5px_var(--ui-ink-2)]">
                 <span className="min-w-0 flex-1 wrap-anywhere">{own}</span>
-                <Icon name="check" size={15} className="mt-0.5 flex-none text-(--ui-active)" />
+                <Icon name="check" size={15} className="mt-0.5 flex-none text-(--ui-ink)" />
               </p>
             ) : data.open ? (
               typing ? (

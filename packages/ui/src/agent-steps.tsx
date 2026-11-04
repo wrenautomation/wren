@@ -164,7 +164,7 @@ function Commands({ parts }: { parts: readonly Part[] }) {
     ? `Running ${n === 1 ? "a command" : `${n} commands`}`
     : `Ran ${n === 1 ? "a command" : `${n} commands`}${bad ? `, ${bad} failed` : ""}`;
   return (
-    <div className="ui-rise grid rounded-[12px] bg-(--ui-wash) shadow-[inset_0_0_0_1px_var(--ui-hair)]">
+    <div className="ui-rise grid rounded-[12px] bg-(--ui-fill) shadow-[inset_0_0_0_1px_var(--ui-hair)]">
       <button
         type="button"
         aria-expanded={open}
@@ -199,7 +199,7 @@ function Commands({ parts }: { parts: readonly Part[] }) {
 function Terminal({ parts }: { parts: readonly Part[] }) {
   const [shown, setShown] = useState<string | null>(null);
   return (
-    <div className="grid rounded-[8px] bg-(--ui-term) py-1.5 font-mono text-[12px]/[1.6] text-(--ui-term-ink)">
+    <div className="grid rounded-[8px] bg-(--ui-term) shadow-[inset_0_0_0_1px_var(--ui-hair)] py-1.5 font-mono text-[12px]/[1.6] text-(--ui-term-ink)">
       {parts.map((x) => {
         const id = x.toolCallId ?? "";
         const done = x.result !== undefined;
@@ -307,7 +307,7 @@ const StepRow: ToolCallMessagePartComponent = (t) => {
       </button>
       <Fold open={open}>
         <div className="grid gap-2 pt-1.5 pb-2 pl-6.5">
-          <pre className="m-0 overflow-x-auto rounded-[8px] bg-(--ui-term) px-3 py-2 font-mono text-[12px]/[1.6] whitespace-pre-wrap text-(--ui-term-ink) [overflow-wrap:anywhere]">
+          <pre className="m-0 overflow-x-auto rounded-[8px] bg-(--ui-term) shadow-[inset_0_0_0_1px_var(--ui-hair)] px-3 py-2 font-mono text-[12px]/[1.6] whitespace-pre-wrap text-(--ui-term-ink) [overflow-wrap:anywhere]">
             {t.toolName === "Bash" ? (
               <>
                 <span className="text-(--ui-term-prompt) select-none">$ </span>
