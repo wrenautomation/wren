@@ -269,6 +269,45 @@ async function thumb(file: File, edge = 160): Promise<string | undefined> {
   }
 }
 
+/** A video's frame at 10% (at most 1 s) as a small JPEG; none when the browser can't play it in 5 s. */
+async function frame(file: File, edge = 160): Promise<string | undefined> {
+  const url = URL.createObjectURL(file);
+  const v = document.createElement("video");
+  v.muted = true;
+  v.preload = "metadata";
+  const on = (ev: "loadedmetadata" | "seeked") =>
+    new Promise<void>((ok, no) => {
+      v.addEventListener(ev, () => ok(), { once: true });
+      v.addEventListener("error", () => no(new Error("video")), { once: true });
+    });
+  const draw = async () => {
+    const meta = on("loadedmetadata");
+    v.src = url;
+    await meta;
+    const seek = on("seeked");
+    v.currentTime = Math.min(1, (v.duration || 0) / 10);
+    await seek;
+    const k = Math.min(1, edge / Math.max(v.videoWidth, v.videoHeight));
+    const c = document.createElement("canvas");
+    c.width = Math.max(1, Math.round(v.videoWidth * k));
+    c.height = Math.max(1, Math.round(v.videoHeight * k));
+    c.getContext("2d")?.drawImage(v, 0, 0, c.width, c.height);
+    return c.toDataURL("image/jpeg", 0.82);
+  };
+  try {
+    return await Promise.race([
+      draw(),
+      new Promise<undefined>((ok) => setTimeout(() => ok(undefined), 5000)),
+    ]);
+  } catch {
+    return undefined;
+  } finally {
+    v.removeAttribute("src");
+    v.load();
+    URL.revokeObjectURL(url);
+  }
+}
+
 let picked = 0;
 
 /** assistant-ui's attachment adapter over the page's `ready`: the chip runs while it works. */
@@ -296,7 +335,7 @@ function useFiles(files: AgentFiles | undefined) {
               try {
                 const [data, src] = await Promise.all([
                   (ready.current ?? (async () => null))(file),
-                  kind === "image" ? thumb(file) : undefined,
+                  kind === "image" ? thumb(file) : kind === "video" ? frame(file) : undefined,
                 ]);
                 sent.current.set(base.id, {
                   file: { name: file.name, kind, size: file.size, ...(src ? { src } : {}) },
@@ -523,7 +562,14 @@ function FileChip({ remove }: { remove?: boolean }) {
       )}
     >
       {src ? (
-        <img src={src} alt={a.name} className="size-full object-cover" />
+        <>
+          <img src={src} alt={a.name} className="size-full object-cover" />
+          {kind === "video" ? (
+            <span className="absolute inset-0 grid place-items-center bg-black/20 text-white">
+              <Icon name="play" size={14} />
+            </span>
+          ) : null}
+        </>
       ) : (
         <>
           <span
