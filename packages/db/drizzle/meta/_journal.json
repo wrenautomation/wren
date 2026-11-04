@@ -2563,6 +2563,13 @@
       "when": 1793814654247,
       "tag": "0366_touches_fired",
       "breakpoints": true
+    },
+    {
+      "idx": 367,
+      "version": "7",
+      "when": 1793830948298,
+      "tag": "0367_loop_renames",
+      "breakpoints": true
     }
   ]
 }
