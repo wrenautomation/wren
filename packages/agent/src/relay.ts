@@ -8,14 +8,14 @@
  */
 import { type ChildProcess, spawn as nodeSpawn, type SpawnOptions } from "node:child_process";
 import { createHash, randomUUID, timingSafeEqual } from "node:crypto";
-import { createReadStream, createWriteStream, mkdirSync, rmSync } from "node:fs";
+import { appendFileSync, createReadStream, createWriteStream, mkdirSync, rmSync } from "node:fs";
 import { realpath, stat } from "node:fs/promises";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { homedir } from "node:os";
 import { basename, extname, isAbsolute, join, sep } from "node:path";
 import { createInterface } from "node:readline";
 import { type WebSocket, WebSocketServer } from "ws";
-import { EFFORTS, inbound, modeAllowed } from "./filter.js";
+import { EFFORTS, inbound, modeAllowed, outbound } from "./filter.js";
 import { credentialBreach } from "./guard.js";
 import { type Credential, LaunchError, type LaunchOptions, launch, setupCwd } from "./launch.js";
 import { type Ledger, memoryLedger } from "./sessions.js";
@@ -64,6 +64,8 @@ export interface RelayOptions {
   /** Bytes per file; default 500 MB. */
   uploadCap?: number;
   log?: (line: string) => void;
+  /** Dir for one JSONL per session, both ways (`{at, from, frame}`): a story's fixture, scrubbed first. */
+  tape?: string;
   spawn?: (command: string, args: readonly string[], opts: SpawnOptions) => ChildProcess;
 }
 
@@ -164,10 +166,13 @@ export function relay(o: RelayOptions): {
     const held: string[] = [];
     const timer = setTimeout(() => ws.close(CLOSE.unauthorized, "no auth frame"), AUTH_MS);
 
+    const tape = o.tape ? taper(o.tape, setup.name) : undefined;
     const forward = (line: string) => {
+      tape?.("page", line);
       const r = inbound(line, setup, owner);
       if (r.kind === "forward") child?.stdin?.write(`${r.line}\n`);
       else if (r.kind === "reply") ws.send(`${JSON.stringify(r.frame)}\n`);
+      else if (r.kind === "answer") for (const f of r.frames) ws.send(`${JSON.stringify(f)}\n`);
       else if (!/keep_alive/.test(r.why)) log(`${setup.name}: dropped ${r.why}`);
     };
 
@@ -192,7 +197,7 @@ export function relay(o: RelayOptions): {
               if (mode && !modeAllowed(setup, mode, p.owner))
                 return ws.close(CLOSE.setup, `permission mode ${mode} is not allowed here`);
               owner = p.owner;
-              child = start(ws, setup, p, resume, { model, effort, mode });
+              child = start(ws, setup, p, resume, { model, effort, mode }, tape);
               if (!child) return;
               state = "open";
               for (const l of held.splice(0)) forward(l);
@@ -217,6 +222,7 @@ export function relay(o: RelayOptions): {
     { who, owner }: Person,
     resume: string | undefined,
     pick: { model?: string | undefined; effort?: string | undefined; mode?: string | undefined },
+    tape?: Tape,
   ): ChildProcess | undefined {
     if (resume && !ledger.list(setup.name, who).some((r) => r.session === resume)) {
       ws.close(CLOSE.unauthorized, "not your session");
@@ -251,7 +257,8 @@ export function relay(o: RelayOptions): {
     live.add(child);
     log(`${setup.name}: started pid ${child.pid} for ${who}${resume ? ` resume ${resume}` : ""}`);
 
-    let noted = false;
+    // `/clear` starts a new session in the same child: each id goes in the ledger
+    const noted = new Set<string>();
     if (!child.stdout) return child;
     createInterface({ input: child.stdout }).on("line", (line) => {
       let frame: unknown;
@@ -267,11 +274,14 @@ export function relay(o: RelayOptions): {
         return ws.close(CLOSE.credential, breach.slice(0, 120));
       }
       const session = initSession(frame);
-      if (session && !noted) {
-        noted = true;
+      if (session && !noted.has(session)) {
+        noted.add(session);
         ledger.add({ setup: setup.name, session, who, at: new Date().toISOString() });
       }
-      if (ws.readyState === ws.OPEN) ws.send(`${line}\n`);
+      const out = outbound(frame, setup, owner);
+      const sent = out === frame ? line : JSON.stringify(out);
+      tape?.("cli", sent);
+      if (ws.readyState === ws.OPEN) ws.send(`${sent}\n`);
     });
     child.stderr?.on("data", (d) => log(`${setup.name}: ${String(d).trim().slice(0, 300)}`));
     child.on("exit", (code) => {
@@ -502,6 +512,23 @@ export function relay(o: RelayOptions): {
 
 function send(res: ServerResponse, status: number, body: unknown): void {
   res.writeHead(status, { "content-type": "application/json" }).end(JSON.stringify(body));
+}
+
+type Tape = (from: "page" | "cli", line: string) => void;
+
+/** One file per session; the auth frame never reaches it (taped after auth only). */
+function taper(dir: string, setup: string): Tape {
+  mkdirSync(dir, { recursive: true, mode: 0o700 });
+  const file = join(dir, `${setup}-${new Date().toISOString().replace(/[:.]/g, "-")}.jsonl`);
+  return (from, line) => {
+    let frame: unknown;
+    try {
+      frame = JSON.parse(line);
+    } catch {
+      return;
+    }
+    appendFileSync(file, `${JSON.stringify({ at: Date.now(), from, frame })}\n`, { mode: 0o600 });
+  };
 }
 
 /** `{type:"auth", credential:{type:"oauth", token}}`: the SDK's authMessage shape. */

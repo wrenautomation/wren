@@ -96,6 +96,11 @@ export function useAgent(o: {
   mode?: string | undefined;
   /** The CLI named the session: a new chat gets its id. */
   onSession?: (id: string) => void;
+  /** A typed `/model` or `/effort` ran: what the CLI applies now, for the pickers. */
+  onCommand?: (
+    name: string,
+    now: { model?: string | undefined; effort?: string | undefined },
+  ) => void;
 }): AgentChat {
   const [s, setS] = useState<ThreadState>(EMPTY);
   const [starting, setStarting] = useState(false);
@@ -119,6 +124,10 @@ export function useAgent(o: {
   picks.current = { effort: o.effort, mode: o.mode };
   const onSession = useRef(o.onSession);
   onSession.current = o.onSession;
+  const onCommand = useRef(o.onCommand);
+  onCommand.current = o.onCommand;
+  // the typed command this turn ran, and whether `/clear` started a new session in it
+  const typedNow = useRef<{ name: string; cleared: boolean } | null>(null);
   // the id this hook is showing: a new chat's id arriving must not reload it
   const shown = useRef<string | null>(null);
   // Retry after a dropped socket sends the last turn again, on a new one
@@ -248,11 +257,21 @@ export function useAgent(o: {
                 .then((c) => learned(commandsOf(c)))
                 .catch(() => {});
               setStarting(false);
+              if (typedNow.current && shown.current && shown.current !== m.session_id)
+                typedNow.current.cleared = true;
               shown.current = m.session_id;
               onSession.current?.(m.session_id);
             }
             setS((p) => fold(p, m as never));
-            if (m.type === "result") void measure(q, setStatus);
+            if (m.type === "result") {
+              void measure(q, setStatus);
+              const c = typedNow.current;
+              typedNow.current = null;
+              // `/clear`: the CLI's new session starts empty, as in the terminal
+              if (c?.cleared) setS(EMPTY);
+              if (c && (c.name === "model" || c.name === "effort"))
+                void settingsNow(q).then((now) => now && onCommand.current?.(c.name, now));
+            }
             if (m.type === "system") setTasks((t) => taskFold(t, m));
             if (m.type === "system" && m.subtype === "commands_changed")
               learned(commandsOf(m.commands));
@@ -275,6 +294,8 @@ export function useAgent(o: {
   const send = useCallback(
     (text: string, files: readonly AgentSent[] = [], page?: string) => {
       last.current = [text, files, page];
+      const c = /^\/([\w:.-]+)/.exec(text.trim());
+      typedNow.current = c?.[1] ? { name: c[1], cleared: false } : null;
       setError(null);
       setS((p) => said(p, text, { files: files.map((f) => f.file), page }));
       const content = files.length || page ? turnContent(text, files, page) : text;
@@ -407,6 +428,17 @@ function taskFold(t: readonly AgentTask[], m: { subtype: string } & Record<strin
  * The effort the CLI sends for the model now: the pick, else the model's default (Sonnet and Opus
  * high, Haiku medium on 2.1.318). `getSettings` is on Query at runtime, not yet in its types.
  */
+/** What the CLI applies now (`get_settings`, cut to `applied` by the relay). */
+async function settingsNow(
+  q: Query,
+): Promise<{ model?: string | undefined; effort?: string | undefined } | null> {
+  const g = q as unknown as {
+    getSettings?: () => Promise<{ applied?: { model?: string | null; effort?: string | null } }>;
+  };
+  const a = (await g.getSettings?.().catch(() => null))?.applied;
+  return a ? { model: a.model ?? undefined, effort: a.effort ?? undefined } : null;
+}
+
 async function applied(
   q: Query,
   set: (f: (s: AgentStatusInfo) => AgentStatusInfo) => void,

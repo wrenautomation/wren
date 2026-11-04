@@ -111,7 +111,8 @@ export function registerAgent(program: Command): void {
       "plan",
     )
     .option("--max <n>", "live sessions at once", "3")
-    .action((o: { port: string; credential: string; max: string }) => {
+    .option("--tape <dir>", "record each session's frames, both ways, for story fixtures")
+    .action((o: { port: string; credential: string; max: string; tape?: string }) => {
       const credential = credentialOf(o.credential);
       const bins = new Map<string, string>();
       const r = relay({
@@ -124,6 +125,7 @@ export function registerAgent(program: Command): void {
         credential,
         maxSessions: Number(o.max),
         uploads: UPLOADS_DIR,
+        ...(o.tape ? { tape: o.tape } : {}),
         launch: {
           root: workspaceRoot(),
           host: process.env,

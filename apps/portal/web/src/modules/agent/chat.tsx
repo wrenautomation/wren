@@ -219,6 +219,13 @@ export function AgentChat({
     effort: picks.effort || undefined,
     mode,
     onSession,
+    onCommand: (name, now) => {
+      if (name === "model") {
+        const m = now.model;
+        const alias = setup.models.find((x) => m === x || m?.startsWith(`claude-${x}-`));
+        if (alias && alias !== model) onModel(alias);
+      } else picks.set({ effort: now.effort ?? "" });
+    },
   });
   const was = useRef(a.running);
   const idle = useRef(onIdle);

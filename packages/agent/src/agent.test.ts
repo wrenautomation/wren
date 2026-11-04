@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { inbound, modeAllowed } from "./filter.js";
+import { inbound, modeAllowed, outbound, typed } from "./filter.js";
 import { credentialBreach } from "./guard.js";
 import { LaunchError, launch, TOKEN_VARS } from "./launch.js";
 import type { Setup } from "./setup.js";
@@ -220,5 +220,82 @@ describe("inbound", () => {
   it("drops noise", () => {
     expect(inbound("not json", setup).kind).toBe("drop");
     expect(inbound(JSON.stringify({ type: "keep_alive" }), setup).kind).toBe("drop");
+  });
+});
+
+describe("outbound", () => {
+  it("cuts a settings answer to applied", () => {
+    const f = {
+      type: "control_response",
+      response: {
+        subtype: "success",
+        request_id: "r1",
+        response: {
+          effective: { env: { SECRET: "x" } },
+          sources: [{ path: "/a" }],
+          applied: { model: "claude-haiku-5-5", effort: "medium" },
+        },
+      },
+    };
+    expect(JSON.stringify(outbound(f, setup, false))).not.toContain("SECRET");
+    expect(outbound(f, setup, false)).toMatchObject({
+      response: { response: { applied: { effort: "medium" } } },
+    });
+  });
+
+  it("leaves every other frame as it came", () => {
+    const f = { type: "assistant", message: { content: [] } };
+    expect(outbound(f, setup, false)).toBe(f);
+  });
+});
+
+describe("typed commands", () => {
+  const turn = (text: string) =>
+    JSON.stringify({ type: "user", message: { role: "user", content: text } });
+  const said = (r: ReturnType<typeof inbound>) =>
+    r.kind === "answer" ? String(r.frames[1]?.result) : null;
+
+  it("reads the name and the args", () => {
+    expect(typed("/model sonnet")).toEqual({ name: "model", args: "sonnet" });
+    expect(typed([{ type: "text", text: "/demo:demo find x" }])).toEqual({
+      name: "demo:demo",
+      args: "find x",
+    });
+    expect(typed("a /model in a sentence")).toBeNull();
+  });
+
+  it("lets anyone run the safe set and the setup's skills", () => {
+    for (const t of ["/compact", "/context", "/clear", "/rename new name", "/demo:demo x"])
+      expect(inbound(turn(t), setup).kind).toBe("forward");
+  });
+
+  it("keeps /usage and /config to the owner", () => {
+    expect(said(inbound(turn("/usage"), setup))).toBe("/usage is not available in this chat.");
+    expect(inbound(turn("/config"), setup).kind).toBe("answer");
+    expect(inbound(turn("/usage"), setup, true).kind).toBe("forward");
+  });
+
+  it("checks /model and /effort like the pickers, owner too", () => {
+    expect(inbound(turn("/model sonnet"), setup).kind).toBe("forward");
+    expect(said(inbound(turn("/model opus"), setup, true))).toMatch(/offers haiku, sonnet/);
+    expect(inbound(turn("/effort max"), setup).kind).toBe("forward");
+    expect(inbound(turn("/effort huge"), setup).kind).toBe("answer");
+  });
+
+  it("lists only what the person may run", () => {
+    const f = {
+      type: "control_response",
+      response: {
+        subtype: "success",
+        request_id: "r1",
+        response: { commands: [{ name: "compact" }, { name: "usage" }, { name: "demo:demo" }] },
+      },
+    };
+    const names = (o: unknown) =>
+      (
+        o as { response: { response: { commands: { name: string }[] } } }
+      ).response.response.commands.map((c) => c.name);
+    expect(names(outbound(f, setup, false))).toEqual(["compact", "demo:demo"]);
+    expect(names(outbound(f, setup, true))).toEqual(["compact", "usage", "demo:demo"]);
   });
 });

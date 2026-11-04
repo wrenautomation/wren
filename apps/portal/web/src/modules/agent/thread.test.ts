@@ -300,3 +300,25 @@ describe("closeText", () => {
     expect(c.retry).toBe(retry);
   });
 });
+
+describe("typed commands in a stored chat", () => {
+  it("shows the command as typed, never its tags", () => {
+    const tag = (name: string, args: string) =>
+      `<command-name>/${name}</command-name>\n            <command-message>${name}</command-message>\n            <command-args>${args}</command-args>`;
+    const s = history([
+      { type: "user", message: { role: "user", content: tag("model", "sonnet") } },
+      { type: "user", message: { role: "user", content: tag("context", "") } },
+      {
+        type: "user",
+        message: {
+          role: "user",
+          content: "<local-command-stdout>Set model</local-command-stdout>",
+        },
+      },
+    ]);
+    const words = s.messages
+      .filter((m) => m.role === "user")
+      .map((m) => m.parts.map((p) => (p.type === "text" ? p.text : "")).join(""));
+    expect(words).toEqual(["/model sonnet", "/context"]);
+  });
+});

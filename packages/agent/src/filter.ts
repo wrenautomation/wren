@@ -8,7 +8,62 @@ import type { Setup } from "./setup.js";
 export type Inbound =
   | { kind: "forward"; line: string }
   | { kind: "reply"; frame: Record<string, unknown> }
+  /** A typed command refused: its answer as a turn, so the page shows why and the SDK's turn ends. */
+  | { kind: "answer"; frames: Record<string, unknown>[] }
   | { kind: "drop"; why: string };
+
+/**
+ * Typed slash commands anyone may run; the owner runs every one, as in their terminal. Not here:
+ * `/usage` (the whole Mac's use), `/config`, `/fast` (cost), plugin, MCP and debug commands.
+ */
+const COMMANDS = new Set(["compact", "context", "clear", "rename", "model", "effort", "recap"]);
+
+/** `/name args` at the start of a user turn's text. */
+export function typed(content: unknown): { name: string; args: string } | null {
+  const first = Array.isArray(content)
+    ? content.find((b): b is { type: "text"; text: string } => isObj(b) && b.type === "text")?.text
+    : content;
+  const m = typeof first === "string" ? /^\/([\w:.-]+)(?:\s+([\s\S]*))?$/.exec(first.trim()) : null;
+  return m?.[1] ? { name: m[1], args: (m[2] ?? "").trim() } : null;
+}
+
+/** Why `/name args` may not run here; null when it may. */
+export function commandRefusal(
+  setup: Setup,
+  owner: boolean,
+  { name, args }: { name: string; args: string },
+): string | null {
+  if (name === "model" && args && !offers(setup, args))
+    return `This chat offers ${[setup.model, ...(setup.models ?? [])].join(", ")}, not ${args}.`;
+  if (name === "effort" && args && !["auto", ...EFFORTS].includes(args))
+    return `Effort is one of ${EFFORTS.join(", ")}.`;
+  if (owner || COMMANDS.has(name) || setup.skills.includes(name)) return null;
+  return `/${name} is not available in this chat.`;
+}
+
+/** A command a person may see in the `/` menu. */
+export const commandShown = (setup: Setup, owner: boolean, name: string): boolean =>
+  owner || COMMANDS.has(name) || setup.skills.includes(name);
+
+const answer = (session: unknown, text: string): Inbound => ({
+  kind: "answer",
+  frames: [
+    {
+      type: "assistant",
+      session_id: session,
+      message: { role: "assistant", content: [{ type: "text", text }] },
+    },
+    {
+      type: "result",
+      subtype: "success",
+      is_error: false,
+      duration_ms: 0,
+      num_turns: 0,
+      result: text,
+      session_id: session,
+    },
+  ],
+});
 
 /** Reads and steering that add no tool, prompt, server or setting. */
 const PASS = new Set([
@@ -25,6 +80,8 @@ const PASS = new Set([
   "stop_task",
   "background_tasks",
   "get_task_output",
+  // answered as `applied` only (`outbound`): the full settings carry env and hooks
+  "get_settings",
 ]);
 
 /** Never `bypassPermissions` or `auto` for a page: it may only tighten or keep the prompts. */
@@ -56,10 +113,13 @@ export function inbound(line: string, setup: Setup, owner = false): Inbound {
   if (!isObj(m)) return { kind: "drop", why: "not an object" };
 
   switch (m.type) {
-    case "user":
-      return isObj(m.message) && m.message.role === "user"
-        ? { kind: "forward", line: JSON.stringify(m) }
-        : { kind: "drop", why: "user frame without a user message" };
+    case "user": {
+      if (!isObj(m.message) || m.message.role !== "user")
+        return { kind: "drop", why: "user frame without a user message" };
+      const c = typed(m.message.content);
+      const no = c && commandRefusal(setup, owner, c);
+      return no ? answer(m.session_id, no) : { kind: "forward", line: JSON.stringify(m) };
+    }
     case "control_response":
       return { kind: "forward", line: JSON.stringify(m) };
     case "control_request":
@@ -106,6 +166,31 @@ function control(m: Obj, setup: Setup, owner: boolean): Inbound {
   }
   if (PASS.has(sub)) return { kind: "forward", line: JSON.stringify(m) };
   return refuse(id, `${sub} is not allowed in setup ${setup.name}`);
+}
+
+/**
+ * CLI → page: a settings answer keeps only `applied` (model, effort), never env, hooks or sources;
+ * a command list keeps only what this person may run.
+ */
+export function outbound(frame: unknown, setup: Setup, owner: boolean): unknown {
+  if (!isObj(frame)) return frame;
+  const mine = (list: unknown) =>
+    Array.isArray(list)
+      ? list.filter((c) => isObj(c) && commandShown(setup, owner, String(c.name)))
+      : list;
+  if (frame.type === "system" && frame.subtype === "commands_changed")
+    return { ...frame, commands: mine(frame.commands) };
+  if (frame.type !== "control_response" || !isObj(frame.response)) return frame;
+  const body = frame.response.response;
+  if (!isObj(body)) return frame;
+  if ("applied" in body && "effective" in body)
+    return { ...frame, response: { ...frame.response, response: { applied: body.applied } } };
+  if (Array.isArray(body.commands))
+    return {
+      ...frame,
+      response: { ...frame.response, response: { ...body, commands: mine(body.commands) } },
+    };
+  return frame;
 }
 
 /** An alias the setup lists (`sonnet`), or that alias's full id (`claude-sonnet-5-5`, as the CLI's model list gives it). */

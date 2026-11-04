@@ -219,6 +219,9 @@ function whole(
 
 /** The CLI's own command echo (`setModel` → `/model`): not a person's turn. */
 const ECHO = /^<(local-command-(stdout|stderr)|command-(name|message|args))>/;
+/** A typed command as the CLI stores it: shown as typed (`/model sonnet`). */
+const COMMAND =
+  /^<command-name>(\/[^<]+)<\/command-name>[\s\S]*?(?:<command-args>([\s\S]*?)<\/command-args>)?\s*$/;
 
 function userFrame(s0: ThreadState, f: Frame, t: number): ThreadState {
   const content = (f.message as { content?: unknown })?.content;
@@ -240,7 +243,8 @@ function userFrame(s0: ThreadState, f: Frame, t: number): ThreadState {
     }
     return s;
   }
-  const turn = storedTurn(content);
+  const cmd = typeof content === "string" ? COMMAND.exec(content) : null;
+  const turn = storedTurn(cmd ? `${cmd[1]}${cmd[2]?.trim() ? ` ${cmd[2].trim()}` : ""}` : content);
   if (!turn.parts.length || ECHO.test(turn.words)) return s0;
   if (INTERRUPTED.test(turn.words)) {
     const { s, m } = reply(s0);
