@@ -1,12 +1,20 @@
 /** The relay against a fake CLI child: synthetic frames, no `claude`, no model call. */
 // biome-ignore-all lint/suspicious/noExplicitAny: wire frames, read loosely
 import { spawn } from "node:child_process";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import WebSocket from "ws";
-import { type Authorize, CLOSE, relay, tokenMatches } from "./relay.js";
+import {
+  type Authorize,
+  CLOSE,
+  fileName,
+  type RelayOptions,
+  relay,
+  tokenMatches,
+  uploadDir,
+} from "./relay.js";
 import { memoryLedger } from "./sessions.js";
 import type { Setup } from "./setup.js";
 
@@ -42,6 +50,7 @@ const setup: Setup = {
 };
 
 let port = 47900;
+const spawned: string[][] = [];
 let closeRelay: (() => Promise<void>) | undefined;
 afterEach(async () => {
   await closeRelay?.();
@@ -51,7 +60,11 @@ afterEach(async () => {
 const byToken: Authorize = async ({ credential }) =>
   tokenMatches(credential, "tok") ? "local" : null;
 
-function start(host: Record<string, string> = {}, authorize: Authorize = byToken) {
+function start(
+  host: Record<string, string> = {},
+  authorize: Authorize = byToken,
+  extra: Partial<RelayOptions> = {},
+) {
   port += 1;
   const ledger = memoryLedger();
   const r = relay({
@@ -69,7 +82,11 @@ function start(host: Record<string, string> = {}, authorize: Authorize = byToken
       root: dir,
       host: { PATH: process.env.PATH ?? "", ANTHROPIC_API_KEY: "sk-host", ...host },
     },
-    spawn: (_cmd, _args, o) => spawn(process.execPath, [fake], o),
+    spawn: (_cmd, args, o) => {
+      spawned.push([...args]);
+      return spawn(process.execPath, [fake], o);
+    },
+    ...extra,
   });
   closeRelay = r.close;
   return new Promise<typeof ledger>((res) => r.server.on("listening", () => res(ledger)));
@@ -203,5 +220,37 @@ describe("relay", () => {
       (f) => f.type === "control_response",
     );
     expect(frames[0].response).toMatchObject({ subtype: "error", request_id: "b1" });
+  });
+
+  it("stores a sent file in the asker's folder, and the child may read it", async () => {
+    const uploads = mkdtempSync(join(tmpdir(), "wren-up-"));
+    await start({}, byToken, { uploads, uploadCap: 16 });
+    const post = (name: string, body: string, token?: string) =>
+      fetch(`http://127.0.0.1:${port}/s/demo/files?name=${encodeURIComponent(name)}`, {
+        method: "POST",
+        headers: token ? { authorization: `Bearer ${token}` } : {},
+        body,
+      });
+    expect((await post("a.txt", "hi")).status).toBe(401);
+    const ok = await post("../../etc/clip.mp4", "frames", "tok");
+    const { path } = (await ok.json()) as { path: string };
+    const mine = uploadDir(uploads, "local");
+    expect(path.startsWith(`${mine}/`)).toBe(true);
+    expect(path.endsWith("/clip.mp4")).toBe(true);
+    expect(readFileSync(path, "utf8")).toBe("frames");
+    const before = readdirSync(mine).length;
+    expect((await post("big.bin", "x".repeat(64), "tok")).status).toBe(413);
+    expect(readdirSync(mine).length).toBe(before);
+    await session("/s/demo", [auth(), user("one")], isResult);
+    const args = spawned.at(-1) ?? [];
+    expect(args[args.indexOf("--add-dir") + 1]).toBe(mine);
+    expect(existsSync(mine)).toBe(true);
+  });
+
+  it("file names keep one path segment", () => {
+    expect(fileName("../../x.pdf")).toBe("x.pdf");
+    expect(fileName("C:\\a\\b.png")).toBe("b.png");
+    expect(fileName("..")).toBeNull();
+    expect(fileName("a\u0000b.txt")).toBe("ab.txt");
   });
 });

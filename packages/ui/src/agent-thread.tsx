@@ -9,6 +9,9 @@ import {
   ActionBarPrimitive,
   type AppendMessage,
   AssistantRuntimeProvider,
+  type Attachment,
+  type AttachmentAdapter,
+  AttachmentPrimitive,
   ComposerPrimitive,
   MessagePrimitive,
   type ReasoningMessagePartComponent,
@@ -19,7 +22,7 @@ import {
   useAuiState,
   useExternalStoreRuntime,
 } from "@assistant-ui/react";
-import { type PropsWithChildren, type ReactNode, useState } from "react";
+import { type PropsWithChildren, type ReactNode, useMemo, useRef, useState } from "react";
 import { Streamdown } from "streamdown";
 import { Ring } from "./busy.js";
 import { Button, Tag } from "./controls.js";
@@ -28,9 +31,18 @@ import { cx } from "./format.js";
 import { tipProps } from "./hint.js";
 import { Icon, type IconName } from "./icons.js";
 
+/** A file in a turn. `src` (a data URL) draws an image. */
+export interface AgentFile {
+  name: string;
+  kind: "image" | "pdf" | "video" | "audio" | "file";
+  src?: string | undefined;
+  size?: number | undefined;
+}
+
 /** One step of a reply: words, thinking, or a tool call with its result and the ask, if any. */
 export type AgentPart =
   | { type: "text"; text: string }
+  | { type: "file"; file: AgentFile }
   | { type: "thinking"; text: string }
   | {
       type: "tool";
@@ -67,6 +79,21 @@ export interface AgentMessage {
   /** live: still coming; stopped: Stop pressed; failed: the turn ended in an error. */
   state?: "live" | "done" | "stopped" | "failed" | undefined;
   foot?: AgentFoot | undefined;
+  /** The page a turn was sent from. */
+  page?: string | undefined;
+}
+
+/** A picked file, made ready by the page: `data` is the page's own (inline blocks, a stored path). */
+export interface AgentSent {
+  file: AgentFile;
+  data: unknown;
+}
+
+/** Files in the box: the page turns each into what its turn carries, while its chip shows. */
+export interface AgentFiles {
+  accept: string;
+  /** Throws a sentence the chip shows (too large, the upload failed). */
+  ready: (file: File) => Promise<unknown>;
 }
 
 export interface AgentThreadProps {
@@ -81,7 +108,11 @@ export interface AgentThreadProps {
   closed?: string | null | undefined;
   /** Another chat still shows while this one reads: dimmed, the box held. */
   stale?: boolean | undefined;
-  onSend: (text: string) => void;
+  onSend: (text: string, files: readonly AgentSent[]) => void;
+  /** Files may be added: the clip button, drop and paste. */
+  files?: AgentFiles | undefined;
+  /** The page the next turn names: a chip in the box; Close drops it. */
+  context?: { label: string; onDrop: () => void } | null | undefined;
   onStop: () => void;
   onAnswer: (toolId: string, allow: boolean) => void;
   /** Before the first turn: a heading, a line, and prompts that send on a click. */
@@ -98,32 +129,47 @@ export interface AgentThreadProps {
 
 /** `AgentMessage` → assistant-ui's message: approvals ride the tool part, the foot rides metadata. */
 export function threadMessage(m: AgentMessage): ThreadMessageLike {
+  const files = m.parts.flatMap((p) => (p.type === "file" ? [p.file] : []));
   return {
     id: m.id,
     role: m.role,
     ...(m.at ? { createdAt: new Date(m.at) } : {}),
-    content: m.parts.map((p) =>
-      p.type === "text"
-        ? { type: "text" as const, text: p.text }
-        : p.type === "thinking"
-          ? { type: "reasoning" as const, text: p.text }
-          : {
-              type: "tool-call" as const,
-              toolCallId: p.id,
-              toolName: p.name,
-              args: p.input as never,
-              argsText: p.inputText ?? JSON.stringify(p.input),
-              ...(p.result !== undefined ? { result: p.result, isError: !!p.failed } : {}),
-              ...(p.ask
-                ? {
-                    approval: {
-                      id: p.id,
-                      ...(p.ask.why ? { prompt: p.ask.why } : {}),
-                      ...(p.ask.allowed !== undefined ? { approved: p.ask.allowed } : {}),
-                    },
-                  }
-                : {}),
-            },
+    ...(files.length
+      ? {
+          attachments: files.map((f, i) => ({
+            id: `${m.id}-f${i}`,
+            type: f.kind,
+            name: f.name,
+            status: { type: "complete" as const },
+            content: f.src ? [{ type: "image" as const, image: f.src }] : [],
+          })),
+        }
+      : {}),
+    ...(m.role === "user" && m.page ? { metadata: { custom: { page: m.page } } } : {}),
+    content: m.parts.flatMap((p) =>
+      p.type === "file"
+        ? []
+        : p.type === "text"
+          ? { type: "text" as const, text: p.text }
+          : p.type === "thinking"
+            ? { type: "reasoning" as const, text: p.text }
+            : {
+                type: "tool-call" as const,
+                toolCallId: p.id,
+                toolName: p.name,
+                args: p.input as never,
+                argsText: p.inputText ?? JSON.stringify(p.input),
+                ...(p.result !== undefined ? { result: p.result, isError: !!p.failed } : {}),
+                ...(p.ask
+                  ? {
+                      approval: {
+                        id: p.id,
+                        ...(p.ask.why ? { prompt: p.ask.why } : {}),
+                        ...(p.ask.allowed !== undefined ? { approved: p.ask.allowed } : {}),
+                      },
+                    }
+                  : {}),
+              },
     ),
     ...(m.role === "assistant"
       ? {
@@ -144,10 +190,106 @@ export function threadMessage(m: AgentMessage): ThreadMessageLike {
 const textOf = (m: AppendMessage) =>
   m.content.map((c) => (c.type === "text" ? c.text : "")).join("");
 
+/** A file's kind from its type, else its name. */
+export function fileKind(type: string, name: string): AgentFile["kind"] {
+  const t = type || "";
+  if (t.startsWith("image/")) return "image";
+  if (t === "application/pdf" || /\.pdf$/i.test(name)) return "pdf";
+  if (t.startsWith("video/") || /\.(mp4|mov|webm|mkv|m4v)$/i.test(name)) return "video";
+  if (t.startsWith("audio/") || /\.(mp3|m4a|wav|ogg|flac)$/i.test(name)) return "audio";
+  return "file";
+}
+
+/** A small JPEG of a picked image for its chip and turn; none when the browser can't draw it. */
+async function thumb(file: File, edge = 160): Promise<string | undefined> {
+  try {
+    const bmp = await createImageBitmap(file);
+    const k = Math.min(1, edge / Math.max(bmp.width, bmp.height));
+    const c = document.createElement("canvas");
+    c.width = Math.max(1, Math.round(bmp.width * k));
+    c.height = Math.max(1, Math.round(bmp.height * k));
+    c.getContext("2d")?.drawImage(bmp, 0, 0, c.width, c.height);
+    bmp.close();
+    return c.toDataURL("image/jpeg", 0.82);
+  } catch {
+    return undefined;
+  }
+}
+
+let picked = 0;
+
+/** assistant-ui's attachment adapter over the page's `ready`: the chip runs while it works. */
+function useFiles(files: AgentFiles | undefined) {
+  const ready = useRef(files?.ready);
+  ready.current = files?.ready;
+  const sent = useRef(new Map<string, AgentSent>());
+  const accept = files?.accept;
+  const adapter = useMemo<AttachmentAdapter | undefined>(
+    () =>
+      accept === undefined
+        ? undefined
+        : {
+            accept,
+            async *add({ file }) {
+              const kind = fileKind(file.type, file.name);
+              const base = {
+                id: `file-${(picked++).toString(36)}`,
+                type: kind,
+                name: file.name,
+                contentType: file.type,
+                file,
+              };
+              yield { ...base, status: { type: "running", reason: "uploading", progress: 0 } };
+              try {
+                const [data, src] = await Promise.all([
+                  (ready.current ?? (async () => null))(file),
+                  kind === "image" ? thumb(file) : undefined,
+                ]);
+                sent.current.set(base.id, {
+                  file: { name: file.name, kind, size: file.size, ...(src ? { src } : {}) },
+                  data,
+                });
+                yield {
+                  ...base,
+                  ...(src ? { content: [{ type: "image" as const, image: src }] } : {}),
+                  status: { type: "requires-action", reason: "composer-send" },
+                };
+              } catch (e) {
+                yield {
+                  ...base,
+                  status: {
+                    type: "incomplete",
+                    reason: "error",
+                    message: e instanceof Error ? e.message : String(e),
+                  },
+                };
+              }
+            },
+            async remove(a) {
+              sent.current.delete(a.id);
+            },
+            async send(a) {
+              if (!sent.current.has(a.id)) throw new Error(`${a.name} isn't ready`);
+              return { ...a, status: { type: "complete" }, content: a.content ?? [] };
+            },
+          },
+    [accept],
+  );
+  /** The turn's files, in the order they were added; each leaves the map once sent. */
+  const take = (m: AppendMessage): AgentSent[] =>
+    (m.attachments ?? []).flatMap((a) => {
+      const f = sent.current.get(a.id);
+      sent.current.delete(a.id);
+      return f ? [f] : [];
+    });
+  return { adapter, take };
+}
+
 /** The reading column: replies, the box and the welcome share it. */
 const COLUMN = "mx-auto w-full max-w-[46rem] px-[clamp(12px,3vw,28px)]";
 
 export function AgentThread(p: AgentThreadProps) {
+  const files = useFiles(p.files);
   const runtime = useExternalStoreRuntime<AgentMessage>({
     messages: p.messages,
     convertMessage: threadMessage,
@@ -155,10 +297,12 @@ export function AgentThread(p: AgentThreadProps) {
     isDisabled: !!p.closed || !!p.stale,
     onNew: async (m) => {
       const text = textOf(m).trim();
-      if (text) p.onSend(text);
+      const sent = files.take(m);
+      if (text || sent.length) p.onSend(text, sent);
     },
     onCancel: async () => p.onStop(),
     onRespondToToolApproval: ({ approvalId, approved }) => p.onAnswer(approvalId, approved),
+    ...(files.adapter ? { adapters: { attachments: files.adapter } } : {}),
   });
   return (
     <AssistantRuntimeProvider runtime={runtime}>
@@ -195,7 +339,13 @@ export function AgentThread(p: AgentThreadProps) {
               >
                 <Icon name="down" size={15} />
               </ThreadPrimitive.ScrollToBottom>
-              <Composer closed={p.closed} placeholder={p.placeholder} tools={p.tools} />
+              <Composer
+                closed={p.closed}
+                placeholder={p.placeholder}
+                tools={p.tools}
+                files={!!p.files}
+                context={p.context}
+              />
               {p.note ? (
                 <p className="mx-0 mt-2 mb-0 text-center text-[12px] text-(--ui-ink-3)">{p.note}</p>
               ) : null}
@@ -247,12 +397,97 @@ function Welcome({
 
 /** Artifact 15 F3 `.msg`, mirrored to the right: the person's own turn. */
 function UserTurn() {
+  const words = useAuiState((s) => s.message.content.some((c) => c.type === "text" && !!c.text));
+  const page = useAuiState(
+    (s) => (s.message.metadata.custom as { page?: string } | undefined)?.page,
+  );
   return (
-    <MessagePrimitive.Root className="ui-rise flex justify-end">
-      <div className="max-w-[85%] whitespace-pre-wrap break-words rounded-[14px_4px_14px_14px] bg-(--ui-wash) px-3.5 py-2.5 text-[14.5px]/[1.5] text-(--ui-ink)">
-        <MessagePrimitive.Parts />
+    <MessagePrimitive.Root className="ui-rise grid justify-items-end gap-1.5">
+      <div className="flex max-w-[85%] flex-wrap justify-end gap-1.5 empty:hidden">
+        <MessagePrimitive.Attachments>{() => <FileChip />}</MessagePrimitive.Attachments>
       </div>
+      {words ? (
+        <div className="max-w-[85%] whitespace-pre-wrap break-words rounded-[14px_4px_14px_14px] bg-(--ui-wash) px-3.5 py-2.5 text-[14.5px]/[1.5] text-(--ui-ink)">
+          <MessagePrimitive.Parts />
+        </div>
+      ) : null}
+      {page ? (
+        <span className="inline-flex max-w-[85%] items-center gap-1 text-[12px] text-(--ui-ink-3)">
+          <Icon name="page" size={12} className="flex-none" />
+          <span className="wrap-anywhere">{page}</span>
+        </span>
+      ) : null}
     </MessagePrimitive.Root>
+  );
+}
+
+const FILE_ICON: Record<AgentFile["kind"], IconName> = {
+  image: "image",
+  pdf: "doc",
+  video: "video",
+  audio: "mic",
+  file: "doc",
+};
+
+const bytes = (n: number) =>
+  n < 1024 * 1024
+    ? `${Math.max(1, Math.round(n / 1024))} KB`
+    : `${(n / 1024 / 1024).toFixed(1)} MB`;
+
+/** One file, in the box or in a sent turn: the picture for an image, else its icon and name. */
+function FileChip({ remove }: { remove?: boolean }) {
+  const a = useAuiState((s) => s.attachment) as Attachment;
+  const kind = (FILE_ICON[a.type as AgentFile["kind"]] ? a.type : "file") as AgentFile["kind"];
+  const src = a.content?.find((c) => c.type === "image")?.image;
+  const busy = a.status.type === "running";
+  const failed =
+    a.status.type === "incomplete" ? (a.status.message ?? "Couldn't add this file") : null;
+  const size = a.file?.size;
+  return (
+    <AttachmentPrimitive.Root
+      {...(failed ? tipProps(failed) : src ? tipProps(a.name) : {})}
+      className={cx(
+        "group/file relative flex max-w-60 items-center gap-2 rounded-[10px] bg-(--ui-paper) text-[12.5px] shadow-[inset_0_0_0_1px_var(--ui-hair)]",
+        src ? "size-11 overflow-hidden p-0" : "min-h-11 py-1.5 pr-3 pl-1.5",
+        failed && "shadow-[inset_0_0_0_1px_var(--ui-bad)]",
+      )}
+    >
+      {src ? (
+        <img src={src} alt={a.name} className="size-full object-cover" />
+      ) : (
+        <>
+          <span
+            className={cx(
+              "grid size-8 flex-none place-items-center rounded-[7px] bg-(--ui-fill)",
+              failed ? "text-(--ui-bad)" : "text-(--ui-ink-2)",
+            )}
+          >
+            {busy ? <Ring /> : <Icon name={FILE_ICON[kind]} size={15} />}
+          </span>
+          <span className="grid min-w-0 leading-tight">
+            <span className="text-(--ui-ink) wrap-anywhere">
+              <AttachmentPrimitive.Name />
+            </span>
+            <span className={cx(failed ? "text-(--ui-bad)" : "text-(--ui-ink-3)")}>
+              {failed ?? (busy ? "Adding" : size ? bytes(size) : kind === "pdf" ? "PDF" : kind)}
+            </span>
+          </span>
+        </>
+      )}
+      {src && busy ? (
+        <span className="absolute inset-0 grid place-items-center bg-(--ui-paper)/60">
+          <Ring />
+        </span>
+      ) : null}
+      {remove ? (
+        <AttachmentPrimitive.Remove
+          aria-label={`Remove ${a.name}`}
+          className="absolute -top-1.5 -right-1.5 grid size-5 place-items-center rounded-full bg-(--ui-ink) text-(--ui-canvas) opacity-0 shadow-(--ui-raise) transition-opacity duration-150 group-hover/file:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100"
+        >
+          <Icon name="close" size={11} />
+        </AttachmentPrimitive.Remove>
+      ) : null}
+    </AttachmentPrimitive.Root>
   );
 }
 
@@ -629,14 +864,42 @@ function Composer({
   closed,
   placeholder,
   tools,
+  files,
+  context,
 }: {
   closed?: string | null | undefined;
   placeholder?: string | undefined;
   tools?: ReactNode;
+  files: boolean;
+  context?: AgentThreadProps["context"];
 }) {
   const running = useAuiState((s) => s.thread.isRunning);
-  return (
-    <ComposerPrimitive.Root className="grid rounded-[16px] bg-(--ui-paper) shadow-[inset_0_0_0_1px_var(--ui-hair),var(--ui-raise)] transition-shadow duration-150 focus-within:shadow-[inset_0_0_0_1px_var(--ui-accent),var(--ui-raise)]">
+  const box = (
+    <ComposerPrimitive.Root className="grid rounded-[16px] bg-(--ui-paper) shadow-[inset_0_0_0_1px_var(--ui-hair),var(--ui-raise)] transition-shadow duration-150 focus-within:shadow-[inset_0_0_0_1px_var(--ui-accent),var(--ui-raise)] in-data-dragging:shadow-[inset_0_0_0_2px_var(--ui-accent),var(--ui-raise)]">
+      {context || files ? (
+        <div className="flex flex-wrap items-center gap-2 px-3 pt-3 empty:hidden">
+          {context ? (
+            <span className="inline-flex min-h-7 max-w-full items-center gap-1.5 rounded-[14px] py-1 bg-(--ui-fill) pr-1 pl-2.5 text-[12.5px] text-(--ui-ink-2) [animation:ui-fade_.15s_both]">
+              <Icon name="page" size={13} className="flex-none" />
+              <span className="min-w-0 wrap-anywhere">{context.label}</span>
+              <button
+                type="button"
+                aria-label="Don't send this page"
+                {...tipProps("Don't send this page")}
+                onClick={context.onDrop}
+                className="grid size-5 flex-none place-items-center rounded-full text-(--ui-ink-3) hover:bg-(--ui-wash) hover:text-(--ui-ink)"
+              >
+                <Icon name="close" size={11} />
+              </button>
+            </span>
+          ) : null}
+          {files ? (
+            <ComposerPrimitive.Attachments>
+              {() => <FileChip remove />}
+            </ComposerPrimitive.Attachments>
+          ) : null}
+        </div>
+      ) : null}
       <ComposerPrimitive.Input
         rows={1}
         maxRows={12}
@@ -646,6 +909,16 @@ function Composer({
         className="w-full resize-none border-0 bg-transparent px-4 pt-3.5 pb-1.5 text-[14.5px]/[1.5] text-(--ui-ink) outline-none placeholder:text-(--ui-ink-3) disabled:cursor-not-allowed"
       />
       <div className="flex min-h-11 items-center gap-2 px-2.5 pb-2.5">
+        {files ? (
+          <ComposerPrimitive.AddAttachment
+            multiple
+            aria-label="Add files"
+            {...tipProps("Add files: or drop or paste them")}
+            className="grid size-8 flex-none place-items-center rounded-full text-(--ui-ink-2) transition-colors duration-150 hover:bg-(--ui-fill) hover:text-(--ui-ink) disabled:opacity-50"
+          >
+            <Icon name="attach" size={16} />
+          </ComposerPrimitive.AddAttachment>
+        ) : null}
         <div className="flex min-w-0 flex-1 items-center gap-2">{tools}</div>
         {running ? (
           <ComposerPrimitive.Cancel
@@ -660,10 +933,15 @@ function Composer({
             aria-label="Send"
             className="grid size-8 flex-none place-items-center rounded-full bg-(--ui-primary) text-(--ui-on-accent) [animation:ui-fade_.15s_both] hover:opacity-90 disabled:bg-(--ui-fill) disabled:text-(--ui-ink-3)"
           >
-            <Icon name="up" size={16} />
+            <Icon name="arrowUp" size={16} />
           </ComposerPrimitive.Send>
         )}
       </div>
     </ComposerPrimitive.Root>
+  );
+  return files ? (
+    <ComposerPrimitive.AttachmentDropzone>{box}</ComposerPrimitive.AttachmentDropzone>
+  ) : (
+    box
   );
 }

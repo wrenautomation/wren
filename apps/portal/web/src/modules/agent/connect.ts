@@ -51,6 +51,23 @@ async function relayGet<T>(path: string, token?: string): Promise<T> {
   return (await res.json()) as T;
 }
 
+/** A file to the relay's Mac; a refusal comes back as its sentence. */
+export async function relayPost<T>(path: string, token: string, body: Blob): Promise<T> {
+  const res = await fetch(`${HTTP}${path}`, {
+    method: "POST",
+    headers: { authorization: `Bearer ${token}`, "content-type": "application/octet-stream" },
+    body,
+  }).catch(() => {
+    throw new Error("The agent on this Mac didn't take the file. Is it running?");
+  });
+  const json = (await res.json().catch(() => ({}))) as { error?: string };
+  if (!res.ok) {
+    const why = json.error ?? `the agent answered ${res.status}`;
+    throw new Error(why.charAt(0).toUpperCase() + why.slice(1));
+  }
+  return json as T;
+}
+
 export const relaySetups = () => relayGet<SetupInfo[]>("/setups");
 export const relaySessions = (setup: string, token: string) =>
   relayGet<SessionRow[]>(`/s/${encodeURIComponent(setup)}/sessions`, token);
@@ -64,7 +81,7 @@ export const relayHistory = (setup: string, session: string, token: string) =>
 /** The page's turns as the SDK's prompt stream: `say` queues one, `end` closes the session. */
 export function turns(): {
   stream: AsyncIterable<SDKUserMessage>;
-  say: (text: string) => void;
+  say: (content: SDKUserMessage["message"]["content"]) => void;
   end: () => void;
 } {
   const queue: SDKUserMessage[] = [];
@@ -83,10 +100,10 @@ export function turns(): {
   };
   return {
     stream,
-    say: (text) => {
+    say: (content) => {
       queue.push({
         type: "user",
-        message: { role: "user", content: text },
+        message: { role: "user", content },
         parent_tool_use_id: null,
         session_id: "",
       } as SDKUserMessage);

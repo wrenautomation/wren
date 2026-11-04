@@ -65,6 +65,8 @@ export interface LaunchOptions {
   resolvePlugin?: (name: string) => string;
   /** Dirs put before PATH (the setup's CLIs). */
   binDirs?: readonly string[];
+  /** Dirs the child may read beyond its cwd (the person's uploads). */
+  addDirs?: readonly string[];
   command?: string;
 }
 
@@ -132,6 +134,8 @@ export function launch(setup: Setup, cred: Credential, o: LaunchOptions): Launch
       "--plugin-dir",
       isAbsolute(p) ? p : p.startsWith(".") ? resolve(o.root, p) : plugin(p),
     );
+  // variadic flag: a --flag must follow it
+  for (const d of o.addDirs ?? []) args.push("--add-dir", d);
   if (setup.append) args.push("--append-system-prompt", setup.append);
   if (o.resume) args.push("--resume", o.resume);
 

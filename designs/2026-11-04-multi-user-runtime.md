@@ -79,7 +79,7 @@ William: a menu, upsell and prescription framework sells utility products, so to
 | B. A policy engine (Cedar, OpenFGA) | rich rules (ABAC, ReBAC) | a second access model beside `@wren/core/access` |
 | C. Per-user skill filters inside a setup | fine grain | prompt and cache vary per user; tests multiply |
 
-Choice: A. Grants are RBAC with scoped attributes. A purchase is a grant on the app, an upsell is another grant, a trial is a grant with `until` or `usesLeft`. A prescription names setups and grants nothing. A setup's record fixes its skills, tools, MCP, env and model, never per user. A smaller offer is a smaller setup (`birdwatch-read` beside `birdwatch`). The catalog waits for the product-lines redesign (WA-1033).
+Choice: A. Grants are RBAC with scoped attributes. A purchase is a grant on the app, an upsell is another grant, a trial is a grant with `until` or `usesLeft`. A prescription names setups and grants nothing. A setup's record fixes its skills, tools, MCP, env and model, never per user. A smaller offer is a smaller setup (`birdwatch-read` beside `birdwatch`). (11-04 later: `birdwatch-read` dropped; read versus write is a permission mode on one setup, not a second picker entry. WA-1066.) The catalog waits for the product-lines redesign (WA-1033).
 
 ## Decision 4: the chat UI in a page (agreed 11-04, WA-1053)
 William: use a vetted chat UI library for the thread, its states and the stream, then style it to wren.
@@ -125,3 +125,39 @@ WA-1052's Built list said "the browser `query()` ran two turns". That ran in Nod
 - Live from localhost:5173 (headless Chromium, Haiku, plan): two turns; an ask on `touch $TMPDIR/…` with Deny, which showed Denied; Stop mid-essay, which showed "Stopped"; New chat; reopen of the stored chat with its denied tool and stopped reply; resume and one more turn. Relay down: one sentence and Try again.
 - Stored chats have no foot: the CLI stores no `result` frames.
 - Not done: the try from app.wrenautomation.com (Chrome's local network access prompt), which waits on William's browser.
+
+## Decision 6: the agent as a shell panel (agreed 11-04, WA-1066)
+William: the chat is not a section. It is one panel in the shell, open on any page, for any LLM step (research, drafts, video edits). Research → Ask stays as the test bed.
+
+| Option | For | Against |
+|---|---|---|
+| A. A docked column at the window's right, in `AppShell` (`aside` slot); the portal mounts it outside the page's keyed tree | the page stays usable beside it; the session lives across pages (the panel never unmounts); one place for every app | the page loses width while open; one `claude` child stays open while a chat is live (relay cap 3, a few hundred MB each) |
+| B. A floating sheet over the page (support-widget style) | no layout change | covers the page it talks about; a second scroll layer; DESIGN.md's side sheet is for short tasks |
+| C. Chat on its own page per app only (today) | none new | leaving the page ends the chat; no page context |
+| D. A pop-out window | full width for both | two windows to manage; lost on a phone |
+
+Ranked by result (the chat sees and keeps the page), then risk, then $. Choice: A. Under 900 px it is a full-screen sheet with Close. Opener: one quiet button (chat icon, ⌘J) that the shell draws in each frame (AppShell `agent`): the sidebar's foot, the folded column (in sight, not behind "…"), a phone's top bar. Not an "Ask AI" button on pages (DESIGN.md's rule stands for pages). The Ask page hides the opener: it is the same chat, full size.
+
+- Setup: the one whose `app` is the open app, else the first the relay lists. The picker shows when there are more.
+- Page context: each turn sent from a page carries one line, `[Page: <app> › <page> (<path>)]`. The composer shows it as a chip; Close on the chip drops it. A page may add a record or a selection later through `useAgentPage` (built, unused yet). The thread hides the line and shows the page as a small label on the turn.
+- Open state and width on the device; the chat id per tab, so a reload reopens it.
+
+## Decision 7: files in a chat (agreed 11-04, WA-1066)
+Framework: assistant-ui's attachment adapter (composer chips, add, remove, paste, drop). The adapter routes each file:
+- Images (PNG, JPEG, GIF, WebP) up to 3.75 MB and PDFs up to 10 MB: inline API content blocks (`image`, `document`, base64). The model sees them at once.
+- Anything else, or larger (video, audio, CSV, docs): `POST /s/<setup>/files` on the relay (bearer, 500 MB cap). It lands in `~/.config/wren/agent-uploads/<person>/<id>/<name>`, never in a repo folder. The child gets `--add-dir` on that person's folder only. The turn names the path. The research setup reads video with `birdwatch watch`, PDF and HTML with `birdwatch text`, the rest with Read.
+- A text block "Attached: <name>" goes beside each inline block (API blocks carry no file name), so a stored chat shows the names.
+
+## Decision 8: a client's own key (agreed 11-04, WA-1065)
+William: clients bring their own Anthropic API key, or their own Claude Code sign-in. He prefers a worker that hands out a short-lived credential over a private key on this Mac.
+
+Terms limit the second: Wren may not hold or route a client's claude.ai sign-in. A client's plan runs only as the unmodified CLI with their own `/login`, in their own sandbox (WA-1051, `terminal`). So this decision is about API keys.
+
+| Option | Key exposure | For | Against |
+|---|---|---|---|
+| A. Gateway: the child gets `ANTHROPIC_BASE_URL` = a wren route and `ANTHROPIC_AUTH_TOKEN` = a 15-min ticket bound to client and session. The gateway checks the ticket, takes the key through `vendorKey(db, client, "anthropic", {why, by})` (one ledger row), and streams the call on | none: the real key never leaves the server; a leaked ticket dies in 15 min and works for one client | an audit row and usage per call; works the same for a relay in a client's container | one more hop on every model call; a streaming route to run (Lambda function URL with response streaming, or the portal Worker) |
+| B. A worker hands the decrypted key per session; the relay keeps it in memory and in the child env | the child holds the real key for the session; a prompt-injected `echo` can leak it | least code | the leak path above; audit per session, not per call |
+| C. The keystore private key on this Mac (Keychain) | one master key on a laptop opens every client's key | no network | worst blast radius |
+| D. A self-hosted LLM gateway (LiteLLM virtual keys: TTL, budgets, spend logs) | as A | framework, not custom code | a Python service and its own database to run; needs a security vetting pass before adoption |
+
+Ranked by risk (key exposure), then $, then result. Choice: A, with D checked first as the framework for its proxy part; build A only if D fails the vetting. Not built: wren may be rebuilt (WA-1065 stays the record). To verify at build: what `apiKeySource` the init reports with `ANTHROPIC_AUTH_TOKEN` and `ANTHROPIC_BASE_URL` set, since `credentialBreach` keys on it. Two prerequisites stand: the `anthropic` vendor needs a client-key mode (today `own: null`, Wren only), and the gateway, not the Mac, holds the keystore key.

@@ -19,6 +19,7 @@ import {
   sdkHistory,
   setupNamed,
   tokenMatches,
+  UPLOADS_DIR,
 } from "@wren/agent";
 import { can, type MeAccess, whoFromMe } from "@wren/core/access";
 import type { Command } from "commander";
@@ -118,6 +119,7 @@ export function registerAgent(program: Command): void {
         setups: SETUPS,
         credential,
         maxSessions: Number(o.max),
+        uploads: UPLOADS_DIR,
         launch: {
           root: workspaceRoot(),
           host: process.env,

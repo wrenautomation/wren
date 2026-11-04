@@ -67,10 +67,16 @@ function Live(p: Partial<AgentThreadProps> & { messages: AgentMessage[] }) {
         {...p}
         messages={messages}
         running={running}
-        onSend={(text) => {
+        onSend={(text, files) => {
           setMessages((m) => [
             ...m,
-            you(`u${m.length}`, text),
+            {
+              ...you(`u${m.length}`, text),
+              parts: [
+                ...(text ? [{ type: "text" as const, text }] : []),
+                ...files.map((f) => ({ type: "file" as const, file: f.file })),
+              ],
+            },
             { id: `a${m.length}`, role: "assistant", parts: [], state: "live" },
           ]);
           setRunning(true);
@@ -308,4 +314,70 @@ export const Closed: Story = {
 /** A chat switch: the last chat stays, dimmed, while the picked one reads; Send waits. */
 export const Switching: Story = {
   render: () => <Live messages={DONE} stale />,
+};
+
+// a 2×2 PNG: a picture without a network
+const PIXEL =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAFklEQVR4nGNkYPj/n4GBgYGJgYGBAQAqVwMBJJ1sJwAAAABJRU5ErkJggg==";
+
+/** Files in a turn: a picture, a video, a PDF; the page the turn came from under it. The box takes more. */
+export const Files: Story = {
+  render: () => {
+    const [page, setPage] = useState<string | null>("Campaigns › Sends (/campaigns/sends)");
+    return (
+      <Live
+        messages={[
+          {
+            id: "u1",
+            role: "user",
+            page: "Studio › Videos (/studio/videos)",
+            parts: [
+              { type: "text", text: "Which of these hooks lands first? Check the cut too." },
+              { type: "file", file: { name: "hook-a.png", kind: "image", src: PIXEL } },
+              { type: "file", file: { name: "promo-cut-3.mp4", kind: "video", size: 48_200_000 } },
+              { type: "file", file: { name: "brief.pdf", kind: "pdf" } },
+            ],
+          },
+          {
+            id: "a1",
+            role: "assistant",
+            state: "done",
+            parts: [
+              STEP("w1", "birdwatch watch /u/ab/1/promo-cut-3.mp4", "Read the video", "{}"),
+              { type: "text", text: "Hook A lands first: the number is on screen by 0.8 s." },
+            ],
+          },
+        ]}
+        files={{
+          accept: "*",
+          ready: (f) =>
+            new Promise((res, rej) =>
+              setTimeout(
+                () => (f.size > 5_000_000 ? rej(new Error("Files stop at 5 MB here")) : res([])),
+                600,
+              ),
+            ),
+        }}
+        context={page ? { label: page, onDrop: () => setPage(null) } : null}
+      />
+    );
+  },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement);
+    await expect(c.getByText("promo-cut-3.mp4")).toBeTruthy();
+    await expect(c.getByText("Studio › Videos (/studio/videos)")).toBeTruthy();
+    await userEvent.click(c.getByRole("button", { name: "Don't send this page" }));
+    await waitFor(() => expect(c.queryByText(/Campaigns › Sends/)).toBeNull());
+    // the picker's input exists only on a click: a paste takes the same path
+    const box = c.getByRole("textbox");
+    const dt = new DataTransfer();
+    dt.items.add(new File(["x"], "notes.txt", { type: "text/plain" }));
+    box.dispatchEvent(
+      new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true }),
+    );
+    await waitFor(() => expect(c.getByText("notes.txt")).toBeTruthy());
+    await waitFor(() => expect(c.getByRole("button", { name: "Send" })).toBeEnabled());
+    await userEvent.click(c.getByRole("button", { name: "Send" }));
+    await waitFor(() => expect(c.getAllByText("notes.txt")).toHaveLength(1));
+  },
 };

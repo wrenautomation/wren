@@ -7,9 +7,11 @@
  * Decisions 4 and 5). `authorize` decides who may open which setup; the relay holds no access model.
  */
 import { type ChildProcess, spawn as nodeSpawn, type SpawnOptions } from "node:child_process";
-import { timingSafeEqual } from "node:crypto";
-import { mkdirSync } from "node:fs";
+import { createHash, randomUUID, timingSafeEqual } from "node:crypto";
+import { createWriteStream, mkdirSync, rmSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import { homedir } from "node:os";
+import { basename, join } from "node:path";
 import { createInterface } from "node:readline";
 import { type WebSocket, WebSocketServer } from "ws";
 import { inbound } from "./filter.js";
@@ -48,6 +50,10 @@ export interface RelayOptions {
   maxSessions?: number;
   ledger?: Ledger;
   history?: History;
+  /** Root for chat files (`POST /s/<setup>/files`), one folder per person; none = no uploads. */
+  uploads?: string;
+  /** Bytes per file; default 500 MB. */
+  uploadCap?: number;
   log?: (line: string) => void;
   spawn?: (command: string, args: readonly string[], opts: SpawnOptions) => ChildProcess;
 }
@@ -64,6 +70,25 @@ export const CLOSE = {
 
 const AUTH_MS = 5000;
 const SESSION_PATH = /^\/s\/([\w-]+)(?:\/sessions(?:\/([\w-]+))?)?$/;
+const FILES_PATH = /^\/s\/([\w-]+)\/files$/;
+const UPLOAD_CAP = 500 * 1024 * 1024;
+
+/** Chat files on this Mac, never inside a repo folder. */
+export const UPLOADS_DIR = join(homedir(), ".config", "wren", "agent-uploads");
+
+/** A person's upload folder: a hash, so no email lands in a path. */
+export const uploadDir = (root: string, who: string): string =>
+  join(root, createHash("sha256").update(who).digest("hex").slice(0, 16));
+
+/** A file name safe for one path segment; null when nothing is left. */
+export function fileName(raw: string): string | null {
+  const n = basename(raw.replace(/\\/g, "/"))
+    // biome-ignore lint/suspicious/noControlCharactersInRegex: strips them
+    .replace(/[\u0000-\u001f\u007f]/g, "")
+    .trim()
+    .slice(0, 200);
+  return n && n !== "." && n !== ".." ? n : null;
+}
 
 /** The local token as an `authorize` branch: constant-time, `local` in the ledger. */
 export const tokenMatches = (got: string, token: string): boolean => {
@@ -166,11 +191,15 @@ export function relay(o: RelayOptions): {
     let l: ReturnType<typeof launch>;
     try {
       const binDirs = o.binDirs?.(setup) ?? o.launch.binDirs;
+      const mine = o.uploads ? uploadDir(o.uploads, who) : undefined;
+      // made before spawn: --add-dir needs it, and a file sent mid-chat reads without a restart
+      if (mine) mkdirSync(mine, { recursive: true, mode: 0o700 });
       l = launch(setup, o.credential, {
         ...o.launch,
         resume,
         model,
         ...(binDirs ? { binDirs } : {}),
+        ...(mine ? { addDirs: [mine] } : {}),
       });
     } catch (e) {
       const why = e instanceof Error ? e.message : String(e);
@@ -237,15 +266,16 @@ export function relay(o: RelayOptions): {
       res.setHeader("vary", "origin");
     }
     if (req.method === "OPTIONS") {
-      res.setHeader("access-control-allow-methods", "GET");
-      res.setHeader("access-control-allow-headers", "authorization");
+      res.setHeader("access-control-allow-methods", "GET, POST");
+      res.setHeader("access-control-allow-headers", "authorization, content-type");
       // Chrome's local network access: a public origin asking 127.0.0.1
       res.setHeader("access-control-allow-private-network", "true");
       res.writeHead(204).end();
       return;
     }
-    if (req.method !== "GET") return send(res, 405, { error: "GET only" });
     const url = new URL(req.url ?? "/", "http://relay");
+    if (req.method === "POST" && FILES_PATH.test(url.pathname)) return upload(req, res, url);
+    if (req.method !== "GET") return send(res, 405, { error: "GET only" });
     if (url.pathname === "/setups")
       return send(
         res,
@@ -289,6 +319,56 @@ export function relay(o: RelayOptions): {
       log(`${setup.name}: history failed: ${e instanceof Error ? e.message : e}`);
       return send(res, 500, { error: "could not read the session" });
     }
+  }
+
+  /** Raw body, `?name=`; streamed to disk under the person's folder; answers the path. */
+  async function upload(req: IncomingMessage, res: ServerResponse, url: URL): Promise<void> {
+    const setup = setupOf(FILES_PATH.exec(url.pathname)?.[1]);
+    if (!setup || !o.uploads) return send(res, 404, { error: "not found" });
+    const credential = /^Bearer (.+)$/.exec(req.headers.authorization ?? "")?.[1];
+    const who = credential
+      ? await o.authorize({ credential, origin: req.headers.origin, setup }).catch(() => null)
+      : null;
+    if (!who) return send(res, 401, { error: "not allowed to open this setup" });
+    const name = fileName(url.searchParams.get("name") ?? "");
+    if (!name) return send(res, 400, { error: "name the file" });
+    const cap = o.uploadCap ?? UPLOAD_CAP;
+    if (Number(req.headers["content-length"] ?? 0) > cap)
+      return send(res, 413, { error: `files stop at ${Math.round(cap / 1024 / 1024)} MB` });
+    const dir = join(uploadDir(o.uploads, who), randomUUID());
+    mkdirSync(dir, { recursive: true, mode: 0o700 });
+    const path = join(dir, name);
+    const out = createWriteStream(path, { mode: 0o600 });
+    let bytes = 0;
+    let over = false;
+    const drop = () => rmSync(dir, { recursive: true, force: true });
+    req.on("data", (c: Buffer) => {
+      bytes += c.length;
+      if (bytes > cap && !over) {
+        over = true;
+        req.unpipe(out);
+        out.destroy();
+        drop();
+        send(res, 413, { error: `files stop at ${Math.round(cap / 1024 / 1024)} MB` });
+        req.resume();
+      }
+    });
+    req.pipe(out);
+    out.on("finish", () => {
+      if (over) return;
+      log(`${setup.name}: ${who} sent ${name} (${bytes} B)`);
+      send(res, 200, { path, name, bytes });
+    });
+    out.on("error", (e) => {
+      if (over) return;
+      drop();
+      log(`${setup.name}: upload failed: ${e.message}`);
+      send(res, 500, { error: "could not store the file" });
+    });
+    req.on("aborted", () => {
+      out.destroy();
+      drop();
+    });
   }
 
   return {

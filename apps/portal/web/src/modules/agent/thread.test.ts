@@ -1,5 +1,6 @@
 // Fixtures: one real relay session each, trimmed (ids and paths made up).
 import { describe, expect, it } from "vitest";
+import { turnContent } from "./files.js";
 import birdwatch from "./fixtures/birdwatch.json" with { type: "json" };
 import stored from "./fixtures/history.json" with { type: "json" };
 import prompt from "./fixtures/prompt.json" with { type: "json" };
@@ -13,6 +14,7 @@ import {
   fold,
   history,
   said,
+  storedTurn,
   type ThreadState,
 } from "./thread.js";
 
@@ -147,6 +149,58 @@ describe("fold", () => {
     expect(cut(live).messages[1]?.state).toBe("failed");
     expect(cut({ ...live, stopping: true }).messages[1]?.state).toBe("stopped");
     expect(cut(EMPTY)).toEqual({ ...EMPTY, running: false });
+  });
+});
+
+describe("files in a turn", () => {
+  const png = { type: "base64", media_type: "image/png", data: "iVBO" };
+  const wire = turnContent(
+    "What is in these?",
+    [
+      {
+        file: { name: "shot.png", kind: "image" },
+        data: [
+          { type: "text", text: "[Attached: shot.png]" },
+          { type: "image", source: png },
+        ],
+      },
+      {
+        file: { name: "clip.mp4", kind: "video" },
+        data: [{ type: "text", text: "[Attached: /u/ab/1/clip.mp4]" }],
+      },
+    ],
+    "Research › Ask (/research/ask)",
+  );
+
+  it("words first, then the page line, then each file's line and block", () => {
+    expect(wire.map((b) => (b.type === "text" ? b.text : b.type))).toEqual([
+      "What is in these?",
+      "[Page: Research › Ask (/research/ask)]",
+      "[Attached: shot.png]",
+      "image",
+      "[Attached: /u/ab/1/clip.mp4]",
+    ]);
+  });
+
+  it("a stored turn reads back as words, file parts and the page", () => {
+    const t = storedTurn(wire);
+    expect(t.words).toBe("What is in these?");
+    expect(t.page).toBe("Research › Ask (/research/ask)");
+    expect(t.parts).toEqual([
+      { type: "text", text: "What is in these?" },
+      {
+        type: "file",
+        file: { name: "shot.png", kind: "image", src: "data:image/png;base64,iVBO" },
+      },
+      { type: "file", file: { name: "clip.mp4", kind: "video" } },
+    ]);
+  });
+
+  it("a turn of files only is kept; the live turn shows them", () => {
+    const s = history([{ type: "user", message: { role: "user", content: wire.slice(2) } }]);
+    expect(s.messages[0]?.parts.map((p) => p.type)).toEqual(["file", "file"]);
+    const live = said(EMPTY, "", { files: [{ name: "a.pdf", kind: "pdf" }], page: "Home" });
+    expect(live.messages[0]).toMatchObject({ parts: [{ type: "file" }], page: "Home" });
   });
 });
 

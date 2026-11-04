@@ -91,6 +91,7 @@ import {
   Newspaper,
   OctagonX,
   PanelLeft,
+  Paperclip,
   Pause,
   Pencil,
   PenLine,
@@ -212,6 +213,7 @@ const ICONS = {
   upload: Upload,
   // The frame: the panels, help, keys.
   panel: PanelLeft,
+  attach: Paperclip,
   help: CircleHelp,
   keys: Keyboard,
   // The Inbox queues' marks (overview E): an issue, a mention, an ask for access.

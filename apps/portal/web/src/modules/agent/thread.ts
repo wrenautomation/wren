@@ -4,7 +4,7 @@
  * frames (`stream_event`) stream the reply; the whole `assistant` frame then only fixes a tool's
  * input. Pure, so fixtures from a real relay session test it (thread.test.ts).
  */
-import type { AgentMessage, AgentPart } from "@wren/ui";
+import { type AgentFile, type AgentMessage, type AgentPart, fileKind } from "@wren/ui";
 
 export interface ThreadState {
   messages: AgentMessage[];
@@ -32,15 +32,30 @@ const INTERRUPTED = /^\[Request interrupted/;
 let minted = 0;
 const mint = (k: string) => `${k}-${Date.now().toString(36)}-${(minted++).toString(36)}`;
 
+/** What a turn carries beside its words. */
+export interface TurnExtra {
+  files?: readonly AgentFile[] | undefined;
+  page?: string | undefined;
+}
+
 /** The person sends a turn: their message, then an empty live reply. */
-export function said(s: ThreadState, text: string, at = new Date().toISOString()): ThreadState {
+export function said(
+  s: ThreadState,
+  text: string,
+  more: TurnExtra = {},
+  at = new Date().toISOString(),
+): ThreadState {
+  const parts: AgentPart[] = [
+    ...(text ? [{ type: "text" as const, text }] : []),
+    ...(more.files ?? []).map((file) => ({ type: "file" as const, file })),
+  ];
   return {
     ...s,
     running: true,
     stopping: false,
     messages: [
       ...s.messages,
-      { id: mint("you"), role: "user", parts: [{ type: "text", text }], at },
+      { id: mint("you"), role: "user", parts, at, ...(more.page ? { page: more.page } : {}) },
       { id: mint("reply"), role: "assistant", parts: [], state: "live", at },
     ],
   };
@@ -199,9 +214,9 @@ function userFrame(s0: ThreadState, f: Frame): ThreadState {
     }
     return s;
   }
-  const text = resultText(content).trim();
-  if (!text || ECHO.test(text)) return s0;
-  if (INTERRUPTED.test(text)) {
+  const turn = storedTurn(content);
+  if (!turn.parts.length || ECHO.test(turn.words)) return s0;
+  if (INTERRUPTED.test(turn.words)) {
     const { s, m } = reply(s0);
     m.state = "stopped";
     return s;
@@ -212,9 +227,69 @@ function userFrame(s0: ThreadState, f: Frame): ThreadState {
     ...s0,
     messages: [
       ...s0.messages,
-      { id: String(f.uuid ?? mint("you")), role: "user", parts: [{ type: "text", text }], at },
+      {
+        id: String(f.uuid ?? mint("you")),
+        role: "user",
+        parts: turn.parts,
+        at,
+        ...(turn.page ? { page: turn.page } : {}),
+      },
       { id: mint("reply"), role: "assistant", parts: [], state: "done", at },
     ],
+  };
+}
+
+const PAGE_LINE = /^\[Page: (.+)\]$/;
+const FILE_LINE = /^\[Attached: (.+)\]$/;
+const baseName = (p: string) => p.split("/").pop() || p;
+
+/**
+ * A person's stored turn: the words, the page line, and each `[Attached: …]` line with the image
+ * or document block after it, as file parts (`turnContent` in files.ts writes them).
+ */
+export function storedTurn(content: unknown): { parts: AgentPart[]; words: string; page?: string } {
+  if (typeof content === "string") {
+    const words = content.trim();
+    return { parts: words ? [{ type: "text", text: words }] : [], words };
+  }
+  const blocks = Array.isArray(content) ? (content as Block[]) : [];
+  const words: string[] = [];
+  const files: AgentFile[] = [];
+  let page: string | undefined;
+  // a line's file waits for the block after it: an inline image or PDF is that line's
+  let open: AgentFile | null = null;
+  for (const b of blocks) {
+    if (b.type === "text") {
+      const t = String(b.text ?? "").trim();
+      const pg = PAGE_LINE.exec(t);
+      const fl = FILE_LINE.exec(t);
+      open = null;
+      if (pg) page = pg[1];
+      else if (fl) {
+        const name = baseName(fl[1] ?? "");
+        open = { name, kind: fileKind("", name) };
+        files.push(open);
+      } else if (t) words.push(t);
+      continue;
+    }
+    if (b.type !== "image" && b.type !== "document") continue;
+    const f: AgentFile = open ?? { name: b.type === "image" ? "Image" : "Document", kind: "file" };
+    if (!open) files.push(f);
+    open = null;
+    const src = b.source as { type?: string; media_type?: string; data?: string } | undefined;
+    if (b.type === "image") {
+      f.kind = "image";
+      if (src?.type === "base64" && src.data) f.src = `data:${src.media_type};base64,${src.data}`;
+    } else f.kind = "pdf";
+  }
+  const text = words.join("\n");
+  return {
+    parts: [
+      ...(text ? [{ type: "text" as const, text }] : []),
+      ...files.map((file) => ({ type: "file" as const, file })),
+    ],
+    words: text,
+    ...(page ? { page } : {}),
   };
 }
 

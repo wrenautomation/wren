@@ -19,10 +19,13 @@ export {
   type Asker,
   type Authorize,
   CLOSE,
+  fileName,
   type History,
   type RelayOptions,
   relay,
   tokenMatches,
+  UPLOADS_DIR,
+  uploadDir,
 } from "./relay.js";
 export { fileLedger, LEDGER_FILE, type Ledger, type SessionRecord } from "./sessions.js";
 export type { Connection, CredentialKind, Setup } from "./setup.js";

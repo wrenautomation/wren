@@ -471,7 +471,7 @@ Source: `designs/2026-10-20-design-language/design-language.src.html`, section 1
 - **Don't** set widths from a look. Frame vars are `--layout-*`.
 - **Don't** give a client a showcase look, backdrop or grain.
 - **Don't** let a skeleton sit past a second without words. Show the facts that exist.
-- **Don't** add "Ask AI" buttons, favicon chips or ambient animation.
+- **Don't** add "Ask AI" buttons on pages, favicon chips or ambient animation. The agent has one door, the quiet Agent button (⌘J), which the shell draws (AppShell `agent`): the sidebar's foot, the folded sidebar's column, a phone's top bar. It opens the shell's side panel (designs/2026-11-04-multi-user-runtime.md, Decision 6). No sparkle icon, no purple.
 - **Don't** import `lucide-react`, `@base-ui/react`, `cmdk` or `sonner` in an app. Go through `@wren/ui` (`kit-door.test.ts` checks it).
 - **Don't** add a second motif. The leaf and the sweep are the motif.
 - **Don't** set uppercase in a part. Read `--ui-label-case` or `--ui-button-case`.

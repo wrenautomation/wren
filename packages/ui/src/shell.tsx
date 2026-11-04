@@ -45,6 +45,7 @@ import {
   useScrollKeep,
 } from "./phone-shell.js";
 import { useHoverMenu } from "./safe-triangle.js";
+import { PanelButton, type PanelDoor } from "./side-panel.js";
 import { type Theme, usePageTheme } from "./theme.js";
 
 /** One of an app's pages, as a tab. */
@@ -176,6 +177,7 @@ export function AppShell({
   app,
   pins,
   actions,
+  agent,
   bar,
   page,
   theme,
@@ -187,6 +189,7 @@ export function AppShell({
   onGo,
   at,
   deep = false,
+  aside,
   className,
   children,
 }: {
@@ -204,8 +207,10 @@ export function AppShell({
   app: OpenApp | null;
   /** His pins; left out where nothing is kept (the demo). */
   pins?: RailPins | undefined;
-  /** The viewer's own buttons, top right. */
+  /** The viewer's own buttons: the sidebar's foot (behind one button when folded), Apps on a phone. */
   actions?: ReactNode;
+  /** The agent panel's door, in sight in every frame: the sidebar's foot, the folded column, a phone's top bar. */
+  agent?: PanelDoor | undefined;
   /** A strip above everything, such as "Viewing as". */
   bar?: ReactNode;
   /** Changes when the page does, which scrolls back to the top. */
@@ -228,6 +233,8 @@ export function AppShell({
   at?: string | undefined;
   /** A record's own page, under its list: a phone's tabs give way to its buttons. */
   deep?: boolean | undefined;
+  /** A column at the window's right that outlives the page (the agent's `SidePanel`). */
+  aside?: ReactNode;
   className?: string | undefined;
   children: ReactNode;
 }) {
@@ -362,7 +369,7 @@ export function AppShell({
             </a>
           ) : null}
         </div>
-        {actions || custom ? (
+        {actions || custom || agent ? (
           <div
             className={cx(
               "ml-auto flex flex-none items-center gap-1.5",
@@ -371,6 +378,12 @@ export function AppShell({
               folded && "min-[901px]:hidden",
             )}
           >
+            {agent ? (
+              // a phone in an app: the top bar holds it
+              <span className={cx("contents", nav && app && "max-[900px]:hidden")}>
+                <PanelButton {...agent} />
+              </span>
+            ) : null}
             {custom ? <span className="contents max-[900px]:hidden">{custom}</span> : null}
             {actions}
           </div>
@@ -378,6 +391,7 @@ export function AppShell({
         {folded ? (
           // Folded, his buttons wait behind one: the sidebar is only as wide as an icon.
           <div className="z-10 hidden flex-col items-center gap-1 border-t border-(--ui-hair) py-2.5 pl-(--ui-frame) [grid-area:me] min-[901px]:mb-(--ui-frame) min-[901px]:flex">
+            {agent ? <PanelButton {...agent} compact side="right" /> : null}
             {custom}
             {actions ? (
               <Popover>
@@ -456,7 +470,15 @@ export function AppShell({
           >
             {app ? (
               nav ? (
-                <PhoneTop app={app} walk={walk} at={here} main={main} pins={pins} deep={deep} />
+                <PhoneTop
+                  app={app}
+                  walk={walk}
+                  at={here}
+                  main={main}
+                  pins={pins}
+                  deep={deep}
+                  agent={agent}
+                />
               ) : (
                 <AppHead app={app} launcher={launcher} home={home?.label} pins={pins} />
               )
@@ -496,6 +518,7 @@ export function AppShell({
               )}
             />
           </div>
+          {aside}
         </div>
       </div>
       {nav ? (

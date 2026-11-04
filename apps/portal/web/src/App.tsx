@@ -59,6 +59,7 @@ import { MapHome } from "./map/Home.js";
 import { prefetchMap } from "./map/read.js";
 import { stationItems } from "./map/stations.js";
 import { type Module, type ModulePage, type PageProps, WREN } from "./module.js";
+import { AgentPanel, useAgentPanel } from "./modules/agent/panel.js";
 import { appsIn, MODULES } from "./modules/index.js";
 import { LearnBell } from "./modules/learn/bell.js";
 import { capture, makeCard, QuickNote, useQuickNoteKey } from "./modules/notes/capture.js";
@@ -285,6 +286,8 @@ export function App() {
       : MODULES.find((m) => m.id === route.path[0]));
   const wren = operator && (kind ? teamOnly(kind) : atWren);
   const team = operator;
+  // the agent runs on this Mac's relay: Wren's team only, for now (Decision 6)
+  const agent = useAgentPanel(team);
   const onDemo = me.data ? me.data.demo : null;
   const clients = me.data?.clients ?? [];
   const current = wren
@@ -598,6 +601,12 @@ export function App() {
         ])
     : [];
 
+  // Research › Ask is the same chat, full size: no panel over it
+  const onAsk = open?.module.id === "research" && open.page.id === "ask";
+  const pageLine = open
+    ? `${open.module.name} › ${open.page.label} (${location.pathname})`
+    : undefined;
+
   return (
     <AppsProvider value={cards}>
       <SnippetsProvider source={snippets}>
@@ -666,6 +675,11 @@ export function App() {
                 ) : null}
               </>
             }
+            agent={
+              team && !onAsk
+                ? { open: agent.open, onToggle: () => agent.set({ open: !agent.open }) }
+                : undefined
+            }
             page={open ? pathOf(open.module, open.page) : "/"}
             theme={theme}
             display={display}
@@ -684,6 +698,18 @@ export function App() {
             }
             bleed={!open && team && !!current}
             fill={!!open && "fill" in open.page && !!open.page.fill}
+            aside={
+              team ? (
+                <AgentPanel
+                  open={agent.open && !onAsk}
+                  width={agent.width}
+                  onWidth={(width) => agent.set({ width })}
+                  onClose={() => agent.set({ open: false })}
+                  app={open?.module.id ?? null}
+                  page={pageLine}
+                />
+              ) : undefined
+            }
           >
             {!current ? (
               <Loading lines={8} heading />

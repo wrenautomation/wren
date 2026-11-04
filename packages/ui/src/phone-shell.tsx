@@ -38,6 +38,7 @@ import {
   tapOf,
 } from "./phone-nav.js";
 import type { DockItem, NavArea, NavHome, OpenApp, RailPins } from "./shell.js";
+import { PanelButton, type PanelDoor } from "./side-panel.js";
 
 export const PHONE = "(max-width: 900px)";
 
@@ -312,6 +313,7 @@ export function PhoneTop({
   main,
   pins,
   deep,
+  agent,
 }: {
   app: OpenApp;
   walk: PhoneWalk;
@@ -320,6 +322,7 @@ export function PhoneTop({
   pins: RailPins | undefined;
   /** A record's own page: with nothing walked before it, back is its list. */
   deep: boolean;
+  agent?: PanelDoor | undefined;
 }) {
   const bar = useRef<HTMLElement>(null);
   const backLink = useRef<HTMLAnchorElement>(null);
@@ -389,6 +392,7 @@ export function PhoneTop({
         <div className="flex min-w-0 items-center justify-end gap-1">
           {app.action}
           {pins ? <PinButton pinned={pins.here} onToggle={pins.onToggle} compact /> : null}
+          {agent ? <PanelButton {...agent} compact /> : null}
         </div>
       </div>
       {headed(group) && group ? (

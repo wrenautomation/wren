@@ -3,10 +3,11 @@
  * opens on the first send (a past chat opens with `resume`), so reading an old chat starts no
  * `claude`. Leaving the chat or the page closes the socket; the relay ends the child.
  */
-import { type AgentMessage, useLoad } from "@wren/ui";
+import { type AgentMessage, type AgentSent, useLoad } from "@wren/ui";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { socketToken } from "../../api.js";
 import { openSetup, type Query, relayHistory, turns } from "./connect.js";
+import { readyFile, turnContent, type Wire } from "./files.js";
 import {
   answered,
   asked,
@@ -28,7 +29,7 @@ const CHATS = {};
 interface Live {
   q: Query;
   end: () => void;
-  say: (text: string) => void;
+  say: (content: Wire[] | string) => void;
   asks: Map<string, (allow: boolean) => void>;
   closing: boolean;
 }
@@ -45,7 +46,10 @@ export interface AgentChat {
   session: string | undefined;
   /** From init: true on the Claude plan, false on an API key; unknown before the first turn. */
   plan: boolean | undefined;
-  send: (text: string) => void;
+  /** `page` names the page the turn is sent from; the thread shows it under the turn. */
+  send: (text: string, files?: readonly AgentSent[], page?: string) => void;
+  /** A picked file → what its turn carries (AgentThread `files.ready`). */
+  ready: (file: File) => Promise<Wire[]>;
   stop: () => void;
   answer: (toolId: string, allow: boolean) => void;
 }
@@ -70,13 +74,14 @@ export function useAgent(o: {
   // the id this hook is showing: a new chat's id arriving must not reload it
   const shown = useRef<string | null>(null);
   // Retry after a dropped socket sends the last turn again, on a new one
-  const last = useRef("");
-  const again = useRef<(text: string) => void>(() => {});
+  type Turn = [text: string, files: readonly AgentSent[], page: string | undefined];
+  const last = useRef<Turn>(["", [], undefined]);
+  const again = useRef<(...t: Turn) => void>(() => {});
   const failed = useCallback((e: unknown) => {
     const c = closeText(e);
     // the page shows one sentence; the console keeps the cause
     console.error("agent:", e);
-    setError({ text: c.text, retry: c.retry ? () => again.current(last.current) : undefined });
+    setError({ text: c.text, retry: c.retry ? () => again.current(...last.current) : undefined });
   }, []);
 
   // bumped on each close: a socket that finishes opening after its chat was left shuts at once
@@ -179,12 +184,13 @@ export function useAgent(o: {
   );
 
   const send = useCallback(
-    (text: string) => {
-      last.current = text;
+    (text: string, files: readonly AgentSent[] = [], page?: string) => {
+      last.current = [text, files, page];
       setError(null);
-      setS((p) => said(p, text));
+      setS((p) => said(p, text, { files: files.map((f) => f.file), page }));
+      const content = files.length || page ? turnContent(text, files, page) : text;
       const l = live.current;
-      if (l) return l.say(text);
+      if (l) return l.say(content);
       setStarting(true);
       const at = gen.current;
       open(shown.current ?? undefined)
@@ -196,7 +202,7 @@ export function useAgent(o: {
             return;
           }
           live.current = n;
-          n.say(text);
+          n.say(content);
         })
         .catch((e) => {
           setStarting(false);
@@ -208,6 +214,11 @@ export function useAgent(o: {
   );
 
   again.current = send;
+
+  const ready = useCallback(
+    async (file: File) => readyFile(o.setup, await pageToken(), file),
+    [o.setup],
+  );
 
   const stop = useCallback(() => {
     const l = live.current;
@@ -234,6 +245,7 @@ export function useAgent(o: {
     session: s.session ?? o.session ?? undefined,
     plan: s.plan,
     send,
+    ready,
     stop,
     answer,
   };

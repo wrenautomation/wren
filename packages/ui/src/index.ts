@@ -28,11 +28,15 @@ export {
   useLastWrite,
 } from "./action.js";
 export {
+  type AgentFile,
+  type AgentFiles,
   type AgentFoot,
   type AgentMessage,
   type AgentPart,
+  type AgentSent,
   AgentThread,
   type AgentThreadProps,
+  fileKind,
   footLine,
   threadMessage,
   toolLine,
@@ -507,6 +511,7 @@ export {
   type WorkspaceOption,
 } from "./shell.js";
 export { RecordShop } from "./shop.js";
+export { PANEL, PanelButton, type PanelDoor, SidePanel } from "./side-panel.js";
 export {
   FavoriteStar,
   InsertSnippet,

@@ -234,7 +234,7 @@ export const typingAt = (e: KeyboardEvent) => {
 };
 
 /**
- * The edge a panel is dragged by: its right border. Drag it, or focus it and use ← and →; past
+ * The edge a panel is dragged by: its right border (`left` for a panel on the window's right). Drag it, or focus it and use ← and →; past
  * the fold line it folds the panel, Enter folds or opens it, a double click puts the width back.
  * While dragging it sets `cssVar` on `host` alone, so nothing re-renders until it lets go.
  */
@@ -250,6 +250,7 @@ export function Resizer({
   onReset,
   className,
   style,
+  side = "right",
 }: {
   label: string;
   /** Its width open, kept while it's folded. */
@@ -264,7 +265,10 @@ export function Resizer({
   onReset: () => void;
   className?: string;
   style?: CSSProperties;
+  /** Which of the panel's borders this is: a left one grows as it's dragged left. */
+  side?: "left" | "right";
 }) {
+  const sign = side === "left" ? -1 : 1;
   const drag = useRef<{ x: number; from: number; last: number } | null>(null);
   const [dragging, setDragging] = useState(false);
   const shown = shut ? shutPx : width;
@@ -278,7 +282,7 @@ export function Resizer({
   const move = (e: ReactPointerEvent<HTMLDivElement>) => {
     const d = drag.current;
     if (!d) return;
-    d.last = d.from + e.clientX - d.x;
+    d.last = d.from + sign * (e.clientX - d.x);
     const at = dragged(d.last, range);
     host()?.style.setProperty(cssVar, `${at.shut ? shutPx : at.width}px`);
   };
@@ -290,7 +294,7 @@ export function Resizer({
     if (d && Math.abs(d.last - d.from) >= 2) onDone(dragged(d.last, range));
   };
   const key = (e: ReactKeyboardEvent<HTMLDivElement>) => {
-    const step = e.shiftKey ? 48 : 16;
+    const step = (e.shiftKey ? 48 : 16) * sign;
     const to =
       e.key === "ArrowLeft"
         ? shown - step
