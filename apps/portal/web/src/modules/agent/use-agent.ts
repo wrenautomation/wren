@@ -412,7 +412,9 @@ async function applied(
   set: (f: (s: AgentStatusInfo) => AgentStatusInfo) => void,
   base?: (e: string | undefined) => void,
 ) {
-  const g = q as unknown as { getSettings?: () => Promise<{ applied?: { effort?: string | null } }> };
+  const g = q as unknown as {
+    getSettings?: () => Promise<{ applied?: { effort?: string | null } }>;
+  };
   const a = await g.getSettings?.().catch(() => null);
   if (!a?.applied || !("effort" in a.applied)) return;
   const e = a.applied.effort ?? undefined;
