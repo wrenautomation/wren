@@ -1306,3 +1306,4 @@ autobrowse now takes one preset grammar on every search route (WA-1031): `latest
 - Options: (a) wait for Cohere; (b) a paid ear (OpenAI, Groq); (c) whisper.cpp on this Mac, already installed for studio. Took (c): free, no limit, no network, no vendor to rely on. Cohere stays the ear only where the model is not on disk.
 - 11-03, 5 real 60 s clips: turbo q5_0 20 s, 0.9 GB peak; full turbo 22 s, 1.9 GB, the same words. Took q5_0 (memory lean). 10-min clips lost half the words, and Silero VAD gave none, so 60 s clips and no VAD.
 - `speechHere(cohereKeys)` in read picks the ear; birdwatch `open`, `read` and `watch` use it. J04_XStLzP0 (23 min): 116 s, about the same text as Cohere.
+- Shared whisper-server weighed and dropped (11-03): warm, a 60 s clip still takes 4.2–4.5 s, the same as whisper-cli per call (about 4 s). The cost is inference, not the model load. A server would only queue birdwatch and wren on the GPU, and it adds a process to start and stop.
