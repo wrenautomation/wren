@@ -1,9 +1,8 @@
 /**
- * Sample data for the Wren pages that draw lists with `Rows`: Ask, made workflows, the home's
- * client health, automations, the dossier, a split's ended arms. Synthetic; the repo is public.
+ * Sample data for the Wren pages that draw lists with `Rows`: the home's client health, the
+ * dossier, a split's ended arms. Synthetic; the repo is public.
  * `rowsOf` puts hand-made rows in front of the shared records answers for one record.
  */
-import type { AutomationRow } from "@wren/core/automations";
 import type { RecordsPage } from "@wren/core/records/serve";
 import type { PageDetail } from "@wren/sites/detail";
 import type { Answers } from "../api.js";
@@ -58,60 +57,6 @@ export const detailOf = (base: Answers, record: string, detail: object): Answers
     ]),
   );
 
-export const ASK_ROWS = [
-  {
-    id: 1,
-    question: "How many replies came in this week, and from which campaign?",
-    answer:
-      "Eleven replies. Nine came from `apps/worker/src/campaigns.ts` winter run; two from the spring list.",
-    state: "answered",
-    by: "Ada North",
-    page: "/content/drafts",
-    asked: hrs(3),
-    took: 42,
-  },
-  {
-    id: 2,
-    question: "Why did the Monday digest skip Fenwick & Sons?",
-    answer: null,
-    state: "thinking",
-    by: "Bo Fenwick",
-    page: "/ask/questions",
-    asked: hrs(0.1),
-    took: null,
-  },
-  {
-    id: 3,
-    question: "Which sends bounced last night?",
-    answer: "I could not read prod: the read only login timed out.",
-    state: "failed",
-    by: "Ada North",
-    page: "/",
-    asked: hrs(26),
-    took: 9,
-  },
-];
-
-export const MADE_FLOWS = [
-  {
-    id: "wf-quote",
-    live: true,
-    draft: false,
-    nodes: 6,
-    at: hrs(72),
-    made: { name: "Quote follow-up" },
-  },
-  { id: "wf-win", live: true, draft: true, nodes: 4, at: hrs(30), made: { name: "Win-back text" } },
-  {
-    id: "wf-new",
-    live: false,
-    draft: true,
-    nodes: 3,
-    at: hrs(2),
-    made: { name: "Review request" },
-  },
-];
-
 export const HEALTH_ROWS = [
   {
     id: "acme",
@@ -145,71 +90,6 @@ export const FLAG_ROWS = [
     raised: hrs(5),
   },
 ];
-
-const auto = (r: Partial<AutomationRow> & Pick<AutomationRow, "id" | "name" | "kind" | "ref">) =>
-  ({
-    trigger: "A lead replies",
-    state: "on",
-    health: "ok",
-    runs: 12,
-    failed: 0,
-    waiting: 0,
-    lastAt: hrs(3),
-    nextAt: null,
-    error: null,
-    ...r,
-  }) as AutomationRow;
-
-/** A fresh table each story: a flip changes its row, as the server would. */
-export function automationRows(): AutomationRow[] {
-  return [
-    auto({ id: "workflow:welcome", name: "Welcome email", kind: "workflow", ref: "welcome" }),
-    auto({
-      id: "workflow:quote",
-      name: "Quote follow-up",
-      kind: "made",
-      ref: "wf-quote",
-      state: "off",
-      runs: 0,
-      lastAt: null,
-    }),
-    auto({
-      id: "workflow:win",
-      name: "Win-back text",
-      kind: "made",
-      ref: "wf-win",
-      state: "off",
-      trigger: "A lead goes quiet for 30 days",
-    }),
-    auto({
-      id: "keyword:guide",
-      name: "Comment “GUIDE” → DM",
-      kind: "keyword",
-      ref: "k1",
-      trigger: "A comment with GUIDE on Instagram",
-      health: "failing",
-      failed: 3,
-      error: "Instagram refused the DM: the account is rate limited.",
-    }),
-    auto({
-      id: "loop:mail",
-      name: "Mail sync",
-      kind: "loop",
-      ref: "mail",
-      trigger: "Every 5 minutes",
-      nextAt: hrs(-0.1),
-    }),
-    auto({
-      id: "reply:email",
-      name: "Email auto-reply",
-      kind: "reply",
-      ref: "email",
-      state: "suggest",
-      runs: null,
-      lastAt: null,
-    }),
-  ];
-}
 
 export const DOSSIER = {
   facts: [
@@ -333,51 +213,3 @@ export const ENDED_SPLIT: PageDetail = {
     call: { words: "Too early to call", kind: "too_early", leader: null, sure: [], more: 0 },
   },
 } as unknown as PageDetail;
-
-/** The root workflow as the console draws it, two steps. */
-export const DRAWN = {
-  workflow: {
-    id: "wren",
-    name: "Wren",
-    in: [],
-    out: [],
-    nodes: [
-      { id: "enrich", uses: null, name: "Read the company", note: null, ready: "ready" },
-      { id: "send", uses: null, name: "Send the first email", note: null, ready: "ready" },
-    ],
-    wires: [],
-  },
-};
-
-export const EXEC_ROWS = [
-  {
-    id: "x1",
-    title: "Ada North",
-    subject: "lead:1",
-    state: "waiting",
-    node: "send",
-    due: hrs(-5),
-    until: "reply",
-    entered: hrs(30),
-  },
-  {
-    id: "x2",
-    title: "Bo Fenwick",
-    subject: "lead:2",
-    state: "failed",
-    node: "enrich",
-    due: null,
-    until: null,
-    entered: hrs(8),
-  },
-  {
-    id: "x3",
-    title: "Cai Moreno",
-    subject: "lead:3",
-    state: "done",
-    node: "send",
-    due: null,
-    until: null,
-    entered: hrs(80),
-  },
-];

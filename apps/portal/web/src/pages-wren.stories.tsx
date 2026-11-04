@@ -5,11 +5,7 @@
  * `pnpm --filter @wren/portal storybook`.
  */
 import type { Meta } from "@storybook/react-vite";
-import { EDITS } from "@wren/ui";
 import { expect, userEvent, waitFor, within } from "storybook/test";
-import { type Answers, freshStory, refuse } from "./mocks/api.js";
-import { CANVAS_WORKFLOW, canvasAnswers } from "./mocks/data/canvas.js";
-import { ANSWERS } from "./mocks/data/index.js";
 import { ADMIN } from "./mocks/data/me.js";
 import { pageAt } from "./mocks/page.js";
 
@@ -45,130 +41,12 @@ export const LearnList = pageAt("/learn/items", {
     await expect(await within(page).findByText(/^1 selected/)).toBeVisible();
   },
 });
-export const Workflows = pageAt("/workflows", { me: ADMIN });
-
-/**
- * The workflow Canvas at `at`, on its own workflow (`mocks/data/canvas.ts`). Each story starts with
- * no draft kept on the device, so one story's typing never opens the next one's editor.
- */
-const canvasAt = (
-  at: string,
-  check: (page: HTMLElement) => Promise<void>,
-  answers: Answers = {},
-) => ({
-  ...pageAt(`/workflows/canvas?path=wren${at}`, {
-    me: ADMIN,
-    answers: { ...canvasAnswers(ANSWERS), ...answers },
-    check,
-  }),
-  beforeEach: () => {
-    freshStory();
-    EDITS.wipe();
-  },
-});
-const LONG = { timeout: 5000 };
-const ID = CANVAS_WORKFLOW.id;
-
-/** The live wiring, read only: the workflow's name, and Edit. */
-export const Canvas = canvasAt("", async (page) => {
-  const view = within(page);
-  await expect(await view.findByRole("heading", { name: "Wren" })).toBeVisible();
-  await expect(view.getByText("The built-in wiring.", { exact: false })).toBeVisible();
-  // A phone has no editor: Edit shows from 900px.
-  if (window.innerWidth > 900)
-    await expect(view.getByRole("button", { name: "Edit" })).toBeVisible();
-});
-
-/** Editing: one change shows on the bar and Undo takes it back. */
-export const CanvasEditing = canvasAt("&edit=1", async (page) => {
-  const view = within(page);
-  await expect(await view.findByText("No changes")).toBeVisible();
-  const undo = view.getByRole("button", { name: "Undo" });
-  await expect(undo).toBeDisabled();
-  await userEvent.selectOptions(view.getByLabelText("Auto-retry"), "2");
-  await expect(await view.findByText("Draft: 1 change")).toBeVisible();
-  await expect(view.getByText("Not saved")).toBeVisible();
-  await expect(undo).toBeEnabled();
-  await userEvent.click(undo);
-  await expect(await view.findByText("No changes")).toBeVisible();
-  await expect(undo).toBeDisabled();
-});
-
-/** Claude's answer waits on the canvas as a diff; Accept puts it in the draft. */
-export const CanvasProposal = canvasAt("&edit=1&ask=ask-1", async (page) => {
-  const view = within(page);
-  await expect(
-    await view.findByText("Added a follow-up 2 days after the first touch.", {}, LONG),
-  ).toBeVisible();
-  await expect(view.getByText(/^1 change on the canvas/)).toBeVisible();
-  await expect(view.getByRole("button", { name: "Publish" })).toBeDisabled();
-  await userEvent.click(view.getByRole("button", { name: "Accept" }));
-  await expect(await view.findByText("Draft: 1 change")).toBeVisible();
-  await expect(view.queryByText(/on the canvas: green added/)).toBeNull();
-  await expect(view.getByRole("button", { name: "Undo" })).toBeEnabled();
-});
-
-/** A dry run from the workflow's input: its result shows, and Close test clears it. */
-export const CanvasTested = canvasAt("&edit=1", async (page) => {
-  const view = within(page);
-  await userEvent.click(await view.findByRole("button", { name: "Test workflow" }));
-  const panel = await view.findByRole("complementary", { name: "Test workflow" });
-  await userEvent.click(within(panel).getByRole("button", { name: "Run test" }));
-  await expect(await within(panel).findByText("Result")).toBeVisible();
-  await userEvent.click(view.getByRole("button", { name: "Close test" }));
-  await expect(view.queryByRole("complementary", { name: "Test workflow" })).toBeNull();
-});
-
-/** Publish saves the change, puts it live, and closes the editor. */
-export const CanvasPublish = canvasAt("&edit=1", async (page) => {
-  const view = within(page);
-  await userEvent.selectOptions(await view.findByLabelText("Auto-retry"), "2");
-  await userEvent.click(view.getByRole("button", { name: "Publish" }));
-  await expect(await view.findByText("The built-in wiring.", { exact: false })).toBeVisible();
-  await expect(view.queryByText("Draft: 1 change")).toBeNull();
-});
-
-/** A workflow that sends asks its id typed back before it goes live. */
-export const CanvasPublishConfirm = canvasAt(
-  "&edit=1",
-  async (page) => {
-    const view = within(page);
-    await userEvent.selectOptions(await view.findByLabelText("Auto-retry"), "2");
-    await userEvent.click(view.getByRole("button", { name: "Publish" }));
-    const typed = await view.findByRole("textbox", { name: `Type ${ID} to confirm` });
-    const form = within(typed.closest("form") as HTMLElement);
-    await expect(form.getByRole("button", { name: "Publish" })).toBeDisabled();
-    await userEvent.type(typed, ID);
-    await userEvent.click(form.getByRole("button", { name: "Publish" }));
-    await expect(await view.findByText("The built-in wiring.", { exact: false })).toBeVisible();
-  },
-  {
-    "console/workflowPublish": (b: Record<string, unknown>) =>
-      b.confirm === ID ? { id: 3 } : refuse(400, `it sends email: type ${ID} to confirm`),
-  },
-);
-
-/** The workflow's read fails: the page says so with a retry. */
-export const CanvasFailed = pageAt("/workflows/canvas?path=wren", {
-  me: ADMIN,
-  mode: "fails",
-  check: async (page) => {
-    await expect(
-      await within(page).findByRole("button", { name: /retry|try again/i }),
-    ).toBeVisible();
-  },
-});
-export const Loops = pageAt("/loops", { me: ADMIN });
-export const Handlers = pageAt("/handlers", { me: ADMIN });
-export const Review = pageAt("/review", { me: ADMIN });
-export const Ask = pageAt("/ask", { me: ADMIN });
 export const Clients = pageAt("/people", { me: ADMIN });
 export const Money = pageAt("/office", { me: ADMIN });
 export const Team = pageAt("/office", { me: ADMIN });
 export const Library = pageAt("/map", { me: ADMIN });
 export const Notes = pageAt("/notes", { me: ADMIN });
 export const Calendar = pageAt("/calendar", { me: ADMIN });
-export const Marketplace = pageAt("/marketplace", { me: ADMIN });
 
 /** The group editor reads journeys: pick "A journey", then a node, now or earlier, and a status. */
 export const GroupsJourney = pageAt("/people/groups", {

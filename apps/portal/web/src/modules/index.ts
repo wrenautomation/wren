@@ -5,12 +5,10 @@
 
 import type { Module } from "../module.js";
 import { clientLearn, learn } from "./learn/index.js";
-import { marketplace, wrenMarketplace } from "./marketplace/index.js";
 import { clientNotes, notes } from "./notes/index.js";
-import { CLIENT_PLACES, TEAM_PARKED, TEAM_PLACES } from "./places.js";
+import { CLIENT_PLACES, TEAM_PLACES } from "./places.js";
 import { research } from "./research/index.js";
 import { voice } from "./voice/index.js";
-import { ask, loops, review } from "./wren/index.js";
 
 export const MODULES: Module[] = [
   // One address, two apps: a client's place in its own workspace, Wren's in Wren's.
@@ -18,10 +16,7 @@ export const MODULES: Module[] = [
   ...TEAM_PLACES,
   research,
   // Off the sidebar until phase 2 deletes them (designs/2026-11-04-portal-places.md, Removals).
-  ...[clientLearn, learn, clientNotes, notes, marketplace, wrenMarketplace, review, ask, loops].map(
-    (m) => ({ ...m, parked: true as const }),
-  ),
-  ...TEAM_PARKED,
+  ...[clientLearn, learn, clientNotes, notes].map((m) => ({ ...m, parked: true as const })),
   voice,
 ];
 

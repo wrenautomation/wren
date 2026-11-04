@@ -38,7 +38,6 @@ export const MOVED: Readonly<Record<string, string>> = {
   "/leads/overview": "/people/companies",
   "/leads/stalls": "/people/companies",
   "/library/media": "/content/media",
-  "/library/workflows": "/workflows/all",
   "/marketing/accounts": "/office/channel-accounts",
   "/marketing/ads": "/campaigns/ads",
   "/marketing/answers": "/campaigns/visits",

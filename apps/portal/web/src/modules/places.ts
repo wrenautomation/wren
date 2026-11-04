@@ -81,12 +81,6 @@ function from(m: Module, takes: readonly (string | Take)[], group?: string): Mod
   });
 }
 
-/** An old app less the pages that left it. */
-const without = (m: Module, ...ids: string[]): Module => ({
-  ...m,
-  pages: m.pages.filter((p) => !ids.includes(p.id)),
-});
-
 /** ⌘K over the old apps' finds. */
 const finds = (...ms: Module[]) => {
   const fs = ms.flatMap((m) => (m.find ? [m.find] : []));
@@ -300,11 +294,6 @@ export const TEAM_PLACES: Module[] = [
   calendar,
   officePlace,
 ];
-
-/** Wren's old apps left off the sidebar until phase 2 deletes them, less the pages that moved. */
-export const TEAM_PARKED: Module[] = [without(workflows, "holds"), without(handlers, "ai")].map(
-  (m) => ({ ...m, parked: true as const }),
-);
 
 // A client's workspace: the same places, less Research.
 

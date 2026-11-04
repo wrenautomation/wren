@@ -65,7 +65,6 @@ import { appsIn, MODULES } from "./modules/index.js";
 import { LearnBell } from "./modules/learn/bell.js";
 import { capture, makeCard, QuickNote, useQuickNoteKey } from "./modules/notes/capture.js";
 import { REACTIVATION } from "./modules/reactivation/nav.js";
-import { askClaude } from "./modules/wren/ask.js";
 import { atWrenOf, MOVED_APPS, movedTo } from "./moved.js";
 import { homeIcon, homeOf, jumps } from "./palette-items.js";
 import { PlayerHost } from "./player/index.js";
@@ -502,7 +501,7 @@ export function App() {
   const lit = open
     ? (open.module.nav?.here(route.path, route.params) ?? open.page.lights ?? open.page.id)
     : "";
-  // The team sees every app; one this client hasn't installed points at its Marketplace row.
+  // The team sees every app; one this client hasn't installed says so.
   const missing =
     !wren && open?.module.component && !installed.has(open.module.component)
       ? open.module.component
@@ -714,17 +713,7 @@ export function App() {
             {!current ? (
               <Loading lines={8} heading />
             ) : open && missing ? (
-              <Empty
-                action={
-                  <ButtonLink
-                    tone="primary"
-                    size="dense"
-                    href={`/marketplace/catalog/${encodeURIComponent(missing)}`}
-                  >
-                    Open in Marketplace
-                  </ButtonLink>
-                }
-              >
+              <Empty>
                 {open.module.name} isn't installed for {current.name}.
               </Empty>
             ) : open ? (
@@ -829,11 +818,6 @@ export function App() {
               card={noteAt ? (title) => void makeCard(noteAt, title) : undefined}
               find={finder}
               recentKey={finder ? current?.id : undefined}
-              ask={
-                me.data?.team?.wren.includes("run")
-                  ? (q) => void askClaude(q, location.pathname + location.search)
-                  : undefined
-              }
             />
           </Suspense>
         )}

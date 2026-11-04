@@ -19,9 +19,6 @@ export function Included({ client }: { client: string }) {
       {monthly > 0
         ? `Your plan includes ${n} that ${tools.length === 1 ? "costs" : "cost"} about ${usd(monthly)} a month bought separately. `
         : `Your plan includes ${n} you'd otherwise buy separately. `}
-      <a href={`/marketplace/catalog?view=installed&client=${encodeURIComponent(client)}`}>
-        See them
-      </a>
     </p>
   );
 }

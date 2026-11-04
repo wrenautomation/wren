@@ -317,3 +317,14 @@ None.
     per-app project filter is gone: Map lists every project. Before this, a client's plan sent
     `app: map` and matched no offer, so it showed empty; prod held 1 test engagement only.
   - Inbox replies check grants at `inbox` (was `marketing`, a string the type sweep missed).
+- 2026-11-04, phase 2 picks (William, on the sweep). Prod runs 8 of 75 loops; ContentPlanner is
+  the one that reads Learn.
+  - Learn keeps SOPs and their sources: items, breakdowns, `standards`, checks, `sop_sources`, the
+    film-to-SOP path. The reader half goes. To be redesigned into Birdwatch outputs or Map's brand
+    voice.
+  - Notes: only the Inbox's thread notes and @mentions stay, moved into the conversations package.
+    Docs, the `wren tasks` board (Backlog.md took its job) and the SOP-to-note step go.
+  - SearchWatch splits: the rollups (heatmaps, surveys, experiments, `site_days`) move to their own
+    loop, left stopped until the experiments phase. The SEO half goes.
+  - Stopped loops no place names (Decide, LineFeed, PainFeed, SourcedFeed, TouchFeed, PeopleMapNet,
+    SegmentsNet) stay in this pass: traced, then listed to William.

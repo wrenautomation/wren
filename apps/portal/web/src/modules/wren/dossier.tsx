@@ -29,8 +29,6 @@ interface DossierBrief {
   people: { name: string; title: string | null; origin: string; facts: BriefFact[] }[];
 }
 
-const PART = "research.dossier";
-
 /** A fact as a row: what it is, what the sheet holds, how it came, and the day. */
 function FactRows({ facts, label }: { facts: BriefFact[]; label: string }) {
   const narrow = useNarrow();
@@ -104,15 +102,7 @@ export function FirmDossier({ client, id }: { client: string; id: string }) {
       got.error.status === 404 &&
       /not installed/.test(got.error.message)
     )
-      return (
-        <p className={QUIET}>
-          Company dossier isn't installed.{" "}
-          <a href={`/marketplace/catalog/${PART}?client=${encodeURIComponent(client)}`}>
-            See it in the Shop
-          </a>
-          .
-        </p>
-      );
+      return <p className={QUIET}>Company dossier isn't installed.</p>;
     return <LoadFailed error={got.error} onRetry={got.retry} />;
   }
   if (!got.data) return <Loading shape="rows" lines={3} />;

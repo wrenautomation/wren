@@ -21,7 +21,6 @@ export const Payments = pageAt("/office");
 export const Documents = pageAt("/office");
 export const Pipelines = pageAt("/people");
 export const People = pageAt("/people");
-export const Marketplace = pageAt("/marketplace");
 export const Marketing = pageAt("/content");
 export const Sites = pageAt("/campaigns");
 export const Learn = pageAt("/learn");

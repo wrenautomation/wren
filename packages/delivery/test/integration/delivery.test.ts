@@ -769,9 +769,9 @@ describe("the project as records", () => {
     expect(ops.find((r) => String(r.body).includes("ATS export"))?.seen).toBe("team");
   });
 
-  it("only the asking app's projects, and never another client's row", async () => {
-    expect((await list(AMY, "delivery.step", { app: "campaigns" })).total).toBe(4);
-    expect((await list(AMY, "delivery.step", { app: "elsewhere" })).total).toBe(0);
+  it("every project from any place, and never another client's row", async () => {
+    expect((await list(AMY, "delivery.step", { app: "map" })).total).toBe(4);
+    expect((await list(AMY, "delivery.step", { app: "inbox" })).total).toBe(4);
     expect(
       await refused(
         api.recordsGet({ viewer: AMY, record: "delivery.deliverable", id: betaDeliverable }),

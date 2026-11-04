@@ -1,9 +1,10 @@
 /**
  * A client's record: its Templates, each with where it stands, and its Components, what it has
- * installed, each with its settings, prices left out.
+ * installed, each with its settings, prices left out. Read only: installs are the CLI's
+ * (`wren clients set`, designs/2026-11-04-portal-places.md).
  */
 import type { RecordAnswer, RecordsPage } from "@wren/core/records/serve";
-import { ButtonLink, Empty, LoadFailed, Loading, type SettingField, Settings, Tag } from "@wren/ui";
+import { Empty, LoadFailed, Loading, type SettingField, Settings, Tag } from "@wren/ui";
 import { call } from "../../api.js";
 import { useCall } from "../../load.js";
 import { LIST, QUIET } from "../work/bits.js";
@@ -23,7 +24,6 @@ async function installed(client: string) {
 
 export function ClientComponents({ client }: { client: string }) {
   const got = useCall(`installed:${client}`, () => installed(client));
-  const at = (path: string) => `/marketplace/catalog${path}?client=${encodeURIComponent(client)}`;
   if (got.error && !got.data) return <LoadFailed error={got.error} onRetry={got.retry} />;
   if (!got.data) return <Loading lines={3} />;
   return (
@@ -37,11 +37,9 @@ export function ClientComponents({ client }: { client: string }) {
             };
             return (
               <li key={row.id} className="grid gap-2">
-                <a href={at(`/${row.id}`)}>
-                  <b>{String(row.name)}</b>
-                </a>
+                <b>{String(row.name)}</b>
                 {values === null ? (
-                  <span className={QUIET}>Its settings don't parse: open it to fix them.</span>
+                  <span className={QUIET}>Its settings don't parse.</span>
                 ) : Object.keys(values ?? {}).length ? (
                   <Settings values={values} fields={form} />
                 ) : (
@@ -54,11 +52,6 @@ export function ClientComponents({ client }: { client: string }) {
       ) : (
         <Empty>Nothing installed.</Empty>
       )}
-      <div>
-        <ButtonLink href={`${at("")}&type=part&ready=ready`} size="sm" tone="quiet" arrow>
-          Install
-        </ButtonLink>
-      </div>
     </div>
   );
 }
@@ -87,7 +80,6 @@ export function ClientTemplates({ client }: { client: string }) {
   const got = useCall(`templates:${client}`, () =>
     call<InstalledTemplate[]>("console/templateInstalls", { client }),
   );
-  const at = (path: string) => `/marketplace/catalog${path}?client=${encodeURIComponent(client)}`;
   if (got.error && !got.data) return <LoadFailed error={got.error} onRetry={got.retry} />;
   if (!got.data) return <Loading lines={2} />;
   return (
@@ -97,16 +89,14 @@ export function ClientTemplates({ client }: { client: string }) {
           {got.data.map((t) => (
             <li key={t.template} className="grid gap-1">
               <span className="flex items-center justify-between gap-3">
-                <a href={at(`/${t.template}`)} className="min-w-0">
-                  <b>{t.name}</b>
-                </a>
+                <b className="min-w-0">{t.name}</b>
                 <Tag tone={STATE[t.state].tone}>{STATE[t.state].label}</Tag>
               </span>
               <span className={QUIET}>
                 {t.state === "off"
                   ? `Uninstalled ${day(t.at)}. Data and copy kept.`
                   : `${t.parts} ${t.parts === 1 ? "part" : "parts"}, installed ${day(t.at)}.`}
-                {t.current || t.state === "off" ? "" : " The template changed: open it to update."}
+                {t.current || t.state === "off" ? "" : " The template changed since."}
               </span>
             </li>
           ))}
@@ -114,11 +104,6 @@ export function ClientTemplates({ client }: { client: string }) {
       ) : (
         <Empty>No templates yet.</Empty>
       )}
-      <div>
-        <ButtonLink href={`${at("")}&type=template`} size="sm" tone="quiet" arrow>
-          Templates
-        </ButtonLink>
-      </div>
     </div>
   );
 }

@@ -53,14 +53,9 @@ const DAYS = [
 
 export function Agent(_: PageProps) {
   const got = useAgent();
-  const settingsLink = `/loops/settings?q=${encodeURIComponent("Voice agent")}`;
   return (
     <>
-      <PageHeader
-        title="Agent"
-        lede="Who answers the phone, what it says and what it may do."
-        actions={<a href={settingsLink}>Change in Settings</a>}
-      />
+      <PageHeader title="Agent" lede="Who answers the phone, what it says and what it may do." />
       <InDevelopment>
         No phone number or voice yet. Picking those, and the numbers behind them, comes at setup.
         Until then, try the agent on a test call.

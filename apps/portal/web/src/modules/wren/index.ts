@@ -11,27 +11,20 @@ import type { Module } from "../../module.js";
 import { inboxPages, managePages } from "../access/index.js";
 import { PersonAccess } from "../access/PersonAccess.js";
 import { Domain } from "../account/Domain.js";
+import { ClientComponents, ClientTemplates } from "../account/Installed.js";
 import { ClientLook } from "../account/Look.js";
 import { People } from "../account/People.js";
 import { ClientAccounts, VendorUsage } from "../account/summary.js";
 import { pipelinesAt } from "../deals/id.js";
 import { INBOX_QUEUES, queueLate } from "../inbox-queues.js";
 import { CONVERSATION_TOP, DONE_PAGE, MARKETING_PAGES } from "../marketing/index.js";
-import { ClientComponents, ClientTemplates } from "../marketplace/Installed.js";
-import { Agents } from "./Agents.js";
-import { Ask } from "./ask.js";
-import { Automations, NewAutomation } from "./automations.js";
 import { CREDIT_ACTIONS } from "./credits.js";
 import { FirmDossier } from "./dossier.js";
-import { executionExtras } from "./executions.js";
-import { FLAG_ACTIONS } from "./flags.js";
 import { AiSpend, idOf } from "./heads.js";
 import { CLIENT_FLAG_ACTIONS, ClientHealth, HEALTH_ACTIONS, healthExtras } from "./health.js";
-import { Infra } from "./infra.js";
 import { MENTION_ACTIONS, mentionExtras } from "./mentions.js";
 import { MoneyOverview } from "./money.js";
 import { REPLY_ACTIONS, REPLY_WAITING } from "./replies.js";
-import { Workflows } from "./workflows.js";
 
 const TEAM = { audience: "team" } as const;
 const overview = { id: "overview", label: "Overview", template: "overview" } as const;
@@ -133,28 +126,6 @@ const CLIENT_ACTIONS: Action[] = [
     ],
     when: { kind: ["client"] },
     done: () => "Invited",
-  },
-];
-
-const LOOP_ACTIONS: Action[] = [
-  {
-    id: "console.stopLoop",
-    label: "Stop",
-    handler: "console/stopLoop",
-    undo: "console/startLoop",
-    bulk: true,
-    when: { state: ["running"] },
-    done: said("Stopped"),
-  },
-  {
-    id: "console.startLoop",
-    label: "Start",
-    icon: "play",
-    handler: "console/startLoop",
-    undo: "console/stopLoop",
-    bulk: true,
-    when: { state: ["stopped"] },
-    done: said("Started"),
   },
 ];
 
@@ -524,70 +495,6 @@ export const inbox: Module = {
       // Counted for Today's moves (Reply: name), though the tab hides.
       count: REPLY_WAITING,
     },
-  ],
-};
-
-export const loops: Module = {
-  id: "loops",
-  name: "Loops",
-  icon: "cycle",
-  blurb: "Every scheduled job, which ones fail, and Wren's own settings.",
-  requires: TEAM,
-  pages: [
-    {
-      ...overview,
-      about: "Everything that runs on its own, and whether it's healthy.",
-      tiles: [
-        { label: "Failing", record: "console.loop", href: "/loops/all?view=failing", needs: true },
-        { label: "Stopped", record: "console.loop", href: "/loops/all?view=stopped" },
-        { label: "Running", record: "console.loop", href: "/loops/all?view=all&state=running" },
-      ],
-      top: [
-        {
-          label: "Failing",
-          record: "console.loop",
-          href: "/loops/all?view=failing",
-          fields: ["failures", "lastAt"],
-          empty: "Nothing is failing.",
-        },
-      ],
-    },
-    {
-      id: "agents",
-      label: "Agents",
-      about: "Everything that runs for Wren, by department.",
-      Page: Agents,
-      wide: true,
-    },
-    {
-      id: "all",
-      label: "Loops",
-      about: "Every loop, and whether it's running or failing.",
-      template: "list",
-      record: "console.loop",
-      empty: { failing: "Nothing is failing.", stopped: "Every loop is running." },
-      actions: LOOP_ACTIONS,
-    },
-    {
-      // Each edits in place with History and Undo (`console.setting`); saving needs `manage`.
-      id: "settings",
-      label: "Settings",
-      about: "Settings for the parts that run for Wren.",
-      template: "list",
-      record: "console.setting",
-      empty: { all: "No part that runs for Wren has settings." },
-    },
-    {
-      // Rules, fallback and the kill switch edit in place, with History and Undo.
-      id: "flags",
-      label: "Flags",
-      about: "Switches the code reads to turn a feature on or off.",
-      template: "list",
-      record: "loops.flag",
-      empty: { all: "No flags yet. New flag adds one; code reads it with useFlag." },
-      actions: FLAG_ACTIONS,
-    },
-    { id: "infra", label: "Infra", about: "Every host, and what calls what.", Page: Infra },
   ],
 };
 
@@ -980,75 +887,6 @@ export const team: Module = {
   ],
 };
 
-/** The Friday review: each parked idea and whether what unparks it happened. */
-export const review: Module = {
-  id: "review",
-  name: "Review",
-  icon: "check",
-  blurb: "Every parked idea, what unparks it, and a live check. Read it on Fridays.",
-  requires: { ...TEAM, needs: "money" },
-  pages: [
-    {
-      ...overview,
-      about: "Parked ideas that need a look, read on Fridays.",
-      tiles: [
-        {
-          label: "Needs a look",
-          record: "wren.parked",
-          href: "/review/parked?view=look",
-          needs: true,
-        },
-        { label: "You judge", record: "wren.parked", href: "/review/parked?view=manual" },
-      ],
-      top: [
-        {
-          label: "Needs a look",
-          record: "wren.parked",
-          href: "/review/parked?view=look",
-          fields: ["state", "now"],
-          empty: "No trigger fired.",
-        },
-      ],
-    },
-    {
-      id: "parked",
-      label: "Parked",
-      about: "Ideas we parked, and what would bring each one back.",
-      template: "list",
-      record: "wren.parked",
-      empty: { look: "No trigger fired.", manual: "Nothing to judge by hand." },
-    },
-  ],
-};
-
-/** Many failed runs again at once, up to 200: each failed step behind them runs again. */
-const REPLAY: Action = {
-  id: "console.replay",
-  label: "Replay",
-  icon: "retry",
-  handler: "console/replay",
-  bulk: true,
-  when: { state: ["failed"] },
-  confirm: "Run the failed steps again? They may send.",
-  done: (a) => {
-    const n = (a as { replayed?: number }).replayed ?? 0;
-    return `Replaying ${n} step${n === 1 ? "" : "s"}`;
-  },
-};
-
-/** A failed step, again: the answer is the executor's tally for that one event. */
-const EVENT_ACTIONS: Action[] = [
-  {
-    id: "console.retryEvent",
-    label: "Retry",
-    icon: "retry",
-    handler: "console/retryEvent",
-    when: { state: ["failed"] },
-    done: (a) => ((a as { failed?: number }).failed ? "Failed again" : "Ran again"),
-  },
-  REPLAY,
-];
-
 /** A hold let go: the unit runs again on the stage's next pass, or the source resumes. */
 const HOLD_ACTIONS: Action[] = [
   {
@@ -1061,64 +899,14 @@ const HOLD_ACTIONS: Action[] = [
   },
 ];
 
-/** Wren's business as its workflows, read only, with live numbers. */
+/** Holds: the one page left of the Workflows app, shown in Inbox (`../places.ts`). */
 export const workflows: Module = {
   id: "workflows",
   name: "Workflows",
   icon: "bolt",
-  blurb: "How Wren wins clients and runs, drawn with live numbers.",
+  blurb: "Work a check held back.",
   requires: TEAM,
   pages: [
-    {
-      id: "all",
-      label: "All",
-      about: "Everything that runs on its own: what starts it, how it went, its switch.",
-      Page: Automations,
-      wide: true,
-    },
-    {
-      id: "new",
-      label: "New",
-      about: "Start from a template, describe one, or start blank.",
-      Page: NewAutomation,
-    },
-    {
-      id: "canvas",
-      label: "Canvas",
-      about: "Every workflow as it's wired, with its numbers.",
-      Page: Workflows,
-    },
-    {
-      id: "runs",
-      label: "Executions",
-      about: "Each person's path through a workflow, and where they are now.",
-      template: "list",
-      record: "console.execution",
-      requires: { ...TEAM, needs: "read" },
-      empty: {
-        all: "Nothing has run through a workflow on the executor yet.",
-        waiting: "Nothing is waiting.",
-        failed: "Nothing has failed.",
-        done: "Nothing has finished yet.",
-      },
-      extras: executionExtras,
-      actions: [REPLAY],
-    },
-    {
-      id: "events",
-      label: "Events",
-      // Executions shows the same steps per person, with the failures first.
-      hidden: true,
-      about: "Workflow steps that failed, and why.",
-      template: "list",
-      record: "console.event",
-      empty: {
-        failed: "No step has failed.",
-        waiting: "Nothing is waiting on a wire.",
-        all: "Nothing has entered a workflow yet.",
-      },
-      actions: EVENT_ACTIONS,
-    },
     {
       id: "holds",
       label: "Holds",
@@ -1127,30 +915,6 @@ export const workflows: Module = {
       record: "console.hold",
       empty: { open: "Nothing is held.", all: "Nothing was ever held." },
       actions: HOLD_ACTIONS,
-    },
-    {
-      id: "checks",
-      label: "Checks",
-      about: "How often each check passes, by stage and source.",
-      template: "list",
-      record: "console.check",
-      empty: { all: "No check has run in 30 days." },
-    },
-  ],
-};
-
-export const ask: Module = {
-  id: "ask",
-  name: "Ask",
-  icon: "sparkle",
-  blurb: "Ask Claude Code about the system. It reads the code and prod; it changes nothing.",
-  requires: { ...TEAM, needs: "run" },
-  pages: [
-    {
-      id: "questions",
-      label: "Questions",
-      about: "Answers from the code, the designs and prod.",
-      Page: Ask,
     },
   ],
 };
