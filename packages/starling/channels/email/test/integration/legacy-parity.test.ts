@@ -52,6 +52,8 @@ const ADDED = {
     "documents.html_key",
     "documents.tel_hrefs",
     "companies.linkedin_url",
+    // 2026-11-04 at least once: claims per message, one resend of a lost send.
+    "messages.tries",
     // 2026-10-05: email on the executor, follow-ups held for their touch.
     "messages.held",
     "messages.released_at",
