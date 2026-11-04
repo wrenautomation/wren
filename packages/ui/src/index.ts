@@ -35,6 +35,7 @@ export {
   AgentStatus,
   type AgentStatusInfo,
   type AgentTask,
+  type AgentTaskOutput,
   AgentTasks,
   type PickOption,
 } from "./agent-picks.js";

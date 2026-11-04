@@ -40,13 +40,21 @@ export const ownerOf = (who: Who | undefined): boolean =>
   !!who && "team" in who && who.team === "admin";
 
 const EFFORT: readonly PickOption[] = [
-  { value: "", label: "Auto effort", hint: "The model's own level" },
   { value: "low", label: "Low", hint: "Fastest, fewest tokens" },
   { value: "medium", label: "Medium" },
   { value: "high", label: "High" },
   { value: "xhigh", label: "Extra high" },
   { value: "max", label: "Max", hint: "Slowest, most thorough" },
 ];
+
+/** No pick runs the model's default; it shows by name, as the CLI applies it, never "auto". */
+function effortOptions(now: string | undefined): readonly PickOption[] {
+  const name = EFFORT.find((o) => o.value === now)?.label;
+  return [
+    { value: "", label: name ? `${name} · default` : "Default", hint: "The model's own level" },
+    ...EFFORT,
+  ];
+}
 
 const MODES: readonly (PickOption & { owner?: boolean })[] = [
   { value: "default", label: "Ask first", hint: "Asks before a tool the setup does not allow" },
@@ -266,7 +274,7 @@ export function AgentChat({
             <AgentPick
               label="Effort"
               value={picks.effort}
-              options={EFFORT}
+              options={effortOptions(a.baseEffort)}
               onChange={(effort) => picks.set({ effort })}
             />
             {setup.mode ? null : (
@@ -280,7 +288,7 @@ export function AgentChat({
           </>
         }
         welcome={w ?? { title: `Ask ${setup.title}` }}
-        above={<AgentTasks tasks={a.tasks} onStop={a.stopTask} />}
+        above={<AgentTasks tasks={a.tasks} onStop={a.stopTask} onOutput={a.taskOutput} />}
         commands={a.commands}
         note={
           a.status.model ? (

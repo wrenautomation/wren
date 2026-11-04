@@ -5,8 +5,8 @@
  */
 import { ComposerPrimitive, type TriggerAdapter, type TriggerMatcher } from "@assistant-ui/react";
 import { cn } from "cn";
-import { useMemo } from "react";
-import { took, useElapsed } from "./agent-steps.js";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Fold, tokens, took, useElapsed } from "./agent-steps.js";
 import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover.js";
 import { tipProps } from "./hint.js";
 import { useHoverPop } from "./hover-pop.js";
@@ -42,7 +42,7 @@ export function AgentPick({
         {...pop.trigger}
         aria-label={`${label}: ${on?.label ?? value}`}
         className={cn(
-          "inline-flex h-8 pointer-coarse:h-11 min-w-0 flex-none items-center gap-1 rounded-full border-0 bg-transparent px-2 text-[12.5px] text-(--ui-ink-2) transition-colors duration-150 hover:bg-(--ui-fill) hover:text-(--ui-ink)",
+          "inline-flex h-8 pointer-coarse:h-11 min-w-0 flex-none items-center gap-1 rounded-full border-0 bg-transparent px-2 text-[12.5px] text-(--ui-ink-2) transition-colors duration-150 hover:bg-(--ui-fill) hover:text-(--ui-ink) data-popup-open:bg-(--ui-wash) data-popup-open:text-(--ui-active)",
           on?.warn && "text-(--ui-warn-ink)",
         )}
       >
@@ -77,7 +77,9 @@ export function AgentPick({
                 </span>
                 {o.hint ? <span className="text-[12px] text-(--ui-ink-3)">{o.hint}</span> : null}
               </span>
-              {o.value === value ? <Icon name="check" size={14} className="mt-0.5" /> : null}
+              {o.value === value ? (
+                <Icon name="check" size={14} className="mt-0.5 text-(--ui-active)" />
+              ) : null}
             </button>
           ))}
         </div>
@@ -147,34 +149,83 @@ export interface AgentTask {
   started: number;
   /** The last progress line, when the task sends one. */
   summary?: string | undefined;
+  /** A subagent's use so far, from its progress events. */
+  tokens?: number | undefined;
+  uses?: number | undefined;
 }
 
-const KIND: Record<
-  string,
-  { icon: "terminal" | "eye" | "bot" | "pulse"; name: string; cls: string }
-> = {
-  local_bash: { icon: "terminal", name: "Shell", cls: "text-(--ui-warn-ink)" },
-  monitor: { icon: "eye", name: "Monitor", cls: "text-(--ui-good-ink)" },
-  local_agent: { icon: "bot", name: "Agent", cls: "text-(--ui-ink-2)" },
-};
-const kindOf = (t: string) =>
-  KIND[t] ?? { icon: "pulse" as const, name: "Task", cls: "text-(--ui-ink-2)" };
+/** The end of a shell's or Monitor's output: the CLI keeps the last 8 KB. */
+export interface AgentTaskOutput {
+  output: string;
+  /** Size of the whole output. */
+  bytes: number;
+  truncated: boolean;
+}
 
-function TaskChip({ task, onStop }: { task: AgentTask; onStop: (id: string) => void }) {
+const PRINTS = new Set(["local_bash", "monitor"]);
+// CLI hands raw terminal bytes: colors and cursor moves out (strip-ansi's regex, no dep)
+// biome-ignore lint/suspicious/noControlCharactersInRegex: matching ESC and BEL is the point
+const ESC = /\u001b(?:\[[0-?]*[ -/]*[@-~]|\][^\u0007]*\u0007|.)/g;
+
+const KIND: Record<string, { icon: "terminal" | "eye" | "bot" | "pulse"; name: string }> = {
+  local_bash: { icon: "terminal", name: "Shell" },
+  monitor: { icon: "eye", name: "Monitor" },
+  local_agent: { icon: "bot", name: "Agent" },
+};
+const kindOf = (t: string) => KIND[t] ?? { icon: "pulse" as const, name: "Task" };
+
+function TaskChip({
+  task,
+  onStop,
+  shown,
+  onShow,
+}: {
+  task: AgentTask;
+  onStop: (id: string) => void;
+  shown: boolean;
+  /** Only shells and Monitors: they print. */
+  onShow?: (() => void) | undefined;
+}) {
   const ms = useElapsed(true, task.started);
   const k = kindOf(task.type);
+  const name = (
+    <>
+      {task.description}
+      {task.summary ? <span className="text-(--ui-ink-3)"> · {task.summary}</span> : null}
+    </>
+  );
   return (
-    <li className="flex min-h-8 max-w-full items-center gap-2 rounded-[10px] bg-(--ui-paper) py-1 pr-1 pl-2.5 text-[12.5px] shadow-[inset_0_0_0_1px_var(--ui-hair)] [animation:ui-fade_.2s_both]">
+    <li
+      className={cn(
+        "flex min-h-8 max-w-full items-center gap-2 rounded-[10px] bg-(--ui-wash) py-1 pr-1 pl-2.5 text-[12.5px] shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--ui-active)_18%,transparent)] transition-shadow duration-200 [animation:ui-fade_.2s_both]",
+        shown && "shadow-[inset_0_0_0_1px_var(--ui-active)]",
+      )}
+    >
       <span className="relative grid size-4 flex-none place-items-center">
-        <Icon name={k.icon} size={14} className={k.cls} aria-label={k.name} />
+        <Icon name={k.icon} size={14} className="text-(--ui-active)" aria-label={k.name} />
       </span>
-      <span className="min-w-0 wrap-anywhere text-(--ui-ink)">
-        {task.description}
-        {task.summary ? <span className="text-(--ui-ink-3)"> · {task.summary}</span> : null}
-      </span>
-      {task.started ? (
+      {onShow ? (
+        <button
+          type="button"
+          aria-expanded={shown}
+          {...tipProps(shown ? "Hide output" : "Show output")}
+          onClick={onShow}
+          className="min-w-0 wrap-anywhere text-left text-(--ui-ink) hover:underline hover:decoration-(--ui-ink-3) hover:underline-offset-2"
+        >
+          {name}
+        </button>
+      ) : (
+        <span className="min-w-0 wrap-anywhere text-(--ui-ink)">{name}</span>
+      )}
+      {task.started || task.tokens ? (
         <span className="flex-none font-mono text-[11.5px] text-(--ui-ink-3) tabular-nums">
-          {took(ms)}
+          {[
+            task.tokens ? `${tokens(task.tokens)} tokens` : "",
+            task.uses ? `${task.uses} ${task.uses === 1 ? "tool" : "tools"}` : "",
+            task.started ? took(ms) : "",
+          ]
+            .filter(Boolean)
+            .join(" · ")}
         </span>
       ) : null}
       <button
@@ -194,19 +245,110 @@ function TaskChip({ task, onStop }: { task: AgentTask; onStop: (id: string) => v
 export function AgentTasks({
   tasks,
   onStop,
+  onOutput,
 }: {
   tasks: readonly AgentTask[];
   onStop: (id: string) => void;
+  /** Reads a shell's or Monitor's output; without it the chips do not open. */
+  onOutput?: ((id: string) => Promise<AgentTaskOutput>) | undefined;
 }) {
+  const [shown, setShown] = useState<string | null>(null);
+  const open = tasks.find((t) => t.id === shown);
   if (!tasks.length) return null;
   return (
-    <ul aria-label="Background tasks" className="m-0 mb-2 flex list-none flex-wrap gap-1.5 p-0">
-      {tasks.map((t) => (
-        <TaskChip key={t.id} task={t} onStop={onStop} />
-      ))}
-    </ul>
+    <div className="mb-2 grid gap-1.5">
+      <ul aria-label="Background tasks" className="m-0 flex list-none flex-wrap gap-1.5 p-0">
+        {tasks.map((t) => (
+          <TaskChip
+            key={t.id}
+            task={t}
+            onStop={onStop}
+            shown={t.id === shown}
+            onShow={
+              onOutput && PRINTS.has(t.type)
+                ? () => setShown(t.id === shown ? null : t.id)
+                : undefined
+            }
+          />
+        ))}
+      </ul>
+      <Fold open={!!open && !!onOutput}>
+        {open && onOutput ? <TaskOutput key={open.id} task={open} read={onOutput} /> : null}
+      </Fold>
+    </div>
   );
 }
+
+/** The open task's output, read each second while it shows; stays at the end unless scrolled up. */
+function TaskOutput({
+  task,
+  read,
+}: {
+  task: AgentTask;
+  read: (id: string) => Promise<AgentTaskOutput>;
+}) {
+  const [out, setOut] = useState<AgentTaskOutput | null>(null);
+  const [bad, setBad] = useState(false);
+  const box = useRef<HTMLPreElement>(null);
+  const pinned = useRef(true);
+  const reader = useRef(read);
+  reader.current = read; // the hook's function is new each render: read the latest, poll once
+  useEffect(() => {
+    let on = true;
+    const tick = () =>
+      reader.current(task.id).then(
+        (o) => {
+          if (!on) return;
+          setOut(o);
+          setBad(false);
+        },
+        () => on && setBad(true),
+      );
+    void tick();
+    const t = setInterval(tick, 1000);
+    return () => {
+      on = false;
+      clearInterval(t);
+    };
+  }, [task.id]);
+  const text = out?.output.replace(ESC, "").trimEnd() ?? "";
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs when the text grows
+  useLayoutEffect(() => {
+    const el = box.current;
+    if (el && pinned.current) el.scrollTop = el.scrollHeight;
+  }, [text]);
+  return (
+    <section
+      aria-label={`Output of ${task.description}`}
+      className="grid overflow-hidden rounded-[10px] bg-(--ui-term) font-mono text-[12px]/[1.6] text-(--ui-term-ink) shadow-[inset_0_0_0_1px_var(--ui-hair)]"
+    >
+      {out?.truncated ? (
+        <p className="m-0 px-3 pt-2 text-[11.5px] text-(--ui-term-dim)">
+          Last 8 KB of {kb(out.bytes)}
+        </p>
+      ) : null}
+      <pre
+        ref={box}
+        onScroll={(e) => {
+          const el = e.currentTarget;
+          pinned.current = el.scrollHeight - el.scrollTop - el.clientHeight < 24;
+        }}
+        className="m-0 max-h-60 overflow-auto px-3 py-2 whitespace-pre-wrap [overflow-wrap:anywhere]"
+      >
+        {text ? (
+          text
+        ) : (
+          <span className="text-(--ui-term-dim)">
+            {bad ? "Output not available." : out ? "No output yet." : "Reading output."}
+          </span>
+        )}
+      </pre>
+    </section>
+  );
+}
+
+const kb = (n: number) =>
+  n < 1024 * 1024 ? `${Math.round(n / 1024)} KB` : `${(n / 1024 / 1024).toFixed(1)} MB`;
 
 /** A slash command or skill the session offers (the CLI's init list). */
 export interface AgentCommand {

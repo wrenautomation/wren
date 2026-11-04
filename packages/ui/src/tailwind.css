@@ -1117,7 +1117,7 @@ html[data-morph="cards"]::view-transition-new(*) {
       90deg,
       var(--ui-ink-2) 0%,
       var(--ui-ink-2) 40%,
-      var(--ui-ink) 50%,
+      var(--ui-active) 50%,
       var(--ui-ink-2) 60%,
       var(--ui-ink-2) 100%
     )

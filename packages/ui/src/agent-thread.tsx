@@ -20,6 +20,7 @@ import {
   ThreadPrimitive,
   useAuiState,
   useExternalStoreRuntime,
+  useSmooth,
 } from "@assistant-ui/react";
 import { type ReactNode, useMemo, useRef } from "react";
 import { Streamdown } from "streamdown";
@@ -72,6 +73,10 @@ export type AgentPart =
       /** Epoch ms: the call began, its result landed. */
       startedAt?: number | undefined;
       completedAt?: number | undefined;
+      /** What the call cost: a subagent's own count, or how much a skill grew the context. */
+      tokens?: number | undefined;
+      /** A subagent's tool calls. */
+      uses?: number | undefined;
     };
 
 /** One of AskUserQuestion's questions: 2-4 options; "Something else" is always offered. */
@@ -213,6 +218,7 @@ export function threadMessage(m: AgentMessage): ThreadMessageLike {
                       }
                     : {}),
                   ...(p.result !== undefined ? { result: p.result, isError: !!p.failed } : {}),
+                  ...(p.tokens || p.uses ? { artifact: { tokens: p.tokens, uses: p.uses } } : {}),
                   ...(p.ask
                     ? {
                         approval: {
@@ -644,24 +650,32 @@ function ReplyTurn() {
   );
 }
 
+/** words fade in as they land; useSmooth evens the network's bursts into a steady rate */
+const WORDS = { animation: "fadeIn", duration: 220, sep: "word" } as const;
+
 /** Artifact 14 "Stream": words as they come, a lavender caret while live. */
-const Reply: TextMessagePartComponent = ({ text, status }) => (
-  <>
-    <div
-      data-live={status.type === "running" ? "" : undefined}
-      className="ui-agent-text min-w-0 text-[14.5px]/[1.6] text-(--ui-ink) [overflow-wrap:anywhere]"
-    >
-      <Streamdown
-        mode={status.type === "running" ? "streaming" : "static"}
-        isAnimating={status.type === "running"}
-        controls={{ code: true, table: false, mermaid: false }}
+const Reply: TextMessagePartComponent = (part) => {
+  const { text, status } = useSmooth(part, true);
+  const live = status.type === "running";
+  return (
+    <>
+      <div
+        data-live={live ? "" : undefined}
+        className="ui-agent-text min-w-0 text-[14.5px]/[1.6] text-(--ui-ink) [overflow-wrap:anywhere]"
       >
-        {text}
-      </Streamdown>
-    </div>
-    {status.type === "running" ? null : <FilePreviews text={text} />}
-  </>
-);
+        <Streamdown
+          mode={live ? "streaming" : "static"}
+          isAnimating={live}
+          animated={live ? WORDS : false}
+          controls={{ code: true, table: false, mermaid: false }}
+        >
+          {text}
+        </Streamdown>
+      </div>
+      {live ? null : <FilePreviews text={text} />}
+    </>
+  );
+};
 
 /** Thinking folds away; a signed-only block (no words) shows only while it runs. */
 const Thinking: ReasoningMessagePartComponent = ({ text, status }) => {
@@ -750,12 +764,17 @@ function Ended() {
   const from = useAuiState((s) => s.message.createdAt?.getTime() ?? 0);
   if (live || !custom || !parts.some((x) => x.type === "tool-call")) return null;
   const ms = custom.foot?.ms || spanOf(parts, from);
+  // done is quiet, as in chat UIs: a gray line, no mark; stopped and failed keep theirs
+  if (custom.state !== "stopped" && custom.state !== "failed")
+    return (
+      <div className="flex min-h-7 items-center text-[13px] text-(--ui-ink-3) [animation:ui-fade_.25s_both]">
+        {ms ? `Worked for ${took(ms)}` : "Done"}
+      </div>
+    );
   const [icon, tone, word] =
     custom.state === "stopped"
       ? (["stop", "text-(--ui-ink-3)", "Stopped"] as const)
-      : custom.state === "failed"
-        ? (["xCircle", "text-(--ui-bad)", "Failed"] as const)
-        : (["checkCircle", "text-(--ui-good)", "Done"] as const);
+      : (["xCircle", "text-(--ui-bad)", "Failed"] as const);
   return (
     <div className="flex min-h-7 items-center gap-2.5 text-[13.5px] text-(--ui-ink) [animation:ui-fade_.25s_both]">
       <Icon name={icon} size={15} className={cx("flex-none", tone)} />
@@ -893,7 +912,7 @@ function Composer({
           ) : (
             <ComposerPrimitive.Send
               aria-label="Send"
-              className="grid size-8 flex-none place-items-center rounded-full bg-(--ui-ink) text-(--ui-paper) [animation:ui-fade_.15s_both] hover:opacity-90 disabled:bg-(--ui-fill) disabled:text-(--ui-ink-3)"
+              className="grid size-8 flex-none place-items-center rounded-full bg-(--ui-primary) text-(--ui-on-accent) [animation:ui-fade_.15s_both] hover:opacity-90 disabled:bg-(--ui-fill) disabled:text-(--ui-ink-3)"
             >
               <Icon name="arrowUp" size={16} />
             </ComposerPrimitive.Send>

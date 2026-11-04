@@ -9,6 +9,7 @@ import {
   type AgentSent,
   type AgentStatusInfo,
   type AgentTask,
+  type AgentTaskOutput,
   useLoad,
 } from "@wren/ui";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -66,9 +67,13 @@ export interface AgentChat {
   plan: boolean | undefined;
   /** The terminal's status line: from init, then context and plan limits after each turn. */
   status: AgentStatusInfo;
+  /** The model's default effort, as the CLI applies it with no pick. */
+  baseEffort: string | undefined;
   /** Live background shells, Monitors and subagents; empty once the socket closes. */
   tasks: readonly AgentTask[];
   stopTask: (id: string) => void;
+  /** A shell's or Monitor's last 8 KB; rejects when the socket is closed. */
+  taskOutput: (id: string) => Promise<AgentTaskOutput>;
   /** What `/` lists: the session's commands and skills. */
   commands: readonly AgentCommand[];
   /** `page` names the page the turn is sent from; the thread shows it under the turn. */
@@ -97,6 +102,8 @@ export function useAgent(o: {
   const [error, setError] = useState<AgentChat["error"]>(null);
   const live = useRef<Live | null>(null);
   const [status, setStatus] = useState<AgentStatusInfo>({});
+  // the model's own effort, seen while no effort is picked
+  const [baseEffort, setBaseEffort] = useState<string | undefined>();
   const [tasks, setTasks] = useState<readonly AgentTask[]>([]);
   const [commands, setCommands] = useState(() => COMMANDS.get(o.setup) ?? []);
   const learned = useCallback(
@@ -170,7 +177,12 @@ export function useAgent(o: {
 
   // the model picked mid-chat goes to the live session at once
   useEffect(() => {
-    if (o.model) void live.current?.q.setModel(o.model).catch(() => {});
+    const q = live.current?.q;
+    if (o.model && q)
+      void q
+        .setModel(o.model)
+        .then(() => applied(q, setStatus, picks.current.effort ? undefined : setBaseEffort))
+        .catch(() => {});
   }, [o.model]);
   useEffect(() => {
     // read-ok: a control call to the open session, not a data read
@@ -179,7 +191,7 @@ export function useAgent(o: {
     // unset: back to the model's own level
     void q
       .applyFlagSettings({ effortLevel: (o.effort ?? null) as "high" | null })
-      .then(() => setStatus((s) => ({ ...s, effort: o.effort })))
+      .then(() => applied(q, setStatus, picks.current.effort ? undefined : setBaseEffort))
       .catch(() => {});
   }, [o.effort]);
   useEffect(() => {
@@ -230,6 +242,7 @@ export function useAgent(o: {
             if (m.type === "system" && m.subtype === "init") {
               const effort = (m as { effort?: string | null }).effort;
               setStatus((s) => ({ ...s, model: m.model, effort: effort ?? s.effort }));
+              void applied(q, setStatus, picks.current.effort ? undefined : setBaseEffort);
               void q
                 .supportedCommands()
                 .then((c) => learned(commandsOf(c)))
@@ -327,8 +340,16 @@ export function useAgent(o: {
     session: s.session ?? o.session ?? undefined,
     plan: s.plan,
     status,
+    baseEffort,
     tasks,
     stopTask: (id: string) => void live.current?.q.stopTask(id).catch(() => {}),
+    taskOutput: async (id: string) => {
+      // SDK 0.3.318: on Query at runtime, not yet in its types
+      const q = live.current?.q as unknown as { getTaskOutput?: (id: string) => Promise<TaskOut> };
+      if (!q?.getTaskOutput) throw new Error("not connected");
+      const o = await q.getTaskOutput(id);
+      return { output: o.output, bytes: o.total_bytes, truncated: o.truncated };
+    },
     commands,
     send,
     ready,
@@ -336,6 +357,8 @@ export function useAgent(o: {
     answer,
   };
 }
+
+type TaskOut = { output: string; total_bytes: number; truncated: boolean };
 
 /**
  * `background_tasks_changed` is the live set (replace it); `task_started` gives a start time and
@@ -359,12 +382,42 @@ function taskFold(t: readonly AgentTask[], m: { subtype: string } & Record<strin
           description: x.description,
           started: had?.started ?? Date.now(),
           summary: had?.summary,
+          tokens: had?.tokens,
+          uses: had?.uses,
         };
       });
   }
-  if (m.subtype === "task_progress" && typeof m.summary === "string")
-    return t.map((o) => (o.id === m.task_id ? { ...o, summary: m.summary as string } : o));
+  if (m.subtype === "task_progress") {
+    const u = m.usage as { total_tokens?: number; tool_uses?: number } | undefined;
+    return t.map((o) =>
+      o.id === m.task_id
+        ? {
+            ...o,
+            ...(typeof m.summary === "string" ? { summary: m.summary } : {}),
+            ...(u?.total_tokens ? { tokens: u.total_tokens } : {}),
+            ...(u?.tool_uses ? { uses: u.tool_uses } : {}),
+          }
+        : o,
+    );
+  }
   return t;
+}
+
+/**
+ * The effort the CLI sends for the model now: the pick, else the model's default (Sonnet and Opus
+ * high, Haiku medium on 2.1.318). `getSettings` is on Query at runtime, not yet in its types.
+ */
+async function applied(
+  q: Query,
+  set: (f: (s: AgentStatusInfo) => AgentStatusInfo) => void,
+  base?: (e: string | undefined) => void,
+) {
+  const g = q as unknown as { getSettings?: () => Promise<{ applied?: { effort?: string | null } }> };
+  const a = await g.getSettings?.().catch(() => null);
+  if (!a?.applied || !("effort" in a.applied)) return;
+  const e = a.applied.effort ?? undefined;
+  set((s) => ({ ...s, effort: e }));
+  base?.(e);
 }
 
 /** After a turn: the context in use and the plan's 5h and 7d use, as `/context` and `/usage` give them. */

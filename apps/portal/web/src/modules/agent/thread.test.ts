@@ -165,6 +165,70 @@ describe("fold", () => {
   });
 });
 
+describe("what a call cost", () => {
+  const usage = (input: number, write: number, read: number, output: number) => ({
+    input_tokens: input,
+    cache_creation_input_tokens: write,
+    cache_read_input_tokens: read,
+    output_tokens: output,
+  });
+  const call = (id: string, tool: Record<string, unknown>, u: Record<string, number>): Frame => ({
+    type: "assistant",
+    message: { id, model: "claude-haiku-5-5", content: [{ type: "tool_use", ...tool }], usage: u },
+  });
+  const result = (id: string, text: string, extra: Record<string, unknown> = {}): Frame => ({
+    type: "user",
+    message: { content: [{ type: "tool_result", tool_use_id: id, content: text }] },
+    ...extra,
+  });
+  const tool = (s: ThreadState, id: string) =>
+    s.messages.at(-1)?.parts.find((p) => p.type === "tool" && p.id === id);
+
+  it("a skill counts what the next call's prompt grew by", () => {
+    let s = said(EMPTY, "tidy this");
+    s = fold(
+      s,
+      call(
+        "m1",
+        { id: "k1", name: "Skill", input: { skill: "humanizer" } },
+        usage(2, 14441, 11382, 17),
+      ),
+    );
+    s = fold(s, result("k1", "Launching skill: humanizer"));
+    expect(tool(s, "k1")).not.toHaveProperty("tokens");
+    s = fold(s, {
+      type: "assistant",
+      message: {
+        id: "m2",
+        model: "claude-haiku-5-5",
+        content: [{ type: "text", text: "ok" }],
+        usage: usage(2, 11822, 25823, 4),
+      },
+    });
+    // 37647 in the second prompt, 25842 in the first call's prompt and output
+    expect(tool(s, "k1")).toMatchObject({ tokens: 11805 });
+  });
+
+  it("a subagent's count comes from its result", () => {
+    let s = said(EMPTY, "read the sites");
+    s = fold(
+      s,
+      call(
+        "m1",
+        { id: "g1", name: "Agent", input: { description: "Read sites" } },
+        usage(5, 0, 900, 40),
+      ),
+    );
+    s = fold(
+      s,
+      result("g1", "Nine read.", {
+        tool_use_result: { totalTokens: 48200, totalToolUseCount: 23 },
+      }),
+    );
+    expect(tool(s, "g1")).toMatchObject({ tokens: 48200, uses: 23 });
+  });
+});
+
 describe("files in a turn", () => {
   const png = { type: "base64", media_type: "image/png", data: "iVBO" };
   const wire = turnContent(

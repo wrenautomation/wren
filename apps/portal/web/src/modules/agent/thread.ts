@@ -21,6 +21,8 @@ export interface ThreadState {
   blocks: Record<number, number>;
   /** API message ids whose usage is in a foot: a stored message repeats it on each block's line. */
   counted?: string[] | undefined;
+  /** The last API call: its id and its whole size (prompt + output), to see what the next one adds. */
+  last?: { id: string; size: number } | undefined;
 }
 
 export const EMPTY: ThreadState = { messages: [], running: false, streamed: [], blocks: {} };
@@ -91,6 +93,17 @@ function partOf(b: Block): AgentPart | null {
       input: (b.input as Record<string, unknown>) ?? {},
     };
   return null;
+}
+
+/** A subagent's own count, on the Agent call's result. */
+function agentUse(r: unknown): { tokens?: number; uses?: number } {
+  const o = (r ?? {}) as { totalTokens?: unknown; totalToolUseCount?: unknown };
+  return typeof o.totalTokens === "number"
+    ? {
+        tokens: o.totalTokens,
+        ...(typeof o.totalToolUseCount === "number" ? { uses: o.totalToolUseCount } : {}),
+      }
+    : {};
 }
 
 const resultText = (c: unknown): string =>
@@ -185,7 +198,7 @@ function whole(
   if (msg.model === "<synthetic>") return s0;
   const blocks = msg.content ?? [];
   const { s: s1, m } = reply(s0);
-  const s = used(s1, m, msg);
+  const s = grew(used(s1, m, msg), m, msg);
   if (msg.id && s0.streamed.includes(msg.id)) {
     for (const b of blocks) {
       if (b.type !== "tool_use") continue;
@@ -222,6 +235,7 @@ function userFrame(s0: ThreadState, f: Frame, t: number): ThreadState {
           result: resultText(b.content),
           failed: !!b.is_error,
           completedAt: t,
+          ...agentUse(f.tool_use_result),
         });
     }
     return s;
@@ -303,6 +317,29 @@ export function storedTurn(content: unknown): { parts: AgentPart[]; words: strin
     words: text,
     ...(page ? { page } : {}),
   };
+}
+
+/**
+ * A skill loads its body into the context: no event says how big. What the next API call's prompt
+ * grew by, past the last call's prompt and output, is the closest count the stream gives.
+ */
+function grew(
+  s: ThreadState,
+  m: AgentMessage,
+  msg: { id?: string; usage?: Record<string, unknown> },
+): ThreadState {
+  const u = msg.usage;
+  if (!u || !msg.id || s.last?.id === msg.id) return s;
+  const n = (k: string) => (typeof u[k] === "number" ? (u[k] as number) : 0);
+  const prompt =
+    n("input_tokens") + n("cache_read_input_tokens") + n("cache_creation_input_tokens");
+  const added = s.last ? prompt - s.last.size : 0;
+  if (added > 0)
+    m.parts.forEach((p, i) => {
+      if (p.type === "tool" && p.name === "Skill" && p.result !== undefined && !p.tokens)
+        setPart(m, i, { ...p, tokens: added });
+    });
+  return { ...s, last: { id: msg.id, size: prompt + n("output_tokens") } };
 }
 
 /**

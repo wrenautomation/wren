@@ -7,6 +7,7 @@ import {
   AgentPick,
   AgentStatus,
   type AgentTask,
+  type AgentTaskOutput,
   AgentTasks,
 } from "./agent-picks.js";
 import { type AgentMessage, AgentThread, type AgentThreadProps } from "./agent-thread.js";
@@ -200,12 +201,47 @@ const TASKS: AgentTask[] = [
     type: "local_agent",
     description: "Read 9 coach sites",
     started: Date.now() - 31_000,
+    tokens: 21_400,
+    uses: 12,
   },
 ];
 
+const E = String.fromCharCode(27);
+const DEV = [
+  `${E}[32m  VITE v7.1.4${E}[0m  ready in 412 ms`,
+  "  ➜  Local:   http://localhost:5173/",
+  "  ➜  press h + enter to show help",
+];
+/** Fake `getTaskOutput`: a line more each read, colors left in as the CLI sends them. */
+function useOutput() {
+  const [reads, setReads] = useState(0);
+  return async (id: string): Promise<AgentTaskOutput> => {
+    setReads((n) => n + 1);
+    const lines =
+      id === "b1"
+        ? [
+            ...DEV,
+            ...Array.from(
+              { length: reads },
+              (_, i) => `12:00:${String(i).padStart(2, "0")} [vite] hmr update /src/app.tsx`,
+            ),
+          ]
+        : [];
+    const output = lines.join("\n");
+    return { output, bytes: output.length, truncated: false };
+  };
+}
+
 function Tasks() {
   const [t, setT] = useState(TASKS);
-  return <AgentTasks tasks={t} onStop={(id) => setT((x) => x.filter((o) => o.id !== id))} />;
+  const read = useOutput();
+  return (
+    <AgentTasks
+      tasks={t}
+      onStop={(id) => setT((x) => x.filter((o) => o.id !== id))}
+      onOutput={read}
+    />
+  );
 }
 
 /** The box: background tasks over it, model, effort and mode in its foot, the status line under. */
@@ -237,9 +273,25 @@ export const Foot: Story = {
     await userEvent.click(await page.findByRole("option", { name: /Max/ }));
     await waitFor(() => expect(c.getByRole("button", { name: "Effort: Max" })).toBeTruthy());
     await expect(c.getByRole("button", { name: "Permissions: Bypass" })).toBeTruthy();
-    await expect(c.getByText("1m 14s")).toBeTruthy();
+    await expect(c.getByText(/1m \d+s/)).toBeTruthy();
     await userEvent.click(c.getByRole("button", { name: "Stop pnpm dev" }));
     await waitFor(() => expect(c.queryByText("pnpm dev")).toBeNull());
+  },
+};
+
+/** A shell or Monitor chip opens to its output, read each second; a subagent chip does not open. */
+export const TaskOutput: Story = {
+  render: () => <Live messages={DONE} above={<Tasks />} />,
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement);
+    await expect(c.queryByRole("button", { name: /^Read 9 coach sites/ })).toBeNull();
+    await userEvent.click(c.getByRole("button", { name: "pnpm dev" }));
+    const out = await c.findByRole("region", { name: "Output of pnpm dev" });
+    await waitFor(() => expect(within(out).getByText(/VITE v7\.1\.4/)).toBeTruthy());
+    await expect(out.textContent).not.toContain(E);
+    await waitFor(() => expect(out.textContent).toContain("hmr update"), { timeout: 3000 });
+    await userEvent.click(c.getByRole("button", { name: /^Watch the deploy/ }));
+    await expect(await c.findByText("No output yet.")).toBeTruthy();
   },
 };
 
@@ -288,6 +340,26 @@ export const Steps: Story = {
             STEP("s3", "wc -w page.md", "Count words", "2140 page.md"),
             STEP("s4", "rg -c calendly pages/", "Find booking links", "6"),
             STEP("s5", "birdwatch search r-42", "Search the web", '{"kept":9,"pages":[1,2,3]}'),
+            {
+              type: "tool",
+              id: "s6",
+              name: "Skill",
+              input: { skill: "humanizer" },
+              result: "Launching skill: humanizer",
+              tokens: 11_805,
+            },
+            {
+              type: "tool",
+              id: "s7",
+              name: "Agent",
+              input: {
+                description: "Read 9 coach sites",
+                prompt: "Read each coach site and note its booking link.",
+              },
+              result: "Nine sites read.",
+              tokens: 48_200,
+              uses: 23,
+            },
             { type: "text", text: ANSWER },
           ],
           foot: {
@@ -308,7 +380,9 @@ export const Steps: Story = {
     await expect(c.getByText("Check past runs")).toBeTruthy();
     await expect(c.getByText("Ran 3 commands")).toBeTruthy();
     await expect(c.getByText("Search the web")).toBeTruthy();
-    await expect(c.getByText("Done")).toBeTruthy();
+    await expect(c.getByText("Worked for 24s")).toBeTruthy();
+    await expect(c.getByText("12k tokens")).toBeTruthy();
+    await expect(c.getByText(/48k tokens · 23 tools/)).toBeTruthy();
     await userEvent.click(c.getByRole("button", { name: /Ran 3 commands/ }));
     await expect(c.getByText("wc -w page.md")).toBeTruthy();
   },

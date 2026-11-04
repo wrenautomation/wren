@@ -10,7 +10,7 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 import { Ring } from "./busy.js";
 import { Button } from "./controls.js";
 import { cx } from "./format.js";
-import { Icon } from "./icons.js";
+import { Icon, type IconName } from "./icons.js";
 import { EASE } from "./motion.js";
 
 type Args = Record<string, unknown>;
@@ -35,6 +35,31 @@ export function toolTitle(name: string, input: Args): string {
   if (name === "Bash") return "Run a command";
   return name;
 }
+
+/** A done step's mark: what kind of call it was, in gray. Chat UIs mark the end, not each step. */
+const MARK: Record<string, IconName> = {
+  Bash: "terminal",
+  Read: "doc",
+  Write: "write",
+  Edit: "edit",
+  Grep: "search",
+  Glob: "search",
+  WebSearch: "globe",
+  WebFetch: "globe",
+  Skill: "book",
+  Agent: "bot",
+  Task: "bot",
+};
+const markOf = (name: string): IconName =>
+  MARK[name] ?? (name.startsWith("mcp__") ? "boxes" : "dot");
+
+/** Tokens in a short form: 840, 12.4k, 1.2M. */
+export const tokens = (n: number) =>
+  n < 1000
+    ? `${n}`
+    : n < 1e6
+      ? `${(n / 1000).toFixed(n < 1e4 ? 1 : 0)}k`
+      : `${(n / 1e6).toFixed(1)}M`;
 
 const NAMED = /^\s*birdwatch\b/;
 /** A plain shell command: it folds into the commands block. birdwatch's verbs are named steps. */
@@ -97,7 +122,7 @@ export function useElapsed(on: boolean, from: number): number {
 }
 
 /** Opens and closes on its height; reduced motion: at once. */
-function Fold({ open, children }: { open: boolean; children: ReactNode }) {
+export function Fold({ open, children }: { open: boolean; children: ReactNode }) {
   const still = useReducedMotion() ?? false;
   return (
     <AnimatePresence initial={false}>
@@ -114,6 +139,29 @@ function Fold({ open, children }: { open: boolean; children: ReactNode }) {
         </motion.div>
       ) : null}
     </AnimatePresence>
+  );
+}
+
+/** A row that arrives while the turn runs grows from no height: the thread below slides, never jumps. */
+function Grow({ className, children }: { className?: string; children: ReactNode }) {
+  const live = useAuiState((s) => s.message.status?.type === "running");
+  const still = useReducedMotion() ?? false;
+  const [grow] = useState(live && !still);
+  const [grown, setGrown] = useState(false);
+  if (!grow) return <div className={cx("ui-rise", className)}>{children}</div>;
+  return (
+    <motion.div
+      initial={{ height: 0, opacity: 0 }}
+      animate={{ height: "auto", opacity: 1 }}
+      transition={{
+        height: { duration: 0.3, ease: EASE },
+        opacity: { duration: 0.22, delay: 0.06 },
+      }}
+      onAnimationComplete={() => setGrown(true)}
+      className={grown ? undefined : "overflow-hidden"}
+    >
+      <div className={className}>{children}</div>
+    </motion.div>
   );
 }
 
@@ -164,7 +212,7 @@ function Commands({ parts }: { parts: readonly Part[] }) {
     ? `Running ${n === 1 ? "a command" : `${n} commands`}`
     : `Ran ${n === 1 ? "a command" : `${n} commands`}${bad ? `, ${bad} failed` : ""}`;
   return (
-    <div className="ui-rise grid rounded-[12px] bg-(--ui-fill) shadow-[inset_0_0_0_1px_var(--ui-hair)]">
+    <Grow className="grid rounded-[12px] bg-(--ui-fill) shadow-[inset_0_0_0_1px_var(--ui-hair)]">
       <button
         type="button"
         aria-expanded={open}
@@ -176,7 +224,7 @@ function Commands({ parts }: { parts: readonly Part[] }) {
           size={13}
           className={cx("flex-none transition-transform duration-200", open && "rotate-90")}
         />
-        <Icon name="terminal" size={14} className="flex-none" />
+        <Icon name="terminal" size={14} className="flex-none text-(--ui-active)" />
         <span className="min-w-0 flex-1 font-medium">{label}</span>
         {live ? (
           <Ring />
@@ -191,7 +239,7 @@ function Commands({ parts }: { parts: readonly Part[] }) {
           <Terminal parts={parts} />
         </div>
       </Fold>
-    </div>
+    </Grow>
   );
 }
 
@@ -232,11 +280,11 @@ function Terminal({ parts }: { parts: readonly Part[] }) {
                 </span>
               ) : null}
             </button>
-            {open ? (
-              <pre className="m-0 max-h-64 overflow-auto px-3 pt-0.5 pb-2 pl-7 whitespace-pre-wrap text-(--ui-term-dim) [overflow-wrap:anywhere] [animation:ui-fade_.15s_both]">
+            <Fold open={open}>
+              <pre className="m-0 max-h-64 overflow-auto px-3 pt-0.5 pb-2 pl-7 whitespace-pre-wrap text-(--ui-term-dim) [overflow-wrap:anywhere]">
                 {out}
               </pre>
-            ) : null}
+            </Fold>
           </div>
         );
       })}
@@ -256,11 +304,23 @@ const StepRow: ToolCallMessagePartComponent = (t) => {
   const open = waits || mine;
   const ms =
     t.timing?.completedAt && t.timing.startedAt ? t.timing.completedAt - t.timing.startedAt : 0;
-  const right = ask?.approved === false ? "denied" : done ? stat(out, t.isError) : "";
+  const used = (t.artifact ?? {}) as { tokens?: number; uses?: number };
+  const right =
+    ask?.approved === false
+      ? "denied"
+      : done
+        ? [
+            used.tokens ? `${tokens(used.tokens)} tokens` : "",
+            used.uses ? `${used.uses} ${used.uses === 1 ? "tool" : "tools"}` : "",
+            (used.tokens && !t.isError) || t.toolName === "Skill" ? "" : stat(out, t.isError),
+          ]
+            .filter(Boolean)
+            .join(" · ")
+        : "";
   return (
-    <div
+    <Grow
       className={cx(
-        "ui-rise grid rounded-[12px] transition-colors duration-200",
+        "grid rounded-[12px] transition-colors duration-200",
         waits && "bg-(--ui-warn-tint) px-3 py-2.5 shadow-[inset_0_0_0_1px_var(--ui-hair)]",
       )}
     >
@@ -280,7 +340,7 @@ const StepRow: ToolCallMessagePartComponent = (t) => {
           ) : ask?.approved === false || t.isError ? (
             <Icon name="xCircle" size={15} className="text-(--ui-bad)" />
           ) : done ? (
-            <Icon name="checkCircle" size={15} className="text-(--ui-good)" />
+            <Icon name={markOf(t.toolName)} size={14} className="text-(--ui-ink-3)" />
           ) : (
             <Ring />
           )}
@@ -344,7 +404,7 @@ const StepRow: ToolCallMessagePartComponent = (t) => {
           ) : null}
         </div>
       </Fold>
-    </div>
+    </Grow>
   );
 };
 
