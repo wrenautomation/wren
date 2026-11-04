@@ -45,7 +45,7 @@ describe("OAuth landings", () => {
     const html = await res.text();
     expect(html).toContain("<h1>Connected</h1>");
     expect(html).toContain("amy@acme.example sends and reads.");
-    expect(html).toContain('href="/account/mail"');
+    expect(html).toContain('href="/office/mail"');
   });
 
   it("an admin's consent goes on as Microsoft's", async () => {

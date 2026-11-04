@@ -118,7 +118,7 @@ describe("health", () => {
       ["sentiment", "Wren's rating", "2 of 5: Slow to answer"],
       ["money", expect.stringMatching(/^Invoice WREN-\d+$/), "13 days late"],
     ]);
-    expect(h?.inputs[0]?.href).toBe("/reactivation/results?client=acme");
+    expect(h?.inputs[0]?.href).toBe("/map/results?client=acme");
   });
 
   it("keeps one row a day with its weights, and flags a client at risk", async () => {
@@ -373,7 +373,7 @@ describe("the console", () => {
     });
     expect(inputs.rows.map((r) => [r.part, r.age])).toContainEqual(["results", "fresh"]);
     expect(inputs.rows.find((r) => r.part === "results")?.rows).toBe(
-      "/reactivation/results?client=acme",
+      "/map/results?client=acme",
     );
     const days = await api.list({ record: "console.health_day", view: "all" });
     expect(days.rows.map((r) => r.id)).toContain("acme:2026-11-02");

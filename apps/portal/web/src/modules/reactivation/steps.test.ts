@@ -124,16 +124,16 @@ describe("railOf: shape", () => {
         .map((s) => [s.id, s.href]),
     );
     expect(hrefs).toEqual({
-      list: "/reactivation/people",
-      emails: "/reactivation/overview",
-      where: "/reactivation/people?view=all&now=moved",
-      hiring: "/reactivation/people?view=all&now=hiring",
-      score: "/reactivation/people",
-      briefs: "/reactivation/people",
-      drafts: "/reactivation/emails",
-      approve: "/reactivation/emails",
-      sent: "/reactivation/emails?view=sent",
-      replies: "/reactivation/replies?view=all",
+      list: "/campaigns/people",
+      emails: "/campaigns/overview",
+      where: "/campaigns/people?view=all&now=moved",
+      hiring: "/campaigns/people?view=all&now=hiring",
+      score: "/campaigns/people",
+      briefs: "/campaigns/people",
+      drafts: "/campaigns/emails",
+      approve: "/campaigns/emails",
+      sent: "/campaigns/emails?view=sent",
+      replies: "/campaigns/replies?view=all",
     });
   });
 });

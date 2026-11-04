@@ -62,7 +62,7 @@ describe("landerVisits", () => {
       {
         text: "Recorded visit to /pricing, 3 min",
         source: "Sessions",
-        href: "/sites/sessions/b",
+        href: "/campaigns/sessions/b",
         at: "2026-10-03",
       },
     ]);

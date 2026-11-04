@@ -27,20 +27,20 @@ afterEach(() => {
 describe("findRecords", () => {
   const find = findRecords({
     record: "pipeline.journey",
-    path: "/pipelines/journeys",
+    path: "/people/journeys",
     kind: "Journey",
   });
   it("a client's rows from its product, each with its page", async () => {
     const got = await find("roof", "c1");
     expect(got).toEqual([
-      { label: "Roof job", href: "/pipelines/journeys/7", hint: "Journey · Quoted" },
-      { label: "8", href: "/pipelines/journeys/8", hint: "Journey" },
+      { label: "Roof job", href: "/people/journeys/7", hint: "Journey · Quoted" },
+      { label: "8", href: "/people/journeys/8", hint: "Journey" },
     ]);
     expect(calls.at(-1)).toEqual({
       path: "pipeline/recordsList",
       body: {
         client: "c1",
-        app: "pipelines",
+        app: "people",
         asClient: false,
         record: "pipeline.journey",
         q: "roof",

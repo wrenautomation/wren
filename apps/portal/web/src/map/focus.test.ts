@@ -196,7 +196,7 @@ describe("focus", () => {
 
   it("opens a URL as it is and an SOP in the Library", () => {
     expect(attachHref(LINK)).toBe(LINK.ref);
-    expect(attachHref(SOP)).toBe("/library/sops/booking");
+    expect(attachHref(SOP)).toBe("/map/sops/booking");
     expect(attachHref({ kind: "doc", ref: "d1" })).toBeNull();
   });
 });

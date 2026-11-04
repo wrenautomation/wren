@@ -247,7 +247,7 @@ describe("Stripe's webhook", () => {
       sql`select summary, link, who from profile_timeline where kind = 'payment'`,
     );
     expect(lines).toHaveLength(1);
-    expect(lines[0]).toMatchObject({ link: `/payments/links/${l.id}`, who: "Sam Rivera" });
+    expect(lines[0]).toMatchObject({ link: `/office/pay-links/${l.id}`, who: "Sam Rivera" });
     expect(lines[0]?.summary).toMatch(/^Paid \$49\.00 for /);
     expect(await pg.db.execute(sql`select 1 from profile_events`)).toHaveLength(0);
     // Stripe retries: kept once, nothing marked twice.

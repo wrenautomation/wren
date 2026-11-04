@@ -147,8 +147,8 @@ describe("movesOf", () => {
     ]);
     const approve = all.filter((m) => m.verb === "Approve");
     expect(approve.map((m) => [m.n, m.href])).toEqual([
-      [2, "/engage/approve?view=invites"],
-      [1, "/engage/approve?view=videos"],
+      [2, "/inbox/approve?view=invites"],
+      [1, "/inbox/approve?view=videos"],
     ]);
     expect(approve[0]?.what).toBe("First messages to new connections, Cai, Dee");
   });

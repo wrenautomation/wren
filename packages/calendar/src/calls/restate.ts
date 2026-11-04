@@ -176,9 +176,8 @@ const SEND = BUILD.extend({
   start: z.string().describe("The call time the send was queued for"),
 });
 
-/** The call's page: Wren's Pipelines, or the client's Calls app. */
-export const briefPath = (client: string | null, id: number) =>
-  client ? `/people/calls/${id}` : `/people/calls/${id}`;
+/** The call's page, in People for Wren and a client alike. */
+export const briefPath = (id: number) => `/people/calls/${id}`;
 
 export function makeCallBriefs(deps: CallBriefsDeps) {
   /** Build the brief again now and keep it; null when the call is gone. */
@@ -242,9 +241,7 @@ export function makeCallBriefs(deps: CallBriefsDeps) {
             0,
             Math.round((new Date(call.start).getTime() - now.getTime()) / 60_000),
           );
-          const link = deps.portal
-            ? `${deps.portal.replace(/\/+$/, "")}${briefPath(client, id)}`
-            : null;
+          const link = deps.portal ? `${deps.portal.replace(/\/+$/, "")}${briefPath(id)}` : null;
           await ctx.run("ping", () =>
             notifier.notify(
               `Call in ${mins} min: brief ready`,

@@ -214,7 +214,7 @@ describe("tracking and forms", () => {
     const [l] = await pg.db.execute<{ summary: string; body: string; link: string }>(
       sql`select summary, body, link from profile_timeline where kind = 'form'`,
     );
-    expect(l?.link).toBe(`/sites/submissions/${e?.id}`);
+    expect(l?.link).toBe(`/people/submissions/${e?.id}`);
     expect(l?.body).toContain("Pages seen first: /, /pricing");
     // A bad list loses nothing: the form is kept without one.
     await withOpen.form(

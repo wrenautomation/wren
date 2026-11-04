@@ -311,7 +311,7 @@ describe("a follow-up's email", () => {
       expect.objectContaining({
         platform: "email",
         body: "Still worth a call?",
-        url: `/engage/inbox/${encodeURIComponent(`text:${s.smsId}`)}`,
+        url: `/inbox/messages/${encodeURIComponent(`text:${s.smsId}`)}`,
       }),
     ]);
     const id = Number(String(rows[0]?.id).slice("reply:".length));

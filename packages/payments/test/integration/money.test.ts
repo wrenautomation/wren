@@ -323,7 +323,7 @@ describe("access follows the money, both ways", () => {
     await settleLink(deps(), id);
     expect(await paidMark()).toBeNull();
     const [line] = await acme.execute<{ summary: string }>(
-      sql`select summary from profile_timeline where link = ${`/payments/links/${id}`}`,
+      sql`select summary from profile_timeline where link = ${`/office/pay-links/${id}`}`,
     );
     expect(line?.summary).toMatch(/^Refunded \$49\.00 for /);
   });

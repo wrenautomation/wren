@@ -29,7 +29,7 @@ describe("Overview tiles", () => {
   });
   it("count without a view their record lacks (a link to another page)", () => {
     const m = { ...meta, fields: [] };
-    expect(askFor(m, "/marketing/funnel?view=30d")).toEqual(askFor(m, "/marketing/funnel"));
+    expect(askFor(m, "/campaigns/funnel?view=30d")).toEqual(askFor(m, "/campaigns/funnel"));
     expect(askFor(m, "/inbox/replies?view=all").view).toBe("all");
   });
 });

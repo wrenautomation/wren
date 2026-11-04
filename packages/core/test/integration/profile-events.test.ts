@@ -89,7 +89,7 @@ describe("lines kept on main, written in the workspace", () => {
       kind: "form",
       channel: "site",
       summary: "Quote page sent",
-      link: `/sites/submissions/${id}`,
+      link: `/people/submissions/${id}`,
       source: "site_forms",
     });
     expect(l[0]?.body).toBe(
@@ -128,7 +128,7 @@ describe("lines kept on main, written in the workspace", () => {
       kind: "payment",
       channel: "sms",
       summary: "Paid $45.00 for Gutter clean",
-      link: `/payments/links/${link.id}`,
+      link: `/office/pay-links/${link.id}`,
       source: "pay_links",
     });
     // Found by the thread's number too.
