@@ -305,11 +305,12 @@ function rollupRows(scope: Scope): SQL {
   a as (
     select profile_id, ${counts},
       string_agg(distinct ch, ', ') filter (where r = 'replied') replied_channels,
-      (array_agg(ch order by at desc) filter (where r = 'replied'))[1] replied_last_channel,
-      min(at) first_touch_at, (array_agg(ch order by at))[1] first_channel,
-      (array_agg(what order by at))[1] first_touch,
-      max(at) last_touch_at, (array_agg(ch order by at desc))[1] last_channel,
-      (array_agg(what order by at desc))[1] last_touch
+      -- Ties on at broken by (ch, what): the same row whatever the plan sorts.
+      (array_agg(ch order by at desc, ch, what) filter (where r = 'replied'))[1] replied_last_channel,
+      min(at) first_touch_at, (array_agg(ch order by at, ch, what))[1] first_channel,
+      (array_agg(what order by at, ch, what))[1] first_touch,
+      max(at) last_touch_at, (array_agg(ch order by at desc, ch, what))[1] last_channel,
+      (array_agg(what order by at desc, ch, what))[1] last_touch
     from ev where at is not null group by profile_id),
   came as (
     select distinct on (k.profile_id) k.profile_id, k.source
