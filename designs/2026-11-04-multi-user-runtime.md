@@ -62,10 +62,12 @@ How it holds:
   - Loaded: Bash, Read, Skill; skill `birdwatch:birdwatch`; no MCP.
   - First turn 5.8k tokens, against 17.7k with the CLI defaults.
   - `birdwatch sources` ran under the allow rule with no prompt.
-  - Resume recalled the prior session.
+  - Resume through `wren agent check --resume` recalled the prior session (the browser SDK resume was proven on the spike pipe).
+  - The no-secret-print hook blocked a `cat` of an env-named file.
   - The browser `query()` ran two turns and a `canUseTool` round trip through the relay.
 - Still listed: the CLI's built-in `doctor` and `plugin-authoring` and three `cc-plugin-*` plugins. The skills filter hides them from the model's list; no flag removes them.
 - The pnpm root overrides drop the SDK's 300 MB native CLI binaries: the portal needs only `./browser`, and the relay runs the installed `claude`.
+- API spend inside a plan session: birdwatch's own model calls (the Jev judge, `youtube-see`) read keys from its config and bill them, as before. Only Claude Code runs on the plan.
 - Not built: the portal panel (a separate task, under the design-language artifact), the client `key` source from credvault (the skeleton takes the key from the relay's process), `terminal` (WA-1051).
 
 ## Decision 3: product segregation (agreed 11-04)

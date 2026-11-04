@@ -61,6 +61,7 @@ export function registerAgent(program: Command): void {
     .option("--max <n>", "live sessions at once", "3")
     .action((o: { port: string; credential: string; max: string }) => {
       const credential = credentialOf(o.credential);
+      const bins = new Map<string, string>();
       const r = relay({
         port: Number(o.port),
         token: localToken(),
@@ -73,7 +74,12 @@ export function registerAgent(program: Command): void {
           host: process.env,
           secretHook: existsSync(SECRET_HOOK) ? `python3 ${SECRET_HOOK}` : undefined,
         },
-        binDirs: (s) => [binDir(s)],
+        // one dir per setup per serve: a rebuild mid-session would pull a live child's PATH
+        binDirs: (s) => {
+          const dir = bins.get(s.name) ?? binDir(s);
+          bins.set(s.name, dir);
+          return [dir];
+        },
         log: (l) => console.error(l),
       });
       r.server.on("listening", () =>
