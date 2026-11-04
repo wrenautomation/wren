@@ -15,6 +15,7 @@ import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 import type { LlmClient } from "@wren/llm";
 import type { Model } from "@wrenautomation/models";
+import type { Ear } from "@wrenautomation/models/hear";
 import type { Fetched, VideoRead, WatchOptions } from "@wrenautomation/read/video";
 import { readAudio, readVideo, readYoutube, readYoutubeByUrl } from "@wrenautomation/read/video";
 import { expandCites, numberCites } from "./cites.js";
@@ -59,14 +60,25 @@ export function toSource(read: VideoRead, priority = DEFAULT_PRIORITY): Source {
 /**
  * A YouTube video's captions and chapters through `yt-dlp` (`ytDlp` is the command, split on
  * spaces: `uvx yt-dlp`), plus what it showed on screen when a video model is given (`geminiVideo`):
- * `readYoutube`, filed with the SOP's priority.
+ * `readYoutube`, filed with the SOP's priority. `ear` hears the audio when captions 429 or are missing.
  */
 export const youtubeSource = async (
   url: string,
   ytDlp: string,
   priority = DEFAULT_PRIORITY,
-  opts: { video?: Model | null; fetchFn?: typeof fetch } = {},
-): Promise<Source> => toSource(await readYoutube(url, { ytDlp, ...opts }), priority);
+  opts: {
+    video?: Model | null;
+    fetchFn?: typeof fetch;
+    ear?: Ear | undefined;
+    ffmpeg?: string | undefined;
+  } = {},
+): Promise<Source> => {
+  const { ffmpeg, ...rest } = opts;
+  return toSource(
+    await readYoutube(url, { ytDlp, ...rest, ...(ffmpeg ? { ffmpeg } : {}) }),
+    priority,
+  );
+};
 
 /**
  * A YouTube video read from its URL alone, no download and no home IP

@@ -47,7 +47,7 @@ import { claudeCode } from "@wrenautomation/models/command";
 import type { Command } from "commander";
 import { inArray } from "drizzle-orm";
 import { learnReaders } from "./learn-readers.js";
-import { geminiModel, watchModels } from "./video-watch.js";
+import { geminiModel, watchEyes, watchModels } from "./video-watch.js";
 import { huntSearch } from "./youtube-search.js";
 
 type WithDb = <T>(fn: (db: Db) => Promise<T>) => Promise<T>;
@@ -103,7 +103,8 @@ export function registerSop(
             console.warn(
               "no working GEMINI key in llm.env: captions only, on-screen content skipped",
             );
-          sources = [await youtubeSource(what, settings.ytDlp, priority, { video })];
+          const { ear, ffmpeg } = watchEyes(settings, rootDir);
+          sources = [await youtubeSource(what, settings.ytDlp, priority, { video, ear, ffmpeg })];
         } else if (/^https?:\/\//.test(what)) {
           // Reels, TikTok, X: no captions, so the watch core hears and reads the download.
           sources = [

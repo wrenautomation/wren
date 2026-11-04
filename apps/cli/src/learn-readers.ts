@@ -88,7 +88,7 @@ export function learnReaders(settings: Settings, rootDir: string) {
               })
             : youtube
               ? await youtubeSource(url, settings.ytDlp, undefined, {
-                  video: await gemini(),
+                  ...(await watching()),
                 })
               : await videoSource(url, settings.ytDlp, undefined, {
                   ...(await watching()),
