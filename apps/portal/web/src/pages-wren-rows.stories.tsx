@@ -79,7 +79,7 @@ export const HealthAtRisk = pageAt("/", {
 });
 
 /** A company's dossier: facts and posts as rows. */
-export const Dossier = pageAt("/outbound/companies/1", {
+export const Dossier = pageAt("/people/companies/1", {
   me: ADMIN,
   answers: { "email/dossier": DOSSIER },
   check: async (page) => {
@@ -179,7 +179,7 @@ export const AutomationRace = automations(async (page) => {
 const RETIRES: Record<string, unknown>[] = [];
 // A client's page: Wren's own page detail also draws a Notes section twice (its key clashes).
 const retire = (check: (page: HTMLElement) => Promise<void>) => ({
-  ...pageAt("/sites/pages/1", {
+  ...pageAt("/campaigns/pages/1", {
     answers: {
       ...detailOf(ANSWERS, "sites.page", ENDED_SPLIT),
       "sites/retireAsk": ((b) => {

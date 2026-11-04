@@ -46,7 +46,7 @@ import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { whoAt } from "./access.js";
 import { call, ME_CHANGED, type Me, signOutUrl, viewing } from "./api.js";
 import { AppsProvider } from "./apps-context.js";
-import { dockOf, phoneTabsOf, sidebarAreasOf, sidebarOf } from "./areas.js";
+import { dockOf, phoneTabsOf, sidebarOf } from "./areas.js";
 import { Contained } from "./contained.js";
 import { dictation } from "./dictation/index.js";
 import { useShareFlags } from "./flags.js";
@@ -334,7 +334,8 @@ export function App() {
   const launcher = cards.length > 1 ? "/" : undefined;
   const homeLabel = homeOf(team);
   const home = launcher ?? (only ? firstOf(only) : "/");
-  const account = apps.find((m) => m.menu);
+  // A client's account is Back office (places.ts).
+  const account = team ? undefined : apps.find((m) => m.id === "office");
 
   const at = place(route.path, apps, me.data !== null, team);
   // What he keeps here (pins, tiles): Wren's apps, or this client; never on a demo.
@@ -349,7 +350,9 @@ export function App() {
   const myLook = usePref<unknown>(operator ? mine : undefined, LOOK_PREF);
   // Quick capture (N, ⌘K "Note: …") where this login has Notes, never on a sample or under View as.
   const noteAt =
-    current && !sample && !viewing && apps.some((m) => m.id === "notes") ? current.id : null;
+    current && !sample && !viewing && apps.some((m) => m.id === "notes" && !m.parked)
+      ? current.id
+      : null;
   const [quick, setQuick] = useQuickNoteKey(noteAt !== null);
   // ⌘K finds records as you type in each app here that can (`find`: people, clients, deals,
   // workflows, templates, pages, Learn's items); never on a sample.
@@ -525,30 +528,23 @@ export function App() {
       })),
   });
   const fixed = sidebarOf(cards);
-  // Wren's own workspace lists every other app under its area too; a client's keeps the five.
-  const more = wren ? sidebarAreasOf(cards) : [];
-  const listed = new Set([
-    ...fixed.map((f) => f.app.id),
-    ...more.flatMap((a) => a.apps.map((m) => m.id)),
-  ]);
+  const listed = new Set(fixed.map((f) => f.app.id));
+  // Wren's home is the Map place's row: `/` draws the metro map, its pages fold under it.
+  const homeRow = team && listed.has("map") ? "map" : undefined;
   const areas: NavArea[] | undefined = launcher
     ? [
         {
           id: "main",
           label: "",
           apps: [
-            ...fixed.map(({ label, app }) => rowOf(app, label)),
+            ...fixed.map(({ label, app }) =>
+              app.id === homeRow ? { ...rowOf(app, label), href: launcher } : rowOf(app, label),
+            ),
             ...(open && !open.module.menu && !listed.has(open.module.id)
               ? [rowOf(open.module)]
               : []),
           ],
         },
-        ...more.map(({ area, apps: shown }) => ({
-          id: area.id,
-          label: area.label,
-          ...(area.shut ? { shut: true } : {}),
-          apps: shown.map((m) => rowOf(m)),
-        })),
       ]
     : undefined;
 
@@ -622,7 +618,9 @@ export function App() {
             }}
             launcher={launcher}
             home={
-              launcher ? { label: homeLabel, href: launcher, icon: homeIcon(homeLabel) } : undefined
+              launcher
+                ? { label: homeLabel, href: launcher, icon: homeIcon(homeLabel), row: homeRow }
+                : undefined
             }
             areas={areas}
             dock={dock}
@@ -660,7 +658,7 @@ export function App() {
                   </Button>
                 ) : null}
                 {/* The bell: Learn's alerts for you here. Real workspaces only, never the sample. */}
-                {current && onDemo === false && apps.some((m) => m.id === "learn") ? (
+                {current && onDemo === false && apps.some((m) => m.id === "learn" && !m.parked) ? (
                   <LearnBell key={current.id} client={current.id} />
                 ) : null}
                 {account ? (
@@ -685,7 +683,7 @@ export function App() {
             display={display}
             customize={
               wren ? (
-                <a className={MORE_LINK} href="/settings/look">
+                <a className={MORE_LINK} href="/office/look">
                   Colors and type
                 </a>
               ) : null

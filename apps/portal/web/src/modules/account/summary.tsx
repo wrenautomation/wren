@@ -60,10 +60,10 @@ export function ClientAccounts({ client }: { client: string }) {
         <Empty>No accounts yet.</Empty>
       )}
       <div className={TOOLS}>
-        <ButtonLink href={`/account/accounts${q}`} size="dense" tone="secondary" arrow>
+        <ButtonLink href={`/office/accounts${q}`} size="dense" tone="secondary" arrow>
           Accounts
         </ButtonLink>
-        <ButtonLink href={`/account/vendors${q}`} size="dense" tone="secondary" arrow>
+        <ButtonLink href={`/office/vendors${q}`} size="dense" tone="secondary" arrow>
           Vendors
         </ButtonLink>
       </div>
@@ -121,7 +121,7 @@ export function VendorUsage() {
                 o.client === null ? null : (
                   <a
                     className="text-[14px] underline underline-offset-2"
-                    href={`/account/vendors?client=${encodeURIComponent(o.client)}`}
+                    href={`/office/vendors?client=${encodeURIComponent(o.client)}`}
                   >
                     Vendors
                   </a>

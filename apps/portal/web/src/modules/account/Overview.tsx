@@ -95,7 +95,7 @@ export function Overview(props: PageProps) {
       <Section
         title="People"
         actions={
-          <ButtonLink href="/account/people" size="sm" tone="quiet" arrow>
+          <ButtonLink href="/office/team" size="sm" tone="quiet" arrow>
             Manage
           </ButtonLink>
         }
@@ -112,7 +112,7 @@ export function Overview(props: PageProps) {
         <Section
           title="Billing"
           actions={
-            <ButtonLink href="/account/billing" size="sm" tone="quiet" arrow>
+            <ButtonLink href="/office/billing" size="sm" tone="quiet" arrow>
               Invoices
             </ButtonLink>
           }

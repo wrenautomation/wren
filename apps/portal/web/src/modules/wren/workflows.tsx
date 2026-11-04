@@ -43,6 +43,7 @@ import { shown } from "../../pulse.js";
 import { recordsApi } from "../../records-api.js";
 import { href, navigate } from "../../route.js";
 import { type CountRef, countKey, countsIn, type Drawn } from "../marketplace/boxes.js";
+import { TEAM_PLACES } from "../places.js";
 import { dayLabel, ERROR, FORM, NARROW, QUIET } from "../work/bits.js";
 import {
   type Count,
@@ -74,7 +75,6 @@ import {
   WirePanel,
 } from "./editor.js";
 import { Executions } from "./executions.js";
-import { WREN_APPS } from "./index.js";
 import { MadeHere } from "./made.js";
 import { usePlay } from "./playback.js";
 import { TestPanel, TestStep } from "./tester.js";
@@ -125,7 +125,7 @@ type Kept = { draft: Draft; name: string };
 
 /** The first of Wren's lists over `c`'s record, on its view. */
 const recordsAt = (c: CountRef) => {
-  for (const m of WREN_APPS)
+  for (const m of TEAM_PLACES)
     for (const p of m.pages)
       if ("record" in p && p.record === c.record && p.template === "list")
         return `/${m.id}/${p.id}?view=${encodeURIComponent(c.view)}`;

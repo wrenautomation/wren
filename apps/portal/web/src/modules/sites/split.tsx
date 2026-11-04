@@ -96,7 +96,7 @@ function Running({ id, s, act }: { id: string; s: SplitResult; act: RecordAct })
           return [
             <span key="v" className="flex flex-wrap items-baseline gap-x-2">
               <span className="font-medium">{a.label}</span>
-              <a className="underline" href={`/sites/pages/${a.page}`}>
+              <a className="underline" href={`/campaigns/pages/${a.page}`}>
                 {a.title}
               </a>
               {a.label === s.call.leader ? <Tag tone="accent">Leads</Tag> : null}
@@ -297,7 +297,7 @@ function Ended({ s, act }: { s: SplitResult; act: RecordAct }) {
             icon: "text",
             min: 200,
             title: (a) => a.title,
-            href: (a) => `/sites/pages/${a.page}`,
+            href: (a) => `/campaigns/pages/${a.page}`,
             mark: (a) => (
               <span className="grid size-[22px] flex-none place-items-center bg-(--ui-fill) text-[12px] font-semibold">
                 {a.label}
@@ -345,7 +345,7 @@ function Ended({ s, act }: { s: SplitResult; act: RecordAct }) {
                   ],
                   more: [],
                   reply: null,
-                  page: `/sites/pages/${a.page}`,
+                  page: `/campaigns/pages/${a.page}`,
                   busy: busy !== null,
                   run: () =>
                     void run(

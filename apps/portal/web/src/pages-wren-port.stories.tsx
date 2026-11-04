@@ -10,5 +10,5 @@ import { pageAt } from "./mocks/page.js";
 const meta: Meta = { title: "Ready to build/Engage and Outbound home", id: "pages-wren" };
 export default meta;
 
-export const Outbound = pageAt("/outbound", { me: ADMIN });
-export const Engage = pageAt("/engage", { me: ADMIN });
+export const Outbound = pageAt("/campaigns", { me: ADMIN });
+export const Engage = pageAt("/campaigns", { me: ADMIN });

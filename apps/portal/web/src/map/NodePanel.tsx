@@ -128,7 +128,7 @@ export function PeopleHere({
           {people.slice(0, SHOWN).map((p) => (
             <li key={p.id}>
               <a
-                href={href(`/pipelines/journeys/${encodeURIComponent(p.id)}`, at)}
+                href={href(`/people/journeys/${encodeURIComponent(p.id)}`, at)}
                 className="flex min-h-9 items-center gap-2 text-(--ui-ink) no-underline hover:bg-(--ui-hover)"
               >
                 <span className="min-w-0 flex-1 wrap-anywhere whitespace-normal">{p.name}</span>

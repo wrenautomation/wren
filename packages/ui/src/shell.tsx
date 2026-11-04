@@ -115,6 +115,8 @@ export interface NavHome {
   /** Its mark; Today's home when left out. */
   icon?: IconName | undefined;
   count?: number | undefined;
+  /** The area row that is home: no home link of its own, and that row is lit at home. */
+  row?: string | undefined;
 }
 
 /** One of the phone's bottom tabs: Today, an app, or a page he opens every day. */
@@ -939,7 +941,8 @@ function SideNav({
     const t = setTimeout(() => setGoing(null), 4000);
     return () => clearTimeout(t);
   }, [going]);
-  const lit = (a: NavApp) => (going !== null ? a.id === going : !!app && a.id === openId);
+  const lit = (a: NavApp) =>
+    going !== null ? a.id === going : app ? a.id === openId : a.id === home?.row;
   const [shutPref, setShutPref] = useState<Readonly<Record<string, boolean>>>(readShut);
   const isShut = (a: NavArea) =>
     !folded && (shutPref[a.id] ?? !!a.shut) && !a.apps.some((x) => x.id === openId);
@@ -980,7 +983,7 @@ function SideNav({
           : "z-10 pt-0.5 pr-[11px] pb-3 pl-[calc(var(--ui-frame)+10px)] [grid-area:nav] max-[900px]:hidden",
       )}
     >
-      {home ? (
+      {home && home.row === undefined ? (
         <a
           className={cx(APP_ROW, folded && FOLDED_ROW)}
           href={home.href}

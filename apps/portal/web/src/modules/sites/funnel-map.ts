@@ -49,7 +49,7 @@ export function funnelGraph(rows: readonly Row[]): { nodes: GraphNode[]; edges: 
         kind: "record",
         label: p.title,
         number: { value: p.views, label: "visits" },
-        href: /^[0-9a-f-]{36}$/.test(id) ? `/sites/pages/${id}` : undefined,
+        href: /^[0-9a-f-]{36}$/.test(id) ? `/campaigns/pages/${id}` : undefined,
       }),
     ),
     { id: "forms", kind: "step", label: "Form sent", number: { value: forms, label: "forms" } },

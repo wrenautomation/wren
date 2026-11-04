@@ -72,7 +72,7 @@ export const paperExtras: Extras = (_, { row, team }) => {
         {open && !team ? "Read and sign" : "Read it"}
       </ButtonLink>
     ) : id.startsWith("f") ? (
-      <ButtonLink href="/account/billing" tone="secondary" size="dense" arrow className={START}>
+      <ButtonLink href="/office/billing" tone="secondary" size="dense" arrow className={START}>
         Billing
       </ButtonLink>
     ) : null,

@@ -187,7 +187,7 @@ function Trend({ client }: { client: string }) {
   const last = days[days.length - 1] as Row;
   return (
     <a
-      href={`/clients/days?view=all&client=${enc(client)}`}
+      href={`/people/days?view=all&client=${enc(client)}`}
       className="grid gap-1 text-[13px] text-(--ui-ink-2) hover:text-(--ui-ink)"
     >
       <svg
@@ -240,7 +240,7 @@ function PartScore({ row, part }: { row: Row; part: (typeof PARTS)[number] }) {
 
 /** One part's why, a link to the rows behind it. */
 const PartWhy = ({ row, part }: { row: Row; part: (typeof PARTS)[number] }) => (
-  <a href={`/clients/inputs?view=all&client=${enc(str(row.id))}&part=${part}`}>
+  <a href={`/people/inputs?view=all&client=${enc(str(row.id))}&part=${part}`}>
     {str(row[`${part}Why`]) || "No input yet."}
   </a>
 );
@@ -394,7 +394,7 @@ export function HealthNow() {
       (r): NowLine => ({
         id: `h${str(r.id)}`,
         name: str(r.name),
-        href: `/clients/health/${enc(str(r.id))}`,
+        href: `/people/health/${enc(str(r.id))}`,
         state: BAND.risk as State,
         score: str(r.score),
         detail: [
@@ -411,7 +411,7 @@ export function HealthNow() {
       (f): NowLine => ({
         id: `f${str(f.id)}`,
         name: str(f.what),
-        href: `/clients/flags/${enc(str(f.id))}`,
+        href: `/people/flags/${enc(str(f.id))}`,
         state: { label: "Urgent", tone: "bad" },
         score: "",
         detail: [str(f.name), str(f.owner), when(f.raised)].filter(Boolean).join(" · "),
@@ -423,7 +423,7 @@ export function HealthNow() {
       title="Client health"
       note="Clients at risk and urgent flags."
       actions={
-        <a href="/clients/health?view=risk" className="text-[13px] text-(--ui-ink-2)">
+        <a href="/people/health?view=risk" className="text-[13px] text-(--ui-ink-2)">
           All
         </a>
       }
@@ -444,7 +444,7 @@ export function ClientHealth({ client }: { client: string }) {
   return (
     <div className="grid gap-3">
       <HealthCard row={row} />
-      <a href={`/clients/health/${enc(client)}`} className="text-[13.5px] text-(--ui-ink-2)">
+      <a href={`/people/health/${enc(client)}`} className="text-[13.5px] text-(--ui-ink-2)">
         Inputs, flags and every day
       </a>
     </div>

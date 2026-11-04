@@ -52,6 +52,8 @@ interface PageBase {
   lights?: string;
   /** Who sees it: `{ audience: "client" }` is a signed-in client's own, never on the demo. */
   requires?: Access;
+  /** The component it needs at a client (`@wren/core/components`); its app's when left out. */
+  component?: string;
   /**
    * A filter across its top, kept moving between pages that share it: Content's platforms. The
    * field is the list's own filter in the address; `waits` count what waits in each state.

@@ -389,7 +389,7 @@ function Card({
     >
       <a
         className="min-w-0 wrap-anywhere whitespace-normal font-medium text-(--ui-ink) no-underline hover:underline"
-        href={href(`/pipelines/journeys/${encodeURIComponent(j.id)}`, at)}
+        href={href(`/people/journeys/${encodeURIComponent(j.id)}`, at)}
         draggable={false}
       >
         {j.name}

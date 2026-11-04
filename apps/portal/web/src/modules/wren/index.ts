@@ -260,7 +260,7 @@ export const outbound: Module = {
   blurb: "Campaigns and the inboxes that send them, the companies they reach and the texts.",
   requires: TEAM,
   // People are leads until profiles land (B1): the companies they work at.
-  find: findRecords({ record: "email.firm", path: "/outbound/companies", kind: "Company" }),
+  find: findRecords({ record: "email.firm", path: "/people/companies", kind: "Company" }),
   pages: [
     {
       ...overview,
@@ -276,32 +276,32 @@ export const outbound: Module = {
         {
           label: "Inboxes sending",
           record: "email.inbox",
-          href: "/outbound/inboxes?view=sending",
+          href: "/office/inboxes?view=sending",
         },
         {
           label: "Inboxes paused",
           record: "email.inbox",
-          href: "/outbound/inboxes?view=paused",
+          href: "/office/inboxes?view=paused",
           needs: true,
         },
         {
           label: "Campaigns opening",
           record: "email.campaign",
-          href: "/outbound/campaigns?view=opening",
+          href: "/campaigns/email-campaigns?view=opening",
         },
       ],
       top: [
         {
           label: "Campaigns",
           record: "email.campaign",
-          href: "/outbound/campaigns?view=all",
+          href: "/campaigns/email-campaigns?view=all",
           fields: ["sent", "replyRate", "killSwitch"],
           empty: "No campaigns yet.",
         },
         {
           label: "Paused inboxes",
           record: "email.inbox",
-          href: "/outbound/inboxes?view=paused",
+          href: "/office/inboxes?view=paused",
           fields: ["reason", "pausedAt"],
           empty: "Every inbox is sending.",
         },
@@ -334,7 +334,7 @@ export const outbound: Module = {
       empty: { fresh: "No signal in the last 30 days.", all: "No signals yet." },
     },
     // The lead sheet (was the Pipeline app), then the texts (were Marketing's).
-    ...sheetPages("/outbound", { id: "sheet", label: "Lead sheet" }),
+    ...sheetPages("/campaigns", { id: "sheet", label: "Lead sheet" }),
     MARKETING_PAGES.texts,
     MARKETING_PAGES["text-copy"],
   ],
@@ -739,8 +739,8 @@ export const leads: Module = {
   component: "research.lead_sheet",
   icon: "pulse",
   blurb: "Companies from found to verified lead, and where they stall.",
-  find: findRecords({ record: "email.firm", path: "/leads/companies", kind: "Company" }),
-  pages: sheetPages("/leads"),
+  find: findRecords({ record: "email.firm", path: "/people/companies", kind: "Company" }),
+  pages: sheetPages("/people"),
 };
 
 export const clients: Module = {
@@ -749,37 +749,42 @@ export const clients: Module = {
   icon: "people",
   blurb: "Every client, how each is doing, and what needs a look.",
   requires: TEAM,
-  find: findRecords({ record: "console.client", path: "/clients/all", kind: "Client" }),
+  find: findRecords({ record: "console.client", path: "/people/clients", kind: "Client" }),
   pages: [
     {
       ...overview,
       about: "How your clients are doing, at a glance.",
       tiles: [
-        { label: "Clients", record: "console.client", href: "/clients/all?view=clients" },
+        { label: "Clients", record: "console.client", href: "/people/clients?view=clients" },
         // Demos are accounts, not clients: both tiles count clients only.
-        { label: "Added", record: "console.client", href: "/clients/all?view=clients", period: 30 },
-        { label: "At risk", record: "console.health", href: "/clients/health?view=risk" },
-        { label: "Watch", record: "console.health", href: "/clients/health?view=watch" },
-        { label: "Open risks", record: "console.flag", href: "/clients/flags?view=risks" },
+        {
+          label: "Added",
+          record: "console.client",
+          href: "/people/clients?view=clients",
+          period: 30,
+        },
+        { label: "At risk", record: "console.health", href: "/people/health?view=risk" },
+        { label: "Watch", record: "console.health", href: "/people/health?view=watch" },
+        { label: "Open risks", record: "console.flag", href: "/people/flags?view=risks" },
         // Yours only: open flags you own (`mine` on the view).
         {
           label: "Flags I own",
           record: "console.flag",
-          href: "/clients/flags?view=mine",
+          href: "/people/flags?view=mine",
           needs: true,
         },
         {
           label: "Opportunities",
           record: "console.flag",
-          href: "/clients/flags?view=opportunities",
+          href: "/people/flags?view=opportunities",
         },
-        { label: "Stale scores", record: "console.health", href: "/clients/health?view=stale" },
+        { label: "Stale scores", record: "console.health", href: "/people/health?view=stale" },
       ],
       top: [
         {
           label: "Lowest health",
           record: "console.health",
-          href: "/clients/health?view=all&sort=score",
+          href: "/people/health?view=all&sort=score",
           fields: ["score", "risks"],
           line: "weakest",
           empty: "Scores show here after the first nightly pass.",
@@ -787,7 +792,7 @@ export const clients: Module = {
         {
           label: "Newest flags",
           record: "console.flag",
-          href: "/clients/flags?view=open&sort=-raised",
+          href: "/people/flags?view=open&sort=-raised",
           fields: ["side", "owner"],
           line: "name",
           empty: "Nothing flagged.",
@@ -795,7 +800,7 @@ export const clients: Module = {
         {
           label: "Last seen",
           record: "console.client",
-          href: "/clients/all?view=all&sort=-lastSeen",
+          href: "/people/clients?view=all&sort=-lastSeen",
           fields: ["members", "lastSeen"],
           empty: "Clients show here once you add one.",
         },

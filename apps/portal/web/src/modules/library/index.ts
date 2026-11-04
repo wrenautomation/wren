@@ -20,8 +20,8 @@ export const library: Module = {
   blurb: "Every template, sequence, snippet, video and SOP, with its numbers and where it's used.",
   find: findAll(
     findTemplates,
-    findRecords({ record: "library.workflow", path: "/library/workflows", kind: "Workflow" }),
-    findRecords({ record: "templates.sequence", path: "/library/sequences", kind: "Sequence" }),
+    findRecords({ record: "library.workflow", path: "/workflows/all", kind: "Workflow" }),
+    findRecords({ record: "templates.sequence", path: "/map/sequences", kind: "Sequence" }),
   ),
   requires: { audience: "team" },
   pages: [

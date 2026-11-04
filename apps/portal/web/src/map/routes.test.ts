@@ -24,7 +24,11 @@ describe("map routes", () => {
       const apps = appsIn(MODULES, {
         wren: place === "wren",
         team: place === "wren",
-        installed: new Set(MODULES.flatMap((m) => (m.component ? [m.component] : []))),
+        installed: new Set(
+          MODULES.flatMap((m) => [m.component, ...m.pages.map((p) => p.component)]).filter(
+            (c): c is string => !!c,
+          ),
+        ),
       });
       const targets = Object.values(ROUTES).flatMap((r) => r[place] as readonly Target[]);
       expect(targets.length).toBeGreaterThan(0);
@@ -51,14 +55,14 @@ describe("map routes", () => {
 
   it("links a step to its people, an offer to its offer too", () => {
     expect(opensOf({ id: "booked", kind: "step" }, "wren", null)).toEqual([
-      { label: "Journeys", href: "/pipelines/journeys?node=booked&view=all" },
+      { label: "Journeys", href: "/people/journeys?node=booked&view=all" },
     ]);
     expect(opensOf({ id: "signed", kind: "offer" }, "wren", null).map((o) => o.href)).toEqual([
-      "/pipelines/journeys?node=signed&view=all",
-      "/offers/all",
+      "/people/journeys?node=signed&view=all",
+      "/map/offers",
     ]);
     expect(opensOf({ id: "pay", kind: "plan" }, "client", "acme")).toEqual([
-      { label: "Payments", href: "/payments/links?client=acme" },
+      { label: "Payments", href: "/office/pay-links?client=acme" },
     ]);
   });
 });
@@ -76,18 +80,19 @@ const NODES = [
 describe("appsOnShape", () => {
   it("names each node under every app it opens, at Wren", () => {
     const on = appsOnShape(NODES, "wren");
-    expect(on.get("pipelines")?.map((n) => n.id)).toEqual(["booked", "signed", "pay"]);
-    expect(on.get("offers")?.map((n) => n.id)).toEqual(["signed"]);
-    expect(on.get("ads")?.map((n) => n.id)).toEqual(["ads1"]);
-    expect(on.get("engage")?.map((n) => n.id)).toEqual(["dm1"]);
+    expect(on.get("people")?.map((n) => n.id)).toEqual(["booked", "signed", "pay"]);
+    expect(on.get("map")?.map((n) => n.id)).toEqual(["signed"]);
+    expect(on.get("campaigns")?.map((n) => n.id)).toEqual(["ads1"]);
+    expect(on.get("inbox")?.map((n) => n.id)).toEqual(["dm1"]);
     expect(on.get("content")?.map((n) => n.id)).toEqual(["yt"]);
   });
 
   it("reads the client's apps in a client's workspace", () => {
     const on = appsOnShape(NODES, "client");
-    expect(on.get("marketing")?.map((n) => n.id)).toEqual(["yt", "ads1", "dm1"]);
-    expect(on.get("payments")?.map((n) => n.id)).toEqual(["pay"]);
-    expect(on.has("offers")).toBe(false);
+    expect(on.get("content")?.map((n) => n.id)).toEqual(["yt", "dm1"]);
+    expect(on.get("campaigns")?.map((n) => n.id)).toEqual(["ads1"]);
+    expect(on.get("office")?.map((n) => n.id)).toEqual(["pay"]);
+    expect(on.has("map")).toBe(false);
   });
 
   it("leaves a parked node out", () => {
@@ -98,7 +103,7 @@ describe("appsOnShape", () => {
 describe("systemsOf", () => {
   const apps = [
     { id: "content" },
-    { id: "pipelines" },
+    { id: "people" },
     { id: "handlers" },
     { id: "loops" },
     { id: "notes", parked: true as const },
@@ -107,17 +112,17 @@ describe("systemsOf", () => {
     const got = systemsOf(apps, NODES, "wren");
     expect(got.onShape.map((g) => [g.app.id, g.nodes.map((n) => n.id)])).toEqual([
       ["content", ["yt"]],
-      ["pipelines", ["booked", "signed", "pay"]],
+      ["people", ["booked", "signed", "pay"]],
     ]);
     expect(got.rest.map((a) => a.id)).toEqual(["handlers", "loops"]);
   });
   it("puts every app in Not on the shape when there are no nodes", () => {
     const got = systemsOf(apps, [], "wren");
     expect(got.onShape).toEqual([]);
-    expect(got.rest.map((a) => a.id)).toEqual(["content", "pipelines", "handlers", "loops"]);
+    expect(got.rest.map((a) => a.id)).toEqual(["content", "people", "handlers", "loops"]);
   });
   it("puts a parked app in neither group, even when a node opens it", () => {
-    const got = systemsOf([{ id: "pipelines", parked: true as const }], NODES, "wren");
+    const got = systemsOf([{ id: "people", parked: true as const }], NODES, "wren");
     expect(got.onShape).toEqual([]);
     expect(got.rest).toEqual([]);
   });

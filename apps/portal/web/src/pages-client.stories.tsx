@@ -12,18 +12,18 @@ const meta: Meta = { title: "Revamp/Client", id: "pages-client" };
 export default meta;
 
 export const Today = pageAt("/");
-export const Work = pageAt("/work");
-export const Reactivation = pageAt("/reactivation");
-export const Leads = pageAt("/leads");
-export const Texts = pageAt("/texts");
-export const Calls = pageAt("/calls");
-export const Payments = pageAt("/payments");
-export const Documents = pageAt("/documents");
-export const Pipelines = pageAt("/pipelines");
+export const Work = pageAt("/map");
+export const Reactivation = pageAt("/campaigns");
+export const Leads = pageAt("/people");
+export const Texts = pageAt("/inbox");
+export const Calls = pageAt("/people");
+export const Payments = pageAt("/office");
+export const Documents = pageAt("/office");
+export const Pipelines = pageAt("/people");
 export const People = pageAt("/people");
 export const Marketplace = pageAt("/marketplace");
-export const Marketing = pageAt("/marketing");
-export const Sites = pageAt("/sites");
+export const Marketing = pageAt("/content");
+export const Sites = pageAt("/campaigns");
 export const Learn = pageAt("/learn");
 export const Notes = pageAt("/notes");
 export const Calendar = pageAt("/calendar");
@@ -94,9 +94,9 @@ export const NoteMentions = pageAt("/notes/mentions", {
   },
 });
 export const Voice = pageAt("/voice");
-export const Settings = pageAt("/settings");
-export const Library = pageAt("/library");
-export const Account = pageAt("/account");
+export const Settings = pageAt("/office");
+export const Library = pageAt("/map");
+export const Account = pageAt("/office");
 
 /** The list: a person's name with an avatar, their stage as its square, their last touch as an age. */
 export const PeopleList = pageAt("/people/people", {

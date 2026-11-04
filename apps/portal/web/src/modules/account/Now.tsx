@@ -39,7 +39,7 @@ export const nowCount = (client: string, team: boolean) =>
 
 /** Accounts for this owner: a client's page, or none for Wren's own (no page of its own yet). */
 const hrefOf = (x: Item) =>
-  x.client ? `/account/accounts?client=${encodeURIComponent(x.client)}` : null;
+  x.client ? `/office/accounts?client=${encodeURIComponent(x.client)}` : null;
 
 export function SetupNow({ client, team }: { client: string; team: boolean }) {
   const got = useCall(`now:${client}:${team}`, () =>

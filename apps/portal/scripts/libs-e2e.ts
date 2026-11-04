@@ -78,7 +78,7 @@ async function display(page: Page) {
 async function roundTrip(browser: Browser, size: typeof DESK) {
   const narrow = size === PHONE;
   const { page, done } = await open(browser, size);
-  await page.goto(`${url}/inbox/waiting`);
+  await page.goto(`${url}/inbox/messages`);
   await page.locator(rowSel(narrow)).first().waitFor({ timeout: T });
   // Group by site from Display: the address says so.
   await display(page);

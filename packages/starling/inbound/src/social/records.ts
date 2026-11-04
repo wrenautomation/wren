@@ -650,7 +650,7 @@ const replyItem = (r: InboxReply) => ({
   at: r.state === "queued" ? (r.decidedAt ?? r.askedAt) : r.askedAt,
   due: r.state === "queued" ? (r.sendAt ?? r.askedAt) : r.askedAt,
   // Our email thread they never answered has no Inbox row to open.
-  url: r.thread.startsWith("outbound:") ? null : `/engage/inbox/${encodeURIComponent(r.thread)}`,
+  url: r.thread.startsWith("outbound:") ? null : `/inbox/messages/${encodeURIComponent(r.thread)}`,
 });
 
 /**
@@ -659,8 +659,9 @@ const replyItem = (r: InboxReply) => ({
  */
 function outreachOf(id: string): string | null {
   const [type, rest] = typed(id);
-  if (type === "thread" || type === "onpost") return `/engage/engage/${encodeURIComponent(id)}`;
-  if (type === "invite" || type === "connect") return `/engage/invites/${encodeURIComponent(rest)}`;
+  if (type === "thread" || type === "onpost") return `/campaigns/engage/${encodeURIComponent(id)}`;
+  if (type === "invite" || type === "connect")
+    return `/campaigns/invites/${encodeURIComponent(rest)}`;
   return null;
 }
 
@@ -735,7 +736,7 @@ export const approvalRecordOf = (deps: ConsoleDeps) =>
           account: null,
           at: v.at,
           due: v.at,
-          url: `/marketing/videos/${v.id}`,
+          url: `/content/videos/${v.id}`,
         })),
         // Queued threads and posts, accepted and proposed invites: outbound's, with their picks.
         ...reach.filter(notParked(uss)),
@@ -784,7 +785,7 @@ export const approvalRecordOf = (deps: ConsoleDeps) =>
           account: null,
           at: p.at,
           due: p.at,
-          url: `/sites/pages/${p.id}`,
+          url: `/campaigns/pages/${p.id}`,
         })),
         // A stopped split's page asked to come down (Sites): a yes answers gone at its URL.
         ...outs.map((p) => ({
@@ -800,7 +801,7 @@ export const approvalRecordOf = (deps: ConsoleDeps) =>
           account: null,
           at: p.at,
           due: p.at,
-          url: `/sites/pages/${p.id}`,
+          url: `/campaigns/pages/${p.id}`,
         })),
         // A new title, thumbnail or hook for a live post: a yes changes it on the platform.
         ...sws.map((w) => ({
@@ -834,7 +835,7 @@ export const approvalRecordOf = (deps: ConsoleDeps) =>
           account: null,
           at: p.at,
           due: p.at,
-          url: `/payments/links/${p.id}?client=${encodeURIComponent(p.client)}`,
+          url: `/office/pay-links/${p.id}?client=${encodeURIComponent(p.client)}`,
         })),
         // A document someone without the yes asked to send (Payments): a yes sends it to be signed.
         ...dcs.map((d) => ({
@@ -850,7 +851,7 @@ export const approvalRecordOf = (deps: ConsoleDeps) =>
           account: null,
           at: d.at,
           due: d.at,
-          url: `/documents/all/${d.id}?client=${encodeURIComponent(d.client)}`,
+          url: `/office/documents/${d.id}?client=${encodeURIComponent(d.client)}`,
         })),
         // Money in by bank transfer that BillingWatch wouldn't put on an invoice by itself.
         ...crs.map((c) => ({
@@ -866,7 +867,7 @@ export const approvalRecordOf = (deps: ConsoleDeps) =>
           account: null,
           at: c.at,
           due: c.at,
-          url: `/money/payments-in/${c.id}`,
+          url: `/office/payments-in/${c.id}`,
         })),
       ];
       return rows.map((r) => ({ ...r, outreach: outreachOf(String(r.id)) }));
@@ -1168,7 +1169,7 @@ export const askedReplyRecord = defineRecord({
       send_at: r.state === "queued" ? r.sendAt : null,
       asked_by: r.askedBy,
       at: r.state === "queued" ? (r.decidedAt ?? r.askedAt) : r.askedAt,
-      url: `/marketing/inbox/${encodeURIComponent(r.thread)}`,
+      url: `/inbox/messages/${encodeURIComponent(r.thread)}`,
     })),
   ],
   key: "id",

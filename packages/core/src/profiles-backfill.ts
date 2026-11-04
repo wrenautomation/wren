@@ -558,7 +558,7 @@ const lineFrom = {
     at: e.at,
     summary: `${e.title ?? "A form"} sent`,
     body: formBody(e.fields, e.pages),
-    link: `/sites/submissions/${e.id}`,
+    link: `/people/submissions/${e.id}`,
     source: "site_forms",
     sourceId: e.id,
   }),
@@ -581,7 +581,7 @@ const lineFrom = {
             : l.paidAt
               ? `Paid ${paid}${what}`
               : `Pay link sent: ${money(l.amountCents * l.quantity, l.currency)}${what}`,
-      link: `/payments/links/${l.id}`,
+      link: `/office/pay-links/${l.id}`,
       source: "pay_links",
       sourceId: l.id,
     };

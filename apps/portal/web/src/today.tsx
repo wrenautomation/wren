@@ -464,7 +464,7 @@ export function WrenToday({
         <SetupCard
           client={props.client}
           team
-          href={apps.some((m) => m.id === "account") ? "/account/accounts" : null}
+          href={apps.some((m) => m.id === "account") ? "/office/accounts" : null}
         />
       ) : null}
       {props.team ? <SetupNow client={props.client} team /> : null}
@@ -513,7 +513,7 @@ export function ClientToday({
     <>
       {docked ? null : <PageHeader title="Today" lede={`Everything Wren runs for ${name}.`} />}
       {props.demo ? null : (
-        <SetupCard client={props.client} team={props.team} href="/account/accounts" />
+        <SetupCard client={props.client} team={props.team} href="/office/accounts" />
       )}
       {props.demo ? null : <SetupNow client={props.client} team={props.team} />}
       <PinnedRow pins={pins} />

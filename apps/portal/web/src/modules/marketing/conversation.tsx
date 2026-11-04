@@ -214,8 +214,8 @@ export function Timeline({ entries }: { entries: Entry[] }) {
 
 /** Where a client connects its own accounts and mailboxes. */
 const FIX: Record<"social" | "mail", { href: string; label: string }> = {
-  social: { href: "/account/social", label: "Connect it on Account → Social" },
-  mail: { href: "/account/mail", label: "Connect it on Account → Mail" },
+  social: { href: "/office/social", label: "Connect it on Account → Social" },
+  mail: { href: "/office/mail", label: "Connect it on Account → Mail" },
 };
 
 /**

@@ -28,7 +28,7 @@ export const unseenMentions = (client: string) =>
 /** A note, its comment, or an Inbox thread (a client's Marketing -> Inbox, Wren's Engage -> Inbox). */
 const linkOf = (m: NoteMention, client: string) =>
   m.thread
-    ? `${client === WREN.id ? "/engage/inbox" : "/marketing/inbox"}/${encodeURIComponent(m.thread)}`
+    ? `${client === WREN.id ? "/inbox/messages" : "/inbox/messages"}/${encodeURIComponent(m.thread)}`
     : m.commentId
       ? `${docPath(m.noteId ?? "")}?comment=${m.commentId}`
       : docPath(m.noteId ?? "");

@@ -15,30 +15,30 @@ const meta: Meta = { title: "Ready to build/Engage and Outbound", id: "pages-wre
 export default meta;
 
 // Engage: one story per tab.
-export const EngageEngage = pageAt("/engage/engage", { me: ADMIN });
-export const EngageDms = pageAt("/engage/dms", { me: ADMIN });
-export const EngageInvites = pageAt("/engage/invites", { me: ADMIN });
+export const EngageEngage = pageAt("/campaigns/engage", { me: ADMIN });
+export const EngageDms = pageAt("/inbox/dms", { me: ADMIN });
+export const EngageInvites = pageAt("/campaigns/invites", { me: ADMIN });
 /** Long names, roles and firms beside short figures: every word shows whole, no sideways scroll. */
 const LONG = ownRows("marketing.invite", LONG_INVITES, ANSWERS);
-export const EngageInvitesLong = pageAt("/engage/invites?view=all", {
+export const EngageInvitesLong = pageAt("/campaigns/invites?view=all", {
   me: ADMIN,
   answers: LONG,
   check: rowsFit,
 });
 /** A row opened: the record beside the list, never over it. */
-export const EngageInvitesLongOpen = pageAt("/engage/invites?view=all&invite=1", {
+export const EngageInvitesLongOpen = pageAt("/campaigns/invites?view=all&invite=1", {
   me: ADMIN,
   answers: LONG,
   check: rowsFit,
 });
-export const EngagePeople = pageAt("/engage/people", { me: ADMIN });
-export const EngageInbox = pageAt("/engage/inbox", { me: ADMIN });
+export const EngagePeople = pageAt("/people/contacts", { me: ADMIN });
+export const EngageInbox = pageAt("/inbox/messages", { me: ADMIN });
 /**
  * Engage's Inbox as a queue table (rows-everywhere F1, F2): its wait column reads late past 24h,
  * and "By type" folds the rows by kind, each fold with its count and oldest
  * wait. A fold shuts on a press.
  */
-export const EngageInboxByType = pageAt("/engage/inbox?view=all", {
+export const EngageInboxByType = pageAt("/inbox/messages?view=all", {
   me: ADMIN,
   check: async (page) => {
     const view = within(page);
@@ -56,10 +56,10 @@ export const EngageInboxByType = pageAt("/engage/inbox?view=all", {
     await expect(fold).toHaveAttribute("aria-expanded", "false");
   },
 });
-export const EngageApprove = pageAt("/engage/approve", { me: ADMIN });
-export const EngageComments = pageAt("/engage/comments", { me: ADMIN });
+export const EngageApprove = pageAt("/inbox/approve", { me: ADMIN });
+export const EngageComments = pageAt("/inbox/comments", { me: ADMIN });
 /** A comment opened: the whole comment docks beside the list (`peek: false`), never over it. */
-export const EngageCommentsOpen = pageAt("/engage/comments?comment=1", {
+export const EngageCommentsOpen = pageAt("/inbox/comments?comment=1", {
   me: ADMIN,
   check: async (page) => {
     await rowsFit(page);
@@ -71,25 +71,25 @@ export const EngageCommentsOpen = pageAt("/engage/comments?comment=1", {
     expect(open.getBoundingClientRect().left).toBeGreaterThanOrEqual(list?.right ?? 0);
   },
 });
-export const EngageReviews = pageAt("/engage/reviews", { me: ADMIN });
-export const EngageConversation = pageAt("/engage/conversation", { me: ADMIN });
-export const EngageFollowers = pageAt("/engage/followers", { me: ADMIN });
-export const EngageSubscribers = pageAt("/engage/subscribers", { me: ADMIN });
-export const EngageThreads = pageAt("/engage/threads", { me: ADMIN });
-export const EngagePlaces = pageAt("/engage/places", { me: ADMIN });
-export const EngageAccounts = pageAt("/engage/accounts", { me: ADMIN });
-export const EngageDmCopy = pageAt("/engage/dm-copy", { me: ADMIN });
-export const EngageAutoReply = pageAt("/engage/auto-reply", { me: ADMIN });
-export const EngageKeywords = pageAt("/engage/keywords", { me: ADMIN });
-export const EngageKeywordDms = pageAt("/engage/keyword-dms", { me: ADMIN });
+export const EngageReviews = pageAt("/inbox/reviews", { me: ADMIN });
+export const EngageConversation = pageAt("/campaigns/conversation", { me: ADMIN });
+export const EngageFollowers = pageAt("/people/followers", { me: ADMIN });
+export const EngageSubscribers = pageAt("/people/subscribers", { me: ADMIN });
+export const EngageThreads = pageAt("/campaigns/threads", { me: ADMIN });
+export const EngagePlaces = pageAt("/campaigns/places", { me: ADMIN });
+export const EngageAccounts = pageAt("/office/channel-accounts", { me: ADMIN });
+export const EngageDmCopy = pageAt("/campaigns/dm-copy", { me: ADMIN });
+export const EngageAutoReply = pageAt("/campaigns/auto-reply", { me: ADMIN });
+export const EngageKeywords = pageAt("/campaigns/keywords", { me: ADMIN });
+export const EngageKeywordDms = pageAt("/campaigns/keyword-dms", { me: ADMIN });
 
 // Outbound: one story per tab.
-export const OutboundOverview = pageAt("/outbound/overview", { me: ADMIN });
-export const OutboundCampaigns = pageAt("/outbound/campaigns", { me: ADMIN });
-export const OutboundInboxes = pageAt("/outbound/inboxes", { me: ADMIN });
-export const OutboundSignals = pageAt("/outbound/signals", { me: ADMIN });
-export const OutboundSheet = pageAt("/outbound/sheet", { me: ADMIN });
-export const OutboundCompanies = pageAt("/outbound/companies", { me: ADMIN });
-export const OutboundStalls = pageAt("/outbound/stalls", { me: ADMIN });
-export const OutboundTexts = pageAt("/outbound/texts", { me: ADMIN });
-export const OutboundTextCopy = pageAt("/outbound/text-copy", { me: ADMIN });
+export const OutboundOverview = pageAt("/campaigns/email", { me: ADMIN });
+export const OutboundCampaigns = pageAt("/campaigns/email-campaigns", { me: ADMIN });
+export const OutboundInboxes = pageAt("/office/inboxes", { me: ADMIN });
+export const OutboundSignals = pageAt("/campaigns/signals", { me: ADMIN });
+export const OutboundSheet = pageAt("/people/companies", { me: ADMIN });
+export const OutboundCompanies = pageAt("/people/companies", { me: ADMIN });
+export const OutboundStalls = pageAt("/campaigns/stalls", { me: ADMIN });
+export const OutboundTexts = pageAt("/inbox/texts", { me: ADMIN });
+export const OutboundTextCopy = pageAt("/campaigns/text-copy", { me: ADMIN });

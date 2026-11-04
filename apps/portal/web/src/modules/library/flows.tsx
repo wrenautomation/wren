@@ -29,7 +29,7 @@ export const workflowExtras: NonNullable<ListPage["extras"]> = (detail, { row, t
           <DeleteSaved
             id={String(row.id)}
             name={String(row.name ?? row.id)}
-            after="/library/workflows"
+            after="/workflows/all"
           />
         </div>
       ) : (

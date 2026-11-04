@@ -10,7 +10,7 @@ import { Contract } from "./Contract.js";
 import { askExtras, deliverableExtras, paperExtras, updateExtras } from "./extras.js";
 import { Feedback } from "./Feedback.js";
 import { Glance } from "./Glance.js";
-import { WORK } from "./nav.js";
+import { workAt } from "./nav.js";
 import { Welcome } from "./Welcome.js";
 
 export { Feedback } from "./Feedback.js";
@@ -308,10 +308,10 @@ export const ENGAGEMENT_PAGES: ModulePage[] = [
   },
 ];
 
-const page = (p: string, q: string) => `/${WORK}/${p}?${q}`;
+const page = (p: string, q: string) => `${workAt(p)}?${q}`;
 
 export const work: Module = {
-  id: WORK,
+  id: "work",
   name: "Your project",
   component: "delivery.portal",
   icon: "flag",

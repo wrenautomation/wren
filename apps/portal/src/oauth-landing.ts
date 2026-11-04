@@ -29,14 +29,14 @@ const LANDINGS: Record<string, Landing> = {
     field: "provider",
     service: "MailCallback/land",
     keep: ["state", "code", "error", "admin_consent", "tenant", "scope"],
-    back: { href: "/account/mail", label: "Account → Mail" },
+    back: { href: "/office/mail", label: "Account → Mail" },
   },
   social: {
     names: SOCIAL_PLATFORMS,
     field: "platform",
     service: "SocialCallback/land",
     keep: ["state", "code", "error"],
-    back: { href: "/account/social", label: "Account → Social" },
+    back: { href: "/office/social", label: "Account → Social" },
   },
   connector: {
     names: CONNECTOR_APPS,
@@ -44,7 +44,7 @@ const LANDINGS: Record<string, Landing> = {
     service: "ConnectorCallback/land",
     // QuickBooks adds its company.
     keep: ["state", "code", "error", "realmId"],
-    back: { href: "/account/connectors", label: "Account → Connectors" },
+    back: { href: "/office/connectors", label: "Account → Connectors" },
   },
 };
 

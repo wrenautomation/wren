@@ -33,7 +33,7 @@ export function AiSpend() {
   const amount = money(s.value ?? 0, s.currency);
   return (
     <a
-      href={`/money/spend?view=this_month&${AI_SPEND}`}
+      href={`/office/spend?view=this_month&${AI_SPEND}`}
       className="mr-2 text-[13px] whitespace-nowrap text-(--ui-ink-2) hover:text-(--ui-ink)"
     >
       AI spend this month: <span className="font-medium text-(--ui-ink)">{amount}</span>

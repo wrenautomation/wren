@@ -244,7 +244,7 @@ function AccountList({
               a.has === false ? (
                 <a
                   className="text-[14px] underline underline-offset-2"
-                  href={`/account/accounts?client=${encodeURIComponent(client)}`}
+                  href={`/office/accounts?client=${encodeURIComponent(client)}`}
                 >
                   {a.setup ? `${a.setup.name} on Accounts` : "Set it up on Accounts"}
                 </a>

@@ -1,7 +1,8 @@
 /** Links between Reactivation's pages. */
 import { go, href, type Params } from "../../route.js";
 
-export const REACTIVATION = "reactivation";
+/** The place its pages live in (`../places.ts`). */
+export const REACTIVATION = "campaigns";
 
 export const at = (page: string, params?: Params) => href(`/${REACTIVATION}/${page}`, params);
 

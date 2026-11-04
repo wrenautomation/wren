@@ -98,9 +98,8 @@ const root = createRootRoute({
 });
 
 /**
- * Sends an address that moved to its new one (`./moved.ts`). An app a client also holds
- * (Marketing, Sites) moves at Wren only, so it waits for who is signed in, read under the same
- * key `App` reads it by.
+ * Sends an address that moved to its new one (`./moved.ts`). One that moves elsewhere at a client
+ * waits for who is signed in, read under the same key `App` reads it by.
  */
 async function sendMoved(href: string) {
   let atWren = false;

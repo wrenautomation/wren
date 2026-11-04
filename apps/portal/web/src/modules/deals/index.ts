@@ -27,7 +27,7 @@ export const clientDeals: Module = {
   component: "pipeline.journeys",
   icon: "target",
   blurb: "Every person by node of the shape, and how long they have been there.",
-  find: findRecords({ record: "pipeline.journey", path: "/pipelines/journeys", kind: "Journey" }),
+  find: findRecords({ record: "pipeline.journey", path: "/people/journeys", kind: "Journey" }),
   pages: [
     {
       id: "board",

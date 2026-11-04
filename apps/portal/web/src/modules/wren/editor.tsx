@@ -385,7 +385,7 @@ function Copy({ w, node, client }: { w: Drawn; node: string; client: string | nu
       )}
       <a
         className="w-fit text-[13px] text-(--ui-ink) underline"
-        href={`/library/templates/${encodeURIComponent(got.data.template)}`}
+        href={`/map/templates/${encodeURIComponent(got.data.template)}`}
       >
         Edit copy in Templates
       </a>

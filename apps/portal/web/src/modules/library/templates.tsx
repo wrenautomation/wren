@@ -44,7 +44,7 @@ import { QUIET } from "../work/bits.js";
 import { Numbers } from "./numbers.js";
 import { CHANNEL } from "./sequence.js";
 
-const PATH = "/library/templates";
+const PATH = "/map/templates";
 
 type Head = NonNullable<TemplateOpen["live"]>;
 type Version = TemplateOpen["versions"][number];
@@ -75,8 +75,8 @@ const ORIGIN: Record<string, string> = {
 
 /** Where texts and DMs save: their copy pages, which hold each slot's rules. */
 const COPY_PAGE: Record<string, string> = {
-  sms: "/outbound/text-copy",
-  dm: "/engage/dm-copy",
+  sms: "/campaigns/text-copy",
+  dm: "/campaigns/dm-copy",
 };
 
 const SELECT =

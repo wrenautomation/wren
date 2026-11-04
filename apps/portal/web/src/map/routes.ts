@@ -28,35 +28,35 @@ const DM_CHANNELS = ["dm", "linkedin", "instagram", "x", "facebook", "reddit"];
 /** Every target the table can give, by what a node is. The first of each list is the default. */
 export const ROUTES = {
   ads: {
-    wren: [{ label: "Ads", app: "ads", page: "sets" }],
-    client: [{ label: "Ads", app: "marketing", page: "ads" }],
+    wren: [{ label: "Ads", app: "campaigns", page: "ads" }],
+    client: [{ label: "Ads", app: "campaigns", page: "ads" }],
   },
   dm: {
-    wren: [{ label: "Engage", app: "engage", page: "dms" }],
-    client: [{ label: "Marketing", app: "marketing", page: "content", channel: true }],
+    wren: [{ label: "DMs", app: "inbox", page: "dms" }],
+    client: [{ label: "Content", app: "content", page: "content", channel: true }],
   },
   source: {
-    wren: [{ label: "Marketing", app: "content", page: "content", channel: true }],
-    client: [{ label: "Marketing", app: "marketing", page: "content", channel: true }],
+    wren: [{ label: "Content", app: "content", page: "content", channel: true }],
+    client: [{ label: "Content", app: "content", page: "content", channel: true }],
   },
   step: {
-    wren: [{ label: "Journeys", app: "pipelines", page: "journeys", node: true }],
-    client: [{ label: "Journeys", app: "pipelines", page: "journeys", node: true }],
+    wren: [{ label: "Journeys", app: "people", page: "journeys", node: true }],
+    client: [{ label: "Journeys", app: "people", page: "journeys", node: true }],
   },
   offer: {
     wren: [
-      { label: "Journeys", app: "pipelines", page: "journeys", node: true },
-      { label: "Offers", app: "offers", page: "all" },
+      { label: "Journeys", app: "people", page: "journeys", node: true },
+      { label: "Offers", app: "map", page: "offers" },
     ],
-    client: [{ label: "Journeys", app: "pipelines", page: "journeys", node: true }],
+    client: [{ label: "Journeys", app: "people", page: "journeys", node: true }],
   },
   plan: {
-    wren: [{ label: "Deals", app: "pipelines", page: "deals" }],
-    client: [{ label: "Payments", app: "payments", page: "links" }],
+    wren: [{ label: "Deals", app: "people", page: "deals" }],
+    client: [{ label: "Payments", app: "office", page: "pay-links" }],
   },
   content: {
-    wren: [{ label: "Learn", app: "learn", page: "items" }],
-    client: [{ label: "Learn", app: "learn", page: "items" }],
+    wren: [{ label: "Content", app: "content", page: "content" }],
+    client: [{ label: "Content", app: "content", page: "content" }],
   },
 } as const satisfies Record<string, Record<Place, readonly Target[]>>;
 

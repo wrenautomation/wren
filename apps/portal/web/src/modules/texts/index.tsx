@@ -13,13 +13,13 @@ import { THREAD_PAY } from "../payments/index.js";
 import { AskReview, ReviewsGained } from "./ask.js";
 
 const THREAD = "sms.thread";
-const threads = (view: string) => `/texts/threads?view=${view}`;
+const threads = (view: string) => `/inbox/threads?view=${view}`;
 const SPEED = "sms.speed";
-const speed = (view: string) => `/texts/speed?view=${view}`;
+const speed = (view: string) => `/inbox/threads?view=${view}`;
 const CALL = "sms.call";
-const calls = (view: string) => `/texts/calls?view=${view}`;
+const calls = (view: string) => `/inbox/threads?view=${view}`;
 const REVIEW = "sms.review";
-const reviews = (view: string) => `/texts/reviews?view=${view}`;
+const reviews = (view: string) => `/inbox/threads?view=${view}`;
 
 const THREAD_ACTIONS: Action[] = [
   {

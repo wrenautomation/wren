@@ -20,18 +20,7 @@ import type { EngagementView, MomentView } from "../../api.js";
 import type { PageProps } from "../../module.js";
 import { PageRows, RowDoes, rowLines, useGoing } from "../../page-rows.js";
 import { href, navigate } from "../../route.js";
-import {
-  dayLabel,
-  Form,
-  NARROW,
-  ofThisApp,
-  QUIET,
-  TOOLS,
-  trimmed,
-  useAct,
-  useWork,
-  WIDE,
-} from "./bits.js";
+import { dayLabel, Form, NARROW, QUIET, TOOLS, trimmed, useAct, useWork, WIDE } from "./bits.js";
 import { at } from "./nav.js";
 
 export function Feedback(props: PageProps) {
@@ -50,7 +39,7 @@ function Mine(props: PageProps) {
           {act.error}
         </p>
       ) : null}
-      {ofThisApp(work.data?.engagements ?? []).map((e) => (
+      {(work.data?.engagements ?? []).map((e) => (
         <Fragment key={e.id}>
           {e.status !== "onboarding" && e.updates.length === 0 ? (
             <Callout>

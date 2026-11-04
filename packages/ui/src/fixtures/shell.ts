@@ -109,7 +109,7 @@ export const SHELL: ShellProps = {
     onRemove: noop,
     onClear: noop,
   },
-  page: "/leads/waiting",
+  page: "/people/waiting",
   onGo: noop,
 };
 
@@ -118,7 +118,7 @@ export const SHELL_DEMO: ShellProps = {
   brand: SHELL.brand,
   workspace: { ...SHELL.workspace, chip: { label: "Sample company", href: "#/real" } },
   app: OPEN,
-  page: "/leads/waiting",
+  page: "/people/waiting",
 };
 
 /** A client's own view: Today at home, only the items its workspace has, a pin under them. */

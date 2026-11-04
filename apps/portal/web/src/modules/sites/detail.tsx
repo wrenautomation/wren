@@ -878,7 +878,7 @@ function Variants({ vs, here }: { vs: Variant[]; here: string }) {
       rows={vs.map((v) => [
         <a
           key="t"
-          href={`/sites/pages/${v.id}`}
+          href={`/campaigns/pages/${v.id}`}
           className={v.id === here ? "font-medium" : "underline"}
         >
           {[v.title, v.angle].filter(Boolean).join(" · ")}

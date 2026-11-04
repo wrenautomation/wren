@@ -251,7 +251,7 @@ export async function readHealth(
         ? `${visitDays.length} in the last ${VISIT_DAYS} (${VISITS_WANTED} wanted)`
         : "Nobody on their side can sign in",
       at: iso(lastSeen),
-      href: at("/account/people", clientId),
+      href: at("/office/team", clientId),
     });
     if (approvals !== null)
       inputs.push({
@@ -294,7 +294,7 @@ export async function readHealth(
         what: `Weekly rating, ${t.email}`,
         value: `${t.score} of 5`,
         at: iso(t.at),
-        href: at("/account/people", clientId),
+        href: at("/office/team", clientId),
       });
     if (ours)
       inputs.push({
@@ -302,7 +302,7 @@ export async function readHealth(
         what: "Wren's rating",
         value: `${ours.score} of 5${ours.note ? `: ${ours.note}` : ""}`,
         at: iso(ours.at),
-        href: `/clients/health/${encodeURIComponent(clientId)}`,
+        href: `/people/health/${encodeURIComponent(clientId)}`,
       });
     const scores = [...theirs.map((t) => t.score), ...(ours ? [ours.score] : [])];
     const feltAt = iso(newest([...theirs.map((t) => t.at), ours?.at]));
@@ -329,7 +329,7 @@ export async function readHealth(
         what: `Invoice ${i.number}`,
         value: `${plural(daysFrom(i.dueOn, today), "day")} late`,
         at: `${i.dueOn}T00:00:00.000Z`,
-        href: at("/account/billing", clientId),
+        href: at("/office/billing", clientId),
       });
     if (owed.length && !pastDue.length)
       inputs.push({
@@ -337,7 +337,7 @@ export async function readHealth(
         what: "Invoices",
         value: `None overdue, ${plural(owed.filter((i) => i.status === "paid").length, "paid")}`,
         at: null,
-        href: at("/account/billing", clientId),
+        href: at("/office/billing", clientId),
       });
     const oldest = pastDue[0];
     const moneyPart: PartScore = owed.length

@@ -115,7 +115,7 @@ export const engage: Module = {
   icon: "reply",
   blurb: "Everything said with other people: comments, DMs, invites, replies and reviews.",
   requires: { audience: "team" },
-  find: findRecords({ record: "marketing.person", path: "/engage/people", kind: "Person" }),
+  find: findRecords({ record: "marketing.person", path: "/people/contacts", kind: "Person" }),
   pages: [
     ENGAGE_PAGE,
     {

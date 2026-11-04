@@ -25,7 +25,6 @@ import {
 } from "../../api.js";
 import { useCall } from "../../load.js";
 import type { PageProps } from "../../module.js";
-import { appHere, WORK } from "./nav.js";
 
 export const QUIET = "text-(--ui-ink-2)";
 export const ERROR = "text-[13.5px] text-(--ui-bad)";
@@ -67,12 +66,6 @@ export function useWork({ client, team }: PageProps) {
   return { ...home, reload: home.retry };
 }
 
-/** The engagements this app shows: a product's app its own, the work app all of them. */
-export function ofThisApp(es: EngagementView[]): EngagementView[] {
-  const app = appHere();
-  return app === WORK ? es : es.filter((e) => e.offer.app === app);
-}
-
 /** The page's body once loaded: each engagement, headed by its offer when there's more than one. */
 export function Engagements({
   work,
@@ -83,7 +76,7 @@ export function Engagements({
 }) {
   if (work.error && !work.data) return <LoadFailed error={work.error} onRetry={work.retry} />;
   if (!work.data) return <Loading lines={8} />;
-  const es = ofThisApp(work.data.engagements);
+  const es = work.data.engagements;
   if (es.length === 0) return <Empty>Nothing started yet. Your plan shows here on day one.</Empty>;
   if (es.length === 1 && es[0]) return children(es[0]);
   return es.map((e) => (

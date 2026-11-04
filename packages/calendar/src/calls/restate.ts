@@ -178,7 +178,7 @@ const SEND = BUILD.extend({
 
 /** The call's page: Wren's Pipelines, or the client's Calls app. */
 export const briefPath = (client: string | null, id: number) =>
-  client ? `/calls/calls/${id}` : `/pipelines/calls/${id}`;
+  client ? `/people/calls/${id}` : `/people/calls/${id}`;
 
 export function makeCallBriefs(deps: CallBriefsDeps) {
   /** Build the brief again now and keep it; null when the call is gone. */

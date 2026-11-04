@@ -57,7 +57,7 @@ export function landerVisits(site: Site): (email: string) => Promise<Cited[]> {
           sessions.push({
             text: `Recorded visit to ${r.page}, ${mins(secs)}`,
             source: "Sessions",
-            href: `/sites/sessions/${encodeURIComponent(r.view)}`,
+            href: `/campaigns/sessions/${encodeURIComponent(r.view)}`,
             at: day(r.started),
           });
         }
@@ -116,7 +116,7 @@ export function landerVisitLines(
           lines.push({
             at: new Date(r.started).toISOString(),
             text: `Recorded visit to ${r.page}, ${mins((Date.parse(r.last) - Date.parse(r.started)) / 1000)}`,
-            href: `/sites/sessions/${encodeURIComponent(r.view)}`,
+            href: `/campaigns/sessions/${encodeURIComponent(r.view)}`,
           });
       }
       return lines.sort((a, b) => b.at.localeCompare(a.at)).slice(0, VISIT_LINES);

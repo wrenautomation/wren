@@ -94,13 +94,13 @@ export function linksOf(r: Pick<AutomationRow, "kind" | "ref" | "name">): {
       const word = /“(.+)”/.exec(r.name)?.[1];
       const caught = word ? `~${word}` : null;
       return {
-        open: href("/engage/keywords", { keyword: ref }),
-        runs: href("/engage/keyword-dms", { keyword: caught }),
-        failed: href("/engage/keyword-dms", { view: "failed", keyword: caught }),
+        open: href("/campaigns/keywords", { keyword: ref }),
+        runs: href("/campaigns/keyword-dms", { keyword: caught }),
+        failed: href("/campaigns/keyword-dms", { view: "failed", keyword: caught }),
       };
     }
     default:
-      return { open: "/engage/auto-reply" };
+      return { open: "/campaigns/auto-reply" };
   }
 }
 
@@ -534,7 +534,7 @@ const KEYWORD_CARD = {
   name: "Comment keyword: DM the link",
   blurb: "Someone comments the word on your post and gets your DM. Runs on its own sender.",
   steps: ["A comment has the word", "DM them", "Reply to the comment"],
-  href: "/engage/keywords",
+  href: "/campaigns/keywords",
   cta: "Add a keyword",
 };
 

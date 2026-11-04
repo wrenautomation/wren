@@ -12,12 +12,12 @@ type Where = Record<string, unknown>;
 
 /** Where each kind of move opens. The reshape's addresses; `moved.ts` holds the old ones. */
 const AT = {
-  call: "/pipelines/calls",
-  approve: "/engage/approve",
-  inbox: "/engage/inbox",
+  call: "/people/calls",
+  approve: "/inbox/approve",
+  inbox: "/inbox/messages",
   reply: "/inbox/replies",
   ask: "/inbox/asks",
-  stale: "/pipelines/journeys?view=stale",
+  stale: "/people/journeys?view=stale",
 } as const;
 
 /** To approve's kinds: their name and the view they list under. */

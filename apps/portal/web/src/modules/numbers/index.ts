@@ -7,7 +7,7 @@
 import { createElement } from "react";
 import type { Module } from "../../module.js";
 
-const MONTHS = "/numbers/months?view=all";
+const MONTHS = "/map/months?view=all";
 const NO_CLIENTS = "No paying clients yet";
 /** A month's figure, the month before and a bar a month; `none` while it has no value. */
 const figure = (label: string, pick: string, none = NO_CLIENTS) => ({
@@ -72,7 +72,7 @@ export const numbers: Module = {
         {
           label: "Cost per reply and per booked call this month",
           record: "books.channel",
-          href: "/numbers/channels?view=this_month",
+          href: "/map/channels?view=this_month",
           fields: ["perReply", "perBooked"],
           empty: "No channel spent anything this month yet.",
         },

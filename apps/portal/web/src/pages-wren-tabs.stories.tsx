@@ -16,26 +16,26 @@ export default meta;
 export const ContentPieces = pageAt("/content/pieces", { me: ADMIN });
 export const ContentContent = pageAt("/content/content", { me: ADMIN });
 export const ContentOverview = pageAt("/content/overview", { me: ADMIN });
-export const ContentFeed = pageAt("/content/feed", { me: ADMIN });
+export const ContentFeed = pageAt("/campaigns/feed", { me: ADMIN });
 export const ContentTopics = pageAt("/content/topics", { me: ADMIN });
 export const ContentFacts = pageAt("/content/facts", { me: ADMIN });
 
 // Ads: one story per tab.
-export const AdsSets = pageAt("/ads/sets", { me: ADMIN });
-export const AdsFormats = pageAt("/ads/formats", { me: ADMIN });
+export const AdsSets = pageAt("/campaigns/ads", { me: ADMIN });
+export const AdsFormats = pageAt("/campaigns/formats", { me: ADMIN });
 
 // Analytics: one story per tab.
-export const AnalyticsVisits = pageAt("/analytics/visits", { me: ADMIN });
-export const AnalyticsSessions = pageAt("/analytics/sessions", { me: ADMIN });
-export const AnalyticsHeatmaps = pageAt("/analytics/heatmaps", { me: ADMIN });
-export const AnalyticsExperiments = pageAt("/analytics/experiments", { me: ADMIN });
-export const AnalyticsSurveys = pageAt("/analytics/surveys", { me: ADMIN });
-export const AnalyticsSurveyAnswers = pageAt("/analytics/survey-answers", { me: ADMIN });
-export const AnalyticsSearch = pageAt("/analytics/search", { me: ADMIN });
-export const AnalyticsKeywords = pageAt("/analytics/keywords", { me: ADMIN });
-export const AnalyticsAnswers = pageAt("/analytics/answers", { me: ADMIN });
-export const AnalyticsFunnel = pageAt("/analytics/funnel", { me: ADMIN });
+export const AnalyticsVisits = pageAt("/campaigns/visits", { me: ADMIN });
+export const AnalyticsSessions = pageAt("/campaigns/sessions", { me: ADMIN });
+export const AnalyticsHeatmaps = pageAt("/campaigns/heatmaps", { me: ADMIN });
+export const AnalyticsExperiments = pageAt("/campaigns/experiments", { me: ADMIN });
+export const AnalyticsSurveys = pageAt("/campaigns/surveys", { me: ADMIN });
+export const AnalyticsSurveyAnswers = pageAt("/campaigns/survey-answers", { me: ADMIN });
+export const AnalyticsSearch = pageAt("/campaigns/visits", { me: ADMIN });
+export const AnalyticsKeywords = pageAt("/campaigns/visits", { me: ADMIN });
+export const AnalyticsAnswers = pageAt("/campaigns/visits", { me: ADMIN });
+export const AnalyticsFunnel = pageAt("/campaigns/funnel", { me: ADMIN });
 
 // Pipelines: one story per tab.
-export const PipelinesBoard = pageAt("/pipelines/board", { me: ADMIN });
-export const PipelinesJourneys = pageAt("/pipelines/journeys", { me: ADMIN });
+export const PipelinesBoard = pageAt("/people/board", { me: ADMIN });
+export const PipelinesJourneys = pageAt("/people/journeys", { me: ADMIN });

@@ -22,13 +22,13 @@ const navLink = (page: Page, path: string) => page.locator(`nav a[href^="${path}
 
 const tests: Test[] = [
   [
-    "nav: Engage holds Engage, DMs, Invites and People; Content no longer does",
+    "nav: Campaigns holds Engage, Invites and DM copy; Content no longer does",
     async (browser) => {
       const { context, page } = await fresh(browser);
-      await page.goto(`${url}/engage`);
-      await page.getByRole("heading", { name: "Engage" }).waitFor();
-      for (const p of ["engage", "dms", "invites", "people", "accounts", "dm-copy"])
-        assert.ok((await navLink(page, `/engage/${p}`).count()) > 0, `Engage's nav links ${p}`);
+      await page.goto(`${url}/campaigns`);
+      await page.getByRole("heading", { name: "Campaigns" }).waitFor();
+      for (const p of ["engage", "invites", "threads", "dm-copy"])
+        assert.ok((await navLink(page, `/campaigns/${p}`).count()) > 0, `Campaigns links ${p}`);
       await page.goto(`${url}/content`);
       await navLink(page, "/content/").first().waitFor();
       for (const p of ["engage", "dms", "invites", "people"])
@@ -37,18 +37,18 @@ const tests: Test[] = [
     },
   ],
   [
-    "old addresses: Marketing's and Outreach's DMs and Invites land on Engage's, search kept",
+    "old addresses: Marketing's DMs land in Inbox, Outreach's Invites in Campaigns, search kept",
     async (browser) => {
       const { context, page } = await fresh(browser);
       await page.goto(`${url}/marketing/dms?view=all`);
-      await at(page, "/engage/dms?view=all");
+      await at(page, "/inbox/dms?view=all");
       await page.getByText("Dana Rivera").first().waitFor();
       await page.goto(`${url}/outreach/invites?view=proposed`);
-      await at(page, "/engage/invites?view=proposed");
+      await at(page, "/campaigns/invites?view=proposed");
       await page.getByText("Alex Sample").first().waitFor();
       // Back goes past the redirect, to the page before it.
       await page.goBack();
-      await at(page, "/engage/dms?view=all");
+      await at(page, "/inbox/dms?view=all");
       await context.close();
     },
   ],
@@ -56,10 +56,10 @@ const tests: Test[] = [
     "Invites: a proposed one waits in To approve, an accepted one in To message",
     async (browser) => {
       const { context, page } = await fresh(browser);
-      await page.goto(`${url}/engage/invites?view=proposed`);
+      await page.goto(`${url}/campaigns/invites?view=proposed`);
       await page.getByText("Alex Sample").first().waitFor();
       assert.equal(await page.getByText("Jordan Sample").count(), 0);
-      await page.goto(`${url}/engage/invites?view=message`);
+      await page.goto(`${url}/campaigns/invites?view=message`);
       await page.getByText("Jordan Sample").first().waitFor();
       assert.equal(await page.getByText("Alex Sample").count(), 0);
       await context.close();
@@ -69,7 +69,7 @@ const tests: Test[] = [
     "Account filter: one account narrows Invites, and rides in the address",
     async (browser) => {
       const { context, page } = await fresh(browser);
-      await page.goto(`${url}/engage/invites?view=all`);
+      await page.goto(`${url}/campaigns/invites?view=all`);
       await page.getByText("Jordan Sample").first().waitFor();
       await page.locator("[data-account-filter]").first().click();
       await page.getByRole("option", { name: /alt/ }).click();
@@ -86,7 +86,7 @@ const tests: Test[] = [
     "Invites: Send invite pressed twice goes once",
     async (browser) => {
       const { context, page, fake } = await fresh(browser);
-      await page.goto(`${url}/engage/invites?view=proposed`);
+      await page.goto(`${url}/campaigns/invites?view=proposed`);
       await page.getByText("Alex Sample").first().click();
       // The panel's button by its words: the row's icon button shares its name.
       await page.locator("button", { hasText: /^Send invite$/ }).click();
@@ -106,7 +106,7 @@ const tests: Test[] = [
     "Engage: a comment on their post, hidden mid-send, goes once and lands on return",
     async (browser) => {
       const { context, page, fake, reads } = await fresh(browser);
-      await page.goto(`${url}/engage/engage`);
+      await page.goto(`${url}/campaigns/engage`);
       await page.getByText("Pat Example").first().click();
       const box = page.getByPlaceholder("Write it here.").first();
       await box.waitFor();
@@ -136,12 +136,12 @@ const tests: Test[] = [
         isMobile: true,
       });
       const page = await context.newPage();
-      await page.goto(`${url}/engage/dms?view=all`);
+      await page.goto(`${url}/inbox/dms?view=all`);
       const tabs = page.getByRole("navigation", { name: "Engage tabs" });
       for (const name of [/Engage$/, /DMs$/, /Invites$/])
         await tabs.getByRole("link", { name }).waitFor();
       await page.getByText("Jordan Sample").first().waitFor();
-      await page.goto(`${url}/engage/dms?view=sent`);
+      await page.goto(`${url}/inbox/dms?view=sent`);
       await page.getByText("Jordan Sample").first().waitFor({ state: "detached" });
       await page.waitForTimeout(1000);
       assert.equal(await page.getByText("Jordan Sample").count(), 0, "Invites holds it");

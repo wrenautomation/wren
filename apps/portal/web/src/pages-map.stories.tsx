@@ -337,15 +337,15 @@ export const StationPanel = mapAt("/", {
     const panel = await within(page).findByRole("region", { name: "Engaged, details" });
     const people = within(panel)
       .getAllByRole("link")
-      .filter((a) => a.getAttribute("href")?.startsWith("/pipelines/journeys/"));
+      .filter((a) => a.getAttribute("href")?.startsWith("/people/journeys/"));
     await expect(people.map((a) => a.textContent)).toEqual([
       expect.stringContaining("Ada North"),
       expect.stringContaining("Bo Fenwick"),
     ]);
-    await expect(people[0]).toHaveAttribute("href", "/pipelines/journeys/j1");
+    await expect(people[0]).toHaveAttribute("href", "/people/journeys/j1");
     await expect(within(panel).getByText("Numbers in the last 30 days.")).toBeVisible();
     const open = within(panel).getByRole("link", { name: "Open" });
-    await expect(open).toHaveAttribute("href", "/pipelines/journeys?node=engaged&view=all");
+    await expect(open).toHaveAttribute("href", "/people/journeys?node=engaged&view=all");
     // A track of the station opens that track.
     await userEvent.click(within(panel).getByRole("button", { name: "Track to Booked" }));
     await expect(
@@ -1112,7 +1112,7 @@ export const FocusStation = mapAt("/map/station/book", {
     const attached = within(page).getByRole("region", { name: "Attached" });
     await expect(within(attached).getByRole("link", { name: "Booking SOP" })).toHaveAttribute(
       "href",
-      "/library/sops/booking",
+      "/map/sops/booking",
     );
     await expect(within(attached).getByRole("heading", { name: "Apps" })).toBeVisible();
     // A stub focuses the part on its far side.

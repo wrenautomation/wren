@@ -28,9 +28,9 @@ import { Avatar } from "../learn/kinds.js";
 import { SourcesBody } from "../learn/sources.js";
 
 const TABS = [
-  ["following", "Following", "/content/feed"],
-  ["explore", "Explore", "/content/explore"],
-  ["sources", "Sources", "/content/feed?tab=sources"],
+  ["following", "Following", "/campaigns/feed"],
+  ["explore", "Explore", "/campaigns/explore"],
+  ["sources", "Sources", "/campaigns/feed?tab=sources"],
 ] as const;
 type Tab = (typeof TABS)[number][0];
 
@@ -120,7 +120,7 @@ function Following() {
           ) : (
             <>
               You don't follow anyone yet. Find people by name or topic under{" "}
-              <a href="/content/feed?tab=sources">Sources</a>.
+              <a href="/campaigns/feed?tab=sources">Sources</a>.
             </>
           )}
         </Empty>

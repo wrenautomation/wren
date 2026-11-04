@@ -2,20 +2,17 @@
 /**
  * No code links to an address the portal router moves (apps/portal/web/src/moved.ts): a link names
  * the page where it lives now. The router's table keeps old mail, pins and saved views working; new
- * code must not lean on it. An app a client's workspace also holds (CLIENT_HELD) moves only at
- * Wren, so its old address is still right for a client and is not checked here.
+ * code must not lean on it.
  *
  * Reads moved.ts itself (node strips its types), so the guard never keeps a second list.
  */
 import { execFileSync } from "node:child_process";
-import { CLIENT_HELD, MOVED, MOVED_APPS } from "../apps/portal/web/src/moved.ts";
+import { CLIENT_MOVED, MOVED, MOVED_APPS } from "../apps/portal/web/src/moved.ts";
 
-const appOf = (href) => /^\/([^/?#]+)/.exec(href)?.[1] ?? "";
 const old = [
-  ...Object.keys(MOVED).filter((k) => !CLIENT_HELD.has(appOf(k))),
-  ...Object.keys(MOVED_APPS)
-    .filter((a) => !CLIENT_HELD.has(a))
-    .map((a) => `/${a}`),
+  ...Object.keys(MOVED),
+  ...Object.keys(CLIENT_MOVED),
+  ...Object.keys(MOVED_APPS).map((a) => `/${a}`),
 ];
 const esc = (s) => s.replace(/[/.-]/g, "\\$&");
 // The old address in quotes or a template, then its end, a sub-path, a query or a hash.
@@ -37,8 +34,16 @@ try {
       ":!*.test.tsx",
       ":!*/test/*",
       ":!apps/portal/web/src/moved.ts",
+      // Not portal links: migrations and stored views (old links redirect), other hosts' paths.
+      ":!packages/db/drizzle/*",
+      ":!packages/starling/inbound/src/schema.ts",
+      ":!packages/core/src/profiles-schema.ts",
+      ":!packages/starling/channels/linkedin/src/content.ts",
+      ":!packages/research/src/enrichment/ad-library.ts",
+      ":!packages/voice/src/transports/*",
+      ":!apps/phone/*",
     ],
-    { encoding: "utf8" },
+    { encoding: "utf8", maxBuffer: 64 << 20 },
   );
 } catch (err) {
   if (err.status !== 1) throw err;

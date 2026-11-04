@@ -17,11 +17,11 @@ const meta: Meta = { title: "Revamp/Wren", id: "pages-wren" };
 export default meta;
 
 export const People = pageAt("/people", { me: ADMIN });
-export const Pipelines = pageAt("/pipelines", { me: ADMIN });
+export const Pipelines = pageAt("/people", { me: ADMIN });
 export const Content = pageAt("/content", { me: ADMIN });
-export const Ads = pageAt("/ads", { me: ADMIN });
-export const Analytics = pageAt("/analytics", { me: ADMIN });
-export const Sites = pageAt("/sites", { me: ADMIN });
+export const Ads = pageAt("/campaigns", { me: ADMIN });
+export const Analytics = pageAt("/campaigns", { me: ADMIN });
+export const Sites = pageAt("/campaigns", { me: ADMIN });
 export const Learn = pageAt("/learn", { me: ADMIN });
 /** Learn's items as a list (a viewer's kept choice): `Rows`, a box and a menu on each file. */
 export const LearnList = pageAt("/learn/items", {
@@ -162,10 +162,10 @@ export const Loops = pageAt("/loops", { me: ADMIN });
 export const Handlers = pageAt("/handlers", { me: ADMIN });
 export const Review = pageAt("/review", { me: ADMIN });
 export const Ask = pageAt("/ask", { me: ADMIN });
-export const Clients = pageAt("/clients", { me: ADMIN });
-export const Money = pageAt("/money", { me: ADMIN });
-export const Team = pageAt("/team", { me: ADMIN });
-export const Library = pageAt("/library", { me: ADMIN });
+export const Clients = pageAt("/people", { me: ADMIN });
+export const Money = pageAt("/office", { me: ADMIN });
+export const Team = pageAt("/office", { me: ADMIN });
+export const Library = pageAt("/map", { me: ADMIN });
 export const Notes = pageAt("/notes", { me: ADMIN });
 export const Calendar = pageAt("/calendar", { me: ADMIN });
 export const Marketplace = pageAt("/marketplace", { me: ADMIN });
@@ -213,23 +213,23 @@ const shows =
   };
 
 // Numbers: the shape tables, and the books pages that moved here from Money.
-export const NumbersFunnels = pageAt("/numbers/funnels", { me: ADMIN, check: shows("Engaged") });
-export const NumbersOffers = pageAt("/numbers/offers", { me: ADMIN, check: shows("Starter") });
-export const NumbersEconomics = pageAt("/numbers/economics", { me: ADMIN });
-export const NumbersMonths = pageAt("/numbers/months", { me: ADMIN });
-export const NumbersChannels = pageAt("/numbers/channels", { me: ADMIN });
-export const NumbersCohorts = pageAt("/numbers/cohorts", { me: ADMIN });
+export const NumbersFunnels = pageAt("/map/shape", { me: ADMIN, check: shows("Engaged") });
+export const NumbersOffers = pageAt("/map/offer-numbers", { me: ADMIN, check: shows("Starter") });
+export const NumbersEconomics = pageAt("/map/economics", { me: ADMIN });
+export const NumbersMonths = pageAt("/map/months", { me: ADMIN });
+export const NumbersChannels = pageAt("/map/channels", { me: ADMIN });
+export const NumbersCohorts = pageAt("/map/cohorts", { me: ADMIN });
 
 // Pipelines: the tabs only Wren's own app has.
-export const PipelinesDeals = pageAt("/pipelines/deals", { me: ADMIN, check: shows("Cai Moreno") });
-export const PipelinesCalls = pageAt("/pipelines/calls", { me: ADMIN });
-export const PipelinesEntries = pageAt("/pipelines/entries", {
+export const PipelinesDeals = pageAt("/people/deals", { me: ADMIN, check: shows("Cai Moreno") });
+export const PipelinesCalls = pageAt("/people/calls", { me: ADMIN });
+export const PipelinesEntries = pageAt("/people/entries", {
   me: ADMIN,
   check: shows("Spring list", "Winter ads"),
 });
 
 // Admin > Systems: every app, split by the synthetic shape. The shape's nodes fill the first group.
-export const SettingsSystems = pageAt("/settings/systems", {
+export const SettingsSystems = pageAt("/office/systems", {
   me: ADMIN,
   check: async (page) => {
     const view = within(page);
@@ -242,7 +242,7 @@ export const SettingsSystems = pageAt("/settings/systems", {
 });
 
 // Admin > Guide: every app by area as `Rows`, with its pages linked.
-export const SettingsGuide = pageAt("/settings/guide", {
+export const SettingsGuide = pageAt("/office/guide", {
   me: ADMIN,
   check: async (page) => {
     const view = within(page);
@@ -251,4 +251,4 @@ export const SettingsGuide = pageAt("/settings/guide", {
   },
 });
 // While the shape is slow, Systems shows its header and a skeleton, not a blank page.
-export const SettingsSystemsPending = pageAt("/settings/systems", { me: ADMIN, mode: "pending" });
+export const SettingsSystemsPending = pageAt("/office/systems", { me: ADMIN, mode: "pending" });

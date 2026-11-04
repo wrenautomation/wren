@@ -38,7 +38,7 @@ const inLane = async (page: HTMLElement, name: string, who: string) =>
   within(await lane(page, name)).findByRole("link", { name: who });
 
 /** The shape's nodes as lanes, each card with its time at the node, the stale one flagged. */
-export const Board = pageAt("/pipelines/board", {
+export const Board = pageAt("/people/board", {
   me: ADMIN,
   check: async (page) => {
     for (const name of ["Engaged", "Booked", "Signed"]) await lane(page, name);
@@ -54,7 +54,7 @@ export const Board = pageAt("/pipelines/board", {
  * The shape the board reads is a metro body lowered to the runtime graph (`graphOf`). Its columns
  * come from the lowered nodes by depth: a source has none, and the hub is no column.
  */
-export const BoardOnMetroShape = pageAt("/pipelines/board", {
+export const BoardOnMetroShape = pageAt("/people/board", {
   me: ADMIN,
   check: async (page) => {
     await lane(page, "Engaged");
@@ -70,7 +70,7 @@ export const BoardOnMetroShape = pageAt("/pipelines/board", {
 });
 
 /** The same page the Pipelines link opens: `/pipelines` lands on the board. */
-export const BoardFromNav = pageAt("/pipelines", {
+export const BoardFromNav = pageAt("/people", {
   me: ADMIN,
   check: async (page) => {
     await lane(page, "Engaged");
@@ -78,7 +78,7 @@ export const BoardFromNav = pageAt("/pipelines", {
 });
 
 /** A card dragged to a lane down the shape moves at once and sends one move. */
-export const BoardMovesForward = pageAt("/pipelines/board", {
+export const BoardMovesForward = pageAt("/people/board", {
   me: ADMIN,
   check: async (page) => {
     forgetCalls();
@@ -92,7 +92,7 @@ export const BoardMovesForward = pageAt("/pipelines/board", {
 });
 
 /** A card dragged back is refused with a plain note and sends nothing. */
-export const BoardRefusesBackward = pageAt("/pipelines/board", {
+export const BoardRefusesBackward = pageAt("/people/board", {
   me: ADMIN,
   check: async (page) => {
     forgetCalls();
@@ -108,7 +108,7 @@ export const BoardRefusesBackward = pageAt("/pipelines/board", {
 });
 
 /** The server says the shape did not take the move: the card goes back and the note says why. */
-export const BoardRollsBack = pageAt("/pipelines/board", {
+export const BoardRollsBack = pageAt("/people/board", {
   me: ADMIN,
   answers: {
     "pipeline/journeysMove": refuse(409, "Nothing moved. The shape did not take that move."),
@@ -125,7 +125,7 @@ export const BoardRollsBack = pageAt("/pipelines/board", {
 });
 
 /** Drop opens a reason; the reason sends the drop and the card leaves. */
-export const BoardDropsWithReason = pageAt("/pipelines/board", {
+export const BoardDropsWithReason = pageAt("/people/board", {
   me: ADMIN,
   check: async (page) => {
     forgetCalls();
@@ -144,7 +144,7 @@ export const BoardDropsWithReason = pageAt("/pipelines/board", {
 });
 
 /** A journey on a node the newest version dropped sits in its own lane and can be dropped. */
-export const BoardGhost = pageAt("/pipelines/board", {
+export const BoardGhost = pageAt("/people/board", {
   me: ADMIN,
   check: async (page) => {
     await inLane(page, "Joined (older version)", "Gus Held");
@@ -154,7 +154,7 @@ export const BoardGhost = pageAt("/pipelines/board", {
 });
 
 /** No shape yet: one plain line. */
-export const BoardEmpty = pageAt("/pipelines/board", {
+export const BoardEmpty = pageAt("/people/board", {
   me: ADMIN,
   answers: {
     "pipeline/recordsGet": (b: Record<string, unknown>) => ({

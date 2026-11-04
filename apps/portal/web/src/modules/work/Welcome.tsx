@@ -59,7 +59,7 @@ function Guide({ e }: { e: EngagementView }) {
             <li>
               We email you the setup invoice. Pay it by bank transfer, with the invoice number as
               the reference. The bank details are on it and under{" "}
-              <a href="/account/billing">Billing</a>.
+              <a href="/office/billing">Billing</a>.
             </li>
           ) : null}
           {e.paperwork.access.length ? (

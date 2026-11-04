@@ -3,7 +3,7 @@ import type { Action } from "@wren/ui";
 import { createElement } from "react";
 import { findRecords } from "../../find.js";
 import type { Module } from "../../module.js";
-import { ENGAGEMENT_PAGES, Feedback } from "../work/index.js";
+import { Feedback } from "../work/index.js";
 import { EMAIL_ACTIONS, EMAIL_EMPTY, emailExtras, emailLegacy } from "./email.js";
 import { Glance } from "./Glance.js";
 import { KeepHead, keepExtras } from "./keep.js";
@@ -64,7 +64,7 @@ const PERSON_ACTIONS: Action[] = [
 ];
 
 export const reactivation: Module = {
-  id: REACTIVATION,
+  id: "reactivation",
   name: "Reactivation",
   component: "reactivation",
   icon: "cycle",
@@ -211,7 +211,5 @@ export const reactivation: Module = {
       hidden: true,
       requires: { audience: "demo" },
     },
-    // The client's plan and paperwork, here and not in an app of their own.
-    ...ENGAGEMENT_PAGES,
   ],
 };

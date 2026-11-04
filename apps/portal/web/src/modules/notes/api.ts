@@ -77,7 +77,7 @@ export function mentionHref(id: string): string | null {
   const kind = id.slice(0, at);
   const rest = id.slice(at + 1);
   if (kind === "note") return docPath(rest);
-  if (kind === "console.client") return `/clients/all/${encodeURIComponent(rest)}`;
+  if (kind === "console.client") return `/people/clients/${encodeURIComponent(rest)}`;
   return null;
 }
 

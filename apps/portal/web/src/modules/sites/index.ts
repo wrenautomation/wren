@@ -94,7 +94,7 @@ const SUBMISSIONS: ListPage = {
 };
 
 /** ⌘K: pages by name or address. */
-const findPages = findRecords({ record: "sites.page", path: "/sites/pages", kind: "Page" });
+const findPages = findRecords({ record: "sites.page", path: "/campaigns/pages", kind: "Page" });
 
 export const sites: Module = {
   id: "sites",

@@ -95,8 +95,8 @@ const shows =
   };
 
 // Offers: each offer with its versions, and the terms it sells on.
-export const OffersAll = pageAt("/offers/all", { me: ADMIN, check: shows("Starter", "Growth") });
-export const OffersTerms = pageAt("/offers/terms", {
+export const OffersAll = pageAt("/map/offers", { me: ADMIN, check: shows("Starter", "Growth") });
+export const OffersTerms = pageAt("/map/terms", {
   me: ADMIN,
   check: async (page) => {
     await shows("standard")(page);
@@ -105,7 +105,7 @@ export const OffersTerms = pageAt("/offers/terms", {
   },
 });
 /** The read fails: the page says so and never "No terms are live yet." */
-export const OffersTermsFailed = pageAt("/offers/terms", {
+export const OffersTermsFailed = pageAt("/map/terms", {
   me: ADMIN,
   answers: { "console/recordsList": refuse(500, "The terms failed, as asked.") },
   check: async (page) => {
@@ -114,7 +114,7 @@ export const OffersTermsFailed = pageAt("/offers/terms", {
   },
 });
 /** Propose version asks for the offer, plan, date, terms JSON and why, and sends them as typed. */
-export const OffersTermsPropose = pageAt("/offers/terms", {
+export const OffersTermsPropose = pageAt("/map/terms", {
   me: ADMIN,
   check: async (page) => {
     forgetTermsCalls();

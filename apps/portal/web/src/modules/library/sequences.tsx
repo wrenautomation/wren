@@ -9,7 +9,7 @@ import { QUIET } from "../work/bits.js";
 import { CHANNEL, picksText, replyRate, type SeqStep, sequenceGraph } from "./sequence.js";
 
 const templateHref = (s: SeqStep) =>
-  s.templateId ? `/library/templates/${encodeURIComponent(s.templateId)}` : undefined;
+  s.templateId ? `/map/templates/${encodeURIComponent(s.templateId)}` : undefined;
 
 function Steps({ steps }: { steps: readonly SeqStep[] }) {
   const columns: TableColumn<SeqStep>[] = [

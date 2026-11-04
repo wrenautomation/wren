@@ -47,16 +47,16 @@ export const calls: Module = {
       about: "Your booked sales calls at a glance.",
       template: "overview",
       tiles: [
-        { label: "Upcoming", record: RECORD, href: "/calls/calls?view=upcoming" },
-        { label: "To mark", record: RECORD, href: "/calls/calls?view=past", needs: true },
-        { label: "Booked", record: RECORD, href: "/calls/calls?view=booked", period: 30 },
-        { label: "Marked", record: RECORD, href: "/calls/calls?view=marked", period: 30 },
+        { label: "Upcoming", record: RECORD, href: "/people/calls?view=upcoming" },
+        { label: "To mark", record: RECORD, href: "/people/calls?view=past", needs: true },
+        { label: "Booked", record: RECORD, href: "/people/calls?view=booked", period: 30 },
+        { label: "Marked", record: RECORD, href: "/people/calls?view=marked", period: 30 },
       ],
       top: [
         {
           label: "Next calls",
           record: RECORD,
-          href: "/calls/calls?view=upcoming",
+          href: "/people/calls?view=upcoming",
           fields: ["company", "start"],
           empty: "No call is booked.",
         },

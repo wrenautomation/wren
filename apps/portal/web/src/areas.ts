@@ -1,11 +1,8 @@
 /**
- * The sidebar leads with five fixed items: the Map, then Inbox, People, Money and Admin (SIDEBAR).
- * In a client's workspace that is all; every other app opens from the Map, Admin > Systems, a pin
- * or the command menu. Wren's team also gets every other app under its area below them
- * (`sidebarAreasOf`; designs/2026-10-23-focus-view.md, F3). The areas group apps by the job they
- * do, for the sidebar, Today and the phone's Apps tab.
- * An id a workspace lacks is skipped, an area left empty isn't shown, and an app no area names
- * lands in Tools. A parked app (`Module.parked`) is in no area.
+ * The sidebar is the eight places (designs/2026-11-04-portal-places.md): Map, Campaigns, Content,
+ * People, Inbox, Calendar, Research (Wren's team only) and Back office. Each place is one app
+ * (`modules/places.ts`). An app no place names (none today) lands under Other; a parked app shows
+ * nowhere, yet its routes and ⌘K work.
  */
 import type { IconName } from "@wren/ui";
 
@@ -14,145 +11,66 @@ export interface Area {
   label: string;
   /** App ids, in sidebar order. */
   apps: readonly string[];
-  /** Folds shut until opened: the set-and-forget apps (designs/2026-10-13-primitives-first.md). */
+  /** Folds shut until opened. */
   shut?: boolean;
 }
 
-/** Wren's team: the business in its real order, marketing one level down, the tools folded. */
-export const AREAS_TEAM: readonly Area[] = [
-  { id: "primary", label: "Primary", apps: ["offers", "pipelines", "people", "numbers"] },
-  {
-    id: "marketing",
-    label: "Marketing",
-    apps: ["content", "engage", "outbound", "ads", "analytics"],
-  },
-  {
-    id: "tools",
-    label: "Tools",
-    shut: true,
-    apps: [
-      "inbox",
-      "workflows",
-      "loops",
-      "library",
-      "marketplace",
-      "sites",
-      "calendar",
-      "money",
-      "clients",
-      "team",
-      "ask",
-      "research",
-      "review",
-      "handlers",
-      "settings",
-    ],
-  },
-];
-
-/** A client's workspace: as it was before the team's reshape, with `deals` renamed `pipelines`. */
-export const AREAS_CLIENT: readonly Area[] = [
-  { id: "inbox", label: "Inbox", apps: ["inbox", "texts"] },
-  {
-    id: "leads",
-    label: "Leads",
-    apps: ["pipeline", "leads", "people", "outbound", "pipelines", "calls", "reactivation"],
-  },
-  { id: "marketing", label: "Marketing", apps: ["marketing", "outreach", "ads", "sites", "learn"] },
-  {
-    id: "automations",
-    label: "Automations",
-    shut: true,
-    apps: ["workflows", "loops", "library", "marketplace", "voice"],
-  },
-  {
-    id: "business",
-    label: "Business",
-    apps: ["work", "clients", "money", "payments", "documents", "team"],
-  },
-  {
-    id: "tools",
-    label: "Tools",
-    shut: true,
-    apps: ["notes", "calendar", "ask", "review", "handlers", "settings"],
-  },
-];
-
-/** The last area, where an app no area names goes, so a new app always shows. */
-const REST = "tools";
-
-/**
- * These apps by area, in area order, for Wren's team or a client; areas with none left out. A
- * parked app is left out of every area.
- */
-export function areasOf<T extends { id: string; parked?: true | undefined }>(
-  apps: readonly T[],
-  team: boolean,
-): { area: Area; apps: T[] }[] {
-  const areas = team ? AREAS_TEAM : AREAS_CLIENT;
-  const shown = apps.filter((m) => !m.parked);
-  const named = new Set(areas.flatMap((a) => a.apps));
-  return areas
-    .map((area) => ({
-      area,
-      apps: [
-        ...area.apps.flatMap((id) => shown.filter((m) => m.id === id)),
-        ...(area.id === REST ? shown.filter((m) => !named.has(m.id)) : []),
-      ],
-    }))
-    .filter((a) => a.apps.length);
-}
-
-/**
- * The sidebar's fixed items under the Map: Inbox, People, Money, Admin (designs/2026-10-20-design-
- * language.md, "Sidebar"). Admin is the Settings app. An item whose app a workspace lacks is
- * skipped: a client has no Inbox or Money app. Every other app opens from the Map, Admin → Systems,
- * a pin or ⌘K.
- */
-export const SIDEBAR = [
-  { label: "Inbox", app: "inbox" },
+/** The places in sidebar order. A workspace without one (a client has no Research) skips it. */
+export const PLACES = [
+  { label: "Map", app: "map" },
+  { label: "Campaigns", app: "campaigns" },
+  { label: "Content", app: "content" },
   { label: "People", app: "people" },
-  { label: "Money", app: "money" },
-  { label: "Admin", app: "settings" },
+  { label: "Inbox", app: "inbox" },
+  { label: "Calendar", app: "calendar" },
+  { label: "Research", app: "research" },
+  { label: "Back office", app: "office" },
 ] as const;
 
-/** The fixed items this workspace has, in order, each with its app. A parked app is skipped. */
+const PLACE_AREA: Area = { id: "places", label: "Places", apps: PLACES.map((p) => p.app) };
+/** Where an app no place names goes, so a new app always shows. */
+const REST = "other";
+
+/** These apps by area: the places, then any other app; empty areas and parked apps left out. */
+export function areasOf<T extends { id: string; parked?: true | undefined }>(
+  apps: readonly T[],
+  _team?: boolean,
+): { area: Area; apps: T[] }[] {
+  const shown = apps.filter((m) => !m.parked);
+  const named = new Set(PLACE_AREA.apps);
+  return [
+    { area: PLACE_AREA, apps: PLACE_AREA.apps.flatMap((id) => shown.filter((m) => m.id === id)) },
+    { area: { id: REST, label: "Other", apps: [] }, apps: shown.filter((m) => !named.has(m.id)) },
+  ].filter((a) => a.apps.length);
+}
+
+/** The places this workspace has, in order, each with its app. A parked app is skipped. */
 export function sidebarOf<T extends { id: string; parked?: true | undefined }>(
   apps: readonly T[],
 ): { label: string; app: T }[] {
-  return SIDEBAR.flatMap(({ label, app: id }) => {
+  return PLACES.flatMap(({ label, app: id }) => {
     const app = apps.find((m) => !m.parked && m.id === id);
     return app ? [{ label, app }] : [];
   });
 }
 
-/**
- * Wren's team's areas under the fixed items: every area of `areasOf`, less the apps a fixed item
- * shows already. Marketing stays open; Tools stays shut.
- */
-export function sidebarAreasOf<T extends { id: string; parked?: true | undefined }>(
-  apps: readonly T[],
-): { area: Area; apps: T[] }[] {
-  const fixed = new Set(sidebarOf(apps).map((i) => i.app.id));
-  return areasOf(apps, true)
-    .map(({ area, apps: shown }) => ({ area, apps: shown.filter((m) => !fixed.has(m.id)) }))
-    .filter((a) => a.apps.length);
-}
-
-/** One of a phone's bottom tabs after the Map: a fixed item's app, or a pin. */
+/** One of a phone's bottom tabs after home: a place, or a pin. */
 type DockPick<T, P> = { label: string; app: T } | { pin: P };
 
+/** The places a phone docks after home, in order (the design's dock). */
+const DOCKED = ["inbox", "calendar", "content", "people"];
+
 /**
- * A phone's tabs after the Map: Inbox, People, then the person's first pin. A pin that does not
- * open (moved, or a page they may not see) is not in `pins`, so the first one that opens docks.
- * `size` counts the Map's tab too.
+ * A phone's tabs after home: Inbox, Calendar, Content, People, then the person's first pin. A pin
+ * that does not open (moved, or a page they may not see) is not in `pins`, so the first one that
+ * opens docks. `size` counts home's tab too.
  */
 export function dockOf<T extends { id: string; parked?: true | undefined }, P>(
   apps: readonly T[],
   pins: readonly P[],
-  size = 4,
+  size = 6,
 ): DockPick<T, P>[] {
-  const fixed = sidebarOf(apps).filter((i) => i.app.id === "inbox" || i.app.id === "people");
+  const fixed = DOCKED.flatMap((id) => sidebarOf(apps).filter((i) => i.app.id === id));
   const first = pins[0];
   return [...fixed, ...(first === undefined ? [] : [{ pin: first }])].slice(0, size - 1);
 }
@@ -175,10 +93,15 @@ const PHONE_TABS: Readonly<Record<string, readonly TabPick[]>> = {
     { page: "studio", icon: "write" },
     { page: "pieces", icon: "write" },
   ],
-  engage: [
+  inbox: [
+    { page: "today", icon: "calendar" },
+    { page: "messages", icon: "chat" },
+    { page: "approve", icon: "check" },
+  ],
+  campaigns: [
     { page: "engage", icon: "reply" },
-    { page: "dms", label: "DMs", icon: "chat" },
     { page: "invites", icon: "people" },
+    { page: "visits", icon: "chart" },
   ],
 };
 

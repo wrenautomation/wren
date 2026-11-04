@@ -86,7 +86,7 @@ export async function findTemplates(q: string, client: string): Promise<Found[]>
     .slice(0, FEW)
     .map((r) => ({
       label: nameLabel(r.name),
-      href: `/library/templates?open=${encodeURIComponent(String(r.id))}`,
+      href: `/map/templates?open=${encodeURIComponent(String(r.id))}`,
       hint: `Template · ${folderLabel(r.folder)}`,
     }));
 }

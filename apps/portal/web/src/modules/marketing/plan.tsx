@@ -69,7 +69,7 @@ export const makeAt = (piece: string, gs: readonly Goal[]): { href: string; labe
       label: "Make a story",
     };
   if (piece === "newsletter") return { href: "/content/studio?make=blog", label: "Write a post" };
-  if (piece === "replies") return { href: "/engage/engage", label: "Answer threads" };
+  if (piece === "replies") return { href: "/campaigns/engage", label: "Answer threads" };
   if (g?.starts === "video")
     return {
       href: piece === "long" ? "/content/studio?make=video" : "/content/videos",

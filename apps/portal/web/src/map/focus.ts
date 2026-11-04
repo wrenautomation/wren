@@ -189,6 +189,6 @@ export const focusPeople = (data: MapData, focus: Focus) => {
 /** Where an attachment opens: a URL as it is, an SOP in the Library, else nowhere. */
 export function attachHref(a: Attach): string | null {
   if (/^https:\/\//.test(a.ref)) return a.ref;
-  if (a.kind === "sop") return `/library/sops/${encodeURIComponent(a.ref)}`;
+  if (a.kind === "sop") return `/map/sops/${encodeURIComponent(a.ref)}`;
   return null;
 }

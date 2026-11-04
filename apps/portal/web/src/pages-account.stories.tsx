@@ -49,14 +49,14 @@ async function fromMenu(row: ReturnType<typeof within>, title: string | RegExp, 
 }
 
 /** Webhooks: a row each with its state and what it hears; a failed test or off hook says why under it. */
-export const Webhooks = accountAt("/account/webhooks", async (page) => {
+export const Webhooks = accountAt("/office/webhooks", async (page) => {
   await expect((await within(page).findAllByText("Zapier: new reply"))[0]).toBeVisible();
   await expect(await within(page).findByText(/Failing since/)).toBeVisible();
   await expect(await within(page).findByText(/Turned off/, { selector: "p" })).toBeVisible();
 });
 
 /** Send test on a hook shows its answer under the row. */
-export const WebhookTest = accountAt("/account/webhooks", async (page) => {
+export const WebhookTest = accountAt("/office/webhooks", async (page) => {
   const row = await rowOf(page, "Sheet of bookings");
   await userEvent.click(row.getByRole("button", { name: "Send test" }));
   await expect(await within(page).findByText(/It answered: 200/)).toBeVisible();
@@ -64,7 +64,7 @@ export const WebhookTest = accountAt("/account/webhooks", async (page) => {
 });
 
 /** Remove asks first, then the hook leaves the list. */
-export const WebhookRemove = accountAt("/account/webhooks", async (page) => {
+export const WebhookRemove = accountAt("/office/webhooks", async (page) => {
   const row = await rowOf(page, "Old CRM");
   // A phone row shows its first action alone; Remove is a swipe there, so this is the wide shape.
   const remove = row.queryByRole("button", { name: "Remove" });
@@ -79,7 +79,7 @@ export const WebhookRemove = accountAt("/account/webhooks", async (page) => {
 });
 
 /** Two quick presses on two rows send one test: one write at a time. */
-export const WebhookTwoRows = accountAt("/account/webhooks", async (page) => {
+export const WebhookTwoRows = accountAt("/office/webhooks", async (page) => {
   await within(page).findAllByText("Sheet of bookings");
   const [a, b] = within(page).getAllByRole("button", { name: "Send test" });
   if (!a || !b) throw new Error("two rows have Send test");
@@ -90,14 +90,14 @@ export const WebhookTwoRows = accountAt("/account/webhooks", async (page) => {
 });
 
 /** A delivery opens under its row. */
-export const WebhookDelivery = accountAt("/account/webhooks", async (page) => {
+export const WebhookDelivery = accountAt("/office/webhooks", async (page) => {
   const title = await within(page).findByRole("button", { name: "reply.received" });
   await userEvent.click(title);
   await expect(await within(page).findByText("Internal error")).toBeVisible();
 });
 
 /** AI tools: a row each with what it can do; Remove asks, then the token leaves. */
-export const AiTools = accountAt("/account/ai", async (page) => {
+export const AiTools = accountAt("/office/ai", async (page) => {
   const row = await rowOf(page, "Claude for the office");
   await yes(async () => {
     fireEvent.click(row.getByRole("button", { name: "Remove" }));
@@ -107,7 +107,7 @@ export const AiTools = accountAt("/account/ai", async (page) => {
 });
 
 /** Two quick presses on two token rows revoke one token. */
-export const AiToolsTwoRows = accountAt("/account/ai", async (page) => {
+export const AiToolsTwoRows = accountAt("/office/ai", async (page) => {
   await within(page).findByText("Claude for the office");
   await yes(async () => {
     const [a, b] = within(page).getAllByRole("button", { name: "Remove" });
@@ -120,7 +120,7 @@ export const AiToolsTwoRows = accountAt("/account/ai", async (page) => {
 });
 
 /** People: a row each with role and last seen; their title opens their access under the row. */
-export const People = accountAt("/account/people", async (page) => {
+export const People = accountAt("/office/team", async (page) => {
   const row = await rowOf(page, "sam@acme.example");
   await userEvent.click(row.getByRole("button", { name: "sam@acme.example" }));
   await expect(await within(page).findByText("Act in Leads on Email.")).toBeVisible();
@@ -128,7 +128,7 @@ export const People = accountAt("/account/people", async (page) => {
 });
 
 /** End now on an extra grant asks first, then the grant leaves the list. */
-export const PersonGrantEnd = accountAt("/account/people", async (page) => {
+export const PersonGrantEnd = accountAt("/office/team", async (page) => {
   const row = await rowOf(page, "sam@acme.example");
   await userEvent.click(row.getByRole("button", { name: "sam@acme.example" }));
   const grant = await rowOf(page, "Act in Leads on Email.");
@@ -138,7 +138,7 @@ export const PersonGrantEnd = accountAt("/account/people", async (page) => {
 });
 
 /** Remove a person asks first, then they leave the list. */
-export const PersonRemove = accountAt("/account/people", async (page) => {
+export const PersonRemove = accountAt("/office/team", async (page) => {
   const row = await rowOf(page, "pat@acme.example");
   await yes(async () => {
     fireEvent.click(row.getByRole("button", { name: "Remove" }));
@@ -148,13 +148,13 @@ export const PersonRemove = accountAt("/account/people", async (page) => {
 });
 
 /** Connectors: an app's accounts as rows, a broken one saying why under it. */
-export const Connectors = accountAt("/account/connectors", async (page) => {
+export const Connectors = accountAt("/office/connectors", async (page) => {
   await expect(await within(page).findByText("Acme Plumbing CRM")).toBeVisible();
   await expect(await within(page).findByText(/sign-in ended/)).toBeVisible();
 });
 
 /** Read now (behind ⋯) sends the write and says so. */
-export const ConnectorsReadNow = accountAt("/account/connectors", async (page) => {
+export const ConnectorsReadNow = accountAt("/office/connectors", async (page) => {
   const row = await rowOf(page, "Acme Plumbing CRM");
   await fromMenu(row, /^More for/, "Read now");
   await expect(await within(page).findByText(/Reading now/)).toBeVisible();
@@ -162,7 +162,7 @@ export const ConnectorsReadNow = accountAt("/account/connectors", async (page) =
 });
 
 /** Disconnect asks first, then the account leaves the list. */
-export const ConnectorsDisconnect = accountAt("/account/connectors", async (page) => {
+export const ConnectorsDisconnect = accountAt("/office/connectors", async (page) => {
   const row = await rowOf(page, "Account 9071");
   await yes(() => fromMenu(row, /^More for/, "Disconnect"));
   await waitFor(() => expect(within(page).queryByText("Account 9071")).toBeNull());
@@ -170,14 +170,14 @@ export const ConnectorsDisconnect = accountAt("/account/connectors", async (page
 });
 
 /** Social: each platform's accounts as rows; a TikTok's numbers and newest videos under its row. */
-export const Social = accountAt("/account/social", async (page) => {
+export const Social = accountAt("/office/social", async (page) => {
   await expect(await within(page).findByText("@acme-plumbing")).toBeVisible();
   await expect(await within(page).findByText("Fix a dripping tap in two minutes")).toBeVisible();
   await expect(await within(page).findByText(/stopped the sign-in/)).toBeVisible();
 });
 
 /** Check (behind ⋯) sends the write; Turn off asks first, then the account leaves. */
-export const SocialActions = accountAt("/account/social", async (page) => {
+export const SocialActions = accountAt("/office/social", async (page) => {
   const row = await rowOf(page, "@sam-rivera");
   await fromMenu(row, /^More for/, "Check");
   await waitFor(() => expect(sent("social/check")).toHaveLength(1));
@@ -187,13 +187,13 @@ export const SocialActions = accountAt("/account/social", async (page) => {
 });
 
 /** Mail: a row per mailbox with its state; what blocks one and its next step sit under it. */
-export const Mail = accountAt("/account/mail", async (page) => {
+export const Mail = accountAt("/office/mail", async (page) => {
   await expect(await within(page).findByText("sales@acme.example")).toBeVisible();
   await expect(await within(page).findByText(/has not trusted Wren's app/)).toBeVisible();
 });
 
 /** Check (behind ⋯) sends the write for that mailbox. */
-export const MailCheck = accountAt("/account/mail", async (page) => {
+export const MailCheck = accountAt("/office/mail", async (page) => {
   const row = await rowOf(page, "owner@acme.example");
   await fromMenu(row, /^More for/, "Check");
   await waitFor(() => expect(sent("mail/check")).toHaveLength(1));
@@ -202,7 +202,7 @@ export const MailCheck = accountAt("/account/mail", async (page) => {
 
 /** Feedback: "When you're ready for more" as a row with its pitch under it; I'm interested sends. */
 export const Feedback = {
-  ...pageAt("/work", {
+  ...pageAt("/map", {
     answers: ACCOUNT_ANSWERS,
     check: async (page) => {
       const row = await rowOf(page, "Reviews");

@@ -25,7 +25,7 @@ import type { PageProps } from "../../module.js";
 import { wrenRecords } from "../../records.js";
 
 const api = wrenRecords("money");
-const SPEND = "/money/spend?view=this_month";
+const SPEND = "/office/spend?view=this_month";
 /** Bills land once a month, so a year of months shows a trend that days can't. */
 const MONTHS = 12;
 
@@ -121,7 +121,7 @@ export function MoneyOverview(_: PageProps) {
               top={{
                 label: "Renewing soon",
                 record: "books.subscription",
-                href: "/money/subscriptions?view=soon",
+                href: "/office/subscriptions?view=soon",
                 fields: ["renewsOn", "cost"],
                 empty: "Nothing renews soon.",
               }}
@@ -182,7 +182,7 @@ function ByMonth() {
       <div className={FLAT_HEAD}>
         <h2 className={SECTION_TITLE}>Spend by month</h2>
         <a
-          href="/numbers/months?view=all"
+          href="/map/months?view=all"
           className="text-[13px] text-(--ui-ink-2) hover:text-(--ui-ink)"
         >
           All months

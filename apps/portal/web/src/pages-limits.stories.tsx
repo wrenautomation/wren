@@ -55,7 +55,7 @@ const VENDORS: VendorsView = {
 };
 
 const limitsAt = (money: boolean, check: (page: HTMLElement) => Promise<void>) => ({
-  ...pageAt("/account/vendors", {
+  ...pageAt("/office/vendors", {
     me: ADMIN,
     answers: serve<ReturnType<typeof accountsApi>>("accounts", {
       vendors: VENDORS,

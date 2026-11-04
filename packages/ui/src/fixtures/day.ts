@@ -44,14 +44,14 @@ export const DAY_METAS: RecordMeta[] = [
 
 /** What a day's page reads: posted work, and drafts that wait (older ones sit on today). */
 export const DAY_SOURCES: DaySource[] = [
-  { record: "day.post", label: "Posted", at: "published", open: "/marketing/posts" },
+  { record: "day.post", label: "Posted", at: "published", open: "/content/posts" },
   {
     record: "day.draft",
     label: "Waiting",
     at: "created",
     carry: true,
     action: "post",
-    open: "/marketing/drafts",
+    open: "/content/drafts",
   },
 ];
 

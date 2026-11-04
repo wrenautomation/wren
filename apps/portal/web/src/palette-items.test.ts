@@ -23,7 +23,7 @@ describe("jumps", () => {
   });
 
   it("holds Systems and tags a parked app's pages", () => {
-    expect(items.some((i) => i.href === "/settings/systems")).toBe(true);
+    expect(items.some((i) => i.href === "/office/systems")).toBe(true);
     expect(items.find((i) => i.href === "/notes/home")?.hint).toContain("parked");
   });
 });
