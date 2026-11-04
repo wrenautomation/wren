@@ -181,31 +181,40 @@ product adds no tab, then clients share the skeleton.
 
 ## Removals
 
-A part is deleted only after its replacement ships. Before a table drops, the last lake snapshot
-(`lake-sync.ts`, nightly, every schema) must be later than the table's last write, client schemas
-included.
+Rule (William, 11-04): what is unused or badly designed goes now, and is rebuilt later. Nothing
+waits for its replacement. Git keeps the code; the lake keeps the data. Two guards:
+- Data first: before a table drops, the last lake snapshot (`lake-sync.ts`, nightly) is later than
+  the table's last write, client schemas included.
+- One change cuts both ends: a delete removes every caller in the same commit, so the build passes
+  and the running loops keep working. Running: ContentPlanner, ContentScheduler, TokenRenewal, and
+  the infra six (LoopWatch, DeadLetters, AuditSealer, VaultKeys, TokenRenewal, PageArchive).
 
-| Kind | What goes | What stays |
+No client holds a product on prod (only `demo` and `wren_test`), so no paying client loses a part.
+
+| Kind | What goes | What stays or moves |
 |---|---|---|
-| Learn | The Learn app and client copy, the `wren learn` command | `@wren/learn`, its tables, readers and SOPs: Content (`starling/inbound` playbook, draft, film-check), the Map lines (`pipeline/src/lines.ts`), `sop`, `decide`, `youtube-search`, Studio (`video-watch`) and the Feed page read them |
-| Notes | The Notes app (notes, board) and client copy | `@wren/notes`: thread compose and @mentions (Inbox › Mentions), record backlinks, quick capture. They become parts of Inbox and the record pages |
-| Review | The Review portal app (parked ideas) | `wren email` review seat (`apps/cli/src/review.ts`), which feeds Inbox › To approve |
+| Learn | The reader half of `@wren/learn`: items, feeds, creators, alerts, digests, breakdowns, hunt, catalog, drive, pictures, score; its tables (573 items, 165 breakdowns, to the lake); the Learn app and client copy; `wren learn` and its readers | The SOP half (standards, checks, `sops.ts`, `film.ts`) moves to the Playbook, because ContentPlanner checks drafts against it. SOPs and their sources live in the `sops/` repo (`learn.sop_sources` has 0 rows) |
+| Notes | All of it: the app and client copy, thread notes, @mentions and Inbox › Mentions, record backlinks, quick capture, `wren notes`, the tables (to the lake) | Nothing |
+| Review | The Review app (parked ideas) | |
 | Handlers | The Handlers app | `account/AiTools` |
-| Marketplace | The app, the Shop UI, browser mods | Install code (`installs.ts`) for the operator CLI |
-| Workflows, Loops | The portal apps, after phase 1's CLI verbs and Inbox holds | Every CLI verb |
-| Ask | The Ask app, after the chat panel answers its questions | `wren agent` |
+| Marketplace | The app, the Shop UI and self-install, browser mods | Install code for the operator CLI |
+| Workflows, Loops | The portal apps | CLI verbs. A `wren loops flag` verb comes in the same change, as the kill switch and `POST_NOW_FLAG` have no other writer |
+| Ask | The Ask app | `wren agent`; the chat panel |
 | Leads | The lead sheet (team `leads`, outbound `sheet`) | People |
-| Loops | RedditReads and its CLI verb (`reach.ts`, `starling/outbound/src/components.ts`); the stopped keys of retired niches (ComposeScheduler and PoolScheduler `agencies`, `sec_ria`) and of the 10 retired senders; `report weekly` | Autobrowse Reddit flows and the `starling-reddit` adapter. SetupWatch stays: Back office › Channels needs it |
-| CLI | Each command whose only reader is a removed part. Exact paths are listed in phase 2 after a reader check | `video *` (the Studio editor), `books *` (the journal), `sms reminders`, `sms forms`, `email *` |
-| Skills | `portal` rewritten for the places; `wren` trimmed to what stays | `research`, `lander`, `wren-ui`; `search-week` while SEO stays |
+| Client SMS products | Speed to lead, missed calls, review asks, booking reminders, form texts (`sms reminders`, `sms forms`), SmsWatch's client passes | The SMS adapter and cold SMS, for campaigns (reactivation) |
+| Loops | RedditReads and its CLI verb; the stopped keys of retired niches (ComposeScheduler, PoolScheduler `agencies`, `sec_ria`) and of the 10 retired senders; `report weekly` | Autobrowse Reddit flows and the `starling-reddit` adapter. SetupWatch: Back office › Channels needs it |
+| CLI | Each command of a removed part, found by a reader check | `video *` for now (a redesign later) |
+| Skills | `portal` rewritten for the places; `wren` trimmed to what stays | `research`, `lander`, `wren-ui`, `search-week` |
 
-Loops kept: the infra six (LoopWatch, DeadLetters, AuditSealer, VaultKeys, TokenRenewal,
-PageArchive), ContentPlanner and ContentScheduler. The other stopped loops restart with their place.
+Open (William): the cold email engine and Books. See Open picks.
+
+Loops kept: the running set above. The other stopped loops restart with their place, or go with
+their part.
 
 ## Phases
 
 UI follows the design-language artifact (`designs/2026-10-20-design-language/`) and the `ui-design`
-proof step. Each phase deletes only what it replaced.
+proof step.
 
 1. **Places and moves.**
    - `areas.ts` becomes the eight places for team and client, with the client sidebar and the phone
@@ -214,13 +223,12 @@ proof step. Each phase deletes only what it replaced.
      too (`moved-guard.mjs`). `CLIENT_HELD` grows for each shared id that moves.
    - Grants and the route inventory move to the new ids (`core/src/access.ts` `APPS`). Prod
      `grants` is empty, so no data moves.
-   - CLI verbs for feature flags and loop settings (`wren flags` is taken by client health: use
-     `wren feature-flags` and `wren loops set`). Holds show in Inbox.
-   - Apps with no replacement needed leave the nav: Marketplace, Review, Handlers, Learn, Notes,
-     the lead sheet. Workflows and Loops leave after the verbs and holds exist.
+   - Holds show in Inbox.
+   - The removed apps leave the nav.
    - Done when: the sidebar shows the places in both workspaces and on the phone; every old link
      lands (`moved.test.ts`); grants and the route inventory pass on the new ids.
-2. **Deletes.** The Removals table, with exact CLI paths after a reader check per command.
+2. **Deletes.** The Removals table, right after phase 1. Exact CLI paths after a reader check
+   per command. Learn's SOP half moves to the Playbook in the same change.
    - Done when: no code, route, loop key or skill of a removed part is left; `knip` is clean.
 3. **Map and Back office.** Map › Offers, Numbers (search, reports), Playbook. Back office ›
    Money, Documents, Team and Access, Channels, Products (read only), Settings, the health line.
@@ -235,7 +243,7 @@ proof step. Each phase deletes only what it replaced.
 7. **Inbox and Calendar.** Inbox › Today, approvals, holds, DMs, comments, reviews, mentions.
    Calendar shows every dated thing and opens its home.
 8. **Chat panel and Research.** `AgentPanel` on every page with page context; Research is
-   Birdwatch only. Then the Ask app goes.
+   Birdwatch only.
 9. **Products and teasers.** First the map of product → components → sections. Then each locked
    section teases, and Today's add-on cards point to them.
 
@@ -243,9 +251,14 @@ Experiments: its own design doc and phases, after phase 4.
 
 ## Open picks (William)
 
-1. **SEO.** Search pages stay in Map › Numbers, and `search-week` stays, while SEO is a channel.
-   Confirm.
-2. **Self-install.** Clients lose the Shop's self-install until the Products redesign. Confirm.
+1. **Cold email engine.** It drafts openers, waits for a yes (`wren email` review seat, Inbox › To
+   approve), then sends from warmed inboxes. It was reworked around campaigns on 11-02
+   (`enrollments.campaign`, the `@wren/experiments` bandit picks copy). My pick: keep it whole and
+   paused; rebuild only its UI in Campaigns. Other choice: delete compose, review and sequences as
+   one unit and keep the inbox setup (domains, warm-up, placement).
+2. **Books.** It reads the AWS bill, the card and payments into one ledger: the data behind Money.
+   My pick: keep the pipe and redesign Money's pages. Other choice: delete it; Money starts empty.
+3. **SEO.** Search pages in Map › Numbers and `search-week` stay while SEO is a channel. Confirm.
 
 ## Decision log
 
@@ -272,3 +285,6 @@ Experiments: its own design doc and phases, after phase 4.
     This replaces Starling's rule that client SMS products are delivery work, for reactivation only.
   - Cost per campaign is direct costs only (texts, ads, paid data). Shared monthly costs stay in
     Back office totals.
+- 2026-11-04, William on the adversarial pass: delete what is unused or badly designed now, never
+  wait for a replacement. Learn: keep the SOPs and move them to the Playbook; the rest goes. Notes:
+  all of it goes. Client SMS products go. `video` stays for now. Clients may not self-install.
