@@ -5,7 +5,7 @@
  */
 import { createReadStream, createWriteStream } from "node:fs";
 import { stat } from "node:fs/promises";
-import { Readable } from "node:stream";
+import type { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { GetObjectCommand, NoSuchKey, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import type { MediaStore, VideoMeta } from "@wrenautomation/read/video";
