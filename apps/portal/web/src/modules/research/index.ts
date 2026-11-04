@@ -18,7 +18,7 @@ export const research: Module = {
       label: "Ask",
       about: "Ask a Claude agent with birdwatch; your past chats stay on the left.",
       Page: AskPage,
-      wide: true,
+      fill: true,
     },
     {
       id: "runs",

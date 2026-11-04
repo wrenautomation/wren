@@ -44,7 +44,16 @@ const DONE: AgentMessage[] = [
       RECALL,
       { type: "text", text: ANSWER },
     ],
-    foot: { model: "claude-sonnet-5-5", ms: 8400, tokens: 11800, cost: 0.03 },
+    foot: {
+      model: "claude-sonnet-5-5",
+      ms: 8400,
+      input: 1200,
+      output: 600,
+      cacheRead: 9000,
+      cacheWrite: 1000,
+      cost: 0.03,
+      plan: false,
+    },
   },
 ];
 
@@ -53,7 +62,7 @@ function Live(p: Partial<AgentThreadProps> & { messages: AgentMessage[] }) {
   const [messages, setMessages] = useState(p.messages);
   const [running, setRunning] = useState(p.running ?? false);
   return (
-    <div className="h-[560px] max-w-3xl rounded-(--ui-leaf-panel) bg-(--ui-paper) px-5 py-[18px] shadow-(--ui-raise)">
+    <div className="h-[640px] bg-(--ui-paper)">
       <AgentThread
         {...p}
         messages={messages}
@@ -87,36 +96,107 @@ function Live(p: Partial<AgentThreadProps> & { messages: AgentMessage[] }) {
   );
 }
 
-/** Before the first turn: the page's words, and the box. */
+/** Before the first turn: the welcome over the box; a prompt sends on a click. */
 export const Empty: Story = {
   render: () => (
     <Live
       messages={[]}
       placeholder="Ask a research question"
-      empty={
-        <p className="m-0 text-[14px] text-(--ui-ink-2)">
-          Ask a question. The agent plans the research with birdwatch, runs it, and answers with
-          sources.
-        </p>
-      }
+      welcome={{
+        title: "What should I research?",
+        text: "The agent plans the research with birdwatch, runs it, and answers with sources.",
+        suggestions: ["How do coaches book calls?", "Find cold email reply benchmarks."],
+      }}
+      note="Claude agent on your Claude plan · Bash, Read, Skill"
     />
   ),
   play: async ({ canvasElement }) => {
     const c = within(canvasElement);
-    await userEvent.type(c.getByLabelText("Message"), "How do coaches book calls?{Enter}");
-    await waitFor(() => expect(c.getByText("How do coaches book calls?")).toBeTruthy());
+    await userEvent.click(c.getByRole("button", { name: "How do coaches book calls?" }));
+    await waitFor(() => expect(c.getAllByText("How do coaches book calls?")).toHaveLength(1));
     await waitFor(() => expect(c.getByRole("button", { name: /Stop/ })).toBeTruthy());
   },
 };
 
-/** A finished turn: thinking folded, the tool card with its output, the answer, the foot. */
+/** A finished turn: thinking folded, the tool row that opens to its output, the answer, the foot. */
 export const Answered: Story = {
   render: () => <Live messages={DONE} />,
   play: async ({ canvasElement }) => {
     const c = within(canvasElement);
-    await expect(c.getByText(/Sonnet · 8.4 s · 11.8k tokens · \$0.03/)).toBeTruthy();
-    await userEvent.click(c.getByRole("button", { name: "Show output" }));
+    await expect(c.getByText(/Sonnet · 8.4 s · 12k tokens · \$0.03/)).toBeTruthy();
+    await userEvent.click(c.getByRole("button", { name: /Check past runs/ }));
     await expect(c.getByText(/"kept":9/)).toBeTruthy();
+  },
+};
+
+const STEP = (id: string, command: string, description: string, result?: string) => ({
+  type: "tool" as const,
+  id,
+  name: "Bash",
+  input: { command, description },
+  ...(result !== undefined ? { result } : {}),
+});
+
+/** Many steps fold to one line once done; the plan's turn shows no price. */
+export const Steps: Story = {
+  render: () => (
+    <Live
+      messages={[
+        you("u1", ASK),
+        {
+          id: "a1",
+          role: "assistant",
+          state: "done",
+          parts: [
+            STEP("s1", "birdwatch recall 'coach booking'", "Check past runs", "{}"),
+            STEP("s2", "birdwatch plan 'coach booking tools'", "Plan the run", "{}"),
+            STEP("s3", "birdwatch search r-42", "Search the web", "{}"),
+            { type: "text", text: ANSWER },
+          ],
+          foot: {
+            model: "claude-haiku-5-5",
+            ms: 12500,
+            input: 900,
+            output: 700,
+            cacheRead: 33900,
+            cost: 0.04,
+            plan: true,
+          },
+        },
+      ]}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement);
+    await expect(c.getByText("Ran 3 steps")).toBeTruthy();
+    await expect(c.getByText("Haiku · 12.5 s · 36k tokens")).toBeTruthy();
+    await userEvent.click(c.getByRole("button", { name: /Ran 3 steps/ }));
+    await expect(c.getByText("Search the web")).toBeTruthy();
+  },
+};
+
+/** Steps still running: the group open, the count moving. */
+export const Running: Story = {
+  render: () => (
+    <Live
+      running
+      messages={[
+        you("u1", ASK),
+        {
+          id: "a1",
+          role: "assistant",
+          state: "live",
+          parts: [
+            STEP("s1", "birdwatch recall 'coach booking'", "Check past runs", "{}"),
+            STEP("s2", "birdwatch plan 'coach booking tools'", "Plan the run"),
+          ],
+        },
+      ]}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement);
+    await expect(c.getByText("Running step 2 of 2")).toBeTruthy();
   },
 };
 

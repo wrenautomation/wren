@@ -76,6 +76,8 @@ export interface HandPage extends PageBase {
   Page: ComponentType<PageProps>;
   /** Past the reading width, as a list page is: a browser's three columns. */
   wide?: true;
+  /** The window's full height under the crumb; the page scrolls inside itself (a chat). */
+  fill?: true;
 }
 
 /**

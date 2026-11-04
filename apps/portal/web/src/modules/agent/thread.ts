@@ -10,6 +10,8 @@ export interface ThreadState {
   messages: AgentMessage[];
   session?: string | undefined;
   model?: string | undefined;
+  /** From init's `apiKeySource`: `none` is the Claude plan. */
+  plan?: boolean | undefined;
   running: boolean;
   /** Stop pressed: the turn's end reads as stopped, not failed. */
   stopping?: boolean | undefined;
@@ -17,6 +19,8 @@ export interface ThreadState {
   streamed: string[];
   /** The partial message's block index → its part's index in the reply. */
   blocks: Record<number, number>;
+  /** API message ids whose usage is in a foot: a stored message repeats it on each block's line. */
+  counted?: string[] | undefined;
 }
 
 export const EMPTY: ThreadState = { messages: [], running: false, streamed: [], blocks: {} };
@@ -94,12 +98,17 @@ export function fold(s: ThreadState, f: Frame): ThreadState {
   switch (f.type) {
     case "system":
       return f.subtype === "init"
-        ? { ...s, session: String(f.session_id), model: String(f.model ?? s.model ?? "") }
+        ? {
+            ...s,
+            session: String(f.session_id),
+            model: String(f.model ?? s.model ?? ""),
+            plan: f.apiKeySource === undefined ? s.plan : f.apiKeySource === "none",
+          }
         : s;
     case "stream_event":
       return partial(s, f.event as Frame);
     case "assistant":
-      return whole(s, (f.message ?? {}) as { id?: string; content?: Block[] });
+      return whole(s, (f.message ?? {}) as Parameters<typeof whole>[1]);
     case "user":
       return userFrame(s, f);
     case "result":
@@ -147,9 +156,15 @@ function partial(s0: ThreadState, e: Frame): ThreadState {
   return s0;
 }
 
-function whole(s0: ThreadState, msg: { id?: string; content?: Block[] }): ThreadState {
+function whole(
+  s0: ThreadState,
+  msg: { id?: string; model?: string; content?: Block[]; usage?: Record<string, unknown> },
+): ThreadState {
+  // the CLI's own line after a stop ("No response requested."), not the model's
+  if (msg.model === "<synthetic>") return s0;
   const blocks = msg.content ?? [];
-  const { s, m } = reply(s0);
+  const { s: s1, m } = reply(s0);
+  const s = used(s1, m, msg);
   if (msg.id && s0.streamed.includes(msg.id)) {
     for (const b of blocks) {
       if (b.type !== "tool_use") continue;
@@ -203,21 +218,49 @@ function userFrame(s0: ThreadState, f: Frame): ThreadState {
   };
 }
 
+/**
+ * A stored session keeps no result line: its foot sums each API reply's usage, once per id.
+ * Live, the result line replaces it (`ended`).
+ */
+function used(
+  s: ThreadState,
+  m: AgentMessage,
+  msg: { id?: string; model?: string; usage?: Record<string, unknown> },
+): ThreadState {
+  const u = msg.usage;
+  if (!u || !msg.id || s.counted?.includes(msg.id)) return s;
+  const add = (a: number | undefined, k: string) => {
+    const v = u[k];
+    return typeof v === "number" && v > 0 ? (a ?? 0) + v : a;
+  };
+  const f = m.foot ?? {};
+  m.foot = {
+    ...f,
+    input: add(f.input, "input_tokens"),
+    output: add(f.output, "output_tokens"),
+    cacheRead: add(f.cacheRead, "cache_read_input_tokens"),
+    cacheWrite: add(f.cacheWrite, "cache_creation_input_tokens"),
+    model: msg.model ?? f.model,
+    plan: f.plan ?? s.plan,
+  };
+  return { ...s, counted: [...(s.counted ?? []).slice(-50), msg.id] };
+}
+
 function ended(s0: ThreadState, f: Frame): ThreadState {
   const { s, m } = reply(s0);
   const u = (f.usage ?? {}) as Record<string, number | undefined>;
-  const tokens =
-    (u.input_tokens ?? 0) +
-    (u.cache_creation_input_tokens ?? 0) +
-    (u.cache_read_input_tokens ?? 0) +
-    (u.output_tokens ?? 0);
+  const n = (v: number | undefined) => (typeof v === "number" && v > 0 ? v : undefined);
   const stopped = m.state === "stopped" || s0.stopping || f.terminal_reason === "aborted_streaming";
   m.state = stopped ? "stopped" : f.is_error ? "failed" : "done";
   m.foot = {
     ms: typeof f.duration_ms === "number" ? f.duration_ms : undefined,
-    tokens: tokens || undefined,
+    input: n(u.input_tokens),
+    output: n(u.output_tokens),
+    cacheRead: n(u.cache_read_input_tokens),
+    cacheWrite: n(u.cache_creation_input_tokens),
     cost: typeof f.total_cost_usd === "number" ? f.total_cost_usd : undefined,
     model: s0.model || undefined,
+    plan: s0.plan,
   };
   // an ask left open ends with the turn
   m.parts = m.parts.map((p) =>

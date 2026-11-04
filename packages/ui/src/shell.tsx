@@ -181,6 +181,7 @@ export function AppShell({
   theme,
   wide = false,
   bleed = false,
+  fill = false,
   display,
   customize,
   onGo,
@@ -215,6 +216,8 @@ export function AppShell({
   wide?: boolean | undefined;
   /** The page fills the window edge to edge: no padding, the window's full height (the Map). */
   bleed?: boolean | undefined;
+  /** The page takes the window's full width and height under its crumb; the page scrolls inside (a chat). */
+  fill?: boolean | undefined;
   /** How he set the frame; left out, the defaults and no Layout button. */
   display?: DisplayControl | undefined;
   /** Under the Layout settings: a link to his own look. */
@@ -465,7 +468,9 @@ export function AppShell({
                 "mx-auto outline-none",
                 bleed
                   ? "h-full max-[900px]:h-auto"
-                  : "px-[clamp(12px,2.5vw,24px)] pt-[18px] pb-20 max-[900px]:px-4 max-[900px]:pt-[22px] max-[900px]:pb-16",
+                  : fill
+                    ? "flex h-full flex-col px-[clamp(12px,2.5vw,24px)] pt-[18px] pb-[clamp(12px,2.5vw,24px)] max-[900px]:h-auto max-[900px]:px-4 max-[900px]:pt-[22px] max-[900px]:pb-16"
+                    : "px-[clamp(12px,2.5vw,24px)] pt-[18px] pb-20 max-[900px]:px-4 max-[900px]:pt-[22px] max-[900px]:pb-16",
                 // The phone's tabs sit over the page's foot: it scrolls clear of them.
                 nav &&
                   (bleed
@@ -474,7 +479,7 @@ export function AppShell({
                 // A new page, or its data after the loader, fades in. Opacity only, so a fixed
                 // panel inside keeps the window as its frame.
                 "[&>*]:animate-[ui-fade_0.2s_var(--ui-ease)_backwards]",
-                bleed || wide ? "max-w-none" : "max-w-(--ui-main-width)",
+                bleed || wide || fill ? "max-w-none" : "max-w-(--ui-main-width)",
               )}
               id="main"
               ref={main}

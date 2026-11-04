@@ -683,6 +683,7 @@ export function App() {
               open ? "template" in open.page || ("wide" in open.page && !!open.page.wide) : team
             }
             bleed={!open && team && !!current}
+            fill={!!open && "fill" in open.page && !!open.page.fill}
           >
             {!current ? (
               <Loading lines={8} heading />

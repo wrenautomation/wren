@@ -1109,3 +1109,70 @@ html[data-morph="cards"]::view-transition-new(*) {
     opacity: 0;
   }
 }
+
+/* Streamdown's parts inside a reply: code as the artifact's mono, flat on the wash; no boxes. */
+.ui-agent-text [data-streamdown="inline-code"] {
+  font:
+    0.86em / 1.4 ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+  background: var(--ui-wash);
+  border: 0;
+  border-radius: 4px;
+  padding: 1px 5px;
+  color: var(--ui-ink);
+}
+.ui-agent-text [data-streamdown="code-block"] {
+  margin: 12px 0;
+  border: 0;
+  border-radius: 4px 10px 4px 10px;
+  background: var(--ui-paper);
+  box-shadow: inset 0 0 0 1px var(--ui-hair);
+  overflow: hidden;
+}
+.ui-agent-text [data-streamdown="code-block"] :is(pre, code) {
+  font:
+    12.5px / 1.55 ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+  background: transparent;
+}
+.ui-agent-text :is(ul, ol) {
+  margin: 8px 0;
+  padding-left: 1.25em;
+  list-style-position: outside;
+}
+.ui-agent-text li {
+  margin-left: 0;
+  padding-left: 2px;
+}
+.ui-agent-text li + li {
+  margin-top: 3px;
+}
+.ui-agent-text p {
+  margin: 0 0 10px;
+}
+.ui-agent-text [data-streamdown="table-wrapper"],
+.ui-agent-text [data-streamdown="table"] {
+  border-radius: 6px;
+}
+.ui-agent-text table {
+  border-collapse: collapse;
+  font-size: 13.5px;
+  font-variant-numeric: tabular-nums;
+}
+.ui-agent-text :is(th, td) {
+  padding: 6px 12px 6px 0;
+  border-bottom: 1px solid var(--ui-hair);
+  text-align: left;
+}
+.ui-agent-text th {
+  font-weight: 600;
+  color: var(--ui-ink-2);
+}
+.ui-agent-text a {
+  color: var(--ui-accent);
+  text-underline-offset: 2px;
+}

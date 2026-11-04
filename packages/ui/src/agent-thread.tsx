@@ -1,11 +1,12 @@
 /**
  * A chat with a Claude agent (designs/2026-11-04-multi-user-runtime.md, Decision 4): assistant-ui's
- * store runtime holds the thread state (running, parts, approvals, scroll), Streamdown draws the
- * reply's markdown, safe while it streams. This part knows no SDK: the page folds its frames into
- * `AgentMessage`s and answers the callbacks. Looks: design language 14 (stream, busy, error) and
- * 15 F3 (the message and the reply box).
+ * store runtime holds the thread state (running, parts, approvals, scroll, copy), Streamdown draws
+ * the reply's markdown, safe while it streams. This part knows no SDK: the page folds its frames
+ * into `AgentMessage`s and answers the callbacks. Looks: design language 14 (stream, busy, error)
+ * and 15 F3 (the message and the reply box); one reading column, the box at its foot.
  */
 import {
+  ActionBarPrimitive,
   type AppendMessage,
   AssistantRuntimeProvider,
   ComposerPrimitive,
@@ -18,12 +19,13 @@ import {
   useAuiState,
   useExternalStoreRuntime,
 } from "@assistant-ui/react";
-import { type ReactNode, useState } from "react";
+import { type PropsWithChildren, type ReactNode, useState } from "react";
 import { Streamdown } from "streamdown";
 import { Ring } from "./busy.js";
 import { Button, Tag } from "./controls.js";
 import { Alert } from "./feedback.js";
 import { cx } from "./format.js";
+import { tipProps } from "./hint.js";
 import { Icon, type IconName } from "./icons.js";
 
 /** One step of a reply: words, thinking, or a tool call with its result and the ask, if any. */
@@ -46,9 +48,15 @@ export type AgentPart =
 /** What a turn cost, from the CLI's result line. */
 export interface AgentFoot {
   ms?: number | undefined;
-  tokens?: number | undefined;
+  input?: number | undefined;
+  output?: number | undefined;
+  cacheRead?: number | undefined;
+  cacheWrite?: number | undefined;
+  /** API list price, USD; on the plan nothing is billed. */
   cost?: number | undefined;
   model?: string | undefined;
+  /** Ran on the Claude plan (init `apiKeySource: none`), not an API key. */
+  plan?: boolean | undefined;
 }
 
 export interface AgentMessage {
@@ -76,9 +84,15 @@ export interface AgentThreadProps {
   onSend: (text: string) => void;
   onStop: () => void;
   onAnswer: (toolId: string, allow: boolean) => void;
-  /** Shown before the first turn. */
-  empty?: ReactNode;
+  /** Before the first turn: a heading, a line, and prompts that send on a click. */
+  welcome?:
+    | { title: string; text?: string | undefined; suggestions?: readonly string[] | undefined }
+    | undefined;
   placeholder?: string | undefined;
+  /** In the box's foot, left: the model pick. */
+  tools?: ReactNode;
+  /** Under the box: what it runs on. */
+  note?: ReactNode;
   className?: string | undefined;
 }
 
@@ -130,6 +144,9 @@ export function threadMessage(m: AgentMessage): ThreadMessageLike {
 const textOf = (m: AppendMessage) =>
   m.content.map((c) => (c.type === "text" ? c.text : "")).join("");
 
+/** The reading column: replies, the box and the welcome share it. */
+const COLUMN = "mx-auto w-full max-w-[46rem] px-[clamp(12px,3vw,28px)]";
+
 export function AgentThread(p: AgentThreadProps) {
   const runtime = useExternalStoreRuntime<AgentMessage>({
     messages: p.messages,
@@ -145,32 +162,86 @@ export function AgentThread(p: AgentThreadProps) {
   });
   return (
     <AssistantRuntimeProvider runtime={runtime}>
-      <ThreadPrimitive.Root
-        className={cx("grid h-full min-h-0 grid-rows-[minmax(0,1fr)_auto]", p.className)}
-      >
+      <ThreadPrimitive.Root className={cx("flex h-full min-h-0 flex-col", p.className)}>
         <ThreadPrimitive.Viewport
           aria-busy={p.stale || undefined}
-          className={cx(
-            "min-h-0 overflow-y-auto px-1 pb-4 transition-opacity duration-200",
-            p.stale && "opacity-50",
-          )}
+          className="relative flex min-h-0 flex-1 flex-col overflow-y-auto [scrollbar-gutter:stable]"
         >
-          <ThreadPrimitive.Empty>{p.empty}</ThreadPrimitive.Empty>
-          <div className="grid gap-5">
+          <div
+            className={cx(
+              COLUMN,
+              "grid gap-8 pt-6 pb-6 transition-opacity duration-200",
+              p.stale && "opacity-50",
+            )}
+          >
             <ThreadPrimitive.Messages>
               {({ message }) => (message.role === "user" ? <UserTurn /> : <ReplyTurn />)}
             </ThreadPrimitive.Messages>
+            {p.starting ? <Starting /> : null}
+            {p.error ? (
+              <Alert onRetry={p.error.retry} className="ui-rise mb-0">
+                {p.error.text}
+              </Alert>
+            ) : null}
           </div>
-          {p.starting ? <Starting /> : null}
-          {p.error ? (
-            <Alert onRetry={p.error.retry} className="ui-rise mt-4 mb-0">
-              {p.error.text}
-            </Alert>
-          ) : null}
+          <ThreadPrimitive.Empty>
+            {p.welcome ? <Welcome {...p.welcome} /> : null}
+          </ThreadPrimitive.Empty>
+          <ThreadPrimitive.ViewportFooter className="sticky bottom-0 mt-auto bg-[linear-gradient(transparent,var(--ui-paper)_28px)] pt-7 pb-1">
+            <div className={cx(COLUMN, "relative")}>
+              <ThreadPrimitive.ScrollToBottom
+                className="absolute -top-11 left-1/2 grid size-8 -translate-x-1/2 place-items-center rounded-full bg-(--ui-paper) text-(--ui-ink-2) shadow-[inset_0_0_0_1px_var(--ui-hair),var(--ui-raise)] transition-opacity duration-200 hover:text-(--ui-ink) disabled:pointer-events-none disabled:opacity-0"
+                aria-label="Scroll to the newest"
+              >
+                <Icon name="down" size={15} />
+              </ThreadPrimitive.ScrollToBottom>
+              <Composer closed={p.closed} placeholder={p.placeholder} tools={p.tools} />
+              {p.note ? (
+                <p className="mx-0 mt-2 mb-0 text-center text-[12px] text-(--ui-ink-3)">{p.note}</p>
+              ) : null}
+            </div>
+          </ThreadPrimitive.ViewportFooter>
         </ThreadPrimitive.Viewport>
-        <Composer closed={p.closed} placeholder={p.placeholder} />
       </ThreadPrimitive.Root>
     </AssistantRuntimeProvider>
+  );
+}
+
+/** Before the first turn: centred over the box, the prompts as quiet cards. */
+function Welcome({
+  title,
+  text,
+  suggestions,
+}: {
+  title: string;
+  text?: string | undefined;
+  suggestions?: readonly string[] | undefined;
+}) {
+  return (
+    <div
+      className={cx(COLUMN, "grid flex-1 content-center gap-5 py-10 [animation:ui-fade_.25s_both]")}
+    >
+      <div className="grid gap-1.5">
+        <h2 className="m-0 text-[22px]/tight font-semibold tracking-[-0.01em] text-(--ui-ink)">
+          {title}
+        </h2>
+        {text ? <p className="m-0 max-w-prose text-[14px] text-(--ui-ink-2)">{text}</p> : null}
+      </div>
+      {suggestions?.length ? (
+        <div className="grid gap-2 sm:grid-cols-2">
+          {suggestions.map((s) => (
+            <ThreadPrimitive.Suggestion
+              key={s}
+              prompt={s}
+              send
+              className="rounded-(--ui-leaf-box) bg-(--ui-paper) px-3.5 py-3 text-left text-[13.5px] text-(--ui-ink-2) shadow-[inset_0_0_0_1px_var(--ui-hair)] transition-[color,box-shadow] duration-150 hover:text-(--ui-ink) hover:shadow-[inset_0_0_0_1px_var(--ui-ink-3)]"
+            >
+              {s}
+            </ThreadPrimitive.Suggestion>
+          ))}
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -178,7 +249,7 @@ export function AgentThread(p: AgentThreadProps) {
 function UserTurn() {
   return (
     <MessagePrimitive.Root className="ui-rise flex justify-end">
-      <div className="max-w-[80%] whitespace-pre-wrap break-words rounded-[14px_4px_14px_14px] bg-(--ui-wash) px-3 py-2.5 text-[14px] text-(--ui-ink)">
+      <div className="max-w-[85%] whitespace-pre-wrap break-words rounded-[14px_4px_14px_14px] bg-(--ui-wash) px-3.5 py-2.5 text-[14.5px]/[1.5] text-(--ui-ink)">
         <MessagePrimitive.Parts />
       </div>
     </MessagePrimitive.Root>
@@ -187,9 +258,14 @@ function UserTurn() {
 
 function ReplyTurn() {
   return (
-    <MessagePrimitive.Root className="ui-rise grid min-w-0 gap-2.5">
+    <MessagePrimitive.Root className="ui-rise group/reply grid min-w-0 gap-3">
       <MessagePrimitive.Parts
-        components={{ Text: Reply, Reasoning: Thinking, tools: { Fallback: ToolCard } }}
+        components={{
+          Text: Reply,
+          Reasoning: Thinking,
+          tools: { Fallback: ToolRow },
+          ToolGroup: Steps,
+        }}
       />
       <Pending />
       <Foot />
@@ -201,12 +277,12 @@ function ReplyTurn() {
 const Reply: TextMessagePartComponent = ({ text, status }) => (
   <div
     data-live={status.type === "running" ? "" : undefined}
-    className="ui-agent-text min-w-0 text-[14.5px]/[1.55] text-(--ui-ink) [overflow-wrap:anywhere]"
+    className="ui-agent-text min-w-0 text-[14.5px]/[1.6] text-(--ui-ink) [overflow-wrap:anywhere]"
   >
     <Streamdown
       mode={status.type === "running" ? "streaming" : "static"}
       isAnimating={status.type === "running"}
-      controls={false}
+      controls={{ code: true, table: false, mermaid: false }}
     >
       {text}
     </Streamdown>
@@ -225,9 +301,9 @@ const Thinking: ReasoningMessagePartComponent = ({ text, status }) => {
     ) : null;
   return (
     <details className="group text-[13px] text-(--ui-ink-3)">
-      <summary className="cursor-pointer list-none font-semibold [&::-webkit-details-marker]:hidden">
+      <summary className="inline-flex cursor-pointer list-none items-center gap-1 font-semibold hover:text-(--ui-ink-2) [&::-webkit-details-marker]:hidden">
         {status.type === "running" ? "Thinking" : "Thought"}
-        <Icon name="down" size={12} className="ml-1 inline align-[-1px] group-open:rotate-180" />
+        <Icon name="down" size={12} className="transition-transform group-open:rotate-180" />
       </summary>
       <p className="mt-1.5 mb-0 whitespace-pre-wrap border-(--ui-hair) border-l-2 pl-3 text-[13.5px] text-(--ui-ink-2)">
         {text}
@@ -236,7 +312,7 @@ const Thinking: ReasoningMessagePartComponent = ({ text, status }) => {
   );
 };
 
-const TOOL_ICON: Record<string, IconName> = { Bash: "code", Read: "read", Skill: "sparkle" };
+const TOOL_ICON: Record<string, IconName> = { Bash: "code", Read: "read", Skill: "book" };
 
 /** The one line that says what a call does: Bash's command, Read's file, Skill's name. */
 export function toolLine(name: string, input: Record<string, unknown>): string {
@@ -249,82 +325,183 @@ export function toolLine(name: string, input: Record<string, unknown>): string {
     .join(" · ");
 }
 
-/** A tool call: what it runs, how it went, its output folded; the ask in place when it asks. */
-const ToolCard: ToolCallMessagePartComponent = (t) => {
+/** A call's name for a person: its description, else what it does in a few words. */
+function toolTitle(name: string, input: Record<string, unknown>): string {
+  if (typeof input.description === "string" && input.description) return input.description;
+  const line = toolLine(name, input);
+  if (name === "Read") return `Read ${line.split("/").pop() || "a file"}`;
+  if (name === "Skill") return `Load the ${line || "a"} skill`;
+  if (name === "Bash") return "Run a command";
+  return name;
+}
+
+/** Runs of tool calls, one line: open while a step runs or asks, folded when all are done. */
+function Steps({
+  startIndex,
+  endIndex,
+  children,
+}: PropsWithChildren<{ startIndex: number; endIndex: number }>) {
+  // one string, so the selector's answer is stable between renders
+  const sum = useAuiState((s) => {
+    const ps = s.message.parts.slice(startIndex, endIndex + 1);
+    let live = 0;
+    let asks = 0;
+    let bad = 0;
+    for (const x of ps) {
+      if (x.type !== "tool-call") continue;
+      const a = x.approval;
+      if (a && a.approved === undefined && !a.resolution) asks++;
+      else if (x.result === undefined && a?.approved !== false) live++;
+      if (x.isError) bad++;
+    }
+    return `${ps.length}|${live}|${asks}|${bad}|${s.message.status?.type === "running" ? 1 : 0}`;
+  });
+  const [n, live, asks, bad, running] = sum.split("|").map(Number) as [
+    number,
+    number,
+    number,
+    number,
+    number,
+  ];
+  const [mine, setMine] = useState<boolean | null>(null);
+  if (n < 2) return <>{children}</>;
+  const busy = asks > 0 || (live > 0 && running > 0);
+  const open = asks > 0 || (mine ?? busy);
+  const label =
+    asks > 0
+      ? "Waiting on you"
+      : busy
+        ? `Running step ${n - live + 1} of ${n}`
+        : `Ran ${n} steps${bad ? `, ${bad} failed` : ""}`;
+  return (
+    <div className="grid gap-1.5">
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setMine(!open)}
+        className="inline-flex items-center gap-2 justify-self-start text-[13px] font-semibold text-(--ui-ink-3) hover:text-(--ui-ink-2)"
+      >
+        {busy && !asks ? <Ring /> : <Icon name="list" size={14} />}
+        <span key={label} className="[animation:ui-fade_.2s_both]">
+          {label}
+        </span>
+        <Icon
+          name="down"
+          size={12}
+          className={cx("transition-transform duration-200", open && "rotate-180")}
+        />
+      </button>
+      {open ? (
+        <div className="ui-rise ml-[6px] grid gap-0.5 border-(--ui-hair) border-l pl-3">
+          {children}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/** A tool call: one line that opens to its command and output; the ask in place when it asks. */
+const ToolRow: ToolCallMessagePartComponent = (t) => {
   const input = (t.args ?? {}) as Record<string, unknown>;
   const line = toolLine(t.toolName, input) || t.argsText;
   const ask = t.approval;
-  const open = ask && ask.approved === undefined && !ask.resolution;
+  const asking = !!ask && ask.approved === undefined && !ask.resolution;
   const done = t.result !== undefined;
-  const why = typeof input.description === "string" ? input.description : null;
+  const out = done && typeof t.result === "string" ? t.result.trim() : "";
+  const [mine, setMine] = useState(false);
+  const open = asking || mine;
   return (
     <div
       className={cx(
-        "grid gap-2 rounded-(--ui-leaf-box) px-3 py-2.5 text-[13.5px] shadow-[inset_0_0_0_1px_var(--ui-hair)]",
-        open && "bg-(--ui-wash)",
+        "grid rounded-(--ui-leaf-box) transition-colors duration-200",
+        asking && "bg-(--ui-wash) px-3 py-2.5",
       )}
     >
-      <div className="flex min-w-0 items-start gap-2">
+      <button
+        type="button"
+        aria-expanded={open}
+        disabled={asking}
+        onClick={() => setMine(!mine)}
+        className="group/row flex min-w-0 items-center gap-2 py-1 text-left text-[13.5px] text-(--ui-ink-2) hover:text-(--ui-ink) disabled:cursor-default"
+      >
         <Icon
           name={TOOL_ICON[t.toolName] ?? "bolt"}
-          size={15}
-          className="mt-0.5 flex-none text-(--ui-ink-3)"
+          size={14}
+          className="flex-none text-(--ui-ink-3)"
         />
-        <div className="grid min-w-0 flex-1 gap-0.5">
-          <span className="font-semibold text-(--ui-ink)">{why ?? t.toolName}</span>
-          <code className="font-mono text-[12.5px] text-(--ui-ink-2) [overflow-wrap:anywhere]">
-            {line}
-          </code>
-        </div>
-        <span key={statusOf(t, !!open, done)} className="flex-none [animation:ui-fade_.2s_both]">
-          {open ? (
+        <span className="min-w-0 wrap-anywhere">{toolTitle(t.toolName, input)}</span>
+        <span key={statusOf(t, asking, done)} className="flex-none [animation:ui-fade_.2s_both]">
+          {asking ? (
             <Tag tone="warn">Waiting on you</Tag>
           ) : ask?.approved === false ? (
             <Tag>Denied</Tag>
           ) : t.isError ? (
             <Tag tone="bad">Failed</Tag>
           ) : done ? (
-            <Icon name="check" size={15} className="text-(--ui-good)" />
+            <Icon name="check" size={14} className="text-(--ui-good)" />
           ) : t.status.type === "running" || t.status.type === "requires-action" ? (
             <Ring />
           ) : null}
         </span>
-      </div>
+        {asking ? null : (
+          <Icon
+            name="down"
+            size={12}
+            className={cx(
+              "flex-none text-(--ui-ink-3) opacity-0 transition-[opacity,rotate] duration-200 group-hover/row:opacity-100",
+              open && "rotate-180 opacity-100",
+            )}
+          />
+        )}
+      </button>
       {open ? (
-        <div className="ui-rise grid gap-2">
-          <span className="text-(--ui-ink-2)">
-            Claude agent asks to run this{ask.prompt ? `: ${ask.prompt.toLowerCase()}` : "."}
-          </span>
-          <div className="flex gap-2">
-            <Button size="sm" onClick={() => void t.respondToApproval?.({ approved: true })}>
-              Allow once
-            </Button>
-            <Button
-              size="sm"
-              tone="secondary"
-              onClick={() => void t.respondToApproval?.({ approved: false })}
-            >
-              Deny
-            </Button>
-          </div>
+        <div className="ui-rise grid gap-2 pt-1 pb-2">
+          <pre className="m-0 overflow-x-auto whitespace-pre-wrap rounded-[4px_10px_4px_10px] bg-(--ui-canvas) px-3 py-2 font-mono text-[12.5px] text-(--ui-ink) shadow-[inset_0_0_0_1px_var(--ui-hair)] [overflow-wrap:anywhere]">
+            {t.toolName === "Bash" ? `$ ${line}` : line}
+          </pre>
+          {asking ? (
+            <div className="grid gap-2">
+              <span className="text-[13.5px] text-(--ui-ink-2)">
+                Claude agent asks to run this{ask?.prompt ? `: ${ask.prompt.toLowerCase()}` : "."}
+              </span>
+              <div className="flex gap-2">
+                <Button size="sm" onClick={() => void t.respondToApproval?.({ approved: true })}>
+                  Allow once
+                </Button>
+                <Button
+                  size="sm"
+                  tone="secondary"
+                  onClick={() => void t.respondToApproval?.({ approved: false })}
+                >
+                  Deny
+                </Button>
+              </div>
+            </div>
+          ) : null}
+          {out ? (
+            <pre className="m-0 max-h-72 overflow-auto whitespace-pre-wrap px-3 font-mono text-[12px] text-(--ui-ink-2) [overflow-wrap:anywhere]">
+              {out}
+            </pre>
+          ) : done ? (
+            <span className="px-3 text-[12.5px] text-(--ui-ink-3)">No output.</span>
+          ) : null}
         </div>
       ) : null}
-      {done && typeof t.result === "string" && t.result.trim() ? <Output text={t.result} /> : null}
     </div>
   );
 };
 
-/** The card's state, for the cross-fade when it changes. */
+/** The row's state, for the cross-fade when it changes. */
 const statusOf = (
   t: {
     isError?: boolean | undefined;
     approval?: { approved?: boolean } | undefined;
     status: { type: string };
   },
-  open: boolean,
+  asking: boolean,
   done: boolean,
 ) =>
-  open
+  asking
     ? "ask"
     : t.approval?.approved === false
       ? "denied"
@@ -334,50 +511,60 @@ const statusOf = (
           ? "done"
           : t.status.type;
 
-function Output({ text }: { text: string }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="grid gap-1">
-      <button
-        type="button"
-        onClick={() => setOpen(!open)}
-        aria-expanded={open}
-        className="justify-self-start text-[12.5px] font-semibold text-(--ui-ink-3) hover:text-(--ui-accent)"
-      >
-        {open ? "Hide output" : "Show output"}
-      </button>
-      {open ? (
-        <pre className="ui-rise m-0 max-h-60 overflow-auto whitespace-pre-wrap rounded-[4px_12px_4px_12px] bg-(--ui-canvas) px-3 py-2 font-mono text-[12px] text-(--ui-ink-2) [overflow-wrap:anywhere]">
-          {text}
-        </pre>
-      ) : null}
-    </div>
-  );
-}
-
 const MODEL_NAME: Record<string, string> = { haiku: "Haiku", sonnet: "Sonnet", opus: "Opus" };
 const modelName = (m: string) =>
   MODEL_NAME[m] ?? MODEL_NAME[/claude-(\w+)/.exec(m)?.[1] ?? ""] ?? m;
 
-/** The turn's foot: model, time, tokens, cost. "Stopped" when Stop ended it. */
+const count = (n: number) =>
+  n >= 10_000 ? `${Math.round(n / 1000)}k` : n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n);
+const usd = (n: number) => (n < 0.01 ? `$${n.toFixed(3)}` : `$${n.toFixed(2)}`);
+
+/** Every token the turn moved: input, cache and output. */
+const totalOf = (f: AgentFoot) =>
+  (f.input ?? 0) + (f.output ?? 0) + (f.cacheRead ?? 0) + (f.cacheWrite ?? 0);
+
+/** The turn's foot: model, time, tokens; the price only where a key pays it. */
 export function footLine(foot: AgentFoot | null, state: string): string | null {
+  const total = foot ? totalOf(foot) : 0;
   const bits = [
-    state === "stopped" ? "Stopped" : null,
+    state === "stopped" ? "Stopped" : state === "failed" ? "Failed" : null,
     foot?.model ? modelName(foot.model) : null,
     foot?.ms ? `${(foot.ms / 1000).toFixed(1)} s` : null,
-    foot?.tokens
-      ? `${foot.tokens >= 1000 ? `${(foot.tokens / 1000).toFixed(1)}k` : foot.tokens} tokens`
-      : null,
-    foot?.cost ? `$${foot.cost.toFixed(2)}` : null,
+    total ? `${count(total)} tokens` : null,
+    foot?.cost && foot.plan === false ? usd(foot.cost) : null,
   ].filter(Boolean);
   return bits.length ? bits.join(" · ") : null;
 }
 
-/** A reply with nothing in it yet. */
+/** The foot's detail, on hover: where the tokens went, and who pays. */
+export function footDetail(foot: AgentFoot | null): string | null {
+  if (!foot || !totalOf(foot)) return null;
+  const parts = [
+    `${count(foot.input ?? 0)} in`,
+    `${count(foot.output ?? 0)} out`,
+    `${count(foot.cacheRead ?? 0)} cache read`,
+    `${count(foot.cacheWrite ?? 0)} cache write`,
+  ].join(", ");
+  const pay =
+    foot.plan === false
+      ? foot.cost
+        ? `Billed ${usd(foot.cost)} to the API key.`
+        : "Billed to the API key."
+      : foot.plan
+        ? `On your Claude plan${foot.cost ? `: ${usd(foot.cost)} at API prices, not billed` : ""}.`
+        : "";
+  return `${parts}. ${pay}`.trim();
+}
+
+/** Nothing new on screen while the turn runs: no parts yet, or the last step just ended. */
 function Pending() {
-  const empty = useAuiState((s) => s.message.status?.type === "running" && !s.message.parts.length);
-  return empty ? (
-    <span>
+  const wait = useAuiState((s) => {
+    if (s.message.status?.type !== "running") return false;
+    const last = s.message.parts.at(-1);
+    return !last || (last.type === "tool-call" && last.result !== undefined);
+  });
+  return wait ? (
+    <span className="[animation:ui-fade_.2s_.3s_both]">
       <Tag tone="accent" busy>
         Thinking
       </Tag>
@@ -385,15 +572,43 @@ function Pending() {
   ) : null;
 }
 
+const ICON_BUTTON =
+  "grid size-7 place-items-center rounded-(--ui-radius) text-(--ui-ink-3) transition-colors duration-150 hover:bg-(--ui-fill) hover:text-(--ui-ink)";
+
+/** Copy, then the usage line; on older replies both wait for the pointer. */
 function Foot() {
   const custom = useAuiState((s) => s.message.metadata.custom) as
     | { foot: AgentFoot | null; state: string }
     | undefined;
   const live = useAuiState((s) => s.message.status?.type === "running");
-  const line = !live && custom ? footLine(custom.foot, custom.state) : null;
-  return line ? (
-    <span className="text-[12.5px] text-(--ui-ink-3) [animation:ui-fade_.25s_both]">{line}</span>
-  ) : null;
+  if (live || !custom) return null;
+  const line = footLine(custom.foot, custom.state);
+  const detail = footDetail(custom.foot);
+  return (
+    <ActionBarPrimitive.Root
+      hideWhenRunning
+      autohide="not-last"
+      className="-ml-1.5 flex min-h-7 items-center gap-1 text-[12.5px] text-(--ui-ink-3) transition-opacity duration-200 data-floating:opacity-0 data-floating:group-hover/reply:opacity-100 [animation:ui-fade_.25s_both]"
+    >
+      <ActionBarPrimitive.Copy className={cx(ICON_BUTTON, "group/copy")} aria-label="Copy">
+        <Icon name="copy" size={14} className="group-data-copied/copy:hidden" />
+        <Icon
+          name="check"
+          size={14}
+          className="hidden text-(--ui-good) group-data-copied/copy:block"
+        />
+      </ActionBarPrimitive.Copy>
+      {line ? (
+        <span
+          className="cursor-default px-1 [font-variant-numeric:tabular-nums]"
+          tabIndex={detail ? 0 : undefined}
+          {...tipProps(detail, { side: "bottom" })}
+        >
+          {line}
+        </span>
+      ) : null}
+    </ActionBarPrimitive.Root>
+  );
 }
 
 /** Artifact 14: nothing under a second, then the ring and words. */
@@ -401,7 +616,7 @@ function Starting() {
   return (
     <div
       role="status"
-      className="mt-4 flex items-center gap-2 text-[13.5px] text-(--ui-ink-2) [animation:ui-fade_.2s_1s_both]"
+      className="flex items-center gap-2 text-[13.5px] text-(--ui-ink-2) [animation:ui-fade_.2s_1s_both]"
     >
       <Ring />
       Starting Claude agent
@@ -409,37 +624,43 @@ function Starting() {
   );
 }
 
-/** Artifact 15 F3 `.rp`: the box, then Send, or Stop while a turn is out. */
+/** One box: the words, then the model pick left and Send (Stop while a turn is out) right. */
 function Composer({
   closed,
   placeholder,
+  tools,
 }: {
   closed?: string | null | undefined;
   placeholder?: string | undefined;
+  tools?: ReactNode;
 }) {
   const running = useAuiState((s) => s.thread.isRunning);
   return (
-    <ComposerPrimitive.Root className="grid gap-2 border-(--ui-hair) border-t pt-3">
+    <ComposerPrimitive.Root className="grid rounded-[16px] bg-(--ui-paper) shadow-[inset_0_0_0_1px_var(--ui-hair),var(--ui-raise)] transition-shadow duration-150 focus-within:shadow-[inset_0_0_0_1px_var(--ui-accent),var(--ui-raise)]">
       <ComposerPrimitive.Input
-        rows={2}
-        maxRows={10}
+        rows={1}
+        maxRows={12}
         disabled={!!closed}
         placeholder={closed ?? placeholder ?? "Ask the agent"}
         aria-label="Message"
-        className="w-full resize-none rounded-[4px_12px_4px_12px] border-0 bg-(--ui-canvas) px-[11px] py-[9px] text-[14px] text-(--ui-ink) shadow-[inset_0_0_0_1px_var(--ui-hair)] outline-none placeholder:text-(--ui-ink-3) focus-visible:shadow-[inset_0_0_0_1px_var(--ui-accent)]"
+        className="w-full resize-none border-0 bg-transparent px-4 pt-3.5 pb-1.5 text-[14.5px]/[1.5] text-(--ui-ink) outline-none placeholder:text-(--ui-ink-3) disabled:cursor-not-allowed"
       />
-      <div className="flex justify-end gap-2">
+      <div className="flex min-h-11 items-center gap-2 px-2.5 pb-2.5">
+        <div className="flex min-w-0 flex-1 items-center gap-2">{tools}</div>
         {running ? (
-          <ComposerPrimitive.Cancel asChild>
-            <Button size="sm" tone="secondary" icon="stop">
-              Stop
-            </Button>
+          <ComposerPrimitive.Cancel
+            aria-label="Stop"
+            {...tipProps("Stop", { keys: "Esc" })}
+            className="grid size-8 flex-none place-items-center rounded-full bg-(--ui-ink) text-(--ui-canvas) [animation:ui-fade_.15s_both] hover:opacity-85"
+          >
+            <span className="size-2.5 rounded-[2px] bg-current" />
           </ComposerPrimitive.Cancel>
         ) : (
-          <ComposerPrimitive.Send asChild>
-            <Button size="sm" icon="send">
-              Send
-            </Button>
+          <ComposerPrimitive.Send
+            aria-label="Send"
+            className="grid size-8 flex-none place-items-center rounded-full bg-(--ui-primary) text-(--ui-on-accent) [animation:ui-fade_.15s_both] hover:opacity-90 disabled:bg-(--ui-fill) disabled:text-(--ui-ink-3)"
+          >
+            <Icon name="up" size={16} />
           </ComposerPrimitive.Send>
         )}
       </div>

@@ -45,7 +45,10 @@ describe("fold", () => {
     expect(one?.parts).toEqual([{ type: "text", text: "OK" }]);
     expect(one?.state).toBe("done");
     expect(one?.foot?.model).toBe("claude-sonnet-5-5");
-    expect(one?.foot?.tokens).toBeGreaterThan(5000);
+    expect(
+      (one?.foot?.input ?? 0) + (one?.foot?.cacheRead ?? 0) + (one?.foot?.cacheWrite ?? 0),
+    ).toBeGreaterThan(5000);
+    expect(one?.foot?.output).toBeGreaterThan(0);
     expect(one?.foot?.cost).toBeGreaterThan(0);
     const tool = two?.parts[0];
     expect(tool).toMatchObject({ type: "tool", name: "Bash", input: { command: "date" } });
@@ -116,6 +119,27 @@ describe("fold", () => {
     });
     expect(s.messages.every((m) => m.state !== "live")).toBe(true);
     expect(s.running).toBe(false);
+  });
+
+  it("a stored reply's foot sums usage once per API message", () => {
+    const u = { input_tokens: 10, output_tokens: 5, cache_read_input_tokens: 1000 };
+    const a = (id: string, content: unknown[]) => ({
+      type: "assistant",
+      message: { id, model: "claude-haiku-5-5", role: "assistant", content, usage: u },
+    });
+    const s = history([
+      { type: "user", message: { role: "user", content: "Hi" } },
+      a("m1", [{ type: "thinking", thinking: "", signature: "x" }]),
+      a("m1", [{ type: "text", text: "Hello" }]),
+      a("m2", [{ type: "text", text: "again" }]),
+      { type: "assistant", message: { id: "m3", model: "<synthetic>", content: [], usage: u } },
+    ] as Frame[]);
+    expect(s.messages[1]?.foot).toMatchObject({
+      input: 20,
+      output: 10,
+      cacheRead: 2000,
+      model: "claude-haiku-5-5",
+    });
   });
 
   it("cut ends a live reply: failed, or stopped after Stop", () => {

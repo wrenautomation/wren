@@ -43,6 +43,8 @@ export interface AgentChat {
   stale: boolean;
   error: { text: string; retry?: (() => void) | undefined } | null;
   session: string | undefined;
+  /** From init: true on the Claude plan, false on an API key; unknown before the first turn. */
+  plan: boolean | undefined;
   send: (text: string) => void;
   stop: () => void;
   answer: (toolId: string, allow: boolean) => void;
@@ -230,6 +232,7 @@ export function useAgent(o: {
       error ??
       (stored.error && s.session !== o.session ? storedError(stored.error, stored.retry) : null),
     session: s.session ?? o.session ?? undefined,
+    plan: s.plan,
     send,
     stop,
     answer,
