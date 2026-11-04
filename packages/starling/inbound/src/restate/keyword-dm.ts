@@ -1,7 +1,9 @@
 /**
  * KeywordDm (designs/2026-10-11-comment-keywords.md): a comment that says a keyword gets the
  * keyword's DM through Meta's private reply, then its public reply when it has one. `SocialWatch`
- * catches the comments and sends each hit here; the portal adds and removes keywords.
+ * (or `PushedComments`) catches the comments and sends each hit here; the portal adds and removes
+ * keywords. 11-04 (designs/2026-11-04-meta-push-flows.md): each DM waits its `MetaPace` slot; a
+ * keyword with a button sends it on the DM, and `tap` sends the follow-up.
  */
 import * as restate from "@restatedev/restate-sdk";
 import { byOf } from "@wren/core/ask";
@@ -17,10 +19,15 @@ import {
   addKeyword,
   catchKeywords,
   failHit,
+  followHit,
   handHit,
   hitOf,
+  hitOfPayload,
+  pickReply,
   removeKeywords,
+  tapPayload,
 } from "../social/keywords.js";
+import { type MetaPace, paceKey } from "./meta-pace.js";
 
 interface KeywordDmDeps {
   db: Db;
@@ -34,6 +41,19 @@ type ContentSend = {
     req: {
       platform: string;
       commentId: string;
+      text: string;
+      client?: string | null;
+      button?: { title: string; payload: string } | null;
+      sendKey: string;
+      recheck: boolean;
+    },
+  ) => Promise<unknown>;
+} & {
+  followUp: (
+    ctx: restate.Context,
+    req: {
+      platform: string;
+      to: string;
       text: string;
       client?: string | null;
       sendKey: string;
@@ -68,7 +88,13 @@ const ADD = z.looseObject({
   ...PORTAL_FIELDS,
   keyword: z.string().min(1).max(60).describe("The word people comment"),
   dm: z.string().min(1).max(1000).describe("The DM they get"),
-  reply: z.string().max(300).nullish().describe("A public answer under the comment"),
+  reply: z
+    .string()
+    .max(300)
+    .nullish()
+    .describe("A public answer under the comment; several versions, one a line"),
+  button: z.string().max(20).nullish().describe("The DM's button label; needs a follow-up"),
+  followup: z.string().max(1000).nullish().describe("What a tap on the button sends"),
   platform: z.enum(["instagram", "facebook"]).nullish().describe("One site; both when empty"),
   post: z.string().max(200).nullish().describe("One post's id; every post when empty"),
 });
@@ -82,6 +108,12 @@ const REMOVE = z.looseObject({
 const SEND = z.looseObject({
   client: z.string().max(64).nullable(),
   hit: z.number().int().positive(),
+});
+const TAP = z.looseObject({
+  client: z.string().max(64).nullable(),
+  platform: z.enum(["instagram", "facebook"]),
+  from: z.string().min(1).max(100),
+  payload: z.string().min(1).max(1000),
 });
 
 export function makeKeywordDm(deps: KeywordDmDeps) {
@@ -143,6 +175,11 @@ export function makeKeywordDm(deps: KeywordDmDeps) {
             if (err instanceof restate.TerminalError) return failed(err.message);
             throw err;
           }
+          // Under Meta's cap per account: a burst waits its turn, evenly spaced.
+          const wait = await ctx
+            .objectClient<MetaPace>({ name: "MetaPace" }, paceKey(req.client, c.platform))
+            .slot();
+          if (wait > 0) await ctx.sleep(wait);
           // Its links carry utm tags like every marketing DM (designs/2026-10-14-customerio-audit.md, B4).
           const dm = await ctx.run("words", () =>
             tagged(db, hit.dm, { source: req.client ?? "wren", medium: "dm", campaign: "keyword" }),
@@ -164,6 +201,10 @@ export function makeKeywordDm(deps: KeywordDmDeps) {
                     commentId: c.ref,
                     text: dm,
                     client: req.client,
+                    button:
+                      hit.button && hit.followup
+                        ? { title: hit.button, payload: tapPayload(req.hit) }
+                        : null,
                     ...k,
                   }),
                 ),
@@ -182,7 +223,7 @@ export function makeKeywordDm(deps: KeywordDmDeps) {
             if (err instanceof restate.TerminalError) return failed(err.message);
             throw err;
           }
-          const reply = hit.reply?.trim();
+          const reply = pickReply(hit.reply, hit.commentId);
           if (reply)
             try {
               await sendAtMostOnce(ctx, db, {
@@ -218,6 +259,62 @@ export function makeKeywordDm(deps: KeywordDmDeps) {
               if (!(err instanceof restate.TerminalError)) throw err;
               ctx.console.warn(`keyword reply on comment ${c.id}: ${errorText(err)}`);
             }
+          return { state: "sent" };
+        },
+      ),
+      /**
+       * A tap on a keyword DM's button (`kw:<hit>`): the keyword's follow-up to who tapped, once,
+       * inside the 24h window the tap opened. Anything else is not ours: nothing.
+       */
+      tap: serviceHandler(
+        { input: TAP, effect: "sends", ingressPrivate: true },
+        async (ctx: restate.Context, req: z.infer<typeof TAP>): Promise<{ state: string }> => {
+          const id = hitOfPayload(req.payload);
+          if (id === null) return { state: "not ours" };
+          const db = dbOf(req.client);
+          const hit = await ctx.run("hit", () => hitOf(db, id));
+          if (!hit?.followup || hit.platform !== req.platform) return { state: "no follow-up" };
+          if (hit.followedAt) return { state: "sent before" };
+          const now = new Date(await ctx.date.now());
+          const text = await ctx.run("words", () =>
+            tagged(db, hit.followup ?? "", {
+              source: req.client ?? "wren",
+              medium: "dm",
+              campaign: "keyword",
+            }),
+          );
+          const content = ctx.serviceClient<ContentSend>({ name: "Content" });
+          try {
+            await sendAtMostOnce(ctx, db, {
+              item: `followup:${id}`,
+              platform: req.platform,
+              account: null,
+              via: "wren",
+              words: text,
+              target: req.from,
+              url: null,
+              send: () =>
+                sendAcross<{ ref: string | null }>((k) =>
+                  content.followUp({
+                    platform: req.platform,
+                    to: req.from,
+                    text,
+                    client: req.client,
+                    ...k,
+                  }),
+                ),
+              landed: (tx) => followHit(tx, id, now),
+            }).catch((err) => {
+              throw sendError(err);
+            });
+          } catch (err) {
+            if (isSendUnsure(err) || isSendTaken(err)) return { state: "handed" };
+            if (err instanceof restate.TerminalError) {
+              ctx.console.warn(`keyword follow-up ${id}: ${errorText(err)}`);
+              return { state: "failed" };
+            }
+            throw err;
+          }
           return { state: "sent" };
         },
       ),

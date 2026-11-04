@@ -969,8 +969,15 @@ export const commentKeywords = pgTable(
     post: varchar("post", { length: 200 }),
     /** The DM, as written. */
     dm: text("dm").notNull(),
-    /** A public answer under the comment too ("sent, check your DMs"); null: none. */
+    /**
+     * A public answer under the comment too ("sent, check your DMs"); null: none. Several
+     * versions, one a line: the comment's id picks one (designs/2026-11-04-meta-push-flows.md).
+     */
     reply: text("reply"),
+    /** The DM's button label; a tap opens Meta's 24h window and sends `followup`. Null: no button. */
+    button: varchar("button", { length: 20 }),
+    /** What a tap on the button sends (the link). */
+    followup: text("followup"),
     active: boolean("active").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -1019,6 +1026,8 @@ export const keywordHits = pgTable(
     ref: varchar("ref", { length: 200 }),
     at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
     sentAt: timestamp("sent_at", { withTimezone: true }),
+    /** When their tap's follow-up went out; null: no tap yet. */
+    followedAt: timestamp("followed_at", { withTimezone: true }),
   },
   (t) => [
     primaryKey({ columns: [t.id], name: "pk_keyword_hits" }),

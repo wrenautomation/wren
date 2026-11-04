@@ -38,6 +38,8 @@ const INPUT = z
     keyword: z.string().transform(wordsOf).pipe(z.string().min(1, "say the keyword").max(40)),
     dm: z.string().trim().min(1, "write the DM").max(1000),
     reply: z.string().trim().max(300).nullish(),
+    button: z.string().trim().max(20).nullish(),
+    followup: z.string().trim().max(1000).nullish(),
     platform: z.enum(KEYWORD_PLATFORMS).nullish(),
     post: z.string().trim().max(200).nullish(),
   })
@@ -49,6 +51,8 @@ export async function addKeyword(db: Queryable, input: unknown, by: string) {
   const k = got.data;
   // A post is a platform's object: one platform must name it.
   if (k.post && !k.platform) throw new PortalRefusal("pick the platform of that post", 400);
+  if (!k.button !== !k.followup)
+    throw new PortalRefusal("a button needs its follow-up, and a follow-up its button", 400);
   const row = await atomic(db, async (tx) => {
     let post: string | null = null;
     if (k.post && k.platform) {
@@ -66,6 +70,8 @@ export async function addKeyword(db: Queryable, input: unknown, by: string) {
         keyword: k.keyword,
         dm: k.dm,
         reply: k.reply || null,
+        button: k.button || null,
+        followup: k.followup || null,
         platform: k.platform ?? null,
         post,
         updatedBy: by,
@@ -155,11 +161,44 @@ export async function hitOf(db: Queryable, id: number) {
       commentId: keywordHits.commentId,
       dm: commentKeywords.dm,
       reply: commentKeywords.reply,
+      button: commentKeywords.button,
+      followup: commentKeywords.followup,
+      followedAt: keywordHits.followedAt,
+      platform: keywordHits.platform,
     })
     .from(keywordHits)
     .innerJoin(commentKeywords, eq(commentKeywords.id, keywordHits.keywordId))
     .where(eq(keywordHits.id, id));
   return h ?? null;
+}
+
+/** A tap's payload: `kw:<hit id>` (designs/2026-11-04-meta-push-flows.md). */
+export const tapPayload = (hit: number) => `kw:${hit}`;
+export const hitOfPayload = (payload: string): number | null => {
+  const m = /^kw:(\d{1,10})$/.exec(payload);
+  return m ? Number(m[1]) : null;
+};
+
+/** One public reply of several, one a line; the comment's id picks it, so a replay picks the same. */
+export function pickReply(reply: string | null | undefined, commentId: number): string | null {
+  const versions = (reply ?? "")
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
+  if (!versions.length) return null;
+  // Knuth's multiplicative hash: neighbouring ids spread across versions
+  const at = Math.imul(commentId, 2654435761) >>> 0;
+  return versions[at % versions.length] ?? null;
+}
+
+/** The follow-up went out: false when another tap took it first. */
+export async function followHit(db: Queryable, id: number, at: Date): Promise<boolean> {
+  const rows = await db
+    .update(keywordHits)
+    .set({ followedAt: at })
+    .where(and(eq(keywordHits.id, id), isNull(keywordHits.followedAt)))
+    .returning({ id: keywordHits.id });
+  return rows.length > 0;
 }
 
 /** Given to the send ledger: false when another invocation took it first. */

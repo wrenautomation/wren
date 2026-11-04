@@ -24,6 +24,7 @@ import type {
   Audience,
   CommentRow,
   ContentChannel,
+  DmButton,
   FollowingRow,
   Insights,
   ListQuery,
@@ -184,6 +185,19 @@ const ACCOUNT = z
   .describe("Wren's login to post as (`reddit@alt`); empty = the platform's default");
 type AsAccount = { account?: string | null };
 const ONE_POST = z.looseObject({ platform: PLATFORM, id: z.string(), client: CLIENT });
+const DM_BUTTON = z
+  .object({ title: z.string().min(1).max(20), payload: z.string().min(1).max(1000) })
+  .nullish()
+  .describe("One postback button on the DM");
+const FOLLOW_UP = z.looseObject({
+  platform: PLATFORM,
+  to: z.string().min(1).max(100).describe("Their id on the platform"),
+  text: z.string().min(1).max(2000),
+  client: CLIENT,
+  sendKey: SEND_KEY,
+  recheck: RECHECK,
+  verifyOnly: VERIFY_ONLY,
+});
 const REPLY = z.looseObject({
   platform: PLATFORM,
   commentId: z.string(),
@@ -392,12 +406,23 @@ export function makeContent(channelsFor: ChannelsFor, clients?: ContentClients) 
       /** One DM to a comment's author, as a reply to it; 501 where the platform has no such door. */
       privateReply: serviceHandler(
         {
-          input: REPLY.extend({ sendKey: SEND_KEY, recheck: RECHECK, verifyOnly: VERIFY_ONLY }),
+          input: REPLY.extend({
+            sendKey: SEND_KEY,
+            recheck: RECHECK,
+            verifyOnly: VERIFY_ONLY,
+            button: DM_BUTTON,
+          }),
           effect: "sends",
         },
         async (
           ctx: restate.Context,
-          req: { platform: Platform; commentId: string; text: string } & ForClient & Keyed,
+          req: {
+            platform: Platform;
+            commentId: string;
+            text: string;
+            button?: DmButton | null;
+          } & ForClient &
+            Keyed,
         ): Promise<{ ref: string | null } | Delivery<{ ref: string | null }>> => {
           await sending(ctx, req.client);
           const ch = await pick(ctx, req.platform, req.client, "content.social");
@@ -406,7 +431,25 @@ export function makeContent(channelsFor: ChannelsFor, clients?: ContentClients) 
               errorCode: 501,
             });
           const privateReply = ch.privateReply.bind(ch);
-          return keyed(req, () => privateReply(req.commentId, req.text));
+          return keyed(req, () => privateReply(req.commentId, req.text, req.button ?? null));
+        },
+      ),
+      /**
+       * A DM answer inside the platform's 24h window (they wrote or tapped); `to` is their id there.
+       * 501 where the platform has no such send (designs/2026-11-04-meta-push-flows.md).
+       */
+      followUp: serviceHandler(
+        { input: FOLLOW_UP, effect: "sends" },
+        async (
+          ctx: restate.Context,
+          req: { platform: Platform; to: string; text: string } & ForClient & Keyed,
+        ): Promise<{ ref: string | null } | Delivery<{ ref: string | null }>> => {
+          await sending(ctx, req.client);
+          const ch = await pick(ctx, req.platform, req.client, "content.social");
+          if (!ch.followUp)
+            throw new restate.TerminalError(`${req.platform} has no DM answer`, { errorCode: 501 });
+          const followUp = ch.followUp.bind(ch);
+          return keyed(req, () => followUp(req.to, req.text));
         },
       ),
       /**

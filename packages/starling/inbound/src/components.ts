@@ -132,6 +132,8 @@ export const CONTENT_COMPONENTS = [
         "InboxDesk",
         "AutoReply",
         "KeywordDm",
+        "PushedComments",
+        "MetaPace",
       ],
       loops: ["SocialWatch"],
       records: [

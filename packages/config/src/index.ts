@@ -368,6 +368,16 @@ export const settingsSchema = z.object({
     .string()
     .regex(/^[0-9]+$/)
     .optional(),
+  /**
+   * A Meta comment push kept as is, its post not read; off: the push only wakes the pass
+   * (designs/2026-11-04-meta-push-flows.md). On once Meta's Advanced Access is in.
+   */
+  metaPushEvents: z
+    .enum(["true", "false", "1", "0"])
+    .default("false")
+    .transform((v) => v === "true" || v === "1"),
+  /** `MetaPace`: private replies an hour per account (Meta's cap is 750). */
+  metaPrivatePerHour: z.coerce.number().int().positive().max(750).default(600),
   /** Our Instagram account's id: a Meta webhook naming it wakes our own loops. */
   metaIgId: z
     .string()
@@ -736,6 +746,8 @@ export const ENV_KEYS = {
   booksAwsUsage: "WREN_BOOKS_AWS_USAGE",
   metaPageId: "WREN_META_PAGE_ID",
   metaIgId: "WREN_META_IG_ID",
+  metaPushEvents: "WREN_META_PUSH_EVENTS",
+  metaPrivatePerHour: "WREN_META_PRIVATE_PER_HOUR",
   metaAdAccountId: "WREN_META_AD_ACCOUNT_ID",
   adsPauseAfterUsd: "WREN_ADS_PAUSE_AFTER_USD",
   smsProvider: "WREN_SMS_PROVIDER",

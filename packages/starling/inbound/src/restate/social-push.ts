@@ -1,7 +1,9 @@
 /**
- * Pushes into the social loops (designs/2026-10-12-push-everywhere.md). A push wakes a pass, it
- * never carries a comment: the pass's read is the one path that keeps one, so a lost, repeated or
- * reordered push changes nothing.
+ * Pushes into the social loops (designs/2026-10-12-push-everywhere.md). A push wakes a pass. With
+ * `carry` (`WREN_META_PUSH_EVENTS`, designs/2026-11-04-meta-push-flows.md) a Meta comment push is
+ * kept as is, no read: the keep dedupes on the comment's ref and a keyword hit is one per comment,
+ * so a repeated or reordered push changes nothing, and the slow pass is the net for a lost one.
+ * A tap on a keyword DM's button (`kw:<hit>`) sends that keyword's follow-up.
  *
  * `SocialPush` (service) takes what the phone Worker checked: `meta` (a Meta webhook body, its
  * entries batched), `gbp` (a Business Profile review notice), `watch` (an autobrowse tab watcher saw
@@ -17,11 +19,27 @@ import * as restate from "@restatedev/restate-sdk";
 import type { Platform } from "@wren/core/autobrowse";
 import { clientKey, exclusiveHandler, NO_INPUT, serviceHandler } from "@wren/core/restate";
 import type { Db } from "@wren/db";
+import type { CommentRow } from "@wren/starling-core";
 import { and, eq, inArray, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { SOCIAL_UNIT } from "../components.js";
 import { socialConnections } from "../connect/schema.js";
 import { SOCIAL_KEY } from "./social.js";
+
+/** `KeywordDm.tap`, as this file sends it (no import cycle). */
+type KeywordTaps = {
+  tap: (
+    ctx: restate.Context,
+    req: { client: string | null; platform: string; from: string; payload: string },
+  ) => Promise<unknown>;
+};
+/** `PushedComments.keep`, as this file sends it. */
+type PushedCommentsKeep = {
+  keep: (
+    ctx: restate.Context,
+    req: { client: string | null; platform: string; post: string; rows: CommentRow[] },
+  ) => Promise<unknown>;
+};
 
 /** What a push asks the pass to read now. */
 type PushKind = "comment" | "dm" | "review" | "activity";
@@ -75,6 +93,113 @@ export function metaPushes(body: unknown): PushedAt[] {
     }
   }
   return dedupe(out);
+}
+
+/** One comment a Meta push carried, as a read gives it. */
+export interface CarriedComment {
+  account: string;
+  platform: "instagram" | "facebook";
+  post: string;
+  row: CommentRow;
+}
+
+const whenOf = (secs: unknown, fallback: unknown): string => {
+  const n = typeof secs === "number" ? secs : typeof fallback === "number" ? fallback : null;
+  // Meta sends seconds in `created_time` and `time`, ms in some `time`s
+  return n === null ? new Date().toISOString() : new Date(n > 1e12 ? n : n * 1000).toISOString();
+};
+
+/**
+ * The new comments a Meta push carries. Instagram `comments` (new only); Facebook `feed` with
+ * `item: comment` and `verb: add` (an edit or a removal is the net read's). `mine`: written by the
+ * account the entry is for.
+ */
+export function metaComments(body: unknown): CarriedComment[] {
+  const b = (body ?? {}) as { object?: unknown; entry?: unknown };
+  const platform = b.object === "page" ? "facebook" : b.object === "instagram" ? "instagram" : null;
+  if (!platform || !Array.isArray(b.entry)) return [];
+  const out: CarriedComment[] = [];
+  for (const e of b.entry as Json[]) {
+    const account = str(e.id) ?? (typeof e.id === "number" ? String(e.id) : null);
+    if (!account) continue;
+    for (const c of Array.isArray(e.changes) ? (e.changes as Json[]) : []) {
+      const v = (c.value ?? {}) as Json;
+      const from = (v.from ?? {}) as Json;
+      const fromId = str(from.id);
+      if (platform === "instagram" && c.field === "comments") {
+        const post = str((v.media as Json | undefined)?.id);
+        const id = str(v.id);
+        if (!post || !id) continue;
+        const parent = str(v.parent_id);
+        out.push({
+          account,
+          platform,
+          post,
+          row: {
+            id,
+            postId: post,
+            author: str(from.username) ?? "",
+            text: typeof v.text === "string" ? v.text : "",
+            at: whenOf(undefined, e.time),
+            ...(parent ? { parentId: parent } : {}),
+            ...(fromId && fromId === account ? { mine: true } : {}),
+            raw: v,
+          },
+        });
+      } else if (platform === "facebook" && c.field === "feed") {
+        if (v.item !== "comment" || v.verb !== "add") continue;
+        const post = str(v.post_id);
+        const id = str(v.comment_id);
+        if (!post || !id) continue;
+        const parent = str(v.parent_id);
+        out.push({
+          account,
+          platform,
+          post,
+          row: {
+            id,
+            postId: post,
+            author: str(from.name) ?? "",
+            text: typeof v.message === "string" ? v.message : "",
+            at: whenOf(v.created_time, e.time),
+            ...(parent && parent !== post ? { parentId: parent } : {}),
+            ...(fromId && fromId === account ? { mine: true } : {}),
+            raw: v,
+          },
+        });
+      }
+    }
+  }
+  return out;
+}
+
+/** A tap on a DM's button or quick reply: who tapped, and its payload. */
+export interface Tap {
+  account: string;
+  platform: "instagram" | "facebook";
+  from: string;
+  payload: string;
+}
+
+/** The taps in a Meta push's `messaging` events (`postback.payload`, `message.quick_reply.payload`). */
+export function metaTaps(body: unknown): Tap[] {
+  const b = (body ?? {}) as { object?: unknown; entry?: unknown };
+  const platform = b.object === "page" ? "facebook" : b.object === "instagram" ? "instagram" : null;
+  if (!platform || !Array.isArray(b.entry)) return [];
+  const out: Tap[] = [];
+  for (const e of b.entry as Json[]) {
+    const account = str(e.id) ?? (typeof e.id === "number" ? String(e.id) : null);
+    if (!account || !Array.isArray(e.messaging)) continue;
+    for (const m of e.messaging as Json[]) {
+      const from = str((m.sender as Json | undefined)?.id);
+      const payload =
+        str((m.postback as Json | undefined)?.payload) ??
+        str(((m.message as Json | undefined)?.quick_reply as Json | undefined)?.payload);
+      // our own echo names us as the sender
+      if (from && payload && from !== account) out.push({ account, platform, from, payload });
+    }
+  }
+  return out;
 }
 
 /** A Business Profile notice (`{type, location, review}`) as a push; null for other types. */
@@ -226,6 +351,8 @@ interface SocialPushDeps {
   db: Db;
   /** Our own Page and Instagram account (`WREN_META_PAGE_ID`, `WREN_META_IG_ID`). */
   ours: { pageId?: string | null; igId?: string | null };
+  /** `WREN_META_PUSH_EVENTS`: a comment push is kept as is, its post not read. */
+  carry?: boolean;
 }
 
 interface PushResult {
@@ -265,8 +392,75 @@ export function makeSocialPush(deps: SocialPushDeps) {
       /** A Meta webhook body, signature checked by the phone Worker. */
       meta: serviceHandler(
         { input: z.unknown() },
-        async (ctx: restate.Context, body: unknown): Promise<PushResult> =>
-          deliver(ctx, metaPushes(body)),
+        async (ctx: restate.Context, body: unknown): Promise<PushResult> => {
+          // A tap on a keyword DM's button: its follow-up, whatever `carry` says.
+          const taps = metaTaps(body);
+          if (taps.length) {
+            const owned = await ctx.run("tap owners", async () => {
+              const out: { owner: string | null; tap: Tap }[] = [];
+              for (const tap of taps)
+                out.push({
+                  owner: await ownerOf(
+                    deps.db,
+                    { account: tap.account, platform: tap.platform, kind: "dm" },
+                    deps.ours,
+                  ),
+                  tap,
+                });
+              return out;
+            });
+            for (const { owner, tap } of owned)
+              if (owner)
+                ctx.serviceSendClient<KeywordTaps>({ name: "KeywordDm" }).tap({
+                  client: owner === SOCIAL_KEY ? null : owner,
+                  platform: tap.platform,
+                  from: tap.from,
+                  payload: tap.payload,
+                });
+          }
+          if (!deps.carry) return deliver(ctx, metaPushes(body));
+          const carried = metaComments(body);
+          const posts = new Set(carried.map((c) => `${c.platform}:${c.post}`));
+          // The posts it carried are kept here, not read; everything else wakes as before.
+          const rest = metaPushes(body).filter(
+            (p) => !(p.kind === "comment" && posts.has(`${p.platform}:${p.post ?? ""}`)),
+          );
+          const result = await deliver(ctx, rest);
+          if (!carried.length) return result;
+          const owned = await ctx.run("comment owners", async () => {
+            const out: { owner: string | null; c: CarriedComment }[] = [];
+            for (const c of carried)
+              out.push({
+                owner: await ownerOf(
+                  deps.db,
+                  { account: c.account, platform: c.platform, kind: "comment", post: c.post },
+                  deps.ours,
+                ),
+                c,
+              });
+            return out;
+          });
+          const by = new Map<string, { owner: string; c: CarriedComment[] }>();
+          for (const { owner, c } of owned) {
+            if (!owner) {
+              result.unknown += 1;
+              continue;
+            }
+            const k = `${owner}|${c.platform}|${c.post}`;
+            by.set(k, { owner, c: [...(by.get(k)?.c ?? []), c] });
+          }
+          for (const { owner, c } of by.values()) {
+            const first = c[0] as CarriedComment;
+            ctx.serviceSendClient<PushedCommentsKeep>({ name: "PushedComments" }).keep({
+              client: owner === SOCIAL_KEY ? null : owner,
+              platform: first.platform,
+              post: first.post,
+              rows: c.map((x) => x.row),
+            });
+            if (!result.owners.includes(owner)) result.owners.push(owner);
+          }
+          return result;
+        },
       ),
       /** A Business Profile notice, decoded by the phone Worker. */
       gbp: serviceHandler(

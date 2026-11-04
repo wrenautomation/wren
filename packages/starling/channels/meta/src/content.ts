@@ -16,6 +16,7 @@ import {
   type Audience,
   type CommentRow,
   type ContentChannel,
+  type DmButton,
   holdAt,
   type InsightGap,
   type Insights,
@@ -107,18 +108,55 @@ function pageOf_(sites: SiteClient, o: MetaContentOptions) {
 
 /**
  * One DM to a comment's author through the Page (Private Replies, Instagram and Facebook alike):
- * Meta allows one per comment, within 7 days of it.
+ * Meta allows one per comment, within 7 days of it. With a button: a button template (Messenger's
+ * private-reply example); a refused template (Graph code 100, Instagram unproven) retries once as
+ * text with the label in it, since a refused call sent nothing (designs/2026-11-04-meta-push-flows.md).
  */
-async function privateReply(
+export async function privateReply(
   sites: SiteClient,
   page: () => Promise<Page>,
   commentId: string,
   text: string,
+  button?: DmButton | null,
+): Promise<{ ref: string | null }> {
+  const { id } = await page();
+  const send = (message: Record<string, unknown>) =>
+    sites.call<{ message_id?: string }>("meta", "POST", `/${id}/messages`, {
+      recipient: { comment_id: commentId },
+      message,
+    });
+  if (!button) return { ref: (await send({ text })).message_id ?? null };
+  try {
+    const r = await send({
+      attachment: {
+        type: "template",
+        payload: {
+          template_type: "button",
+          text: text.slice(0, 640),
+          buttons: [{ type: "postback", title: button.title, payload: button.payload }],
+        },
+      },
+    });
+    return { ref: r.message_id ?? null };
+  } catch (err) {
+    if (!isBadParam(err)) throw err;
+    const r = await send({ text: `${text}\n\nReply "${button.title}" and I'll send it.` });
+    return { ref: r.message_id ?? null };
+  }
+}
+
+/** A DM to someone inside Meta's 24h window (they wrote or tapped): `to` is their scoped id. */
+async function followUp(
+  sites: SiteClient,
+  page: () => Promise<Page>,
+  to: string,
+  text: string,
 ): Promise<{ ref: string | null }> {
   const { id } = await page();
   const r = await sites.call<{ message_id?: string }>("meta", "POST", `/${id}/messages`, {
-    recipient: { comment_id: commentId },
+    recipient: { id: to },
     message: { text },
+    messaging_type: "RESPONSE",
   });
   return { ref: r.message_id ?? null };
 }
@@ -487,8 +525,9 @@ export function instagramContent(sites: SiteClient, o: MetaContentOptions = {}):
     async reply(commentId: string, text: string): Promise<void> {
       await sites.call("meta", "POST", `/${commentId}/replies`, { message: text });
     },
-    privateReply: (commentId: string, text: string) =>
-      privateReply(sites, pages.page, commentId, text),
+    privateReply: (commentId: string, text: string, button?: DmButton | null) =>
+      privateReply(sites, pages.page, commentId, text, button),
+    followUp: (to: string, text: string) => followUp(sites, pages.page, to, text),
     async activity(q: ActivityQuery = {}): Promise<ActivityRow[]> {
       const r = await inbox();
       const rows = (r.tags?.data ?? []).map((m) => ({
@@ -823,7 +862,9 @@ export function facebookContent(sites: SiteClient, o: MetaContentOptions = {}): 
       const pageId = o.pageId ?? commentId.split("_")[0];
       await sites.call("meta", "POST", `/${commentId}/comments`, { pageId, message: text });
     },
-    privateReply: (commentId: string, text: string) => privateReply(sites, page, commentId, text),
+    privateReply: (commentId: string, text: string, button?: DmButton | null) =>
+      privateReply(sites, page, commentId, text, button),
+    followUp: (to: string, text: string) => followUp(sites, page, to, text),
     /**
      * A Reel: its watch time, follows and retention curve, then its post's reach. A post: its
      * reach. A story reads nothing: its id is gone after 24 hours.
@@ -919,6 +960,12 @@ export function facebookContent(sites: SiteClient, o: MetaContentOptions = {}): 
       };
     },
   };
+}
+
+/** Graph's "invalid parameter" (code 100): a message shape this surface refuses. */
+function isBadParam(err: unknown): boolean {
+  const text = err instanceof Error ? err.message : String(err);
+  return /graph code 100\b/.test(text);
 }
 
 /** Graph's answer for a comments read on story media (code 10): a story takes no comments. */

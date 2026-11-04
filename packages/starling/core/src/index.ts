@@ -101,6 +101,12 @@ export interface Metrics {
   fetchedWith: FetchedWith;
 }
 
+/** A DM button: its label, and the payload its tap pushes back. */
+export interface DmButton {
+  title: string;
+  payload: string;
+}
+
 export interface CommentRow {
   id: string;
   postId: string;
@@ -246,8 +252,18 @@ export interface ContentChannel {
   /**
    * One DM to a comment's author, sent as a reply to their comment (Meta's Private Replies: once
    * per comment, within 7 days of it). The message's id. Absent = the platform has no such door.
+   * `button`: one postback button; its tap comes back as their message and opens the 24h window.
    */
-  privateReply?(commentId: string, text: string): Promise<{ ref: string | null }>;
+  privateReply?(
+    commentId: string,
+    text: string,
+    button?: DmButton | null,
+  ): Promise<{ ref: string | null }>;
+  /**
+   * A DM answer to someone who just wrote or tapped (Meta's 24h window, `messaging_type:
+   * RESPONSE`); `to` is their id on the platform. Absent = no such send.
+   */
+  followUp?(to: string, text: string): Promise<{ ref: string | null }>;
   /**
    * What people said about the account itself, not on a post (Business Profile reviews), newest
    * first, as comments: `postId` is the account's place. `reply` answers one. Absent = none.
@@ -335,7 +351,9 @@ export function fakeContentChannel(
   /** Every swap asked of a live post, in order. */
   updates: Array<{ id: string; patch: PostPatch }>;
   /** Every DM sent as a reply to a comment, in order. */
-  privateReplies: Array<{ commentId: string; text: string }>;
+  privateReplies: Array<{ commentId: string; text: string; button?: DmButton }>;
+  /** Every follow-up DM, in order. */
+  followUps: Array<{ to: string; text: string }>;
   count(id: string, m: Partial<Omit<Metrics, "id" | "asOf" | "fetchedWith">>): void;
   receive(c: Omit<CommentRow, "repliedWith">): void;
   happen(a: ActivityRow): void;
@@ -364,12 +382,14 @@ export function fakeContentChannel(
   let account: Omit<AccountInsights, "asOf"> = { days: [], gaps: [] };
   let reported: Omit<ReportDays, "asOf"> = { rows: [], gaps: [], cursor: null };
   const updates: Array<{ id: string; patch: PostPatch }> = [];
-  const privateReplies: Array<{ commentId: string; text: string }> = [];
+  const privateReplies: Array<{ commentId: string; text: string; button?: DmButton }> = [];
+  const followUps: Array<{ to: string; text: string }> = [];
   return {
     platform,
     posts,
     updates,
     privateReplies,
+    followUps,
     async update(id, patch) {
       updates.push({ id, patch: { ...patch } });
     },
@@ -482,10 +502,14 @@ export function fakeContentChannel(
       if (!c) throw new Error(`no comment ${commentId}`);
       c.repliedWith = `reply-${++n}:${previewOf(text, 20)}`;
     },
-    async privateReply(commentId, text) {
+    async privateReply(commentId, text, button) {
       const c = comments.find((x) => x.id === commentId);
       if (!c) throw new Error(`no comment ${commentId}`);
-      privateReplies.push({ commentId, text });
+      privateReplies.push({ commentId, text, ...(button ? { button } : {}) });
+      return { ref: `dm-${++n}` };
+    },
+    async followUp(to, text) {
+      followUps.push({ to, text });
       return { ref: `dm-${++n}` };
     },
   };

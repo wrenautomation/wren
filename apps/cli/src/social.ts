@@ -12,10 +12,13 @@ const json = (v: unknown) => console.log(JSON.stringify(v, null, 2));
 
 /** Meta's webhooks land on the phone Worker (designs/2026-10-12-push-everywhere.md). */
 const META_CALLBACK = "https://phone.wrenautomation.com/webhooks/meta";
-/** The fields each Meta object pushes: a Page's comments and DMs; Instagram's DMs, comments, mentions. */
+/**
+ * The fields each Meta object pushes: a Page's comments and DMs; Instagram's DMs, comments,
+ * mentions. `messaging_postbacks`: a tap on a keyword DM's button (designs/2026-11-04-meta-push-flows.md).
+ */
 const META_FIELDS = {
-  page: "feed,messages",
-  instagram: "messages,comments,mentions",
+  page: "feed,messages,messaging_postbacks",
+  instagram: "messages,messaging_postbacks,comments,mentions",
 } as const;
 
 export function registerSocial(program: Command, settings: Settings): void {

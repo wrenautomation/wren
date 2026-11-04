@@ -29,7 +29,9 @@ import {
   makeContentScheduler,
   makeKeywordDm,
   makeMarketingConsole,
+  makeMetaPace,
   makePieces,
+  makePushedComments,
   makeSocialDesk,
   makeSocialPush,
   makeSocialWatch,
@@ -199,7 +201,11 @@ export function contentServices(deps: Deps): AnyService[] {
     makeSocialPush({
       db,
       ours: { pageId: settings.metaPageId ?? null, igId: settings.metaIgId ?? null },
+      carry: settings.metaPushEvents,
     }),
+    // A carried comment kept with no read; private replies paced (designs/2026-11-04-meta-push-flows.md).
+    makePushedComments({ db, clientDb }),
+    makeMetaPace({ perHour: settings.metaPrivatePerHour }),
     socialPushed,
     // Ask Claude on any draft: the desk's Claude Code rewrites, Wren writes. Nothing sends.
     makeDraftAsk(db, deskKinds, deskDrafts),
