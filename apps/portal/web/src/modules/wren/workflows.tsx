@@ -37,13 +37,13 @@ import {
 } from "@wren/ui";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { call } from "../../api.js";
+import { useApps } from "../../apps-context.js";
 import { readCall, useCall } from "../../load.js";
-import type { PageProps } from "../../module.js";
+import type { Module, PageProps } from "../../module.js";
 import { shown } from "../../pulse.js";
 import { recordsApi } from "../../records-api.js";
 import { href, navigate } from "../../route.js";
 import { type CountRef, countKey, countsIn, type Drawn } from "../marketplace/boxes.js";
-import { TEAM_PLACES } from "../places.js";
 import { dayLabel, ERROR, FORM, NARROW, QUIET } from "../work/bits.js";
 import {
   type Count,
@@ -123,9 +123,9 @@ const EMPTY: Draft = { wires: [], steps: [] };
 /** What the editor saves: the graph, and a made workflow's name. */
 type Kept = { draft: Draft; name: string };
 
-/** The first of Wren's lists over `c`'s record, on its view. */
-const recordsAt = (c: CountRef) => {
-  for (const m of TEAM_PLACES)
+/** The first of these apps' lists over `c`'s record, on its view. */
+const recordsAt = (apps: readonly Module[], c: CountRef) => {
+  for (const m of apps)
     for (const p of m.pages)
       if ("record" in p && p.record === c.record && p.template === "list")
         return `/${m.id}/${p.id}?view=${encodeURIComponent(c.view)}`;
@@ -147,6 +147,7 @@ const servedBy = (client: string | null): Promise<ReadonlySet<string> | null> =>
   );
 
 export function Workflows({ params, team, can }: PageProps) {
+  const apps = useApps();
   const path = (params.get("path") ?? ROOT).split("/").filter(Boolean);
   const client = params.get("client") || null;
   const canvasAt = (p: readonly string[]) =>
@@ -260,7 +261,7 @@ export function Workflows({ params, team, can }: PageProps) {
               const to = n.opens ? deeper(path, openedBy(n)) : null;
               return to ? canvasAt(to) : undefined;
             },
-            rows: recordsAt,
+            rows: (c) => recordsAt(apps, c),
           }}
           params={params}
           client={client}
