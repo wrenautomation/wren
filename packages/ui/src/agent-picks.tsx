@@ -294,6 +294,7 @@ function TaskOutput({
   const reader = useRef(read);
   reader.current = read; // the hook's function is new each render: read the latest, poll once
   useEffect(() => {
+    // read-ok: polls a live task on the open session socket; nothing to cache
     let on = true;
     const tick = () =>
       reader.current(task.id).then(

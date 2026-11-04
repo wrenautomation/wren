@@ -186,6 +186,7 @@ export function useAgent(o: {
 
   // the model picked mid-chat goes to the live session at once
   useEffect(() => {
+    // read-ok: a control call to the open session, not a data read
     const q = live.current?.q;
     if (o.model && q)
       void q
