@@ -8,9 +8,10 @@ import { Alert, Button, ButtonLink, Loading, PANEL, Seg, SidePanel, tipProps } f
 import { useCallback, useEffect, useState } from "react";
 import { useCall } from "../../load.js";
 import { keep, recall } from "../../local.js";
-import { AgentChat, ModelPick } from "./chat.js";
-import { relaySetups } from "./connect.js";
+import { AgentChat, ChatTitle } from "./chat.js";
+import { relaySessions, relaySetups } from "./connect.js";
 import { closeText } from "./thread.js";
+import { pageToken } from "./use-agent.js";
 
 const KEPT = "wren.agent.panel";
 const TAB = "wren.agent.chat";
@@ -86,6 +87,7 @@ export function AgentPanel({
   onClose,
   app,
   page,
+  owner,
 }: {
   open: boolean;
   width: number;
@@ -95,6 +97,8 @@ export function AgentPanel({
   app: string | null;
   /** The page the next turn names, as `App › Page (/path)`. */
   page: string | undefined;
+  /** The Mac's owner (`ownerOf`). */
+  owner: boolean;
 }) {
   const [busy, setBusy] = useState(false);
   // closed and idle: nothing mounted, no socket
@@ -108,7 +112,7 @@ export function AgentPanel({
       onClose={onClose}
       title={<span className="text-[14px] font-semibold text-(--ui-ink)">Agent</span>}
     >
-      <PanelChat app={app} page={page} onRunning={setBusy} onClose={onClose} />
+      <PanelChat app={app} page={page} owner={owner} onRunning={setBusy} onClose={onClose} />
     </SidePanel>
   );
 }
@@ -116,11 +120,13 @@ export function AgentPanel({
 function PanelChat({
   app,
   page,
+  owner,
   onRunning,
   onClose,
 }: {
   app: string | null;
   page: string | undefined;
+  owner: boolean;
   onRunning: (r: boolean) => void;
   onClose: () => void;
 }) {
@@ -132,6 +138,13 @@ function PanelChat({
       tabKeep(n);
       return n;
     });
+  const list = setups.data ?? [];
+  const setup =
+    list.find((s) => s.name === tab.setup) ?? list.find((s) => s.app === app) ?? list[0];
+  // the same list the Ask page reads: a name given in one shows in the other
+  const sessions = useCall(setup ? `agent:sessions:${setup.name}` : null, async () =>
+    relaySessions(setup?.name ?? "", await pageToken()),
+  );
   if (setups.error && !setups.data) {
     const c = closeText(setups.error);
     return (
@@ -140,9 +153,6 @@ function PanelChat({
       </div>
     );
   }
-  const list = setups.data ?? [];
-  const setup =
-    list.find((s) => s.name === tab.setup) ?? list.find((s) => s.app === app) ?? list[0];
   if (!setup)
     return setups.data ? (
       <p className="m-0 p-4 text-[13.5px] text-(--ui-ink-2)">No agent setup on this Mac.</p>
@@ -152,6 +162,7 @@ function PanelChat({
       </div>
     );
   const chat = tab.setup === setup.name ? (tab.chat ?? null) : null;
+  const stored = sessions.data?.find((r) => r.session === chat)?.title;
   const model = (tab.setup === setup.name && tab.model) || setup.model;
   const full = `/${setup.app}/ask?setup=${encodeURIComponent(setup.name)}${chat ? `&chat=${encodeURIComponent(chat)}` : ""}`;
   return (
@@ -160,9 +171,11 @@ function PanelChat({
       setup={setup}
       chat={chat}
       model={model}
+      onModel={(v) => put({ setup: setup.name, model: v })}
+      owner={owner}
       page={page}
       className="min-h-0 flex-1"
-      head={() => (
+      head={(first) => (
         <div className="flex flex-none flex-wrap items-center gap-2 border-(--ui-hair) border-b px-3 py-2">
           {list.length > 1 ? (
             <Seg
@@ -172,10 +185,14 @@ function PanelChat({
               value={setup.name}
               onChange={(v) => put({ setup: v, chat: null, model: "" })}
             />
-          ) : (
-            <span className="text-[13px] text-(--ui-ink-2)">{setup.title}</span>
-          )}
-          <span className="flex-1" />
+          ) : null}
+          <ChatTitle
+            setup={setup.name}
+            chat={chat}
+            title={stored ?? first ?? (chat ? "Chat" : setup.title)}
+            onRenamed={sessions.retry}
+            className="flex-1 text-[13.5px]"
+          />
           <Button
             tone="quiet"
             size="sm"
@@ -196,13 +213,6 @@ function PanelChat({
           </ButtonLink>
         </div>
       )}
-      tools={
-        <ModelPick
-          setup={setup}
-          value={model}
-          onChange={(v) => put({ setup: setup.name, model: v })}
-        />
-      }
       onSession={(id) => put({ setup: setup.name, chat: id })}
       onRunning={onRunning}
     />

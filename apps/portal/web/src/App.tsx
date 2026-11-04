@@ -59,6 +59,7 @@ import { MapHome } from "./map/Home.js";
 import { prefetchMap } from "./map/read.js";
 import { stationItems } from "./map/stations.js";
 import { type Module, type ModulePage, type PageProps, WREN } from "./module.js";
+import { ownerOf } from "./modules/agent/chat.js";
 import { AgentPanel, useAgentPanel } from "./modules/agent/panel.js";
 import { appsIn, MODULES } from "./modules/index.js";
 import { LearnBell } from "./modules/learn/bell.js";
@@ -705,6 +706,7 @@ export function App() {
                   onClose={() => agent.set({ open: false })}
                   app={open?.module.id ?? null}
                   page={pageLine}
+                  owner={ownerOf(whoAt(me.data, WREN.id))}
                 />
               ) : undefined
             }
