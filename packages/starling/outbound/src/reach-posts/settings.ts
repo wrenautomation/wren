@@ -135,7 +135,7 @@ function commentsSettingsSchemaFor(platform: ReachPostPlatform) {
       /** Also read posts by people we know: people we invited, people who engaged with us. */
       people: z.boolean().default(true),
       /** LinkedIn search only: keep authors whose title has these words ("founder"). */
-      authorTitle: z.string().trim().max(100).default(""),
+      authorJobTitle: z.string().trim().max(100).default(""),
       /** A fit post is liked and its author followed with no yes, and again with his Comment. */
       like: z.boolean().default(true),
       follow: z.boolean().default(true),

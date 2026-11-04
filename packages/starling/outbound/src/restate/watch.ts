@@ -244,7 +244,7 @@ export async function postsFor(
     platform,
     settings,
     read: postReader(deps.sitesFor(ctx), platform, settings.account, {
-      authorTitle: settings.authorTitle,
+      authorJobTitle: settings.authorJobTitle,
       now,
     }),
     llm: deps.drafts?.llm ?? null,

@@ -2514,6 +2514,13 @@
       "when": 1793674334330,
       "tag": "0359_send_attempts_recheck",
       "breakpoints": true
+    },
+    {
+      "idx": 360,
+      "version": "7",
+      "when": 1793750128092,
+      "tag": "0360_settings_author_job_title",
+      "breakpoints": true
     }
   ]
 }

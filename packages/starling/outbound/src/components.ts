@@ -306,7 +306,7 @@ export const OUTREACH_COMPONENTS = [
         {
           is: "change",
           says: "What to read: topics, companies, people we know.",
-          built: "settings.topics, pages, people, authorTitle",
+          built: "settings.topics, pages, people, authorJobTitle",
         },
         {
           is: "change",

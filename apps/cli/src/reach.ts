@@ -499,7 +499,7 @@ export function registerReach(program: Command, withDb: WithDb, settings: Settin
     .option("--topics <list>", "comma separated search words")
     .option("--pages <list>", "comma separated LinkedIn company handles or X/Instagram usernames")
     .option("--people <on|off>", "also read people who accepted our invites or engaged")
-    .option("--author-title <words>", "LinkedIn search: authors whose title has these words")
+    .option("--author-job-title <words>", "LinkedIn search: authors whose title has these words")
     .option("--like <on|off>", "like each fit post, with no yes")
     .option("--follow <on|off>", "follow each fit post's author, with no yes")
     .option("--half-life-hours <n>", "hours a post's timing points take to halve")
@@ -517,7 +517,7 @@ export function registerReach(program: Command, withDb: WithDb, settings: Settin
         topics?: string;
         pages?: string;
         people?: string;
-        authorTitle?: string;
+        authorJobTitle?: string;
         like?: string;
         follow?: string;
         halfLifeHours?: string;
@@ -542,7 +542,7 @@ export function registerReach(program: Command, withDb: WithDb, settings: Settin
           ...(o.topics !== undefined && { topics: list(o.topics) }),
           ...(o.pages !== undefined && { pages: list(o.pages) }),
           ...(o.people !== undefined && { people: o.people === "on" }),
-          ...(o.authorTitle !== undefined && { authorTitle: o.authorTitle }),
+          ...(o.authorJobTitle !== undefined && { authorJobTitle: o.authorJobTitle }),
           ...(o.like !== undefined && { like: o.like === "on" }),
           ...(o.follow !== undefined && { follow: o.follow === "on" }),
           ...(o.halfLifeHours !== undefined && { halfLifeHours: Number(o.halfLifeHours) }),

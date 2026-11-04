@@ -311,7 +311,7 @@ export function postReader(
   sites: SiteClient,
   platform: ReachPostPlatform,
   account: string,
-  o: { authorTitle?: string; now: Date },
+  o: { authorJobTitle?: string; now: Date },
 ): PostReader {
   if (platform === "linkedin") {
     type Out = { posts?: LinkedinFeedPost[] };
@@ -323,7 +323,7 @@ export function postReader(
             "linkedin",
             "GET",
             "/search/results/content",
-            { keywords: k.name, max: 20, since },
+            { keywords: k.name, max: 20, datePosted: since },
             account,
           )
         ).posts ?? []
@@ -340,8 +340,8 @@ export function postReader(
             {
               keywords: `${phrase(keywords)} ${JOB_WORDS.map((w) => `NOT ${w}`).join(" ")}`,
               max: SEARCH_MAX.linkedin,
-              since,
-              ...(o.authorTitle ? { authorTitle: o.authorTitle } : {}),
+              datePosted: since,
+              ...(o.authorJobTitle ? { authorJobTitle: o.authorJobTitle } : {}),
             },
             account,
           )
