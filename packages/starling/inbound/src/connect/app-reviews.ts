@@ -208,7 +208,7 @@ export const REVIEWS: readonly Review[] = [
       page(SITE, ["privacy"], "home page on the authorized domain, linking the privacy policy"),
     ],
     fields: [
-      ["App name", "Wren"],
+      ["App name", "Wren Automation"],
       ["User support email", "william@wrenautomation.com"],
       ["Application home page", SITE],
       ["Application privacy policy link", PRIVACY],
@@ -222,13 +222,14 @@ export const REVIEWS: readonly Review[] = [
       `Sign in at ${REVIEWER_PORTAL}; open Account, Social; press Connect on YouTube channel.`,
       "Google's consent screen: show the app name and the address bar with the client id, then each scope; allow.",
       "Back in Wren the channel shows Connected.",
-      "Marketing, Content: approve a video and upload it; show it on YouTube Studio (youtube.upload).",
-      "A comment on the video shows in Marketing, Inbox; approve a reply; show it on YouTube (youtube.force-ssl).",
+      "Marketing, Content: approve a video and upload it; show it on YouTube Studio, private until the audit (youtube.upload).",
+      "A comment on one of the channel's public videos shows in Marketing, Inbox; approve a reply; show it on YouTube (youtube.force-ssl).",
       "Marketing, Reports: the video's views and likes (youtube.readonly).",
       "Disconnect in Account, Social: the channel shows Not connected.",
     ],
     open: [
       "Upload the video unlisted on YouTube; the form takes its link.",
+      "Install Social inbox on wren_test before the take, or no comment reaches the Inbox. The comment comes from a second channel of the same Google account.",
       "Before filing, remove business.manage from the consent screen's Data Access, so the filing asks for YouTube only.",
       "Limited Use: a client's Google data (YouTube comments, Business Profile reviews, Gmail) reaches only WREN_GOOGLE_LLM, and nothing while it's unset. Prod sets it to an Anthropic model (2026-10-23): Anthropic's API doesn't train on input.",
     ],
@@ -413,6 +414,7 @@ export const REVIEWS: readonly Review[] = [
     open: [
       "Verify send only. Reading (gmail.readonly) is a restricted scope with a yearly CASA assessment, so it stays on Workspace trust: a client's admin trusts the app, and personal Gmail gets send only (designs/2026-10-07-mail-access.md). CASA is money: William's call.",
       "Upload the video unlisted on YouTube; the form takes its link.",
+      "Install Social inbox on wren_test before the take, or no comment reaches the Inbox. The comment comes from a second channel of the same Google account.",
     ],
   },
   {

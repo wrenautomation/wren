@@ -168,7 +168,7 @@ export const SOCIAL: Record<SocialPlatform, SocialSpec> = {
     dms: false,
     comments: true,
     review: "Google is verifying Wren's app.",
-    before: "Test users only: uploads stay private and the sign-in lasts 7 days.",
+    before: "Google warns that it hasn't verified Wren yet; uploads stay private until it does.",
     selfServe: "Press Connect and sign in with the Google account that owns the channel.",
     forYou: "Wren's team adds you as a test user first, then you Connect.",
   },

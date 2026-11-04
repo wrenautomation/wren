@@ -119,7 +119,8 @@ export const CONTENT_COMPONENTS = [
     ready: true,
     // Wren's own run reads its block from `wren_settings`.
     wrenSettings: true,
-    requires: { components: ["content.posting"], anyAccount: [...CHANNEL_ACCOUNTS] },
+    // A connected account counts: `clientContent` reads its comments too.
+    requires: { components: ["content.posting"], anyAccount: [...POSTING_ACCOUNTS] },
     // Comments on its posts, its activity and followers, on its own logins, into its database.
     clientLoops: (client) => [{ service: "SocialWatch", key: clientKey(client, SOCIAL_UNIT) }],
     provides: {
