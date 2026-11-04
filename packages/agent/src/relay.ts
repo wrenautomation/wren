@@ -167,12 +167,18 @@ export function relay(o: RelayOptions): {
     const timer = setTimeout(() => ws.close(CLOSE.unauthorized, "no auth frame"), AUTH_MS);
 
     const tape = o.tape ? taper(o.tape, setup.name) : undefined;
+    // the relay's own replies: taped too, so a replay shows what the page saw
+    const said = (f: unknown) => {
+      const line = JSON.stringify(f);
+      tape?.("relay", line);
+      ws.send(`${line}\n`);
+    };
     const forward = (line: string) => {
       tape?.("page", line);
       const r = inbound(line, setup, owner);
       if (r.kind === "forward") child?.stdin?.write(`${r.line}\n`);
-      else if (r.kind === "reply") ws.send(`${JSON.stringify(r.frame)}\n`);
-      else if (r.kind === "answer") for (const f of r.frames) ws.send(`${JSON.stringify(f)}\n`);
+      else if (r.kind === "reply") said(r.frame);
+      else if (r.kind === "answer") for (const f of r.frames) said(f);
       else if (!/keep_alive/.test(r.why)) log(`${setup.name}: dropped ${r.why}`);
     };
 
@@ -514,7 +520,7 @@ function send(res: ServerResponse, status: number, body: unknown): void {
   res.writeHead(status, { "content-type": "application/json" }).end(JSON.stringify(body));
 }
 
-type Tape = (from: "page" | "cli", line: string) => void;
+type Tape = (from: "page" | "cli" | "relay", line: string) => void;
 
 /** One file per session; the auth frame never reaches it (taped after auth only). */
 function taper(dir: string, setup: string): Tape {

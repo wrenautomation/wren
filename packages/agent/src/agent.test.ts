@@ -278,6 +278,10 @@ describe("typed commands", () => {
   it("checks /model and /effort like the pickers, owner too", () => {
     expect(inbound(turn("/model sonnet"), setup).kind).toBe("forward");
     expect(said(inbound(turn("/model opus"), setup, true))).toMatch(/offers haiku, sonnet/);
+    // the default model also in the list: named once
+    expect(said(inbound(turn("/model opus"), { ...setup, models: ["haiku", "sonnet"] }))).toBe(
+      "This chat offers haiku, sonnet, not opus.",
+    );
     expect(inbound(turn("/effort max"), setup).kind).toBe("forward");
     expect(inbound(turn("/effort huge"), setup).kind).toBe("answer");
   });

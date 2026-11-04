@@ -28,13 +28,13 @@ export function typed(content: unknown): { name: string; args: string } | null {
 }
 
 /** Why `/name args` may not run here; null when it may. */
-export function commandRefusal(
+function commandRefusal(
   setup: Setup,
   owner: boolean,
   { name, args }: { name: string; args: string },
 ): string | null {
   if (name === "model" && args && !offers(setup, args))
-    return `This chat offers ${[setup.model, ...(setup.models ?? [])].join(", ")}, not ${args}.`;
+    return `This chat offers ${offered(setup).join(", ")}, not ${args}.`;
   if (name === "effort" && args && !["auto", ...EFFORTS].includes(args))
     return `Effort is one of ${EFFORTS.join(", ")}.`;
   if (owner || COMMANDS.has(name) || setup.skills.includes(name)) return null;
@@ -42,7 +42,7 @@ export function commandRefusal(
 }
 
 /** A command a person may see in the `/` menu. */
-export const commandShown = (setup: Setup, owner: boolean, name: string): boolean =>
+const commandShown = (setup: Setup, owner: boolean, name: string): boolean =>
   owner || COMMANDS.has(name) || setup.skills.includes(name);
 
 const answer = (session: unknown, text: string): Inbound => ({
@@ -194,8 +194,8 @@ export function outbound(frame: unknown, setup: Setup, owner: boolean): unknown 
 }
 
 /** An alias the setup lists (`sonnet`), or that alias's full id (`claude-sonnet-5-5`, as the CLI's model list gives it). */
+const offered = (setup: Setup) => [...new Set([setup.model, ...(setup.models ?? [])])];
+
 function offers(setup: Setup, model: string): boolean {
-  return [setup.model, ...(setup.models ?? [])].some(
-    (a) => model === a || model.startsWith(`claude-${a}-`),
-  );
+  return offered(setup).some((a) => model === a || model.startsWith(`claude-${a}-`));
 }
