@@ -28,12 +28,6 @@ export {
   useLastWrite,
 } from "./action.js";
 export {
-  Browser,
-  type BrowserFolder,
-  BrowserRow,
-  folderTree,
-} from "./browser.js";
-export {
   type AgentFoot,
   type AgentMessage,
   type AgentPart,
@@ -43,6 +37,12 @@ export {
   threadMessage,
   toolLine,
 } from "./agent-thread.js";
+export {
+  Browser,
+  type BrowserFolder,
+  BrowserRow,
+  folderTree,
+} from "./browser.js";
 export { Busy, BusyBox, type BusySize, Ring } from "./busy.js";
 export {
   BarsChart,
