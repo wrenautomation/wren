@@ -200,7 +200,7 @@ No client holds a product on prod (only `demo` and `wren_test`), so no paying cl
 | Review | The Review app (parked ideas) | |
 | Handlers | The Handlers app | `account/AiTools` |
 | Marketplace | The app, the Shop UI and self-install, browser mods | Install code for the operator CLI |
-| Workflows, Loops | The portal apps | CLI verbs. A `wren loops flag` verb comes in the same change, as the kill switch and `POST_NOW_FLAG` have no other writer |
+| Workflows, Loops | The portal apps | CLI verbs. `wren features` (built in phase 1) is the only writer of feature flags: the kill switch and `POST_NOW` |
 | Ask | The Ask app | `wren agent`; the chat panel |
 | Leads | The lead sheet (team `leads`, outbound `sheet`) | People |
 | SEO | The search pages (search days, search, keywords, AI answers), SearchWatch, `search-week` | The `starling-search` reads (Search Console, AI answers), as Reddit's adapter: SEO and Google Ads come back later as campaign channels |
@@ -230,7 +230,7 @@ proof step.
    - `areas.ts` becomes the eight places for team and client, with the client sidebar and the phone
      dock above.
    - Pages move to their place's app id. Old links go in `moved.ts`, and every href in code moves
-     too (`moved-guard.mjs`). `CLIENT_HELD` grows for each shared id that moves.
+     too (`moved-guard.mjs`). A client's old ids redirect through `CLIENT_MOVED`.
    - Grants and the route inventory move to the new ids (`core/src/access.ts` `APPS`). Prod
      `grants` is empty, so no data moves.
    - Holds show in Inbox.
@@ -296,3 +296,19 @@ None.
   sequences join content and outreach. SEO is not a place and not now: its pages and loop go, its
   reads stay for SEO with Google Ads later. The chat panel and the Research UI are out of this
   doc's scope.
+- 2026-11-04, phase 1 as built:
+  - Home is the Map row (`NavHome.row`), not a separate link. Phone dock: Inbox, Calendar, Content,
+    People, plus pins.
+  - `CLIENT_MOVED` replaces `CLIENT_HELD`: a client's old addresses redirect like the team's.
+  - `moved-guard.mjs` skips vendor paths, migrations and stored views. Stored views
+    (`profiles-schema.ts`, the inbound schema) keep their old links; the redirects cover them.
+  - `APPS` is the place ids plus the parked apps, `as const`, so `App` is a literal union and a stale
+    id fails typecheck. A record's app is the place whose list page shows it. A route's app is
+    where its page lives: drafts Content, replies Inbox, reports Map, mail access Back office.
+    Prod held no grant, role, token or ask naming an app, so no data moved.
+  - `delivery.portal` gates Map › Your plan. Prod has 0 `workflow_installs`, so no client loses a
+    page to the gate.
+  - `provides.apps` dropped from components: products gate pages, each page naming its component.
+  - Flags: `wren features`, not `wren loops flag`. A flag is not a loop, and `wren flags` already
+    holds client risk flags. Edits go through `editRecord` (History, Undo) and push the lander's edge.
+  - The e2e scripts were moved to the new addresses without a run; CI does not run them.

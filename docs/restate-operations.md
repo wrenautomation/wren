@@ -151,6 +151,18 @@ wren loops [--all] [--json]          # every loop: alive, dead, stuck (stopped w
 wren loops watch start|status|sync   # the watchdog loop
 ```
 
+### Feature flags
+
+The portal's Flags page is gone; the CLI is the only writer. Edits keep History and Undo, and a
+site flag pushes to the lander's edge (`WREN_SITE_EDGE_TOKEN`).
+
+```sh
+wren features [--json]                      # every flag, its rules and fallback
+wren features kill|live <key>               # the kill switch: everyone gets the fallback
+wren features set <key> --rules "on: clients <id>"   # rules one per line, first match wins
+wren features add <key> [--surface site] | rm <keys...>
+```
+
 ### Logs
 
 ```sh
