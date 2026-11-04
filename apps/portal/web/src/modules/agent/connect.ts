@@ -15,14 +15,9 @@ import type {
 export type { CanUseTool, Query, SDKMessage };
 
 /** `?agent=` for another relay. */
-export const RELAY =
+const RELAY =
   (typeof location === "undefined" ? null : new URLSearchParams(location.search).get("agent")) ??
   "ws://127.0.0.1:4748";
-
-/** `wren agent token` on the Mac; the page keeps it in this browser only. */
-const TOKEN_KEY = "wren.agent.token";
-export const agentToken = (): string | null => localStorage.getItem(TOKEN_KEY);
-export const setAgentToken = (t: string): void => localStorage.setItem(TOKEN_KEY, t.trim());
 
 /** The page's turns as the SDK's prompt stream: `say` queues one, `end` closes the session. */
 export function turns(): {
@@ -65,6 +60,7 @@ export function turns(): {
 export interface OpenOptions {
   /** A setup's name (`wren agent setups`). */
   setup: string;
+  /** `wren agent token` on the Mac. */
   token: string;
   prompt: AsyncIterable<SDKUserMessage>;
   canUseTool: CanUseTool;

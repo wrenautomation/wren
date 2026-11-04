@@ -18,7 +18,7 @@ import {
 } from "@wren/agent";
 import type { Command } from "commander";
 
-export const AGENT_PORT = 4748;
+const AGENT_PORT = 4748;
 const ORIGINS = [
   "https://app.wrenautomation.com",
   "http://localhost:5173",
