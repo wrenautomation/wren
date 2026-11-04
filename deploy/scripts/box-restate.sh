@@ -4,7 +4,7 @@
 # @unit desk-hop: The hop to the desk's Cloudflare Tunnel.
 # Runs ON the Postgres box (first boot, CI over SSM, or by hand over SSM): the Restate
 # server, Caddy in front of its ingress and the box's browser (/cdp), the hop to the desk's
-# Cloudflare Tunnel, and the nightly Restate backup. Idempotent: a container restarts only
+# Cloudflare Tunnel, and the hourly Restate backup. Idempotent: a container restarts only
 # when its config changed.
 # Usage: box-restate.sh <region> <backups-bucket> [param]
 # The param is SecureString JSON {"token": ingress bearer, "identity_pem": request-signing key}.
@@ -152,16 +152,23 @@ for _ in $(seq 1 30); do
 done
 curl -sf http://127.0.0.1:9070/health >/dev/null || { docker logs --tail 30 wren-restate 2>&1; exit 1; }
 
-# Nightly, after the Postgres dump: a partition snapshot (to restate/snapshots), then the
-# data dir as one dated tarball. The bucket expires restate/ after 7 days.
+# Hourly (WA-1063, designs/2026-11-04-at-least-once.md): a partition snapshot (to
+# restate/snapshots), then the data dir to a ring of 24 (hourly/<HH>, overwritten daily: a lost
+# volume loses at most 1 h). The 08:30 one, after the Postgres dump, is also kept by date. The
+# bucket expires restate/ after 7 days.
 cat > /usr/local/bin/wren-restate-backup <<EOF
 #!/bin/bash
 set -euo pipefail
+hour=\$(date -u +%H)
+to="s3://$bucket/restate/data"
 docker exec wren-restate restatectl snapshots create
-tar -C $D -czf - data | aws s3 cp --region $region - "s3://$bucket/restate/data/\$(date -u +%F).tar.gz"
+tar -C $D -czf - data | aws s3 cp --region $region - "\$to/hourly/\$hour.tar.gz"
+if [ "\$hour" = 08 ]; then
+  aws s3 cp --region $region "\$to/hourly/08.tar.gz" "\$to/\$(date -u +%F).tar.gz"
+fi
 EOF
 chmod 755 /usr/local/bin/wren-restate-backup
-echo "30 8 * * * root /usr/local/bin/wren-restate-backup >> /var/log/wren-restate-backup.log 2>&1" \
+echo "30 * * * * root flock -n /run/wren-restate-backup.lock /usr/local/bin/wren-restate-backup >> /var/log/wren-restate-backup.log 2>&1" \
   > /etc/cron.d/wren-restate-backup
 chmod 644 /etc/cron.d/wren-restate-backup
 echo "restate up"

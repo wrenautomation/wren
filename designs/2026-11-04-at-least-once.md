@@ -45,10 +45,10 @@ Pub/Sub (Gmail, Google Business) retries for 7 days, so those routes keep the 50
 | Cloudflare Queues | Workers Paid, $5 a month | the same, with a managed retry; money is William's call |
 | Telnyx failover URL | 0 | covers Telnyx only, and still needs a store |
 
-## Restate's disk (William picks)
+## Restate's disk (William picked hourly, 11-04)
 
-Restate runs as one node on the Postgres box. A lost volume loses every queued call since the
-08:30 snapshot.
+Restate runs as one node on the Postgres box. A lost volume lost every queued call since the
+08:30 snapshot. Now hourly (WA-1063): a ring of 24 data tarballs, at most 1 h lost.
 
 | Option | Cost | Data lost if the volume dies |
 |---|---|---|
