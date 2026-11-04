@@ -31,9 +31,5 @@ packages/db/.drift.*
 storybook-static/
 packages/ui/test-results/
 
-# kestrel: each gen writes the current map; only the approved one is committed.
-map/generated/**/*.current.json
-# Spend is not for a public repo: kestrel cost writes it locally only.
-map/generated/cost.md
-# git rebuilds it: kestrel recent writes it locally only.
-map/generated/recent.md
+# kestrel paused 11-04 (WA-1049): no session read the generated map. Never commit it.
+map/generated/

@@ -18,7 +18,7 @@ import path from "node:path";
 import ts from "typescript";
 
 const root = process.cwd();
-// map/generated lists every export by name (kestrel): it is no reader.
+// map/generated (kestrel, paused, untracked) lists every export by name: it is no reader.
 const SKIP = /node_modules|\/dist\/|\/drizzle\/|\/map\/generated\/|\.d\.ts$/;
 const READER = /\.(test|stories|spec)\.[jt]sx?$|\/(test|tests|__tests__|mocks|fixtures)\//;
 const SCHEMA = /schema\.ts$/;
